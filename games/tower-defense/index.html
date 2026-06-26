@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Keep Defender</title>
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#e0b25a">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Keep Defender">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root { --wood:#4a3220; --wood2:#5e4026; --parch:#e7d6ad; --ink:#3a2a17; --gold:#e0b25a; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -1024,6 +1030,7 @@
 
   resize(); loadBest(); updateHud(); loop();
 })();
+  if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {} }
 </script>
 </body>
 </html>
