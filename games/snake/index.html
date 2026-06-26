@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Neon Snake</title>
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#7fffb0">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Neon Snake">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; height:100%; overflow:hidden; background:#050a0f; color:#b0f0ff;
@@ -474,6 +480,7 @@
   reset();
   requestAnimationFrame(loop);
 })();
+  if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {} }
 </script>
 </body>
 </html>
