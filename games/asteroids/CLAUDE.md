@@ -77,5 +77,14 @@ Never hand-edit the two generated files — changes will be overwritten.
   (normal-mode bests), `asteroids_sfx` / `asteroids_music` (on/off),
   `asteroids_sfxvol` / `asteroids_musvol` (0–1). The launcher's menu reads these for the
   card "BEST …" lines and the **RESET BEST SCORES** button clears the per-version bests.
+- **Mobile/touch** controls are inlined per game, shown only on `pointer: coarse`
+  devices, and never touch desktop. The move joystick is *aim-and-go*: it sets
+  `ship.angle` to the stick direction every frame (instant aim) and only thrusts past
+  a ~0.45 deflection. `resize()` scales the canvas up on small screens (min dim < 640)
+  so the world zooms out instead of looking cramped.
+- **PWA:** `manifest.json` + `sw.js` (registered from the launcher) make it installable
+  and offline-capable. The service worker is **network-first** (updates show up when
+  online, cache is the offline fallback) — so no cache-version bump is needed on deploy.
+  If you add a new file that must work offline, add it to `ASSETS` in `sw.js`.
 - `.nojekyll` (repo root) disables GitHub Pages' Jekyll build so files serve as-is.
 - Match the existing terse, single-line code style in the game files. Comment sparingly.

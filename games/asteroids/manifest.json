@@ -1,0 +1,14 @@
+{
+  "name": "Asteroids",
+  "short_name": "Asteroids",
+  "description": "A self-contained Asteroids game — classic + roguelite modes, playable offline.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#05060a",
+  "theme_color": "#05060a",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

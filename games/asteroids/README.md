@@ -43,10 +43,16 @@ WASD mirrors the arrow keys everywhere — both steering and menu navigation.
 ### Mobile / touch
 
 On touch devices, on-screen controls appear automatically: a left **thumb-joystick**
-to steer (aim-and-go — the ship turns toward the stick and thrusts) and a right
-**FIRE** button (hidden once the **Auto-Fire** upgrade is unlocked), plus a **pause**
-button. Menus, the upgrade picker and the shop are tap-to-select; tap the start /
-game-over screen to (re)start. Desktop keyboard play is unchanged.
+to steer and a right **FIRE** button (hidden once the **Auto-Fire** upgrade is
+unlocked), plus a **pause** button. The joystick is *aim-and-go* — the ship instantly
+**faces** the stick (a light tilt rotates in place); push **past ~halfway** to thrust,
+harder = faster. Menus, the upgrade picker and the shop are tap-to-select; tap the
+start / game-over screen to (re)start. The view also zooms out on small screens so the
+playfield isn't cramped. Desktop keyboard play is unchanged.
+
+**Install it (PWA):** the site is a Progressive Web App — on Android Chrome use
+*"Add to Home screen"* (or the install prompt) to launch it **fullscreen** and play
+**offline**. No app store or build step.
 
 ## Versions
 
@@ -97,6 +103,8 @@ menu clears every version's saved bests.
 index.html                launcher (version select, mode toggle, audio + reset, menu music/stars)
 levels.js                 the version manifest (single source of truth for the menu)
 favicon.svg               themed neon-ship icon
+manifest.json             PWA manifest (installable / fullscreen)
+sw.js                     service worker (offline cache, network-first)
 .nojekyll                 tells GitHub Pages to serve files as-is (no Jekyll build)
 levels/                   all playable game builds (each is one standalone .html)
   classic.html              ┐

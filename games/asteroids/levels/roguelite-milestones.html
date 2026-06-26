@@ -67,6 +67,8 @@
   .tc-knob { position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px; border-radius:50%; background:rgba(159,232,255,0.55); box-shadow:0 0 16px rgba(120,200,255,0.6); }
   .tc-fire { position:absolute; right:24px; bottom:34px; width:96px; height:96px; border-radius:50%; border:2px solid rgba(255,150,150,0.55); background:rgba(80,20,20,0.4); color:#ffc0c0; font:bold 15px "Courier New",monospace; letter-spacing:2px; pointer-events:auto; touch-action:none; display:flex; align-items:center; justify-content:center; }
   .tc-pause { position:absolute; right:16px; top:14px; width:46px; height:46px; border-radius:10px; border:1px solid rgba(120,200,255,0.4); background:rgba(10,16,30,0.6); color:#cfe8ff; font:bold 15px "Courier New",monospace; pointer-events:auto; }
+  body.touch #hudR, body.touch #lives { top: 60px; }
+  body.touch #xpwrap { bottom: 172px; width: min(420px, 60vw); }
 </style>
 </head>
 <body>
@@ -145,7 +147,7 @@
   if (SPEEDRUN){ timerEl.style.display='block'; timerGoal.textContent='GOAL: CLEAR WAVE '+SR_TARGET_WAVE; modeHint.textContent='SPEEDRUN — clear wave '+SR_TARGET_WAVE+' (first boss) as fast as you can.'; }
 
   let W,H;
-  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight; buildStars(); }
+  function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S); buildStars(); }
   window.addEventListener('resize', resize);
 
   let stars=[];
@@ -599,8 +601,8 @@
   const isTouch = (typeof matchMedia!=='undefined' && matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window);
   let joyActive=false, joyAngle=0, joyMag=0, joyId=null, fireBtn=null;
   function applyTouch(){ if(!isTouch||!ship) return;
-    if(joyActive){ let d=joyAngle-ship.angle; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; keys['ArrowLeft']=d<-0.05; keys['ArrowRight']=d>0.05; keys['ArrowUp']=joyMag>0.25; }
-    else { keys['ArrowLeft']=false; keys['ArrowRight']=false; keys['ArrowUp']=false; }
+    keys['ArrowLeft']=false; keys['ArrowRight']=false; keys['ArrowUp']=false; // joystick drives the ship directly (aim-and-go)
+    if(joyActive){ ship.angle=joyAngle; const th=0.45; if(joyMag>th){ const acc=(ship.accel||0.16)*Math.min(1,(joyMag-th)/(1-th)); ship.vx+=Math.cos(joyAngle)*acc; ship.vy+=Math.sin(joyAngle)*acc; } }
     if(fireBtn) fireBtn.style.display = ship.auto ? 'none' : 'flex'; }
   function buildTouch(){
     const wrap=document.createElement('div'); wrap.id='tcontrols';
