@@ -6,6 +6,10 @@
   </a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/sponsors/N0zz"><img src="https://img.shields.io/badge/%E2%99%A5%20Sponsor-ff5d8f?style=for-the-badge" alt="Sponsor"></a>
+</p>
+
 <p align="center"><b>▶ Play in your browser: <a href="https://n0zz.github.io/arcade/">n0zz.github.io/arcade</a></b></p>
 
 ---

@@ -40,12 +40,25 @@
          background: color-mix(in srgb, var(--accent) 18%, transparent); white-space:nowrap; }
   .meta p { margin: 8px 0 0; font-size: 12.5px; line-height: 1.55; opacity: 0.65; }
   .play { margin-top: 14px; font-size: 12px; letter-spacing: 2px; color: var(--accent); opacity:0.9; }
-  #install { margin-top: 16px; font-family:inherit; font-size: 13px; letter-spacing: 2px; cursor:pointer;
-    padding: 9px 18px; border-radius: 22px; color:#0a0c14; background:#9fe8ff; border:0; font-weight:700; display:none; }
-  #install:hover { box-shadow: 0 0 18px rgba(159,232,255,0.6); }
-  .sponsor { color:#ff8ab0; text-decoration:none; } .sponsor:hover { text-decoration:underline; }
-  .install-help { margin-top: 12px; font-size: 11px; opacity: 0.45; letter-spacing: 1px; line-height: 1.7; }
-  footer { text-align:center; margin-top: 46px; font-size: 11px; opacity: 0.32; letter-spacing: 2px; }
+  .help-row { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:14px; }
+  #install { font-family:inherit; font-size:12px; letter-spacing:2px; cursor:pointer; padding:8px 16px; border-radius:20px;
+    color:#bfe6ff; background:transparent; border:1px solid rgba(159,232,255,0.45); font-weight:600; display:none; }
+  #install:hover { border-color:#9fe8ff; color:#fff; }
+  .tip { position:relative; display:inline-flex; }
+  .qbtn { width:26px; height:26px; border-radius:50%; border:1px solid rgba(255,255,255,0.3); background:transparent; color:#cdd6e6; cursor:pointer; font-size:13px; line-height:1; }
+  .qbtn:hover { border-color:#9fe8ff; color:#fff; }
+  .tip-pop { display:none; position:absolute; top:34px; left:50%; transform:translateX(-50%); width:min(300px,80vw); z-index:6;
+    background:#141a2a; border:1px solid rgba(159,232,255,0.3); border-radius:10px; padding:12px 14px; font-size:12px; line-height:1.7; text-align:left; box-shadow:0 10px 30px rgba(0,0,0,0.5); }
+  .tip-pop.show { display:block; }
+  .tile.soon { opacity:0.5; filter:grayscale(0.55); cursor:default; }
+  .tile.soon:hover { transform:none; box-shadow:none; border-color:rgba(255,255,255,0.1); }
+  .tile.soon .play { color:#8a93a6; }
+  .sponsor { color:#ff5d8f; font-weight:700; text-decoration:none; }
+  .sponsor:hover { color:#ff85aa; text-decoration:underline; }
+  .ghlink { color:#9fb2c9; text-decoration:none; }
+  .ghlink:hover { color:#fff; }
+  .ftext { opacity:0.32; }
+  footer { text-align:center; margin-top: 46px; font-size: 11px; letter-spacing: 2px; }
 </style>
 </head>
 <body>
@@ -53,32 +66,37 @@
     <header>
       <h1>ARCADE</h1>
       <div class="sub">a little catalogue of self-contained browser games</div>
-      <button id="install">📱 Install</button>
-      <div class="install-help" id="installHelp">
-        Install to your home screen to play fullscreen &amp; offline —
-        <b>Android Chrome:</b> menu ⋮ → “Add to Home screen” · <b>iPhone Safari:</b> Share → “Add to Home Screen”.
+      <div class="help-row">
+        <button id="install">📱 Install</button>
+        <span class="tip"><button class="qbtn" id="qbtn" aria-label="How to install">?</button>
+          <span class="tip-pop" id="tipPop"><b>Install to your home screen</b> — fullscreen &amp; offline:<br>
+            <b>Android (Chrome):</b> menu ⋮ → “Add to Home screen”<br>
+            <b>iPhone (Safari):</b> Share → “Add to Home Screen”<br>
+            <b>Desktop:</b> the Install button or the address-bar install icon.</span>
+        </span>
       </div>
     </header>
     <div class="grid" id="grid"></div>
-    <footer>built for fun · no ads · no tracking · plays offline · <a class="sponsor" href="https://github.com/sponsors/N0zz">♥ Sponsor</a></footer>
+    <footer><span class="ftext">built for fun · no ads · no tracking · plays offline</span> · <a class="sponsor" href="https://github.com/sponsors/N0zz">♥ Sponsor</a> · <a class="ghlink" href="https://github.com/N0zz/arcade">GitHub ↗</a></footer>
   </div>
 
   <script src="games.js"></script>
   <script>
     const grid = document.getElementById('grid');
     (window.GAMES || []).forEach(g => {
-      const a = document.createElement('a');
-      a.className = 'tile';
-      a.href = 'games/' + g.slug + '/';
-      a.style.setProperty('--accent', g.accent || '#9fe8ff');
-      a.innerHTML =
+      const soon = !!g.soon;
+      const el = document.createElement(soon ? 'div' : 'a');
+      el.className = 'tile' + (soon ? ' soon' : '');
+      if (!soon) el.href = 'games/' + g.slug + '/';
+      el.style.setProperty('--accent', g.accent || '#9fe8ff');
+      el.innerHTML =
         '<div class="art"><span class="glyph">' + (g.icon || '🎮') + '</span></div>' +
         '<div class="meta">' +
-          '<div class="row"><h2>' + g.title + '</h2><span class="tag">' + (g.tag || 'GAME') + '</span></div>' +
+          '<div class="row"><h2>' + g.title + '</h2><span class="tag">' + (soon ? 'SOON' : (g.tag || 'GAME')) + '</span></div>' +
           '<p>' + g.blurb + '</p>' +
-          '<div class="play">PLAY ▸</div>' +
+          '<div class="play">' + (soon ? 'COMING SOON' : 'PLAY ▸') + '</div>' +
         '</div>';
-      grid.appendChild(a);
+      grid.appendChild(el);
     });
 
     // PWA install: show the button when the browser offers a prompt (Android/desktop Chrome)
@@ -94,10 +112,11 @@
       deferredPrompt = null; installBtn.style.display = 'none';
     });
     window.addEventListener('appinstalled', () => { installBtn.style.display = 'none'; });
-    // already installed? hide the help text
-    if (window.matchMedia && matchMedia('(display-mode: standalone)').matches) {
-      document.getElementById('installHelp').style.display = 'none';
-    }
+    // (?) tooltip with manual install instructions
+    const qbtn = document.getElementById('qbtn'), tipPop = document.getElementById('tipPop');
+    qbtn.addEventListener('click', (e) => { e.stopPropagation(); tipPop.classList.toggle('show'); });
+    document.addEventListener('click', (e) => { if (!(e.target.closest && e.target.closest('.tip'))) tipPop.classList.remove('show'); });
+    if (window.matchMedia && matchMedia('(display-mode: standalone)').matches) { const hr = document.querySelector('.help-row'); if (hr) hr.style.display = 'none'; }
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
