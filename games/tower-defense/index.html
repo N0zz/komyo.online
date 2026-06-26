@@ -34,6 +34,8 @@
   #startBtn.busy { background:linear-gradient(180deg,#7a5a2c,#5a4220); }
   #speedBtn { background:linear-gradient(180deg,#3a5a7a,#2a4060); border-color:#1a2c40; color:#eaf4ff; font-size:13px; min-width:72px; }
   #speedBtn.fast { background:linear-gradient(180deg,#5a3a7a,#402060); border-color:#2c1a40; }
+  #autoBtn { font-size:13px; min-width:80px; }
+  #autoBtn.on { background:linear-gradient(180deg,#3f7a3a,#2c5a28); border-color:#1e3d1b; color:#eaffea; }
 
   #panelTower { position:fixed; z-index:6; left:50%; bottom:104px; transform:translateX(-50%); display:none;
     padding:10px 12px; border-radius:10px; text-align:center; min-width:200px; }
@@ -83,6 +85,7 @@
   <div class="tbtn" data-t="frost"><div class="n">Frost</div><div class="c" data-cost>30g</div><div class="d">slows nearby</div></div>
   <div class="tbtn" data-t="mage"><div class="n">Mage</div><div class="c" data-cost>45g</div><div class="d">arc · magic</div></div>
   <button id="startBtn" class="tbtn">Start Wave</button>
+  <button id="autoBtn" class="tbtn">Auto: Off</button>
   <button id="speedBtn" class="tbtn">&#x26A1;1x</button>
 </div>
 
@@ -206,20 +209,20 @@
 
   // ---- Tower configs ----
   const TOWERS = {
-    archer: { name: 'Archer', cost: 18, color: '#7fb85f', range: 2.7, dmg: 6,  cd: 28, kind: 'arrow' },
-    cannon: { name: 'Cannon', cost: 38, color: '#c07a44', range: 2.4, dmg: 16, cd: 78, kind: 'ball', splash: 1.3 },
+    archer: { name: 'Archer', cost: 18, color: '#7fb85f', range: 2.7, dmg: 5,  cd: 30, kind: 'arrow' },
+    cannon: { name: 'Cannon', cost: 38, color: '#c07a44', range: 2.4, dmg: 14, cd: 80, kind: 'ball', splash: 1.3 },
     frost:  { name: 'Frost',  cost: 30, color: '#6fb6e0', range: 2.3, dmg: 1,  cd: 16, kind: 'frost', slow: 0.5 },
-    mage:   { name: 'Mage',   cost: 45, color: '#9b59b6', range: 2.6, dmg: 12, cd: 45, kind: 'mage', splash: 1.0, slow: 0.3 },
+    mage:   { name: 'Mage',   cost: 45, color: '#9b59b6', range: 2.6, dmg: 10, cd: 46, kind: 'mage', splash: 1.0, slow: 0.3 },
   };
 
-  // ---- Enemy base stats ----
+  // ---- Enemy base stats (tankier + leaner rewards so placement & tower mix matter) ----
   const ENEMY_DEFS = {
-    grunt:   { hp: 26,  speed: 1.05, reward: 6,   color: '#9a6a44', rr: 0.30, leak: 1 },
-    runner:  { hp: 16,  speed: 2.0,  reward: 7,   color: '#d8b24a', rr: 0.25, leak: 1 },
-    brute:   { hp: 90,  speed: 0.62, reward: 15,  color: '#7a7a88', rr: 0.40, leak: 2 },
-    boss:    { hp: 680, speed: 0.5,  reward: 130, color: '#b04141', rr: 0.55, leak: 6 },
-    armored: { hp: 50,  speed: 0.85, reward: 20,  color: '#6a8a6a', rr: 0.35, leak: 1, armored: true },
-    swarm:   { hp: 8,   speed: 1.8,  reward: 3,   color: '#c09040', rr: 0.20, leak: 1 },
+    grunt:   { hp: 36,  speed: 1.05, reward: 3,   color: '#9a6a44', rr: 0.30, leak: 1 },
+    runner:  { hp: 22,  speed: 2.0,  reward: 3,   color: '#d8b24a', rr: 0.25, leak: 1 },
+    brute:   { hp: 140, speed: 0.62, reward: 8,   color: '#7a7a88', rr: 0.40, leak: 2 },
+    boss:    { hp: 880, speed: 0.5,  reward: 90,  color: '#b04141', rr: 0.55, leak: 6 },
+    armored: { hp: 78,  speed: 0.85, reward: 10,  color: '#6a8a6a', rr: 0.35, leak: 1, armored: true },
+    swarm:   { hp: 11,  speed: 1.8,  reward: 1,   color: '#c09040', rr: 0.20, leak: 1 },
   };
 
   // ---- State ----
@@ -232,6 +235,7 @@
   let bestScore = 0;
   let victory = false;
   let bossWarnShown = false;
+  let autoWave = false, autoDelay = 0; // auto-start: countdown (frames) before the next wave launches
 
   function reset() {
     gold = 110; hp = 20; wave = 0; score = 0;
@@ -239,7 +243,7 @@
     particles = [];
     selBuild = null; selTower = null;
     victory = false; bossWarnShown = false;
-    spawnT = 0;
+    spawnT = 0; autoWave = false; autoDelay = 0;
   }
 
   function startGame() {
@@ -277,6 +281,8 @@
     sb.classList.toggle('busy', state === 'wave');
     const spd = $('speedBtn');
     if (spd) { spd.textContent = gameSpeed === 1 ? '⚡2x' : '⚡3x'; spd.classList.toggle('fast', gameSpeed === 2); }
+    const ab = $('autoBtn');
+    if (ab) { ab.textContent = 'Auto: ' + (autoWave ? 'On' : 'Off'); ab.classList.toggle('on', autoWave); }
   }
   function float(x, y, txt, col) { floats.push({ x, y, txt, col: col || '#fff', life: 1 }); }
 
@@ -294,10 +300,10 @@
   function buildWave(n) {
     const q = [];
     let t = 0;
-    const interval = Math.max(14, 40 - n);
+    const interval = Math.max(11, 34 - n);
 
-    const grunts = 4 + Math.floor(n * 1.6);
-    const runners = n >= 2 ? Math.floor(n * 1.1) : 0;
+    const grunts = 5 + Math.floor(n * 1.9);
+    const runners = n >= 2 ? Math.floor(n * 1.4) : 0;
     const brutes = n >= 3 ? Math.floor((n - 1) / 2) : 0;
     const armoredCount = n >= 4 ? Math.floor(n / 3) : 0;
     const swarmGroups = n >= 3 ? Math.floor(n / 2) : 0;
@@ -332,7 +338,7 @@
   function spawnEnemy(type) {
     const b = ENEMY_DEFS[type];
     if (!b) return;
-    const k = 1 + wave * 0.14;
+    const k = 1 + (wave - 1) * 0.28;
     const e = {
       type, maxHp: Math.round(b.hp * k), hp: Math.round(b.hp * k),
       speed: b.speed, reward: b.reward, color: b.color, rr: b.rr, leak: b.leak,
@@ -368,7 +374,7 @@
     return true;
   }
 
-  function upgradeCost(t) { return Math.round(TOWERS[t.type].cost * (t.lvl + 0.6)); }
+  function upgradeCost(t) { return Math.round(TOWERS[t.type].cost * (t.lvl + 1.2)); }
   function upgradeTower(t) {
     if (t.lvl >= 3) return;
     const c = upgradeCost(t);
@@ -419,6 +425,8 @@
 
   // ---- Update ----
   function update() {
+    // auto-start: launch the next wave after a short build pause
+    if (state === 'build' && autoWave) { if (autoDelay > 0) autoDelay--; else startWave(); }
     if (state === 'wave') {
       spawnT++;
       while (spawnQ.length && spawnQ[0].at <= spawnT) { spawnEnemy(spawnQ.shift().type); }
@@ -455,7 +463,7 @@
           SND.play('leak');
           float(e.x, e.y, '-' + e.leak, '#ff8a8a');
           updateHud();
-          if (hp <= 0) gameOver();
+          if (hp <= 0) { gameOver(); break; } // keep fell — enemies[] is now cleared, stop iterating
         }
       } else {
         e.x += (tx - e.x) / d * sp;
@@ -561,8 +569,9 @@
     // wave end
     if (state === 'wave' && spawnQ.length === 0 && enemies.length === 0) {
       state = 'build';
-      const base = 12 + wave * 2;
-      const interest = Math.max(2, Math.round(gold * 0.05));
+      autoDelay = 150; // brief breather before auto-start launches the next wave
+      const base = 8 + wave * 2;
+      const interest = Math.max(1, Math.round(gold * 0.03));
       let bonus = 0;
       if (victory) bonus = Math.round(base * 0.5);
       gold += base + bonus + interest;
@@ -968,6 +977,13 @@
   $('startGameBtn').addEventListener('click', startGame);
   const spdBtn = $('speedBtn');
   if (spdBtn) spdBtn.addEventListener('click', () => { gameSpeed = gameSpeed === 1 ? 2 : 1; refreshToolbar(); });
+  const autoBtn = $('autoBtn');
+  if (autoBtn) autoBtn.addEventListener('click', () => {
+    autoWave = !autoWave;
+    if (autoWave && autoDelay <= 0) autoDelay = 150; // give a beat before the first auto-launch
+    autoBtn.textContent = 'Auto: ' + (autoWave ? 'On' : 'Off');
+    autoBtn.classList.toggle('on', autoWave);
+  });
 
   document.querySelectorAll('.map-btn').forEach(b => b.addEventListener('click', () => {
     applyMap(Number(b.dataset.map));
