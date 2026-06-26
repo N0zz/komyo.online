@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Range</title>
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#ff7a3c">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Range">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root { --bg:#0d1117; --grid:#1a2030; --accent:#ff7a3c; --fg:#e0e8f0; --dim:#6a7a8a; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -565,6 +571,7 @@
   updateHud();
   loop();
 })();
+  if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {} }
 </script>
 </body>
 </html>
