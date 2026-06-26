@@ -40,6 +40,14 @@ the Web Audio API, no sound files), including menu music. Toggle SFX/music and s
 
 WASD mirrors the arrow keys everywhere — both steering and menu navigation.
 
+### Mobile / touch
+
+On touch devices, on-screen controls appear automatically: a left **thumb-joystick**
+to steer (aim-and-go — the ship turns toward the stick and thrusts) and a right
+**FIRE** button (hidden once the **Auto-Fire** upgrade is unlocked), plus a **pause**
+button. Menus, the upgrade picker and the shop are tap-to-select; tap the start /
+game-over screen to (re)start. Desktop keyboard play is unchanged.
+
 ## Versions
 
 | Family | Name | File | Idea |

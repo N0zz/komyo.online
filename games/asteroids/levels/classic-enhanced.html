@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Classic Asteroids — Enhanced</title>
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <style>
@@ -28,6 +28,12 @@
   .settings { display:flex; gap:10px; align-items:center; justify-content:center; flex-wrap:wrap; margin-top:6px; }
   .settings .vol { font-size:12px; letter-spacing:1px; opacity:0.8; } .settings .vol input { vertical-align:middle; }
   .hidden { display:none !important; }
+  /* mobile touch controls (only shown on touch devices) */
+  #tcontrols { position:fixed; inset:0; z-index:7; pointer-events:none; }
+  .tc-joy { position:absolute; left:24px; bottom:24px; width:132px; height:132px; border-radius:50%; border:2px solid rgba(120,200,255,0.4); background:rgba(20,30,50,0.32); pointer-events:auto; touch-action:none; }
+  .tc-knob { position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px; border-radius:50%; background:rgba(159,232,255,0.55); box-shadow:0 0 16px rgba(120,200,255,0.6); }
+  .tc-fire { position:absolute; right:24px; bottom:34px; width:96px; height:96px; border-radius:50%; border:2px solid rgba(255,150,150,0.55); background:rgba(80,20,20,0.4); color:#ffc0c0; font:bold 15px "Courier New",monospace; letter-spacing:2px; pointer-events:auto; touch-action:none; display:flex; align-items:center; justify-content:center; }
+  .tc-pause { position:absolute; right:16px; top:14px; width:46px; height:46px; border-radius:10px; border:1px solid rgba(120,200,255,0.4); background:rgba(10,16,30,0.6); color:#cfe8ff; font:bold 15px "Courier New",monospace; pointer-events:auto; }
 </style>
 </head>
 <body>
@@ -166,6 +172,7 @@
   function showGameOver(){ SND.stopMusic(); SND.play('over'); const best=!SPEEDRUN&&saveBestScore(score); overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p><div class="row">'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
 
   function update(){
+    applyTouch();
     if(flashTimer>0){ flashTimer--; if(flashTimer===0) flashEl.style.opacity='0'; }
     // speedrun clock — only advances while actively playing
     const t=now(); if(state==='playing' && !srDone) srElapsed+=t-srPrev; srPrev=t;
@@ -205,6 +212,35 @@
   function drawParticles(){ for(const p of particles){ ctx.fillStyle='rgba('+p.color+','+p.life+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); ctx.fill(); } }
   function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawAsteroids(); drawBullets(); drawShip(); ctx.shadowBlur=0; }
   function loop(){ requestAnimationFrame(loop); try { update(); render(); } catch(e){ if(window.console) console.error(e); } }
+
+  // ---- Touch controls (mobile): aim-and-go joystick + fire; desktop is unaffected ----
+  const HAS_PAUSE = true;
+  const isTouch = (typeof matchMedia!=='undefined' && matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window);
+  let joyActive=false, joyAngle=0, joyMag=0, joyId=null, fireBtn=null;
+  function applyTouch(){ if(!isTouch||!ship) return;
+    if(joyActive){ let d=joyAngle-ship.angle; while(d>Math.PI)d-=2*Math.PI; while(d<-Math.PI)d+=2*Math.PI; keys['ArrowLeft']=d<-0.05; keys['ArrowRight']=d>0.05; keys['ArrowUp']=joyMag>0.25; }
+    else { keys['ArrowLeft']=false; keys['ArrowRight']=false; keys['ArrowUp']=false; }
+    if(fireBtn) fireBtn.style.display = ship.auto ? 'none' : 'flex'; }
+  function buildTouch(){
+    const wrap=document.createElement('div'); wrap.id='tcontrols';
+    const joy=document.createElement('div'); joy.className='tc-joy'; const knob=document.createElement('div'); knob.className='tc-knob'; joy.appendChild(knob);
+    fireBtn=document.createElement('button'); fireBtn.className='tc-fire'; fireBtn.textContent='FIRE';
+    wrap.appendChild(joy); wrap.appendChild(fireBtn);
+    if(HAS_PAUSE){ const pb=document.createElement('button'); pb.className='tc-pause'; pb.textContent='II'; pb.addEventListener('click',()=>{ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); }); wrap.appendChild(pb); }
+    document.body.appendChild(wrap);
+    function getT(e){ for(const x of e.changedTouches) if(x.identifier===joyId) return x; return null; }
+    function jset(t){ const r=joy.getBoundingClientRect(); const cx=r.left+r.width/2, cy=r.top+r.height/2; const dx=t.clientX-cx, dy=t.clientY-cy; const rad=r.width/2; const dist=Math.hypot(dx,dy)||0.0001; const cl=Math.min(dist,rad); joyAngle=Math.atan2(dy,dx); joyMag=cl/rad; knob.style.transform='translate('+(Math.cos(joyAngle)*cl)+'px,'+(Math.sin(joyAngle)*cl)+'px)'; }
+    joy.addEventListener('touchstart',e=>{ const t=e.changedTouches[0]; joyId=t.identifier; joyActive=true; jset(t); e.preventDefault(); },{passive:false});
+    joy.addEventListener('touchmove',e=>{ const t=getT(e); if(t){ jset(t); e.preventDefault(); } },{passive:false});
+    const rel=e=>{ if(getT(e)){ joyActive=false; joyId=null; joyMag=0; knob.style.transform='translate(0,0)'; } };
+    joy.addEventListener('touchend',rel); joy.addEventListener('touchcancel',rel);
+    fireBtn.addEventListener('touchstart',e=>{ keys[' ']=true; e.preventDefault(); },{passive:false});
+    fireBtn.addEventListener('touchend',e=>{ keys[' ']=false; e.preventDefault(); },{passive:false});
+    fireBtn.addEventListener('touchcancel',()=>{ keys[' ']=false; });
+  }
+  // tap the start / game-over / win / pause screen instead of a key
+  overlay.addEventListener('click',(e)=>{ if(e.target && e.target.closest && e.target.closest('button')) return; if(state==='menu'||state==='dead'||state==='won') startGame(); else if(HAS_PAUSE && state==='paused') resumeGame(); });
+  if(isTouch){ document.body.classList.add('touch'); buildTouch(); }
 
   resize(); spawnWave(4); updateHud(); loop();
 })();
