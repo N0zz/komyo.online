@@ -17,7 +17,7 @@ Open `index.html` to play; run `node test.mjs` to test.
 - **Add a new file only for a genuinely distinct version/mode** (a new concept worth
   its own menu entry) — not for an iteration of an existing one. To trace how a
   version evolved, read the commit history, not extra files.
-- **`versions.js` is the single source of truth** for the launcher menu. Add a version
+- **`levels.js` is the single source of truth** for the launcher menu. Add a version
   by adding a file and one `{ file, title, desc, tag, goal }` entry. `tag` is
   `CLASSIC` or `ROGUELITE` and decides which menu row it appears in.
 - **Always run `node test.mjs` after changes and keep it green** — it's the safety net
@@ -27,7 +27,7 @@ Open `index.html` to play; run `node test.mjs` to test.
 
 ## The roguelite trio is generated — edit the base, then regenerate
 
-All playable builds live in **`levels/`** (root keeps `index.html`, `versions.js`,
+All playable builds live in **`levels/`** (root keeps `index.html`, `levels.js`,
 `favicon.svg`, `test.mjs`, and the docs).
 
 `levels/roguelite-milestones.html` and `levels/roguelite-shop.html` are **generated

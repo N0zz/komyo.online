@@ -1,7 +1,7 @@
-// Single source of truth for the version menu.
+// Single source of truth for the level menu.
 // Each entry is a self-contained, fully-playable build living in levels/.
 // Git history is the record of iterations — see CLAUDE.md.
-window.VERSIONS = [
+window.LEVELS = [
   {
     file: "levels/classic.html",
     title: "Classic Asteroids",

@@ -117,7 +117,7 @@ factored so the two deferred variants can reuse it with a swapped progression mo
 
 ## 7. Future level/mode ideas (backlog — not yet built)
 
-Each would be a new file in `levels/` + a `versions.js` entry.
+Each would be a new file in `levels/` + a `levels.js` entry.
 
 - **Gravity Well** — a central sun/black-hole pulls the ship and asteroids; orbital-
   mechanics arcade twist on the Classic engine. _(Top pick — novel, medium effort.)_

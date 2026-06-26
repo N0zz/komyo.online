@@ -49,7 +49,7 @@ the Web Audio API, no sound files). Toggle SFX/music and set volume from the lau
 
 The three roguelite builds share one engine and differ only by a single
 `PROGRESSION` constant (see [CLAUDE.md](CLAUDE.md)). The launcher menu is data-driven
-from `versions.js`.
+from `levels.js`.
 
 ### Roguelite features
 
@@ -73,8 +73,8 @@ and shown on the menu cards.
 ## Project layout
 
 ```
-index.html                launcher (version select + mode toggle), reads versions.js
-versions.js               the version manifest (single source of truth for the menu)
+index.html                launcher (version select + mode toggle), reads levels.js
+levels.js               the version manifest (single source of truth for the menu)
 favicon.svg               themed neon-ship icon
 levels/                   all playable game builds (each is one standalone .html)
   classic.html              ┐

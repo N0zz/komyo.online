@@ -104,14 +104,16 @@
   // ---- Audio (procedural Web Audio — no asset files; inert when AudioContext is absent) ----
   const SND = (() => {
     let ac, master, sfxG, musG, mt=null;
+    function num(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:parseFloat(v); }catch(e){ return d; } }
     const opt = {
       get sfx(){ try{ return localStorage.getItem('asteroids_sfx')!=='0'; }catch(e){ return true; } },
       get music(){ try{ return localStorage.getItem('asteroids_music')!=='0'; }catch(e){ return true; } },
-      get vol(){ try{ const v=localStorage.getItem('asteroids_vol'); return v==null?0.6:parseFloat(v); }catch(e){ return 0.6; } },
+      get sfxvol(){ return num('asteroids_sfxvol',0.6); },
+      get musvol(){ return num('asteroids_musvol',0.5); },
     };
     function ensure(){ if(ac!==undefined) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC){ ac=null; return; }
-      ac=new AC(); master=ac.createGain(); master.gain.value=opt.vol; master.connect(ac.destination);
-      sfxG=ac.createGain(); sfxG.connect(master); musG=ac.createGain(); musG.gain.value=0.3; musG.connect(master); }
+      ac=new AC(); master=ac.createGain(); master.gain.value=1; master.connect(ac.destination);
+      sfxG=ac.createGain(); sfxG.gain.value=opt.sfxvol; sfxG.connect(master); musG=ac.createGain(); musG.gain.value=opt.musvol; musG.connect(master); }
     function tone(f,d,type,g){ if(!ac) return; const o=ac.createOscillator(),v=ac.createGain(); o.type=type||'square'; o.frequency.value=f; v.gain.value=g||0.18; v.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+d); o.connect(v); v.connect(sfxG); o.start(); o.stop(ac.currentTime+d); }
     function noise(d,g){ if(!ac) return; const n=ac.createBufferSource(),b=ac.createBuffer(1,Math.max(1,ac.sampleRate*d),ac.sampleRate),dt=b.getChannelData(0); for(let i=0;i<dt.length;i++) dt[i]=(Math.random()*2-1)*(1-i/dt.length); n.buffer=b; const v=ac.createGain(); v.gain.value=g||0.3; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1400; n.connect(f); f.connect(v); v.connect(sfxG); n.start(); }
     const SFX={ shoot:()=>tone(660,0.07,'square',0.08), pop:()=>tone(320,0.06,'square',0.06), explode:()=>noise(0.3,0.35), hit:()=>tone(170,0.12,'sawtooth',0.22),
@@ -123,7 +125,7 @@
       play(n){ ensure(); if(!ac) return; if(ac.state==='suspended') ac.resume(); if(opt.sfx)(SFX[n]||(()=>{}))(); },
       startMusic(){ ensure(); if(!ac||mt) return; mt=setInterval(mtick,250); },
       stopMusic(){ if(mt){ clearInterval(mt); mt=null; } },
-      refresh(){ ensure(); if(master) master.gain.value=opt.vol; if(!opt.music) this.stopMusic(); },
+      refresh(){ ensure(); if(sfxG) sfxG.gain.value=opt.sfxvol; if(musG) musG.gain.value=opt.musvol; if(!opt.music) this.stopMusic(); },
       opt,
     };
   })();
@@ -246,11 +248,11 @@
     if(PROGRESSION==='shop'){ creditsEl.textContent='◈ '+credits; }
   }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=80; }
-  function quitToMenu(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
-  function settingsHTML(){ return '<div class="settings"><button class="btn" id="sfxBtn">SFX: '+(SND.opt.sfx?'ON':'OFF')+'</button><button class="btn" id="musicBtn">MUSIC: '+(SND.opt.music?'ON':'OFF')+'</button><label class="vol">VOL <input type="range" id="volRange" min="0" max="1" step="0.05" value="'+SND.opt.vol+'"></label></div>'; }
+  function quitToMenu(){ if(!SPEEDRUN && (state==='playing'||state==='paused'||state==='levelup'||state==='shop')){ saveStat('asteroids_score_'+FILE,score); saveStat('asteroids_wave_'+FILE,wave); } try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
+  function settingsHTML(){ return '<div class="settings"><button class="btn" id="sfxBtn">SFX: '+(SND.opt.sfx?'ON':'OFF')+'</button><label class="vol">SFX <input type="range" id="sfxVol" min="0" max="1" step="0.05" value="'+SND.opt.sfxvol+'"></label><button class="btn" id="musicBtn">MUSIC: '+(SND.opt.music?'ON':'OFF')+'</button><label class="vol">MUS <input type="range" id="musVol" min="0" max="1" step="0.05" value="'+SND.opt.musvol+'"></label></div>'; }
   function wireSettings(){ const sb=$('sfxBtn'); if(sb) sb.addEventListener('click',()=>{ const v=!SND.opt.sfx; try{localStorage.setItem('asteroids_sfx',v?'1':'0');}catch(e){} sb.textContent='SFX: '+(v?'ON':'OFF'); if(v) SND.play('pop'); });
     const mb=$('musicBtn'); if(mb) mb.addEventListener('click',()=>{ const v=!SND.opt.music; try{localStorage.setItem('asteroids_music',v?'1':'0');}catch(e){} mb.textContent='MUSIC: '+(v?'ON':'OFF'); if(v) SND.startMusic(); else SND.stopMusic(); });
-    const vr=$('volRange'); if(vr) vr.addEventListener('input',()=>{ try{localStorage.setItem('asteroids_vol',vr.value);}catch(e){} SND.refresh(); }); }
+    const sv=$('sfxVol'); if(sv) sv.addEventListener('input',()=>{ try{localStorage.setItem('asteroids_sfxvol',sv.value);}catch(e){} SND.refresh(); }); const mv=$('musVol'); if(mv) mv.addEventListener('input',()=>{ try{localStorage.setItem('asteroids_musvol',mv.value);}catch(e){} SND.refresh(); }); }
   function wireOverlay(){ const mb=$('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=$('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); const sb=$('startBtn'); if(sb) sb.addEventListener('click', startGame); wireSettings(); }
   const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
 
@@ -263,7 +265,7 @@
   function makeHunter(x,y){ return {x,y,r:13,hp:2+Math.floor(wave/4),vx:0,vy:0,rot:0}; }
   function makeSentry(x,y){ return {x,y,r:16,hp:3+Math.floor(wave/3),vx:(Math.random()-0.5)*1.2,vy:(Math.random()-0.5)*1.2,fireCd:90+Math.random()*60,rot:0}; }
   // boss HP ramps hard past wave 8 so the wave-10/15/20 bosses are real walls
-  function makeBoss(w){ const hp=Math.round(60 + w*12 + Math.max(0,w-8)*w*2.5); return {x:W/2,y:140,r:70,hp,maxHp:hp,vx:1.4,vy:0.9,fireCd:Math.max(45,90-w*2),spawnCd:Math.max(110,200-w*4),rot:0}; }
+  function makeBoss(w){ const hp=Math.round(90 + w*20 + Math.max(0,w-6)*w*4.5); return {x:W/2,y:140,r:70,hp,maxHp:hp,vx:1.4,vy:0.9,fireCd:Math.max(40,85-w*2),spawnCd:Math.max(100,190-w*4),rot:0}; }
 
   function startWave(n){
     wave=n; waveBreak=0;
@@ -311,11 +313,13 @@
   // random map pickups — health regen + a couple of power drops (since +max HP alone
   // is useless without a way to heal).
   const PICKUPS={ repair:{glyph:'+',color:'120,255,150'}, shieldcell:{glyph:'◇',color:'120,200,255'}, frenzy:{glyph:'≫',color:'255,210,90'}, pulse:{glyph:'✸',color:'255,140,90'} };
+  const MAX_PICKUPS = 4;
   function maybeDropPickup(x,y,kind){
+    if(pickups.length >= MAX_PICKUPS) return;      // cap how many sit on the map
     const boss = kind==='boss';
     const wantHeal0 = ship.hp < ship.maxHp;
-    // base ~16%; better odds when you're hurt so help actually shows up
-    const chance = (wantHeal0 ? 0.26 : 0.16) * (kind==='sentry'?1.6:kind==='hunter'?1.3:1);
+    // low base; a bit better when hurt so a repair can show up
+    const chance = (wantHeal0 ? 0.11 : 0.045) * (kind==='sentry'?1.5:kind==='hunter'?1.2:1);
     if(!boss && Math.random() > chance) return;
     let type;
     const wantHeal = ship.hp < ship.maxHp;
@@ -331,7 +335,7 @@
     if(p.type==='repair'){ ship.hp=Math.min(ship.maxHp, ship.hp+1); flash('REPAIR +1 HP'); }
     else if(p.type==='shieldcell'){ ship.shield=ship.shieldMax; flash('SHIELD RESTORED'); }
     else if(p.type==='frenzy'){ ship.frenzy=420; flash('FRENZY!'); }
-    else if(p.type==='pulse'){ novas.push({x:ship.x,y:ship.y,r:0,max:280,dmg:4}); flash('PULSE'); }
+    else if(p.type==='pulse'){ novas.push({x:ship.x,y:ship.y,r:0,max:Math.max(W,H)*0.6,dmg:6}); flash('PULSE'); }
     burst(p.x,p.y,PICKUPS[p.type].color,12,2); SND.play('pickup'); updateHud();
   }
 

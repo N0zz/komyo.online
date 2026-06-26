@@ -13,6 +13,7 @@
     color: #cfe8ff;
     overflow: hidden;
   }
+  #stars { position: fixed; inset: 0; z-index: 0; display: block; }
   /* CRT scanline vibe on the menu */
   body::after {
     content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
@@ -20,11 +21,11 @@
     opacity: 0.35;
   }
   #select {
-    position: fixed; inset: 0;
+    position: fixed; inset: 0; z-index: 1;
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     gap: 26px; padding: 30px; box-sizing: border-box;
-    background: radial-gradient(circle at center, rgba(10,14,26,0.7), rgba(5,6,10,0.96));
+    background: radial-gradient(circle at center, rgba(10,14,26,0.35), rgba(5,6,10,0.62));
     overflow-y: auto;
   }
   #select h1 {
@@ -53,6 +54,7 @@
   .audiobar button:hover { border-color: #9fe8ff; }
   .audiobar button.off { opacity: 0.45; }
   .audiobar .vol { opacity: 0.7; }
+  .audiobar .vol input { vertical-align: middle; }
 
   #cards { display: flex; flex-direction: column; gap: 12px; align-items: center; max-width: 1100px; }
   .row-label { font-size: 12px; letter-spacing: 3px; opacity: 0.45; margin-top: 8px; }
@@ -61,7 +63,7 @@
     width: 250px; padding: 22px 20px;
     border: 2px solid rgba(120,200,255,0.3);
     border-radius: 14px;
-    background: rgba(20,30,50,0.35);
+    background: rgba(20,30,50,0.55);
     cursor: pointer;
     transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     text-align: left;
@@ -80,11 +82,7 @@
   .card .tag.ROGUELITE { background: rgba(255,200,120,0.16); color: #ffc878; }
   .card h2 { margin: 0 0 8px; font-size: 18px; letter-spacing: 0.5px; line-height: 1.2; }
   .card p { margin: 0; font-size: 12px; line-height: 1.55; opacity: 0.72; }
-  .card .best {
-    margin-top: 12px; font-size: 11px; letter-spacing: 1px;
-    color: #ffd166; opacity: 0; transition: opacity 0.15s;
-  }
-  .card .best.show { opacity: 0.9; }
+  .card .best { margin-top: 12px; font-size: 11px; letter-spacing: 1px; color: #ffd166; opacity: 0.9; }
   .card .goal { margin-top: 6px; font-size: 11px; color: #9fe8ff; opacity: 0; }
   .card .goal.show { opacity: 0.7; }
 
@@ -92,16 +90,20 @@
   #frameWrap iframe { width: 100%; height: 100%; border: 0; display: block; }
   #back {
     position: fixed; bottom: 16px; right: 18px; z-index: 70;
-    font-family: "Courier New", monospace; font-size: 13px; letter-spacing: 1px;
-    color: #cfe8ff; background: rgba(10,16,30,0.7);
-    border: 1px solid rgba(120,200,255,0.4); border-radius: 8px; padding: 8px 14px;
-    cursor: pointer; display: none;
+    display: none; align-items: center; gap: 9px;
+    font-family: "Courier New", monospace; font-size: 13px; letter-spacing: 2px;
+    color: #cfe8ff; background: rgba(10,16,30,0.8);
+    border: 1px solid rgba(120,200,255,0.45); border-radius: 10px; padding: 9px 15px;
+    cursor: pointer;
   }
   #back:hover { border-color: #9fe8ff; box-shadow: 0 0 14px rgba(120,200,255,0.4); }
+  #back .ham { display: inline-flex; flex-direction: column; gap: 3px; }
+  #back .ham span { display: block; width: 16px; height: 2px; background: #9fe8ff; border-radius: 2px; }
   .footer { font-size: 11px; opacity: 0.35; letter-spacing: 2px; }
 </style>
 </head>
 <body>
+  <canvas id="stars"></canvas>
   <div id="select">
     <h1>ASTEROIDS</h1>
     <div class="sub">select version</div>
@@ -115,8 +117,9 @@
     <div class="audiobar">
       <span class="lbl">AUDIO</span>
       <button id="sfxToggle">SFX: ON</button>
+      <label class="vol">SFX <input type="range" id="sfxVol" min="0" max="1" step="0.05" value="0.6"></label>
       <button id="musicToggle">MUSIC: ON</button>
-      <label class="vol">VOL <input type="range" id="volRange" min="0" max="1" step="0.05" value="0.6"></label>
+      <label class="vol">MUS <input type="range" id="musVol" min="0" max="1" step="0.05" value="0.5"></label>
     </div>
 
     <div class="cards" id="cards"></div>
@@ -124,9 +127,9 @@
   </div>
 
   <div id="frameWrap"><iframe id="frame" title="Asteroids"></iframe></div>
-  <button id="back">‹ versions</button>
+  <button id="back"><span class="ham"><span></span><span></span><span></span></span> MENU</button>
 
-  <script src="versions.js"></script>
+  <script src="levels.js"></script>
   <script>
     const select = document.getElementById('select');
     const frameWrap = document.getElementById('frameWrap');
@@ -138,12 +141,52 @@
 
     let speedrun = false;
 
+    // ---- starfield background (same twinkle as the games) ----
+    const sky = document.getElementById('stars');
+    const sctx = sky.getContext('2d');
+    let SW, SH, stars = [];
+    function buildStars() {
+      stars = [];
+      const n = Math.floor((SW * SH) / 6000);
+      for (let i = 0; i < n; i++) stars.push({ x: Math.random()*SW, y: Math.random()*SH, r: Math.random()*1.4+0.2, a: Math.random()*0.6+0.2, tw: Math.random()*Math.PI*2, ts: Math.random()*0.04+0.01 });
+    }
+    function resizeSky() { SW = sky.width = window.innerWidth; SH = sky.height = window.innerHeight; buildStars(); }
+    window.addEventListener('resize', resizeSky);
+    function drawSky() {
+      sctx.clearRect(0, 0, SW, SH);
+      for (const s of stars) { s.tw += s.ts; const a = s.a*(0.6+0.4*Math.sin(s.tw)); sctx.fillStyle = 'rgba(200,225,255,'+a+')'; sctx.beginPath(); sctx.arc(s.x, s.y, s.r, 0, Math.PI*2); sctx.fill(); }
+      requestAnimationFrame(drawSky);
+    }
+    resizeSky(); drawSky();
+
+    // ---- audio (same procedural engine as the games; powers menu music) ----
+    const SND = (() => {
+      let ac, master, sfxG, musG, mt=null;
+      function num(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:parseFloat(v); }catch(e){ return d; } }
+      const opt = {
+        get music(){ try{ return localStorage.getItem('asteroids_music')!=='0'; }catch(e){ return true; } },
+        get musvol(){ return num('asteroids_musvol',0.5); },
+      };
+      function ensure(){ if(ac!==undefined) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC){ ac=null; return; }
+        ac=new AC(); master=ac.createGain(); master.gain.value=1; master.connect(ac.destination); musG=ac.createGain(); musG.gain.value=opt.musvol; musG.connect(master); }
+      const scale=[220,277.18,329.63,440,329.63,277.18]; let step=0;
+      function mtick(){ if(!ac||!opt.music) return; const f=scale[step%scale.length]*(Math.floor(step/6)%2?0.5:1); const o=ac.createOscillator(),v=ac.createGain(); o.type='triangle'; o.frequency.value=f; v.gain.value=0; v.gain.linearRampToValueAtTime(0.16,ac.currentTime+0.03); v.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.4); o.connect(v); v.connect(musG); o.start(); o.stop(ac.currentTime+0.45); step++; }
+      return {
+        startMusic(){ ensure(); if(!ac||mt) return; if(ac.state==='suspended') ac.resume(); mt=setInterval(mtick,250); },
+        stopMusic(){ if(mt){ clearInterval(mt); mt=null; } },
+        refresh(){ ensure(); if(musG) musG.gain.value=opt.musvol; if(!opt.music) this.stopMusic(); },
+        opt,
+      };
+    })();
+    let gestured = false;
+    function kickMenuMusic() { if (gestured) return; gestured = true; if (SND.opt.music) SND.startMusic(); }
+    window.addEventListener('pointerdown', kickMenuMusic);
+    window.addEventListener('keydown', kickMenuMusic);
+
     // localStorage keys are by file basename (stable across the levels/ move)
     function base(file) { return file.split('/').pop(); }
     function fmtTime(ms) {
-      const m = Math.floor(ms / 60000);
-      const s = Math.floor((ms % 60000) / 1000);
-      const cs = Math.floor((ms % 1000) / 10);
+      const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000), cs = Math.floor((ms % 1000) / 10);
       return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + '.' + String(cs).padStart(2,'0');
     }
     function readNum(key) {
@@ -172,7 +215,7 @@
         '<h2>' + v.title + '</h2>' +
         '<p>' + v.desc + '</p>' +
         '<div class="goal' + (speedrun ? ' show' : '') + '">GOAL: ' + v.goal + '</div>' +
-        '<div class="best show">' + bestLine + '</div>';
+        '<div class="best">' + bestLine + '</div>';
       const go = () => play(v.file);
       card.addEventListener('click', go);
       card.addEventListener('keydown', (e) => {
@@ -184,7 +227,7 @@
     // one row per family: Classic on top, Roguelite below
     function renderCards() {
       cardsEl.innerHTML = '';
-      const all = window.VERSIONS || [];
+      const all = window.LEVELS || [];
       ['CLASSIC', 'ROGUELITE'].forEach(tag => {
         const vs = all.filter(v => v.tag === tag);
         if (!vs.length) return;
@@ -210,10 +253,11 @@
     }
 
     function play(file) {
+      SND.stopMusic();                 // game plays its own music
       frame.src = file + (speedrun ? '?speedrun=1' : '');
       select.style.display = 'none';
       frameWrap.style.display = 'block';
-      back.style.display = 'block';
+      back.style.display = 'inline-flex';
       frame.focus();
     }
     function toMenu() {
@@ -221,13 +265,15 @@
       frameWrap.style.display = 'none';
       back.style.display = 'none';
       select.style.display = 'flex';
-      renderCards(); // refresh best times
+      renderCards(); // refresh best stats
+      if (gestured && SND.opt.music) SND.startMusic();
     }
 
     // ---- audio settings (shared localStorage; games read these on load) ----
     const sfxToggle = document.getElementById('sfxToggle');
     const musicToggle = document.getElementById('musicToggle');
-    const volRange = document.getElementById('volRange');
+    const sfxVol = document.getElementById('sfxVol');
+    const musVol = document.getElementById('musVol');
     function getS(k, d) { try { const v = localStorage.getItem(k); return v == null ? d : v; } catch (e) { return d; } }
     function setS(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
     function refreshAudioUI() {
@@ -235,11 +281,17 @@
       const music = getS('asteroids_music', '1') !== '0';
       sfxToggle.textContent = 'SFX: ' + (sfx ? 'ON' : 'OFF'); sfxToggle.classList.toggle('off', !sfx);
       musicToggle.textContent = 'MUSIC: ' + (music ? 'ON' : 'OFF'); musicToggle.classList.toggle('off', !music);
-      volRange.value = getS('asteroids_vol', '0.6');
+      sfxVol.value = getS('asteroids_sfxvol', '0.6');
+      musVol.value = getS('asteroids_musvol', '0.5');
     }
     sfxToggle.addEventListener('click', () => { setS('asteroids_sfx', getS('asteroids_sfx','1') !== '0' ? '0' : '1'); refreshAudioUI(); });
-    musicToggle.addEventListener('click', () => { setS('asteroids_music', getS('asteroids_music','1') !== '0' ? '0' : '1'); refreshAudioUI(); });
-    volRange.addEventListener('input', () => setS('asteroids_vol', volRange.value));
+    musicToggle.addEventListener('click', () => {
+      const on = getS('asteroids_music','1') !== '0';
+      setS('asteroids_music', on ? '0' : '1'); refreshAudioUI();
+      if (on) SND.stopMusic(); else { gestured = true; SND.startMusic(); }
+    });
+    sfxVol.addEventListener('input', () => setS('asteroids_sfxvol', sfxVol.value));
+    musVol.addEventListener('input', () => { setS('asteroids_musvol', musVol.value); SND.refresh(); });
     refreshAudioUI();
 
     modeToggle.addEventListener('click', () => setMode(!speedrun));

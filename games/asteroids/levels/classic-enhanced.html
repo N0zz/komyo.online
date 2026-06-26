@@ -68,14 +68,16 @@
   // ---- Audio (procedural Web Audio — no asset files; inert when AudioContext is absent) ----
   const SND = (() => {
     let ac, master, sfxG, musG, mt=null;
+    function num(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:parseFloat(v); }catch(e){ return d; } }
     const opt = {
       get sfx(){ try{ return localStorage.getItem('asteroids_sfx')!=='0'; }catch(e){ return true; } },
       get music(){ try{ return localStorage.getItem('asteroids_music')!=='0'; }catch(e){ return true; } },
-      get vol(){ try{ const v=localStorage.getItem('asteroids_vol'); return v==null?0.6:parseFloat(v); }catch(e){ return 0.6; } },
+      get sfxvol(){ return num('asteroids_sfxvol',0.6); },
+      get musvol(){ return num('asteroids_musvol',0.5); },
     };
     function ensure(){ if(ac!==undefined) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC){ ac=null; return; }
-      ac=new AC(); master=ac.createGain(); master.gain.value=opt.vol; master.connect(ac.destination);
-      sfxG=ac.createGain(); sfxG.connect(master); musG=ac.createGain(); musG.gain.value=0.3; musG.connect(master); }
+      ac=new AC(); master=ac.createGain(); master.gain.value=1; master.connect(ac.destination);
+      sfxG=ac.createGain(); sfxG.gain.value=opt.sfxvol; sfxG.connect(master); musG=ac.createGain(); musG.gain.value=opt.musvol; musG.connect(master); }
     function tone(f,d,type,g){ if(!ac) return; const o=ac.createOscillator(),v=ac.createGain(); o.type=type||'square'; o.frequency.value=f; v.gain.value=g||0.18; v.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+d); o.connect(v); v.connect(sfxG); o.start(); o.stop(ac.currentTime+d); }
     function noise(d,g){ if(!ac) return; const n=ac.createBufferSource(),b=ac.createBuffer(1,Math.max(1,ac.sampleRate*d),ac.sampleRate),dt=b.getChannelData(0); for(let i=0;i<dt.length;i++) dt[i]=(Math.random()*2-1)*(1-i/dt.length); n.buffer=b; const v=ac.createGain(); v.gain.value=g||0.3; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=1400; n.connect(f); f.connect(v); v.connect(sfxG); n.start(); }
     const SFX={ shoot:()=>tone(660,0.07,'square',0.08), pop:()=>tone(320,0.06,'square',0.06), explode:()=>noise(0.3,0.35), hit:()=>tone(170,0.12,'sawtooth',0.22),
@@ -87,7 +89,7 @@
       play(n){ ensure(); if(!ac) return; if(ac.state==='suspended') ac.resume(); if(opt.sfx)(SFX[n]||(()=>{}))(); },
       startMusic(){ ensure(); if(!ac||mt) return; mt=setInterval(mtick,250); },
       stopMusic(){ if(mt){ clearInterval(mt); mt=null; } },
-      refresh(){ ensure(); if(master) master.gain.value=opt.vol; if(!opt.music) this.stopMusic(); },
+      refresh(){ ensure(); if(sfxG) sfxG.gain.value=opt.sfxvol; if(musG) musG.gain.value=opt.musvol; if(!opt.music) this.stopMusic(); },
       opt,
     };
   })();
@@ -127,11 +129,11 @@
   function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14}; invuln=120; }
   function updateHud(){ scoreEl.textContent=score; livesEl.textContent='▲ '.repeat(Math.max(0,lives)).trim(); weaponEl.textContent=WEAPONS[weaponLevel-1].label; }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=90; }
-  function quitToMenu(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
-  function settingsHTML(){ return '<div class="settings"><button class="btn" id="sfxBtn">SFX: '+(SND.opt.sfx?'ON':'OFF')+'</button><button class="btn" id="musicBtn">MUSIC: '+(SND.opt.music?'ON':'OFF')+'</button><label class="vol">VOL <input type="range" id="volRange" min="0" max="1" step="0.05" value="'+SND.opt.vol+'"></label></div>'; }
+  function quitToMenu(){ if(!SPEEDRUN && (state==='playing'||state==='paused')) saveBestScore(score); try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
+  function settingsHTML(){ return '<div class="settings"><button class="btn" id="sfxBtn">SFX: '+(SND.opt.sfx?'ON':'OFF')+'</button><label class="vol">SFX <input type="range" id="sfxVol" min="0" max="1" step="0.05" value="'+SND.opt.sfxvol+'"></label><button class="btn" id="musicBtn">MUSIC: '+(SND.opt.music?'ON':'OFF')+'</button><label class="vol">MUS <input type="range" id="musVol" min="0" max="1" step="0.05" value="'+SND.opt.musvol+'"></label></div>'; }
   function wireSettings(){ const sb=document.getElementById('sfxBtn'); if(sb) sb.addEventListener('click',()=>{ const v=!SND.opt.sfx; try{localStorage.setItem('asteroids_sfx',v?'1':'0');}catch(e){} sb.textContent='SFX: '+(v?'ON':'OFF'); if(v) SND.play('pop'); });
     const mb2=document.getElementById('musicBtn'); if(mb2) mb2.addEventListener('click',()=>{ const v=!SND.opt.music; try{localStorage.setItem('asteroids_music',v?'1':'0');}catch(e){} mb2.textContent='MUSIC: '+(v?'ON':'OFF'); if(v) SND.startMusic(); else SND.stopMusic(); });
-    const vr=document.getElementById('volRange'); if(vr) vr.addEventListener('input',()=>{ try{localStorage.setItem('asteroids_vol',vr.value);}catch(e){} SND.refresh(); }); }
+    const sv=document.getElementById('sfxVol'); if(sv) sv.addEventListener('input',()=>{ try{localStorage.setItem('asteroids_sfxvol',sv.value);}catch(e){} SND.refresh(); }); const mv=document.getElementById('musVol'); if(mv) mv.addEventListener('input',()=>{ try{localStorage.setItem('asteroids_musvol',mv.value);}catch(e){} SND.refresh(); }); }
   function wireOverlay(){ const mb=document.getElementById('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=document.getElementById('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); wireSettings(); }
   const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
   function checkWeaponUpgrade(){ const nx=WEAPONS[weaponLevel]; if(nx && score>=nx.score){ weaponLevel=nx.level; flash('WEAPON UPGRADED'); updateHud(); } }

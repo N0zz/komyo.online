@@ -68,7 +68,7 @@ function runGame(file, { search = '' } = {}) {
     addEventListener: (type, fn) => { (handlers[type] ||= []).push(fn); },
     removeEventListener: () => {},
     performance: { now: () => clock },
-    __test: undefined, VERSIONS: undefined,
+    __test: undefined, LEVELS: undefined,
   };
   win.parent = { postMessage: (m) => posted.push(m) }; // simulate being inside the launcher iframe
   const documentMock = {
@@ -400,6 +400,17 @@ function testBossScaling(file) {
   ok(hp5 > 0 && hp15 > hp5 * 2, file + ' wave-15 boss much tougher than wave-5 (' + hp5 + ' -> ' + hp15 + ')');
 }
 
+function testSaveOnQuit(file) {
+  section(file + ' (best score saved on quit)');
+  const g = runGame(file);
+  const T = () => g.test();
+  T().start(); g.step(2);
+  T().addScore(500); g.step(1);
+  T().quitToMenu();                      // quit mid-run (never died)
+  const sc = parseInt(g.store['asteroids_score_' + file] || '0', 10);
+  ok(sc >= 500, file + ' score persisted on quit (' + sc + ')');
+}
+
 function testStressManyWaves(file, prog) {
   section(file + ' (stress: all upgrades, waves 1→13)');
   const g = runGame(file);
@@ -443,28 +454,29 @@ function testLauncher() {
   const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
   const m = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
   ok(!!m, 'launcher has inline script');
-  const verCode = fs.readFileSync(path.join(DIR, 'versions.js'), 'utf8');
+  const verCode = fs.readFileSync(path.join(DIR, 'levels.js'), 'utf8');
   const elCache = {};
   const getEl = id => (elCache[id] ||= makeEl(id));
-  const win = { addEventListener: () => {}, VERSIONS: undefined };
+  const win = { addEventListener: () => {}, LEVELS: undefined, innerWidth: 1280, innerHeight: 800 };
   const documentMock = { getElementById: getEl, createElement: t => makeEl('new-' + t), addEventListener: () => {} };
   const store = {};
   const sandbox = { window: win, document: documentMock, location: { search: '' },
     localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
-    Math, JSON, String, Number, Array, Object, parseInt, console, URLSearchParams };
+    requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setInterval: () => 0, clearInterval: () => {},
+    Math, JSON, String, Number, Array, Object, parseInt, parseFloat, console, URLSearchParams };
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
   let bootErr = null;
-  try { vm.runInContext(verCode, ctx, { filename: 'versions.js' }); vm.runInContext(m[1], ctx, { filename: 'index.html' }); }
+  try { vm.runInContext(verCode, ctx, { filename: 'levels.js' }); vm.runInContext(m[1], ctx, { filename: 'index.html' }); }
   catch (e) { bootErr = e.message; }
   ok(bootErr === null, 'launcher boots: ' + bootErr);
-  ok(Array.isArray(win.VERSIONS) && win.VERSIONS.length === 5, 'versions.js exposes 5 versions (got ' + (win.VERSIONS && win.VERSIONS.length) + ')');
+  ok(Array.isArray(win.LEVELS) && win.LEVELS.length === 5, 'levels.js exposes 5 versions (got ' + (win.LEVELS && win.LEVELS.length) + ')');
   const cards = getEl('cards');
   // two rows: [label, classic-row, label, roguelite-row]
   const rows = cards.children.filter(c => c.className === 'crow');
   ok(rows.length === 2, 'launcher renders two rows (got ' + rows.length + ')');
-  const classicCount = (win.VERSIONS || []).filter(v => v.tag === 'CLASSIC').length;
-  const rogueCount = (win.VERSIONS || []).filter(v => v.tag === 'ROGUELITE').length;
+  const classicCount = (win.LEVELS || []).filter(v => v.tag === 'CLASSIC').length;
+  const rogueCount = (win.LEVELS || []).filter(v => v.tag === 'ROGUELITE').length;
   ok(rows[0] && rows[0].children.length === classicCount, 'classic row has ' + classicCount + ' cards (got ' + (rows[0] && rows[0].children.length) + ')');
   ok(rows[1] && rows[1].children.length === rogueCount, 'roguelite row has ' + rogueCount + ' cards (got ' + (rows[1] && rows[1].children.length) + ')');
   const totalCards = rows.reduce((n, r) => n + r.children.length, 0);
@@ -475,7 +487,7 @@ function testLauncher() {
   ok(toggle.textContent === 'SPEEDRUN', 'toggle switches to SPEEDRUN');
   // launch the first card (first classic version) in speedrun mode
   const frame = getEl('frame');
-  const firstVersion = (win.VERSIONS || []).find(v => v.tag === 'CLASSIC');
+  const firstVersion = (win.LEVELS || []).find(v => v.tag === 'CLASSIC');
   cards.children.filter(c => c.className === 'crow')[0].children[0].fire('click');
   ok(frame.src === firstVersion.file + '?speedrun=1', 'card launches version with speedrun param (got ' + frame.src + ')');
   ok(getEl('frameWrap').style.display === 'block', 'frame shown on launch');
@@ -503,6 +515,7 @@ for (const [file, prog] of [['roguelite-levelup.html', 'levelup'], ['roguelite-m
   testWave5BossVisible(file);
   testWave4Clearable(file);
   testBulletsClearOnWave(file);
+  testSaveOnQuit(file);
   testHealthPickup(file);
   testAutoFire(file);
   testBossScaling(file);
