@@ -11,6 +11,22 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Arcade">
 <link rel="apple-touch-icon" href="favicon.svg">
+<!-- SEO + link previews (Open Graph / Twitter Card) -->
+<meta name="description" content="A little catalogue of free, self-contained browser games — Asteroids, tower defense, a bubble shooter and more. No ads, no tracking, plays offline.">
+<link rel="canonical" href="https://n0zz.github.io/arcade/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Arcade">
+<meta property="og:title" content="Arcade — free browser games">
+<meta property="og:description" content="A little catalogue of free, self-contained browser games. No ads, no tracking, plays offline.">
+<meta property="og:url" content="https://n0zz.github.io/arcade/">
+<meta property="og:image" content="https://n0zz.github.io/arcade/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="ARCADE — self-contained browser games">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Arcade — free browser games">
+<meta name="twitter:description" content="A little catalogue of free, self-contained browser games. No ads, plays offline.">
+<meta name="twitter:image" content="https://n0zz.github.io/arcade/og-image.png">
 <style>
   :root {
     --bg:#0b0f17; --surface:#161c28; --surface-2:#1e2738; --border:#2a3446;
@@ -79,6 +95,12 @@
   .ghlink { color:var(--muted); }
   .ghlink:hover { color:#fff; text-decoration:underline; }
 
+  .share { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; align-items:center; margin-bottom:18px; }
+  .share .lbl { font-family:var(--mono); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--faint); }
+  .share .sbtn { font-family:var(--mono); font-size:11px; letter-spacing:1px; cursor:pointer; text-decoration:none;
+    padding:7px 12px; border-radius:9px; color:var(--muted); background:var(--surface-2); border:1px solid var(--border); }
+  .share .sbtn:hover { color:#fff; border-color:#9fe8ff; }
+
   /* feedback modal */
   #fbModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
   #fbModal::backdrop { background:rgba(5,8,13,0.66); }
@@ -123,6 +145,14 @@
     <div class="grid" id="grid"></div>
 
     <footer>
+      <div class="share">
+        <span class="lbl">Share</span>
+        <a class="sbtn" id="shareNative" href="#" style="display:none">↗ Share…</a>
+        <a class="sbtn" id="shareX" target="_blank" rel="noopener">X (Twitter)</a>
+        <a class="sbtn" id="shareFb" target="_blank" rel="noopener">Facebook</a>
+        <a class="sbtn" id="shareReddit" target="_blank" rel="noopener">Reddit</a>
+        <button class="sbtn" id="shareCopy" type="button">⧉ Copy link</button>
+      </div>
       built for fun · no ads · no tracking · plays offline &nbsp;·&nbsp;
       <a class="sponsor" href="https://github.com/sponsors/N0zz">♥ Sponsor</a> &nbsp;·&nbsp;
       <a class="coffee" href="https://buymeacoffee.com/n0zz">☕ Buy me a coffee</a> &nbsp;·&nbsp;
@@ -202,6 +232,28 @@
       });
     }
     render();
+
+    // ---- Share buttons ----
+    (function () {
+      const url = 'https://n0zz.github.io/arcade/';
+      const text = 'Free, self-contained browser games — no ads, plays offline:';
+      const enc = (typeof encodeURIComponent === 'function') ? encodeURIComponent : (s => String(s));
+      const u = enc(url), t = enc(text);
+      const set = (id, href) => { const e = document.getElementById(id); if (e) e.href = href; };
+      set('shareX', 'https://twitter.com/intent/tweet?text=' + t + '&url=' + u);
+      set('shareFb', 'https://www.facebook.com/sharer/sharer.php?u=' + u);
+      set('shareReddit', 'https://www.reddit.com/submit?url=' + u + '&title=' + t);
+      const cp = document.getElementById('shareCopy');
+      if (cp) cp.addEventListener('click', () => {
+        const done = () => { const o = cp.textContent; cp.textContent = '✓ Copied'; setTimeout(() => { cp.textContent = o; }, 1500); };
+        try { navigator.clipboard.writeText(url).then(done).catch(() => {}); } catch (e) {}
+      });
+      const ns = document.getElementById('shareNative');
+      if (ns && typeof navigator !== 'undefined' && navigator.share) {
+        ns.style.display = '';
+        ns.addEventListener('click', (e) => { e.preventDefault(); navigator.share({ title: 'Arcade', text: text, url: url }).catch(() => {}); });
+      }
+    })();
 
     // ---- Install / open ----
     // A web page can't launch its own installed PWA (the browser owns "Open in app"),
