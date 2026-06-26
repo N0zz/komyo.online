@@ -183,6 +183,8 @@
 
     modeToggle.addEventListener('click', () => setMode(!speedrun));
     back.addEventListener('click', toMenu);
+    // in-game "Quit to menu" buttons post this message from inside the iframe
+    window.addEventListener('message', (e) => { if (e.data === 'asteroids:menu') toMenu(); });
 
     setMode(false);
   </script>

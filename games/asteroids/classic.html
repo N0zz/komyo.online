@@ -42,6 +42,8 @@
   #overlay .hint { opacity: 0.55; font-size: 14px; }
   .blink { animation: blink 1.1s steps(2, start) infinite; }
   @keyframes blink { to { opacity: 0.25; } }
+  .btn { font-family:inherit; font-size:14px; letter-spacing:2px; padding:10px 22px; border-radius:10px; cursor:pointer; border:1px solid rgba(120,200,255,0.5); background:rgba(20,30,50,0.6); color:#cfe8ff; margin-top:6px; }
+  .btn:hover { border-color:#9fe8ff; box-shadow:0 0 14px rgba(120,200,255,0.4); }
   .hidden { display: none !important; }
 </style>
 </head>
@@ -125,6 +127,9 @@
   }
   function spawnShip() { ship = { x:W/2, y:H/2, vx:0, vy:0, angle:-Math.PI/2, r:14 }; invuln=120; }
   function updateHud() { scoreEl.textContent = score; livesEl.textContent = '▲ '.repeat(Math.max(0,lives)).trim(); }
+  function quitToMenu(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
+  function wireOverlay(){ const mb=document.getElementById('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); }
+  const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
 
   function makeAsteroid(x,y,size) {
     const r = size===3?56:size===2?34:18;
@@ -170,16 +175,16 @@
     overlay.innerHTML = '<h1 class="win">COMPLETE</h1>' +
       '<p>Time: <strong>'+fmtTime(srElapsed)+'</strong>'+(isBest?'  ★ NEW BEST':'')+'</p>' +
       '<p class="hint">'+SR_TARGET_SCORE+' points reached</p>' +
-      '<p class="blink">press ENTER to run again</p>';
-    overlay.classList.remove('hidden');
+      '<p class="blink">press ENTER to run again</p>' + '<div>'+MENU_BTN+'</div>';
+    overlay.classList.remove('hidden'); wireOverlay();
   }
   function showGameOver() {
     if (SPEEDRUN) srElapsed = now()-srStart;
     overlay.innerHTML = '<h1>GAME OVER</h1>' +
       '<p>Final score: <strong>'+score+'</strong></p>' +
       (SPEEDRUN ? '<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>' : '<p class="hint">reached wave '+level+'</p>') +
-      '<p class="blink">press ENTER to play again</p>';
-    overlay.classList.remove('hidden');
+      '<p class="blink">press ENTER to play again</p>' + '<div>'+MENU_BTN+'</div>';
+    overlay.classList.remove('hidden'); wireOverlay();
   }
 
   function update() {
@@ -219,7 +224,7 @@
   function drawBullets(){ ctx.shadowColor='rgba(180,230,255,0.9)'; ctx.shadowBlur=8; ctx.fillStyle='#dff3ff'; for (const b of bullets){ ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); } }
   function drawParticles(){ for (const p of particles){ ctx.fillStyle='rgba('+p.color+','+p.life+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); ctx.fill(); } }
   function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawAsteroids(); drawBullets(); drawShip(); ctx.shadowBlur=0; }
-  function loop(){ update(); render(); requestAnimationFrame(loop); }
+  function loop(){ requestAnimationFrame(loop); try { update(); render(); } catch(e){ if(window.console) console.error(e); } }
 
   resize(); spawnWave(4); updateHud(); loop();
 })();

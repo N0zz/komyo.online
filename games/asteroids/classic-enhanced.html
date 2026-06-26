@@ -21,6 +21,9 @@
   #overlay .hint { opacity:0.55; font-size:14px; }
   .blink { animation:blink 1.1s steps(2,start) infinite; }
   @keyframes blink { to { opacity:0.25; } }
+  .btn { font-family:inherit; font-size:14px; letter-spacing:2px; padding:10px 22px; border-radius:10px; cursor:pointer; border:1px solid rgba(120,200,255,0.5); background:rgba(20,30,50,0.6); color:#cfe8ff; margin:4px; }
+  .btn:hover { border-color:#9fe8ff; box-shadow:0 0 14px rgba(120,200,255,0.4); }
+  .row { display:flex; gap:10px; justify-content:center; margin-top:6px; }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -86,11 +89,14 @@
   function startGame(){ score=0; lives=3; level=1; weaponLevel=1; asteroids=[]; bullets=[]; particles=[];
     spawnShip(); spawnWave(4); state='playing'; overlay.classList.add('hidden'); updateHud();
     srElapsed=0; srPrev=now(); srDone=false; }
-  function pauseGame(){ state='paused'; overlay.innerHTML='<h1>PAUSED</h1><p class="hint">score '+score+' &middot; wave '+level+'</p><p class="blink">press ESC to resume</p>'; overlay.classList.remove('hidden'); }
+  function pauseGame(){ state='paused'; overlay.innerHTML='<h1>PAUSED</h1><p class="hint">score '+score+' &middot; wave '+level+'</p><div class="row"><button class="btn" id="resumeBtn">RESUME (ESC)</button>'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
   function resumeGame(){ state='playing'; srPrev=now(); overlay.classList.add('hidden'); }
   function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14}; invuln=120; }
   function updateHud(){ scoreEl.textContent=score; livesEl.textContent='▲ '.repeat(Math.max(0,lives)).trim(); weaponEl.textContent=WEAPONS[weaponLevel-1].label; }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=90; }
+  function quitToMenu(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
+  function wireOverlay(){ const mb=document.getElementById('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=document.getElementById('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); }
+  const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
   function checkWeaponUpgrade(){ const nx=WEAPONS[weaponLevel]; if(nx && score>=nx.score){ weaponLevel=nx.level; flash('WEAPON UPGRADED'); updateHud(); } }
 
   function makeAsteroid(x,y,size){ const r=size===3?56:size===2?34:18; const verts=[]; const n=9+Math.floor(Math.random()*4);
@@ -116,12 +122,13 @@
     if(asteroids.length===0){ level++; spawnWave(3+level); } }
   function killShip(){ burst(ship.x,ship.y,'255,160,120',40,4); lives--; updateHud(); if(lives<=0){ state='dead'; showGameOver(); } else spawnShip(); }
   function winRun(){ srDone=true; state='won'; const isBest=saveBest(srElapsed);
-    overlay.innerHTML='<h1 class="win">COMPLETE</h1><p>Time: <strong>'+fmtTime(srElapsed)+'</strong>'+(isBest?'  ★ NEW BEST':'')+'</p><p class="hint">'+SR_TARGET_SCORE+' points reached</p><p class="blink">press ENTER or SPACE to run again</p>';
-    overlay.classList.remove('hidden'); }
-  function showGameOver(){ overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong></p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p>'; overlay.classList.remove('hidden'); }
+    overlay.innerHTML='<h1 class="win">COMPLETE</h1><p>Time: <strong>'+fmtTime(srElapsed)+'</strong>'+(isBest?'  ★ NEW BEST':'')+'</p><p class="hint">'+SR_TARGET_SCORE+' points reached</p><p class="blink">press ENTER or SPACE to run again</p><div class="row">'+MENU_BTN+'</div>';
+    overlay.classList.remove('hidden'); wireOverlay(); }
+  function showGameOver(){ overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong></p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p><div class="row">'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
 
   function update(){
     if(flashTimer>0){ flashTimer--; if(flashTimer===0) flashEl.style.opacity='0'; }
+    // speedrun clock — only advances while actively playing
     const t=now(); if(state==='playing' && !srDone) srElapsed+=t-srPrev; srPrev=t;
     if(SPEEDRUN) timerVal.textContent=fmtTime(srElapsed);
 
@@ -158,7 +165,7 @@
   function drawBullets(){ ctx.shadowColor='rgba(180,230,255,0.9)'; ctx.shadowBlur=8; ctx.fillStyle='#dff3ff'; for(const b of bullets){ ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); } }
   function drawParticles(){ for(const p of particles){ ctx.fillStyle='rgba('+p.color+','+p.life+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); ctx.fill(); } }
   function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawAsteroids(); drawBullets(); drawShip(); ctx.shadowBlur=0; }
-  function loop(){ update(); render(); requestAnimationFrame(loop); }
+  function loop(){ requestAnimationFrame(loop); try { update(); render(); } catch(e){ if(window.console) console.error(e); } }
 
   resize(); spawnWave(4); updateHud(); loop();
 })();

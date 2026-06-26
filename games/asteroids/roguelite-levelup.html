@@ -48,6 +48,8 @@
   .btn { font-family:inherit; font-size:14px; letter-spacing:2px; padding:10px 24px; border-radius:10px; cursor:pointer;
     border:1px solid rgba(120,200,255,0.5); background:rgba(20,30,50,0.6); color:#cfe8ff; }
   .btn:hover { border-color:#9fe8ff; box-shadow:0 0 14px rgba(120,200,255,0.4); }
+  .btn.sel { border-color:#ffd166; color:#ffd166; box-shadow:0 0 16px rgba(255,209,102,0.5); }
+  .credits-big { font-size:26px; color:#ffd166; letter-spacing:3px; text-shadow:0 0 14px rgba(255,209,102,0.7); margin:-4px 0 2px; }
   .hidden { display:none !important; }
 </style>
 </head>
@@ -106,18 +108,18 @@
 
   // ---- Upgrade pool ----
   const ALL_UPGRADES = [
-    { id:'rapid',  name:'Rapid Fire',     desc:'Shoot faster (-cooldown).',        max:5, price:8  },
-    { id:'spread', name:'Spread Shot',    desc:'+1 projectile in a wider arc.',    max:4, price:11 },
-    { id:'heavy',  name:'Heavy Rounds',   desc:'+1 bullet damage.',                max:5, price:9  },
-    { id:'long',   name:'Long Shot',      desc:'+range and +bullet speed.',        max:3, price:7  },
-    { id:'pierce', name:'Piercing',       desc:'Bullets pass through +1 enemy.',   max:3, price:11 },
-    { id:'shield', name:'Shield',         desc:'+1 regenerating shield layer.',    max:3, price:12 },
-    { id:'hull',   name:'Reinforced Hull',desc:'+1 max HP (and heal 1).',          max:4, price:10 },
-    { id:'thrust', name:'Thrusters',      desc:'+turn rate and acceleration.',     max:3, price:6  },
-    { id:'orbital',name:'Orbital Shard',  desc:'+1 shard orbiting your ship.',     max:4, price:12 },
-    { id:'drone',  name:'Drone',          desc:'+1 auto-firing escort drone.',     max:3, price:14 },
-    { id:'nova',   name:'Nova Pulse',     desc:'Periodic shockwave damages nearby.',max:3, price:13 },
-    { id:'magnet', name:'Magnet',         desc:'Wider XP pickup radius.',          max:4, price:5, levelupOnly:true },
+    { id:'rapid',  name:'Rapid Fire',     desc:'Shoot faster (-cooldown).',        max:5, price:16 },
+    { id:'spread', name:'Spread Shot',    desc:'+1 projectile in a wider arc.',    max:4, price:22 },
+    { id:'heavy',  name:'Heavy Rounds',   desc:'+1 bullet damage.',                max:5, price:18 },
+    { id:'long',   name:'Long Shot',      desc:'+range and +bullet speed.',        max:3, price:13 },
+    { id:'pierce', name:'Piercing',       desc:'Bullets pass through +1 enemy.',   max:3, price:20 },
+    { id:'shield', name:'Shield',         desc:'+1 regenerating shield layer.',    max:3, price:20 },
+    { id:'hull',   name:'Reinforced Hull',desc:'+1 max HP (and heal 1).',          max:4, price:18 },
+    { id:'thrust', name:'Thrusters',      desc:'+turn rate and acceleration.',     max:3, price:12 },
+    { id:'orbital',name:'Orbital Shard',  desc:'+1 shard orbiting your ship.',     max:4, price:26 },
+    { id:'drone',  name:'Drone',          desc:'+1 auto-firing escort drone.',     max:3, price:28 },
+    { id:'nova',   name:'Nova Pulse',     desc:'Periodic shockwave damages nearby.',max:3, price:24 },
+    { id:'magnet', name:'Magnet',         desc:'Wider XP pickup radius.',          max:4, price:10, levelupOnly:true },
   ];
   function pool(){ return ALL_UPGRADES.filter(u => PROGRESSION==='levelup' || !u.levelupOnly); }
 
@@ -126,14 +128,25 @@
   window.addEventListener('keydown',(e)=>{
     if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
     keys[e.key]=true;
-    if((e.key==='Enter'||e.key===' ')){
-      if(state==='menu'||state==='dead'||state==='won'){ startGame(); return; }
-      if(state==='shop' && e.key==='Enter'){ closeShop(); return; }
+    if((e.key==='Enter'||e.key===' ') && (state==='menu'||state==='dead'||state==='won')){ startGame(); return; }
+    if(e.key==='Escape'){ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); return; }
+    if(state==='levelup'){
+      if(e.key==='ArrowLeft'){ selIdx=(selIdx+pickOptions.length-1)%pickOptions.length; renderPicker(); }
+      else if(e.key==='ArrowRight'){ selIdx=(selIdx+1)%pickOptions.length; renderPicker(); }
+      else if(e.key==='Enter'||e.key===' ') pickByIndex(selIdx);
+      else if(/^[1-9]$/.test(e.key)) pickByIndex(parseInt(e.key,10)-1);
+      return;
     }
-    if(e.key==='Escape'){ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); }
-    // picker / shop number keys
-    if((state==='levelup') && /^[1-9]$/.test(e.key)){ pickByIndex(parseInt(e.key,10)-1); }
-    if((state==='shop') && /^[1-9]$/.test(e.key)){ buyByIndex(parseInt(e.key,10)-1); }
+    if(state==='shop'){
+      const n=pool().length; // index n == the Continue button
+      if(e.key==='ArrowLeft'){ selIdx=(selIdx+n)%(n+1); renderShop(); }
+      else if(e.key==='ArrowRight'){ selIdx=(selIdx+1)%(n+1); renderShop(); }
+      else if(e.key==='ArrowUp'){ selIdx=Math.max(0,selIdx-4); renderShop(); }
+      else if(e.key==='ArrowDown'){ selIdx=Math.min(n,selIdx+4); renderShop(); }
+      else if(e.key==='Enter'||e.key===' '){ if(selIdx>=n) closeShop(); else buyByIndex(selIdx); }
+      else if(/^[1-9]$/.test(e.key)) buyByIndex(parseInt(e.key,10)-1);
+      return;
+    }
   });
   window.addEventListener('keyup',(e)=>{ keys[e.key]=false; });
 
@@ -144,7 +157,7 @@
   let bullets=[], ebullets=[], gems=[], particles=[], drones=[], novas=[];
   let up={}, level=1, xp=0, xpNext=12;
   let shootCd=0, invuln=0, noHit=0, orbAngle=0, orbCd=[], novaTimer=0, flashTimer=0;
-  let waveBreak=0, pendingPicks=0, milestoneNext=500, milestoneStep=500;
+  let waveBreak=0, pendingPicks=0, milestoneNext=500, milestoneStep=500, selIdx=0;
 
   function resetRun(){
     score=0; wave=1; credits=0;
@@ -157,7 +170,7 @@
   }
   function startGame(){ resetRun(); startWave(1); state='playing'; overlay.classList.add('hidden');
     srElapsed=0; srPrev=now(); srDone=false; updateHud(); }
-  function pauseGame(){ state='paused'; overlay.innerHTML='<h1>PAUSED</h1><p class="hint">wave '+wave+' &middot; score '+score+'</p><p class="blink">press ESC to resume</p>'; overlay.classList.remove('hidden'); }
+  function pauseGame(){ state='paused'; overlay.innerHTML='<h1>PAUSED</h1><p class="hint">wave '+wave+' &middot; score '+score+'</p><div id="shopFoot"><button class="btn" id="resumeBtn">RESUME (ESC)</button> '+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
   function resumeGame(){ state='playing'; srPrev=now(); overlay.classList.add('hidden'); }
   function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14,hp:3,maxHp:3,shield:0,shieldMax:0}; invuln=120; }
 
@@ -173,7 +186,7 @@
     ship.accel    = 0.16 + 0.05*(u.thrust||0);
     ship.maxHp    = 3 + (u.hull||0);
     ship.shieldMax= (u.shield||0);
-    ship.magnet   = 30 + 60*(u.magnet||0);
+    ship.magnet   = 110 + 70*(u.magnet||0);
     ship.orbN     = (u.orbital||0);
     ship.droneN   = (u.drone||0);
     ship.novaLv   = (u.nova||0);
@@ -193,12 +206,15 @@
     if(PROGRESSION==='shop'){ creditsEl.textContent='◈ '+credits; }
   }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=80; }
+  function quitToMenu(){ try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
+  function wireOverlay(){ const mb=$('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=$('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); const sb=$('startBtn'); if(sb) sb.addEventListener('click', startGame); }
+  const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
 
   // ---- Spawning / waves ----
   function edgePos(){ let x,y; if(Math.random()<0.5){ x=Math.random()<0.5?-50:W+50; y=Math.random()*H; } else { x=Math.random()*W; y=Math.random()<0.5?-50:H+50; } return {x,y}; }
   function makeAsteroid(x,y,size){ const r=size===3?56:size===2?34:18; const verts=[]; const n=9+Math.floor(Math.random()*4);
     for(let i=0;i<n;i++){ const ang=(i/n)*Math.PI*2; verts.push({ang,d:r*(0.65+Math.random()*0.5)}); }
-    const speed=(1.0+Math.random()*0.9)*(4-size)*0.5; const dir=Math.random()*Math.PI*2;
+    const speed=(1.0+Math.random()*0.9)*(4-size)*0.5*(1+wave*0.045); const dir=Math.random()*Math.PI*2;
     return {x,y,size,r,hp:size,vx:Math.cos(dir)*speed,vy:Math.sin(dir)*speed,rot:Math.random()*Math.PI*2,vrot:(Math.random()-0.5)*0.03,verts,hue:200+Math.random()*40}; }
   function makeHunter(x,y){ return {x,y,r:13,hp:2,vx:0,vy:0,rot:0}; }
   function makeSentry(x,y){ return {x,y,r:16,hp:3,vx:(Math.random()-0.5)*1.2,vy:(Math.random()-0.5)*1.2,fireCd:90+Math.random()*60,rot:0}; }
@@ -208,11 +224,11 @@
     wave=n; waveBreak=0;
     if(n%5===0){ boss=makeBoss(n); }
     else {
-      const ast=2+Math.floor(n*0.8);
-      for(let i=0;i<ast;i++){ const p=edgePos(); asteroids.push(makeAsteroid(p.x,p.y, Math.random()<0.7?3:2)); }
-      const nH = n>=3 ? Math.floor((n-1)/2) : 0;
+      const ast=3+Math.floor(n*1.2);
+      for(let i=0;i<ast;i++){ const p=edgePos(); asteroids.push(makeAsteroid(p.x,p.y, Math.random()<0.55+n*0.03?3:2)); }
+      const nH = n>=3 ? Math.floor(n/2) : 0;
       for(let i=0;i<nH;i++){ const p=edgePos(); hunters.push(makeHunter(p.x,p.y)); }
-      const nS = n>=4 ? Math.floor((n-2)/3) : 0;
+      const nS = n>=4 ? Math.floor((n-2)/2) : 0;
       for(let i=0;i<nS;i++){ const p=edgePos(); sentries.push(makeSentry(p.x,p.y)); }
     }
     updateHud();
@@ -235,7 +251,7 @@
   }
 
   function dropRewards(x,y,kind){
-    const tbl={ ast3:{sc:20,xp:1,cr:2}, ast2:{sc:50,xp:2,cr:3}, ast1:{sc:100,xp:3,cr:4}, hunter:{sc:75,xp:4,cr:8}, sentry:{sc:150,xp:6,cr:16}, boss:{sc:1000,xp:30,cr:80} };
+    const tbl={ ast3:{sc:20,xp:1,cr:1}, ast2:{sc:50,xp:2,cr:1}, ast1:{sc:100,xp:3,cr:2}, hunter:{sc:75,xp:4,cr:4}, sentry:{sc:150,xp:6,cr:8}, boss:{sc:1000,xp:30,cr:45} };
     const r=tbl[kind]; score+=r.sc; credits+=r.cr;
     if(PROGRESSION==='levelup'){ const ng=Math.min(5,1+Math.floor(r.xp/2)); for(let i=0;i<ng;i++) gems.push({x:x+(Math.random()-0.5)*20,y:y+(Math.random()-0.5)*20,vx:(Math.random()-0.5),vy:(Math.random()-0.5),xp:Math.max(1,Math.round(r.xp/ng))}); }
     updateHud();
@@ -257,36 +273,42 @@
     if(ship.hp<=0) die();
   }
   function die(){ state='dead'; if(SPEEDRUN) srDone=true; burst(ship.x,ship.y,'255,160,120',50,5);
-    overlay.innerHTML='<h1>GAME OVER</h1><p>Score <strong>'+score+'</strong> &middot; reached wave '+wave+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'')+'<p class="blink">press ENTER or SPACE to play again</p>';
-    overlay.classList.remove('hidden'); }
+    overlay.innerHTML='<h1>GAME OVER</h1><p>Score <strong>'+score+'</strong> &middot; reached wave '+wave+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'')+'<p class="blink">press ENTER or SPACE to play again</p><div id="shopFoot">'+MENU_BTN+'</div>';
+    overlay.classList.remove('hidden'); wireOverlay(); }
   function winRun(){ srDone=true; state='won'; const best=saveBest(srElapsed);
-    overlay.innerHTML='<h1 class="win">WAVE '+SR_TARGET_WAVE+' CLEARED</h1><p>Time <strong>'+fmtTime(srElapsed)+'</strong>'+(best?'  ★ NEW BEST':'')+'</p><p class="hint">score '+score+'</p><p class="blink">press ENTER or SPACE to run again</p>';
-    overlay.classList.remove('hidden'); }
+    overlay.innerHTML='<h1 class="win">WAVE '+SR_TARGET_WAVE+' CLEARED</h1><p>Time <strong>'+fmtTime(srElapsed)+'</strong>'+(best?'  ★ NEW BEST':'')+'</p><p class="hint">score '+score+'</p><p class="blink">press ENTER or SPACE to run again</p><div id="shopFoot">'+MENU_BTN+'</div>';
+    overlay.classList.remove('hidden'); wireOverlay(); }
 
   // ---- Picker (levelup + milestones) ----
   let pickOptions=[];
   function rollPicks(){ const avail=pool().filter(u=>(up[u.id]||0)<u.max); const out=[]; const cp=avail.slice();
     while(out.length<3 && cp.length){ const i=Math.floor(Math.random()*cp.length); out.push(cp.splice(i,1)[0]); } return out; }
-  function openPicker(){ state='levelup'; pickOptions=rollPicks();
+  function openPicker(){ state='levelup'; pickOptions=rollPicks(); selIdx=0;
     if(pickOptions.length===0){ pendingPicks=0; state='playing'; return; }
-    let html='<h1 class="level">LEVEL '+level+'</h1><p class="hint">choose an upgrade ('+pendingPicks+' pending)</p><div class="cards">';
-    pickOptions.forEach((u,i)=>{ const lv=up[u.id]||0; html+='<div class="ucard" data-i="'+i+'"><div class="k">'+(i+1)+'</div><h3>'+u.name+'</h3><p>'+u.desc+'</p><div class="lvl">'+(lv>0?('LV '+lv+' → '+(lv+1)):'NEW')+'</div></div>'; });
+    renderPicker();
+  }
+  function renderPicker(){
+    let html='<h1 class="level">LEVEL '+level+'</h1><p class="hint">choose an upgrade ('+pendingPicks+' pending) — ←/→ then ENTER, or press 1-3</p><div class="cards">';
+    pickOptions.forEach((u,i)=>{ const lv=up[u.id]||0; html+='<div class="ucard'+(i===selIdx?' sel':'')+'" data-i="'+i+'"><div class="k">'+(i+1)+'</div><h3>'+u.name+'</h3><p>'+u.desc+'</p><div class="lvl">'+(lv>0?('LV '+lv+' → '+(lv+1)):'NEW')+'</div></div>'; });
     html+='</div>'; overlay.innerHTML=html; overlay.classList.remove('hidden');
     overlay.querySelectorAll('.ucard').forEach(c=>c.addEventListener('click',()=>pickByIndex(parseInt(c.dataset.i,10))));
   }
   function pickByIndex(i){ if(state!=='levelup'||!pickOptions[i]) return; applyUpgrade(pickOptions[i].id); pendingPicks--; if(pendingPicks>0){ openPicker(); } else { state='playing'; srPrev=now(); overlay.classList.add('hidden'); } }
 
   // ---- Shop (between waves) ----
-  function openShop(){ state='shop'; renderShop(); overlay.classList.remove('hidden'); }
+  function openShop(){ state='shop'; selIdx=0; renderShop(); overlay.classList.remove('hidden'); }
   function renderShop(){
-    let html='<h1 class="win">DRYDOCK</h1><p class="hint">wave '+wave+' cleared &middot; credits ◈ '+credits+'</p><div class="cards">';
     const items=pool();
+    let html='<h1 class="win">DRYDOCK</h1>'+
+      '<div class="credits-big">◈ '+credits+' CREDITS</div>'+
+      '<p class="hint">wave '+wave+' cleared &middot; ←/→/↑/↓ then ENTER to buy, or press a number</p><div class="cards">';
     items.forEach((u,i)=>{ const lv=up[u.id]||0; const maxed=lv>=u.max; const afford=credits>=u.price && !maxed;
-      html+='<div class="ucard'+(afford?'':' disabled')+'" data-i="'+i+'"><div class="k">'+(i+1)+'</div><h3>'+u.name+'</h3><p>'+u.desc+'</p><div class="lvl">'+(maxed?'MAX':('LV '+lv+'/'+u.max))+'</div><div class="price">'+(maxed?'—':('◈ '+u.price))+'</div></div>'; });
-    html+='</div><div id="shopFoot"><button class="btn" id="continueBtn">CONTINUE ▶ (ENTER)</button></div>';
+      html+='<div class="ucard'+(afford?'':' disabled')+(i===selIdx?' sel':'')+'" data-i="'+i+'"><div class="k">'+(i+1)+'</div><h3>'+u.name+'</h3><p>'+u.desc+'</p><div class="lvl">'+(maxed?'MAX':('LV '+lv+'/'+u.max))+'</div><div class="price">'+(maxed?'—':('◈ '+u.price))+'</div></div>'; });
+    html+='</div><div id="shopFoot"><button class="btn'+(selIdx>=items.length?' sel':'')+'" id="continueBtn">CONTINUE ▶ (ENTER)</button> '+MENU_BTN+'</div>';
     overlay.innerHTML=html;
     overlay.querySelectorAll('.ucard').forEach(c=>c.addEventListener('click',()=>buyByIndex(parseInt(c.dataset.i,10))));
     $('continueBtn').addEventListener('click', closeShop);
+    wireOverlay();
   }
   function buyByIndex(i){ if(state!=='shop') return; const items=pool(); const u=items[i]; if(!u) return; const lv=up[u.id]||0;
     if(lv>=u.max || credits<u.price) return; credits-=u.price; applyUpgrade(u.id); renderShop(); }
@@ -437,13 +459,15 @@
   function drawParticles(){ for(const p of particles){ ctx.fillStyle='rgba('+p.color+','+p.life+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); ctx.fill(); } }
   function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawNovas(); drawGems(); drawAsteroids(); drawHunters(); drawSentries(); drawBoss(); drawDrones(); drawBullets(); drawShip(); ctx.shadowBlur=0; }
 
-  function loop(){ update(); render(); requestAnimationFrame(loop); }
+  function loop(){ requestAnimationFrame(loop); try { update(); render(); } catch(e){ if(window.console) console.error(e); } }
 
   // ---- Test hook (harmless; used by headless test harness) ----
   window.__test = {
     get state(){ return state; }, get score(){ return score; }, get wave(){ return wave; }, get level(){ return level; },
     get hp(){ return ship?ship.hp:0; }, get enemies(){ return enemiesLeft(); }, get credits(){ return credits; },
     get upgrades(){ return JSON.parse(JSON.stringify(up)); }, get progression(){ return PROGRESSION; }, get speedrun(){ return SPEEDRUN; },
+    get picks(){ return pickOptions.map(o=>o.id); }, get sel(){ return selIdx; }, get magnet(){ return ship?ship.magnet:0; },
+    quitToMenu, hasMenuBtn(){ return !!$('menuBtn'); },
     start:startGame, clearEnemies(){ asteroids=[]; hunters=[]; sentries=[]; boss=null; },
     addScore(n){ score+=n; credits+=Math.floor(n/10); updateHud(); if(PROGRESSION==='milestones'){ while(score>=milestoneNext){ pendingPicks++; milestoneStep+=250; milestoneNext+=milestoneStep; } if(pendingPicks>0&&state==='playing') openPicker(); } },
     setScore(n){ score=n; updateHud(); },
