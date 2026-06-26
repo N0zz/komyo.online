@@ -81,6 +81,7 @@
   const BRICK_ROWS = 6, BRICK_COLS = 10, BRICK_GAP = 3;
   const LIVES_START = 3;
   const STORAGE_KEY = 'breakout_best';
+  const MIN_VY = 1.5;
 
   // ---- State ----
   let W, H, paddleW, paddleX, brickW, brickH, brickOffX, brickOffY;
@@ -248,7 +249,7 @@
         const overlapX = (bw / 2) - Math.abs(b.x - (bx + bw / 2));
         const overlapY = (bh / 2) - Math.abs(b.y - (by + bh / 2));
         if (overlapX < overlapY) b.vx = -b.vx;
-        else b.vy = -b.vy;
+        else { b.vy = -b.vy; if (Math.abs(b.vy) < MIN_VY) b.vy = b.vy < 0 ? -MIN_VY : MIN_VY; }
 
         const bk = bricks[i];
         bk.hp--;
@@ -319,7 +320,7 @@
         const ang = rel * 1.1; // max ~63 deg
         const spd = Math.hypot(b.vx, b.vy);
         b.vx = Math.sin(ang) * spd;
-        b.vy = -Math.abs(Math.cos(ang) * spd);
+        b.vy = -Math.max(Math.abs(Math.cos(ang) * spd), MIN_VY);
         b.y = py - BALL_R;
         SND.play('bounce');
       }
@@ -439,7 +440,11 @@
     gr.addColorStop(1, '#0088aa');
     ctx.fillStyle = gr;
     ctx.beginPath();
-    ctx.roundRect(paddleX - pw / 2, py, pw, PADDLE_H, 6);
+    if (ctx.roundRect) {
+      ctx.roundRect(paddleX - pw / 2, py, pw, PADDLE_H, 6);
+    } else {
+      ctx.rect(paddleX - pw / 2, py, pw, PADDLE_H);
+    }
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.restore();
