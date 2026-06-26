@@ -153,8 +153,8 @@
     // Wall collision
     if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) { gameOver(); return; }
 
-    // Self collision
-    if (snake.some(s => s.x === nx && s.y === ny)) { gameOver(); return; }
+    // Self collision — exclude tail tip (it moves away this same tick when not eating)
+    if (snake.slice(0, -1).some(s => s.x === nx && s.y === ny)) { gameOver(); return; }
 
     const ate = nx === food.x && ny === food.y;
     snake.unshift({ x: nx, y: ny });

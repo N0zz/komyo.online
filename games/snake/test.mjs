@@ -198,6 +198,34 @@ section('self collision ends game');
   ok(T.state === 'over', 'self collision transitions to "over" (got ' + T.state + ')');
 }
 
+section('tail-tip not a false death');
+{
+  // Snake in a U-shape where the new head lands exactly on the tail tip that moves away.
+  // Build: head(3,3) ← (2,3) ← (2,2) ← (3,2) ← (4,2) ← tail(4,3), dir=right
+  // New head = (4,3) which is currently the tail tip — must NOT be a death.
+  const g = runGame();
+  const T = g.test();
+  T.start();
+  // Grow to length 6 via eating, then manually verify via setDir
+  // We'll construct the scenario by placing food and steering.
+  // Start: head at center going right. Grow to 6 segments.
+  const h0 = T.head;
+  for (let i = 1; i <= 5; i++) {
+    T.placeFoodAt(h0.x + i, h0.y);
+    T.step(1);
+  }
+  // Snake is now (h0.x+5,h0.y)...(h0.x,h0.y), length 6, going right.
+  // Steer into a tight U: down, then left 4, then up — head lines up with tail.
+  T.turn('down');  T.step(1);
+  T.turn('left');  T.step(1);
+  T.turn('left');  T.step(1);
+  T.turn('left');  T.step(1);
+  T.turn('left');  T.step(1);
+  T.turn('up');    T.step(1);
+  // At this point head should have moved into the column where the tail just vacated.
+  ok(T.state === 'playing', 'moving into vacated tail-tip slot is NOT a death (state=' + T.state + ')');
+}
+
 section('best score persists');
 {
   const g = runGame();
