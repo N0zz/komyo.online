@@ -111,11 +111,12 @@
   // ---- Constants ----
   const GRAVITY     = 0.28;   // was 0.38 — gentler fall
   const FLAP_VY     = -6.0;   // was -7.2 — softer flap
-  const OBS_SPEED_DAY   = 2.1;   // was 2.8 — slower scroll
-  const OBS_SPEED_NIGHT = 2.5;   // night: slightly faster for variety
+  const OBS_SPEED_DAY   = 1.9;   // gentle scroll
+  const OBS_SPEED_NIGHT = 2.2;   // night: slightly faster for variety
   const OBS_W       = 62;
-  const GAP_H       = 185;    // was 148 — much bigger gap
-  const OBS_INTERVAL= 280;    // was 220 — more breathing room between obstacles
+  const GAP_H       = 240;    // generous gap — forgiving
+  const OBS_INTERVAL= 300;    // breathing room between obstacles
+  const MAX_GAP_STEP= 150;    // cap vertical change between consecutive gaps so a pair is always reachable
   const BIRD_X      = 90;
   const BIRD_R      = 14;
   const HITBOX_SHRINK = 4;    // was 3 — slightly more forgiving
@@ -169,6 +170,7 @@
   let fireflies = [];   // night mode fireflies
   let nextObsX = 0;
   let pendingGapY = null;
+  let lastGapY = null;   // previous obstacle's gap top, for the reachability clamp
   let frame = 0;
 
   // ---- Parallax layers ----
@@ -206,6 +208,7 @@
     obstacles = [];
     particles = [];
     pendingGapY = null;
+    lastGapY = null;
     obsSpeed = mode === 'night' ? OBS_SPEED_NIGHT : OBS_SPEED_DAY;
     best = getBest();
     seedRng(Date.now());
@@ -246,8 +249,17 @@
   // ---- Spawn obstacle ----
   function spawnObstacle() {
     const margin = H * 0.12;
-    const gapY = pendingGapY !== null ? pendingGapY : margin + rng() * (H - margin * 2 - GAP_H);
+    const lo = margin, hi = H - margin - GAP_H;
+    let gapY;
+    if (pendingGapY !== null) { gapY = pendingGapY; }
+    else {
+      gapY = lo + rng() * (hi - lo);
+      // keep consecutive gaps within reach of one another so a pair is never impossible
+      if (lastGapY !== null) gapY = Math.max(lastGapY - MAX_GAP_STEP, Math.min(lastGapY + MAX_GAP_STEP, gapY));
+      gapY = Math.max(lo, Math.min(hi, gapY));
+    }
     pendingGapY = null;
+    lastGapY = gapY;
     obstacles.push({ x: W + OBS_W, gapY, passed: false });
   }
 
