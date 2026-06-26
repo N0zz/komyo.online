@@ -99,6 +99,12 @@
   #back:hover { border-color: #9fe8ff; box-shadow: 0 0 14px rgba(120,200,255,0.4); }
   #back .ham { display: inline-flex; flex-direction: column; gap: 3px; }
   #back .ham span { display: block; width: 16px; height: 2px; background: #9fe8ff; border-radius: 2px; }
+  .resetbtn {
+    font-family: inherit; font-size: 11px; letter-spacing: 2px;
+    padding: 6px 14px; border-radius: 16px; cursor: pointer;
+    border: 1px solid rgba(255,120,120,0.35); background: transparent; color: rgba(255,150,150,0.7);
+  }
+  .resetbtn:hover { border-color: #ff8f8f; color: #ff8f8f; box-shadow: 0 0 12px rgba(255,120,120,0.3); }
   .footer { font-size: 11px; opacity: 0.35; letter-spacing: 2px; }
 </style>
 </head>
@@ -123,6 +129,7 @@
     </div>
 
     <div class="cards" id="cards"></div>
+    <button id="resetBtn" class="resetbtn">RESET BEST SCORES</button>
     <div class="footer">↑/W thrust · ←→/A D rotate · SPACE shoot · ESC pause</div>
   </div>
 
@@ -293,6 +300,18 @@
     sfxVol.addEventListener('input', () => setS('asteroids_sfxvol', sfxVol.value));
     musVol.addEventListener('input', () => { setS('asteroids_musvol', musVol.value); SND.refresh(); });
     refreshAudioUI();
+
+    // ---- reset all saved bests (times, scores, waves) ----
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      if (!window.confirm('Reset all best scores and times for every version?')) return;
+      (window.LEVELS || []).forEach(v => {
+        const b = base(v.file);
+        ['asteroids_best_', 'asteroids_score_', 'asteroids_wave_'].forEach(p => {
+          try { localStorage.removeItem(p + b); } catch (e) {}
+        });
+      });
+      renderCards();
+    });
 
     modeToggle.addEventListener('click', () => setMode(!speedrun));
     back.addEventListener('click', toMenu);

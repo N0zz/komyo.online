@@ -477,11 +477,11 @@ function testLauncher() {
   const verCode = fs.readFileSync(path.join(DIR, 'levels.js'), 'utf8');
   const elCache = {};
   const getEl = id => (elCache[id] ||= makeEl(id));
-  const win = { addEventListener: () => {}, LEVELS: undefined, innerWidth: 1280, innerHeight: 800 };
+  const win = { addEventListener: () => {}, LEVELS: undefined, innerWidth: 1280, innerHeight: 800, confirm: () => true };
   const documentMock = { getElementById: getEl, createElement: t => makeEl('new-' + t), addEventListener: () => {} };
   const store = {};
   const sandbox = { window: win, document: documentMock, location: { search: '' },
-    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); } },
+    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
     requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setInterval: () => 0, clearInterval: () => {},
     Math, JSON, String, Number, Array, Object, parseInt, parseFloat, console, URLSearchParams };
   sandbox.globalThis = sandbox;
@@ -515,6 +515,12 @@ function testLauncher() {
   getEl('back').fire('click');
   ok(frame.src === 'about:blank', 'back clears the iframe');
   ok(getEl('select').style.display === 'flex', 'back returns to menu');
+  // reset best scores: seed some bests, click reset, verify cleared
+  const fb = (win.LEVELS[0].file).split('/').pop();
+  store['asteroids_score_' + fb] = '1234';
+  store['asteroids_best_' + fb] = '9999';
+  getEl('resetBtn').fire('click');
+  ok(store['asteroids_score_' + fb] == null && store['asteroids_best_' + fb] == null, 'reset button clears saved bests');
 }
 
 // ---------------- Run ----------------
