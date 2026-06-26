@@ -169,8 +169,15 @@
   // ---- Power-ups ----
   function dropPowerup(bx, by) {
     if (Math.random() > 0.35) return;
-    const types = ['wide', 'slow', 'multi', 'multi'];
-    powerups.push({ x: bx, y: by, type: types[Math.floor(Math.random() * types.length)], vy: 2.5 });
+    // 'multi' gets rarer the more balls are already in play so it can't snowball
+    // (common when solo to reward going multi; ~0 once it's already a swarm).
+    const n = balls.length;
+    const multiW = n <= 1 ? 2.5 : n <= 3 ? 1.4 : n <= 6 ? 0.6 : n <= 12 ? 0.2 : 0;
+    const weights = [['wide', 1], ['slow', 1], ['multi', multiW]];
+    const total = weights.reduce((s, w) => s + w[1], 0);
+    let r = Math.random() * total, type = 'wide';
+    for (const [t, w] of weights) { if ((r -= w) <= 0) { type = t; break; } }
+    powerups.push({ x: bx, y: by, type, vy: 2.5 });
   }
 
   function applyPowerup(p) {
@@ -178,11 +185,15 @@
     if (p.type === 'wide') widePaddle = 480;
     else if (p.type === 'slow') slowBall = 360;
     else if (p.type === 'multi') {
-      const extra = balls.map(b => {
-        const ang = Math.atan2(b.vy, b.vx);
-        const spd = Math.hypot(b.vx, b.vy);
-        return { ...b, vx: Math.cos(ang + 0.4) * spd, vy: Math.sin(ang + 0.4) * spd };
-      });
+      const MAX_BALLS = 20; // safety cap so a late multi can't annihilate the board
+      const room = MAX_BALLS - balls.length;
+      if (room <= 0) return;
+      const extra = [];
+      for (const b of balls) {
+        if (extra.length >= room) break;
+        const ang = Math.atan2(b.vy, b.vx), spd = Math.hypot(b.vx, b.vy);
+        extra.push({ ...b, vx: Math.cos(ang + 0.4) * spd, vy: Math.sin(ang + 0.4) * spd });
+      }
       balls.push(...extra);
     }
   }
