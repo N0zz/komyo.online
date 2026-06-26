@@ -50,6 +50,14 @@
   #overlay .hint { opacity:0.6; font-size:13px; }
   #overlay button { font-family:inherit; cursor:pointer; font-size:16px; letter-spacing:1px; padding:11px 26px; border-radius:10px;
     color:#eaffea; background:linear-gradient(180deg,#3f7a3a,#2c5a28); border:2px solid #1e3d1b; }
+  .map-picker { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin-top:4px; }
+  .map-btn { font-family:inherit; cursor:pointer; font-size:13px; padding:7px 14px; border-radius:8px;
+    color:var(--parch); background:linear-gradient(180deg,#6a4a2c,#4a3220); border:2px solid #2c1d10; }
+  .map-btn.active { border-color:var(--gold); box-shadow:0 0 8px rgba(224,178,90,0.5); }
+  #waveAnnounce { position:fixed; top:62px; left:50%; transform:translateX(-50%); z-index:7; pointer-events:none;
+    font-size:22px; font-weight:bold; color:var(--gold); text-shadow:0 2px 4px rgba(0,0,0,0.7);
+    letter-spacing:2px; opacity:0; transition:opacity 0.3s; }
+  #waveAnnounce.show { opacity:1; }
 </style>
 </head>
 <body>
@@ -63,6 +71,7 @@
   <div class="stat"><span class="lbl">REMAIN</span> <b id="remain">0</b></div>
   <div class="stat"><span class="lbl">BEST</span> <b id="best">0</b></div>
 </div>
+<div id="waveAnnounce"></div>
 
 <div id="panelTower" class="panel"><h3 id="ptName">Tower</h3><div class="pr">
   <button id="upBtn">Upgrade</button><button id="sellBtn">Sell</button>
@@ -72,7 +81,7 @@
   <div class="tbtn" data-t="archer"><div class="n">Archer</div><div class="c" data-cost>18g</div><div class="d">fast · single</div></div>
   <div class="tbtn" data-t="cannon"><div class="n">Cannon</div><div class="c" data-cost>38g</div><div class="d">slow · splash</div></div>
   <div class="tbtn" data-t="frost"><div class="n">Frost</div><div class="c" data-cost>30g</div><div class="d">slows nearby</div></div>
-  <div class="tbtn" data-t="mage"><div class="n">Mage</div><div class="c" data-cost>45g</div><div class="d">arc · slow</div></div>
+  <div class="tbtn" data-t="mage"><div class="n">Mage</div><div class="c" data-cost>45g</div><div class="d">arc · magic</div></div>
   <button id="startBtn" class="tbtn">Start Wave</button>
   <button id="speedBtn" class="tbtn">&#x26A1;1x</button>
 </div>
@@ -81,7 +90,13 @@
   <h1>KEEP DEFENDER</h1>
   <p>Enemies march the road toward your keep. Build towers on the grass to stop them &mdash; leaks cost keep HP.</p>
   <p class="hint">Pick a tower below, tap a grass tile to build &middot; tap a tower to upgrade/sell &middot; Start Wave when ready.</p>
-  <button id="startGameBtn">Begin</button>
+  <p style="font-size:13px;opacity:0.7;margin-top:4px;">Choose a map:</p>
+  <div class="map-picker">
+    <button class="map-btn active" data-map="0">Classic</button>
+    <button class="map-btn" data-map="1">Zigzag</button>
+    <button class="map-btn" data-map="2">Spiral</button>
+  </div>
+  <button id="startGameBtn" style="margin-top:6px;">Begin</button>
 </div>
 
 <script>
@@ -90,301 +105,897 @@
   const canvas = $('game'), ctx = canvas.getContext('2d');
   const overlay = $('overlay');
 
-  // ---- Audio (procedural, themed) ----
+  // ---- Audio ----
   const SND = (() => {
     let ac;
-    function ensure(){ if(ac!==undefined) return; const AC=window.AudioContext||window.webkitAudioContext; ac=AC?new AC():null; }
-    function tone(f,d,type,g){ if(!ac) return; const o=ac.createOscillator(),v=ac.createGain(); o.type=type||'sine'; o.frequency.value=f; v.gain.value=g||0.12; v.gain.exponentialRampToValueAtTime(0.0001,ac.currentTime+d); o.connect(v); v.connect(ac.destination); o.start(); o.stop(ac.currentTime+d); }
-    function noise(d,g){ if(!ac) return; const n=ac.createBufferSource(),b=ac.createBuffer(1,Math.max(1,ac.sampleRate*d),ac.sampleRate),dt=b.getChannelData(0); for(let i=0;i<dt.length;i++) dt[i]=(Math.random()*2-1)*(1-i/dt.length); n.buffer=b; const v=ac.createGain(); v.gain.value=g||0.2; const f=ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value=900; n.connect(f); f.connect(v); v.connect(ac.destination); n.start(); }
-    const S={ place:()=>tone(180,0.12,'square',0.12), shoot:()=>tone(520,0.05,'triangle',0.06), boom:()=>noise(0.25,0.22),
-      hit:()=>tone(300,0.04,'square',0.04), leak:()=>tone(90,0.3,'sawtooth',0.18), wave:()=>{[330,440].forEach((f,i)=>setTimeout(()=>tone(f,0.18,'square',0.12),i*120));},
-      over:()=>[440,330,220,165].forEach((f,i)=>setTimeout(()=>tone(f,0.3,'sawtooth',0.14),i*180)), sell:()=>tone(660,0.08,'sine',0.1) };
-    let on=true;
-    return { play(n){ ensure(); if(ac&&ac.state==='suspended')ac.resume(); if(on&&ac)(S[n]||(()=>{}))(); } };
+    function ensure() {
+      if (ac !== undefined) return;
+      const AC = (typeof AudioContext !== 'undefined' && AudioContext) ||
+                 (typeof window !== 'undefined' && window.AudioContext) ||
+                 (typeof window !== 'undefined' && window.webkitAudioContext);
+      ac = AC ? (() => { try { return new AC(); } catch(e) { return null; } })() : null;
+    }
+    function tone(f, d, type, g) {
+      if (!ac) return;
+      try {
+        const o = ac.createOscillator(), v = ac.createGain();
+        o.type = type || 'sine'; o.frequency.value = f;
+        v.gain.value = g || 0.12;
+        v.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d);
+        o.connect(v); v.connect(ac.destination); o.start(); o.stop(ac.currentTime + d);
+      } catch(e) {}
+    }
+    function noise(d, g) {
+      if (!ac) return;
+      try {
+        const n = ac.createBufferSource(), b = ac.createBuffer(1, Math.max(1, ac.sampleRate * d), ac.sampleRate);
+        const dt = b.getChannelData(0);
+        for (let i = 0; i < dt.length; i++) dt[i] = (Math.random() * 2 - 1) * (1 - i / dt.length);
+        n.buffer = b;
+        const v = ac.createGain(); v.gain.value = g || 0.2;
+        const f2 = ac.createBiquadFilter(); f2.type = 'lowpass'; f2.frequency.value = 900;
+        n.connect(f2); f2.connect(v); v.connect(ac.destination); n.start();
+      } catch(e) {}
+    }
+    const S = {
+      place: () => tone(180, 0.12, 'square', 0.12),
+      shoot: () => tone(520, 0.05, 'triangle', 0.06),
+      boom: () => noise(0.25, 0.22),
+      hit: () => tone(300, 0.04, 'square', 0.04),
+      leak: () => tone(90, 0.3, 'sawtooth', 0.18),
+      wave: () => { [330, 440].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'square', 0.12), i * 120)); },
+      over: () => [440, 330, 220, 165].forEach((f, i) => setTimeout(() => tone(f, 0.3, 'sawtooth', 0.14), i * 180)),
+      sell: () => tone(660, 0.08, 'sine', 0.1),
+    };
+    return {
+      play(n) {
+        ensure();
+        if (ac && ac.state === 'suspended') { try { ac.resume(); } catch(e) {} }
+        if (ac) (S[n] || (() => {}))();
+      }
+    };
   })();
 
-  // ---- Grid + path ----
-  const COLS=15, ROWS=9;
-  const WP=[[-1,4],[3,4],[3,7],[7,7],[7,2],[11,2],[11,5],[15,5]]; // waypoints (grid coords); keep at the last on-grid cell
-  let ts=48, ox=0, oy=0, road=[];           // road[c][r]=true
-  function computeRoad(){ road=Array.from({length:COLS},()=>Array(ROWS).fill(false));
-    for(let i=0;i<WP.length-1;i++){ let [c0,r0]=WP[i],[c1,r1]=WP[i+1]; const sc=Math.sign(c1-c0), sr=Math.sign(r1-r0);
-      let c=c0,r=r0; for(;;){ if(c>=0&&c<COLS&&r>=0&&r<ROWS) road[c][r]=true; if(c===c1&&r===r1) break; c+=sc; r+=sr; } } }
-  computeRoad();
-  function cx(c){ return ox + c*ts + ts/2; }
-  function cy(r){ return oy + r*ts + ts/2; }
+  // ---- Maps ----
+  const MAPS = [
+    { name: 'Classic', wp: [[-1,4],[3,4],[3,7],[7,7],[7,2],[11,2],[11,5],[15,5]] },
+    { name: 'Zigzag',  wp: [[-1,2],[4,2],[4,6],[8,6],[8,2],[12,2],[12,7],[15,7]] },
+    { name: 'Spiral',  wp: [[-1,1],[6,1],[6,4],[2,4],[2,7],[10,7],[10,3],[15,3]] },
+  ];
+  let mapIndex = 0;
 
-  let W,H;
-  function resize(){ W=canvas.width=window.innerWidth; H=canvas.height=window.innerHeight;
-    ts=Math.floor(Math.min(W/COLS, (H-60-92)/ROWS)); ox=Math.floor((W-COLS*ts)/2); oy=58+Math.floor(((H-60-92)-ROWS*ts)/2); }
+  // ---- Grid + path ----
+  const COLS = 15, ROWS = 9;
+  let WP = MAPS[0].wp.slice();
+  let ts = 48, ox = 0, oy = 0, road = [];
+
+  function computeRoad() {
+    road = Array.from({ length: COLS }, () => Array(ROWS).fill(false));
+    for (let i = 0; i < WP.length - 1; i++) {
+      let [c0, r0] = WP[i], [c1, r1] = WP[i + 1];
+      const sc = Math.sign(c1 - c0), sr = Math.sign(r1 - r0);
+      let c = c0, r = r0;
+      for (;;) {
+        if (c >= 0 && c < COLS && r >= 0 && r < ROWS) road[c][r] = true;
+        if (c === c1 && r === r1) break;
+        c += sc; r += sr;
+      }
+    }
+  }
+  computeRoad();
+
+  function applyMap(i) {
+    mapIndex = i;
+    WP = MAPS[i].wp.slice();
+    computeRoad();
+    document.querySelectorAll('.map-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.map) === i));
+  }
+
+  function cx(c) { return ox + c * ts + ts / 2; }
+  function cy(r) { return oy + r * ts + ts / 2; }
+
+  let W, H;
+  function resize() {
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    ts = Math.floor(Math.min(W / COLS, (H - 60 - 92) / ROWS));
+    ox = Math.floor((W - COLS * ts) / 2);
+    oy = 58 + Math.floor(((H - 60 - 92) - ROWS * ts) / 2);
+  }
   window.addEventListener('resize', resize);
 
-  // ---- Config ----
-  const TOWERS={
-    archer:{ name:'Archer', cost:18, color:'#7fb85f', range:2.7, dmg:6,  cd:28, kind:'arrow' },
-    cannon:{ name:'Cannon', cost:38, color:'#c07a44', range:2.4, dmg:16, cd:78, kind:'ball', splash:1.3 },
-    frost:{  name:'Frost',  cost:30, color:'#6fb6e0', range:2.3, dmg:1,  cd:16, kind:'frost', slow:0.5 },
-    mage:{   name:'Mage',   cost:45, color:'#9b59b6', range:2.6, dmg:12, cd:45, kind:'mage', splash:1.0, slow:0.3 },
+  // ---- Tower configs ----
+  const TOWERS = {
+    archer: { name: 'Archer', cost: 18, color: '#7fb85f', range: 2.7, dmg: 6,  cd: 28, kind: 'arrow' },
+    cannon: { name: 'Cannon', cost: 38, color: '#c07a44', range: 2.4, dmg: 16, cd: 78, kind: 'ball', splash: 1.3 },
+    frost:  { name: 'Frost',  cost: 30, color: '#6fb6e0', range: 2.3, dmg: 1,  cd: 16, kind: 'frost', slow: 0.5 },
+    mage:   { name: 'Mage',   cost: 45, color: '#9b59b6', range: 2.6, dmg: 12, cd: 45, kind: 'mage', splash: 1.0, slow: 0.3 },
   };
-  function enemyBase(t){ return {
-    grunt:{hp:26,speed:1.05,reward:6,color:'#9a6a44',r:0.30,leak:1},
-    runner:{hp:16,speed:2.0,reward:7,color:'#d8b24a',r:0.25,leak:1},
-    brute:{hp:90,speed:0.62,reward:15,color:'#7a7a88',r:0.40,leak:2},
-    boss:{hp:680,speed:0.5,reward:130,color:'#b04141',r:0.55,leak:6},
-  }[t]; }
+
+  // ---- Enemy base stats ----
+  const ENEMY_DEFS = {
+    grunt:   { hp: 26,  speed: 1.05, reward: 6,   color: '#9a6a44', rr: 0.30, leak: 1 },
+    runner:  { hp: 16,  speed: 2.0,  reward: 7,   color: '#d8b24a', rr: 0.25, leak: 1 },
+    brute:   { hp: 90,  speed: 0.62, reward: 15,  color: '#7a7a88', rr: 0.40, leak: 2 },
+    boss:    { hp: 680, speed: 0.5,  reward: 130, color: '#b04141', rr: 0.55, leak: 6 },
+    armored: { hp: 50,  speed: 0.85, reward: 20,  color: '#6a8a6a', rr: 0.35, leak: 1, armored: true },
+    swarm:   { hp: 8,   speed: 1.8,  reward: 3,   color: '#c09040', rr: 0.20, leak: 1 },
+  };
 
   // ---- State ----
-  let state='menu'; // menu | build | wave | over
-  let gold=0, hp=0, wave=0, score=0;
-  let towers=[], enemies=[], shots=[], floats=[], spawnQ=[], spawnT=0;
-  let selBuild=null, selTower=null;
-  let particles=[];
-  let gameSpeed=1;
-  let bestScore=0;
-  let victory=false;
-  let bossWarnShown=false;
+  let state = 'menu';
+  let gold = 0, hp = 0, wave = 0, score = 0;
+  let towers = [], enemies = [], shots = [], floats = [], spawnQ = [], spawnT = 0;
+  let selBuild = null, selTower = null;
+  let particles = [];
+  let gameSpeed = 1;
+  let bestScore = 0;
+  let victory = false;
+  let bossWarnShown = false;
 
-  function reset(){
-    gold=110; hp=20; wave=0; score=0;
-    towers=[]; enemies=[]; shots=[]; floats=[]; spawnQ=[];
-    particles=[];
-    selBuild=null; selTower=null;
-    victory=false; bossWarnShown=false;
-  }
-  function startGame(){ reset(); state='build'; overlay.classList.add('hidden'); loadBest(); updateHud(); refreshToolbar(); }
-
-  function loadBest(){
-    try { const v=localStorage.getItem('tower-defense_best'); if(v!==null) bestScore=parseInt(v,10)||0; } catch(e){}
-  }
-  function saveBest(){
-    try { if(score>bestScore){ bestScore=score; localStorage.setItem('tower-defense_best',String(bestScore)); } } catch(e){}
+  function reset() {
+    gold = 110; hp = 20; wave = 0; score = 0;
+    towers = []; enemies = []; shots = []; floats = []; spawnQ = [];
+    particles = [];
+    selBuild = null; selTower = null;
+    victory = false; bossWarnShown = false;
+    spawnT = 0;
   }
 
-  function updateHud(){
-    $('gold').textContent=gold; $('hp').textContent=hp; $('wave').textContent=wave; $('score').textContent=score;
-    $('remain').textContent=enemies.length+spawnQ.length;
-    $('best').textContent=bestScore;
+  function startGame() {
+    reset();
+    state = 'build';
+    overlay.classList.add('hidden');
+    loadBest();
+    updateHud();
+    refreshToolbar();
   }
-  function refreshToolbar(){
-    document.querySelectorAll('.tbtn[data-t]').forEach(b=>{ const t=b.dataset.t; b.classList.toggle('dim', gold<TOWERS[t].cost); b.classList.toggle('sel', selBuild===t); });
-    const sb=$('startBtn'); sb.textContent = state==='wave' ? 'Wave '+wave+'...' : 'Start Wave'; sb.classList.toggle('busy', state==='wave');
-    const spd=$('speedBtn'); if(spd){ spd.textContent=gameSpeed===1?'⚡2x':'⚡3x'; spd.classList.toggle('fast', gameSpeed===2); }
-  }
-  function float(x,y,txt,col){ floats.push({x,y,txt,col:col||'#fff',life:1}); }
 
-  // ---- Waves ----
-  function buildWave(n){
-    const q=[]; let t=0;
-    const grunts=4+Math.floor(n*1.6), runners=n>=2?Math.floor(n*1.1):0, brutes=n>=3?Math.floor((n-1)/2):0;
-    for(let i=0;i<grunts;i++){ q.push({type:'grunt',at:t}); t+=Math.max(18,40-n); }
-    for(let i=0;i<runners;i++){ q.push({type:'runner',at:t}); t+=22; }
-    for(let i=0;i<brutes;i++){ q.push({type:'brute',at:t+=60}); }
-    if(n%5===0){ q.push({type:'boss',at:t+60}); }
-    return q.sort((a,b)=>a.at-b.at);
+  function loadBest() {
+    try { const v = localStorage.getItem('tower-defense_best'); if (v !== null) bestScore = parseInt(v, 10) || 0; } catch(e) {}
   }
-  function startWave(){ if(state!=='build') return; wave++; spawnQ=buildWave(wave); spawnT=0; bossWarnShown=false; state='wave'; SND.play('wave'); selTower=null; $('panelTower').style.display='none'; updateHud(); refreshToolbar(); }
+  function saveBest() {
+    try { if (score > bestScore) { bestScore = score; localStorage.setItem('tower-defense_best', String(bestScore)); } } catch(e) {}
+  }
 
-  function spawnEnemy(type){ const b=enemyBase(type); const k=1+wave*0.14; const e={ type, maxHp:Math.round(b.hp*k), hp:Math.round(b.hp*k),
-    speed:b.speed, reward:b.reward, color:b.color, rr:b.r, leak:b.leak, seg:0, slow:0,
-    x:cx(WP[0][0]), y:cy(WP[0][1]) }; enemies.push(e); }
+  function updateHud() {
+    $('gold').textContent = gold;
+    $('hp').textContent = hp;
+    $('wave').textContent = wave;
+    $('score').textContent = score;
+    $('remain').textContent = enemies.length + spawnQ.length;
+    $('best').textContent = bestScore;
+  }
+  function refreshToolbar() {
+    document.querySelectorAll('.tbtn[data-t]').forEach(b => {
+      const t = b.dataset.t;
+      b.classList.toggle('dim', gold < TOWERS[t].cost);
+      b.classList.toggle('sel', selBuild === t);
+    });
+    const sb = $('startBtn');
+    sb.textContent = state === 'wave' ? 'Wave ' + wave + '...' : 'Start Wave';
+    sb.classList.toggle('busy', state === 'wave');
+    const spd = $('speedBtn');
+    if (spd) { spd.textContent = gameSpeed === 1 ? '⚡2x' : '⚡3x'; spd.classList.toggle('fast', gameSpeed === 2); }
+  }
+  function float(x, y, txt, col) { floats.push({ x, y, txt, col: col || '#fff', life: 1 }); }
+
+  // wave announce
+  let waveAnnTimer = 0;
+  function announceWave(n) {
+    const el = $('waveAnnounce');
+    if (!el) return;
+    el.textContent = 'WAVE ' + n;
+    el.classList.add('show');
+    waveAnnTimer = 120;
+  }
+
+  // ---- Wave building ----
+  function buildWave(n) {
+    const q = [];
+    let t = 0;
+    const interval = Math.max(14, 40 - n);
+
+    const grunts = 4 + Math.floor(n * 1.6);
+    const runners = n >= 2 ? Math.floor(n * 1.1) : 0;
+    const brutes = n >= 3 ? Math.floor((n - 1) / 2) : 0;
+    const armoredCount = n >= 4 ? Math.floor(n / 3) : 0;
+    const swarmGroups = n >= 3 ? Math.floor(n / 2) : 0;
+
+    for (let i = 0; i < grunts; i++) { q.push({ type: 'grunt', at: t }); t += interval; }
+    for (let i = 0; i < runners; i++) { q.push({ type: 'runner', at: t }); t += interval; }
+    for (let i = 0; i < brutes; i++) { q.push({ type: 'brute', at: t + 60 }); t += 70; }
+    for (let i = 0; i < armoredCount; i++) { q.push({ type: 'armored', at: t + 30 }); t += interval + 5; }
+    for (let g = 0; g < swarmGroups; g++) {
+      for (let i = 0; i < 4; i++) { q.push({ type: 'swarm', at: t + i * 5 }); }
+      t += interval + 20;
+    }
+    if (n % 5 === 0) { q.push({ type: 'boss', at: t + 80 }); }
+    return q.sort((a, b) => a.at - b.at);
+  }
+
+  function startWave() {
+    if (state !== 'build') return;
+    wave++;
+    spawnQ = buildWave(wave);
+    spawnT = 0;
+    bossWarnShown = false;
+    state = 'wave';
+    SND.play('wave');
+    selTower = null;
+    const pt = $('panelTower'); if (pt) pt.style.display = 'none';
+    updateHud();
+    refreshToolbar();
+    announceWave(wave);
+  }
+
+  function spawnEnemy(type) {
+    const b = ENEMY_DEFS[type];
+    if (!b) return;
+    const k = 1 + wave * 0.14;
+    const e = {
+      type, maxHp: Math.round(b.hp * k), hp: Math.round(b.hp * k),
+      speed: b.speed, reward: b.reward, color: b.color, rr: b.rr, leak: b.leak,
+      armored: b.armored || false,
+      seg: 0, slow: 0,
+      x: cx(WP[0][0]), y: cy(WP[0][1]),
+    };
+    enemies.push(e);
+  }
 
   // ---- Building ----
-  function cellAt(px,py){ const c=Math.floor((px-ox)/ts), r=Math.floor((py-oy)/ts); if(c<0||c>=COLS||r<0||r>=ROWS) return null; return {c,r}; }
-  function towerAt(c,r){ return towers.find(t=>t.c===c&&t.r===r); }
-  function placeTower(type,c,r){ const cfg=TOWERS[type]; if(!cfg) return false;
-    if(c<0||c>=COLS||r<0||r>=ROWS||road[c][r]||towerAt(c,r)) return false;
-    if(gold<cfg.cost) return false;
-    gold-=cfg.cost; towers.push({ type, c, r, x:cx(c), y:cy(r), lvl:1, cd:0, kills:0,
-      range:cfg.range, dmg:cfg.dmg, fireCd:cfg.cd, kind:cfg.kind, splash:cfg.splash, slow:cfg.slow, spent:cfg.cost });
-    SND.play('place'); updateHud(); refreshToolbar(); return true; }
-  function upgradeCost(t){ return Math.round(TOWERS[t.type].cost*(t.lvl+0.6)); }
-  function upgradeTower(t){ if(t.lvl>=3) return; const c=upgradeCost(t); if(gold<c) return; gold-=c; t.spent+=c; t.lvl++;
-    t.dmg=Math.round(t.dmg*1.6); t.range+=0.35; t.fireCd=Math.max(6,Math.round(t.fireCd*0.85)); SND.play('place'); selectPanel(t); updateHud(); refreshToolbar(); }
-  function sellTower(t){ gold+=Math.round(t.spent*0.7); towers=towers.filter(x=>x!==t); selTower=null; $('panelTower').style.display='none'; SND.play('sell'); updateHud(); refreshToolbar(); }
-  function selectPanel(t){ selTower=t; const p=$('panelTower'); p.style.display='block';
-    $('ptName').textContent=TOWERS[t.type].name+'  ·  Lv '+t.lvl;
-    $('upBtn').textContent = t.lvl>=3 ? 'Maxed' : ('Upgrade '+upgradeCost(t)+'g');
-    $('sellBtn').textContent='Sell +'+Math.round(t.spent*0.7)+'g';
-    const pk=$('ptKills'); if(pk) pk.textContent='Kills: '+t.kills; }
+  function cellAt(px, py) {
+    const c = Math.floor((px - ox) / ts), r = Math.floor((py - oy) / ts);
+    if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return null;
+    return { c, r };
+  }
+  function towerAt(c, r) { return towers.find(t => t.c === c && t.r === r) || null; }
 
-  // ---- Combat / update ----
-  function dist(ax,ay,bx,by){ return Math.hypot(ax-bx,ay-by); }
+  function placeTower(type, c, r) {
+    const cfg = TOWERS[type]; if (!cfg) return false;
+    if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
+    if (road[c][r] || towerAt(c, r)) return false;
+    if (gold < cfg.cost) return false;
+    gold -= cfg.cost;
+    towers.push({
+      type, c, r, x: cx(c), y: cy(r), lvl: 1, cd: 0, kills: 0,
+      range: cfg.range, dmg: cfg.dmg, fireCd: cfg.cd,
+      kind: cfg.kind, splash: cfg.splash, slow: cfg.slow, spent: cfg.cost,
+    });
+    SND.play('place');
+    updateHud();
+    refreshToolbar();
+    return true;
+  }
 
-  function spawnParticles(x,y,col){
-    const count=5+Math.floor(Math.random()*2);
-    for(let i=0;i<count;i++){
-      particles.push({x,y,vx:(Math.random()-0.5)*3,vy:(Math.random()-0.5)*3,life:1,col:col||'#e0b25a'});
+  function upgradeCost(t) { return Math.round(TOWERS[t.type].cost * (t.lvl + 0.6)); }
+  function upgradeTower(t) {
+    if (t.lvl >= 3) return;
+    const c = upgradeCost(t);
+    if (gold < c) return;
+    gold -= c; t.spent += c; t.lvl++;
+    t.dmg = Math.round(t.dmg * 1.6);
+    t.range += 0.35;
+    t.fireCd = Math.max(6, Math.round(t.fireCd * 0.85));
+    SND.play('place');
+    selectPanel(t);
+    updateHud();
+    refreshToolbar();
+  }
+  function sellTower(t) {
+    gold += Math.round(t.spent * 0.7);
+    towers = towers.filter(x => x !== t);
+    selTower = null;
+    const pt = $('panelTower'); if (pt) pt.style.display = 'none';
+    SND.play('sell');
+    updateHud();
+    refreshToolbar();
+  }
+  function selectPanel(t) {
+    selTower = t;
+    const p = $('panelTower'); if (!p) return;
+    p.style.display = 'block';
+    $('ptName').textContent = TOWERS[t.type].name + '  ·  Lv ' + t.lvl;
+    $('upBtn').textContent = t.lvl >= 3 ? 'Maxed' : ('Upgrade ' + upgradeCost(t) + 'g');
+    $('sellBtn').textContent = 'Sell +' + Math.round(t.spent * 0.7) + 'g';
+    const pk = $('ptKills'); if (pk) pk.textContent = 'Kills: ' + t.kills;
+  }
+
+  // ---- Combat helpers ----
+  function dist(ax, ay, bx, by) { return Math.hypot(ax - bx, ay - by); }
+
+  function effectiveDmg(dmg, enemy, kind) {
+    if (!enemy.armored) return dmg;
+    if (kind === 'mage' || kind === 'ball') return dmg;
+    return Math.round(dmg * 0.4);
+  }
+
+  function spawnParticles(x, y, col) {
+    const count = 5 + Math.floor(Math.random() * 3);
+    for (let i = 0; i < count; i++) {
+      particles.push({ x, y, vx: (Math.random() - 0.5) * 3.5, vy: (Math.random() - 0.5) * 3.5, life: 1, col: col || '#e0b25a' });
     }
   }
 
-  function update(){
-    if(state==='wave'){
-      // spawn
+  // ---- Update ----
+  function update() {
+    if (state === 'wave') {
       spawnT++;
-      while(spawnQ.length && spawnQ[0].at<=spawnT){ spawnEnemy(spawnQ.shift().type); }
-      // boss telegraph
-      if(!bossWarnShown && spawnQ.length>0){
-        const nextBoss=spawnQ.find(e=>e.type==='boss');
-        if(nextBoss && (nextBoss.at-spawnT)<=60 && (nextBoss.at-spawnT)>0){
-          bossWarnShown=true;
-          float(W/2,H/2-60,'⚠ BOSS INCOMING ⚠','#ff4444');
+      while (spawnQ.length && spawnQ[0].at <= spawnT) { spawnEnemy(spawnQ.shift().type); }
+
+      if (!bossWarnShown && spawnQ.length > 0) {
+        const nb = spawnQ.find(e => e.type === 'boss');
+        if (nb && (nb.at - spawnT) <= 80 && (nb.at - spawnT) > 0) {
+          bossWarnShown = true;
+          float(W / 2, H / 2 - 60, '⚠ BOSS INCOMING ⚠', '#ff4444');
         }
       }
     }
+
+    // wave announce timer
+    if (waveAnnTimer > 0) {
+      waveAnnTimer--;
+      if (waveAnnTimer === 0) { const el = $('waveAnnounce'); if (el) el.classList.remove('show'); }
+    }
+
     // enemies move
-    for(let i=enemies.length-1;i>=0;i--){ const e=enemies[i];
-      const sp=e.speed*ts*0.03*(e.slow>0?0.45:1); if(e.slow>0)e.slow--;
-      const tw=WP[e.seg+1]; if(!tw){ enemies.splice(i,1); continue; }
-      const tx=cx(tw[0]), ty=cy(tw[1]); const d=dist(e.x,e.y,tx,ty);
-      if(d<=sp){ e.x=tx; e.y=ty; e.seg++; if(e.seg>=WP.length-1){ hp-=e.leak; enemies.splice(i,1); SND.play('leak'); float(e.x,e.y,'-'+e.leak,'#ff8a8a'); updateHud(); if(hp<=0) gameOver(); } }
-      else { e.x+=(tx-e.x)/d*sp; e.y+=(ty-e.y)/d*sp; } }
+    for (let i = enemies.length - 1; i >= 0; i--) {
+      const e = enemies[i];
+      const sp = e.speed * ts * 0.03 * (e.slow > 0 ? 0.45 : 1);
+      if (e.slow > 0) e.slow--;
+      const tw = WP[e.seg + 1];
+      if (!tw) { enemies.splice(i, 1); continue; }
+      const tx = cx(tw[0]), ty = cy(tw[1]);
+      const d = dist(e.x, e.y, tx, ty);
+      if (d <= sp) {
+        e.x = tx; e.y = ty; e.seg++;
+        if (e.seg >= WP.length - 1) {
+          hp -= e.leak;
+          enemies.splice(i, 1);
+          SND.play('leak');
+          float(e.x, e.y, '-' + e.leak, '#ff8a8a');
+          updateHud();
+          if (hp <= 0) gameOver();
+        }
+      } else {
+        e.x += (tx - e.x) / d * sp;
+        e.y += (ty - e.y) / d * sp;
+      }
+    }
+
     // towers fire
-    for(const t of towers){ if(t.cd>0){ t.cd--; continue; }
-      const R=t.range*ts;
-      if(t.kind==='frost'){ let any=false; for(const e of enemies){ if(dist(t.x,t.y,e.x,e.y)<=R){ e.slow=30; e.hp-=t.dmg; any=true; if(e.hp<=0){ t.kills++; killEnemy(e); } } } if(any){ t.cd=t.fireCd; } continue; }
-      if(t.kind==='mage'){
-        let any=false;
-        for(const e of enemies){ if(dist(t.x,t.y,e.x,e.y)<=R){
-          shots.push({x:t.x,y:t.y,tx:e.x,ty:e.y,tgt:e,dmg:t.dmg,kind:'mage',splash:t.splash,slow:t.slow||0.3,col:TOWERS.mage.color,t:0,src:t});
-          any=true;
-        } }
-        if(any){ t.cd=t.fireCd; SND.play('shoot'); }
+    for (const t of towers) {
+      if (t.cd > 0) { t.cd--; continue; }
+      const R = t.range * ts;
+
+      if (t.kind === 'frost') {
+        let any = false;
+        for (const e of enemies) {
+          if (dist(t.x, t.y, e.x, e.y) <= R) {
+            e.slow = 30;
+            const d = effectiveDmg(t.dmg, e, 'frost');
+            e.hp -= d;
+            any = true;
+            if (e.hp <= 0) { t.kills++; killEnemy(e); }
+          }
+        }
+        if (any) t.cd = t.fireCd;
         continue;
       }
-      // pick furthest-along enemy in range
-      let tgt=null,best=-1; for(const e of enemies){ if(dist(t.x,t.y,e.x,e.y)<=R && e.seg>best){ best=e.seg; tgt=e; } }
-      if(tgt){ shots.push({x:t.x,y:t.y,tx:tgt.x,ty:tgt.y,tgt,dmg:t.dmg,kind:t.kind,splash:t.splash,col:TOWERS[t.type].color,t:0,src:t}); t.cd=t.fireCd; SND.play('shoot'); }
-    }
-    // shots
-    for(let i=shots.length-1;i>=0;i--){ const s=shots[i]; s.t++;
-      const aimx=s.tgt&&s.tgt.hp>0?s.tgt.x:s.tx, aimy=s.tgt&&s.tgt.hp>0?s.tgt.y:s.ty;
-      const d=dist(s.x,s.y,aimx,aimy), sp=8+ts*0.12;
-      if(d<=sp||s.t>120){ // impact
-        if(s.kind==='ball'){ const SR=s.splash*ts; for(const e of enemies){ if(dist(aimx,aimy,e.x,e.y)<=SR){ e.hp-=s.dmg; if(e.hp<=0){ if(s.src) s.src.kills++; killEnemy(e); } } } SND.play('boom'); }
-        else if(s.kind==='mage'){ if(s.tgt&&s.tgt.hp>0){ const slowTicks=Math.round((s.slow||0.3)*60); s.tgt.slow=slowTicks; s.tgt.hp-=s.dmg; if(s.tgt.hp<=0){ if(s.src) s.src.kills++; killEnemy(s.tgt); } } SND.play('hit'); }
-        else { if(s.tgt&&s.tgt.hp>0){ s.tgt.hp-=s.dmg; if(s.tgt.hp<=0){ if(s.src) s.src.kills++; killEnemy(s.tgt); } } SND.play('hit'); }
-        shots.splice(i,1);
-      } else { s.x+=(aimx-s.x)/d*sp; s.y+=(aimy-s.y)/d*sp; } }
-    // particles
-    for(let i=particles.length-1;i>=0;i--){
-      const p=particles[i]; p.x+=p.vx; p.y=p.y+p.vy*0.8+0.3; p.life-=0.05;
-      if(p.life<=0) particles.splice(i,1);
-    }
-    // floats
-    for(let i=floats.length-1;i>=0;i--){ const f=floats[i]; f.y-=0.5; f.life-=0.02; if(f.life<=0) floats.splice(i,1); }
-    // wave end
-    if(state==='wave' && spawnQ.length===0 && enemies.length===0){
-      state='build';
-      const base=12+wave*2;
-      const interest=Math.max(2,Math.round(gold*0.05));
-      let bonus=0;
-      if(victory){ bonus=Math.round(base*0.5); }
-      gold+=base+bonus+interest;
-      score+=wave*10;
-      float(W/2,H/2-40,'Wave '+wave+' cleared! +'+(base+bonus)+'g','#e0b25a');
-      float(W/2,H/2-20,'Interest +'+interest+'g','#f0d080');
-      // victory check
-      if(wave>=10 && !victory){
-        victory=true;
-        gold+=200;
-        float(W/2,H/2,'VICTORY! Endless mode...','#ffe066');
-        float(W/2,H/2+20,'+200g bonus!','#e0b25a');
+
+      if (t.kind === 'mage') {
+        let any = false;
+        for (const e of enemies) {
+          if (dist(t.x, t.y, e.x, e.y) <= R) {
+            shots.push({ x: t.x, y: t.y, tx: e.x, ty: e.y, tgt: e, dmg: t.dmg, kind: 'mage', splash: t.splash, slow: t.slow || 0.3, col: TOWERS.mage.color, t: 0, src: t });
+            any = true;
+          }
+        }
+        if (any) { t.cd = t.fireCd; SND.play('shoot'); }
+        continue;
       }
-      updateHud(); refreshToolbar();
+
+      let tgt = null, best = -1;
+      for (const e of enemies) { if (dist(t.x, t.y, e.x, e.y) <= R && e.seg > best) { best = e.seg; tgt = e; } }
+      if (tgt) {
+        shots.push({ x: t.x, y: t.y, tx: tgt.x, ty: tgt.y, tgt, dmg: t.dmg, kind: t.kind, splash: t.splash, col: TOWERS[t.type].color, t: 0, src: t });
+        t.cd = t.fireCd;
+        SND.play('shoot');
+      }
+    }
+
+    // shots move + impact
+    for (let i = shots.length - 1; i >= 0; i--) {
+      const s = shots[i]; s.t++;
+      const aimx = s.tgt && s.tgt.hp > 0 ? s.tgt.x : s.tx;
+      const aimy = s.tgt && s.tgt.hp > 0 ? s.tgt.y : s.ty;
+      const d = dist(s.x, s.y, aimx, aimy), sp = 8 + ts * 0.12;
+      if (d <= sp || s.t > 120) {
+        if (s.kind === 'ball') {
+          const SR = s.splash * ts;
+          for (const e of enemies) {
+            if (dist(aimx, aimy, e.x, e.y) <= SR) {
+              const dmg = effectiveDmg(s.dmg, e, 'ball');
+              e.hp -= dmg;
+              if (e.hp <= 0) { if (s.src) s.src.kills++; killEnemy(e); }
+            }
+          }
+          SND.play('boom');
+        } else if (s.kind === 'mage') {
+          if (s.tgt && s.tgt.hp > 0) {
+            const slowTicks = Math.round((s.slow || 0.3) * 60);
+            s.tgt.slow = slowTicks;
+            const dmg = effectiveDmg(s.dmg, s.tgt, 'mage');
+            s.tgt.hp -= dmg;
+            if (s.tgt.hp <= 0) { if (s.src) s.src.kills++; killEnemy(s.tgt); }
+          }
+          SND.play('hit');
+        } else {
+          if (s.tgt && s.tgt.hp > 0) {
+            const dmg = effectiveDmg(s.dmg, s.tgt, s.kind);
+            s.tgt.hp -= dmg;
+            if (s.tgt.hp <= 0) { if (s.src) s.src.kills++; killEnemy(s.tgt); }
+          }
+          SND.play('hit');
+        }
+        shots.splice(i, 1);
+      } else {
+        s.x += (aimx - s.x) / d * sp;
+        s.y += (aimy - s.y) / d * sp;
+      }
+    }
+
+    // particles
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx; p.y += p.vy * 0.8 + 0.3; p.life -= 0.05;
+      if (p.life <= 0) particles.splice(i, 1);
+    }
+
+    // floats
+    for (let i = floats.length - 1; i >= 0; i--) {
+      const f = floats[i]; f.y -= 0.5; f.life -= 0.02;
+      if (f.life <= 0) floats.splice(i, 1);
+    }
+
+    // wave end
+    if (state === 'wave' && spawnQ.length === 0 && enemies.length === 0) {
+      state = 'build';
+      const base = 12 + wave * 2;
+      const interest = Math.max(2, Math.round(gold * 0.05));
+      let bonus = 0;
+      if (victory) bonus = Math.round(base * 0.5);
+      gold += base + bonus + interest;
+      score += wave * 10;
+      float(W / 2, H / 2 - 40, 'Wave ' + wave + ' cleared! +' + (base + bonus) + 'g', '#e0b25a');
+      float(W / 2, H / 2 - 20, 'Interest +' + interest + 'g', '#f0d080');
+      if (wave >= 10 && !victory) {
+        victory = true;
+        gold += 200;
+        float(W / 2, H / 2, 'VICTORY! Endless mode...', '#ffe066');
+        float(W / 2, H / 2 + 20, '+200g bonus!', '#e0b25a');
+      }
+      updateHud();
+      refreshToolbar();
     }
     updateHud();
   }
-  function killEnemy(e){ const i=enemies.indexOf(e); if(i<0) return; enemies.splice(i,1); gold+=e.reward; score+=e.reward;
-    spawnParticles(e.x,e.y,e.color);
-    float(e.x,e.y,'+'+e.reward,'#e0b25a'); updateHud(); refreshToolbar(); }
-  function gameOver(){ state='over'; saveBest(); SND.play('over'); enemies=[]; shots=[]; spawnQ=[];
-    overlay.innerHTML='<h1>THE KEEP HAS FALLEN</h1><p>Wave reached: <b>'+wave+'</b></p><p>Score: <b>'+score+'</b> &nbsp;|&nbsp; Best: <b>'+bestScore+'</b></p><button id="againBtn">Defend again</button>';
-    overlay.classList.remove('hidden'); $('againBtn').addEventListener('click', startGame); }
 
-  // ---- Render ----
-  function drawRoundedKeep(x,y,s){ ctx.fillStyle='#6b6b78'; ctx.strokeStyle='#3a3a44'; ctx.lineWidth=2;
-    ctx.fillRect(x-s*0.4,y-s*0.4,s*0.8,s*0.8); ctx.strokeRect(x-s*0.4,y-s*0.4,s*0.8,s*0.8);
-    for(let i=-1;i<=1;i++){ ctx.fillRect(x+i*s*0.28-s*0.07,y-s*0.55,s*0.14,s*0.18); }
-    ctx.fillStyle='#e0b25a'; ctx.fillRect(x-s*0.05,y-s*0.78,s*0.04,s*0.24); ctx.fillRect(x-s*0.05,y-s*0.78,s*0.16,s*0.09); }
-  function render(){
-    // grass
-    ctx.fillStyle='#6f8a45'; ctx.fillRect(0,0,W,H);
-    // grid cells (grass + buildable hint)
-    for(let c=0;c<COLS;c++) for(let r=0;r<ROWS;r++){ const x=ox+c*ts, y=oy+r*ts;
-      if(road[c][r]) continue;
-      ctx.fillStyle=((c+r)%2)?'#74904a':'#6c8744'; ctx.fillRect(x,y,ts,ts); }
-    // road
-    ctx.strokeStyle='#caa46b'; ctx.lineWidth=ts*0.74; ctx.lineCap='round'; ctx.lineJoin='round';
-    ctx.beginPath(); for(let i=0;i<WP.length;i++){ const x=cx(WP[i][0]), y=cy(WP[i][1]); i?ctx.lineTo(x,y):ctx.moveTo(x,y); } ctx.stroke();
-    ctx.strokeStyle='#b8915a'; ctx.lineWidth=ts*0.6; ctx.stroke();
-    // keep
-    drawRoundedKeep(cx(WP[WP.length-1][0]), cy(WP[WP.length-1][1]), ts);
-    // build preview / selected range
-    if(selBuild && hoverCell && !road[hoverCell.c]?.[hoverCell.r] && !towerAt(hoverCell.c,hoverCell.r)){
-      const cfg=TOWERS[selBuild]; ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.fillRect(ox+hoverCell.c*ts,oy+hoverCell.r*ts,ts,ts);
-      ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.beginPath(); ctx.arc(cx(hoverCell.c),cy(hoverCell.r),cfg.range*ts,0,Math.PI*2); ctx.stroke(); }
-    if(selTower){ ctx.strokeStyle='rgba(224,178,90,0.6)'; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(selTower.x,selTower.y,selTower.range*ts,0,Math.PI*2); ctx.stroke(); }
-    // towers
-    for(const t of towers){ const cfg=TOWERS[t.type];
-      ctx.fillStyle='#3a2a17'; ctx.beginPath(); ctx.arc(t.x,t.y,ts*0.34,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle=cfg.color; ctx.beginPath(); ctx.arc(t.x,t.y,ts*0.27,0,Math.PI*2); ctx.fill();
-      ctx.fillStyle='#fff'; ctx.font='bold '+Math.floor(ts*0.26)+'px Georgia,serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
-      ctx.fillText(t.type==='archer'?'A':t.type==='cannon'?'C':t.type==='mage'?'M':'F', t.x, t.y+1);
-      for(let i=0;i<t.lvl-1;i++){ ctx.fillStyle='#e0b25a'; ctx.fillRect(t.x-6+i*6, t.y+ts*0.30, 4,4); } }
-    // enemies
-    for(const e of enemies){ const rr=e.rr*ts;
-      ctx.fillStyle=e.color; ctx.beginPath(); ctx.arc(e.x,e.y,rr,0,Math.PI*2); ctx.fill();
-      ctx.strokeStyle='#2a1c10'; ctx.lineWidth=2; ctx.stroke();
-      if(e.slow>0){ ctx.strokeStyle='#9fe0ff'; ctx.beginPath(); ctx.arc(e.x,e.y,rr+3,0,Math.PI*2); ctx.stroke(); }
-      const w=rr*2, hpf=e.hp/e.maxHp; ctx.fillStyle='#3a1010'; ctx.fillRect(e.x-w/2,e.y-rr-7,w,4); ctx.fillStyle='#5fd35f'; ctx.fillRect(e.x-w/2,e.y-rr-7,w*Math.max(0,hpf),4); }
-    // shots
-    for(const s of shots){ ctx.fillStyle=s.col; ctx.beginPath(); ctx.arc(s.x,s.y,s.kind==='ball'?5:s.kind==='mage'?4:3,0,Math.PI*2); ctx.fill(); }
-    // particles
-    for(const p of particles){
-      ctx.globalAlpha=Math.max(0,p.life); ctx.fillStyle=p.col;
-      ctx.beginPath(); ctx.arc(p.x,p.y,2,0,Math.PI*2); ctx.fill();
-    }
-    ctx.globalAlpha=1;
-    // floats
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    for(const f of floats){ ctx.globalAlpha=Math.max(0,f.life); ctx.fillStyle=f.col; ctx.font='bold 15px Georgia,serif'; ctx.fillText(f.txt,f.x,f.y); ctx.globalAlpha=1; }
+  function killEnemy(e) {
+    const i = enemies.indexOf(e); if (i < 0) return;
+    enemies.splice(i, 1);
+    gold += e.reward;
+    score += e.reward;
+    spawnParticles(e.x, e.y, e.color);
+    float(e.x, e.y, '+' + e.reward, '#e0b25a');
+    updateHud();
+    refreshToolbar();
   }
-  let hoverCell=null;
 
-  function loop(){ requestAnimationFrame(loop); try {
-    if(state==='wave'||state==='build'){
-      update();
-      if(gameSpeed===2) update();
+  function gameOver() {
+    state = 'over';
+    saveBest();
+    SND.play('over');
+    enemies = []; shots = []; spawnQ = [];
+    overlay.innerHTML = '<h1>THE KEEP HAS FALLEN</h1><p>Wave reached: <b>' + wave + '</b></p><p>Score: <b>' + score + '</b> &nbsp;|&nbsp; Best: <b>' + bestScore + '</b></p><button id="againBtn">Defend again</button>';
+    overlay.classList.remove('hidden');
+    const ab = $('againBtn'); if (ab) ab.addEventListener('click', startGame);
+  }
+
+  // ---- Render helpers ----
+
+  // Grass cell with subtle variation
+  function drawGrassCell(c, r) {
+    const x = ox + c * ts, y = oy + r * ts;
+    const base = ((c + r) % 2) ? 0x749044 : 0x6c8744;
+    const vary = ((c * 7 + r * 13) % 5) - 2;
+    const R = ((base >> 16) & 0xff) + vary;
+    const G = ((base >> 8) & 0xff) + vary;
+    const B = (base & 0xff) + vary;
+    ctx.fillStyle = 'rgb(' + R + ',' + G + ',' + B + ')';
+    ctx.fillRect(x, y, ts, ts);
+  }
+
+  // Stone road segment texture
+  function drawRoadTexture() {
+    // base road stroke
+    ctx.strokeStyle = '#c8a060'; ctx.lineWidth = ts * 0.76; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath();
+    for (let i = 0; i < WP.length; i++) {
+      const x = cx(WP[i][0]), y = cy(WP[i][1]);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
     }
-    render();
-  } catch(e){ if(window.console) console.error(e); } }
+    ctx.stroke();
+
+    // darker underlay
+    ctx.strokeStyle = '#b08850'; ctx.lineWidth = ts * 0.62; ctx.stroke();
+
+    // stone patch overlay using road cells
+    for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+      if (!road[c][r]) continue;
+      const x = ox + c * ts, y = oy + r * ts;
+      const seed = (c * 17 + r * 31) % 8;
+      if (seed < 3) {
+        ctx.fillStyle = 'rgba(180,140,80,0.18)';
+        ctx.fillRect(x + ts * 0.1, y + ts * 0.1, ts * 0.8, ts * 0.8);
+      } else if (seed >= 6) {
+        ctx.fillStyle = 'rgba(90,60,20,0.12)';
+        ctx.fillRect(x + ts * 0.2, y + ts * 0.2, ts * 0.6, ts * 0.6);
+      }
+    }
+  }
+
+  // Castle / keep at end
+  function drawKeep(x, y, s) {
+    const hw = s * 0.38, hh = s * 0.36;
+    // main body
+    ctx.fillStyle = '#78788a';
+    ctx.fillRect(x - hw, y - hh, hw * 2, hh * 2);
+    // wall shading
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fillRect(x + hw * 0.3, y - hh, hw * 0.7, hh * 2);
+    // battlements
+    ctx.fillStyle = '#8a8a9c';
+    const bw = s * 0.14, bh = s * 0.16, gap = s * 0.16;
+    for (let i = -1; i <= 1; i++) {
+      ctx.fillRect(x + i * gap - bw / 2, y - hh - bh, bw, bh);
+    }
+    // gate arch
+    ctx.fillStyle = '#3a2a17';
+    ctx.beginPath();
+    ctx.arc(x, y + hh * 0.15, s * 0.12, Math.PI, 0, false);
+    ctx.rect(x - s * 0.12, y + hh * 0.15, s * 0.24, s * 0.25);
+    ctx.fill();
+    // flag
+    ctx.fillStyle = '#cc3333';
+    ctx.beginPath();
+    ctx.moveTo(x, y - hh - bh - s * 0.28);
+    ctx.lineTo(x + s * 0.18, y - hh - bh - s * 0.18);
+    ctx.lineTo(x, y - hh - bh - s * 0.08);
+    ctx.fill();
+    ctx.strokeStyle = '#4a3220'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x, y - hh - bh); ctx.lineTo(x, y - hh - bh - s * 0.3); ctx.stroke();
+  }
+
+  // Tower shapes per type
+  function drawTowerShape(t) {
+    const x = t.x, y = t.y, s = ts * 0.5;
+    const tierColors = ['#cd7f32', '#c0c0c0', '#e0b25a']; // bronze, silver, gold
+    const tc = tierColors[t.lvl - 1];
+
+    // base platform
+    ctx.fillStyle = '#3a2a17';
+    ctx.beginPath(); ctx.arc(x, y, s * 0.72, 0, Math.PI * 2); ctx.fill();
+
+    switch (t.type) {
+      case 'archer': {
+        // Triangle pointing up
+        ctx.fillStyle = TOWERS.archer.color;
+        ctx.beginPath();
+        ctx.moveTo(x, y - s * 0.6);
+        ctx.lineTo(x + s * 0.5, y + s * 0.4);
+        ctx.lineTo(x - s * 0.5, y + s * 0.4);
+        ctx.closePath(); ctx.fill();
+        // tier accent
+        ctx.strokeStyle = tc; ctx.lineWidth = 2;
+        ctx.stroke();
+        break;
+      }
+      case 'cannon': {
+        // Square body with barrel nub
+        ctx.fillStyle = TOWERS.cannon.color;
+        ctx.fillRect(x - s * 0.42, y - s * 0.42, s * 0.84, s * 0.84);
+        ctx.strokeStyle = tc; ctx.lineWidth = 2;
+        ctx.strokeRect(x - s * 0.42, y - s * 0.42, s * 0.84, s * 0.84);
+        // barrel nub pointing right
+        ctx.fillStyle = '#8a5030';
+        ctx.fillRect(x + s * 0.3, y - s * 0.14, s * 0.4, s * 0.28);
+        break;
+      }
+      case 'frost': {
+        // Diamond / crystal shape
+        ctx.fillStyle = TOWERS.frost.color;
+        ctx.beginPath();
+        ctx.moveTo(x, y - s * 0.62);
+        ctx.lineTo(x + s * 0.46, y);
+        ctx.lineTo(x, y + s * 0.62);
+        ctx.lineTo(x - s * 0.46, y);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = tc; ctx.lineWidth = 2; ctx.stroke();
+        // inner shine
+        ctx.fillStyle = 'rgba(200,240,255,0.35)';
+        ctx.beginPath();
+        ctx.moveTo(x, y - s * 0.3);
+        ctx.lineTo(x + s * 0.2, y);
+        ctx.lineTo(x, y + s * 0.3);
+        ctx.lineTo(x - s * 0.2, y);
+        ctx.closePath(); ctx.fill();
+        break;
+      }
+      case 'mage': {
+        // Circle with 4 star points
+        ctx.fillStyle = TOWERS.mage.color;
+        ctx.beginPath(); ctx.arc(x, y, s * 0.42, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = tc; ctx.lineWidth = 2; ctx.stroke();
+        // star points
+        ctx.fillStyle = '#d4a8f0';
+        for (let p = 0; p < 4; p++) {
+          const ang = (p / 4) * Math.PI * 2 - Math.PI / 4;
+          const px = x + Math.cos(ang) * s * 0.65;
+          const py = y + Math.sin(ang) * s * 0.65;
+          ctx.beginPath(); ctx.arc(px, py, s * 0.14, 0, Math.PI * 2); ctx.fill();
+        }
+        break;
+      }
+    }
+
+    // tier pips
+    for (let i = 0; i < t.lvl - 1; i++) {
+      ctx.fillStyle = '#e0b25a';
+      ctx.beginPath(); ctx.arc(x - 5 + i * 6, y + s * 0.72 + 3, 3, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  // Enemy shapes
+  function drawEnemy(e) {
+    const rr = e.rr * ts;
+    ctx.save();
+
+    if (e.type === 'boss') {
+      // boss: star shape
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      for (let p = 0; p < 10; p++) {
+        const ang = (p / 10) * Math.PI * 2 - Math.PI / 2;
+        const r2 = p % 2 === 0 ? rr : rr * 0.55;
+        const ex = e.x + Math.cos(ang) * r2, ey = e.y + Math.sin(ang) * r2;
+        p === 0 ? ctx.moveTo(ex, ey) : ctx.lineTo(ex, ey);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#ff8888'; ctx.lineWidth = 2; ctx.stroke();
+    } else if (e.type === 'brute') {
+      // brute: heavy square
+      ctx.fillStyle = e.color;
+      ctx.fillRect(e.x - rr, e.y - rr, rr * 2, rr * 2);
+      ctx.strokeStyle = '#555566'; ctx.lineWidth = 2; ctx.strokeRect(e.x - rr, e.y - rr, rr * 2, rr * 2);
+    } else if (e.type === 'armored') {
+      // armored: hexagon
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      for (let p = 0; p < 6; p++) {
+        const ang = (p / 6) * Math.PI * 2;
+        const ex = e.x + Math.cos(ang) * rr, ey = e.y + Math.sin(ang) * rr;
+        p === 0 ? ctx.moveTo(ex, ey) : ctx.lineTo(ex, ey);
+      }
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#aaccaa'; ctx.lineWidth = 2; ctx.stroke();
+      // armor plates
+      ctx.strokeStyle = 'rgba(180,220,180,0.4)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(e.x - rr * 0.3, e.y - rr * 0.5); ctx.lineTo(e.x + rr * 0.3, e.y - rr * 0.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(e.x - rr * 0.3, e.y); ctx.lineTo(e.x + rr * 0.3, e.y); ctx.stroke();
+    } else if (e.type === 'swarm') {
+      // swarm: tiny diamond
+      ctx.fillStyle = e.color;
+      ctx.beginPath();
+      ctx.moveTo(e.x, e.y - rr);
+      ctx.lineTo(e.x + rr, e.y);
+      ctx.lineTo(e.x, e.y + rr);
+      ctx.lineTo(e.x - rr, e.y);
+      ctx.closePath(); ctx.fill();
+    } else if (e.type === 'runner') {
+      // runner: elongated oval
+      ctx.fillStyle = e.color;
+      ctx.scale(1.4, 0.8);
+      ctx.beginPath(); ctx.arc(e.x / 1.4, e.y / 0.8, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.restore(); ctx.save();
+    } else {
+      // grunt: circle
+      ctx.fillStyle = e.color;
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#2a1c10'; ctx.lineWidth = 2; ctx.stroke();
+    }
+
+    // slow ring
+    if (e.slow > 0) {
+      ctx.strokeStyle = 'rgba(150,230,255,0.8)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr + 3, 0, Math.PI * 2); ctx.stroke();
+    }
+
+    ctx.restore();
+
+    // health bar — green → yellow → red
+    const w = rr * 2.2, hpf = Math.max(0, e.hp / e.maxHp);
+    const hbx = e.x - w / 2, hby = e.y - rr - 8;
+    ctx.fillStyle = '#2a1010'; ctx.fillRect(hbx, hby, w, 4);
+    const barColor = hpf > 0.6 ? '#5fd35f' : hpf > 0.3 ? '#e0c040' : '#e04040';
+    ctx.fillStyle = barColor; ctx.fillRect(hbx, hby, w * hpf, 4);
+  }
+
+  // Projectile visuals
+  function drawShot(s) {
+    ctx.save();
+    if (s.kind === 'ball') {
+      ctx.fillStyle = '#e07030';
+      ctx.beginPath(); ctx.arc(s.x, s.y, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ffb060';
+      ctx.beginPath(); ctx.arc(s.x - 1, s.y - 1, 2, 0, Math.PI * 2); ctx.fill();
+    } else if (s.kind === 'mage') {
+      ctx.fillStyle = '#c080ff';
+      ctx.beginPath(); ctx.arc(s.x, s.y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(200,150,255,0.4)';
+      ctx.beginPath(); ctx.arc(s.x, s.y, 7, 0, Math.PI * 2); ctx.fill();
+    } else if (s.kind === 'frost') {
+      ctx.fillStyle = '#80d8ff';
+      ctx.beginPath(); ctx.arc(s.x, s.y, 3, 0, Math.PI * 2); ctx.fill();
+    } else {
+      // arrow: line segment
+      ctx.strokeStyle = '#b0a060'; ctx.lineWidth = 2;
+      const dx = s.tx - s.x, dy = s.ty - s.y, len = Math.hypot(dx, dy) || 1;
+      ctx.beginPath();
+      ctx.moveTo(s.x - dx / len * 6, s.y - dy / len * 6);
+      ctx.lineTo(s.x + dx / len * 6, s.y + dy / len * 6);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  let hoverCell = null;
+
+  function render() {
+    // background
+    ctx.fillStyle = '#4a6030';
+    ctx.fillRect(0, 0, W, H);
+
+    // grass cells
+    for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+      if (!road[c][r]) drawGrassCell(c, r);
+    }
+
+    // road
+    drawRoadTexture();
+
+    // keep
+    drawKeep(cx(WP[WP.length - 1][0]), cy(WP[WP.length - 1][1]), ts);
+
+    // build preview range ring
+    if (selBuild && hoverCell && !road[hoverCell.c]?.[hoverCell.r] && !towerAt(hoverCell.c, hoverCell.r)) {
+      const cfg = TOWERS[selBuild];
+      ctx.fillStyle = 'rgba(255,255,255,0.10)';
+      ctx.fillRect(ox + hoverCell.c * ts, oy + hoverCell.r * ts, ts, ts);
+      ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.arc(cx(hoverCell.c), cy(hoverCell.r), cfg.range * ts, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // selected tower range ring
+    if (selTower) {
+      ctx.strokeStyle = 'rgba(224,178,90,0.55)'; ctx.lineWidth = 2;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.arc(selTower.x, selTower.y, selTower.range * ts, 0, Math.PI * 2); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // towers
+    for (const t of towers) drawTowerShape(t);
+
+    // enemies
+    for (const e of enemies) drawEnemy(e);
+
+    // shots
+    for (const s of shots) drawShot(s);
+
+    // particles
+    for (const p of particles) {
+      ctx.globalAlpha = Math.max(0, p.life);
+      ctx.fillStyle = p.col;
+      ctx.beginPath(); ctx.arc(p.x, p.y, 2.5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // floats
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (const f of floats) {
+      ctx.globalAlpha = Math.max(0, f.life);
+      ctx.fillStyle = f.col;
+      ctx.font = 'bold 15px Georgia,serif';
+      ctx.fillText(f.txt, f.x, f.y);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function loop() {
+    requestAnimationFrame(loop);
+    try {
+      if (state === 'wave' || state === 'build') {
+        update();
+        if (gameSpeed === 2) update();
+      }
+      render();
+    } catch(e) { if (typeof console !== 'undefined') console.error(e); }
+  }
 
   // ---- Input ----
-  function tap(px,py){ if(state!=='build'&&state!=='wave') return; const cell=cellAt(px,py); if(!cell) return;
-    const t=towerAt(cell.c,cell.r);
-    if(t){ selectPanel(t); selBuild=null; refreshToolbar(); return; }
-    if(road[cell.c][cell.r]){ selTower=null; $('panelTower').style.display='none'; return; }
-    if(selBuild){ placeTower(selBuild,cell.c,cell.r); }
-    else { selTower=null; $('panelTower').style.display='none'; } }
-  canvas.addEventListener('pointerdown', e=>{ const r=canvas.getBoundingClientRect(); tap((e.clientX-r.left)*(W/r.width),(e.clientY-r.top)*(H/r.height)); });
-  canvas.addEventListener('pointermove', e=>{ const r=canvas.getBoundingClientRect(); hoverCell=cellAt((e.clientX-r.left)*(W/r.width),(e.clientY-r.top)*(H/r.height)); });
+  function tap(px, py) {
+    if (state !== 'build' && state !== 'wave') return;
+    const cell = cellAt(px, py); if (!cell) return;
+    const t = towerAt(cell.c, cell.r);
+    if (t) { selectPanel(t); selBuild = null; refreshToolbar(); return; }
+    if (road[cell.c][cell.r]) { selTower = null; const pt = $('panelTower'); if (pt) pt.style.display = 'none'; return; }
+    if (selBuild) { placeTower(selBuild, cell.c, cell.r); }
+    else { selTower = null; const pt = $('panelTower'); if (pt) pt.style.display = 'none'; }
+  }
 
-  document.querySelectorAll('.tbtn[data-t]').forEach(b=>b.addEventListener('click',()=>{ const t=b.dataset.t;
-    selBuild = selBuild===t ? null : t; selTower=null; $('panelTower').style.display='none'; refreshToolbar(); }));
+  canvas.addEventListener('pointerdown', e => {
+    const r = canvas.getBoundingClientRect();
+    tap((e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height));
+  });
+  canvas.addEventListener('pointermove', e => {
+    const r = canvas.getBoundingClientRect();
+    hoverCell = cellAt((e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height));
+  });
+
+  document.querySelectorAll('.tbtn[data-t]').forEach(b => b.addEventListener('click', () => {
+    const t = b.dataset.t;
+    selBuild = selBuild === t ? null : t;
+    selTower = null;
+    const pt = $('panelTower'); if (pt) pt.style.display = 'none';
+    refreshToolbar();
+  }));
   $('startBtn').addEventListener('click', startWave);
-  $('upBtn').addEventListener('click', ()=>{ if(selTower) upgradeTower(selTower); });
-  $('sellBtn').addEventListener('click', ()=>{ if(selTower) sellTower(selTower); });
+  $('upBtn').addEventListener('click', () => { if (selTower) upgradeTower(selTower); });
+  $('sellBtn').addEventListener('click', () => { if (selTower) sellTower(selTower); });
   $('startGameBtn').addEventListener('click', startGame);
-  const spdBtn=$('speedBtn'); if(spdBtn) spdBtn.addEventListener('click',()=>{ gameSpeed=gameSpeed===1?2:1; refreshToolbar(); });
+  const spdBtn = $('speedBtn');
+  if (spdBtn) spdBtn.addEventListener('click', () => { gameSpeed = gameSpeed === 1 ? 2 : 1; refreshToolbar(); });
 
-  // ---- Test hook (headless harness) ----
+  document.querySelectorAll('.map-btn').forEach(b => b.addEventListener('click', () => {
+    applyMap(Number(b.dataset.map));
+  }));
+
+  // ---- Test hook ----
   window.__test = {
-    get state(){ return state; }, get gold(){ return gold; }, get hp(){ return hp; }, get wave(){ return wave; },
-    get score(){ return score; }, get enemies(){ return enemies.length; }, get towers(){ return towers.length; },
-    start:startGame, startWave, place:placeTower, selectBuild(t){ selBuild=t; },
-    addGold(n){ gold+=n; updateHud(); refreshToolbar(); }, killAll(){ [...enemies].forEach(killEnemy); },
-    upgradeAt(c,r){ const t=towerAt(c,r); if(t){ selectPanel(t); upgradeTower(t); } }, sellAt(c,r){ const t=towerAt(c,r); if(t) sellTower(t); },
-    step(n){ for(let i=0;i<(n||1);i++) update(); }, roadAt(c,r){ return !!road[c][r]; }, cols:COLS, rows:ROWS,
+    get state() { return state; },
+    get gold() { return gold; },
+    get hp() { return hp; },
+    get wave() { return wave; },
+    get score() { return score; },
+    get enemies() { return enemies.length; },
+    get towers() { return towers.length; },
+    start: startGame,
+    startWave,
+    place: placeTower,
+    selectBuild(t) { selBuild = t; },
+    addGold(n) { gold += n; updateHud(); refreshToolbar(); },
+    killAll() { [...enemies].forEach(killEnemy); },
+    upgradeAt(c, r) { const t = towerAt(c, r); if (t) { selectPanel(t); upgradeTower(t); } },
+    sellAt(c, r) { const t = towerAt(c, r); if (t) sellTower(t); },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+    roadAt(c, r) { return !!road[c][r]; },
+    cols: COLS,
+    rows: ROWS,
+    selectMap(i) { mapIndex = i; applyMap(i); },
+    get mapIdx() { return mapIndex; },
   };
 
   resize(); loadBest(); updateHud(); loop();
