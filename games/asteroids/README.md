@@ -71,11 +71,13 @@ and shown on the menu cards.
 ```
 index.html                launcher (version select + mode toggle), reads versions.js
 versions.js               the version manifest (single source of truth for the menu)
-classic.html              ┐
-classic-enhanced.html     │ self-contained game builds (each is one standalone .html)
-roguelite-levelup.html    │ (the roguelite base; the two below are generated from it)
-roguelite-milestones.html │
-roguelite-shop.html       ┘
+favicon.svg               themed neon-ship icon
+levels/                   all playable game builds (each is one standalone .html)
+  classic.html              ┐
+  classic-enhanced.html     │
+  roguelite-levelup.html    │ the roguelite base; the two below are generated from it
+  roguelite-milestones.html │
+  roguelite-shop.html       ┘
 test.mjs                  headless test harness (Node) — runs every game's loop
 DESIGN.md                 design spec / decisions
 ```

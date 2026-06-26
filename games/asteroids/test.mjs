@@ -45,7 +45,10 @@ function makeEl(id) {
 }
 
 function runGame(file, { search = '' } = {}) {
-  const html = fs.readFileSync(path.join(DIR, file), 'utf8');
+  // game files live in levels/; tests still pass basenames
+  let p = path.join(DIR, file);
+  if (!fs.existsSync(p)) p = path.join(DIR, 'levels', file);
+  const html = fs.readFileSync(p, 'utf8');
   const m = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
   if (!m) throw new Error('no inline script found in ' + file);
   const code = m[1];

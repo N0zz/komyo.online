@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Roguelite: Score Milestones</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <style>
   html, body { margin:0; padding:0; height:100%; background:#05060a; overflow:hidden; font-family:"Courier New",monospace; color:#cfe8ff; }
   #game { display:block; width:100vw; height:100vh; }
@@ -279,7 +280,10 @@
   const PICKUPS={ repair:{glyph:'+',color:'120,255,150'}, shieldcell:{glyph:'◇',color:'120,200,255'}, frenzy:{glyph:'≫',color:'255,210,90'}, pulse:{glyph:'✸',color:'255,140,90'} };
   function maybeDropPickup(x,y,kind){
     const boss = kind==='boss';
-    if(!boss && Math.random() > 0.07) return;       // ~7% from normal enemies
+    const wantHeal0 = ship.hp < ship.maxHp;
+    // base ~16%; better odds when you're hurt so help actually shows up
+    const chance = (wantHeal0 ? 0.26 : 0.16) * (kind==='sentry'?1.6:kind==='hunter'?1.3:1);
+    if(!boss && Math.random() > chance) return;
     let type;
     const wantHeal = ship.hp < ship.maxHp;
     const wantShield = ship.shieldMax>0 && ship.shield<ship.shieldMax;
@@ -312,8 +316,10 @@
     ship.hp--; burst(ship.x,ship.y,'255,120,120',26,3.5); invuln=110; noHit=0; updateHud();
     if(ship.hp<=0) die();
   }
+  function saveStat(key,v){ try{ const p=localStorage.getItem(key); if(p==null||v>parseInt(p,10)){ localStorage.setItem(key,String(v)); return true; } }catch(e){} return false; }
   function die(){ state='dead'; if(SPEEDRUN) srDone=true; burst(ship.x,ship.y,'255,160,120',50,5);
-    overlay.innerHTML='<h1>GAME OVER</h1><p>Score <strong>'+score+'</strong> &middot; reached wave '+wave+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'')+'<p class="blink">press ENTER or SPACE to play again</p><div id="shopFoot">'+MENU_BTN+'</div>';
+    let best=false; if(!SPEEDRUN){ best=saveStat('asteroids_score_'+FILE,score); saveStat('asteroids_wave_'+FILE,wave); }
+    overlay.innerHTML='<h1>GAME OVER</h1><p>Score <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+' &middot; reached wave '+wave+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'')+'<p class="blink">press ENTER or SPACE to play again</p><div id="shopFoot">'+MENU_BTN+'</div>';
     overlay.classList.remove('hidden'); wireOverlay(); }
   function winRun(){ srDone=true; state='won'; const best=saveBest(srElapsed);
     overlay.innerHTML='<h1 class="win">WAVE '+SR_TARGET_WAVE+' CLEARED</h1><p>Time <strong>'+fmtTime(srElapsed)+'</strong>'+(best?'  ★ NEW BEST':'')+'</p><p class="hint">score '+score+'</p><p class="blink">press ENTER or SPACE to run again</p><div id="shopFoot">'+MENU_BTN+'</div>';

@@ -27,13 +27,17 @@ Open `index.html` to play; run `node test.mjs` to test.
 
 ## The roguelite trio is generated — edit the base, then regenerate
 
-`roguelite-milestones.html` and `roguelite-shop.html` are **generated copies** of
-`roguelite-levelup.html`. They differ only by the `PROGRESSION` constant near the top
-of the script (`'levelup' | 'milestones' | 'shop'`) and the `<title>`.
+All playable builds live in **`levels/`** (root keeps `index.html`, `versions.js`,
+`favicon.svg`, `test.mjs`, and the docs).
 
-**Always edit `roguelite-levelup.html`, then regenerate the other two:**
+`levels/roguelite-milestones.html` and `levels/roguelite-shop.html` are **generated
+copies** of `levels/roguelite-levelup.html`. They differ only by the `PROGRESSION`
+constant near the top of the script (`'levelup' | 'milestones' | 'shop'`) and the `<title>`.
+
+**Always edit `levels/roguelite-levelup.html`, then regenerate the other two (run from `levels/`):**
 
 ```bash
+cd levels
 sed -e "s/const PROGRESSION = 'levelup';/const PROGRESSION = 'milestones';/" \
     -e "s|<title>Roguelite: Auto Level-Up</title>|<title>Roguelite: Score Milestones</title>|" \
     roguelite-levelup.html > roguelite-milestones.html

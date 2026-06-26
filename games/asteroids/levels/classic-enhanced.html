@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Classic Asteroids — Enhanced</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <style>
   html, body { margin:0; padding:0; height:100%; background:#05060a; overflow:hidden; font-family:"Courier New",monospace; color:#cfe8ff; }
   #game { display:block; width:100vw; height:100vh; }
@@ -57,6 +58,8 @@
   let srElapsed=0, srPrev=0, srDone=false;
   function fmtTime(ms){ const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
   function saveBest(ms){ try{ const p=localStorage.getItem(BEST_KEY); if(p==null||ms<parseInt(p,10)){ localStorage.setItem(BEST_KEY,String(Math.floor(ms))); return true; } }catch(e){} return false; }
+  const SCORE_KEY='asteroids_score_classic-enhanced.html';
+  function saveBestScore(v){ try{ const p=localStorage.getItem(SCORE_KEY); if(p==null||v>parseInt(p,10)){ localStorage.setItem(SCORE_KEY,String(v)); return true; } }catch(e){} return false; }
   if (SPEEDRUN){ timerEl.style.display='block'; timerGoal.textContent='GOAL: '+SR_TARGET_SCORE+' PTS'; modeHint.textContent='SPEEDRUN — reach '+SR_TARGET_SCORE+' points as fast as you can.'; }
 
   let W,H;
@@ -124,7 +127,7 @@
   function winRun(){ srDone=true; state='won'; const isBest=saveBest(srElapsed);
     overlay.innerHTML='<h1 class="win">COMPLETE</h1><p>Time: <strong>'+fmtTime(srElapsed)+'</strong>'+(isBest?'  ★ NEW BEST':'')+'</p><p class="hint">'+SR_TARGET_SCORE+' points reached</p><p class="blink">press ENTER or SPACE to run again</p><div class="row">'+MENU_BTN+'</div>';
     overlay.classList.remove('hidden'); wireOverlay(); }
-  function showGameOver(){ overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong></p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p><div class="row">'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
+  function showGameOver(){ const best=!SPEEDRUN&&saveBestScore(score); overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p><div class="row">'+MENU_BTN+'</div>'; overlay.classList.remove('hidden'); wireOverlay(); }
 
   function update(){
     if(flashTimer>0){ flashTimer--; if(flashTimer===0) flashEl.style.opacity='0'; }

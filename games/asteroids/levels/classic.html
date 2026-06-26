@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Classic Asteroids</title>
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <style>
   html, body {
     margin: 0; padding: 0; height: 100%;
@@ -89,6 +90,8 @@
     } catch (e) {}
     return false;
   }
+  const SCORE_KEY = 'asteroids_score_classic.html';
+  function saveBestScore(v) { try { const p = localStorage.getItem(SCORE_KEY); if (p == null || v > parseInt(p,10)) { localStorage.setItem(SCORE_KEY, String(v)); return true; } } catch (e) {} return false; }
   if (SPEEDRUN) {
     timerEl.style.display = 'block';
     timerGoal.textContent = 'GOAL: ' + SR_TARGET_SCORE + ' PTS';
@@ -180,8 +183,9 @@
   }
   function showGameOver() {
     if (SPEEDRUN) srElapsed = now()-srStart;
+    const best = !SPEEDRUN && saveBestScore(score);
     overlay.innerHTML = '<h1>GAME OVER</h1>' +
-      '<p>Final score: <strong>'+score+'</strong></p>' +
+      '<p>Final score: <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p>' +
       (SPEEDRUN ? '<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>' : '<p class="hint">reached wave '+level+'</p>') +
       '<p class="blink">press ENTER to play again</p>' + '<div>'+MENU_BTN+'</div>';
     overlay.classList.remove('hidden'); wireOverlay();

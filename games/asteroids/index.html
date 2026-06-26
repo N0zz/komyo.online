@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Asteroids — Select Version</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <style>
   html, body {
     margin: 0; padding: 0; height: 100%;
@@ -124,15 +125,16 @@
 
     let speedrun = false;
 
-    function bestKey(file) { return 'asteroids_best_' + file; }
+    // localStorage keys are by file basename (stable across the levels/ move)
+    function base(file) { return file.split('/').pop(); }
     function fmtTime(ms) {
       const m = Math.floor(ms / 60000);
       const s = Math.floor((ms % 60000) / 1000);
       const cs = Math.floor((ms % 1000) / 10);
       return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0') + '.' + String(cs).padStart(2,'0');
     }
-    function readBest(file) {
-      try { const v = localStorage.getItem(bestKey(file)); return v ? parseInt(v, 10) : null; }
+    function readNum(key) {
+      try { const v = localStorage.getItem(key); return v != null ? parseInt(v, 10) : null; }
       catch (e) { return null; }
     }
 
@@ -140,13 +142,24 @@
       const card = document.createElement('div');
       card.className = 'card';
       card.tabIndex = 0;
-      const best = readBest(v.file);
+      const b = base(v.file);
+      let bestLine;
+      if (speedrun) {
+        const t = readNum('asteroids_best_' + b);
+        bestLine = 'BEST ' + (t != null ? fmtTime(t) : '—');
+      } else {
+        const sc = readNum('asteroids_score_' + b);
+        const wv = readNum('asteroids_wave_' + b);
+        bestLine = sc != null
+          ? ('BEST ' + sc + ' pts' + (v.tag === 'ROGUELITE' && wv != null ? ' · wave ' + wv : ''))
+          : 'BEST —';
+      }
       card.innerHTML =
         '<span class="tag ' + v.tag + '">' + v.tag + '</span>' +
         '<h2>' + v.title + '</h2>' +
         '<p>' + v.desc + '</p>' +
         '<div class="goal' + (speedrun ? ' show' : '') + '">GOAL: ' + v.goal + '</div>' +
-        '<div class="best' + (speedrun && best != null ? ' show' : '') + '">BEST ' + (best != null ? fmtTime(best) : '—') + '</div>';
+        '<div class="best show">' + bestLine + '</div>';
       const go = () => play(v.file);
       card.addEventListener('click', go);
       card.addEventListener('keydown', (e) => {
