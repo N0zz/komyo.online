@@ -96,7 +96,6 @@ window.GAMES = [
     icon: "🎯",
     accent: "#ff7a3c",
     tag: "SKILL",
-    soon: true,
   },
   {
     slug: "spellcaster",
