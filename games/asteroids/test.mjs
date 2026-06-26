@@ -364,6 +364,39 @@ function testBulletsClearOnWave(file) {
   ok(T().bulletCount === 0, file + ' bullets cleared at wave start (' + T().bulletCount + ')');
 }
 
+function testHealthPickup(file) {
+  section(file + ' (health pickup heals)');
+  const g = runGame(file);
+  const T = () => g.test();
+  T().start(); g.step(2);
+  T().hurt(); g.step(2);                 // drop to 2 HP
+  ok(T().hp === 2, file + ' took 1 damage (hp=' + T().hp + ')');
+  T().spawnPickup('repair'); g.step(2);  // spawns at ship -> collected immediately
+  ok(T().hp === 3, file + ' repair pickup restored HP (hp=' + T().hp + ')');
+  ok(T().pickupCount === 0, file + ' pickup consumed');
+}
+
+function testAutoFire(file) {
+  section(file + ' (auto-fire upgrade)');
+  const g = runGame(file);
+  const T = () => g.test();
+  T().start(); g.step(2);
+  T().giveUpgrade('auto');
+  ok(T().autoFire === true, file + ' auto-fire enabled');
+  g.step(30);                            // no Space held
+  ok(T().bulletCount > 0, file + ' ship fires automatically without holding Space');
+}
+
+function testBossScaling(file) {
+  section(file + ' (boss HP scales with wave)');
+  const g = runGame(file);
+  const T = () => g.test();
+  T().start(); g.step(2);
+  T().gotoWave(5); g.step(2); const hp5 = T().bossHp;
+  T().gotoWave(15); g.step(2); const hp15 = T().bossHp;
+  ok(hp5 > 0 && hp15 > hp5 * 2, file + ' wave-15 boss much tougher than wave-5 (' + hp5 + ' -> ' + hp15 + ')');
+}
+
 function testStressManyWaves(file, prog) {
   section(file + ' (stress: all upgrades, waves 1→13)');
   const g = runGame(file);
@@ -467,6 +500,9 @@ for (const [file, prog] of [['roguelite-levelup.html', 'levelup'], ['roguelite-m
   testWave5BossVisible(file);
   testWave4Clearable(file);
   testBulletsClearOnWave(file);
+  testHealthPickup(file);
+  testAutoFire(file);
+  testBossScaling(file);
   testStressManyWaves(file, prog);
   testSpeedrunWin(file, prog);
 }

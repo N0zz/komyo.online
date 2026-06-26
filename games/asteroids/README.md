@@ -51,9 +51,13 @@ from `versions.js`.
 
 - HP + regenerating **Shield**, escalating **waves**, a **boss every 5th wave**.
 - Enemies: asteroids (split), homing **hunters**, shooting **sentries**, and bosses.
-- 12 stackable upgrades: Rapid Fire, Spread, Heavy Rounds, Long Shot, Piercing,
-  Shield, Hull, Thrusters, Orbital Shard, Drone, Nova Pulse, Magnet.
-- Endless — your run ends on death (game-over screen with score & wave reached).
+- 13 stackable upgrades: Rapid Fire, Spread, Heavy Rounds, Long Shot, Piercing,
+  Shield, Hull, Thrusters, Orbital Shard, Drone, Nova Pulse, Magnet, **Auto-Fire**
+  (fires for you — no holding Space).
+- **Map pickups** dropped by enemies: ✛ repair (heal), ◇ shield cell, ≫ frenzy
+  (temp fire-rate burst), ✸ pulse (shockwave) — so HP can be recovered mid-run.
+- Endless and escalating — enemy count and HP ramp with the wave, bosses get much
+  tougher past wave 10. Your run ends on death (game-over screen with score & wave).
 
 ### Speedrun mode
 
