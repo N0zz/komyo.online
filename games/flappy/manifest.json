@@ -1,0 +1,25 @@
+{
+  "name": "Meadow Flyer",
+  "short_name": "Meadow Flyer",
+  "description": "One-tap flyer through a soft storybook meadow.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#b8e4f9",
+  "theme_color": "#8fd3a6",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
