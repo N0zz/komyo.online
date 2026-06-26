@@ -90,7 +90,8 @@
           <span class="tip-pop" id="tipPop"><b>Install to your home screen</b> — fullscreen &amp; offline:<br>
             <b>Android (Chrome):</b> menu ⋮ → “Add to Home screen”<br>
             <b>iPhone (Safari):</b> Share → “Add to Home Screen”<br>
-            <b>Desktop (Chrome/Edge):</b> this button, or the install icon in the address bar.</span>
+            <b>Desktop (Chrome/Edge):</b> this button, or the install icon in the address bar.<br>
+            <span style="opacity:.8">Already installed? Open it from your home screen, or the “Open in app” icon in the address bar.</span></span>
         </span>
       </div>
     </header>
@@ -148,20 +149,34 @@
     }
     render();
 
-    // ---- Install: button is always visible; uses the native prompt when offered,
-    //      otherwise opens the instructions tooltip. ----
+    // ---- Install / open ----
+    // A web page can't launch its own installed PWA (the browser owns "Open in app"),
+    // so: prompt to install when offered, reflect the installed state otherwise, and
+    // always let the (?) / button surface how to install or open.
     const installBtn = document.getElementById('install');
     const qbtn = document.getElementById('qbtn');
     const tipPop = document.getElementById('tipPop');
-    let deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
-    window.addEventListener('appinstalled', () => { installBtn.textContent = 'Installed ✓'; deferredPrompt = null; });
-    installBtn.addEventListener('click', async () => {
-      if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; }
-      else { tipPop.classList.toggle('show'); }
+    const helpRow = installBtn.parentElement;
+    let deferredPrompt = null, installed = false;
+    const standalone = () => (typeof matchMedia !== 'undefined' && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+    function refresh() {
+      if (standalone()) { if (helpRow) helpRow.style.display = 'none'; return; } // already inside the app
+      installBtn.textContent = installed ? '✓ Installed' : '📱 Install app';
+    }
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installed = false; refresh(); });
+    window.addEventListener('appinstalled', () => { installed = true; deferredPrompt = null; tipPop.classList.add('show'); refresh(); });
+    installBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.finally(() => { deferredPrompt = null; refresh(); }); }
+      else { tipPop.classList.toggle('show'); } // installed or unsupported → show how to open / install
     });
     qbtn.addEventListener('click', (e) => { e.stopPropagation(); tipPop.classList.toggle('show'); });
     document.addEventListener('click', (e) => { if (!(e.target.closest && e.target.closest('.tip'))) tipPop.classList.remove('show'); });
+    // detect our own installed PWA (Android Chrome) so the button reads "✓ Installed"
+    if (navigator.getInstalledRelatedApps) {
+      navigator.getInstalledRelatedApps().then(apps => { if (apps && apps.length) { installed = true; refresh(); } }).catch(() => {});
+    }
+    refresh();
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));

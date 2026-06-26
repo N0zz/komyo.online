@@ -10,5 +10,9 @@
   "theme_color": "#0a0c14",
   "icons": [
     { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [
+    { "platform": "webapp", "url": "https://n0zz.github.io/arcade/manifest.json" }
   ]
 }
