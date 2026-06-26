@@ -47,6 +47,15 @@ window.GAMES = [
     soon: true,
   },
   {
+    slug: "sudoku",
+    title: "Sudoku",
+    blurb: "Fill the 9×9 grid so every row, column, and box holds 1–9. Easy to expert, with notes and hints.",
+    icon: "🔢",
+    accent: "#7aa2ff",
+    tag: "LOGIC",
+    soon: true,
+  },
+  {
     slug: "crossy",
     title: "Road Hop",
     blurb: "Hop across roads and rivers without getting squished. Blocky and endless.",
