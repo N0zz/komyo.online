@@ -94,17 +94,6 @@
 
   #frameWrap { position: fixed; inset: 0; display: none; background: #05060a; z-index: 60; }
   #frameWrap iframe { width: 100%; height: 100%; border: 0; display: block; }
-  #back {
-    position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 70;
-    display: none; align-items: center; gap: 9px;
-    font-family: "Courier New", monospace; font-size: 13px; letter-spacing: 2px;
-    color: #cfe8ff; background: rgba(10,16,30,0.8);
-    border: 1px solid rgba(120,200,255,0.45); border-radius: 10px; padding: 9px 15px;
-    cursor: pointer;
-  }
-  #back:hover { border-color: #9fe8ff; box-shadow: 0 0 14px rgba(120,200,255,0.4); }
-  #back .ham { display: inline-flex; flex-direction: column; gap: 3px; }
-  #back .ham span { display: block; width: 16px; height: 2px; background: #9fe8ff; border-radius: 2px; }
   .resetbtn {
     font-family: inherit; font-size: 11px; letter-spacing: 2px;
     padding: 6px 14px; border-radius: 16px; cursor: pointer;
@@ -145,14 +134,12 @@
   </div>
 
   <div id="frameWrap"><iframe id="frame" title="Asteroids"></iframe></div>
-  <button id="back"><span class="ham"><span></span><span></span><span></span></span> MENU</button>
 
   <script src="levels.js"></script>
   <script>
     const select = document.getElementById('select');
     const frameWrap = document.getElementById('frameWrap');
     const frame = document.getElementById('frame');
-    const back = document.getElementById('back');
     const cardsEl = document.getElementById('cards');
     const modeToggle = document.getElementById('modeToggle');
     const modehint = document.getElementById('modehint');
@@ -275,13 +262,11 @@
       frame.src = file + (speedrun ? '?speedrun=1' : '');
       select.style.display = 'none';
       frameWrap.style.display = 'block';
-      back.style.display = 'inline-flex';
       frame.focus();
     }
     function toMenu() {
       frame.src = 'about:blank';
       frameWrap.style.display = 'none';
-      back.style.display = 'none';
       select.style.display = 'flex';
       renderCards(); // refresh best stats
       if (gestured && SND.opt.music) SND.startMusic();
@@ -325,7 +310,6 @@
     });
 
     modeToggle.addEventListener('click', () => setMode(!speedrun));
-    back.addEventListener('click', toMenu);
     // in-game "Quit to menu" buttons post this message from inside the iframe
     window.addEventListener('message', (e) => { if (e.data === 'asteroids:menu') toMenu(); });
 

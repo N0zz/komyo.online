@@ -153,10 +153,11 @@
     if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
     keys[e.key.length===1?e.key.toLowerCase():e.key] = true;
     if (e.key === 'Enter' && state !== 'playing') startGame();
+    if (e.key === 'Escape') { if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); }
   });
   window.addEventListener('keyup', (e) => { keys[e.key.length===1?e.key.toLowerCase():e.key] = false; });
 
-  let state = 'menu'; // menu | playing | dead | won
+  let state = 'menu'; // menu | playing | paused | dead | won
   let score=0, lives=3, level=1;
   let ship, asteroids=[], bullets=[], particles=[];
   let shootCooldown=0, invuln=0;
@@ -169,8 +170,12 @@
   }
   function spawnShip() { ship = { x:W/2, y:H/2, vx:0, vy:0, angle:-Math.PI/2, r:14 }; invuln=120; }
   function updateHud() { scoreEl.textContent = score; livesEl.textContent = '▲ '.repeat(Math.max(0,lives)).trim(); }
-  function quitToMenu(){ if(!SPEEDRUN && state==='playing') saveBestScore(score); try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
-  function wireOverlay(){ const mb=document.getElementById('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); }
+  function quitToMenu(){ if(!SPEEDRUN && (state==='playing'||state==='paused')) saveBestScore(score); try{ if(window.parent && window.parent!==window) window.parent.postMessage('asteroids:menu','*'); }catch(e){} }
+  function pauseGame(){ if(state!=='playing') return; state='paused'; SND.stopMusic();
+    overlay.innerHTML='<h1>PAUSED</h1><p class="hint">score '+score+'</p><div><button class="btn" id="resumeBtn">RESUME (ESC)</button> '+MENU_BTN+'</div>';
+    overlay.classList.remove('hidden'); wireOverlay(); }
+  function resumeGame(){ if(state!=='paused') return; state='playing'; overlay.classList.add('hidden'); SND.startMusic(); }
+  function wireOverlay(){ const mb=document.getElementById('menuBtn'); if(mb) mb.addEventListener('click', quitToMenu); const rb=document.getElementById('resumeBtn'); if(rb) rb.addEventListener('click', resumeGame); }
   const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
 
   function makeAsteroid(x,y,size) {
@@ -269,10 +274,11 @@
   function drawBullets(){ ctx.shadowColor='rgba(180,230,255,0.9)'; ctx.shadowBlur=8; ctx.fillStyle='#dff3ff'; for (const b of bullets){ ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); } }
   function drawParticles(){ for (const p of particles){ ctx.fillStyle='rgba('+p.color+','+p.life+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); ctx.fill(); } }
   function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawAsteroids(); drawBullets(); drawShip(); ctx.shadowBlur=0; }
-  function loop(){ requestAnimationFrame(loop); try { update(); render(); } catch(e){ if(window.console) console.error(e); } }
+  const STEP_MS = 1000/60; let _accT = 0, _lastT = now();
+  function loop(){ requestAnimationFrame(loop); try { let _t=now(), _el=_t-_lastT; _lastT=_t; if(_el>250) _el=250; _accT+=_el; let _g=0; while(_accT>=STEP_MS && _g<5){ update(); _accT-=STEP_MS; _g++; } render(); } catch(e){ if(window.console) console.error(e); } }
 
   // ---- Touch controls (mobile): aim-and-go joystick + fire; desktop is unaffected ----
-  const HAS_PAUSE = false;
+  const HAS_PAUSE = true;
   const isTouch = (typeof matchMedia!=='undefined' && matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window);
   let joyActive=false, joyAngle=0, joyMag=0, joyId=null, fireBtn=null;
   function applyTouch(){ if(!isTouch||!ship) return;

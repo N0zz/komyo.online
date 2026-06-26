@@ -571,7 +571,8 @@
   function drawParticles(){ for(const p of particles){ ctx.fillStyle='rgba('+p.color+','+p.life+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); ctx.fill(); } }
   function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawNovas(); drawGems(); drawPickups(); drawAsteroids(); drawHunters(); drawSentries(); drawBoss(); drawDrones(); drawBullets(); drawShip(); ctx.shadowBlur=0; }
 
-  function loop(){ requestAnimationFrame(loop); try { update(); render(); } catch(e){ if(window.console) console.error(e); } }
+  const STEP_MS = 1000/60; let _accT = 0, _lastT = now();
+  function loop(){ requestAnimationFrame(loop); try { let _t=now(), _el=_t-_lastT; _lastT=_t; if(_el>250) _el=250; _accT+=_el; let _g=0; while(_accT>=STEP_MS && _g<5){ update(); _accT-=STEP_MS; _g++; } render(); } catch(e){ if(window.console) console.error(e); } }
 
   // ---- Test hook (harmless; used by headless test harness) ----
   window.__test = {

@@ -104,7 +104,7 @@ function runGame(file, { search = '' } = {}) {
     test: () => win.__test,
     key(type, key) { (handlers[type] || []).forEach(fn => { try { fn({ key, preventDefault() {} }); } catch (e) { errors.push(type + ' ' + key + ': ' + e.stack); } }); },
     down(k) { this.key('keydown', k); }, up(k) { this.key('keyup', k); },
-    step(n = 1) { for (let i = 0; i < n; i++) { clock += 16; const cb = pending; pending = null; if (cb) { try { cb(); } catch (e) { errors.push('frame: ' + e.stack); } } } },
+    step(n = 1) { for (let i = 0; i < n; i++) { clock += 1000 / 60; const cb = pending; pending = null; if (cb) { try { cb(); } catch (e) { errors.push('frame: ' + e.stack); } } } },
     get clock() { return clock; },
   };
   return api;
@@ -477,7 +477,8 @@ function testLauncher() {
   const verCode = fs.readFileSync(path.join(DIR, 'levels.js'), 'utf8');
   const elCache = {};
   const getEl = id => (elCache[id] ||= makeEl(id));
-  const win = { addEventListener: () => {}, LEVELS: undefined, innerWidth: 1280, innerHeight: 800, confirm: () => true };
+  const winHandlers = {};
+  const win = { addEventListener: (t, fn) => { (winHandlers[t] ||= []).push(fn); }, LEVELS: undefined, innerWidth: 1280, innerHeight: 800, confirm: () => true };
   const documentMock = { getElementById: getEl, createElement: t => makeEl('new-' + t), addEventListener: () => {} };
   const store = {};
   const sandbox = { window: win, document: documentMock, location: { search: '' },
@@ -511,10 +512,10 @@ function testLauncher() {
   cards.children.filter(c => c.className === 'crow')[0].children[0].fire('click');
   ok(frame.src === firstVersion.file + '?speedrun=1', 'card launches version with speedrun param (got ' + frame.src + ')');
   ok(getEl('frameWrap').style.display === 'block', 'frame shown on launch');
-  // back to menu
-  getEl('back').fire('click');
-  ok(frame.src === 'about:blank', 'back clears the iframe');
-  ok(getEl('select').style.display === 'flex', 'back returns to menu');
+  // quit to menu: the in-game pause "QUIT TO MENU" posts 'asteroids:menu'; the launcher returns to select
+  (winHandlers['message'] || []).forEach(fn => fn({ data: 'asteroids:menu' }));
+  ok(frame.src === 'about:blank', 'in-game Quit-to-menu clears the iframe');
+  ok(getEl('select').style.display === 'flex', 'in-game Quit-to-menu returns to menu');
   // reset best scores: seed some bests, click reset, verify cleared
   const fb = (win.LEVELS[0].file).split('/').pop();
   store['asteroids_score_' + fb] = '1234';
