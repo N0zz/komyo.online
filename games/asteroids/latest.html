@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Asteroids</title>
+<title>Asteroids — Latest</title>
 <style>
   html, body {
     margin: 0;
@@ -30,6 +30,7 @@
     user-select: none;
   }
   #hud .label { opacity: 0.6; font-size: 13px; }
+  #weapon { font-size: 13px; margin-top: 8px; color: #ffc878; opacity: 0.85; }
   #lives {
     position: fixed;
     top: 18px;
@@ -40,6 +41,20 @@
     text-shadow: 0 0 8px rgba(120, 255, 170, 0.6);
     pointer-events: none;
     user-select: none;
+  }
+  #flash {
+    position: fixed;
+    top: 30%;
+    left: 0; right: 0;
+    text-align: center;
+    font-size: 30px;
+    letter-spacing: 6px;
+    color: #ffc878;
+    text-shadow: 0 0 18px rgba(255, 200, 120, 0.8);
+    pointer-events: none;
+    user-select: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
   #overlay {
     position: fixed;
@@ -69,18 +84,20 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="hud"><div class="label">SCORE</div><div id="score">0</div></div>
+<div id="hud"><div class="label">SCORE</div><div id="score">0</div><div id="weapon">WEAPON I</div></div>
 <div id="lives"></div>
+<div id="flash"></div>
 
 <div id="overlay">
   <h1>ASTEROIDS</h1>
   <p>
     <strong>&larr; &rarr;</strong> rotate &nbsp;&middot;&nbsp;
     <strong>&uarr;</strong> thrust &nbsp;&middot;&nbsp;
-    <strong>SPACE</strong> shoot
+    <strong>SPACE</strong> shoot &nbsp;&middot;&nbsp;
+    <strong>ESC</strong> pause
   </p>
-  <p class="hint">Fly around them or blast them apart. The screen wraps.</p>
-  <p class="blink">press ENTER to start</p>
+  <p class="hint">Fly around them or blast them apart. The screen wraps. Score to upgrade your weapon.</p>
+  <p class="blink">press ENTER or SPACE to start</p>
 </div>
 
 <script>
@@ -88,8 +105,10 @@
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
   const scoreEl = document.getElementById('score');
+  const weaponEl = document.getElementById('weapon');
   const livesEl = document.getElementById('lives');
   const overlay = document.getElementById('overlay');
+  const flashEl = document.getElementById('flash');
 
   let W, H;
   function resize() {
@@ -121,24 +140,54 @@
   window.addEventListener('keydown', (e) => {
     if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
     keys[e.key] = true;
-    if (e.key === 'Enter' && state !== 'playing') startGame();
+    // start with ENTER or SPACE while not actively playing
+    if ((e.key === 'Enter' || e.key === ' ') && state !== 'playing' && state !== 'paused') {
+      startGame();
+    }
+    // ESC pauses / resumes during a game
+    if (e.key === 'Escape') {
+      if (state === 'playing') pauseGame();
+      else if (state === 'paused') resumeGame();
+    }
   });
   window.addEventListener('keyup', (e) => { keys[e.key] = false; });
 
   // ---- Game state ----
-  let state = 'menu'; // menu | playing | dead
+  let state = 'menu'; // menu | playing | paused | dead
   let score = 0, lives = 3, level = 1;
   let ship, asteroids = [], bullets = [], particles = [];
   let shootCooldown = 0, invuln = 0;
+  let weaponLevel = 1, flashTimer = 0;
+
+  // weapon thresholds: score needed -> level
+  const WEAPONS = [
+    { level: 1, score: 0,    cooldown: 12, label: 'WEAPON I' },
+    { level: 2, score: 500,  cooldown: 11, label: 'WEAPON II — TWIN' },
+    { level: 3, score: 1500, cooldown: 9,  label: 'WEAPON III — SPREAD' },
+  ];
 
   function startGame() {
     score = 0; lives = 3; level = 1;
+    weaponLevel = 1;
     asteroids = []; bullets = []; particles = [];
     spawnShip();
     spawnWave(4);
     state = 'playing';
     overlay.classList.add('hidden');
     updateHud();
+  }
+
+  function pauseGame() {
+    state = 'paused';
+    overlay.innerHTML =
+      '<h1>PAUSED</h1>' +
+      '<p class="hint">score ' + score + ' &middot; wave ' + level + '</p>' +
+      '<p class="blink">press ESC to resume</p>';
+    overlay.classList.remove('hidden');
+  }
+  function resumeGame() {
+    state = 'playing';
+    overlay.classList.add('hidden');
   }
 
   function spawnShip() {
@@ -149,11 +198,26 @@
   function updateHud() {
     scoreEl.textContent = score;
     livesEl.textContent = '▲ '.repeat(Math.max(0, lives)).trim();
+    weaponEl.textContent = WEAPONS[weaponLevel - 1].label;
+  }
+
+  function flash(msg) {
+    flashEl.textContent = msg;
+    flashEl.style.opacity = '1';
+    flashTimer = 90;
+  }
+
+  function checkWeaponUpgrade() {
+    const next = WEAPONS[weaponLevel]; // next tier, if any
+    if (next && score >= next.score) {
+      weaponLevel = next.level;
+      flash('WEAPON UPGRADED');
+      updateHud();
+    }
   }
 
   // ---- Asteroids ----
   function makeAsteroid(x, y, size) {
-    // size: 3 big, 2 med, 1 small
     const r = size === 3 ? 56 : size === 2 ? 34 : 18;
     const verts = [];
     const n = 9 + Math.floor(Math.random() * 4);
@@ -177,7 +241,6 @@
 
   function spawnWave(count) {
     for (let i = 0; i < count; i++) {
-      // spawn at edges, away from center
       let x, y;
       if (Math.random() < 0.5) {
         x = Math.random() < 0.5 ? -60 : W + 60;
@@ -213,15 +276,38 @@
     if (o.y > H + o.r) o.y = -o.r;
   }
 
-  function shoot() {
+  function fireBullet(angle) {
     const speed = 8;
     bullets.push({
-      x: ship.x + Math.cos(ship.angle) * ship.r,
-      y: ship.y + Math.sin(ship.angle) * ship.r,
-      vx: Math.cos(ship.angle) * speed + ship.vx,
-      vy: Math.sin(ship.angle) * speed + ship.vy,
+      x: ship.x + Math.cos(angle) * ship.r,
+      y: ship.y + Math.sin(angle) * ship.r,
+      vx: Math.cos(angle) * speed + ship.vx,
+      vy: Math.sin(angle) * speed + ship.vy,
       life: 70, r: 2,
     });
+  }
+
+  function shoot() {
+    if (weaponLevel === 1) {
+      fireBullet(ship.angle);
+    } else if (weaponLevel === 2) {
+      // twin parallel shots, slightly offset perpendicular
+      const perp = ship.angle + Math.PI / 2;
+      const off = 6;
+      const ox = Math.cos(perp) * off, oy = Math.sin(perp) * off;
+      [[ox, oy], [-ox, -oy]].forEach(([dx, dy]) => {
+        bullets.push({
+          x: ship.x + Math.cos(ship.angle)*ship.r + dx,
+          y: ship.y + Math.sin(ship.angle)*ship.r + dy,
+          vx: Math.cos(ship.angle)*8 + ship.vx,
+          vy: Math.sin(ship.angle)*8 + ship.vy,
+          life: 70, r: 2,
+        });
+      });
+    } else {
+      // triple spread
+      [-0.18, 0, 0.18].forEach(da => fireBullet(ship.angle + da));
+    }
     burst(ship.x + Math.cos(ship.angle)*ship.r, ship.y + Math.sin(ship.angle)*ship.r, '180,230,255', 3, 1.5);
   }
 
@@ -235,6 +321,7 @@
     }
     asteroids.splice(idx, 1);
     updateHud();
+    checkWeaponUpgrade();
     if (asteroids.length === 0) {
       level++;
       spawnWave(3 + level);
@@ -258,14 +345,19 @@
       '<h1>GAME OVER</h1>' +
       '<p>Final score: <strong>' + score + '</strong></p>' +
       '<p class="hint">reached wave ' + level + '</p>' +
-      '<p class="blink">press ENTER to play again</p>';
+      '<p class="blink">press ENTER or SPACE to play again</p>';
     overlay.classList.remove('hidden');
   }
 
   // ---- Update ----
   function update() {
+    // flash timer always ticks down
+    if (flashTimer > 0) {
+      flashTimer--;
+      if (flashTimer === 0) flashEl.style.opacity = '0';
+    }
+
     if (state === 'playing') {
-      // ship controls
       if (keys['ArrowLeft']) ship.angle -= 0.07;
       if (keys['ArrowRight']) ship.angle += 0.07;
       let thrusting = false;
@@ -274,7 +366,6 @@
         ship.vy += Math.sin(ship.angle) * 0.16;
         thrusting = true;
       }
-      // friction & speed cap
       ship.vx *= 0.99; ship.vy *= 0.99;
       const sp = Math.hypot(ship.vx, ship.vy);
       const max = 9;
@@ -293,52 +384,53 @@
         });
       }
 
-      // shooting
       if (shootCooldown > 0) shootCooldown--;
-      if (keys[' '] && shootCooldown === 0) { shoot(); shootCooldown = 12; }
+      if (keys[' '] && shootCooldown === 0) {
+        shoot();
+        shootCooldown = WEAPONS[weaponLevel - 1].cooldown;
+      }
 
       if (invuln > 0) invuln--;
     }
 
-    // asteroids always drift (even on menu for ambience)
-    for (const a of asteroids) {
-      a.x += a.vx; a.y += a.vy; a.rot += a.vrot; wrap(a);
-    }
+    // asteroids drift unless paused
+    if (state !== 'paused') {
+      for (const a of asteroids) {
+        a.x += a.vx; a.y += a.vy; a.rot += a.vrot; wrap(a);
+      }
 
-    // bullets
-    for (let i = bullets.length - 1; i >= 0; i--) {
-      const b = bullets[i];
-      b.x += b.vx; b.y += b.vy; b.life--;
-      wrap(b);
-      if (b.life <= 0) { bullets.splice(i, 1); continue; }
-      for (let j = asteroids.length - 1; j >= 0; j--) {
-        const a = asteroids[j];
-        if (Math.hypot(a.x - b.x, a.y - b.y) < a.r) {
-          bullets.splice(i, 1);
-          hitAsteroid(j);
-          break;
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx; b.y += b.vy; b.life--;
+        wrap(b);
+        if (b.life <= 0) { bullets.splice(i, 1); continue; }
+        for (let j = asteroids.length - 1; j >= 0; j--) {
+          const a = asteroids[j];
+          if (Math.hypot(a.x - b.x, a.y - b.y) < a.r) {
+            bullets.splice(i, 1);
+            hitAsteroid(j);
+            break;
+          }
         }
       }
-    }
 
-    // ship collision
-    if (state === 'playing' && invuln === 0) {
-      for (let j = 0; j < asteroids.length; j++) {
-        const a = asteroids[j];
-        if (Math.hypot(a.x - ship.x, a.y - ship.y) < a.r + ship.r * 0.7) {
-          hitAsteroid(j);
-          killShip();
-          break;
+      if (state === 'playing' && invuln === 0) {
+        for (let j = 0; j < asteroids.length; j++) {
+          const a = asteroids[j];
+          if (Math.hypot(a.x - ship.x, a.y - ship.y) < a.r + ship.r * 0.7) {
+            hitAsteroid(j);
+            killShip();
+            break;
+          }
         }
       }
-    }
 
-    // particles
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx; p.y += p.vy; p.vx *= 0.96; p.vy *= 0.96;
-      p.life -= p.decay;
-      if (p.life <= 0) particles.splice(i, 1);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.vx *= 0.96; p.vy *= 0.96;
+        p.life -= p.decay;
+        if (p.life <= 0) particles.splice(i, 1);
+      }
     }
   }
 
@@ -355,8 +447,8 @@
   }
 
   function drawShip() {
-    if (state !== 'playing') return;
-    if (invuln > 0 && Math.floor(invuln / 6) % 2 === 0) return; // blink while invulnerable
+    if (state !== 'playing' && state !== 'paused') return;
+    if (invuln > 0 && Math.floor(invuln / 6) % 2 === 0) return;
     ctx.save();
     ctx.translate(ship.x, ship.y);
     ctx.rotate(ship.angle);
@@ -434,7 +526,6 @@
 
   // ---- Boot ----
   resize();
-  // ambient asteroids behind the menu
   spawnWave(4);
   updateHud();
   loop();
