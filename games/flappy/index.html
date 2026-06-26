@@ -13,8 +13,10 @@
   #game { display:block; width:100vw; height:100vh; }
   .back { position:fixed; top:8px; left:10px; z-index:9; font-family:inherit; font-size:12px; letter-spacing:1px;
     color:var(--ink); text-decoration:none; background:rgba(253,246,227,0.72); border:1px solid rgba(58,42,23,0.3);
-    border-radius:7px; padding:6px 10px; }
-  #hud { position:fixed; top:10px; right:14px; z-index:5; text-align:right; pointer-events:none; }
+    border-radius:7px; padding:6px 10px; cursor:pointer; }
+  .nav { position:fixed; top:8px; left:10px; z-index:9; display:flex; gap:8px; }
+  .nav .back { position:static; top:auto; left:auto; }
+  #hud { position:fixed; top:10px; right:14px; z-index:5; text-align:right; pointer-events:none; left:170px; }
   #hud .score { font-size:28px; font-weight:bold; color:#3a2a17; text-shadow:0 1px 0 rgba(255,255,255,0.6); }
   #hud .best  { font-size:12px; color:#7a6050; letter-spacing:1px; }
   #hud.night .score { color:#fdf6e3; text-shadow:0 1px 4px rgba(0,0,0,0.5); }
@@ -52,7 +54,10 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<a class="back" href="../../">‹ Arcade</a>
+<div class="nav">
+  <button class="back" id="menuBtn" type="button">&#x2039; Menu</button>
+  <a class="back" href="../../">Arcade &#x203A;</a>
+</div>
 <div id="hud">
   <div class="score" id="scoreEl">0</div>
   <div class="best"  id="bestEl">BEST 0</div>
@@ -547,6 +552,8 @@
     spawnGapAt(y) { pendingGapY = y; },
     setBest(v) { saveBest(v); best = v; },
   };
+
+  document.getElementById('menuBtn').addEventListener('click', () => { try { location.reload(); } catch (e) {} });
 
   applyModeUI();
   resize(); updateHud(); loop();
