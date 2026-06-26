@@ -5,79 +5,97 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Arcade</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<meta name="theme-color" content="#0a0c14">
+<meta name="theme-color" content="#0b0f17">
 <link rel="manifest" href="manifest.json">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Arcade">
 <link rel="apple-touch-icon" href="favicon.svg">
 <style>
-  :root { --bg:#0a0c14; }
-  * { box-sizing: border-box; }
-  html, body { margin:0; min-height:100%; background:var(--bg); color:#e7ecf5; font-family:"Courier New",monospace; }
-  body { padding: 48px 22px 60px; }
-  .wrap { max-width: 1080px; margin: 0 auto; }
-  header { text-align:center; margin-bottom: 40px; }
-  h1 { margin:0; font-size: clamp(40px, 9vw, 76px); letter-spacing: 14px; font-weight: 800;
-       background: linear-gradient(90deg,#9fe8ff,#e0b25a,#c79bff); -webkit-background-clip:text; background-clip:text; color:transparent; }
-  .sub { margin-top: 10px; opacity:0.5; letter-spacing: 4px; font-size: 13px; }
-
-  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 22px; }
-  .tile {
-    position: relative; display:flex; flex-direction:column; text-decoration:none; color:inherit;
-    border:1px solid rgba(255,255,255,0.1); border-radius:18px; overflow:hidden;
-    background: rgba(255,255,255,0.03); min-height: 230px;
-    transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+  :root {
+    --bg:#0b0f17; --surface:#161c28; --surface-2:#1e2738; --border:#2a3446;
+    --text:#eef2f8; --muted:#aab6c8; --faint:#7d8aa0;
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   }
-  .tile:hover, .tile:focus { transform: translateY(-6px); border-color: var(--accent); box-shadow: 0 14px 40px rgba(0,0,0,0.5), 0 0 26px -6px var(--accent); outline:none; }
-  .art { flex:1; display:flex; align-items:center; justify-content:center; font-size: 84px;
-         background: radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--accent) 26%, transparent), transparent 70%); }
-  .art .glyph { filter: drop-shadow(0 6px 16px rgba(0,0,0,0.5)); }
-  .meta { padding: 16px 18px 18px; border-top: 1px solid rgba(255,255,255,0.07); }
+  * { box-sizing: border-box; }
+  html, body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); }
+  body { padding: 44px 22px 56px; line-height:1.5; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  header { text-align:center; margin-bottom: 40px; }
+  h1 { margin:0; font-family:var(--mono); font-size: clamp(40px, 9vw, 72px); letter-spacing: 14px; font-weight: 800;
+       background: linear-gradient(90deg,#9fe8ff,#e0b25a,#c79bff); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .sub { margin-top: 12px; color:var(--muted); letter-spacing: 3px; font-size: 13px; font-family:var(--mono); text-transform:uppercase; }
+
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 20px; }
+  .tile {
+    display:flex; flex-direction:column; text-decoration:none; color:inherit;
+    background: var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; min-height: 236px;
+    transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+  }
+  a.tile:hover, a.tile:focus-visible { transform: translateY(-5px); border-color: var(--accent);
+    box-shadow: 0 12px 34px rgba(0,0,0,0.5), 0 0 0 1px var(--accent), 0 0 30px -8px var(--accent); outline:none; }
+  .art { height: 116px; display:flex; align-items:center; justify-content:center; font-size: 72px;
+         background: radial-gradient(110% 130% at 50% 0%, color-mix(in srgb, var(--accent) 34%, var(--surface)), var(--surface) 72%);
+         border-bottom:1px solid var(--border); }
+  .art .glyph { filter: drop-shadow(0 4px 12px rgba(0,0,0,0.45)); }
+  .meta { padding: 16px 18px 18px; display:flex; flex-direction:column; gap:8px; flex:1; }
   .row { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-  .meta h2 { margin:0; font-size: 20px; letter-spacing: 1px; }
-  .tag { font-size: 10px; letter-spacing: 2px; padding: 3px 9px; border-radius: 20px; color: var(--accent);
-         background: color-mix(in srgb, var(--accent) 18%, transparent); white-space:nowrap; }
-  .meta p { margin: 8px 0 0; font-size: 12.5px; line-height: 1.55; opacity: 0.65; }
-  .play { margin-top: 14px; font-size: 12px; letter-spacing: 2px; color: var(--accent); opacity:0.9; }
-  .help-row { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:14px; }
-  #install { font-family:inherit; font-size:12px; letter-spacing:2px; cursor:pointer; padding:8px 16px; border-radius:20px;
-    color:#bfe6ff; background:transparent; border:1px solid rgba(159,232,255,0.45); font-weight:600; display:none; }
-  #install:hover { border-color:#9fe8ff; color:#fff; }
+  .meta h2 { margin:0; font-size: 19px; font-weight: 700; letter-spacing:0.3px; color:var(--text); }
+  .tag { font-family:var(--mono); font-size: 10px; letter-spacing: 1.5px; padding: 3px 9px; border-radius: 6px;
+         color: var(--accent); background: rgba(0,0,0,0.28); border:1px solid color-mix(in srgb, var(--accent) 50%, transparent); white-space:nowrap; }
+  .meta p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
+  .play { margin-top: auto; font-family:var(--mono); font-size: 12px; letter-spacing: 1.5px; color: var(--accent); font-weight:700; }
+
+  .tile.soon { opacity: 0.62; }
+  .tile.soon .art { filter: grayscale(0.5); }
+  .tile.soon .play { color: var(--faint); }
+
+  .help-row { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; }
+  .ibtn { font-family:var(--mono); font-size:12px; letter-spacing:2px; cursor:pointer; padding:9px 16px; border-radius:10px;
+    color:var(--text); background:var(--surface-2); border:1px solid var(--border); }
+  .ibtn:hover { border-color:#9fe8ff; color:#fff; }
   .tip { position:relative; display:inline-flex; }
-  .qbtn { width:26px; height:26px; border-radius:50%; border:1px solid rgba(255,255,255,0.3); background:transparent; color:#cdd6e6; cursor:pointer; font-size:13px; line-height:1; }
+  .qbtn { width:30px; height:30px; border-radius:50%; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); cursor:pointer; font-size:14px; line-height:1; }
   .qbtn:hover { border-color:#9fe8ff; color:#fff; }
-  .tip-pop { display:none; position:absolute; top:34px; left:50%; transform:translateX(-50%); width:min(300px,80vw); z-index:6;
-    background:#141a2a; border:1px solid rgba(159,232,255,0.3); border-radius:10px; padding:12px 14px; font-size:12px; line-height:1.7; text-align:left; box-shadow:0 10px 30px rgba(0,0,0,0.5); }
+  .tip-pop { display:none; position:absolute; top:38px; left:50%; transform:translateX(-50%); width:min(320px,86vw); z-index:6;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:13px 15px; font-size:13px; line-height:1.7; color:var(--text); text-align:left; box-shadow:0 14px 38px rgba(0,0,0,0.55); }
   .tip-pop.show { display:block; }
-  .tile.soon { opacity:0.5; filter:grayscale(0.55); cursor:default; }
-  .tile.soon:hover { transform:none; box-shadow:none; border-color:rgba(255,255,255,0.1); }
-  .tile.soon .play { color:#8a93a6; }
-  .sponsor { color:#ff5d8f; font-weight:700; text-decoration:none; }
-  .sponsor:hover { color:#ff85aa; text-decoration:underline; }
-  .ghlink { color:#9fb2c9; text-decoration:none; }
-  .ghlink:hover { color:#fff; }
-  .ftext { opacity:0.32; }
-  footer { text-align:center; margin-top: 46px; font-size: 11px; letter-spacing: 2px; }
+  .tip-pop b { color:#9fe8ff; }
+
+  footer { text-align:center; margin-top: 46px; font-size: 12px; color:var(--faint); }
+  footer a { text-decoration:none; }
+  .sponsor { color:#ff6e9f; font-weight:700; }
+  .sponsor:hover { color:#ff90b6; text-decoration:underline; }
+  .ghlink { color:var(--muted); }
+  .ghlink:hover { color:#fff; text-decoration:underline; }
 </style>
 </head>
 <body>
   <div class="wrap">
     <header>
       <h1>ARCADE</h1>
-      <div class="sub">a little catalogue of self-contained browser games</div>
+      <div class="sub">a catalogue of self-contained browser games</div>
       <div class="help-row">
-        <button id="install">📱 Install</button>
-        <span class="tip"><button class="qbtn" id="qbtn" aria-label="How to install">?</button>
+        <button class="ibtn" id="install">📱 Install app</button>
+        <span class="tip">
+          <button class="qbtn" id="qbtn" aria-label="How to install">?</button>
           <span class="tip-pop" id="tipPop"><b>Install to your home screen</b> — fullscreen &amp; offline:<br>
             <b>Android (Chrome):</b> menu ⋮ → “Add to Home screen”<br>
             <b>iPhone (Safari):</b> Share → “Add to Home Screen”<br>
-            <b>Desktop:</b> the Install button or the address-bar install icon.</span>
+            <b>Desktop (Chrome/Edge):</b> this button, or the install icon in the address bar.</span>
         </span>
       </div>
     </header>
+
     <div class="grid" id="grid"></div>
-    <footer><span class="ftext">built for fun · no ads · no tracking · plays offline</span> · <a class="sponsor" href="https://github.com/sponsors/N0zz">♥ Sponsor</a> · <a class="ghlink" href="https://github.com/N0zz/arcade">GitHub ↗</a></footer>
+
+    <footer>
+      built for fun · no ads · no tracking · plays offline &nbsp;·&nbsp;
+      <a class="sponsor" href="https://github.com/sponsors/N0zz">♥ Sponsor</a> &nbsp;·&nbsp;
+      <a class="ghlink" href="https://github.com/N0zz/arcade">GitHub ↗</a>
+    </footer>
   </div>
 
   <script src="games.js"></script>
@@ -99,24 +117,20 @@
       grid.appendChild(el);
     });
 
-    // PWA install: show the button when the browser offers a prompt (Android/desktop Chrome)
+    // ---- Install: button is always visible; uses the native prompt when offered,
+    //      otherwise opens the instructions tooltip. ----
     const installBtn = document.getElementById('install');
+    const qbtn = document.getElementById('qbtn');
+    const tipPop = document.getElementById('tipPop');
     let deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault(); deferredPrompt = e; installBtn.style.display = 'inline-block';
-    });
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+    window.addEventListener('appinstalled', () => { installBtn.textContent = 'Installed ✓'; deferredPrompt = null; });
     installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
-      deferredPrompt = null; installBtn.style.display = 'none';
+      if (deferredPrompt) { deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; }
+      else { tipPop.classList.toggle('show'); }
     });
-    window.addEventListener('appinstalled', () => { installBtn.style.display = 'none'; });
-    // (?) tooltip with manual install instructions
-    const qbtn = document.getElementById('qbtn'), tipPop = document.getElementById('tipPop');
     qbtn.addEventListener('click', (e) => { e.stopPropagation(); tipPop.classList.toggle('show'); });
     document.addEventListener('click', (e) => { if (!(e.target.closest && e.target.closest('.tip'))) tipPop.classList.remove('show'); });
-    if (window.matchMedia && matchMedia('(display-mode: standalone)').matches) { const hr = document.querySelector('.help-row'); if (hr) hr.style.display = 'none'; }
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
