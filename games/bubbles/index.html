@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Bubble Pop</title>
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#2ee8c8">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bubble Pop">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root {
     --aqua:#2ee8c8; --aqua2:#1bc4a8; --bg1:#0d1f2d; --bg2:#162840;
@@ -1143,6 +1149,7 @@
 
   resize(); loop();
 })();
+  if ('serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js').catch(function () {}); } catch (e) {} }
 </script>
 </body>
 </html>
