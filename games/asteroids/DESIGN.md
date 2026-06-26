@@ -114,3 +114,21 @@ UI, upgrade cards styled as glowing retro terminal panels. Particles retained.
 input, entities (ship/asteroid/hunter/sentry/boss/gem/particle), spawning/waves,
 upgrades (pool + apply), collision, render, HUD/overlays, loop. Shared logic is kept
 factored so the two deferred variants can reuse it with a swapped progression module.
+
+## 7. Future level/mode ideas (backlog — not yet built)
+
+Each would be a new file in `levels/` + a `versions.js` entry.
+
+- **Gravity Well** — a central sun/black-hole pulls the ship and asteroids; orbital-
+  mechanics arcade twist on the Classic engine. _(Top pick — novel, medium effort.)_
+- **Boss Rush** — back-to-back bosses with an upgrade pick between each; reuses the
+  roguelite engine. _(Cheap, satisfying.)_
+- **Horde / Survival** — Vampire-Survivors style: auto-fire on by default, no discrete
+  waves, escalating swarm + a survival timer.
+- **Twin-Stick** — mouse-aim + thrust, fire toward the cursor (new control scheme).
+- **Last Stand / One-HP** — 1 HP, no shields, pure dodging sprint.
+- **Color Match (Ikaruga-ish)** — tinted asteroids; switch bullet color to destroy
+  matching ones (adds a puzzle layer).
+- **Draft** — between waves, draft from a small hand of upgrades (deckbuilder flavor).
+- **Daily Challenge** — seeded RNG so everyone's run for a given day is identical and
+  scores are comparable (needs a seeded-RNG refactor).
