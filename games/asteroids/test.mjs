@@ -282,6 +282,17 @@ function testWave5BossVisible(file) {
   ok(/left/.test(T().waveLabel), file + ' HUD shows remaining-enemy count ("' + T().waveLabel + '")');
 }
 
+function testWave4Clearable(file) {
+  section(file + ' (wave 4 sentries stay on-screen / clearable)');
+  const g = runGame(file);
+  const T = () => g.test();
+  T().start(); g.step(2);
+  T().gotoWave(4); g.step(2);
+  ok(T().enemies > 0, file + ' wave 4 spawns enemies');
+  g.step(600); // let sentries drift; none must get stranded off-screen
+  ok(T().strandedEnemies === 0, file + ' no enemy stranded off-screen at wave 4 (got ' + T().strandedEnemies + ')');
+}
+
 function testKeyboardPicker(file) {
   section(file + ' (keyboard picker)');
   const g = runGame(file);
@@ -430,6 +441,7 @@ for (const [file, prog] of [['roguelite-levelup.html', 'levelup'], ['roguelite-m
   testAutoWeapons(file);
   testMenuButton(file);
   testWave5BossVisible(file);
+  testWave4Clearable(file);
   testStressManyWaves(file, prog);
   testSpeedrunWin(file, prog);
 }

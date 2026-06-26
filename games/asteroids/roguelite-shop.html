@@ -236,7 +236,9 @@
       const nH = n>=3 ? Math.floor(n/2) : 0;
       for(let i=0;i<nH;i++){ const p=edgePos(); hunters.push(makeHunter(p.x,p.y)); }
       const nS = n>=4 ? Math.floor((n-2)/2) : 0;
-      for(let i=0;i<nS;i++){ const p=edgePos(); sentries.push(makeSentry(p.x,p.y)); }
+      // sentries don't home, so spawn them on-screen (not at the edge) — an edge spawn
+      // could get trapped just off-screen by the bounce and become unkillable.
+      for(let i=0;i<nS;i++){ sentries.push(makeSentry(80+Math.random()*(W-160), 80+Math.random()*(H-160))); }
       flash('WAVE '+n);
     }
     updateHud();
@@ -376,7 +378,7 @@
       // hunters home toward ship
       for(const h of hunters){ const a=Math.atan2(ship.y-h.y,ship.x-h.x); h.vx+=Math.cos(a)*0.06; h.vy+=Math.sin(a)*0.06; h.vx*=0.97; h.vy*=0.97; h.x+=h.vx; h.y+=h.vy; h.rot+=0.05; wrap(h); }
       // sentries drift + fire
-      for(const s of sentries){ s.x+=s.vx; s.y+=s.vy; if(s.x<40||s.x>W-40) s.vx*=-1; if(s.y<40||s.y>H-40) s.vy*=-1; s.rot+=0.02;
+      for(const s of sentries){ s.x+=s.vx; s.y+=s.vy; if((s.x<40&&s.vx<0)||(s.x>W-40&&s.vx>0)) s.vx*=-1; if((s.y<40&&s.vy<0)||(s.y>H-40&&s.vy>0)) s.vy*=-1; s.rot+=0.02;
         if(s.fireCd>0) s.fireCd--; else { const a=Math.atan2(ship.y-s.y,ship.x-s.x); ebullets.push({x:s.x,y:s.y,vx:Math.cos(a)*3.2,vy:Math.sin(a)*3.2,life:200,r:3}); s.fireCd=120+Math.random()*60; } }
       // boss
       if(boss){ boss.x+=boss.vx; boss.y+=boss.vy; if(boss.x<80||boss.x>W-80) boss.vx*=-1; if(boss.y<80||boss.y>H*0.7) boss.vy*=-1; if(boss.y<80) boss.vy=Math.abs(boss.vy); boss.rot+=0.01;
@@ -476,6 +478,7 @@
     get upgrades(){ return JSON.parse(JSON.stringify(up)); }, get progression(){ return PROGRESSION; }, get speedrun(){ return SPEEDRUN; },
     get picks(){ return pickOptions.map(o=>o.id); }, get sel(){ return selIdx; }, get magnet(){ return ship?ship.magnet:0; },
     get bossY(){ return boss?boss.y:null; }, get waveLabel(){ return waveEl.textContent; },
+    get strandedEnemies(){ const out=e=>e.x<-12||e.x>W+12||e.y<-12||e.y>H+12; return sentries.filter(out).length + hunters.filter(out).length; },
     quitToMenu, hasMenuBtn(){ return !!$('menuBtn'); },
     start:startGame, clearEnemies(){ asteroids=[]; hunters=[]; sentries=[]; boss=null; },
     addScore(n){ score+=n; credits+=Math.floor(n/10); updateHud(); if(PROGRESSION==='milestones'){ while(score>=milestoneNext){ pendingPicks++; milestoneStep+=250; milestoneNext+=milestoneStep; } if(pendingPicks>0&&state==='playing') openPicker(); } },
