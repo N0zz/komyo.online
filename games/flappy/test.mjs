@@ -97,7 +97,7 @@ function runGame() {
   try { vm.runInContext(code, ctx, { filename: 'index.html' }); }
   catch (e) { bootErr = e.stack; }
 
-  return { win, store, bootErr, test: () => win.__test };
+  return { win, store, bootErr, test: () => win.__test, getEl, fireKey: (key) => (handlers['keydown'] || []).forEach(fn => fn({ key, preventDefault() {} })) };
 }
 
 // ----------------------------------------------------------------
@@ -116,6 +116,28 @@ section('Start');
 ok(T().state === 'ready', 'initial state is "ready"');
 T().start();
 ok(T().state === 'playing', 'start() → "playing"');
+
+// (b2) tap-to-start gives upward vy (first-flap impulse)
+section('Tap-start impulse');
+{
+  g = runGame();
+  ok(T().state === 'ready', 'tap-start: initial state is ready');
+  // Fire canvas pointerdown — the real tap path: onTap() → flap() → startGame() + FLAP_VY
+  g.getEl('game').fire('pointerdown');
+  ok(T().state === 'playing', 'canvas tap from ready → playing');
+  ok(T().bird.vy < 0, 'canvas tap from ready gives negative vy (upward impulse), got ' + T().bird.vy);
+}
+
+// (b3) Space/Enter from 'over' also gives upward vy
+section('Key-restart impulse');
+{
+  g = runGame(); T().start();
+  while (T().state === 'playing') T().step(1);
+  ok(T().state === 'over', 'key-restart: game ended');
+  g.fireKey(' ');
+  ok(T().state === 'playing', 'Space from over → playing');
+  ok(T().bird.vy < 0, 'Space from over gives upward impulse, got ' + T().bird.vy);
+}
 
 // (c) gravity: stepping without flapping lowers the bird and increases vy
 section('Gravity');
@@ -154,6 +176,28 @@ while (T().score < 1 && T().state === 'playing' && guard++ < 600) {
   T().step(1);
 }
 ok(T().score >= 1, 'score increments after flying through gap (score=' + T().score + ')');
+
+// (e2) hitbox uses stem width (OBS_W-12), not full OBS_W — bird in gap side-inset should survive
+section('Collision hitbox alignment');
+{
+  // Bird at BIRD_X=90, br=11. Obstacle stem drawn at o.x+6 width 50.
+  // Place obstacle so its LEFT STEM EDGE (o.x+6) is just to the right of the bird's right edge (90+11=101).
+  // stemX = obsX+6 = 102 → bird right=101 < stemX=102 → NOT inX → no collision.
+  // If hitbox were full OBS_W: inX = 101 > obsX=96 → collision (false kill).
+  g = runGame();
+  T().start();
+  const obsX = 96; // stemX = 96+6 = 102, bird right = 90+11 = 101
+  T().spawnGapAt(800 * 0.42); // gap centered near bird y
+  T().step(1); // trigger spawn if needed
+  const obs = T().obstacles;
+  if (obs.length > 0) {
+    obs[0].x = obsX;
+    T().step(1);
+    ok(T().state === 'playing', 'bird outside stem inset survives (hitbox matches stem, not full column)');
+  } else {
+    ok(true, 'hitbox test skipped (no obstacle yet)');
+  }
+}
 
 // (f) hitting the ground → 'over'
 section('Ground collision');

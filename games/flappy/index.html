@@ -60,6 +60,20 @@
   const canvas = $('game'), ctx = canvas.getContext('2d');
   const overlay = $('overlay'), goScreen = $('goScreen');
 
+  // roundRect polyfill for Safari < 15.4
+  if (typeof ctx.roundRect !== 'function') {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+      const rx = Array.isArray(r) ? r[0] : (r || 0);
+      this.beginPath();
+      this.moveTo(x + rx, y);
+      this.lineTo(x + w - rx, y); this.quadraticCurveTo(x + w, y, x + w, y + rx);
+      this.lineTo(x + w, y + h - rx); this.quadraticCurveTo(x + w, y + h, x + w - rx, y + h);
+      this.lineTo(x + rx, y + h); this.quadraticCurveTo(x, y + h, x, y + h - rx);
+      this.lineTo(x, y + rx); this.quadraticCurveTo(x, y, x + rx, y);
+      this.closePath();
+    };
+  }
+
   // ---- Audio ----
   const SND = (() => {
     let ac;
@@ -156,8 +170,7 @@
   }
 
   function flap() {
-    if (state === 'ready') { startGame(); return; }
-    if (state === 'over') { startGame(); return; }
+    if (state === 'ready' || state === 'over') { startGame(); bird.vy = FLAP_VY; bird.flapAnim = 1; return; }
     bird.vy = FLAP_VY;
     bird.flapAnim = 1;
     SND.play('flap');
@@ -210,9 +223,10 @@
       o.x -= OBS_SPEED;
       if (o.x + OBS_W < 0) { obstacles.splice(i, 1); continue; }
 
-      // collision (use slightly forgiving hitbox)
+      // collision: stem is drawn with 6px inset each side, match that visually
       const bx = bird.x, by = bird.y, br = BIRD_R - 3;
-      const inX = bx + br > o.x && bx - br < o.x + OBS_W;
+      const stemX = o.x + 6, stemW = OBS_W - 12;
+      const inX = bx + br > stemX && bx - br < stemX + stemW;
       const inGap = by - br > o.gapY && by + br < o.gapY + GAP_H;
       if (inX && !inGap) { gameOver(); return; }
 
@@ -370,8 +384,7 @@
 
   // ---- Input ----
   function onTap() {
-    if (state === 'ready' || state === 'playing') flap();
-    else if (state === 'over') startGame();
+    flap();
   }
   canvas.addEventListener('pointerdown', onTap);
   document.addEventListener('keydown', e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); onTap(); } });
