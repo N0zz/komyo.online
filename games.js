@@ -89,7 +89,6 @@ window.GAMES = [
     icon: "🐤",
     accent: "#8fd3a6",
     tag: "CASUAL",
-    soon: true,
   },
   {
     slug: "aim-trainer",
