@@ -78,6 +78,27 @@
   .coffee:hover { color:#ffe08a; text-decoration:underline; }
   .ghlink { color:var(--muted); }
   .ghlink:hover { color:#fff; text-decoration:underline; }
+
+  /* feedback modal */
+  #fbModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+  #fbModal::backdrop { background:rgba(5,8,13,0.66); }
+  .fb-form { padding:20px; display:flex; flex-direction:column; gap:11px; }
+  .fb-form h3 { margin:0; font-family:var(--mono); letter-spacing:2px; font-size:16px; }
+  .fb-intro { margin:0 0 4px; color:var(--muted); font-size:13px; }
+  .fb-form label { display:block; margin-bottom:5px; font-size:11px; letter-spacing:1.5px; font-family:var(--mono); color:var(--faint); text-transform:uppercase; }
+  .fb-form input, .fb-form textarea { width:100%; background:var(--surface-2); border:1px solid var(--border); border-radius:10px; color:var(--text); font:inherit; font-size:14px; padding:10px 12px; }
+  .fb-form textarea { min-height:110px; resize:vertical; }
+  .fb-form input:focus, .fb-form textarea:focus { outline:none; border-color:#9fe8ff; }
+  .fb-actions { display:flex; gap:10px; justify-content:flex-end; margin-top:4px; }
+  .fb-actions button { font-family:var(--mono); font-size:12px; letter-spacing:1.5px; cursor:pointer; padding:9px 16px; border-radius:10px; border:1px solid var(--border); }
+  .fb-cancel { background:var(--surface-2); color:var(--muted); }
+  .fb-cancel:hover { color:#fff; }
+  .fb-submit { background:#9fe8ff; color:#06121a; font-weight:700; border-color:#9fe8ff; }
+  .fb-submit:hover { background:#bdf0ff; }
+  .fb-submit:disabled { opacity:.6; cursor:default; }
+  .fb-status { font-size:13px; min-height:18px; color:var(--muted); }
+  .fb-status.ok { color:#7fe0a0; }
+  .fb-status.err { color:#ff8a8a; }
 </style>
 </head>
 <body>
@@ -87,6 +108,7 @@
       <div class="sub">a catalogue of self-contained browser games</div>
       <div class="help-row">
         <button class="ibtn" id="install">📱 Install app</button>
+        <button class="ibtn" id="feedback">💬 Feedback</button>
         <span class="tip">
           <button class="qbtn" id="qbtn" aria-label="How to install">?</button>
           <span class="tip-pop" id="tipPop"><b>Install to your home screen</b> — fullscreen &amp; offline:<br>
@@ -107,6 +129,35 @@
       <a class="ghlink" href="https://github.com/N0zz/arcade">GitHub ↗</a>
     </footer>
   </div>
+
+  <dialog id="fbModal">
+    <form class="fb-form" id="fbForm">
+      <h3>💬 Send feedback</h3>
+      <p class="fb-intro">Found a bug or have an idea? Tell me — no account needed.</p>
+      <input type="hidden" name="access_key" value="e12aa151-b0f2-4d04-8320-9f2ebaedc51b">
+      <input type="hidden" name="subject" value="Arcade feedback">
+      <input type="hidden" name="from_name" value="Arcade">
+      <input type="hidden" name="page" id="fbPage" value="">
+      <input type="checkbox" name="botcheck" style="display:none !important" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <div>
+        <label for="fbName">Name</label>
+        <input id="fbName" type="text" name="name" required>
+      </div>
+      <div>
+        <label for="fbEmail">Email</label>
+        <input id="fbEmail" type="email" name="email" required>
+      </div>
+      <div>
+        <label for="fbMsg">Message</label>
+        <textarea id="fbMsg" name="message" required placeholder="What worked? What broke? What would you change?"></textarea>
+      </div>
+      <div class="fb-status" id="fbStatus" role="status" aria-live="polite"></div>
+      <div class="fb-actions">
+        <button type="button" class="fb-cancel" id="fbCancel">Cancel</button>
+        <button type="submit" class="fb-submit" id="fbSubmit">Send ▸</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="games.js"></script>
   <script>
@@ -180,6 +231,40 @@
       navigator.getInstalledRelatedApps().then(apps => { if (apps && apps.length) { installed = true; refresh(); } }).catch(() => {});
     }
     refresh();
+
+    // ---- Feedback (Web3Forms, AJAX so we stay on the page) ----
+    const fbModal = document.getElementById('fbModal');
+    const fbForm = document.getElementById('fbForm');
+    const fbStatus = document.getElementById('fbStatus');
+    const fbSubmit = document.getElementById('fbSubmit');
+    document.getElementById('feedback').addEventListener('click', () => {
+      document.getElementById('fbPage').value = location.href;
+      fbStatus.textContent = ''; fbStatus.className = 'fb-status';
+      fbModal.showModal();
+    });
+    document.getElementById('fbCancel').addEventListener('click', () => fbModal.close());
+    fbModal.addEventListener('click', (e) => { if (e.target === fbModal) fbModal.close(); }); // backdrop
+    fbForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      fbSubmit.disabled = true; fbStatus.className = 'fb-status'; fbStatus.textContent = 'Sending…';
+      try {
+        const res = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST', headers: { 'Accept': 'application/json' }, body: new FormData(fbForm)
+        });
+        const data = await res.json();
+        if (data.success) {
+          fbStatus.className = 'fb-status ok'; fbStatus.textContent = 'Thanks! Feedback sent. ✓';
+          fbForm.reset();
+          setTimeout(() => fbModal.close(), 1400);
+        } else {
+          fbStatus.className = 'fb-status err'; fbStatus.textContent = data.message || 'Something went wrong — please try again.';
+        }
+      } catch (err) {
+        fbStatus.className = 'fb-status err'; fbStatus.textContent = 'Network error — please try again.';
+      } finally {
+        fbSubmit.disabled = false;
+      }
+    });
 
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
