@@ -30,12 +30,18 @@
 
   .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 20px; }
   .tile {
+    position: relative;
     display:flex; flex-direction:column; text-decoration:none; color:inherit;
     background: var(--surface); border:1px solid var(--border); border-radius:16px; overflow:hidden; min-height: 236px;
     transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
   }
   a.tile:hover, a.tile:focus-visible { transform: translateY(-5px); border-color: var(--accent);
     box-shadow: 0 12px 34px rgba(0,0,0,0.5), 0 0 0 1px var(--accent), 0 0 30px -8px var(--accent); outline:none; }
+  .fav { position:absolute; top:10px; right:10px; z-index:3; width:34px; height:34px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; line-height:1; font-size:16px; cursor:pointer;
+    border:1px solid var(--border); background:rgba(11,15,23,0.72); color:#6b7892; transition: color .12s, border-color .12s, transform .12s; }
+  .fav:hover { color:#ffcf5c; border-color:#ffcf5c; transform:scale(1.08); }
+  .fav.on { color:#ffcf5c; border-color:#ffcf5c; }
   .art { height: 116px; display:flex; align-items:center; justify-content:center; font-size: 72px;
          background: radial-gradient(110% 130% at 50% 0%, color-mix(in srgb, var(--accent) 34%, var(--surface)), var(--surface) 72%);
          border-bottom:1px solid var(--border); }
@@ -101,21 +107,46 @@
   <script src="games.js"></script>
   <script>
     const grid = document.getElementById('grid');
-    (window.GAMES || []).forEach(g => {
-      const soon = !!g.soon;
-      const el = document.createElement(soon ? 'div' : 'a');
-      el.className = 'tile' + (soon ? ' soon' : '');
-      if (!soon) el.href = 'games/' + g.slug + '/';
-      el.style.setProperty('--accent', g.accent || '#9fe8ff');
-      el.innerHTML =
-        '<div class="art"><span class="glyph">' + (g.icon || '🎮') + '</span></div>' +
-        '<div class="meta">' +
-          '<div class="row"><h2>' + g.title + '</h2><span class="tag">' + (g.tag || 'GAME') + '</span></div>' +
-          '<p>' + g.blurb + '</p>' +
-          '<div class="play">' + (soon ? 'COMING SOON' : 'PLAY ▸') + '</div>' +
-        '</div>';
-      grid.appendChild(el);
-    });
+
+    // favorites (per-device); starred games sort to the top of the playable list
+    const FAV_KEY = 'arcade_favs';
+    function favs() { try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch (e) { return []; } }
+    function setFavs(a) { try { localStorage.setItem(FAV_KEY, JSON.stringify(a)); } catch (e) {} }
+    function toggleFav(slug) { const a = favs(), i = a.indexOf(slug); if (i >= 0) a.splice(i, 1); else a.push(slug); setFavs(a); render(); }
+    function ordered() {
+      const all = window.GAMES || [], f = favs();
+      const play = all.filter(g => !g.soon), soon = all.filter(g => g.soon);
+      return [...play.filter(g => f.includes(g.slug)), ...play.filter(g => !f.includes(g.slug)), ...soon];
+    }
+
+    function render() {
+      grid.innerHTML = '';
+      const f = favs();
+      ordered().forEach(g => {
+        const soon = !!g.soon;
+        const el = document.createElement(soon ? 'div' : 'a');
+        el.className = 'tile' + (soon ? ' soon' : '');
+        if (!soon) el.href = 'games/' + g.slug + '/';
+        el.style.setProperty('--accent', g.accent || '#9fe8ff');
+        el.innerHTML =
+          '<div class="art"><span class="glyph">' + (g.icon || '🎮') + '</span></div>' +
+          '<div class="meta">' +
+            '<div class="row"><h2>' + g.title + '</h2><span class="tag">' + (g.tag || 'GAME') + '</span></div>' +
+            '<p>' + g.blurb + '</p>' +
+            '<div class="play">' + (soon ? 'COMING SOON' : 'PLAY ▸') + '</div>' +
+          '</div>';
+        if (!soon) {
+          const star = document.createElement('button');
+          star.className = 'fav' + (f.includes(g.slug) ? ' on' : '');
+          star.textContent = '★';
+          star.setAttribute('aria-label', (f.includes(g.slug) ? 'Unfavorite ' : 'Favorite ') + g.title);
+          star.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleFav(g.slug); });
+          el.appendChild(star);
+        }
+        grid.appendChild(el);
+      });
+    }
+    render();
 
     // ---- Install: button is always visible; uses the native prompt when offered,
     //      otherwise opens the instructions tooltip. ----

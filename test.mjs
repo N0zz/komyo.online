@@ -15,8 +15,8 @@ function makeEl() {
     textContent: '', value: '', dataset: {}, children: [],
     style: new Proxy({}, { get: (t, p) => p === 'setProperty' ? ((k, v) => { t[k] = v; }) : (t[p] ?? ''), set: (t, p, v) => (t[p] = v, true) }),
     classList: { add:(...c)=>c.forEach(x=>cl.add(x)), remove:(...c)=>c.forEach(x=>cl.delete(x)), toggle:(c,f)=>{const w=f===undefined?!cl.has(c):!!f; w?cl.add(c):cl.delete(c); return w;}, contains:c=>cl.has(c) },
-    _l: {}, addEventListener:(t,fn)=>{(el._l[t]||=[]).push(fn);}, removeEventListener(){}, fire:(t,e={})=>(el._l[t]||[]).forEach(fn=>fn({preventDefault(){},...e})),
-    appendChild:c=>{el.children.push(c); return c;}, querySelectorAll:()=>[], querySelector:()=>null, getContext:()=>ctx2d(), focus(){}, getBoundingClientRect:()=>({left:0,top:0,width:1280,height:800}),
+    _l: {}, addEventListener:(t,fn)=>{(el._l[t]||=[]).push(fn);}, removeEventListener(){}, fire:(t,e={})=>(el._l[t]||[]).forEach(fn=>fn({preventDefault(){},stopPropagation(){},...e})),
+    appendChild:c=>{el.children.push(c); return c;}, querySelectorAll:()=>[], querySelector:()=>null, getContext:()=>ctx2d(), focus(){}, setAttribute(){}, getAttribute(){return null;}, getBoundingClientRect:()=>({left:0,top:0,width:1280,height:800}),
   };
   let h=''; Object.defineProperty(el,'innerHTML',{get:()=>h,set:v=>{h=String(v??''); if(!v) el.children=[];}});
   return el;
@@ -57,6 +57,16 @@ function testCatalogue() {
   const grid = g.getEl('grid');
   ok(grid.children.length === GAMES.length, 'one tile per game (got ' + grid.children.length + ')');
   ok(grid.children[0] && grid.children[0].href === 'games/' + GAMES[0].slug + '/', 'tile links to games/<slug>/ (got ' + (grid.children[0] && grid.children[0].href) + ')');
+  // favorites: starring the 2nd playable game sorts it to the top
+  const star = grid.children[1] && grid.children[1].children[0]; // 2nd tile's ★ button
+  ok(star, 'playable tile has a favorite star');
+  if (star) {
+    star.fire('click');
+    ok(grid.children[0].href === 'games/' + GAMES[1].slug + '/', 'favoriting sorts that game first (got ' + grid.children[0].href + ')');
+    // unfavorite restores original order
+    grid.children[0].children[0].fire('click');
+    ok(grid.children[0].href === 'games/' + GAMES[0].slug + '/', 'unfavoriting restores order');
+  }
 }
 
 // ---------------- Tower Defense ----------------
