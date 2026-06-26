@@ -111,9 +111,27 @@ function testTD() {
   ok(U().hp <= 0 && U().state === 'over', 'undefended waves drain the keep and end the run (hp=' + U().hp + ', state=' + U().state + ')');
 }
 
+// ---------------- Live games smoke test ----------------
+// Every catalogue game (except the asteroids launcher, which loads external
+// level files) must boot headless and expose a window.__test hook.
+function liveSlugs() {
+  const src = fs.readFileSync(path.join(DIR, 'games.js'), 'utf8');
+  const sb = { window: {} }; vm.createContext(sb); vm.runInContext(src, sb);
+  return (sb.window.GAMES || []).filter(g => !g.soon && g.slug !== 'asteroids').map(g => g.slug);
+}
+function testLiveGames() {
+  section('live games (boot + __test)');
+  for (const slug of liveSlugs()) {
+    const g = runInline('games/' + slug + '/index.html');
+    ok(g.bootErr === null, slug + ' boots headless: ' + g.bootErr);
+    ok(g.test() != null, slug + ' exposes window.__test');
+  }
+}
+
 console.log('Running arcade tests…');
 testCatalogue();
 testTD();
+testLiveGames();
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);
 if (fail) { console.log('\nFailures:'); fails.forEach(f => console.log(' - ' + f)); process.exit(1); }
