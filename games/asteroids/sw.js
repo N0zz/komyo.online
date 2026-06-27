@@ -3,7 +3,7 @@
 const CACHE = 'asteroids-v1';
 const ASSETS = [
   './', './index.html', './levels.js', './favicon.svg', './manifest.json',
-  '../../komyo-kit.js', '../../komyo-kit.css',
+  '../../game-kit.js', '../../game-kit.css',
   './levels/classic.html', './levels/classic-enhanced.html',
   './levels/roguelite-levelup.html', './levels/roguelite-milestones.html', './levels/roguelite-shop.html',
 ];

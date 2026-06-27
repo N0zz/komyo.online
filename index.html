@@ -30,8 +30,8 @@
 <meta name="twitter:image" content="https://komyo.online/og-image.png?v=3">
 <!-- Analytics: GA4, loaded only after cookie consent (see analytics.js) -->
 <script src="analytics.js" defer></script>
-<link rel="stylesheet" href="komyo-kit.css">
-<script src="komyo-kit.js"></script>
+<link rel="stylesheet" href="game-kit.css">
+<script src="game-kit.js"></script>
 <style>
   :root {
     --bg:#0b0f17; --surface:#161c28; --surface-2:#1e2738; --border:#2a3446;
@@ -764,7 +764,7 @@
         if (e.target.closest('[data-close]') || e.target.closest('.ditem')) close();
       }));
       // resizable + persisted widths (challenges defaults wider than the menu)
-      const DW = { menu: { key: 'komyo_dw_menu', def: 340 }, chal: { key: 'komyo_dw_chal', def: 440 } };
+      const DW = { menu: { key: 'gamekit_dw_menu', def: 340 }, chal: { key: 'gamekit_dw_chal', def: 440 } };
       const vw = () => (typeof window !== 'undefined' && window.innerWidth) ? window.innerWidth : 1280;
       const clampW = w => Math.max(280, Math.min(w, vw() * 0.92));
       const getLS = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
@@ -932,11 +932,11 @@
     // ---- Cookie consent (gates the GA4 tag loaded by analytics.js) ----
     (function () {
       const banner = document.getElementById('cookieBanner');
-      let saved = null; try { saved = localStorage.getItem('komyo_consent'); } catch (e) {}
+      let saved = null; try { saved = localStorage.getItem('gamekit_consent'); } catch (e) {}
       if (!saved && banner) banner.hidden = false;
-      const decide = (v) => { try { localStorage.setItem('komyo_consent', v); } catch (e) {} if (banner) banner.hidden = true; };
+      const decide = (v) => { try { localStorage.setItem('gamekit_consent', v); } catch (e) {} if (banner) banner.hidden = true; };
       const a = document.getElementById('cbAccept'), d = document.getElementById('cbDecline');
-      if (a) a.addEventListener('click', () => { decide('granted'); if (window.komyoLoadGA) window.komyoLoadGA(); });
+      if (a) a.addEventListener('click', () => { decide('granted'); if (window.gamekitLoadGA) window.gamekitLoadGA(); });
       if (d) d.addEventListener('click', () => decide('denied'));
     })();
 
@@ -944,7 +944,7 @@
     (function () {
       const btn = document.getElementById('resetAll');
       if (!btn) return;
-      const KEEP = { komyo_consent: 1, komyo_sfx_muted: 1, komyo_sfx_vol: 1, komyo_music_muted: 1, komyo_music_vol: 1 };
+      const KEEP = { gamekit_consent: 1, gamekit_sfx_muted: 1, gamekit_sfx_vol: 1, gamekit_music_muted: 1, gamekit_music_vol: 1 };
       const wipe = () => {
         try {
           const keys = [];
@@ -956,7 +956,7 @@
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         const msg = 'Reset your saved scores, progress & favorites for ALL games? This cannot be undone.';
-        if (window.komyo && window.komyo.confirm) window.komyo.confirm(msg, wipe);
+        if (window.gamekit && window.gamekit.confirm) window.gamekit.confirm(msg, wipe);
         else if (typeof confirm !== 'function' || confirm(msg)) wipe();
       });
     })();
