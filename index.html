@@ -393,9 +393,9 @@
     const standalone = () => {
       if (navigator.standalone === true) return true; // iOS Safari
       if (typeof matchMedia === 'undefined') return false;
-      // desktop Chrome PWAs can run as minimal-ui / window-controls-overlay, not just standalone
-      return ['standalone', 'minimal-ui', 'window-controls-overlay', 'fullscreen']
-        .some(m => matchMedia('(display-mode: ' + m + ')').matches);
+      // installed-app window modes only (NOT fullscreen — that false-positives an F11 browser tab)
+      return matchMedia('(display-mode: standalone)').matches
+        || matchMedia('(display-mode: window-controls-overlay)').matches;
     };
     function refresh() {
       if (standalone()) {
