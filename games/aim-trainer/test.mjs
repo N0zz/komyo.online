@@ -54,7 +54,7 @@ function makeModeBtns() {
   });
 }
 
-function runGame(file) {
+function runGame(file, dims) {
   const html = fs.readFileSync(path.join(DIR, file), 'utf8');
   const m = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
   if (!m) throw new Error('no inline script found in ' + file);
@@ -71,7 +71,7 @@ function runGame(file) {
   const handlers = {};
 
   const win = {
-    innerWidth: 1280, innerHeight: 800,
+    innerWidth: (dims && dims.w) || 1280, innerHeight: (dims && dims.h) || 800,
     addEventListener: (type, fn) => { (handlers[type] ||= []).push(fn); },
     removeEventListener: () => {},
     __test: undefined,
@@ -359,6 +359,21 @@ section('per-mode best isolation: different timed durations use different keys')
   ok(giso.store['aim-trainer_best_10'] !== undefined, '10s mode saves to aim-trainer_best_10');
   ok(giso.store['aim-trainer_best_30'] !== undefined, '30s mode saves to aim-trainer_best_30');
   ok(!('aim-trainer_best' in giso.store), 'old key aim-trainer_best not written');
+}
+
+section('portrait HUD clearance: targets spawn below nav + HUD band');
+{
+  // Portrait viewport (taller than wide): HUD sits below the 48px nav, so the
+  // playfield must clear 48 (nav) + 48 (HUD) = 96px, plus the 80px spawn pad = 176.
+  const gp = runGame('index.html', { w: 400, h: 900 });
+  const Tp = () => gp.test();
+  ok(gp.bootErr === null, 'portrait boots without error: ' + gp.bootErr);
+  Tp().start();
+  Tp().setSeed(3);
+  Tp().step(2);
+  const ys = Tp().targets.map(t => t.y);
+  ok(ys.length >= 1, 'portrait has a target after start');
+  ok(ys.every(y => y >= 96 + 80), 'portrait targets clear nav + HUD (min y=' + Math.min(...ys) + ', need ≥176)');
 }
 
 console.log('\n----------------------------------------');
