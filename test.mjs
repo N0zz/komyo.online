@@ -151,21 +151,32 @@ function testKit() {
   let err = null; try { vm.runInContext(KIT, ctx, { filename: 'funyo-kit.js' }); } catch (e) { err = e.stack; }
   ok(err === null, 'kit loads: ' + err);
   const F = sandbox.funyo;
-  ok(F && F.sound && F.nav && F.shareRow && F.shareUrls && F.pwa, 'kit exposes sound/nav/shareRow/shareUrls/pwa');
+  ok(F && F.sound && F.music && F.nav && F.audioMenu && F.resetScores && F.shareRow && F.shareUrls && F.pwa,
+    'kit exposes sound/music/nav/audioMenu/resetScores/shareRow/shareUrls/pwa');
   if (!F) return;
   const u = F.shareUrls('https://funyo.online/games/snake/', 'I scored 42 in Neon Snake 🐍');
   ok(u.x.indexOf('twitter.com/intent/tweet') >= 0 && u.x.indexOf('&url=') >= 0, 'shareUrls.x is an X intent with url');
   ok(u.reddit.indexOf('reddit.com/submit') >= 0, 'shareUrls.reddit is a reddit submit');
   ok(u.copy.indexOf('I scored 42') === 0 && u.copy.indexOf('funyo.online/games/snake') >= 0, 'shareUrls.copy = message + newline + url');
-  ok(F.sound.isMuted() === false, 'sound starts unmuted');
+  // SFX channel
+  ok(F.sound.isMuted() === false, 'SFX starts unmuted');
   F.sound.toggle();
-  ok(F.sound.isMuted() === true && store['funyo_muted'] === '1', 'toggle mutes + persists');
+  ok(F.sound.isMuted() === true && store['funyo_sfx_muted'] === '1', 'SFX toggle mutes + persists');
   F.sound.play('anything'); // muted + no AudioContext → must not throw
   F.sound.toggle();
-  ok(F.sound.isMuted() === false, 'toggle unmutes');
+  F.sound.volume(0.5);
+  ok(store['funyo_sfx_vol'] === '0.5', 'SFX volume persists (' + store['funyo_sfx_vol'] + ')');
+  // Music channel
+  let musState = null; F.music.subscribe(s => { musState = s; });
+  ok(musState && musState.muted === false, 'music.subscribe fires with initial state');
+  F.music.setMuted(true);
+  ok(F.music.isMuted() === true && store['funyo_music_muted'] === '1' && F.music.gain() === 0, 'music mute persists + gain 0 when muted');
+  F.music.setMuted(false); F.music.volume(0.4);
+  ok(F.music.gain() === 0.4 && store['funyo_music_vol'] === '0.4', 'music volume = gain when unmuted');
+  // headless-safe (incl. the audio menu + reset + music flag)
   let threw = null;
-  try { F.nav({ mute: true }); F.shareRow(doc.getElementById('sr'), { slug: 'snake', message: () => 'x' }); F.pwa(); } catch (e) { threw = e.message; }
-  ok(threw === null, 'nav/shareRow/pwa run headless without throwing: ' + threw);
+  try { F.nav({ music: true, reset: 'snake_' }); F.shareRow(doc.getElementById('sr'), { slug: 'snake', message: () => 'x' }); F.pwa(); F.resetScores('snake_'); } catch (e) { threw = e.message; }
+  ok(threw === null, 'nav/audioMenu/shareRow/pwa/resetScores run headless without throwing: ' + threw);
 }
 
 console.log('Running arcade tests…');
