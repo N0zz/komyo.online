@@ -257,7 +257,7 @@
   function applyUpgrade(id){ up[id]=(up[id]||0)+1; if(id==='hull') ship.hp=Math.min(99,ship.hp+1); if(id==='shield') ship.shield=(up.shield); recalc(); SND.play('level'); flash(ALL_UPGRADES.find(u=>u.id===id).name.toUpperCase()); updateHud(); }
 
   function updateHud(){
-    scoreEl.textContent=score; const left=enemiesLeft(); waveEl.textContent='WAVE '+wave+(left>0?(' · '+left+' left'):'');
+    scoreEl.textContent=score; const left=enemiesLeft(); waveEl.textContent='WAVE '+wave+' · '+left+' left';
     hpEl.textContent='♥'.repeat(Math.max(0,ship?ship.hp:0)) || '—';
     shieldEl.textContent = (ship&&ship.shieldMax>0) ? ('◇'.repeat(ship.shield)+'·'.repeat(Math.max(0,ship.shieldMax-ship.shield))) : '';
     if(PROGRESSION==='levelup'){ xpfill.style.width=Math.min(100,(xp/xpNext)*100)+'%'; xplabel.textContent='LV '+level; }
