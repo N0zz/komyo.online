@@ -103,9 +103,9 @@
       + '<input class="komyo-au-slider" id="komyoSfxV" type="range" min="0" max="100" aria-label="Sound effects volume"></div>';
     if (opts.music) rows += '<div class="komyo-au-row"><button class="komyo-au-toggle" id="komyoMusM" type="button" aria-label="Mute music">🎵</button>'
       + '<input class="komyo-au-slider" id="komyoMusV" type="range" min="0" max="100" aria-label="Music volume"></div>';
-    if (opts.reset) rows += '<button class="komyo-au-reset" id="komyoReset" type="button">↺ Reset scores</button>';
     wrap.innerHTML = '<button class="komyo-au-btn" id="komyoAudioBtn" type="button" aria-label="Sound settings" title="Sound settings">🔊</button>'
-      + '<div class="komyo-au-panel" id="komyoAudioPanel">' + rows + '</div>';
+      + '<div class="komyo-au-panel" id="komyoAudioPanel">' + rows + '</div>'
+      + (opts.reset ? '<button class="komyo-au-resetbtn" id="komyoReset" type="button" aria-label="Reset scores" title="Reset scores">↺</button>' : '');
     document.body.appendChild(wrap);
     var btn = document.getElementById('komyoAudioBtn'), panel = document.getElementById('komyoAudioPanel');
     if (btn && panel) btn.addEventListener('click', function () { if (panel.classList) panel.classList.toggle('open'); });
