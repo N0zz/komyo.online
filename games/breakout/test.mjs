@@ -402,6 +402,118 @@ section('Breakout: end screen shows score/best + share row');
   ok(endOv.classList.contains('hidden'), 'end overlay hidden after Play again');
 }
 
+section('Breakout: 2× speed toggle defaults off, persists, applies');
+{
+  // default off when no pref stored
+  const gd = runGame();
+  ok(gd.T().speedMult === 1, 'speedMult defaults to 1 (got ' + gd.T().speedMult + ')');
+  const box = gd.getEl('speed2x');
+  ok(box.checked !== true, 'speed checkbox unchecked by default');
+  // toggling the checkbox sets the multiplier and persists
+  box.checked = true;
+  box.fire('change');
+  ok(gd.T().speedMult === 2, 'enabling 2× speed sets speedMult to 2 (got ' + gd.T().speedMult + ')');
+  ok(gd.store['breakout_speed2x'] === '1', 'speed pref persisted as "1" (got ' + gd.store['breakout_speed2x'] + ')');
+  box.checked = false;
+  box.fire('change');
+  ok(gd.T().speedMult === 1, 'disabling 2× speed resets speedMult to 1');
+  ok(gd.store['breakout_speed2x'] === '0', 'speed pref persisted as "0"');
+}
+
+section('Breakout: 2× speed sub-steps collisions cleanly (no tunnelling)');
+{
+  // The loop sub-steps update() once per speed unit, so 2× is the same physics as taking two
+  // 1× steps. Verify a brick-bound ball at 2× destroys bricks and keeps the game running
+  // (collisions resolve per sub-step rather than via a doubled, tunnel-prone step).
+  const ga = runGame();
+  const Ta = ga.T;
+  ga.getEl('speed2x').checked = true; ga.getEl('speed2x').fire('change');
+  ok(Ta().speedMult === 2, '2× enabled for sub-step test');
+  Ta().start(); Ta().launch(); Ta().setPaddle(640);
+  const before = Ta().bricks;
+  Ta().setBall(640, 120, 0, -15);
+  // Emulate the loop's 2× sub-stepping: two update() calls per frame for 30 frames.
+  Ta().step(60);
+  ok(Ta().bricks < before, '2× ball still destroys bricks (' + before + ' -> ' + Ta().bricks + ')');
+  ok(Ta().state === 'playing', '2× run stays in a valid playing state');
+}
+
+section('Breakout: menu best labels reflect stored per-mode bests');
+{
+  // Boot-time test: seed the harness store BEFORE the script runs via a custom run.
+  const fsmod = (await import('node:fs')).default;
+  const vmmod = (await import('node:vm')).default;
+  const pathmod = (await import('node:path')).default;
+  const dir = pathmod.dirname(new URL(import.meta.url).pathname);
+  const src = fsmod.readFileSync(pathmod.join(dir, 'index.html'), 'utf8');
+  const mm = src.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
+  const code = mm[1];
+  const elCache = {};
+  function mkEl(id) {
+    const classes = new Set();
+    const el = { id, textContent: '', value: '', dataset: {}, children: [],
+      style: new Proxy({}, { get: (t, p) => t[p] ?? '', set: (t, p, v) => { t[p] = v; return true; } }),
+      classList: { add: (...c) => c.forEach(x => classes.add(x)), remove: (...c) => c.forEach(x => classes.delete(x)),
+        toggle: (c, f) => { const has = classes.has(c); const want = f === undefined ? !has : !!f; if (want) classes.add(c); else classes.delete(c); return want; }, contains: c => classes.has(c) },
+      _l: {}, addEventListener: (t, fn) => { (el._l[t] ||= []).push(fn); }, removeEventListener: () => {},
+      fire: (t, ev = {}) => (el._l[t] || []).forEach(fn => fn({ preventDefault() {}, ...ev })),
+      appendChild: c => { el.children.push(c); return c; }, querySelectorAll: () => [], querySelector: () => null,
+      getContext: () => new Proxy({}, { get: (_, p) => { if (p === 'canvas') return { width: 1280, height: 800 }; return () => {}; }, set: () => true }),
+      focus: () => {}, setAttribute() {}, getAttribute() { return null; },
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 1280, height: 800 }) };
+    return el;
+  }
+  const getEl = id => (elCache[id] ||= mkEl(id));
+  const store = { breakout_best_classic: '250', breakout_best_endless: '99', breakout_best_survival: '7' };
+  const handlers = {};
+  const win = { innerWidth: 1280, innerHeight: 800, addEventListener: (t, fn) => { (handlers[t] ||= []).push(fn); }, removeEventListener: () => {}, __test: undefined };
+  const doc = { getElementById: getEl, createElement: tag => mkEl('new-' + tag), addEventListener: () => {}, querySelectorAll: () => [], body: mkEl('body') };
+  const sandbox = { window: win, document: doc, location: { search: '' }, navigator: {},
+    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
+    requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, setInterval: () => 0, clearInterval: () => {},
+    matchMedia: () => ({ matches: false }), URLSearchParams, Math, JSON, String, Number, Array, Object, parseInt, parseFloat, isFinite, isNaN, Date, console };
+  sandbox.globalThis = sandbox;
+  vmmod.runInContext(code, vmmod.createContext(sandbox), { filename: 'index.html' });
+  ok(getEl('bestClassic').textContent === 'best: 250', 'classic best label shows stored best (got ' + getEl('bestClassic').textContent + ')');
+  ok(getEl('bestEndless').textContent === 'best: 99', 'endless best label shows stored best (got ' + getEl('bestEndless').textContent + ')');
+  ok(getEl('bestSurvival').textContent === 'best: 7', 'survival best label shows stored best (got ' + getEl('bestSurvival').textContent + ')');
+}
+
+section('Breakout: 2× speed pref restored at boot from storage');
+{
+  // Same seeded-boot approach to confirm speedMult is 2 when the pref pre-exists.
+  const fsmod = (await import('node:fs')).default;
+  const vmmod = (await import('node:vm')).default;
+  const pathmod = (await import('node:path')).default;
+  const dir = pathmod.dirname(new URL(import.meta.url).pathname);
+  const src = fsmod.readFileSync(pathmod.join(dir, 'index.html'), 'utf8');
+  const code = src.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/)[1];
+  const elCache = {};
+  const mkEl = id => (elCache[id] ||= (() => {
+    const classes = new Set();
+    const el = { id, textContent: '', value: '', checked: false, dataset: {}, children: [],
+      style: new Proxy({}, { get: (t, p) => t[p] ?? '', set: (t, p, v) => { t[p] = v; return true; } }),
+      classList: { add: () => {}, remove: () => {}, toggle: () => false, contains: () => false },
+      _l: {}, addEventListener: (t, fn) => { (el._l[t] ||= []).push(fn); }, removeEventListener: () => {},
+      appendChild: c => c, querySelectorAll: () => [], querySelector: () => null,
+      getContext: () => new Proxy({}, { get: (_, p) => { if (p === 'canvas') return { width: 1280, height: 800 }; return () => {}; }, set: () => true }),
+      focus: () => {}, setAttribute() {}, getAttribute() { return null; },
+      getBoundingClientRect: () => ({ left: 0, top: 0, width: 1280, height: 800 }) };
+    return el;
+  })());
+  const store = { breakout_speed2x: '1' };
+  const win = { innerWidth: 1280, innerHeight: 800, addEventListener: () => {}, removeEventListener: () => {}, __test: undefined };
+  const doc = { getElementById: mkEl, createElement: tag => mkEl('new-' + tag), addEventListener: () => {}, querySelectorAll: () => [], body: mkEl('body') };
+  const sandbox = { window: win, document: doc, location: { search: '' }, navigator: {},
+    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
+    requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, setInterval: () => 0, clearInterval: () => {},
+    matchMedia: () => ({ matches: false }), URLSearchParams, Math, JSON, String, Number, Array, Object, parseInt, parseFloat, isFinite, isNaN, Date, console };
+  sandbox.globalThis = sandbox;
+  vmmod.runInContext(code, vmmod.createContext(sandbox), { filename: 'index.html' });
+  ok(win.__test.speedMult === 2, 'speedMult restored to 2 from stored pref (got ' + win.__test.speedMult + ')');
+  ok(mkEl('speed2x').checked === true, 'speed checkbox reflects restored pref');
+}
+
 // ---- Summary ----
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);
