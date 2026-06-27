@@ -94,6 +94,11 @@ show, and it would overcrowd the home page.)*
   elsewhere refers to the **Dino Jump** game's Chrome-browser visual style — a different thing.)
 - **Genre filter chips** — single row (`All · Arcade · Puzzle · Reflex · Logic…`) filtering the grid.
 - **Search box** — defer until ~20 games.
+- **Kit menu framework (v3)** *(idea — undecided; may keep what we have)* — promote the
+  asteroids-style **mode tiles** + **option-group rows** into a reusable `funyo.menu` the kit renders
+  (declarative config → consistent menus everywhere, less per-game markup). Trade-off: more kit
+  surface/abstraction vs. each game's current hand-rolled menu, which already works. Only worth it if
+  the per-game menu boilerplate starts to hurt as games scale. Decide before the next batch of games.
 - *(done: auto **NEW**/**UPDATED** tile badges, date-driven from `added`/`updated` in `games.js`, 7-day window.)*
 
 ### Cross-device / data
@@ -138,6 +143,14 @@ posts spread it, embeds pull new players in.
 
 ## Parked (someday)
 
+- **Live "users online now" count (site-wide + per-game)** — *dropped for now; revisit later.* Not
+  possible client-side: a static site has no backend to count connected clients, and it conflicts with
+  funyo's no-server / plays-offline identity. Two routes if reconsidered: (a) **GA4 Realtime** active
+  users via a thin relay or scheduled `count.json` — approximate, delayed, consent-gated (undercounts);
+  (b) a **small presence backend** (e.g. Cloudflare Worker + Durable Object / WebSocket ping on load) —
+  the only *accurate, truly live* option, but a real external service to maintain. Caveat: a low/zero
+  count on a young site creates an empty-room effect — better paired with real traffic + the Discord
+  community than shipped early.
 - **Sort tiles by popularity (most-played first), driven by GA4** — no new DB: a scheduled GitHub
   Action reads the GA4 Data API (service-account key in a repo secret), writes a static `stats.json`,
   and `render()` sorts playable tiles by it (favorites still pinned; missing/zero → current order).
