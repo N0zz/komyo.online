@@ -84,6 +84,22 @@
     subscribe: function (cb) { if (typeof cb === 'function') { musicListeners.push(cb); try { cb({ muted: musMuted, volume: musVol, gain: musMuted ? 0 : musVol }); } catch (e) {} } },
   };
 
+  // ---------- in-page confirm dialog (replaces the browser confirm()) ----------
+  function confirmDialog(msg, onYes) {
+    if (typeof document === 'undefined' || !document.body) { if (onYes) onYes(); return; }
+    var ov = document.createElement('div'); ov.className = 'komyo-confirm';
+    ov.innerHTML = '<div class="komyo-confirm-box"><p>' + msg + '</p><div class="komyo-confirm-btns">'
+      + '<button class="komyo-cf-no" type="button">Cancel</button>'
+      + '<button class="komyo-cf-yes" type="button">Reset</button></div></div>';
+    document.body.appendChild(ov);
+    var close = function () { try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} };
+    var no = ov.querySelector ? ov.querySelector('.komyo-cf-no') : null;
+    var yes = ov.querySelector ? ov.querySelector('.komyo-cf-yes') : null;
+    if (no) no.addEventListener('click', close);
+    if (yes) yes.addEventListener('click', function () { close(); if (onYes) onYes(); });
+    ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
+  }
+
   // ---------- reset scores (per-game; clears only keys starting with `prefix`) ----------
   function resetScores(prefix) {
     if (!prefix || typeof localStorage === 'undefined' || typeof localStorage.key !== 'function') return;
@@ -121,8 +137,7 @@
     if (opts.reset) {
       var rb = document.getElementById('komyoReset');
       if (rb) rb.addEventListener('click', function () {
-        var ok = true; try { if (typeof confirm === 'function') ok = confirm('Reset your saved scores for this game?'); } catch (e) {}
-        if (ok) { resetScores(opts.reset); try { location.reload(); } catch (e) {} }
+        confirmDialog('Reset your saved scores for this game?', function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} });
       });
     }
     audioUIs.push(u); syncAudioUI();
@@ -134,7 +149,7 @@
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'komyo-nav';
       wrap.innerHTML = '<button class="komyo-back" id="komyoMenu" type="button">&#x2039; Menu</button>'
-        + '<a class="komyo-back" id="komyoHome" href="' + (opts.home || '../../') + '">komyo &#x203A;</a>';
+        + '<a class="komyo-back" id="komyoHome" target="_top" href="' + (opts.home || '../../') + '">komyo &#x203A;</a>';
       document.body.appendChild(wrap);
       var menu = document.getElementById('komyoMenu');
       if (menu) menu.addEventListener('click', function () {
@@ -213,7 +228,7 @@
     if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', register); else register();
   }
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, shareRow: shareRow, shareUrls: shareUrls, pwa: pwa };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, pwa: pwa };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.komyo = api;
   if (typeof window !== 'undefined') window.komyo = api;
