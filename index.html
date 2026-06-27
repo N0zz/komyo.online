@@ -272,12 +272,13 @@
   .ditem .di { width:20px; text-align:center; font-size:16px; }
   .ditem .mock { margin-left:auto; font-family:var(--mono); font-size:8px; letter-spacing:1px; padding:2px 6px; border-radius:5px;
     color:#ffce5c; border:1px solid color-mix(in srgb,#ffce5c 45%,transparent); background:rgba(255,206,92,0.08); }
-  .ddata { border-top:1px solid var(--border); padding:8px 12px 14px; }
+  .ddata { border-top:1px solid var(--border); padding:8px 12px 14px; position:relative; }
   .dhelp { display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; margin-left:5px; vertical-align:middle;
     border:1px solid var(--border); border-radius:50%; background:none; color:var(--faint); font-family:var(--mono); font-size:9px; line-height:1; cursor:pointer; padding:0; }
   .dhelp:hover { color:#9fe8ff; border-color:#9fe8ff; }
-  .dnote { display:none; margin:4px 6px 8px; padding:9px 11px; font-size:11.5px; line-height:1.55; color:var(--muted); text-align:left;
-    background:var(--surface-2); border:1px solid var(--border); border-radius:9px; }
+  .dnote { display:none; position:absolute; left:8px; right:8px; bottom:100%; margin:0 0 8px; padding:9px 11px; z-index:6;
+    font-size:11.5px; line-height:1.55; color:var(--muted); text-align:left;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:9px; box-shadow:0 8px 24px rgba(0,0,0,0.5); }
   .dnote.show { display:block; }
   .dnote b { color:var(--text); }
   .ditem.reset { color:#ff7a7a; }
