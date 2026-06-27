@@ -34,10 +34,10 @@ games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, icon-19
   deterministic so the headless harness can drive it. Harmless in normal play.
 - **Headless-safe:** guard `AudioContext` (lazy, inert if absent), `navigator.vibrate` (only
   if present), `matchMedia`; `ctx.roundRect` fallback. Must boot in a mocked DOM without throwing.
-- **Shell comes from funyo-kit** (see "Shared kit"): the nav (‹ Menu · mute · funyo ›), the sound
-  engine + site-wide mute, the end-screen share row, and PWA registration are all `funyo.*` calls —
-  do NOT re-implement them per game. HUD must clear the kit nav in **both portrait and landscape**
-  (the nav sits top-left at 8px; in portrait drop the HUD to its own row below it).
+- **Shell comes from funyo-kit** (see "Shared kit"): the top-left nav (‹ Menu · funyo ›), the
+  top-right **sound menu** (SFX + Music + reset-scores), the sound engine, the end-screen share row,
+  and PWA registration are all `funyo.*` calls — do NOT re-implement them per game. Put the score/best
+  HUD in a **`.funyo-hud`** container (center-top; clears the left nav and right sound menu).
 - **Three-screen schema (every game):** (1) MENU — title + mode/options selection with a
   CLEAR selected-state indicator on the active choice; (2) GAME; (3) SCOREBOARD/END — final
   score + best (persisted in `localStorage`) + a "Play again" action + the kit **share row**.
@@ -54,18 +54,31 @@ Load in `<head>` (NOT `defer`, so `window.funyo` exists before the inline script
 `<link rel="stylesheet" href="../../funyo-kit.css">` then `<script src="../../funyo-kit.js"></script>`.
 API on `window.funyo`:
 
-- `funyo.sound` — shared AudioContext engine + **site-wide mute** (`funyo_muted`). Register a game's
-  sounds with `funyo.sound.define({ name: ({tone,noise}) => {…} })`; play with `funyo.sound.play('name')`
-  (no-ops when muted/headless). Per-game pattern: `const SND = window.funyo.sound; SND.define({…});`
-  then keep every `SND.play('…')` call.
-- `funyo.nav({ mute: true })` — injects the top `‹ Menu · 🔊 · funyo ›` bar (Menu reloads; mute toggles sound).
+- `funyo.sound` — **SFX** channel: AudioContext engine + per-channel mute & volume
+  (`funyo_sfx_muted`/`funyo_sfx_vol`). Register sounds with `funyo.sound.define({ name: ({tone,noise}) => {…} })`;
+  play with `funyo.sound.play('name')` (no-ops when muted/headless). Per-game pattern:
+  `const SND = window.funyo.sound; SND.define({…});` then keep every `SND.play('…')` call.
+- `funyo.music` — **Music** channel (settings + UI only; `funyo_music_muted`/`funyo_music_vol`). A game
+  with music keeps its own music engine and does `funyo.music.subscribe(s => applyGain(s.gain))`
+  (`s.gain` is 0 when muted). Only asteroids uses this today.
+- `funyo.nav({ music, reset, onMenu })` — injects the top-left `‹ Menu · funyo ›` bar **and** the
+  top-right **sound menu** (🔊 SFX mute+slider, ♪ Music mute+slider when `music:true`). `reset` is a
+  localStorage **prefix** (e.g. `'snake_'`) → adds a scoped "↺ Reset scores" entry. `onMenu` overrides
+  the Menu button's default `location.reload()` (asteroids levels post to the parent instead).
 - `funyo.shareRow(el, { slug, title, message })` — builds + wires Native/X/Reddit/Copy into `el`;
-  `message` is a function → a standalone sentence (no url), evaluated at click time.
+  `message` is a function → a standalone sentence (no url), evaluated at click time. (Its `.sbtn`
+  visual props are `!important` so a game's broad `#overlay button {…}` rule can't clobber the icons.)
 - `funyo.pwa()` — auto-update SW registration (reload once when a new worker takes control).
+- `funyo.resetScores(prefix)` — clears only the localStorage keys starting with `prefix`.
 - `funyo.shareUrls(url, msg)` — pure helper the kit test asserts.
+- **`.funyo-hud`** (CSS) — the standard **center-top** HUD (translucent pill, wraps; clears the left
+  nav and the right sound menu). Games put their score/best/etc. items in a `.funyo-hud` container and
+  reserve ~48px (landscape) / ~92px (portrait) top headroom.
 
 Each game's `sw.js` SHELL must include `'../../funyo-kit.js','../../funyo-kit.css'` (offline). The kit
-is fully headless-safe (every browser API guarded). **Asteroids does NOT use the kit yet** (bespoke launcher).
+is fully headless-safe (every browser API guarded). **Asteroids is now on the kit too** (launcher +
+generated levels; SFX via `funyo.sound`, music gain via `funyo.music.subscribe`, Menu via `onMenu` →
+`postMessage`); still mind its generated-trio workflow.
 
 ## Adding / changing a game
 
