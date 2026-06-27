@@ -340,15 +340,14 @@
       grid.innerHTML = '';
       const f = favs();
       const all = window.GAMES || [];
-      // within a section: favorited (available) first, then other available, then coming-soon (greyed) last
-      const order = arr => {
-        const av = arr.filter(g => !g.soon), soon = arr.filter(g => g.soon);
-        return [...av.filter(g => f.includes(g.slug)), ...av.filter(g => !f.includes(g.slug)), ...soon];
-      };
-      const sections = [
-        { label: 'Single player', list: order(all.filter(g => !g.mp)) },
-        { label: 'Multiplayer',   list: order(all.filter(g => g.mp)) },
-      ];
+      const isFav = g => !g.soon && f.includes(g.slug);
+      // favorites lift into their own top strip; each section is available-then-coming-soon
+      const order = arr => { const av = arr.filter(g => !g.soon), soon = arr.filter(g => g.soon); return [...av, ...soon]; };
+      const sections = [];
+      const favList = all.filter(isFav);
+      if (favList.length) sections.push({ label: '★ Favorites', list: favList });
+      sections.push({ label: 'Single player', list: order(all.filter(g => !g.mp && !isFav(g))) });
+      sections.push({ label: 'Multiplayer',   list: order(all.filter(g => g.mp && !isFav(g))) });
       sections.forEach(sec => {
         if (!sec.list.length) return;
         const head = document.createElement('div');
@@ -498,7 +497,15 @@
     })();
 
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+      // auto-update: when a freshly-installed worker takes control, reload once to the new version
+      let swReloaded = false;
+      const hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (swReloaded || !hadController) return; swReloaded = true; location.reload();
+      });
+      window.addEventListener('load', () => navigator.serviceWorker.register('sw.js')
+        .then(reg => { reg.update(); setInterval(() => reg.update(), 3600000); })
+        .catch(() => {}));
     }
   </script>
 </body>
