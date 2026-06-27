@@ -266,6 +266,13 @@
   .ditem .mock { margin-left:auto; font-family:var(--mono); font-size:8px; letter-spacing:1px; padding:2px 6px; border-radius:5px;
     color:#ffce5c; border:1px solid color-mix(in srgb,#ffce5c 45%,transparent); background:rgba(255,206,92,0.08); }
   .ddata { border-top:1px solid var(--border); padding:8px 12px 14px; }
+  .dhelp { display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; margin-left:5px; vertical-align:middle;
+    border:1px solid var(--border); border-radius:50%; background:none; color:var(--faint); font-family:var(--mono); font-size:9px; line-height:1; cursor:pointer; padding:0; }
+  .dhelp:hover { color:#9fe8ff; border-color:#9fe8ff; }
+  .dnote { margin:4px 6px 8px; padding:9px 11px; font-size:11.5px; line-height:1.55; color:var(--muted); text-align:left;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:9px; }
+  .dnote[hidden] { display:none; }
+  .dnote b { color:var(--text); }
   .ditem.reset { color:#ff7a7a; }
   .ditem.reset:hover { background:rgba(255,90,90,0.10); }
   /* challenges (preview/mock) */
@@ -424,7 +431,8 @@
       </div>
     </div>
     <div class="ddata">
-      <div class="dl">Your data</div>
+      <div class="dl">Your data <button class="dhelp" id="dataHelp" type="button" aria-label="What is this?" aria-expanded="false">?</button></div>
+      <div class="dnote" id="dataNote" hidden>Your scores, progress, favorites &amp; settings are saved <b>only on this device</b>. <b>Export</b> turns them into a code you can <b>Import</b> on another device — to carry your records between phone &amp; desktop, or keep a backup. Nothing is sent to a server.</div>
       <button class="ditem" id="exportBtn" type="button"><span class="di">⬆️</span> Export <span class="mock">SOON</span></button>
       <button class="ditem" id="importBtn" type="button"><span class="di">⬇️</span> Import <span class="mock">SOON</span></button>
       <a class="ditem reset" id="resetAll" href="#" title="Clear all saved scores &amp; progress for every game"><span class="di">↺</span> Reset all data</a>
@@ -1016,6 +1024,13 @@
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
       modal.addEventListener('close', () => lock(false));
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
+    })();
+
+    // ---- "Your data" help toggle (hamburger) ----
+    (function () {
+      const dh = document.getElementById('dataHelp'), dn = document.getElementById('dataNote');
+      if (!dh || !dn) return;
+      dh.addEventListener('click', () => { const show = dn.hidden; dn.hidden = !show; dh.setAttribute('aria-expanded', String(show)); });
     })();
 
     if ('serviceWorker' in navigator) {
