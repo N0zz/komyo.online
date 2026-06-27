@@ -96,7 +96,9 @@ games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, icon-19
 - Monetization is optional only: **Buy Me a Coffee** (footer) + GitHub Sponsors (README badge
   only — the footer Sponsor link was removed; footer = coffee + a GitHub-icon repo link).
 
-## Asteroids is special
+## Asteroids (launcher — handle with care, but in scope)
 
-`games/asteroids/` is a **launcher** (`index.html`) + `levels/*.html`. The roguelite trio is
-**generated** from `roguelite-levelup.html`. See `games/asteroids/CLAUDE.md` before touching it.
+`games/asteroids/` is a **launcher** (`index.html`) + `levels/*.html`; the roguelite trio is
+**generated** from `roguelite-levelup.html` (edit the source/generator, **not** the generated
+files). It is **not off-limits** — it should follow the same **menu → game → scoreboard + share**
+schema as the other games. Read `games/asteroids/CLAUDE.md` first and keep its ~295-test suite green.
