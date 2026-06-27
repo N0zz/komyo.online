@@ -390,7 +390,13 @@
     const tipPop = document.getElementById('tipPop');
     const helpRow = installBtn.parentElement;
     let deferredPrompt = null, installed = false;
-    const standalone = () => (typeof matchMedia !== 'undefined' && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+    const standalone = () => {
+      if (navigator.standalone === true) return true; // iOS Safari
+      if (typeof matchMedia === 'undefined') return false;
+      // desktop Chrome PWAs can run as minimal-ui / window-controls-overlay, not just standalone
+      return ['standalone', 'minimal-ui', 'window-controls-overlay', 'fullscreen']
+        .some(m => matchMedia('(display-mode: ' + m + ')').matches);
+    };
     function refresh() {
       if (standalone()) {
         // inside the installed app: drop the now-pointless Install button + its (?) tip,
