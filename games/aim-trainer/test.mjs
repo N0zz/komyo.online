@@ -247,7 +247,7 @@ section('timed mode: step past session → game over at limit');
   ok(T().timeLeft <= 0, 'timeLeft ≤ 0 at game over (got ' + T().timeLeft + ')');
 }
 
-section('sprint mode: ends when score reaches 100');
+section('sprint mode: ends after 100 targets hit');
 {
   const gsp = runGame('index.html');
   const Ts = () => gsp.test();
@@ -256,15 +256,15 @@ section('sprint mode: ends when score reaches 100');
   ok(Ts().mode === 'sprint', 'mode is "sprint"');
   ok(Ts().timeLeft === 0, 'sprint has no timeLeft countdown (got ' + Ts().timeLeft + ')');
 
-  // drive hits until score >= 100
+  // drive hits until 100 targets are hit
   let safetyIter = 0;
-  while (Ts().state === 'playing' && Ts().score < 100 && safetyIter++ < 2000) {
+  while (Ts().state === 'playing' && Ts().hits < 100 && safetyIter++ < 4000) {
     Ts().step(3);
     const tgt = Ts().targets[0];
     if (tgt) Ts().shootAt(tgt.x, tgt.y);
   }
-  ok(Ts().state === 'over', 'sprint ends when score reaches 100 (score=' + Ts().score + ', state=' + Ts().state + ')');
-  ok(Ts().score >= 100, 'sprint score is >= 100 at end (got ' + Ts().score + ')');
+  ok(Ts().state === 'over', 'sprint ends after 100 hits (hits=' + Ts().hits + ', state=' + Ts().state + ')');
+  ok(Ts().hits >= 100, 'sprint hits is >= 100 at end (got ' + Ts().hits + ')');
   ok(Ts().elapsedFrames > 0, 'elapsedFrames > 0 after sprint (got ' + Ts().elapsedFrames + ')');
   ok(Ts().elapsed > 0, 'elapsed seconds > 0 after sprint (got ' + Ts().elapsed + ')');
 }
@@ -275,7 +275,7 @@ section('sprint: best time persists to localStorage');
   const Ts2 = () => gsp2.test();
   Ts2().startMode('sprint');
   let safetyIter = 0;
-  while (Ts2().state === 'playing' && Ts2().score < 100 && safetyIter++ < 2000) {
+  while (Ts2().state === 'playing' && Ts2().hits < 100 && safetyIter++ < 4000) {
     Ts2().step(3);
     const tgt = Ts2().targets[0];
     if (tgt) Ts2().shootAt(tgt.x, tgt.y);

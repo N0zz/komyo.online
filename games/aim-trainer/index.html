@@ -7,6 +7,7 @@
 <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#ff7a3c">
 <link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Range">
@@ -65,7 +66,7 @@
 <body>
 <canvas id="game"></canvas>
 <div id="hud" class="funyo-hud">
-  <div class="stat"><span class="lbl">SCORE</span><b id="hScore">0</b></div>
+  <div class="stat"><span class="lbl" id="hScoreLbl">SCORE</span><b id="hScore">0</b></div>
   <div class="stat"><span class="lbl">ACC</span><b id="hAcc">--%</b></div>
   <div class="stat"><span id="hTimeLbl" class="lbl">TIME</span><b id="hTime">30</b></div>
   <div class="stat"><span id="hBestLbl" class="lbl">BEST</span><b id="hBest">0</b></div>
@@ -81,7 +82,7 @@
     <button class="mode-btn selected" data-mode="30">30s</button>
     <button class="mode-btn" data-mode="60">60s</button>
   </div>
-  <div class="mode-label" style="margin-top:6px">SPRINT MODE — reach 100 pts fastest</div>
+  <div class="mode-label" style="margin-top:6px">SPRINT MODE — hit 100 targets fastest</div>
   <div class="mode-row">
     <button class="mode-btn" data-mode="sprint">SPRINT TO 100</button>
   </div>
@@ -205,6 +206,8 @@
     $('hAcc').textContent = acc !== null ? acc + '%' : '--%';
 
     if (mode === 'sprint') {
+      $('hScoreLbl').textContent = 'TARGETS';
+      $('hScore').textContent = hits + ' / ' + SPRINT_TARGET;
       $('hTimeLbl').textContent = 'ELAPSED';
       const secs = (elapsedFrames / 60).toFixed(1);
       $('hTime').textContent = secs + 's';
@@ -213,6 +216,7 @@
       const bt = loadBest('sprint', 0);
       $('hBest').textContent = bt > 0 ? (bt / 60).toFixed(1) + 's' : '--';
     } else {
+      $('hScoreLbl').textContent = 'SCORE';
       $('hTimeLbl').textContent = 'TIME';
       const tl = Math.ceil(timeLeft);
       $('hTime').textContent = tl;
@@ -268,7 +272,7 @@
         SND.play('hit');
         hit = true;
         // sprint win check
-        if (mode === 'sprint' && score >= SPRINT_TARGET) { spawnTarget(); endGame(); return; }
+        if (mode === 'sprint' && hits >= SPRINT_TARGET) { spawnTarget(); endGame(); return; }
         spawnTarget();
         break;
       }
