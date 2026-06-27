@@ -318,10 +318,15 @@
       if (soon) return '';
       const keys = Array.isArray(g.badges) ? g.badges.slice() : [];
       const daysSince = d => { const t = d ? Date.parse(d) : NaN; return isFinite(t) ? (Date.now() - t) / 86400000 : Infinity; };
-      if (daysSince(g.added) <= 7) keys.unshift('new');
-      else if (daysSince(g.updated) <= 7) keys.unshift('updated');
-      const seen = {};
-      const items = keys.filter(k => BADGES[k] && !seen[k] && (seen[k] = 1)).map(k => BADGES[k]).map(b =>
+      if (daysSince(g.added) <= 7) keys.push('new');
+      else if (daysSince(g.updated) <= 7) keys.push('updated');
+      // priority order; de-dupe; hard-cap at 3 so the stack can never crowd the tile
+      const ORDER = ['new', 'updated', 'pick'], seen = {};
+      const shown = keys
+        .filter(k => BADGES[k] && !seen[k] && (seen[k] = 1))
+        .sort((a, b) => ((ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99)))
+        .slice(0, 3);
+      const items = shown.map(k => BADGES[k]).map(b =>
         '<span class="badge ' + b.cls + '"><b>' + b.label + '</b><i class="spk"></i><i class="spk"></i><i class="spk"></i></span>').join('');
       return items ? '<span class="badges">' + items + '</span>' : '';
     }
