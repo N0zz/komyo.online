@@ -177,10 +177,93 @@
   .fb-status { font-size:13px; min-height:18px; color:var(--muted); }
   .fb-status.ok { color:#7fe0a0; }
   .fb-status.err { color:#ff8a8a; }
+
+  /* ---- sticky top bar (☰ menu + 🏆 challenges) ---- */
+  .topbar { position:sticky; top:0; z-index:40; display:flex; align-items:center; justify-content:space-between; gap:12px;
+    margin:-44px -22px 18px; padding:9px 22px; background:rgba(11,15,23,0.82); backdrop-filter:blur(8px); border-bottom:1px solid var(--border); }
+  .tb-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border:1px solid var(--border); border-radius:10px;
+    background:var(--surface-2); color:var(--text); font-family:var(--mono); font-size:12px; letter-spacing:1.5px; cursor:pointer; }
+  .tb-btn:hover { border-color:#9fe8ff; }
+  .tb-menu { font-size:17px; padding:6px 12px; }
+  .tb-chal .trophy { color:#ffce5c; }
+
+  /* ---- control row (Install · Search · Filter) ---- */
+  .controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; flex-wrap:wrap; }
+  .searchbox { flex:1 1 240px; max-width:420px; display:flex; align-items:center; gap:8px; height:40px; padding:0 13px;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:10px; color:var(--faint); }
+  .searchbox:focus-within { border-color:#9fe8ff; }
+  .searchbox input { flex:1; min-width:0; background:none; border:none; outline:none; color:var(--text); font:inherit; font-size:14px; }
+  .filter-wrap { position:relative; }
+  .filter-btn { cursor:pointer; }
+  .fcount { font-family:var(--mono); font-size:10px; font-weight:800; min-width:16px; text-align:center; padding:1px 5px; margin-left:6px;
+    border-radius:999px; color:#06121a; background:#9fe8ff; }
+  .filter-pop { display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:45; width:230px; text-align:left;
+    background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:12px 13px; box-shadow:0 16px 44px rgba(0,0,0,0.55); }
+  .filter-pop.show { display:block; }
+  .filter-pop .fh { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); margin:2px 0 7px; }
+  .filter-pop .fh:not(:first-child) { margin-top:12px; }
+  .seg { display:flex; gap:6px; }
+  .seg button { flex:1; font-family:var(--mono); font-size:11px; letter-spacing:1px; padding:6px 0; border-radius:8px; cursor:pointer;
+    color:var(--muted); background:var(--surface); border:1px solid var(--border); }
+  .seg button.on { background:#9fe8ff; color:#06121a; font-weight:700; border-color:#9fe8ff; }
+  .fchk { display:flex; align-items:center; gap:8px; padding:5px 2px; font-size:13px; color:var(--text); cursor:pointer; }
+  .fchk input { accent-color:#9fe8ff; }
+  .filter-clear { display:inline-block; margin-top:10px; font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--faint); }
+  .filter-clear:hover { color:#9fe8ff; }
+  .no-results { grid-column:1 / -1; text-align:center; color:var(--muted); padding:54px 0; font-size:15px; }
+  .no-results button { margin-left:6px; font-family:var(--mono); font-size:12px; cursor:pointer; padding:7px 13px; border-radius:9px;
+    color:var(--text); background:var(--surface-2); border:1px solid var(--border); }
+  .no-results button:hover { border-color:#9fe8ff; }
+
+  /* ---- drawers (left menu + right challenges) ---- */
+  .scrim { position:fixed; inset:0; background:rgba(5,8,13,0.62); opacity:0; pointer-events:none; transition:opacity .2s; z-index:55; }
+  .scrim.show { opacity:1; pointer-events:auto; }
+  .drawer { position:fixed; top:0; bottom:0; width:min(86vw,340px); background:var(--bg); z-index:60;
+    display:flex; flex-direction:column; transition:transform .22s ease; }
+  .drawer.left  { left:0;  border-right:1px solid var(--border); transform:translateX(-104%); }
+  .drawer.right { right:0; border-left:1px solid var(--border);  transform:translateX(104%); }
+  .drawer.open { transform:translateX(0); }
+  @media (prefers-reduced-motion: reduce) { .drawer { transition:none; } }
+  .dh { display:flex; align-items:center; justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--border); }
+  .dh .dt { font-family:var(--mono); font-size:14px; letter-spacing:3px; text-transform:uppercase; display:flex; align-items:center; gap:9px; }
+  .dh .dx { background:none; border:none; color:var(--faint); font-size:18px; cursor:pointer; line-height:1; }
+  .dh .dx:hover { color:#fff; }
+  .dscroll { flex:1; overflow-y:auto; padding:6px 8px; }
+  .dgrp { padding:10px 4px 2px; }
+  .dl { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:0 8px 6px; }
+  .ditem { display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:10px 10px; border-radius:10px;
+    background:none; border:none; color:var(--text); font:inherit; font-size:14px; cursor:pointer; text-decoration:none; }
+  .ditem:hover { background:var(--surface-2); }
+  .ditem .di { width:20px; text-align:center; font-size:16px; }
+  .ditem .mock { margin-left:auto; font-family:var(--mono); font-size:8px; letter-spacing:1px; padding:2px 6px; border-radius:5px;
+    color:#ffce5c; border:1px solid color-mix(in srgb,#ffce5c 45%,transparent); background:rgba(255,206,92,0.08); }
+  .ddata { border-top:1px solid var(--border); padding:8px 12px 14px; }
+  .ditem.reset { color:#ff7a7a; }
+  .ditem.reset:hover { background:rgba(255,90,90,0.10); }
+  /* challenges (preview/mock) */
+  .streak { display:inline-flex; align-items:center; gap:7px; margin:12px 4px 2px; font-family:var(--mono); font-size:12px; color:#ffce5c;
+    border:1px solid color-mix(in srgb,#ffce5c 40%,transparent); border-radius:999px; padding:5px 12px; background:rgba(255,206,92,0.07); }
+  .csec { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:12px 4px 2px; }
+  .cc { margin:6px 0; border:1px solid var(--border); border-radius:12px; padding:12px 13px; background:var(--surface); }
+  .cc .top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+  .cc .game { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#9fe8ff; }
+  .cc .goal { margin:6px 0 9px; font-size:14px; }
+  .cc .bar { height:7px; border-radius:99px; background:var(--surface-2); overflow:hidden; }
+  .cc .bar i { display:block; height:100%; background:linear-gradient(90deg,#9fe8ff,#7fffb0); }
+  .cc .cmeta { display:flex; align-items:center; justify-content:space-between; margin-top:8px; font-size:12px; color:var(--muted); }
+  .cc .cplay { font-family:var(--mono); font-size:11px; letter-spacing:1px; color:#06121a; background:#9fe8ff; border:none; border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:700; }
+  .cdone { color:#7fe0a0; font-family:var(--mono); font-size:11px; letter-spacing:1px; }
+  .clist .crow { display:flex; align-items:center; gap:10px; padding:8px 2px; font-size:13px; color:var(--muted); border-top:1px solid var(--border); }
+  .clist .crow .st { width:18px; text-align:center; }
+  .cmock { margin:14px 4px 4px; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--faint); text-align:center; }
 </style>
 </head>
 <body>
   <div class="wrap">
+    <div class="topbar">
+      <button class="tb-btn tb-menu" id="menuBtn" aria-label="Open menu" aria-haspopup="dialog">☰</button>
+      <button class="tb-btn tb-chal" id="chalBtn" aria-label="Open challenges" aria-haspopup="dialog"><span class="trophy">🏆</span> CHALLENGES</button>
+    </div>
     <header>
       <div class="brand">
         <svg class="mascot" viewBox="0 0 64 64" role="img" aria-label="funyo mascot">
@@ -203,9 +286,9 @@
         <h1>funyo</h1>
       </div>
       <div class="sub">a catalogue of self-contained browser games</div>
-      <div class="help-row">
+      <div class="controls">
         <span class="tip">
-          <button class="ibtn" id="install" data-tip="Install funyo to your home screen — fullscreen &amp; offline">📱 Install app</button>
+          <button class="ibtn" id="install" data-tip="Install funyo to your home screen — fullscreen &amp; offline">📱 Install</button>
           <span class="tip-pop" id="tipPop"><b>Install to your home screen</b> — fullscreen &amp; offline:<br>
             <b>Android (Chrome):</b> menu ⋮ → “Add to Home screen”<br>
             <b>iPhone (Safari):</b> Share → “Add to Home Screen”<br>
@@ -213,8 +296,22 @@
             <span style="opacity:.8">Want just one game? Each game installs on its own too — open it and use Add to Home Screen / Install.</span><br>
             <span style="opacity:.8">Already installed? Open it from your home screen, or the “Open in app” icon in the address bar.</span></span>
         </span>
-        <button class="ibtn" id="feedback" data-tip="Found a bug, or want a game / feature? Tell me.">💬 Feedback</button>
-        <button class="ibtn" id="newsletter" data-tip="Get an email when new games, features &amp; fixes ship.">📬 Subscribe</button>
+        <div class="searchbox">🔍 <input id="search" type="search" placeholder="Search…" aria-label="Search games" autocomplete="off"></div>
+        <div class="filter-wrap">
+          <button class="ibtn filter-btn" id="filterBtn" aria-haspopup="true" aria-expanded="false">⚙ Filter ▾<span class="fcount" id="fcount" hidden></span></button>
+          <div class="filter-pop" id="filterPop">
+            <div class="fh">Type</div>
+            <div class="seg" id="typeSeg">
+              <button type="button" data-type="all" class="on">All</button>
+              <button type="button" data-type="single">Single</button>
+              <button type="button" data-type="mp">Multi</button>
+            </div>
+            <div class="fh">Genre</div>
+            <div id="genreList"></div>
+            <label class="fchk"><input type="checkbox" id="showSoon" checked> Show coming soon</label>
+            <a href="#" class="filter-clear" id="filterClear">Clear filters</a>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -235,13 +332,70 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button>
       </div>
       built for fun · no ads · no payments · plays offline &nbsp;·&nbsp;
-      <a class="coffee" href="https://buymeacoffee.com/n0zz">☕ Buy me a coffee</a> &nbsp;·&nbsp;
       <a class="ghlink" href="https://github.com/N0zz/funyo.online" target="_blank" rel="noopener" aria-label="funyo on GitHub" title="View source on GitHub">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.39 1.24-3.23-.12-.31-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.87.12 3.18.77.84 1.24 1.92 1.24 3.23 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5z"/></svg>
-        GitHub</a> &nbsp;·&nbsp;
-      <a class="ghlink" id="resetAll" href="#" title="Clear all saved scores &amp; progress for every game">↺ Reset all data</a>
+        GitHub</a>
     </footer>
   </div>
+
+  <div class="scrim" id="scrim"></div>
+
+  <aside class="drawer left" id="menuDrawer" aria-hidden="true" aria-label="Menu">
+    <div class="dh"><span class="dt">☰ funyo</span><button class="dx" data-close aria-label="Close menu">✕</button></div>
+    <div class="dscroll">
+      <div class="dgrp">
+        <div class="dl">Connect</div>
+        <button class="ditem" id="feedback" type="button"><span class="di">💬</span> Feedback</button>
+        <button class="ditem" id="newsletter" type="button"><span class="di">📬</span> Subscribe</button>
+        <a class="ditem" href="https://discord.gg/hz2fhpD5sz" target="_blank" rel="noopener"><span class="di">🎮</span> Discord</a>
+      </div>
+      <div class="dgrp">
+        <div class="dl">Support</div>
+        <a class="ditem" href="https://buymeacoffee.com/n0zz" target="_blank" rel="noopener"><span class="di">☕</span> Buy me a coffee</a>
+        <button class="ditem" id="merchBtn" type="button"><span class="di">🛍️</span> Merch / Store <span class="mock">SOON</span></button>
+      </div>
+      <div class="dgrp">
+        <div class="dl">More</div>
+        <button class="ditem" id="whatsnewBtn" type="button"><span class="di">🆕</span> What's new <span class="mock">SOON</span></button>
+        <button class="ditem" id="drawerShare" type="button"><span class="di">🔗</span> Share funyo</button>
+        <a class="ditem" href="https://github.com/N0zz/funyo.online" target="_blank" rel="noopener"><span class="di">⌥</span> GitHub</a>
+      </div>
+    </div>
+    <div class="ddata">
+      <div class="dl">Your data</div>
+      <button class="ditem" id="exportBtn" type="button"><span class="di">⬆️</span> Export <span class="mock">SOON</span></button>
+      <button class="ditem" id="importBtn" type="button"><span class="di">⬇️</span> Import <span class="mock">SOON</span></button>
+      <a class="ditem reset" id="resetAll" href="#" title="Clear all saved scores &amp; progress for every game"><span class="di">↺</span> Reset all data</a>
+    </div>
+  </aside>
+
+  <aside class="drawer right" id="chalDrawer" aria-hidden="true" aria-label="Challenges">
+    <div class="dh"><span class="dt">🏆 Challenges</span><button class="dx" data-close aria-label="Close challenges">✕</button></div>
+    <div class="dscroll">
+      <span class="streak">🔥 3-day streak</span>
+      <div class="csec">Today</div>
+      <div class="cc">
+        <div class="top"><span class="game">🫧 BUBBLE POP</span></div>
+        <div class="goal">Score <b>2,000</b> in one run</div>
+        <div class="bar"><i style="width:64%"></i></div>
+        <div class="cmeta"><span>1,280 / 2,000</span><button class="cplay" type="button">▶ Play</button></div>
+      </div>
+      <div class="csec">This week</div>
+      <div class="cc">
+        <div class="top"><span class="game">🏰 KEEP DEFENDER</span><span class="cdone">✓ Done</span></div>
+        <div class="goal">Survive <b>10 waves</b></div>
+        <div class="bar"><i style="width:100%;background:#7fe0a0"></i></div>
+        <div class="cmeta"><span>10 / 10 waves</span><span class="cdone">Completed</span></div>
+      </div>
+      <div class="csec">Recent</div>
+      <div class="clist">
+        <div class="crow"><span class="st">✓</span> Reach 30 in Meadow Flyer</div>
+        <div class="crow"><span class="st">✓</span> 50 targets in Range</div>
+        <div class="crow"><span class="st" style="color:var(--faint)">○</span> Stack 12 blocks</div>
+      </div>
+      <p class="cmock">Challenges are a preview — coming soon.</p>
+    </div>
+  </aside>
 
   <dialog id="fbModal">
     <form class="fb-form" id="fbForm">
@@ -360,20 +514,43 @@
       return el;
     }
 
+    // live filter state, driven by the search box + the Filter ▾ dropdown
+    const FILTER = { q: '', genres: new Set(), type: 'all', showSoon: true };
+    function passes(g) {
+      if (!FILTER.showSoon && g.soon) return false;
+      if (FILTER.genres.size && !FILTER.genres.has(g.tag)) return false;
+      if (FILTER.type === 'single' && g.mp) return false;
+      if (FILTER.type === 'mp' && !g.mp) return false;
+      if (FILTER.q) {
+        const hay = ((g.title || '') + ' ' + (g.tag || '') + ' ' + (g.blurb || '')).toLowerCase();
+        if (!hay.includes(FILTER.q)) return false;
+      }
+      return true;
+    }
+
     function render() {
       grid.innerHTML = '';
       const f = favs();
-      const all = window.GAMES || [];
+      const all = (window.GAMES || []).filter(passes);
       const isFav = g => !g.soon && f.includes(g.slug);
       // favorites lift into their own top strip; each section is available-then-coming-soon
       const order = arr => { const av = arr.filter(g => !g.soon), soon = arr.filter(g => g.soon); return [...av, ...soon]; };
       const sections = [];
       const favList = all.filter(isFav);
       if (favList.length) sections.push({ label: '★ Favorites', list: favList });
-      sections.push({ label: 'Single player', list: order(all.filter(g => !g.mp && !isFav(g))) });
-      sections.push({ label: 'Multiplayer',   list: order(all.filter(g => g.mp && !isFav(g))) });
+      const sp = order(all.filter(g => !g.mp && !isFav(g)));
+      if (sp.length) sections.push({ label: 'Single player', list: sp });
+      const mp = order(all.filter(g => g.mp && !isFav(g)));
+      if (mp.length) sections.push({ label: 'Multiplayer', list: mp });
+      if (!sections.length) {
+        const nr = document.createElement('div');
+        nr.className = 'no-results';
+        nr.innerHTML = 'No games match. <button type="button" id="clearNr">Clear filters</button>';
+        grid.appendChild(nr);
+        const c = document.getElementById('clearNr'); if (c) c.addEventListener('click', clearFilters);
+        return;
+      }
       sections.forEach(sec => {
-        if (!sec.list.length) return;
         const head = document.createElement('div');
         head.className = 'section-head';
         head.innerHTML = '<span class="line"></span><h2>' + sec.label + '<span class="count">' + sec.list.length + '</span></h2><span class="line"></span>';
@@ -381,7 +558,85 @@
         sec.list.forEach(g => grid.appendChild(tileEl(g, f)));
       });
     }
+
+    function fcountUpdate() {
+      const n = FILTER.genres.size + (FILTER.type !== 'all' ? 1 : 0) + (FILTER.showSoon ? 0 : 1);
+      const b = document.getElementById('fcount');
+      if (b) { if (n) { b.textContent = n; b.hidden = false; } else { b.hidden = true; } }
+    }
+    function clearFilters() {
+      FILTER.q = ''; FILTER.genres.clear(); FILTER.type = 'all'; FILTER.showSoon = true;
+      const s = document.getElementById('search'); if (s) s.value = '';
+      document.querySelectorAll('#genreList input').forEach(i => { i.checked = false; });
+      document.querySelectorAll('#typeSeg button').forEach(b => b.classList.toggle('on', b.dataset.type === 'all'));
+      const ss = document.getElementById('showSoon'); if (ss) ss.checked = true;
+      fcountUpdate(); render();
+    }
     render();
+
+    // ---- Search (instant, client-side) ----
+    (function () {
+      const s = document.getElementById('search');
+      if (s) s.addEventListener('input', () => { FILTER.q = s.value.trim().toLowerCase(); render(); });
+    })();
+
+    // ---- Filter ▾ dropdown (genre checkboxes + type + coming-soon) ----
+    (function () {
+      const btn = document.getElementById('filterBtn'), pop = document.getElementById('filterPop'), genreList = document.getElementById('genreList');
+      if (!btn || !pop || !genreList) return;
+      const cap = t => t ? t.charAt(0) + t.slice(1).toLowerCase() : t;
+      const tags = [...new Set((window.GAMES || []).map(g => g.tag).filter(Boolean))].sort();
+      genreList.innerHTML = tags.map(t => '<label class="fchk"><input type="checkbox" value="' + t + '"> ' + cap(t) + '</label>').join('');
+      genreList.addEventListener('change', e => {
+        const v = e.target.value; if (e.target.checked) FILTER.genres.add(v); else FILTER.genres.delete(v);
+        fcountUpdate(); render();
+      });
+      const seg = document.getElementById('typeSeg');
+      if (seg) seg.addEventListener('click', e => {
+        const b = e.target.closest('button[data-type]'); if (!b) return;
+        FILTER.type = b.dataset.type;
+        seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+        fcountUpdate(); render();
+      });
+      const ss = document.getElementById('showSoon');
+      if (ss) ss.addEventListener('change', e => { FILTER.showSoon = e.target.checked; fcountUpdate(); render(); });
+      const fc = document.getElementById('filterClear');
+      if (fc) fc.addEventListener('click', e => { e.preventDefault(); clearFilters(); pop.classList.remove('show'); });
+      btn.addEventListener('click', e => { e.stopPropagation(); pop.classList.toggle('show'); });
+      document.addEventListener('click', e => { if (!(e.target.closest && e.target.closest('.filter-wrap'))) pop.classList.remove('show'); });
+    })();
+
+    // ---- Drawers: left ☰ menu + right 🏆 challenges (main-site only) ----
+    (function () {
+      const scrim = document.getElementById('scrim');
+      const menu = document.getElementById('menuDrawer'), chal = document.getElementById('chalDrawer');
+      const close = () => {
+        [menu, chal].forEach(d => { if (d) { d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); } });
+        if (scrim) scrim.classList.remove('show');
+      };
+      window.__closeDrawers = close;
+      const open = el => {
+        if (!el) return;
+        [menu, chal].forEach(d => { if (d && d !== el) { d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); } });
+        el.classList.add('open'); el.setAttribute('aria-hidden', 'false');
+        if (scrim) scrim.classList.add('show');
+        const x = el.querySelector('[data-close]'); if (x && x.focus) x.focus();
+      };
+      const mb = document.getElementById('menuBtn'); if (mb) mb.addEventListener('click', () => open(menu));
+      const cb = document.getElementById('chalBtn'); if (cb) cb.addEventListener('click', () => open(chal));
+      if (scrim) scrim.addEventListener('click', close);
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+      [menu, chal].forEach(d => d && d.addEventListener('click', e => {
+        // close button, or any actionable item (link / action button) dismisses the drawer
+        if (e.target.closest('[data-close]') || e.target.closest('.ditem')) close();
+      }));
+      const ds = document.getElementById('drawerShare');
+      if (ds) ds.addEventListener('click', () => {
+        const url = 'https://funyo.online/', text = 'Free, self-contained browser games — no ads, plays offline:';
+        if (typeof navigator !== 'undefined' && navigator.share) navigator.share({ title: 'funyo', text: text, url: url }).catch(() => {});
+        else { try { navigator.clipboard.writeText(url); } catch (e) {} }
+      });
+    })();
 
     // ---- Share buttons ----
     (function () {
@@ -427,7 +682,7 @@
         if (tipWrap) tipWrap.style.display = 'none';
         return;
       }
-      installBtn.textContent = installed ? '✓ Installed' : '📱 Install app';
+      installBtn.textContent = installed ? '✓ Installed' : '📱 Install';
     }
     window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installed = false; refresh(); });
     window.addEventListener('appinstalled', () => { installed = true; deferredPrompt = null; tipPop.classList.add('show'); refresh(); });
