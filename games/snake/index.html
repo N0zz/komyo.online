@@ -67,6 +67,15 @@
   #overlay .opt-btn:hover { border-color:#0af; color:#cfefff; box-shadow:none; }
   #overlay .opt-btn.active { color:#04222b; border-color:#0ff; background:#2ff3ff; text-shadow:none;
     box-shadow:0 0 18px rgba(0,240,255,0.7); font-weight:bold; }
+  .topscores { display:flex; flex-direction:column; gap:3px; width:100%; max-width:380px;
+    font-size:11px; letter-spacing:1.5px; }
+  .topscores .ts-title { font-size:10px; letter-spacing:2px; opacity:0.5; text-align:left; margin-bottom:2px; }
+  .topscores .ts-row { display:flex; justify-content:space-between; gap:12px;
+    color:rgba(150,195,215,0.75); }
+  .topscores .ts-row.cur { color:#0ff; text-shadow:0 0 8px #0ff6; }
+  .topscores .ts-row .ts-mode { opacity:0.85; }
+  .topscores .ts-row .ts-val { color:#0ff; font-weight:bold; }
+  .topscores .ts-empty { opacity:0.4; text-align:left; }
 </style>
 </head>
 <body>
@@ -96,6 +105,7 @@
     <div class="opt-row">
       <span class="opt-label">SPEED</span>
       <div class="opt-btns">
+        <button class="opt-btn" data-opt="speed" data-val="slow">SLOW</button>
         <button class="opt-btn" data-opt="speed" data-val="normal">NORMAL</button>
         <button class="opt-btn" data-opt="speed" data-val="fast">FAST</button>
       </div>
@@ -109,6 +119,7 @@
       </div>
     </div>
   </div>
+  <div id="topScores" class="topscores"></div>
   <p class="sub">Arrow keys · WASD · Swipe on mobile</p>
   <button id="startBtn">PLAY</button>
 </div>
@@ -169,6 +180,7 @@
 
   // ---- Speed config ----
   const SPEED_CFG = {
+    slow:   { base: 200, ramp: 2, min: 110 },
     normal: { base: 140, ramp: 3, min: 60 },
     fast:   { base: 90,  ramp: 5, min: 40 },
   };
@@ -183,7 +195,7 @@
       if (raw) {
         const saved = JSON.parse(raw);
         if (saved.walls === 'wrap') opts.walls = 'wrap';
-        if (saved.speed === 'fast') opts.speed = 'fast';
+        if (SPEED_CFG[saved.speed]) opts.speed = saved.speed;
         if (GRID_SIZES[saved.size]) opts.size = saved.size;
       }
     } catch (_) {}
@@ -198,8 +210,30 @@
   let COLS, ROWS;
   let W, H, cellW, cellH, offX, offY;
 
-  function loadBest() { try { return parseInt(localStorage.getItem('snake_best') || '0', 10) || 0; } catch (_) { return 0; } }
-  function saveBest(v) { try { localStorage.setItem('snake_best', String(v)); } catch (_) {} }
+  // ---- Per-mode best scores ----
+  // Bests are keyed by the full mode (walls + speed + size) and stored as a map in localStorage.
+  function modeKey(o) { return (o.walls) + ':' + (o.speed) + ':' + (o.size); }
+  function loadBests() {
+    try { const raw = localStorage.getItem('snake_bests'); const m = raw ? JSON.parse(raw) : null; return (m && typeof m === 'object') ? m : {}; }
+    catch (_) { return {}; }
+  }
+  function loadBest() {
+    const m = loadBests();
+    let v = m[modeKey(opts)];
+    // Migrate the old single global best into the current mode on first run.
+    if (!(modeKey(opts) in m)) {
+      try { const legacy = parseInt(localStorage.getItem('snake_best') || '0', 10) || 0; if (legacy > 0) v = legacy; } catch (_) {}
+    }
+    return parseInt(v || 0, 10) || 0;
+  }
+  function saveBest(v) {
+    try {
+      const m = loadBests();
+      m[modeKey(opts)] = v;
+      localStorage.setItem('snake_bests', JSON.stringify(m));
+      localStorage.setItem('snake_best', String(v)); // keep legacy key for back-compat
+    } catch (_) {}
+  }
 
   function applyGridSize() {
     const g = GRID_SIZES[opts.size] || GRID_SIZES.medium;
@@ -297,7 +331,7 @@
     else {
       score += 10;
       if (score > best) { best = score; saveBest(best); }
-      flashAlpha = 0.35;
+      flashAlpha = 0.12;
       spawnParticles(nx, ny);
       SND.play('eat');
       food = pendingFood !== null ? pendingFood : randFood();
@@ -335,6 +369,31 @@
     return Math.max(cfg.min, cfg.base - (snake.length - 1) * cfg.ramp);
   }
 
+  // ---- Top scores (menu) ----
+  const topScoresEl = document.getElementById('topScores');
+  const SPEED_LABEL = { slow: 'Slow', normal: 'Normal', fast: 'Fast' };
+  const SIZE_LABEL = { small: 'Small', medium: 'Medium', large: 'Large' };
+  const WALLS_LABEL = { solid: 'Solid', wrap: 'Wrap' };
+  function renderTopScores() {
+    if (!topScoresEl) return;
+    const m = loadBests();
+    const cur = modeKey(opts);
+    const keys = Object.keys(m).filter(k => (parseInt(m[k], 10) || 0) > 0);
+    keys.sort((a, b) => (parseInt(m[b], 10) || 0) - (parseInt(m[a], 10) || 0));
+    let html = '<div class="ts-title">TOP SCORES</div>';
+    if (keys.length === 0) {
+      html += '<div class="ts-empty">No scores yet — play a round!</div>';
+    } else {
+      html += keys.map(k => {
+        const parts = k.split(':');
+        const label = (SPEED_LABEL[parts[1]] || parts[1]) + ' · ' + (SIZE_LABEL[parts[2]] || parts[2]) + ' · ' + (WALLS_LABEL[parts[0]] || parts[0]);
+        const isCur = k === cur ? ' cur' : '';
+        return '<div class="ts-row' + isCur + '"><span class="ts-mode">' + label + '</span><span class="ts-val">' + (parseInt(m[k], 10) || 0) + '</span></div>';
+      }).join('');
+    }
+    topScoresEl.innerHTML = html;
+  }
+
   // ---- Option picker UI ----
   function syncOptBtns() {
     if (!overlay) return;
@@ -353,6 +412,10 @@
         opts[btn.dataset.opt] = btn.dataset.val;
         saveOpts();
         syncOptBtns();
+        // reflect the selected mode's best in the HUD + highlight its row
+        best = loadBest();
+        if (bestEl) bestEl.textContent = best;
+        renderTopScores();
       });
     });
   }
@@ -380,7 +443,7 @@
     if (flashAlpha > 0) {
       ctx.fillStyle = 'rgba(0,255,200,' + flashAlpha.toFixed(2) + ')';
       ctx.fillRect(cx(0), cy(0), COLS * cellW, ROWS * cellH);
-      flashAlpha = Math.max(0, flashAlpha - 0.025);
+      flashAlpha = Math.max(0, flashAlpha - 0.012);
     }
 
     if (state === 'playing' || state === 'over') {
@@ -502,14 +565,19 @@
     get best() { return best; },
     get cols() { return COLS; },
     get rows() { return ROWS; },
+    get speed() { return opts.speed; },
+    get interval() { return getInterval(); },
+    get topScoresHtml() { return topScoresEl ? topScoresEl.innerHTML : ''; },
     start: startGame,
     startMode(o) {
       if (o && o.wrap !== undefined) opts.walls = o.wrap ? 'wrap' : 'solid';
-      if (o && o.fast !== undefined) opts.speed = o.fast ? 'fast' : 'normal';
+      if (o && o.speed !== undefined && SPEED_CFG[o.speed]) opts.speed = o.speed;
+      else if (o && o.fast !== undefined) opts.speed = o.fast ? 'fast' : 'normal';
       if (o && o.size !== undefined && GRID_SIZES[o.size]) opts.size = o.size;
       saveOpts();
       startGame();
     },
+    refreshMenu() { best = loadBest(); if (bestEl) bestEl.textContent = best; renderTopScores(); },
     setDir(dx, dy) { nextDir = { x: dx, y: dy }; },
     turn(d) { nextDir = DIR_MAP[d]; },
     step(n) { for (let i = 0; i < (n || 1); i++) tick(); },
@@ -556,6 +624,7 @@
   syncOptBtns();
   best = loadBest();
   if (bestEl) bestEl.textContent = best;
+  renderTopScores();
   reset();
   requestAnimationFrame(loop);
 })();
