@@ -51,6 +51,12 @@
     border-radius:4px; color:#fff; background:transparent; border:2px solid rgba(255,0,255,0.4);
     text-shadow:0 0 6px rgba(255,0,255,0.5); }
   .modeBtn.active { border-color:var(--cy); text-shadow:0 0 8px var(--cy); box-shadow:0 0 12px rgba(0,255,255,0.3); }
+  .modeBtn .mbest { display:block; font-size:9px; letter-spacing:1px; opacity:0.6; margin-top:3px; }
+  .opt { display:flex; align-items:center; gap:8px; font-size:12px; letter-spacing:2px; cursor:pointer;
+    color:#fff; opacity:0.85; user-select:none; }
+  .opt input { appearance:none; -webkit-appearance:none; width:16px; height:16px; margin:0; cursor:pointer;
+    border:2px solid rgba(0,255,255,0.5); border-radius:3px; background:transparent; position:relative; }
+  .opt input:checked { background:var(--cy); box-shadow:0 0 8px var(--cy); border-color:var(--cy); }
   #startBtn { font-family:inherit; cursor:pointer; font-size:15px; letter-spacing:3px; padding:11px 28px;
     border-radius:4px; color:#fff; background:transparent; border:2px solid var(--mg);
     text-shadow:0 0 8px var(--mg); box-shadow:0 0 16px rgba(255,0,255,0.4), inset 0 0 16px rgba(255,0,255,0.1); }
@@ -83,11 +89,12 @@
   <h1>BRICK BREAKER</h1>
   <p>Destroy all bricks. Catch power-ups. Don't let the ball fall.</p>
   <div id="modeRow" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
-    <button class="modeBtn" data-mode="classic" id="modeBtnClassic">CLASSIC</button>
-    <button class="modeBtn" data-mode="endless" id="modeBtnEndless">ENDLESS</button>
-    <button class="modeBtn" data-mode="survival" id="modeBtnSurvival">SURVIVAL</button>
+    <button class="modeBtn" data-mode="classic" id="modeBtnClassic">CLASSIC<span class="mbest" id="bestClassic">best: 0</span></button>
+    <button class="modeBtn" data-mode="endless" id="modeBtnEndless">ENDLESS<span class="mbest" id="bestEndless">best: 0</span></button>
+    <button class="modeBtn" data-mode="survival" id="modeBtnSurvival">SURVIVAL<span class="mbest" id="bestSurvival">best: 0</span></button>
   </div>
   <p id="modeDesc" class="hint">Level progression — clear all bricks</p>
+  <label class="opt"><input type="checkbox" id="speed2x">2× SPEED</label>
   <p class="hint">Mouse / Touch to move · Click / Space to launch</p>
   <button id="startBtn">INSERT COIN</button>
 </div>
@@ -165,6 +172,11 @@
   let gameMode = 'classic';
   let endlessTimer = 0;
   let survivalOffset = 0;
+  let speedMult = 1; // 1 = normal, 2 = "2× speed" (sub-steps update() so collisions stay exact)
+
+  const SPEED_KEY = 'breakout_speed2x';
+  function loadSpeedPref() { try { return localStorage.getItem(SPEED_KEY) === '1'; } catch(_){ return false; } }
+  function saveSpeedPref(on) { try { localStorage.setItem(SPEED_KEY, on ? '1' : '0'); } catch(_){} }
 
   function storageKey(mode) { return 'breakout_best_' + (mode || gameMode); }
   function loadBest(mode) { try { return parseInt(localStorage.getItem(storageKey(mode)) || '0', 10) || 0; } catch(_){ return 0; } }
@@ -746,6 +758,12 @@
     }
   })();
 
+  // Menu: per-mode best scores (refreshed when the menu is shown)
+  function refreshMenuBests() {
+    const ids = { classic: 'bestClassic', endless: 'bestEndless', survival: 'bestSurvival' };
+    for (const m in ids) { const e = document.getElementById(ids[m]); if (e) e.textContent = 'best: ' + loadBest(m); }
+  }
+
   // Mode picker
   const modeBtns = document.querySelectorAll('.modeBtn');
   const modeDescEl = document.getElementById('modeDesc');
@@ -756,6 +774,13 @@
   }
   modeBtns.forEach(b => b.addEventListener('click', e => { e.stopPropagation(); setActiveMode(b.dataset.mode); }));
   setActiveMode('classic'); // default highlight
+  refreshMenuBests();
+
+  // 2× speed toggle (persisted)
+  const speedBox = document.getElementById('speed2x');
+  function applySpeedFromPref() { const on = loadSpeedPref(); speedMult = on ? 2 : 1; if (speedBox) speedBox.checked = on; }
+  if (speedBox) speedBox.addEventListener('change', () => { const on = !!speedBox.checked; speedMult = on ? 2 : 1; saveSpeedPref(on); });
+  applySpeedFromPref();
 
   // ---- Key hold polling ----
   function pollKeys() {
@@ -771,7 +796,15 @@
   // Override loop to include key polling
   function loop2() {
     requestAnimationFrame(loop2);
-    try { pollKeys(); update(); render(); } catch (e) { if (window.console) console.error(e); }
+    try {
+      pollKeys();
+      // 2× speed = run the fixed-step update twice per frame (sub-stepping). This keeps every
+      // collision check at the normal per-step resolution (no tunnelling) and reuses the same
+      // hot loops, so it doesn't regress the multiball perf work.
+      const steps = state === 'playing' ? speedMult : 1;
+      for (let i = 0; i < steps; i++) update();
+      render();
+    } catch (e) { if (window.console) console.error(e); }
   }
 
   // ---- Test hook ----
@@ -791,6 +824,7 @@
       return maxY;
     },
     get endlessTimer() { return endlessTimer; },
+    get speedMult() { return speedMult; },
     start: startGame,
     startMode,
     launch,
