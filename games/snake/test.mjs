@@ -366,6 +366,61 @@ section('options persist to localStorage');
   ok(parsed.size === 'large', 'saved size=large (got ' + parsed.size + ')');
 }
 
+section('end screen toggles without clobbering the menu picker');
+{
+  const g = runGame();
+  const T = g.test();
+  const menuScreen = g.el('menuScreen');
+  const endScreen = g.el('endScreen');
+  // (initial hidden state lives in the static HTML class attr, which the mock doesn't parse;
+  //  startGame() drives the transitions explicitly, so assert those instead.)
+  T.start();
+  ok(endScreen.classList.contains('hidden'), 'startGame hides the end screen');
+  ok(!menuScreen.classList.contains('hidden'), 'startGame shows the menu screen');
+  // drive into a wall to end the game (solid default)
+  T.turn('up');
+  let guard = 0;
+  while (T.state === 'playing' && guard++ < 50) T.step(1);
+  ok(T.state === 'over', 'game ended (state=' + T.state + ')');
+  ok(endScreen.classList.contains('hidden') === false, 'end screen shown on game over');
+  ok(menuScreen.classList.contains('hidden'), 'menu screen hidden on game over');
+  // restart hides end, restores menu DOM
+  T.start();
+  ok(endScreen.classList.contains('hidden'), 'end screen hidden again after restart');
+  ok(!menuScreen.classList.contains('hidden'), 'menu screen restored after restart');
+}
+
+section('end screen reports final score/length/best');
+{
+  const g = runGame();
+  const T = g.test();
+  T.start();
+  const h = T.head;
+  T.placeFoodAt(h.x + 1, h.y);
+  T.step(1);
+  const finalScore = T.score, finalLen = T.length;
+  T.turn('up');
+  let guard = 0;
+  while (T.state === 'playing' && guard++ < 50) T.step(1);
+  ok(g.el('goScore').textContent === finalScore, 'goScore shows final score (got ' + g.el('goScore').textContent + ')');
+  ok(String(g.el('goStats').textContent).indexOf(String(finalLen)) >= 0, 'goStats shows final length (' + g.el('goStats').textContent + ')');
+  ok(String(g.el('goBest').textContent).indexOf('BEST') >= 0, 'goBest shows best (' + g.el('goBest').textContent + ')');
+}
+
+section('share row present + headless-safe');
+{
+  const g = runGame();
+  ok(g.bootErr === null, 'boots with share wiring: ' + g.bootErr);
+  const x = g.el('shareX'), reddit = g.el('shareReddit'), copy = g.el('shareCopy'), nat = g.el('shareNative');
+  ok(typeof x.href === 'string' && x.href.indexOf('twitter.com') >= 0, 'shareX href set to X intent (' + x.href + ')');
+  ok(typeof reddit.href === 'string' && reddit.href.indexOf('reddit.com') >= 0, 'shareReddit href set (' + reddit.href + ')');
+  ok(x.href.indexOf('games%2Fsnake') >= 0 || x.href.indexOf('games/snake') >= 0, 'share url targets games/snake');
+  // navigator has no .share/.clipboard in harness — these clicks must not throw
+  copy._l.click && copy._l.click.forEach(fn => fn({ preventDefault() {} }));
+  nat._l.click && nat._l.click.forEach(fn => fn({ preventDefault() {} }));
+  ok(true, 'copy/native share clicks are headless-safe (no throw)');
+}
+
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);
 if (fail > 0) { console.log('\nFailures:'); fails.forEach(f => console.log(' - ' + f)); process.exit(1); }
