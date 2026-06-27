@@ -279,11 +279,11 @@ function run() {
   Dd().adjustThreat();
   ok(Dd().difficulty > beforeUp, 'adjustThreat() raises threat on a dominated profile (' + beforeUp + ' -> ' + Dd().difficulty.toFixed(2) + ')');
 
-  // clamp: threat never exceeds 3.0 nor drops below 1.0
+  // clamp: threat never exceeds 5.0 nor drops below 1.0
   const g10e = runInline('index.html'); const Dc = () => g10e.test();
   Dc().selectMap(0); Dc().start();
-  Dc().setDifficulty(2.95); Dc().startWave(); Dc().adjustThreat();
-  ok(Dc().difficulty <= 3.0 + 1e-9, 'threat clamps at 3.0 (' + Dc().difficulty.toFixed(2) + ')');
+  Dc().setDifficulty(4.95); Dc().startWave(); Dc().adjustThreat();
+  ok(Dc().difficulty <= 5.0 + 1e-9, 'threat clamps at 5.0 (' + Dc().difficulty.toFixed(2) + ')');
 
   // undefended still ends the run; threat is forgiving (drops), never pinned high
   const g11 = runInline('index.html'); const Un = () => g11.test();

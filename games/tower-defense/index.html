@@ -115,6 +115,7 @@
 <canvas id="game"></canvas>
 <div class="nav">
   <button class="back" id="menuBtn" type="button">&#x2039; Menu</button>
+  <button class="back" id="muteBtn" type="button" aria-label="Toggle sound" title="Toggle sound">&#x1F50A;</button>
   <a class="back" href="../../">funyo &#x203A;</a>
 </div>
 <div id="top" class="panel">
@@ -202,12 +203,17 @@
       over: () => [440, 330, 220, 165].forEach((f, i) => setTimeout(() => tone(f, 0.3, 'sawtooth', 0.14), i * 180)),
       sell: () => tone(660, 0.08, 'sine', 0.1),
     };
+    let muted = false;
+    try { muted = localStorage.getItem('tower-defense_muted') === '1'; } catch(e) {}
     return {
       play(n) {
+        if (muted) return;
         ensure();
         if (ac && ac.state === 'suspended') { try { ac.resume(); } catch(e) {} }
         if (ac) (S[n] || (() => {}))();
-      }
+      },
+      isMuted() { return muted; },
+      toggle() { muted = !muted; try { localStorage.setItem('tower-defense_muted', muted ? '1' : '0'); } catch(e) {} return muted; }
     };
   })();
 
@@ -375,12 +381,12 @@
   //   dominated (no leaks AND enemies never reached the early checkpoint) → threat rises a little.
   //   struggled (any leak OR enemies reached the LATE checkpoint)         → threat falls (faster).
   //   otherwise (dead-band)                                               → unchanged.
-  // It can therefore go back DOWN over later rounds. Clamped to [1.0, 3.0].
+  // It can therefore go back DOWN over later rounds. Clamped to [1.0, 5.0].
   let difficulty = 1;          // global threat multiplier (HP/speed)
   let waveLeaked = false;      // did any enemy reach the keep this wave?
   let waveMaxFrac = 0;         // furthest path fraction any enemy reached this wave (0..1)
   const DIFF_CP = [0.25, 0.55, 0.85]; // early / mid / LATE checkpoint fractions to watch
-  const DIFF_MIN = 1.0, DIFF_MAX = 3.0;
+  const DIFF_MIN = 1.0, DIFF_MAX = 5.0;
   const DIFF_UP = 0.15, DIFF_DOWN = 0.2;   // rises slowly, drops a touch faster (forgiving)
   const DIFF_EARLY = DIFF_CP[0], DIFF_LATE = DIFF_CP[2];
 
@@ -1485,6 +1491,10 @@
   if (spdBtn) spdBtn.addEventListener('click', () => { gameSpeed = gameSpeed === 1 ? 2 : 1; refreshToolbar(); });
   const menuBtn = $('menuBtn');
   if (menuBtn) menuBtn.addEventListener('click', () => { try { location.reload(); } catch (e) {} });
+  const muteBtn = $('muteBtn');
+  function refreshMute() { if (muteBtn) muteBtn.textContent = SND.isMuted() ? '🔇' : '🔊'; }
+  if (muteBtn) muteBtn.addEventListener('click', () => { SND.toggle(); refreshMute(); });
+  refreshMute();
   const autoBtn = $('autoBtn');
   if (autoBtn) autoBtn.addEventListener('click', () => {
     autoWave = !autoWave;
