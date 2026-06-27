@@ -93,6 +93,9 @@ generated levels; SFX via `funyo.sound`, music gain via `funyo.music.subscribe`,
    game (new mode/feature — not every bugfix), bump that game's `updated: "YYYY-MM-DD"`** (drives the
    **UPDATED** badge for 7 days). Keep these dates accurate — they're the only source for those badges.
    Also **add a `CHANGELOG` bullet** in `index.html` for the change (see Catalogue specifics).
+   When a game goes **live** (not `soon`), add its `https://funyo.online/games/<slug>/` URL to
+   both `sitemap.xml` and `llms.txt`. `robots.txt` allows all crawlers (search + AI/LLM) and points
+   at the sitemap; `llms.txt` is a curated markdown map of the site for LLMs.
 6. Run **all** the suites and keep them green.
 
 ## Testing
