@@ -104,12 +104,18 @@
   .tile.soon .play { color: var(--faint); }
 
   .help-row { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; }
-  .ibtn { font-family:var(--mono); font-size:12px; letter-spacing:2px; cursor:pointer; padding:9px 16px; border-radius:10px;
+  .ibtn { position:relative; font-family:var(--mono); font-size:12px; letter-spacing:2px; cursor:pointer; padding:9px 16px; border-radius:10px;
     color:var(--text); background:var(--surface-2); border:1px solid var(--border); text-decoration:none; display:inline-flex; align-items:center; }
   .ibtn:hover { border-color:#9fe8ff; color:#fff; }
   .tip { position:relative; display:inline-flex; }
-  .qbtn { width:30px; height:30px; border-radius:50%; border:1px solid var(--border); background:var(--surface-2); color:var(--muted); cursor:pointer; font-size:14px; line-height:1; }
-  .qbtn:hover { border-color:#9fe8ff; color:#fff; }
+  /* desktop-only hover hint (mobile has no hover → the tap action + modals carry the info) */
+  @media (hover:hover) and (pointer:fine) {
+    .ibtn[data-tip]::after { content:attr(data-tip); position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%);
+      width:max-content; max-width:230px; white-space:normal; text-align:center; padding:8px 11px; border-radius:9px; z-index:7;
+      background:var(--surface-2); border:1px solid var(--border); color:var(--text); font-family:var(--sans); font-size:12px; line-height:1.45; letter-spacing:0; text-transform:none;
+      box-shadow:0 10px 28px rgba(0,0,0,0.5); opacity:0; pointer-events:none; transition:opacity .12s; }
+    .ibtn[data-tip]:hover::after { opacity:1; }
+  }
   .tip-pop { display:none; position:absolute; top:38px; left:50%; transform:translateX(-50%); width:min(320px,86vw); z-index:6;
     background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:13px 15px; font-size:13px; line-height:1.7; color:var(--text); text-align:left; box-shadow:0 14px 38px rgba(0,0,0,0.55); }
   .tip-pop.show { display:block; }
@@ -193,9 +199,8 @@
       </div>
       <div class="sub">a catalogue of self-contained browser games</div>
       <div class="help-row">
-        <button class="ibtn" id="install">📱 Install app</button>
         <span class="tip">
-          <button class="qbtn" id="qbtn" aria-label="How to install">?</button>
+          <button class="ibtn" id="install" data-tip="Install funyo to your home screen — fullscreen &amp; offline">📱 Install app</button>
           <span class="tip-pop" id="tipPop"><b>Install to your home screen</b> — fullscreen &amp; offline:<br>
             <b>Android (Chrome):</b> menu ⋮ → “Add to Home screen”<br>
             <b>iPhone (Safari):</b> Share → “Add to Home Screen”<br>
@@ -203,8 +208,8 @@
             <span style="opacity:.8">Want just one game? Each game installs on its own too — open it and use Add to Home Screen / Install.</span><br>
             <span style="opacity:.8">Already installed? Open it from your home screen, or the “Open in app” icon in the address bar.</span></span>
         </span>
-        <button class="ibtn" id="feedback" style="margin-left:8px">💬 Feedback</button>
-        <button class="ibtn" id="newsletter">📬 Subscribe</button>
+        <button class="ibtn" id="feedback" data-tip="Found a bug, or want a game / feature? Tell me.">💬 Feedback</button>
+        <button class="ibtn" id="newsletter" data-tip="Get an email when new games, features &amp; fixes ship.">📬 Subscribe</button>
       </div>
     </header>
 
@@ -386,9 +391,8 @@
     // so: prompt to install when offered, reflect the installed state otherwise, and
     // always let the (?) / button surface how to install or open.
     const installBtn = document.getElementById('install');
-    const qbtn = document.getElementById('qbtn');
     const tipPop = document.getElementById('tipPop');
-    const helpRow = installBtn.parentElement;
+    const tipWrap = installBtn.parentElement; // the .tip span wrapping Install + its instructions popover
     let deferredPrompt = null, installed = false;
     const standalone = () => {
       if (navigator.standalone === true) return true; // iOS Safari
@@ -401,8 +405,7 @@
       if (standalone()) {
         // inside the installed app: drop the now-pointless Install button + its (?) tip,
         // but keep the Feedback button (and the rest of the row) — it should always be there.
-        installBtn.style.display = 'none';
-        const tip = qbtn && qbtn.parentElement; if (tip) tip.style.display = 'none';
+        if (tipWrap) tipWrap.style.display = 'none';
         return;
       }
       installBtn.textContent = installed ? '✓ Installed' : '📱 Install app';
@@ -414,7 +417,6 @@
       if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.finally(() => { deferredPrompt = null; refresh(); }); }
       else { tipPop.classList.toggle('show'); } // installed or unsupported → show how to open / install
     });
-    qbtn.addEventListener('click', (e) => { e.stopPropagation(); tipPop.classList.toggle('show'); });
     document.addEventListener('click', (e) => { if (!(e.target.closest && e.target.closest('.tip'))) tipPop.classList.remove('show'); });
     // detect our own installed PWA (Android Chrome) so the button reads "✓ Installed"
     if (navigator.getInstalledRelatedApps) {
