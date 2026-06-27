@@ -1,0 +1,6 @@
+# komyo — open to all crawlers: search engines and AI/LLM bots alike
+# (GPTBot, ClaudeBot, Google-Extended, PerplexityBot, CCBot, etc. — nothing is disallowed).
+User-agent: *
+Allow: /
+
+Sitemap: https://komyo.online/sitemap.xml
