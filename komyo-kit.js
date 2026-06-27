@@ -1,16 +1,24 @@
-/* komyo-kit — shared shell for komyo games: sound engine + global mute, top nav
-   (‹ Menu · mute · komyo ›), end-screen share row, and PWA auto-update.
-   Loaded via <script src="../../komyo-kit.js"></script> in <head> (before the game's
-   inline script). Exposes window.komyo / global `komyo`. Every browser API is guarded
-   so the headless test harness can load it as a pre-script without throwing. */
+/* komyo-kit — shared shell for komyo games: audio (SFX + Music channels) with a top-right
+   sound menu + per-channel mute & volume, top-left nav (‹ Menu · komyo ›), end-screen share
+   row, PWA auto-update, and a standard center-top HUD style (see komyo-kit.css).
+   Loaded via <script src="../../komyo-kit.js"></script> in <head> (before the game's inline
+   script). Exposes window.komyo / global `komyo`. Headless-safe: every browser API is guarded. */
 (function () {
   'use strict';
 
-  // ---------- sound engine + site-wide mute ----------
-  var MUTE_KEY = 'komyo_muted';
-  var ac, muted = false, defs = {}, muteBtns = [];
-  try { muted = (typeof localStorage !== 'undefined') && localStorage.getItem(MUTE_KEY) === '1'; } catch (e) {}
+  // ---------- persistence helpers ----------
+  function lsGet(k) { try { return (typeof localStorage !== 'undefined') ? localStorage.getItem(k) : null; } catch (e) { return null; } }
+  function lsSet(k, v) { try { if (typeof localStorage !== 'undefined') localStorage.setItem(k, v); } catch (e) {} }
+  function clamp01(v, d) { v = parseFloat(v); return (typeof v === 'number' && isFinite(v)) ? Math.max(0, Math.min(1, v)) : d; }
 
+  // ---------- audio state (two channels: SFX kit-played, Music settings-only) ----------
+  var SFX_M = 'komyo_sfx_muted', SFX_V = 'komyo_sfx_vol', MUS_M = 'komyo_music_muted', MUS_V = 'komyo_music_vol';
+  var sfxMuted = lsGet(SFX_M) === '1';
+  var musMuted = lsGet(MUS_M) === '1';
+  var sfxVol = clamp01(lsGet(SFX_V), 0.8);
+  var musVol = clamp01(lsGet(MUS_V), 0.6);
+
+  var ac, defs = {}, audioUIs = [], musicListeners = [];
   function ensureAC() {
     if (ac !== undefined) return;
     var AC = (typeof AudioContext !== 'undefined' && AudioContext) ||
@@ -18,59 +26,123 @@
     ac = AC ? (function () { try { return new AC(); } catch (e) { return null; } })() : null;
   }
   function tone(f, d, type, g) {
-    if (muted) return; ensureAC(); if (!ac) return;
+    if (sfxMuted) return; ensureAC(); if (!ac) return;
     try {
       var o = ac.createOscillator(), v = ac.createGain();
       o.type = type || 'sine'; o.frequency.value = f;
-      v.gain.value = g || 0.1;
+      v.gain.value = (g || 0.1) * sfxVol;
       v.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d);
       o.connect(v); v.connect(ac.destination); o.start(); o.stop(ac.currentTime + d);
     } catch (e) {}
   }
   function noise(d, g) {
-    if (muted) return; ensureAC(); if (!ac) return;
+    if (sfxMuted) return; ensureAC(); if (!ac) return;
     try {
       var n = ac.createBufferSource(), b = ac.createBuffer(1, Math.max(1, ac.sampleRate * d), ac.sampleRate);
       var dt = b.getChannelData(0);
       for (var i = 0; i < dt.length; i++) dt[i] = (Math.random() * 2 - 1) * (1 - i / dt.length);
       n.buffer = b;
-      var v = ac.createGain(); v.gain.value = g || 0.2;
+      var v = ac.createGain(); v.gain.value = (g || 0.2) * sfxVol;
       var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
       n.connect(lp); lp.connect(v); v.connect(ac.destination); n.start();
     } catch (e) {}
   }
-  function persistMute() { try { if (typeof localStorage !== 'undefined') localStorage.setItem(MUTE_KEY, muted ? '1' : '0'); } catch (e) {} }
-  function syncMuteBtns() { for (var i = 0; i < muteBtns.length; i++) { try { muteBtns[i].textContent = muted ? '🔇' : '🔊'; } catch (e) {} } }
+  function syncAudioUI() {
+    for (var i = 0; i < audioUIs.length; i++) {
+      var u = audioUIs[i];
+      try {
+        if (u.sfxBtn) u.sfxBtn.textContent = sfxMuted ? '🔇' : '🔊';
+        if (u.sfxSlider) u.sfxSlider.value = Math.round(sfxVol * 100);
+        if (u.musBtn) u.musBtn.textContent = musMuted ? '🔕' : '🎵';
+        if (u.musSlider) u.musSlider.value = Math.round(musVol * 100);
+        if (u.mainBtn) u.mainBtn.textContent = (sfxMuted && musMuted) ? '🔇' : '🔊';
+      } catch (e) {}
+    }
+  }
+  function notifyMusic() { var st = { muted: musMuted, volume: musVol, gain: musMuted ? 0 : musVol }; for (var i = 0; i < musicListeners.length; i++) { try { musicListeners[i](st); } catch (e) {} } }
 
   var sound = {
     tone: tone, noise: noise,
-    // register named sounds: define({ name: ({tone,noise}) => {...} })
     define: function (map) { if (map) for (var k in map) if (Object.prototype.hasOwnProperty.call(map, k)) defs[k] = map[k]; return sound; },
     play: function (name) {
-      if (muted) return; ensureAC();
+      if (sfxMuted) return; ensureAC();
       if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
       var fn = defs[name]; if (fn) { try { fn({ tone: tone, noise: noise }); } catch (e) {} }
     },
-    isMuted: function () { return muted; },
-    setMuted: function (m) { muted = !!m; persistMute(); syncMuteBtns(); },
-    toggle: function () { muted = !muted; persistMute(); syncMuteBtns(); return muted; },
+    isMuted: function () { return sfxMuted; },
+    setMuted: function (m) { sfxMuted = !!m; lsSet(SFX_M, sfxMuted ? '1' : '0'); syncAudioUI(); },
+    toggle: function () { sfxMuted = !sfxMuted; lsSet(SFX_M, sfxMuted ? '1' : '0'); syncAudioUI(); return sfxMuted; },
+    volume: function (v) { if (v === undefined) return sfxVol; sfxVol = clamp01(v, sfxVol); lsSet(SFX_V, String(sfxVol)); syncAudioUI(); },
+  };
+  // Music: kit owns the SETTINGS + UI; a game with music subscribes and applies gain()/muted to its own audio.
+  var music = {
+    isMuted: function () { return musMuted; },
+    volume: function (v) { if (v === undefined) return musVol; musVol = clamp01(v, musVol); lsSet(MUS_V, String(musVol)); syncAudioUI(); notifyMusic(); },
+    gain: function () { return musMuted ? 0 : musVol; },
+    setMuted: function (m) { musMuted = !!m; lsSet(MUS_M, musMuted ? '1' : '0'); syncAudioUI(); notifyMusic(); },
+    toggle: function () { musMuted = !musMuted; lsSet(MUS_M, musMuted ? '1' : '0'); syncAudioUI(); notifyMusic(); return musMuted; },
+    subscribe: function (cb) { if (typeof cb === 'function') { musicListeners.push(cb); try { cb({ muted: musMuted, volume: musVol, gain: musMuted ? 0 : musVol }); } catch (e) {} } },
   };
 
-  // ---------- top nav: ‹ Menu · (mute) · komyo › ----------
-  function nav(opts) {
+  // ---------- reset scores (per-game; clears only keys starting with `prefix`) ----------
+  function resetScores(prefix) {
+    if (!prefix || typeof localStorage === 'undefined' || typeof localStorage.key !== 'function') return;
+    try {
+      var keys = [], i;
+      for (i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf(prefix) === 0) keys.push(k); }
+      for (i = 0; i < keys.length; i++) { try { localStorage.removeItem(keys[i]); } catch (e) {} }
+    } catch (e) {}
+  }
+
+  // ---------- top-right sound menu (+ optional per-game "reset scores") ----------
+  function audioMenu(opts) {
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body) return;
-    var wrap = document.createElement('div');
-    wrap.className = 'komyo-nav';
-    var html = '<button class="komyo-back" id="komyoMenu" type="button">&#x2039; Menu</button>';
-    if (opts.mute !== false) html += '<button class="komyo-back komyo-mute" id="komyoMute" type="button" aria-label="Toggle sound" title="Toggle sound">🔊</button>';
-    html += '<a class="komyo-back" id="komyoHome" href="' + (opts.home || '../../') + '">komyo &#x203A;</a>';
-    wrap.innerHTML = html;
+    var wrap = document.createElement('div'); wrap.className = 'komyo-audio';
+    var rows = '<div class="komyo-au-row"><button class="komyo-au-toggle" id="komyoSfxM" type="button" aria-label="Mute sound effects">🔊</button>'
+      + '<input class="komyo-au-slider" id="komyoSfxV" type="range" min="0" max="100" aria-label="Sound effects volume"></div>';
+    if (opts.music) rows += '<div class="komyo-au-row"><button class="komyo-au-toggle" id="komyoMusM" type="button" aria-label="Mute music">🎵</button>'
+      + '<input class="komyo-au-slider" id="komyoMusV" type="range" min="0" max="100" aria-label="Music volume"></div>';
+    if (opts.reset) rows += '<button class="komyo-au-reset" id="komyoReset" type="button">↺ Reset scores</button>';
+    wrap.innerHTML = '<button class="komyo-au-btn" id="komyoAudioBtn" type="button" aria-label="Sound settings" title="Sound settings">🔊</button>'
+      + '<div class="komyo-au-panel" id="komyoAudioPanel">' + rows + '</div>';
     document.body.appendChild(wrap);
-    var menu = document.getElementById('komyoMenu');
-    if (menu) menu.addEventListener('click', function () { try { location.reload(); } catch (e) {} });
-    var mute = document.getElementById('komyoMute');
-    if (mute) { muteBtns.push(mute); mute.addEventListener('click', function () { sound.toggle(); }); try { mute.textContent = muted ? '🔇' : '🔊'; } catch (e) {} }
+    var btn = document.getElementById('komyoAudioBtn'), panel = document.getElementById('komyoAudioPanel');
+    if (btn && panel) btn.addEventListener('click', function () { if (panel.classList) panel.classList.toggle('open'); });
+    var u = { mainBtn: btn };
+    u.sfxBtn = document.getElementById('komyoSfxM'); u.sfxSlider = document.getElementById('komyoSfxV');
+    if (u.sfxBtn) u.sfxBtn.addEventListener('click', function () { sound.toggle(); });
+    if (u.sfxSlider) u.sfxSlider.addEventListener('input', function (e) { var t = e && e.target; sound.volume(((t ? t.value : u.sfxSlider.value) || 0) / 100); });
+    if (opts.music) {
+      u.musBtn = document.getElementById('komyoMusM'); u.musSlider = document.getElementById('komyoMusV');
+      if (u.musBtn) u.musBtn.addEventListener('click', function () { music.toggle(); });
+      if (u.musSlider) u.musSlider.addEventListener('input', function (e) { var t = e && e.target; music.volume(((t ? t.value : u.musSlider.value) || 0) / 100); });
+    }
+    if (opts.reset) {
+      var rb = document.getElementById('komyoReset');
+      if (rb) rb.addEventListener('click', function () {
+        var ok = true; try { if (typeof confirm === 'function') ok = confirm('Reset your saved scores for this game?'); } catch (e) {}
+        if (ok) { resetScores(opts.reset); try { location.reload(); } catch (e) {} }
+      });
+    }
+    audioUIs.push(u); syncAudioUI();
+  }
+
+  // ---------- top-left nav: ‹ Menu · komyo › (+ injects the top-right sound menu) ----------
+  function nav(opts) {
+    opts = opts || {};
+    if (typeof document !== 'undefined' && document.body) {
+      var wrap = document.createElement('div'); wrap.className = 'komyo-nav';
+      wrap.innerHTML = '<button class="komyo-back" id="komyoMenu" type="button">&#x2039; Menu</button>'
+        + '<a class="komyo-back" id="komyoHome" href="' + (opts.home || '../../') + '">komyo &#x203A;</a>';
+      document.body.appendChild(wrap);
+      var menu = document.getElementById('komyoMenu');
+      if (menu) menu.addEventListener('click', function () {
+        if (typeof opts.onMenu === 'function') { try { opts.onMenu(); } catch (e) {} }
+        else { try { location.reload(); } catch (e) {} }
+      });
+    }
+    audioMenu({ music: !!opts.music, reset: opts.reset });
   }
 
   // ---------- end-screen share row ----------
@@ -81,8 +153,6 @@
     copy: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg>',
   };
   function enc(s) { return (typeof encodeURIComponent === 'function') ? encodeURIComponent(s) : String(s); }
-  // pure + testable: build the share targets from a url + message (message has NO trailing
-  // preposition and NO url, so it reads correctly regardless of where a platform puts the link)
   function shareUrls(url, message) {
     return {
       x: 'https://twitter.com/intent/tweet?text=' + enc(message) + '&url=' + enc(url),
@@ -127,7 +197,7 @@
     }
   }
 
-  // ---------- PWA auto-update (reload once when a new worker takes control) ----------
+  // ---------- PWA auto-update ----------
   function pwa(file) {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
     var reloaded = false, had = !!navigator.serviceWorker.controller;
@@ -143,7 +213,7 @@
     if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', register); else register();
   }
 
-  var api = { sound: sound, nav: nav, shareRow: shareRow, shareUrls: shareUrls, pwa: pwa };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, shareRow: shareRow, shareUrls: shareUrls, pwa: pwa };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.komyo = api;
   if (typeof window !== 'undefined') window.komyo = api;
