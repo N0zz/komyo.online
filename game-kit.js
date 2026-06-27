@@ -211,8 +211,7 @@
       '<a class="sbtn" data-act="native" href="#" style="display:none" aria-label="Share" title="Share">' + SVG.native + '</a>' +
       '<a class="sbtn" data-act="x" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X">' + SVG.x + '</a>' +
       '<a class="sbtn" data-act="reddit" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit">' + SVG.reddit + '</a>' +
-      '<button class="sbtn" data-act="copy" type="button" aria-label="Copy" title="Copy">' + SVG.copy + '</button>' +
-      '<button class="sbtn" data-act="discord" type="button" aria-label="Post score to the Komyo Games Discord" title="Post your score to Discord">' + SVG.discord + '</button>';
+      '<button class="sbtn" data-act="copy" type="button" aria-label="Copy" title="Copy">' + SVG.copy + '</button>';
     var q = function (sel) { try { return el.querySelector ? el.querySelector(sel) : null; } catch (e) { return null; } };
     var x = q('[data-act="x"]'), reddit = q('[data-act="reddit"]'), copy = q('[data-act="copy"]'), native = q('[data-act="native"]');
     var refresh = function () { var u = shareUrls(url, getMsg()); if (x) x.href = u.x; if (reddit) reddit.href = u.reddit; };
@@ -229,14 +228,29 @@
         }).catch(function () {});
       } catch (e) {}
     });
-    var discordBtn = q('[data-act="discord"]');
-    if (discordBtn) discordBtn.addEventListener('click', function () {
-      var who = (player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous';
-      postDiscord('**' + who + '** — ' + getMsg() + '\n' + url);
-      try { discordBtn.disabled = true; } catch (e) {}      // one post per end-screen (don't let a click-spammer flood the channel)
-      if (discordBtn.classList) discordBtn.classList.add('ok');
-      discordBtn.title = 'Posted to Discord ✓';
-    });
+    // auto-post the score to the Komyo Games Discord when the end-screen share row appears
+    // (fires on every game-over, all games; no button). Per-page dedupe + throttle to curb spam.
+    if (typeof IntersectionObserver !== 'undefined') {
+      try {
+        var lastMsg = '', lastAt = 0;
+        var io = new IntersectionObserver(function (entries) {
+          for (var k = 0; k < entries.length; k++) {
+            var vis = entries[k].isIntersecting;
+            if (vis && el._gkVis === false) {           // transition hidden -> visible = a fresh game-over
+              var msg = getMsg(), now = (typeof Date !== 'undefined' ? Date.now() : 0);
+              if (msg && msg !== lastMsg && now - lastAt > 3000) {
+                var who = (player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous';
+                postDiscord('**' + who + '** — ' + msg + '\n' + url);
+                lastMsg = msg; lastAt = now;
+              }
+            }
+            el._gkVis = vis;
+          }
+        }, { threshold: 0.5 });
+        el._gkVis = true; // baseline so it never fires on the first observation (e.g. if visible at load)
+        io.observe(el);
+      } catch (e) {}
+    }
     if (native && typeof navigator !== 'undefined' && navigator.share) {
       if (native.style) native.style.display = '';
       native.addEventListener('click', function (e) {
