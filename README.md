@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="logo-512.png" alt="komyo logo" width="116" height="116">
+  <img src="logo-512.png" alt="Komyo Games logo" width="116" height="116">
 </p>
 
-<h1 align="center">komyo</h1>
+<h1 align="center">Komyo Games</h1>
 
 <p align="center">
   <a href="https://komyo.online/">
-    <img src="https://img.shields.io/badge/%E2%96%B6%20%20OPEN%20KOMYO-1f6feb?style=for-the-badge" alt="Open komyo" height="64">
+    <img src="https://img.shields.io/badge/%E2%96%B6%20%20OPEN%20KOMYO%20GAMES-1f6feb?style=for-the-badge" alt="Open Komyo Games" height="64">
   </a>
 </p>
 
@@ -20,7 +20,7 @@
 
 A little **catalogue** of self-contained browser games. Each game is its
 own folder of static HTML/Canvas + vanilla JS — no build step, no dependencies, no
-external assets — and gets a tile on the home page plus a top-left **‹ Menu** / **komyo ›**
+external assets — and gets a tile on the home page plus a top-left **‹ Menu** / **Komyo Games ›**
 nav. Every game follows the same flow: **menu (pick a mode) → play → scoreboard (with share
 buttons)**. The home page groups tiles into **Single player** and **Multiplayer** sections.
 
@@ -89,7 +89,7 @@ games.js          catalogue manifest
 analytics.js      consent-gated GA4 loader
 game-kit.js      shared game shell (sound+mute, nav, share row, PWA auto-update)
 game-kit.css     shared shell styles
-favicon.svg       komyo icon
+favicon.svg       Komyo Games icon
 manifest.json     PWA manifest      sw.js   service worker (offline)
 CNAME             custom domain (komyo.online)   .nojekyll   serve files as-is on GitHub Pages
 test.mjs          catalogue + Keep Defender harness
