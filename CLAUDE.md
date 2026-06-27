@@ -122,7 +122,7 @@ generated levels; SFX via `komyo.sound`, music gain via `komyo.music.subscribe`,
 
 ## Catalogue specifics
 
-- **GA4** (`G-FCZMM2CQLW`) is **consent-gated**: `analytics.js` loads gtag only after the cookie
+- **GA4** (`G-S4JQPYNDNM`) is **consent-gated**: `analytics.js` loads gtag only after the cookie
   banner's *Accept* (stored in `localStorage.komyo_consent`, shared across the origin so per-game
   pages track too). Footer says **"no ads · no payments · plays offline."**
 - **OG/Twitter** meta + `og-image.png` (1200×630, a letterboxed page screenshot). Regenerate it on

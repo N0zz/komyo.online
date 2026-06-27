@@ -2,7 +2,7 @@
 // Consent lives in localStorage('komyo_consent') and is shared across komyo.online,
 // so a single "Accept" enables per-game pageview tracking on every game too.
 (function () {
-  var GA_ID = 'G-FCZMM2CQLW';
+  var GA_ID = 'G-S4JQPYNDNM';
   var loaded = false;
   window.komyoLoadGA = function () {
     if (loaded) return;
