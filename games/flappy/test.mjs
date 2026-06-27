@@ -329,6 +329,32 @@ section('pendingGapY cleared on restart');
   }
 }
 
+// (o) end screen restarts on tap/click (debounced) and on Space (immediate)
+section('End-screen restart inputs');
+{
+  g = runGame(); T().start();
+  while (T().state === 'playing') T().step(1);
+  ok(T().state === 'over', 'restart-inputs: game ended');
+  // Immediate goScreen pointerdown is swallowed by the death-tap debounce window.
+  g.getEl('goScreen').fire('pointerdown', { target: g.getEl('goScreen') });
+  ok(T().state === 'over', 'immediate end-screen tap is debounced (no instant restart from death-tap)');
+  // Space restarts immediately (deliberate keypress, no debounce).
+  g.fireKey(' ');
+  ok(T().state === 'playing', 'Space restarts the end screen');
+  ok(T().bird.vy < 0, 'Space restart gives upward impulse, got ' + T().bird.vy);
+}
+
+// (p) "Play again" button restarts (debounced, so guard against the death-tap via a later step)
+section('Play again button');
+{
+  g = runGame(); T().start();
+  while (T().state === 'playing') T().step(1);
+  ok(T().state === 'over', 'play-again: game ended');
+  // againBtn click is also debounced against the death-tap; click then is a no-op immediately.
+  g.getEl('againBtn').fire('click', { target: g.getEl('againBtn') });
+  ok(T().state === 'over', 'play-again click is debounced immediately after death');
+}
+
 // ----------------------------------------------------------------
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);
