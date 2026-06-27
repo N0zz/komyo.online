@@ -20,12 +20,11 @@
   html,body { margin:0; height:100%; overflow:hidden; background:var(--sky); color:var(--ink);
     font-family: Georgia, "Times New Roman", serif; user-select:none; touch-action:none; }
   #game { display:block; width:100vw; height:100vh; }
-  /* HUD is positioned center-top by the shared kit (.funyo-hud); keep only the score/best
-     colour variants here so the kit owns layout and the sound menu never collides. */
-  #hud .score { font-size:28px; font-weight:bold; color:#3a2a17; text-shadow:0 1px 0 rgba(255,255,255,0.6); }
-  #hud .best  { font-size:12px; color:#7a6050; letter-spacing:1px; }
-  #hud.night .score { color:#fdf6e3; text-shadow:0 1px 4px rgba(0,0,0,0.5); }
-  #hud.night .best  { color:#c0b080; }
+  /* HUD is positioned center-top by the shared kit (.funyo-hud), which is a DARK pill with
+     light text. Keep the text light in BOTH day & night so it reads on that pill (no day/night
+     colour overrides) — only size/weight live here so the kit owns layout & colour. */
+  #hud .score { font-size:28px; font-weight:bold; text-shadow:0 1px 4px rgba(0,0,0,0.5); }
+  #hud .best  { font-size:12px; color:rgba(255,255,255,0.75); letter-spacing:1px; }
   #overlay { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; gap:14px; background:rgba(184,228,249,0.88); padding:24px; }
   #overlay.hidden { display:none; }
@@ -142,8 +141,10 @@
   const BIRD_R      = 14;
   const HITBOX_SHRINK = 4;    // was 3 — slightly more forgiving
 
-  // ---- Mode ----
-  let mode = 'day'; // 'day' | 'night'
+  // ---- Mode (persisted so it survives reload / the kit Menu button) ----
+  const MODE_KEY = 'flappy_mode';
+  let mode = (localStorage.getItem(MODE_KEY) === 'night') ? 'night' : 'day'; // 'day' | 'night'
+  function saveMode(m) { localStorage.setItem(MODE_KEY, m); }
 
   function applyModeUI() {
     if (mode === 'night') {
@@ -164,8 +165,8 @@
   }
 
   if ($('modeDay')) {
-    $('modeDay').addEventListener('click', () => { mode = 'day'; applyModeUI(); updateHud(); refreshMenu(); });
-    $('modeNight').addEventListener('click', () => { mode = 'night'; applyModeUI(); updateHud(); refreshMenu(); });
+    $('modeDay').addEventListener('click', () => { mode = 'day'; saveMode(mode); applyModeUI(); updateHud(); refreshMenu(); });
+    $('modeNight').addEventListener('click', () => { mode = 'night'; saveMode(mode); applyModeUI(); updateHud(); refreshMenu(); });
   }
 
   // ---- RNG (seedable) ----
