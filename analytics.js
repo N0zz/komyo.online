@@ -1,4 +1,4 @@
-// komyo analytics — GA4, loaded ONLY after the visitor consents on the home page.
+// Komyo Games analytics — GA4, loaded ONLY after the visitor consents on the home page.
 // Consent lives in localStorage('gamekit_consent') and is shared across komyo.online,
 // so a single "Accept" enables per-game pageview tracking on every game too.
 (function () {

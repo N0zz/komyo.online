@@ -1,8 +1,8 @@
-# komyo
+# Komyo Games
 
 > A small catalogue of free, self-contained browser games. No ads, no payments, no subscriptions — plays in any modern browser, installable as a PWA, and works offline. Source-available under PolyForm Noncommercial 1.0.0.
 
-komyo is a hobby project. Each game is a single self-contained HTML/Canvas + vanilla-JS page following the same flow: menu (pick a mode) → play → scoreboard (with share). Scores and progress stay on the player's device; the only analytics is Google Analytics, loaded only if the visitor accepts the cookie banner.
+Komyo Games is a hobby project. Each game is a single self-contained HTML/Canvas + vanilla-JS page following the same flow: menu (pick a mode) → play → scoreboard (with share). Scores and progress stay on the player's device; the only analytics is Google Analytics, loaded only if the visitor accepts the cookie banner.
 
 ## Games
 

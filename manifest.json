@@ -1,6 +1,6 @@
 {
-  "name": "komyo",
-  "short_name": "komyo",
+  "name": "Komyo Games",
+  "short_name": "Komyo Games",
   "description": "A little catalogue of self-contained browser games — playable offline.",
   "start_url": ".",
   "scope": ".",
