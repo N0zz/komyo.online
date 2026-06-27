@@ -10,11 +10,13 @@
 .funyo-mute { min-width: 34px; font-size: 14px; line-height: 0; }
 
 .funyo-share { display: flex; gap: 9px; justify-content: center; align-items: center; flex-wrap: wrap; --funyo-accent: #9fe8ff; }
-.funyo-share-lbl { font: 700 11px/1 ui-monospace, monospace; letter-spacing: 1.5px; text-transform: uppercase; opacity: .55; margin-right: 2px; }
-.funyo-share .sbtn { appearance: none; -webkit-appearance: none; font: inherit; margin: 0; line-height: 0;
-  display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0; cursor: pointer;
-  color: #cfe6f5; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 9px;
-  text-decoration: none; transition: color .12s, border-color .12s, background .12s; }
-.funyo-share .sbtn svg { width: 18px; height: 18px; fill: currentColor; display: block; }
-.funyo-share .sbtn:hover { color: #fff; border-color: var(--funyo-accent); background: rgba(255, 255, 255, 0.12); }
-.funyo-share .sbtn.ok { color: #7fe0a0; border-color: #7fe0a0; }
+/* visual props are !important so a game's broad `#overlay button {…}` rule can't clobber these icon
+   buttons (that was collapsing the copy <button>'s icon to zero width). */
+.funyo-share .sbtn { appearance: none !important; -webkit-appearance: none !important; font: inherit !important; margin: 0 !important;
+  line-height: 0 !important; display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  width: 38px !important; height: 38px !important; padding: 0 !important; cursor: pointer !important;
+  color: #cfe6f5 !important; background: rgba(255, 255, 255, 0.06) !important; border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 9px !important; box-shadow: none !important; text-decoration: none !important; transition: color .12s, border-color .12s, background .12s; }
+.funyo-share .sbtn svg { width: 18px !important; height: 18px !important; fill: currentColor !important; display: block !important; }
+.funyo-share .sbtn:hover { color: #fff !important; border-color: var(--funyo-accent) !important; background: rgba(255, 255, 255, 0.12) !important; }
+.funyo-share .sbtn.ok { color: #7fe0a0 !important; border-color: #7fe0a0 !important; }

@@ -98,7 +98,6 @@
     var getMsg = (typeof o.message === 'function') ? o.message : function () { return o.message || ''; };
     if (el.classList) el.classList.add('funyo-share');
     el.innerHTML =
-      '<span class="funyo-share-lbl">Share</span>' +
       '<a class="sbtn" data-act="native" href="#" style="display:none" aria-label="Share" title="Share">' + SVG.native + '</a>' +
       '<a class="sbtn" data-act="x" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X">' + SVG.x + '</a>' +
       '<a class="sbtn" data-act="reddit" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit">' + SVG.reddit + '</a>' +
