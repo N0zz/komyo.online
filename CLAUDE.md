@@ -92,6 +92,7 @@ generated levels; SFX via `funyo.sound`, music gain via `funyo.music.subscribe`,
    on a new game (drives the auto **NEW** badge for 7 days). **Whenever you ship a notable update to a
    game (new mode/feature — not every bugfix), bump that game's `updated: "YYYY-MM-DD"`** (drives the
    **UPDATED** badge for 7 days). Keep these dates accurate — they're the only source for those badges.
+   Also **add a `CHANGELOG` bullet** in `index.html` for the change (see Catalogue specifics).
 6. Run **all** the suites and keep them green.
 
 ## Testing
@@ -134,6 +135,14 @@ generated levels; SFX via `funyo.sound`, music gain via `funyo.music.subscribe`,
   UPDATED); **POPULAR** (purple, `badges: ["pick"]`) is manual. Add a type = one map entry + a color
   rule. Header carries a **mascot placeholder**
   (chibi fox-girl inline SVG — swap for real art later).
+- **Changelog:** the `CHANGELOG` array in `index.html` (newest first) drives the 🗒️ Changelog modal
+  (opened from the ☰ menu; date-grouped releases split by `<hr>`, lazy-loaded, searchable incl. by
+  date). Each entry is one **release per date**:
+  `{ date: 'YYYY-MM-DD', title: '…', items: ['New: …', 'Fix: …', 'Added …'] }`. **After shipping any
+  player-facing change, add a bullet** — to today's release if one already exists, otherwise prepend a
+  new dated release. Keep bullets plain-language and about what a *player* notices (a new game, a bug
+  they'd hit, a mode/feature) — **never** internal/kit/test/build/refactor work. Write it for players,
+  not as a commit log.
 - Monetization is optional only: **Buy Me a Coffee** (footer) + GitHub Sponsors (README badge
   only — the footer Sponsor link was removed; footer = coffee + a GitHub-icon repo link).
 
