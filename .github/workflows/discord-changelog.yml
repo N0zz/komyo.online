@@ -18,11 +18,9 @@ jobs:
       - name: Post commit to Discord
         env:
           WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
-          ACTOR: ${{ github.actor }}
           MSG: ${{ github.event.head_commit.message }}
-          URL: ${{ github.event.compare }}
         run: |
           if [ -z "$WEBHOOK" ]; then echo "DISCORD_CHANGELOG_WEBHOOK not set — skipping."; exit 0; fi
-          payload=$(jq -Rn --arg t "🚀 New push to **Komyo Games** by $ACTOR" --arg m "$MSG" --arg u "$URL" \
-            '{username:"Komyo Games", content: ($t + "\n```\n" + $m + "\n```\n" + $u)}')
+          payload=$(jq -Rn --arg t "📝 **Komyo Games** update" --arg m "$MSG" \
+            '{username:"Komyo Games", content: ($t + "\n```\n" + $m + "\n```"), allowed_mentions:{parse:[]}}')
           curl -sS -H "Content-Type: application/json" -d "$payload" "$WEBHOOK"
