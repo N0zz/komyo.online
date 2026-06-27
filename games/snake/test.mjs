@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import path from 'node:path';
 
 const DIR = path.dirname(new URL(import.meta.url).pathname);
+const KIT = fs.readFileSync(path.join(DIR, '../../funyo-kit.js'), 'utf8'); // shared kit, loaded before the game
 let pass = 0, fail = 0;
 const fails = [];
 function ok(cond, msg) { if (cond) { pass++; } else { fail++; fails.push(msg); console.log('  ✗ ' + msg); } }
@@ -107,7 +108,7 @@ function runGame() {
 
   const ctx = vm.createContext(sandbox);
   let bootErr = null;
-  try { vm.runInContext(m[1], ctx, { filename: 'index.html' }); }
+  try { vm.runInContext(KIT, ctx, { filename: 'funyo-kit.js' }); vm.runInContext(m[1], ctx, { filename: 'index.html' }); }
   catch (e) { bootErr = e.stack; }
 
   const api = {
@@ -405,20 +406,6 @@ section('end screen reports final score/length/best');
   ok(g.el('goScore').textContent === finalScore, 'goScore shows final score (got ' + g.el('goScore').textContent + ')');
   ok(String(g.el('goStats').textContent).indexOf(String(finalLen)) >= 0, 'goStats shows final length (' + g.el('goStats').textContent + ')');
   ok(String(g.el('goBest').textContent).indexOf('BEST') >= 0, 'goBest shows best (' + g.el('goBest').textContent + ')');
-}
-
-section('share row present + headless-safe');
-{
-  const g = runGame();
-  ok(g.bootErr === null, 'boots with share wiring: ' + g.bootErr);
-  const x = g.el('shareX'), reddit = g.el('shareReddit'), copy = g.el('shareCopy'), nat = g.el('shareNative');
-  ok(typeof x.href === 'string' && x.href.indexOf('twitter.com') >= 0, 'shareX href set to X intent (' + x.href + ')');
-  ok(typeof reddit.href === 'string' && reddit.href.indexOf('reddit.com') >= 0, 'shareReddit href set (' + reddit.href + ')');
-  ok(x.href.indexOf('games%2Fsnake') >= 0 || x.href.indexOf('games/snake') >= 0, 'share url targets games/snake');
-  // navigator has no .share/.clipboard in harness — these clicks must not throw
-  copy._l.click && copy._l.click.forEach(fn => fn({ preventDefault() {} }));
-  nat._l.click && nat._l.click.forEach(fn => fn({ preventDefault() {} }));
-  ok(true, 'copy/native share clicks are headless-safe (no throw)');
 }
 
 section('slow speed option');

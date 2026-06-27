@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import path from 'node:path';
 
 const DIR = path.dirname(new URL(import.meta.url).pathname);
+const KIT = fs.readFileSync(path.join(DIR, '../../funyo-kit.js'), 'utf8'); // shared kit, loaded before the game
 let pass = 0, fail = 0;
 const fails = [];
 function ok(cond, msg) { if (cond) { pass++; } else { fail++; fails.push(msg); console.log('  ✗ ' + msg); } }
@@ -86,7 +87,7 @@ function runGame() {
   const ctx = vm.createContext(sandbox);
 
   let bootErr = null;
-  try { vm.runInContext(code, ctx, { filename: 'index.html' }); }
+  try { vm.runInContext(KIT, ctx, { filename: 'funyo-kit.js' }); vm.runInContext(code, ctx, { filename: 'index.html' }); }
   catch (e) { bootErr = e.stack; }
 
   return { getEl, win, store, bootErr, T: () => win.__test };
@@ -389,12 +390,6 @@ section('Breakout: end screen shows score/best + share row');
   ok(ge.getEl('overlay').classList.contains('hidden'), 'menu overlay is hidden on game over');
   ok(String(ge.getEl('endScore').textContent) === String(sc), 'end screen shows final score (' + ge.getEl('endScore').textContent + ')');
   ok(Number(ge.getEl('endBest').textContent) >= sc, 'end screen shows best >= score');
-  // share buttons wired with breakout url + live score in text
-  const xHref = ge.getEl('shareX').href || '';
-  ok(xHref.indexOf('twitter.com/intent/tweet') !== -1, 'X share button points at intent/tweet');
-  ok(xHref.indexOf('games%2Fbreakout') !== -1, 'X share url is the breakout page');
-  const rHref = ge.getEl('shareReddit').href || '';
-  ok(rHref.indexOf('reddit.com/submit') !== -1, 'Reddit share button points at submit');
   // Play again returns to a fresh game
   ge.getEl('againBtn').fire('click');
   ok(Te().state === 'playing', 'Play again starts a new game');
@@ -473,7 +468,9 @@ section('Breakout: menu best labels reflect stored per-mode bests');
     requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, setInterval: () => 0, clearInterval: () => {},
     matchMedia: () => ({ matches: false }), URLSearchParams, Math, JSON, String, Number, Array, Object, parseInt, parseFloat, isFinite, isNaN, Date, console };
   sandbox.globalThis = sandbox;
-  vmmod.runInContext(code, vmmod.createContext(sandbox), { filename: 'index.html' });
+  const seedCtx = vmmod.createContext(sandbox);
+  vmmod.runInContext(KIT, seedCtx, { filename: 'funyo-kit.js' });
+  vmmod.runInContext(code, seedCtx, { filename: 'index.html' });
   ok(getEl('bestClassic').textContent === 'best: 250', 'classic best label shows stored best (got ' + getEl('bestClassic').textContent + ')');
   ok(getEl('bestEndless').textContent === 'best: 99', 'endless best label shows stored best (got ' + getEl('bestEndless').textContent + ')');
   ok(getEl('bestSurvival').textContent === 'best: 7', 'survival best label shows stored best (got ' + getEl('bestSurvival').textContent + ')');
@@ -509,7 +506,9 @@ section('Breakout: 2× speed pref restored at boot from storage');
     requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, setInterval: () => 0, clearInterval: () => {},
     matchMedia: () => ({ matches: false }), URLSearchParams, Math, JSON, String, Number, Array, Object, parseInt, parseFloat, isFinite, isNaN, Date, console };
   sandbox.globalThis = sandbox;
-  vmmod.runInContext(code, vmmod.createContext(sandbox), { filename: 'index.html' });
+  const seedCtx2 = vmmod.createContext(sandbox);
+  vmmod.runInContext(KIT, seedCtx2, { filename: 'funyo-kit.js' });
+  vmmod.runInContext(code, seedCtx2, { filename: 'index.html' });
   ok(win.__test.speedMult === 2, 'speedMult restored to 2 from stored pref (got ' + win.__test.speedMult + ')');
   ok(mkEl('speed2x').checked === true, 'speed checkbox reflects restored pref');
 }

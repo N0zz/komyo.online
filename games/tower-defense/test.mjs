@@ -7,6 +7,7 @@ import vm from 'node:vm';
 import path from 'node:path';
 
 const DIR = path.dirname(new URL(import.meta.url).pathname);
+const KIT = fs.readFileSync(path.join(DIR, '../../funyo-kit.js'), 'utf8'); // shared kit, loaded before the game
 let pass = 0, fail = 0; const fails = [];
 const ok = (c, m) => { if (c) pass++; else { fail++; fails.push(m); console.log('  ✗ ' + m); } };
 const section = t => console.log('\n=== ' + t + ' ===');
@@ -41,7 +42,7 @@ function runInline(file) {
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
   let bootErr = null;
-  try { vm.runInContext(m[1], ctx, { filename: file }); } catch (e) { bootErr = e.stack; }
+  try { vm.runInContext(KIT, ctx, { filename: 'funyo-kit.js' }); vm.runInContext(m[1], ctx, { filename: file }); } catch (e) { bootErr = e.stack; }
   return { getEl, win, store, bootErr, test: () => win.__test };
 }
 
@@ -112,9 +113,11 @@ function run() {
   const ov = g2.getEl('overlay');
   ok(/Play again/.test(ov.innerHTML), 'END screen has a Play again action');
   ok(/Waves survived/.test(ov.innerHTML), 'END screen reports waves survived');
-  ok(/class="share"/.test(ov.innerHTML), 'END screen has a share row');
-  ok(/id="shareX"/.test(ov.innerHTML) && /id="shareReddit"/.test(ov.innerHTML) && /id="shareCopy"/.test(ov.innerHTML), 'share row has X / Reddit / Copy buttons');
-  ok(/funyo\.online(%2F|\/)games(%2F|\/)tower-defense/.test(ov.innerHTML), 'share links point at the game URL');
+  ok(/id="shareRow"/.test(ov.innerHTML), 'END screen has a funyo-kit share row mount');
+  const sr = g2.getEl('shareRow');
+  ok(/data-act="x"/.test(sr.innerHTML) && /data-act="reddit"/.test(sr.innerHTML) && /data-act="copy"/.test(sr.innerHTML), 'share row has X / Reddit / Copy buttons');
+  const su = g2.win.funyo.shareUrls('https://funyo.online/games/tower-defense/', 'I survived 3 waves in Keep Defender 🏰');
+  ok(/funyo\.online(%2F|\/)games(%2F|\/)tower-defense/.test(su.x) && /tower-defense/.test(su.copy), 'share links point at the game URL');
 
   section('maps (≥5 distinct layouts)');
   const g3 = runInline('index.html'); const M = () => g3.test();

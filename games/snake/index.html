@@ -12,16 +12,13 @@
 <meta name="apple-mobile-web-app-title" content="Neon Snake">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../funyo-kit.css">
+<script src="../../funyo-kit.js"></script>
 <style>
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; height:100%; overflow:hidden; background:#050a0f; color:#b0f0ff;
     font-family: 'Courier New', Courier, monospace; user-select:none; touch-action:none; }
   #game { display:block; width:100vw; height:100vh; }
-  .back { position:fixed; top:8px; left:10px; z-index:9; font-family:inherit; font-size:12px; letter-spacing:1px;
-    color:#b0f0ff; text-decoration:none; background:rgba(0,20,30,0.7); border:1px solid #0af; border-radius:7px; padding:6px 10px;
-    text-shadow:0 0 8px #0af; cursor:pointer; }
-  .nav { position:fixed; top:8px; left:10px; z-index:9; display:flex; gap:8px; }
-  .nav .back { position:static; top:auto; left:auto; }
   #hud { position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:5; display:flex; gap:24px;
     background:rgba(0,10,20,0.75); border:1px solid #0af3; border-radius:8px; padding:6px 18px;
     font-size:14px; letter-spacing:2px; pointer-events:none; }
@@ -47,15 +44,7 @@
   #goBest.newbest { color:#0ff; opacity:1; text-shadow:0 0 14px #0ff; }
   .screen { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px; width:100%; }
   .screen.hidden { display:none; }
-  /* ---- Share row (END screen) ---- */
-  .share { display:flex; gap:9px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:4px; }
-  .share .lbl { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(150,195,215,0.6); margin-right:2px; }
-  .share .sbtn { appearance:none; -webkit-appearance:none; font:inherit; margin:0; line-height:0;
-    display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; padding:0; cursor:pointer;
-    color:#0ff; background:transparent; border:1px solid #0ff5; border-radius:9px; text-shadow:none; box-shadow:none; transition:all 0.12s; }
-  .share .sbtn svg { width:18px; height:18px; fill:currentColor; display:block; }
-  .share .sbtn:hover { color:#fff; border-color:#0ff; box-shadow:0 0 14px #0af6; }
-  .share .sbtn.ok { color:#7fffb0; border-color:#7fffb0; box-shadow:0 0 14px rgba(127,255,176,0.6); }
+  #shareRow { --funyo-accent:#0ff; }
   .opts { display:flex; flex-direction:column; gap:11px; width:100%; max-width:380px; }
   .opt-row { display:grid; grid-template-columns:54px 1fr; align-items:center; gap:12px; }
   .opt-label { font-size:11px; letter-spacing:2px; opacity:0.55; text-align:left; }
@@ -80,10 +69,6 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<div class="nav">
-  <button class="back" id="menuBtn" type="button">&#x2039; Menu</button>
-  <a class="back" href="../../">funyo &#x203A;</a>
-</div>
 <div id="hud">
   <div><div class="lbl">SCORE</div><b id="scoreEl">0</b></div>
   <div><div class="lbl">BEST</div><b id="bestEl">0</b></div>
@@ -130,17 +115,7 @@
   <div id="goStats">LENGTH 1</div>
   <div id="goBest">BEST: 0</div>
   <button id="restartBtn" style="margin-top:8px;">PLAY AGAIN</button>
-  <div class="share">
-    <span class="lbl">Share</span>
-    <a class="sbtn" id="shareNative" href="#" style="display:none" aria-label="Share…" title="Share…">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></a>
-    <a class="sbtn" id="shareX" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-    <a class="sbtn" id="shareReddit" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12c-.688 0-1.25.561-1.25 1.25 0 .687.562 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.688-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg></a>
-    <button class="sbtn" id="shareCopy" type="button" aria-label="Copy link" title="Copy link">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button>
-  </div>
+  <div id="shareRow"></div>
 </div>
 </div>
 
@@ -158,18 +133,13 @@
   const bestEl = document.getElementById('bestEl');
   const lenEl = document.getElementById('lenEl');
 
-  // ---- Audio ----
-  const SND = (() => {
-    let ac;
-    function ensure() { if (ac !== undefined) return; const AC = window.AudioContext || window.webkitAudioContext; ac = AC ? new AC() : null; }
-    function tone(f, d, type, g) { if (!ac) return; const o = ac.createOscillator(), v = ac.createGain(); o.type = type || 'sine'; o.frequency.value = f; v.gain.value = g || 0.1; v.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d); o.connect(v); v.connect(ac.destination); o.start(); o.stop(ac.currentTime + d); }
-    const S = {
-      eat: () => { tone(660, 0.06, 'square', 0.12); tone(880, 0.08, 'sine', 0.07); },
-      turn: () => tone(220, 0.03, 'triangle', 0.04),
-      crash: () => { [220, 165, 110].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'sawtooth', 0.14), i * 80)); },
-    };
-    return { play(n) { ensure(); if (ac && ac.state === 'suspended') ac.resume(); (S[n] || (() => {}))(); } };
-  })();
+  // ---- Audio (funyo-kit shared engine + global mute) ----
+  const SND = window.funyo.sound;
+  SND.define({
+    eat: ({ tone }) => { tone(660, 0.06, 'square', 0.12); tone(880, 0.08, 'sine', 0.07); },
+    turn: ({ tone }) => tone(220, 0.03, 'triangle', 0.04),
+    crash: ({ tone }) => { [220, 165, 110].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'sawtooth', 0.14), i * 80)); },
+  });
 
   // ---- Grid sizes ----
   const GRID_SIZES = {
@@ -587,35 +557,12 @@
   const restartBtn = document.getElementById('restartBtn');
   if (restartBtn) restartBtn.addEventListener('click', startGame);
 
-  // ---- Share buttons (END screen) — mirrors index.html footer wiring ----
-  (function () {
-    const url = 'https://funyo.online/games/snake/';
-    const enc = (typeof encodeURIComponent === 'function') ? encodeURIComponent : (s => String(s));
-    const shareText = () => 'I scored ' + score + ' in Neon Snake 🐍';
-    const x = document.getElementById('shareX'), reddit = document.getElementById('shareReddit');
-    const setHref = (e, href) => { if (e) e.href = href; };
-    const refreshLinks = () => {
-      const t = enc(shareText());
-      setHref(x, 'https://twitter.com/intent/tweet?text=' + t + '&url=' + enc(url));
-      setHref(reddit, 'https://www.reddit.com/submit?url=' + enc(url) + '&title=' + t);
-    };
-    if (x) x.addEventListener('click', refreshLinks);
-    if (reddit) reddit.addEventListener('click', refreshLinks);
-    refreshLinks();
-    const cp = document.getElementById('shareCopy');
-    if (cp) cp.addEventListener('click', () => {
-      const done = () => { cp.classList.add('ok'); cp.title = 'Copied!'; setTimeout(() => { cp.classList.remove('ok'); cp.title = 'Copy link'; }, 1500); };
-      try { if (navigator.clipboard) navigator.clipboard.writeText(shareText() + '\n' + url).then(done).catch(() => {}); } catch (e) {}
-    });
-    const ns = document.getElementById('shareNative');
-    if (ns && typeof navigator !== 'undefined' && navigator.share) {
-      ns.style.display = '';
-      ns.addEventListener('click', (e) => { e.preventDefault(); try { navigator.share({ title: 'Neon Snake', text: shareText(), url: url }).catch(() => {}); } catch (_) {} });
-    }
-  })();
-
-  const menuBtn = document.getElementById('menuBtn');
-  if (menuBtn) menuBtn.addEventListener('click', () => { try { location.reload(); } catch (e) {} });
+  // ---- Share row + top nav (funyo-kit) ----
+  window.funyo.shareRow(document.getElementById('shareRow'), {
+    slug: 'snake', title: 'Neon Snake',
+    message: () => 'I scored ' + score + ' in Neon Snake 🐍',
+  });
+  window.funyo.nav({ mute: true });
 
   loadOpts();
   applyGridSize();
@@ -628,11 +575,7 @@
   reset();
   requestAnimationFrame(loop);
 })();
-  if ('serviceWorker' in navigator) {
-    var swReloaded = false, hadController = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener('controllerchange', function () { if (swReloaded || !hadController) return; swReloaded = true; location.reload(); });
-    window.addEventListener('load', function () { try { navigator.serviceWorker.register('sw.js').then(function (reg) { reg.update(); setInterval(function () { reg.update(); }, 3600000); }).catch(function () {}); } catch (e) {} });
-  }
+  window.funyo.pwa();
 </script>
 </body>
 </html>

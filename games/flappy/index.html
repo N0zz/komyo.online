@@ -12,17 +12,14 @@
 <meta name="apple-mobile-web-app-title" content="Meadow Flyer">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../funyo-kit.css">
+<script src="../../funyo-kit.js"></script>
 <style>
   :root { --sky:#b8e4f9; --grass:#7ec850; --stem:#5a9e30; --petal:#f9c0c0; --cream:#fdf6e3; --ink:#3a2a17; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; height:100%; overflow:hidden; background:var(--sky); color:var(--ink);
     font-family: Georgia, "Times New Roman", serif; user-select:none; touch-action:none; }
   #game { display:block; width:100vw; height:100vh; }
-  .back { position:fixed; top:8px; left:10px; z-index:9; font-family:inherit; font-size:12px; letter-spacing:1px;
-    color:var(--ink); text-decoration:none; background:rgba(253,246,227,0.72); border:1px solid rgba(58,42,23,0.3);
-    border-radius:7px; padding:6px 10px; cursor:pointer; }
-  .nav { position:fixed; top:8px; left:10px; z-index:9; display:flex; gap:8px; }
-  .nav .back { position:static; top:auto; left:auto; }
   #hud { position:fixed; top:10px; right:14px; z-index:5; text-align:right; pointer-events:none; left:170px; }
   /* Portrait: nav stacks tighter to the left but the bar still owns the top — drop the HUD
      below the nav so the score never overlaps the ‹ Menu / funyo › buttons. */
@@ -76,22 +73,11 @@
   #goScreen .goBest  { font-size:14px; color:#e0cca0; letter-spacing:1px; }
   #goScreen .goHint  { font-size:13px; color:rgba(253,246,227,0.6); margin-top:4px; }
   #goScreen { pointer-events:all; }
-  #goScreen .share { display:flex; gap:9px; justify-content:center; flex-wrap:wrap; align-items:center; margin-top:6px; }
-  #goScreen .share .lbl { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(253,246,227,0.6); margin-right:2px; }
-  #goScreen .share .sbtn { appearance:none; -webkit-appearance:none; font:inherit; margin:0; line-height:0;
-    display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; padding:0; cursor:pointer;
-    color:#fdf6e3; background:rgba(253,246,227,0.12); border:1px solid rgba(253,246,227,0.35); border-radius:9px; text-decoration:none; transition:color 0.15s, border-color 0.15s; }
-  #goScreen .share .sbtn svg { width:18px; height:18px; fill:currentColor; display:block; }
-  #goScreen .share .sbtn:hover { color:#fff; border-color:#f9e080; }
-  #goScreen .share #shareCopy.ok { color:#7fe0a0; border-color:#7fe0a0; }
+  #shareRow { --funyo-accent:#8fd3a6; }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div class="nav">
-  <button class="back" id="menuBtn" type="button">&#x2039; Menu</button>
-  <a class="back" href="../../">funyo &#x203A;</a>
-</div>
 <div id="hud">
   <div class="score" id="scoreEl">0</div>
   <div class="best"  id="bestEl">BEST 0</div>
@@ -114,17 +100,7 @@
   <h2>Oh no!</h2>
   <div class="goScore" id="goScoreEl">Score: 0</div>
   <div class="goBest"  id="goBestEl">BEST 0</div>
-  <div class="share" id="shareRow">
-    <span class="lbl">Share</span>
-    <a class="sbtn" id="shareNative" href="#" style="display:none" aria-label="Share…" title="Share…">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></a>
-    <a class="sbtn" id="shareX" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-    <a class="sbtn" id="shareReddit" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12c-.688 0-1.25.561-1.25 1.25 0 .687.562 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.688-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg></a>
-    <button class="sbtn" id="shareCopy" type="button" aria-label="Copy link" title="Copy link">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button>
-  </div>
+  <div id="shareRow"></div>
   <div class="goHint">Tap / Click / Space to try again</div>
 </div>
 <script>
@@ -147,20 +123,13 @@
     };
   }
 
-  // ---- Audio ----
-  const SND = (() => {
-    let ac;
-    function ensure() { if (ac !== undefined) return; const AC = window.AudioContext || window.webkitAudioContext; ac = AC ? new AC() : null; }
-    function tone(f, d, type, g) { if (!ac) return; const o = ac.createOscillator(), v = ac.createGain(); o.type = type || 'sine'; o.frequency.value = f; v.gain.value = g || 0.1; v.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d); o.connect(v); v.connect(ac.destination); o.start(); o.stop(ac.currentTime + d); }
-    const S = {
-      flap: () => { tone(520, 0.06, 'sine', 0.07); tone(680, 0.04, 'sine', 0.04); },
-      score: () => { [660, 880].forEach((f, i) => setTimeout(() => tone(f, 0.1, 'sine', 0.08), i * 60)); },
-      hit: () => { tone(180, 0.25, 'sawtooth', 0.18); tone(120, 0.3, 'square', 0.1); },
-    };
-    return {
-      play(n) { ensure(); if (ac && ac.state === 'suspended') ac.resume(); if (ac) (S[n] || (() => {}))(); }
-    };
-  })();
+  // ---- Audio (funyo-kit shared engine + global mute) ----
+  const SND = window.funyo.sound;
+  SND.define({
+    flap: ({ tone }) => { tone(520, 0.06, 'sine', 0.07); tone(680, 0.04, 'sine', 0.04); },
+    score: ({ tone }) => { [660, 880].forEach((f, i) => setTimeout(() => tone(f, 0.1, 'sine', 0.08), i * 60)); },
+    hit: ({ tone }) => { tone(180, 0.25, 'sawtooth', 0.18); tone(120, 0.3, 'square', 0.1); },
+  });
 
   // ---- Constants ----
   const GRAVITY     = 0.28;   // was 0.38 — gentler fall
@@ -339,7 +308,6 @@
     updateHud();
     $('goScoreEl').textContent = 'Score: ' + score;
     $('goBestEl').textContent = 'BEST ' + best;
-    updateShareLinks();
     goScreen.classList.remove('hidden');
   }
 
@@ -751,34 +719,12 @@
   goScreen.addEventListener('pointerdown', e => { if (fromShare(e)) return; tryRestart(); });
   goScreen.addEventListener('click', e => { if (fromShare(e)) return; tryRestart(); });
 
-  // ---- Share (end screen) — reuses the catalogue footer's icons + wiring ----
-  function shareText() { return 'I flew to ' + score + ' in Meadow Flyer 🐤'; }
-  function updateShareLinks() {
-    const url = 'https://funyo.online/games/flappy/';
-    const text = shareText();
-    const enc = (typeof encodeURIComponent === 'function') ? encodeURIComponent : (s => String(s));
-    const u = enc(url), t = enc(text);
-    const set = (id, href) => { const e = $(id); if (e) e.href = href; };
-    set('shareX', 'https://twitter.com/intent/tweet?text=' + t + '&url=' + u);
-    set('shareReddit', 'https://www.reddit.com/submit?url=' + u + '&title=' + t);
-    const ns = $('shareNative');
-    if (ns && typeof navigator !== 'undefined' && navigator.share) ns.style.display = '';
-  }
-  (function wireShare() {
-    const url = 'https://funyo.online/games/flappy/';
-    const cp = $('shareCopy');
-    if (cp) cp.addEventListener('click', e => {
-      e.preventDefault();
-      const payload = shareText() + '\n' + url;
-      const done = () => { cp.classList.add('ok'); cp.title = 'Copied!'; setTimeout(() => { cp.classList.remove('ok'); cp.title = 'Copy link'; }, 1500); };
-      try { if (navigator.clipboard) navigator.clipboard.writeText(payload).then(done).catch(() => {}); } catch (err) {}
-    });
-    const ns = $('shareNative');
-    if (ns && typeof navigator !== 'undefined' && navigator.share) {
-      ns.style.display = '';
-      ns.addEventListener('click', e => { e.preventDefault(); navigator.share({ title: 'Meadow Flyer', text: shareText(), url: url }).catch(() => {}); });
-    }
-  })();
+  // ---- Share row + top nav (funyo-kit) ----
+  window.funyo.shareRow(document.getElementById('shareRow'), {
+    slug: 'flappy', title: 'Meadow Flyer',
+    message: () => 'I flew to ' + score + ' in Meadow Flyer 🐤',
+  });
+  window.funyo.nav({ mute: true });
 
   // ---- Test hook ----
   window.__test = {
@@ -812,16 +758,10 @@
     setScore(v) { score = v; updateHud(); },
   };
 
-  document.getElementById('menuBtn').addEventListener('click', () => { try { location.reload(); } catch (e) {} });
-
   applyModeUI();
   resize(); updateHud(); refreshMenu(); loop();
 })();
-  if ('serviceWorker' in navigator) {
-    var swReloaded = false, hadController = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener('controllerchange', function () { if (swReloaded || !hadController) return; swReloaded = true; location.reload(); });
-    window.addEventListener('load', function () { try { navigator.serviceWorker.register('sw.js').then(function (reg) { reg.update(); setInterval(function () { reg.update(); }, 3600000); }).catch(function () {}); } catch (e) {} });
-  }
+  window.funyo.pwa();
 </script>
 </body>
 </html>
