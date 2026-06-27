@@ -14,34 +14,33 @@ Guidance for working in this repo. Read before editing.
 index.html      catalogue (renders tiles from games.js) + PWA install + share + feedback + newsletter
 games.js        catalogue manifest — window.GAMES = [{slug,title,blurb,icon,accent,tag,soon?}]
 analytics.js    GA4 loader, consent-gated (see "Analytics")
-test.mjs        top-level harness: catalogue wiring + Keep Defender logic + live-games boot loop
+funyo-kit.js    SHARED game shell — sound engine + mute, top nav, share row, PWA auto-update
+funyo-kit.css   shared shell styles (nav buttons, share row)
+test.mjs        top-level harness: catalogue + Keep Defender + live-games boot + funyo-kit test
 manifest.json sw.js favicon.svg og-image.png logo-*.png   CNAME .nojekyll
 games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, icon-192/512.png)
 ```
 
 ## Game conventions (the rules that matter)
 
-- **Self-contained single `index.html`.** No build, no dependencies, **no external assets**
-  (no CDNs/fonts/images). Everything inline; visuals are canvas vector + system fonts +
-  emoji-as-text. (The *catalogue* page is the only exception — it loads `analytics.js`/gtag.)
+- **No external dependencies / assets.** No build, no CDNs/fonts/images — visuals are canvas
+  vector + system fonts + emoji-as-text. Games DO load two **in-repo, same-origin** shared files
+  (`../../funyo-kit.js` + `../../funyo-kit.css`) plus `analytics.js`; these ship with the site and are
+  cached offline (each game's `sw.js` SHELL), so they're not external "dependencies." All
+  game-specific logic stays inline in the one `index.html`.
 - **One inline `<script>` (IIFE) before `</body>`** that sets `window.__test`.
 - **`window.__test` hook** — getters for state + a `step(n)` that drives the core `update()`
   **directly** (never relies on `requestAnimationFrame`, which is a no-op in tests). Must be
   deterministic so the headless harness can drive it. Harmless in normal play.
 - **Headless-safe:** guard `AudioContext` (lazy, inert if absent), `navigator.vibrate` (only
   if present), `matchMedia`; `ctx.roundRect` fallback. Must boot in a mocked DOM without throwing.
-- **Nav:** top-left `‹ Menu` button (reloads → back to the game's own start screen) + a
-  `funyo ›` link to `../../`. HUD must clear the nav in **both portrait and landscape**
-  (centered in the bar; in portrait the HUD drops to its own row below the nav).
+- **Shell comes from funyo-kit** (see "Shared kit"): the nav (‹ Menu · mute · funyo ›), the sound
+  engine + site-wide mute, the end-screen share row, and PWA registration are all `funyo.*` calls —
+  do NOT re-implement them per game. HUD must clear the kit nav in **both portrait and landscape**
+  (the nav sits top-left at 8px; in portrait drop the HUD to its own row below it).
 - **Three-screen schema (every game):** (1) MENU — title + mode/options selection with a
   CLEAR selected-state indicator on the active choice; (2) GAME; (3) SCOREBOARD/END — final
-  score + best (persisted in `localStorage`) + a "Play again" action + a **share row**.
-- **End-screen share row:** reuse the catalogue footer's four icon buttons (Native/X/Reddit/
-  Copy) as a clickable DOM overlay. The message is a complete standalone sentence with NO
-  trailing preposition and NO url in it (e.g. `I scored <n> in Neon Snake 🐍`); the url is
-  `https://funyo.online/games/<slug>/`, passed separately. X uses `?text=<msg>&url=<url>`,
-  Reddit `?url=<url>&title=<msg>`, Native `share({text:msg,url})`, Copy writes `msg + '\n' + url`
-  and flashes `.ok`. Compute the score at click time; guard `navigator.share`/`clipboard`.
+  score + best (persisted in `localStorage`) + a "Play again" action + the kit **share row**.
 - **Each game is its own installable PWA:** `manifest.json` + `sw.js` + `icon-192/512.png`
   (distinct color-emoji icon) + apple/theme meta in `<head>`.
 - **Distinct visual theme per game.** (asteroids=space, keep-defender=castle/parchment,
@@ -49,21 +48,45 @@ games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, icon-19
 - **Responsive:** size the playfield from the viewport (don't hardcode px) so it fits narrow /
   zoomed screens — see the Bubble Pop fit fix.
 
+## Shared kit (`funyo-kit.js` + `funyo-kit.css`)
+
+Load in `<head>` (NOT `defer`, so `window.funyo` exists before the inline script):
+`<link rel="stylesheet" href="../../funyo-kit.css">` then `<script src="../../funyo-kit.js"></script>`.
+API on `window.funyo`:
+
+- `funyo.sound` — shared AudioContext engine + **site-wide mute** (`funyo_muted`). Register a game's
+  sounds with `funyo.sound.define({ name: ({tone,noise}) => {…} })`; play with `funyo.sound.play('name')`
+  (no-ops when muted/headless). Per-game pattern: `const SND = window.funyo.sound; SND.define({…});`
+  then keep every `SND.play('…')` call.
+- `funyo.nav({ mute: true })` — injects the top `‹ Menu · 🔊 · funyo ›` bar (Menu reloads; mute toggles sound).
+- `funyo.shareRow(el, { slug, title, message })` — builds + wires Native/X/Reddit/Copy into `el`;
+  `message` is a function → a standalone sentence (no url), evaluated at click time.
+- `funyo.pwa()` — auto-update SW registration (reload once when a new worker takes control).
+- `funyo.shareUrls(url, msg)` — pure helper the kit test asserts.
+
+Each game's `sw.js` SHELL must include `'../../funyo-kit.js','../../funyo-kit.css'` (offline). The kit
+is fully headless-safe (every browser API guarded). **Asteroids does NOT use the kit yet** (bespoke launcher).
+
 ## Adding / changing a game
 
-1. `games/<slug>/index.html` — self-contained, with the `__test` hook + nav.
-2. `games/<slug>/test.mjs` — dependency-free headless harness (mock DOM/canvas, drive via `__test`).
+1. `games/<slug>/index.html` — load funyo-kit in `<head>`; use `funyo.nav`/`funyo.sound`/`funyo.shareRow`/
+   `funyo.pwa` for the shell; keep game logic inline with the `__test` hook.
+2. `games/<slug>/test.mjs` — dependency-free harness; **preload the kit** (read `../../funyo-kit.js`,
+   run it in the sandbox before the inline script), then drive via `__test`.
 3. Icon: render a 512 color-emoji PNG via Chrome headless, downscale to 192 (`sips`).
-4. `manifest.json` + `sw.js` (network-first, cache the one HTML + icons).
+4. `manifest.json` + `sw.js` (network-first; SHELL = the HTML + icons + the two `../../funyo-kit.*` files).
 5. Add an entry to `games.js` (`soon: true` = greyed "coming soon" tile).
 6. Run **all** the suites and keep them green.
 
 ## Testing
 
-- `node test.mjs` — top-level (catalogue + Keep Defender + boots every live game, checks `__test`).
-- `node games/<slug>/test.mjs` — each game's own suite. `node games/asteroids/test.mjs` too.
+- `node test.mjs` — top-level: catalogue + Keep Defender + boots every live game (kit preloaded) +
+  a **funyo-kit** test section.
+- `node games/<slug>/test.mjs` — each game's own suite (each preloads `../../funyo-kit.js` before the
+  game script). `node games/asteroids/test.mjs` too (asteroids is bespoke — no kit).
 - The inline-script extractor grabs the **last attribute-less `<script>` before `</body>`**, so
-  external `<script src=...>` (analytics.js, gtag) in `<head>` don't confuse it. Keep that pattern.
+  `<script src=...>` (analytics.js, **funyo-kit.js**, gtag) in `<head>` don't confuse it. The kit is
+  loaded as a separate sandbox pre-script (the real `funyo-kit.js`). Keep that pattern.
 - No browser automation here — the harness is the regression net. Always run after changes.
 
 ## Git & deploy

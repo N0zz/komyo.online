@@ -1,19 +1,13 @@
 # funyo Roadmap
 
 Working notes for what to build / improve next. Open items only — not a promise of order.
-
-## Per-game polish (feel / balance)
-
-- **Stack** — speed up the base loop; on landscape, narrow/center the play column so the block
-  doesn't crawl across the full width.
-- **Brick Breaker** — denser bricks, more/earlier power-ups (pairs with the "faster from start" fix).
-- **Meadow Flyer** — gentler defaults (bigger gaps, slower scroll, forgiving hitbox) + speed-up over
-  time so a run builds tension.
-- **Range** — add a Sprint mode (time to reach 100 points) alongside the timed modes.
+Per-game feel/balance polish is **continuous** and not tracked here.
 
 ## Coming-soon games (queue)
 
 Effort tiers: trivial / low / med / high — each a self-contained single file with a `__test` hook.
+Aim: ship **lots** of games, but each one **polished with real depth** — added slowly, in small
+batches or one at a time (not a dump of shallow POCs).
 
 ### Single player
 
@@ -55,11 +49,25 @@ tiles). More ideas: Sumo Arena, Spacewar Duel, Joust-lite, Snake Battle, Button-
 
 ### Growth levers (highest impact)
 
-1. **Daily Challenge** 🏆 — one seeded run per day (same board for everyone), personal best saved
-   locally. The Wordle effect: a reason to come back daily. Start with one game, then go cross-game.
-2. **Shareable score cards** *(deferred — staying with plain text+link share for now)* — upgrade
+**🔴 HIGH PRIORITY right now: Daily Challenges · Score-card share · Embeddable games.**
+
+1. **Daily & weekly Challenges** 🏆 **(HIGH PRIORITY)** — a curated **list** of concrete challenges
+   ("Score 2,000 in Bubble Pop", "Survive 10 waves in Keep Defender", "Reach 30 in Meadow Flyer").
+   Pick **today's by date** (`index = dayNumber % list.length`) so everyone gets the same one; plus a
+   bigger **weekly** challenge picked by week-number (Mon–Sun). A collapsible **Challenges panel** on
+   the catalogue lists today's + this week's with progress and a ✅ when done, tracked in the player's
+   space (localStorage). Track a **streak** (consecutive days completed) — the real return hook
+   (= the "Wordle loop": once-a-day, same for everyone, shareable). All client-side: games write their
+   last result to a shared key (`funyo_result_<slug>` = {mode,score,time}); the panel checks it vs the
+   target. No server, honor-system (fine for casual; no leaderboard). Completing one feeds the
+   score-card share ("I beat today's funyo challenge 🔥"). *(Replaces the earlier seeded-run idea —
+   a challenge list is simpler to build, legible, and works across the current games immediately.)*
+2. **Shareable score cards** **(HIGH PRIORITY)** *(text+link shipped; image card is the next build)* — upgrade
    the share to a per-result visual that proves the score and stops the scroll (a link just unfurls
-   the same generic OG image for everyone). Two levels:
+   the same generic OG image for everyone). **Offer BOTH, not image-only:** keep the text/link share
+   row (universal, clickable, works on desktop) AND add a "🖼️ Score card" button for the image;
+   smart-default per platform (image where `navigator.share({files})` works, text/link otherwise) —
+   image-only would break desktop file-sharing and drop the clickable link. Two levels of card:
    - **Level 1 — "Wordle block" (text-only, structured):** a multi-line block that reads like a card
      anywhere (X / Discord / WhatsApp / SMS), e.g. `🐍 funyo · Neon Snake` / `SCORE 4,210 · best 5,120`
      / a 🟩🟩🟩⬜ progress bar / `▶ funyo.online/games/snake`. ~1h, universal, no image hosting.
@@ -70,10 +78,11 @@ tiles). More ideas: Sumo Arena, Spacewar Duel, Joust-lite, Snake Battle, Button-
      the no-external-assets rule. Best done **after** the real mascot art exists.
    - Distinct from the OG image (that's the static server-side link-unfurl preview); the score card is
      a live, per-play image the user actively shares. Rec: ship Level 1 first, then Level 2.
-3. **Personal bests on the tiles** — `your best: 42` under each playable tile (localStorage, zero
-   infra). Turns the catalogue into a trophy shelf.
-4. **Real mascot art** — the chibi fox-girl (Holo-ish, red/orange hair, fox ears) to replace the
-   header placeholder; reuse on social, stickers, 404, newsletter, empty states.
+3. **Real mascot art** *(in progress)* — the chibi fox-girl (Holo-ish, red/orange hair, fox ears)
+   to replace the header placeholder; reuse on social, stickers, 404, newsletter, empty states.
+
+*(Dropped: "personal bests on the tiles" — every game has many modes, so there's no single best to
+show, and it would overcrowd the home page.)*
 
 ### Catalogue UX
 
@@ -92,14 +101,16 @@ tiles). More ideas: Sumo Arena, Spacewar Duel, Joust-lite, Snake Battle, Button-
 - **Export / import player data** — let a player export a JSON of everything funyo keeps in
   localStorage (all per-game bests/top scores, favorites, unlocked birds, cash, settings, consent)
   and paste it on another device to import. No account/server needed. Likely a small modal on the
-  catalogue: "Export" (copy/download the JSON blob) + "Import" (paste → validate → write keys back →
-  reload). Namespacing is easy (our keys are already `arcade_favs`, `funyo_*`, `<slug>_*`). Consider
-  a version field + merge-vs-replace choice, and guard against pasting junk.
+  catalogue: "Export" (copy/download a **base64-encoded** blob) + "Import" (paste → base64-decode →
+  validate → write keys back → reload). Base64 is light obfuscation so non-tech players can't trivially
+  edit their scores — *not* real security. Namespacing is easy (keys are already `arcade_favs`,
+  `funyo_*`, `<slug>_*`, `funyo_result_*`). Add a version field + merge-vs-replace choice, and guard
+  against pasting junk.
 
 ### Distribution
 
 - **"What's new" / changelog page** — doubles as newsletter + social content; ties the loop together.
-- **Embeddable games (iframe snippet)** — "embed this game on your blog" → backlinks + free traffic.
+- **Embeddable games (iframe snippet)** **(HIGH PRIORITY)** — "embed this game on your blog" → backlinks + free traffic.
 - **List on game portals** — itch.io, free-to-play indexes.
 - **Vote-on-next-game** — no DB: external poll (Tally/StrawPoll) or a Discord / GitHub Discussions
   poll; or the zero-infra proxy: track coming-soon tile clicks in GA4 as implicit demand.
@@ -111,8 +122,9 @@ tiles). More ideas: Sumo Arena, Spacewar Duel, Joust-lite, Snake Battle, Button-
     sink, but its URL can't be safely embedded in client JS (public → abuse) → needs a thin relay
     (serverless fn / small bot), ideally rate-limited. Same payload could feed a "recent scores" ticker.
 
-**If picking two things next instead of a new game: shareable score cards + personal bests on
-tiles** — they compound (every play → a potential share, every visit → a reason to return).
+**High-priority trio (do before more games): Daily Challenges · score-card share · embeddable games.**
+They reinforce each other — challenges give a daily reason to return, score cards + challenge-beaten
+posts spread it, embeds pull new players in.
 
 ## Marketing experiments
 
