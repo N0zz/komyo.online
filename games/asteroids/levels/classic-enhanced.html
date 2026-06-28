@@ -176,7 +176,7 @@
   function winRun(){ srDone=true; state='won'; SND.stopMusic(); SND.play('level'); const isBest=saveBest(srElapsed);
     overlay.innerHTML='<h1 class="win">COMPLETE</h1><p>Time: <strong>'+fmtTime(srElapsed)+'</strong>'+(isBest?'  ★ NEW BEST':'')+'</p><p class="hint">'+SR_TARGET_SCORE+' points reached</p><p class="blink">press ENTER or SPACE to run again</p><div class="row">'+MENU_BTN+'</div>'+SHARE_ROW;
     overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
-  function showGameOver(){ SND.stopMusic(); SND.play('over'); const best=!SPEEDRUN&&saveBestScore(score); overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p><div class="row">'+MENU_BTN+'</div>'+SHARE_ROW; overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
+  function showGameOver(){ SND.stopMusic(); SND.play('over'); const best=!SPEEDRUN&&saveBestScore(score); if(window.gamekit&&window.gamekit.recordResult)window.gamekit.recordResult('asteroids',{mode:SPEEDRUN?'speedrun':'',score:score,time:SPEEDRUN?srElapsed:0,stats:{wave:level}}); overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p><div class="row">'+MENU_BTN+'</div>'+SHARE_ROW; overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
 
   function update(){
     applyTouch();

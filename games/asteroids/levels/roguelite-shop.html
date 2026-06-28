@@ -373,9 +373,10 @@
   function saveStat(key,v){ try{ const p=localStorage.getItem(key); if(p==null||v>parseInt(p,10)){ localStorage.setItem(key,String(v)); return true; } }catch(e){} return false; }
   function die(){ state='dead'; if(SPEEDRUN) srDone=true; burst(ship.x,ship.y,'255,160,120',50,5);
     SND.stopMusic(); SND.play('over'); let best=false; if(!SPEEDRUN){ best=saveStat('asteroids_score_'+FILE,score); saveStat('asteroids_wave_'+FILE,wave); }
+    if(window.gamekit&&window.gamekit.recordResult)window.gamekit.recordResult('asteroids',{mode:SPEEDRUN?'speedrun':'',score:score,time:SPEEDRUN?srElapsed:0,stats:{wave:wave}});
     overlay.innerHTML='<h1>GAME OVER</h1><p>Score <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+' &middot; reached wave '+wave+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'')+'<p class="blink">press ENTER or SPACE to play again</p><div id="shopFoot">'+MENU_BTN+'</div>'+SHARE_ROW;
     overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
-  function winRun(){ srDone=true; state='won'; SND.stopMusic(); SND.play('level'); const best=saveBest(srElapsed);
+  function winRun(){ srDone=true; state='won'; SND.stopMusic(); SND.play('level'); const best=saveBest(srElapsed); if(window.gamekit&&window.gamekit.recordResult)window.gamekit.recordResult('asteroids',{mode:SPEEDRUN?'speedrun':'',score:score,time:srElapsed,stats:{wave:wave}});
     overlay.innerHTML='<h1 class="win">WAVE '+SR_TARGET_WAVE+' CLEARED</h1><p>Time <strong>'+fmtTime(srElapsed)+'</strong>'+(best?'  ★ NEW BEST':'')+'</p><p class="hint">score '+score+'</p><p class="blink">press ENTER or SPACE to run again</p><div id="shopFoot">'+MENU_BTN+'</div>'+SHARE_ROW;
     overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
 

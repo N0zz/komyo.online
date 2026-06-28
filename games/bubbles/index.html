@@ -679,6 +679,7 @@
   function triggerLose() {
     state = 'over';
     saveBest();
+    window.gamekit.recordResult('bubbles', { mode: mode, score: score });
     SND.play('lose');
     $('goScore').textContent = 'Score: ' + score;
     $('goBest').textContent = 'Best: ' + bestScore;

@@ -283,6 +283,7 @@
     state = 'over';
     SND.play(reason === 'time' ? 'timeup' : 'over');
     saveBest();
+    window.gamekit.recordResult('stacker', { mode: mode, score: score });
     setTimeout(() => showOverlay('over'), 400);
   }
 

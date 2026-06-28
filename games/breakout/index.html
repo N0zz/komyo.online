@@ -291,6 +291,7 @@
   }
 
   function showEndScreen() {
+    window.gamekit.recordResult('breakout', { mode: gameMode, score: score });
     const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
     set('endMode', gameMode.toUpperCase());
     set('endScore', score);

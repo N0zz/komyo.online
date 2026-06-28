@@ -241,6 +241,7 @@
     SND.stopMusic(); SND.play('over');
     if (SPEEDRUN) srElapsed = now()-srStart;
     const best = !SPEEDRUN && saveBestScore(score);
+    if (window.gamekit && window.gamekit.recordResult) window.gamekit.recordResult('asteroids', { mode: SPEEDRUN ? 'speedrun' : '', score: score, time: SPEEDRUN ? srElapsed : 0, stats: { wave: level } });
     overlay.innerHTML = '<h1>GAME OVER</h1>' +
       '<p>Final score: <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p>' +
       (SPEEDRUN ? '<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>' : '<p class="hint">reached wave '+level+'</p>') +

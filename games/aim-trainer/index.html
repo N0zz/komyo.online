@@ -331,6 +331,7 @@
       $('eBest').textContent = newBest;
     }
 
+    window.gamekit.recordResult('aim-trainer', { mode: mode, score: score, time: elapsedFrames, stats: { accuracy: acc } });
     endScreen.style.display = 'flex';
     updateHud();
   }
