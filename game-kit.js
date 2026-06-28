@@ -200,9 +200,15 @@
       lsSet(key, JSON.stringify(log));
       pruneOldLogs();
     } catch (e) {}
+    try { // rolling recent-plays buffer (powers the catalogue ticker), newest first, capped
+      var recent = JSON.parse(lsGet('gamekit_recent') || 'null') || [];
+      recent.unshift({ slug: slug, score: rec.score, mode: rec.mode, ts: rec.ts });
+      lsSet('gamekit_recent', JSON.stringify(recent.slice(0, 20)));
+    } catch (e) {}
     return rec;
   }
   function lastResult(slug) { try { return JSON.parse(lsGet('gamekit_result_' + slug) || 'null'); } catch (e) { return null; } }
+  function recentResults() { try { return JSON.parse(lsGet('gamekit_recent') || 'null') || []; } catch (e) { return []; } }
   function playedToday() { try { return JSON.parse(lsGet('gamekit_played_' + utcDateStr()) || 'null') || emptyLog(); } catch (e) { return emptyLog(); } }
 
   // ---------- top-right sound menu (+ optional per-game "reset scores") ----------
@@ -510,7 +516,7 @@
     __emit: function (w, h) { try { if (typeof window !== 'undefined') { if (w != null) window.innerWidth = w; if (h != null) window.innerHeight = h; } } catch (e) {} fireLayout(); },
   };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, recentResults: recentResults, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

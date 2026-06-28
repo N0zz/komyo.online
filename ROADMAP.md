@@ -169,7 +169,13 @@ posts spread it, embeds pull new players in.
 
 - **Embeddable games (iframe snippet)** **(HIGH PRIORITY)** — "embed this game on your blog" → backlinks + free traffic.
 - **List on game portals** — itch.io, free-to-play indexes.
-- **Optional next:** a "recent scores" ticker on the site; opt-in toggle for the Discord score auto-post.
+- **Recent-scores ticker** *(shipped — local)*: a dimmed, chat-style ticker (bottom-right, hideable)
+  shows the player's own recent plays from `gamekit_recent`. **Future (needs a shared feed backend):**
+  once we grow to many users/games, the on-site ticker **and** the Discord feed should show only
+  **good scores / records** — per-game score thresholds, personal-best beats, or leaderboard-worthy
+  runs — **not every game-over**. Otherwise the feed is noise. (Same idea as the Discord changelog
+  filter: surface signal, drop the firehose.) Until then the ticker is the local player's own plays.
+- **Optional next:** opt-in toggle for the Discord score auto-post.
 
 ## Marketing experiments
 

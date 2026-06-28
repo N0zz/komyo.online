@@ -4,6 +4,14 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-06-28', title: 'Challenges, score cards & more', items: [
+    'New: Daily & Weekly Challenges — tap 🏆 for today’s challenge plus a bigger weekly one, with a friendly "days played" counter that never resets.',
+    'New: Score cards — share a picture of your score from the end screen (📷), straight to your apps.',
+    'New: Embed games on your own site or blog — an Embed button in each game, plus "Embed a game" in the menu.',
+    'New: a "recent plays" ticker (bottom-right) shows your latest scores; hide it anytime.',
+    'Fix: games now re-fit correctly when you rotate your phone between portrait and landscape.',
+    'Fix: Keep Defender — the upgrade button is greyed out until you can afford it, then pops in.',
+  ] },
   { date: '2026-06-27', title: 'We are now Komyo Games', items: [
     'New name & logo: funyo is now Komyo Games — same games, fresh fox mascot.',
     'New: your score auto-posts to our Discord on game-over — now with the game mode + stats (accuracy, level, wave…). Set a display name in the menu, or stay anonymous.',
