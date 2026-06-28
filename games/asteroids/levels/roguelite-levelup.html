@@ -23,6 +23,15 @@
   #shield { font-size:16px; letter-spacing:3px; color:#7fd0ff; margin-top:4px; }
   #timer { top:14px; left:50%; transform:translateX(-50%); font-size:24px; letter-spacing:3px; color:#ffd166; text-shadow:0 0 10px rgba(255,209,102,0.7); display:none; text-align:center; }
   @media (max-width:560px) { #topHud { top:50px; max-width:calc(100vw - 16px); gap:8px 20px; } }
+  /* short screens (landscape phones): make the HUD a slim top bar instead of a tall box (~30% → ~10%) */
+  @media (max-height:560px) {
+    #topHud { padding:2px 12px; gap:14px; border-radius:8px; }
+    #hudL { font-size:15px; letter-spacing:1px; }
+    #hudL .label { font-size:8px; }
+    #hudL #wave, #hudL #credits { font-size:10px; margin-top:1px; }
+    #hp { font-size:15px; letter-spacing:2px; }
+    #shield { font-size:11px; margin-top:1px; }
+  }
   #timer .goal { font-size:11px; opacity:0.6; letter-spacing:2px; }
   #xpwrap { left:50%; transform:translateX(-50%); bottom:18px; width:min(620px,70vw); }
   #xpbar { height:10px; border:1px solid rgba(180,140,255,0.5); border-radius:6px; background:rgba(40,20,70,0.5); overflow:hidden; }
