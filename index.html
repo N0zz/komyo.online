@@ -272,7 +272,7 @@
   /* narrow screens: a 230px panel anchored to the centered button overflows the left edge —
      pin it to the viewport with margins and let the long genre list scroll. */
   @media (max-width: 560px) {
-    .filter-pop { position:fixed; left:8px; right:8px; top:auto; width:auto; max-height:72vh; overflow-y:auto; }
+    .filter-pop { position:fixed; left:8px; right:8px; top:auto; bottom:12px; width:auto; max-height:78vh; overflow-y:auto; }
   }
   .no-results { grid-column:1 / -1; text-align:center; color:var(--muted); padding:54px 0; font-size:15px; }
   .no-results button { margin-left:6px; font-family:var(--mono); font-size:12px; cursor:pointer; padding:7px 13px; border-radius:9px;
@@ -842,10 +842,17 @@
       });
       const ss = document.getElementById('showSoon');
       if (ss) ss.addEventListener('change', e => { FILTER.showSoon = e.target.checked; fcountUpdate(); render(); });
+      // on the narrow layout the panel is a full-width sheet — lock the page behind it so it
+      // doesn't scroll under the open filters.
+      const setPop = open => {
+        pop.classList.toggle('show', open);
+        const narrow = window.matchMedia && window.matchMedia('(max-width: 560px)').matches;
+        try { document.body.style.overflow = (open && narrow) ? 'hidden' : ''; } catch (e) {}
+      };
       const fc = document.getElementById('filterClear');
-      if (fc) fc.addEventListener('click', e => { e.preventDefault(); clearFilters(); pop.classList.remove('show'); });
-      btn.addEventListener('click', e => { e.stopPropagation(); pop.classList.toggle('show'); });
-      document.addEventListener('click', e => { if (!(e.target.closest && e.target.closest('.filter-wrap'))) pop.classList.remove('show'); });
+      if (fc) fc.addEventListener('click', e => { e.preventDefault(); clearFilters(); setPop(false); });
+      btn.addEventListener('click', e => { e.stopPropagation(); setPop(!pop.classList.contains('show')); });
+      document.addEventListener('click', e => { if (!(e.target.closest && e.target.closest('.filter-wrap'))) setPop(false); });
       // reflect any URL-loaded filter state into the controls
       genreList.querySelectorAll('input').forEach(i => { i.checked = FILTER.genres.has(i.value); });
       if (badgeList) badgeList.querySelectorAll('input').forEach(i => { i.checked = FILTER.badges.has(i.dataset.badge); });
