@@ -16,6 +16,11 @@ the in-page changelog / git, not here.)
   **Don't force dual-orientation:** aim for both everywhere, but where a second orientation isn't
   viable, **lock to the good one + show a "↻ rotate to play" hint + mark it on the tile/menu** (so
   nobody reports "doesn't rotate") + enforce a **minimum playable size**.
+  - *(Status: the `gamekit.layout` kit helper is **shipped** + all games routed through it (rotation
+    now fires relayout). The **per-game layout pass is still TODO** — go game by game applying the fix
+    table in the design doc (aim-trainer HUD_H caching, snake HUD, flappy bird-Y, stacker banner,
+    breakout redraw) and decide each game's `both` vs locked orientation. **Verified so far: Flappy
+    rotation ✓ + offline ✓; the other games still need a real-device rotation check.**)*
 
 ## Coming-soon games (queue)
 
@@ -98,8 +103,12 @@ and prototype it as the first persistent game.**
    goal catalogue (incl. `scope:'cross'` + a per-day activity log), `gamekit.recordResult`/
    `lastResult` prerequisite, a `challenges.js` data file, and a **UTC-date-driven deterministic**
    selection algo.
-2. **Shareable score card — image (Level 2)** **(HIGH PRIORITY)** — *(Level 1 text+link is already
-   shipped & enriched; this item is the **image card only**.)* On game-over, draw a branded PNG on an
+2. **Shareable score card — image (Level 2)** *(shipped basic — works, but UX/design under review)* —
+   *(Level 1 text+link already shipped.)* **Open decisions before polishing:** (a) **redesign the card
+   art** (current draw is plain/placeholder mascot — wait for real mascot), and (b) **rethink the
+   share-card entry point** — keep the 📷 button in the share row, or replace the row with a different
+   share affordance entirely (owner unsure). Settle the UX before investing in the canvas art.
+   On game-over, draw a branded PNG on an
    offscreen canvas (accent bg, game icon, big score, title, mascot, `komyo.online`), then
    `canvas.toBlob()` → `File` → `navigator.share({files})` on mobile (shares the actual image to
    IG/Snap/WhatsApp); desktop fallback = copy-as-image (`ClipboardItem`) / download. **Keep the
@@ -172,10 +181,18 @@ posts spread it, embeds pull new players in.
 - **Shared scores feed = Discord** (no server / no P2P, so the website can't aggregate everyone's
   scores client-side). The score auto-post already makes **Discord the games-log**. *(An on-site
   local-only ticker was tried and removed — showing just your own plays misreads as a community feed.)*
-  **Future on-site feed:** a scheduled GitHub Action with a **Discord bot token reads the scores
-  channel → writes a static `scores.json`** the site fetches and renders — and at that point filter
-  to **good scores / records only** (per-game thresholds, personal-best beats, leaderboard-worthy),
-  **not every game-over**. Same signal-over-firehose idea as the Discord changelog filter.
+  **Future on-site feed — two routes** (GitHub Pages is **static-only**: it serves files, can't run
+  code or accept `POST`s, so players can't subscribe/post to an endpoint *on* Pages — the dynamic part
+  must live off-GitHub, which also means **no GH load/ban risk**):
+  - **(a) No backend / stopgap:** a scheduled GitHub Action with a **Discord bot token reads the scores
+    channel → writes a static `scores.json`** the site fetches. Near-live (minutes), one-way.
+  - **(b) Live feed — Cloudflare Worker + KV (free tier):** `POST /score` appends to a capped recent
+    list in KV; `GET /recent` returns the last N; the static site fetches every ~15–30s. Truly "feels
+    alive", edge-hosted, entirely off GitHub. The right route if we want real liveness.
+  - Either way: filter to **good scores / records only** (thresholds / personal-best beats /
+    leaderboard-worthy), **not every game-over**; and a public `POST` has the **same abuse surface as
+    the Discord webhook** (validate + rate-limit). **Rec: defer** — Discord is already the live feed;
+    do (b) only once there's real traffic (an empty live feed looks deader than none).
 - **Optional next:** opt-in toggle for the Discord score auto-post.
 
 ## Marketing experiments
