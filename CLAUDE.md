@@ -2,6 +2,8 @@
 
 Guidance for working in this repo. Read before editing.
 
+Game design knobs we honor (per-genre, distilled from external playbooks): @game-design-knobs.md
+
 ## What this is
 
 **komyo** — a small catalogue of **self-contained** browser games. Live at
