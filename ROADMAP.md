@@ -8,13 +8,17 @@ Per-game feel/balance polish is **continuous** and not tracked here.
 - **Mobile layouts + screen rotation break the UI in most games** — games largely assume one
   orientation; on rotate (and on narrow portrait) the layout overflows/misplaces controls. Need a
   **proper per-orientation layout** (distinct landscape vs portrait arrangement) and a **re-layout +
-  redraw on every orientation/resize change** (listen for `orientationchange`/`resize`, recompute
-  playfield + HUD + control positions, re-render). This is a cross-cutting pass over every game, not a
-  one-off. Likely a shared `gamekit` helper (orientation state + a `onLayout(cb)` hook) so games
-  don't each hand-roll it.
-- **Review the new gamedev design skills** — <https://github.com/gamedev-skills/awesome-gamedev-agent-skills/tree/main/skills/genres>
-  — go through the per-genre skills, decide which are worth adopting for our games (mechanics, feel,
-  balance patterns), and fold the useful ones into how we build/polish games.
+  redraw on every orientation/resize change**. This is a cross-cutting pass over every game.
+  **Full design + per-game fix table at `~/komyo-mobile-rotation-design.md`** — core solution = a
+  shared `gamekit.layout` helper (orientation + debounced resize/orientationchange/visualViewport +
+  unified HUD headroom + a rotation test hook); tower-defense is the reference pattern to copy.
+- *(done: **reviewed the gamedev genre skills** — <https://github.com/gamedev-skills/awesome-gamedev-agent-skills>.
+  Verdict: **inspire, don't adopt wholesale** (no npm router / engine skills / templates — they assume an
+  engine; we're no-engine plain HTML/JS/CSS). All 9 genre skills read & distilled, with per-game
+  application, at `~/komyo-gamedev-skills-analysis.md`. Cheap cross-cutting wins banked: state/view
+  separation, versioned saves, seeded per-run RNG, dt-scaled updates; highest-value = solvable-by-
+  construction generation for the future Sudoku/Pipe games. To apply: fold a distilled "knobs we honor"
+  block into CLAUDE.md + a quick TD self-audit.)*
 
 ## Coming-soon games (queue)
 
@@ -94,6 +98,9 @@ proven entry) and prototype it as the first persistent game.**
    target. No server, honor-system (fine for casual; no leaderboard). Completing one feeds the
    score-card share ("I beat today's komyo challenge 🔥"). *(Replaces the earlier seeded-run idea —
    a challenge list is simpler to build, legible, and works across the current games immediately.)*
+   **Full design at `~/komyo-challenges-design.md`** — per-game goal catalogue, a
+   `gamekit.recordResult`/`lastResult` prerequisite, a `challenges.js` (`window.CHALLENGES`) data file,
+   and a **UTC-date-driven deterministic** daily/weekly selection algo (same for everyone) + streak.
 2. **Shareable score cards** **(HIGH PRIORITY)** *(Level 1 text+link shipped & enriched — mode + stats per game, and the link deep-links the mode; Level 2 image card is the next build)* — upgrade
    the share to a per-result visual that proves the score and stops the scroll (a link just unfurls
    the same generic OG image for everyone). **Offer BOTH, not image-only:** keep the text/link share
@@ -144,12 +151,23 @@ now **parked**).
 
 ### Known bugs / polish
 
-- **Tower Defense (mobile): tower-placement tooltip blocks the map** — after selecting a tower from the
-  menu, the tooltip covers part of the map, so you can't place the tower on the tiles underneath it.
-  Reposition/dismiss the tooltip during placement (or make it non-blocking) so the whole map is
-  reachable.
+- *(done: **Tower Defense (mobile): tower-placement tooltip blocked the map** — the stats card popped on
+  touch and covered the build tiles; now skipped on no-hover/touch devices.)*
 - *(saved earlier: Tower Defense — grey out the upgrade button when you can't afford it, pop it in when
   you can.)*
+
+### TV & controller support (Android/Google TV · remote · gamepad)
+
+- **Make Komyo playable on TVs** (e.g. Sony Bravia / Google TV) with a **D-pad/remote** and an
+  **Xbox-style gamepad** — but only for games that suit it; **don't force it on all**. Full research +
+  design at `~/komyo-tv-controller-design.md`. Findings: TV remotes arrive as **arrow keys + Enter** (so
+  menus need real focus/spatial navigation — our biggest gap); the **Gamepad API works** in Android-TV
+  Chromium over HTTPS (poll in the loop, needs a user gesture); **PWA install isn't supported on Android
+  TV** → target browser play, not an installed app. Plan: (1) keyboard **focus + spatial nav** for the
+  catalogue/menus (also an a11y win), (2) a kit **`gamekit.input`** layer normalizing keyboard+gamepad+
+  touch, (3) per-game **opt-in** via a `controls` flag (great fit: Snake, Asteroids, Stack, Flappy;
+  good: Breakout, TD, Bubbles; poor: Range — pointer-precision), (4) 10-foot polish (focus rings,
+  title-safe margins, bigger TV fonts).
 
 ### Cross-device / data **(IMPORTANT)**
 
