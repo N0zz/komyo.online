@@ -33,8 +33,8 @@
     text-align:center; gap:16px; background:rgba(0,5,12,0.88); padding:24px; }
   #overlay.hidden { display:none; }
   /* on-screen D-pad (touch only): tap to turn instead of swiping */
-  #dpad { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:7; display:none;
-    grid-template-columns:repeat(3,54px); grid-template-rows:repeat(3,54px); gap:6px; touch-action:none; user-select:none; }
+  #dpad { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); z-index:7; display:none; opacity:1;
+    transition:opacity 0.2s ease; grid-template-columns:repeat(3,54px); grid-template-rows:repeat(3,54px); gap:6px; touch-action:none; user-select:none; }
   #dpad button { border-radius:12px; border:1px solid rgba(127,255,176,0.5); background:rgba(10,22,16,0.6);
     color:#7fffb0; font:600 22px/1 system-ui,sans-serif; display:flex; align-items:center; justify-content:center;
     -webkit-tap-highlight-color:transparent; touch-action:manipulation; cursor:pointer; }
@@ -44,7 +44,14 @@
   /* center cell = drag handle (move the pad anywhere; position is remembered) */
   #dpad .c { grid-area:2/2; display:flex; align-items:center; justify-content:center; cursor:move; touch-action:none; }
   #dpad .c i { width:16px; height:16px; border-radius:50%; background:rgba(127,255,176,0.7); box-shadow:0 0 8px rgba(127,255,176,0.6); border:2px solid rgba(127,255,176,0.4); }
-  #dpad.dragging { opacity:0.85; }
+  /* drag the pad onto this ✕ (top-right, shown only while dragging) to hide it; the re-enable button takes its place */
+  #dpadHide { position:fixed; right:10px; top:56px; z-index:9; display:none;
+    width:56px; height:56px; border-radius:50%; border:2px dashed rgba(255,120,120,0.75); background:rgba(40,10,12,0.65);
+    color:#ff9a9a; font:600 24px/52px system-ui,sans-serif; text-align:center; pointer-events:none; user-select:none; }
+  #dpadHide.over { background:rgba(255,70,70,0.55); border-style:solid; color:#fff; transform:scale(1.18); }
+  #dpadShow { position:fixed; right:10px; top:56px; z-index:7; display:none; opacity:0; transition:opacity 0.2s ease;
+    padding:7px 12px; border-radius:12px; border:1px solid rgba(127,255,176,0.5); background:rgba(10,22,16,0.72);
+    color:#7fffb0; font:600 18px/1 system-ui,sans-serif; cursor:pointer; -webkit-tap-highlight-color:transparent; }
   #overlay h1 { margin:0; font-size:52px; letter-spacing:6px; color:#0ff; text-shadow:0 0 30px #0ff,0 0 60px #0af; }
   #overlay p { margin:4px; font-size:14px; opacity:0.8; letter-spacing:1px; }
   #overlay .sub { opacity:0.5; font-size:12px; letter-spacing:1px; }
@@ -119,7 +126,7 @@
     </div>
   </div>
   <div id="topScores" class="topscores"></div>
-  <p class="sub">Arrow keys · WASD · Swipe on mobile</p>
+  <p class="sub">Arrow keys / WASD · on phone, swipe or use the on-screen arrows (drag the dot to move them)</p>
   <button id="startBtn">PLAY</button>
 </div>
 
@@ -193,6 +200,8 @@
   let snake, dir, nextDir, food, score, best, particles, flashAlpha, pendingFood;
   let COLS, ROWS;
   let W, H, cellW, cellH, offX, offY;
+  let dpadReserve = 0; // space kept clear for the on-screen D-pad (touch) so it never overlaps the arena
+  let dpadEl = null, dpadHidden = false, dpadOrient = null; // declared early so resize() can lay it out safely
 
   // ---- Per-mode best scores ----
   // Bests are keyed by the full mode (walls + speed + size) and stored as a map in localStorage.
@@ -232,13 +241,19 @@
     let portrait = false;
     try { portrait = !!(window.matchMedia && window.matchMedia('(orientation:portrait)').matches) && W <= 560; } catch (_) {}
     const hud = portrait ? 90 : 48;
-    const avW = W, avH = H - hud;
+    // reserve room for the D-pad: a bottom strip in portrait, a side strip in landscape (so the
+    // arena stays large in landscape instead of being squeezed vertically)
+    const landscape = W > H;
+    const rBottom = (dpadReserve && !landscape) ? dpadReserve : 0;
+    const rSide = (dpadReserve && landscape) ? dpadReserve : 0;
+    const avW = W - rSide, avH = H - hud - rBottom;
     cellW = Math.floor(avW / COLS);
     cellH = Math.floor(avH / ROWS);
     const cell = Math.min(cellW, cellH);
     cellW = cellH = cell;
-    offX = Math.floor((W - COLS * cell) / 2);
-    offY = hud + Math.floor((H - hud - ROWS * cell) / 2);
+    offX = Math.floor((avW - COLS * cell) / 2); // arena hugs the left; D-pad sits in the right strip (landscape)
+    offY = hud + Math.floor((avH - ROWS * cell) / 2);
+    layoutDpad();
   }
   window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
@@ -543,10 +558,34 @@
 
   // On-screen D-pad (touch only): tap an arrow to turn — no swiping required.
   const isTouch = (typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches) || (typeof window !== 'undefined' && 'ontouchstart' in window);
-  let dpadEl = null, dpadBtns = null;
-  const DPAD_POS_KEY = 'snake_dpad_pos';
+  let dpadBtns = null, hideZoneEl = null, showBtnEl = null;
+  const DPAD_POS_KEY = 'snake_dpad_pos', DPAD_HIDE_KEY = 'snake_dpad_hidden', DPAD_RESERVE = 200;
+  try { dpadHidden = localStorage.getItem(DPAD_HIDE_KEY) === '1'; } catch (_) {}
+  if (isTouch && !dpadHidden) dpadReserve = DPAD_RESERVE; // first layout already leaves room
   function dirClass() { return dir ? (dir.x === 1 ? 'r' : dir.x === -1 ? 'l' : dir.y === 1 ? 'd' : 'u') : null; }
-  function dimDpad() { if (!dpadBtns) return; const cur = dirClass(); ['u', 'l', 'r', 'd'].forEach(c => { if (dpadBtns[c]) dpadBtns[c].classList.toggle('dim', c === cur); }); }
+  function dimDpad() { if (!dpadBtns) return; const cur = dirClass(), opp = { r: 'l', l: 'r', u: 'd', d: 'u' }[cur]; ['u', 'l', 'r', 'd'].forEach(c => { if (dpadBtns[c]) dpadBtns[c].classList.toggle('dim', c === cur || c === opp); }); }
+  function applyReserve() { const want = (isTouch && !dpadHidden) ? DPAD_RESERVE : 0; if (want !== dpadReserve) { dpadReserve = want; resize(); } }
+  // ---- D-pad positioning (kept on-screen; default sits in the reserved strip per orientation) ----
+  function placeDpad(x, y) {
+    if (!dpadEl) return;
+    const w = dpadEl.offsetWidth || 174, h = dpadEl.offsetHeight || 174;
+    x = Math.max(4, Math.min((window.innerWidth || 360) - w - 4, x));
+    y = Math.max(4, Math.min((window.innerHeight || 640) - h - 4, y));
+    dpadEl.style.left = x + 'px'; dpadEl.style.top = y + 'px'; dpadEl.style.bottom = 'auto'; dpadEl.style.transform = 'none';
+  }
+  function placeDpadDefault(landscape) {
+    if (!dpadEl) return;
+    const w = dpadEl.offsetWidth || 174, h = dpadEl.offsetHeight || 174;
+    if (landscape) placeDpad(W - w - 16, Math.round((H - h) / 2 + 16)); // right strip, vertically centred
+    else placeDpad(Math.round((W - w) / 2), H - h - 20);                // bottom strip, centred
+  }
+  function clampDpad() { if (dpadEl) placeDpad(parseInt(dpadEl.style.left, 10) || 0, parseInt(dpadEl.style.top, 10) || 0); }
+  function layoutDpad() {
+    if (!dpadEl || dpadHidden) return;
+    const landscape = W > H;
+    if (dpadOrient !== landscape) { dpadOrient = landscape; placeDpadDefault(landscape); } // orientation flip → snap to default
+    else clampDpad();                                                                       // same orientation → just keep on-screen
+  }
   function buildDpad() {
     if (dpadEl || typeof document === 'undefined' || !document.body || !document.createElement) return;
     dpadEl = document.createElement('div'); dpadEl.id = 'dpad'; dpadBtns = {};
@@ -561,24 +600,60 @@
     const handle = document.createElement('div'); handle.className = 'c'; handle.setAttribute('aria-label', 'Move controls');
     handle.innerHTML = '<i></i>'; dpadEl.appendChild(handle);
     document.body.appendChild(dpadEl);
-    const place = (x, y) => {
-      const w = dpadEl.offsetWidth || 174, h = dpadEl.offsetHeight || 174;
-      x = Math.max(4, Math.min((window.innerWidth || 360) - w - 4, x));
-      y = Math.max(4, Math.min((window.innerHeight || 640) - h - 4, y));
-      dpadEl.style.left = x + 'px'; dpadEl.style.top = y + 'px'; dpadEl.style.bottom = 'auto'; dpadEl.style.transform = 'none';
-    };
+    // ✕ hide target (only while dragging) + re-enable button (when hidden)
+    hideZoneEl = document.createElement('div'); hideZoneEl.id = 'dpadHide'; hideZoneEl.textContent = '✕'; document.body.appendChild(hideZoneEl);
+    showBtnEl = document.createElement('button'); showBtnEl.id = 'dpadShow'; showBtnEl.type = 'button'; showBtnEl.textContent = '🎮';
+    showBtnEl.title = 'Show on-screen controls'; showBtnEl.setAttribute('aria-label', 'Show on-screen controls');
+    showBtnEl.addEventListener('click', () => setHidden(false)); document.body.appendChild(showBtnEl);
+    // initial position: saved spot (clamped) if it fits this orientation, else the orientation default
+    const landscape = W > H; dpadOrient = landscape;
     let saved = null; try { saved = JSON.parse(localStorage.getItem(DPAD_POS_KEY) || 'null'); } catch (_) {}
-    if (saved && typeof saved.x === 'number' && typeof saved.y === 'number') place(saved.x, saved.y);
+    if (saved && typeof saved.x === 'number' && typeof saved.y === 'number' && saved.landscape === landscape) placeDpad(saved.x, saved.y);
+    else placeDpadDefault(landscape);
+    // true when the PAD overlaps the ✕ target (drag the pad onto it, not just the finger)
+    const overHide = () => {
+      if (!hideZoneEl || !dpadEl) return false;
+      const a = dpadEl.getBoundingClientRect(), b = hideZoneEl.getBoundingClientRect();
+      return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    };
     let drag = false, offX = 0, offY = 0;
     handle.addEventListener('pointerdown', (e) => {
       drag = true; const r = dpadEl.getBoundingClientRect(); offX = e.clientX - r.left; offY = e.clientY - r.top;
-      dpadEl.classList.add('dragging'); try { handle.setPointerCapture(e.pointerId); } catch (_) {} if (e.preventDefault) e.preventDefault();
+      dpadEl.classList.add('dragging'); if (hideZoneEl) hideZoneEl.style.display = 'block';
+      try { handle.setPointerCapture(e.pointerId); } catch (_) {} if (e.preventDefault) e.preventDefault();
     });
-    handle.addEventListener('pointermove', (e) => { if (drag) place(e.clientX - offX, e.clientY - offY); });
-    const end = () => { if (!drag) return; drag = false; dpadEl.classList.remove('dragging'); try { localStorage.setItem(DPAD_POS_KEY, JSON.stringify({ x: parseInt(dpadEl.style.left, 10) || 0, y: parseInt(dpadEl.style.top, 10) || 0 })); } catch (_) {} };
+    handle.addEventListener('pointermove', (e) => { if (!drag) return; placeDpad(e.clientX - offX, e.clientY - offY); if (hideZoneEl) hideZoneEl.classList.toggle('over', overHide()); });
+    const end = () => {
+      if (!drag) return; drag = false; dpadEl.classList.remove('dragging');
+      const hit = overHide();
+      if (hideZoneEl) { hideZoneEl.style.display = 'none'; hideZoneEl.classList.remove('over'); }
+      if (hit) { setHidden(true); return; } // dropped on ✕ → hide
+      try { localStorage.setItem(DPAD_POS_KEY, JSON.stringify({ x: parseInt(dpadEl.style.left, 10) || 0, y: parseInt(dpadEl.style.top, 10) || 0, landscape: W > H })); } catch (_) {}
+    };
     handle.addEventListener('pointerup', end); handle.addEventListener('pointercancel', end);
   }
-  function showDpad(v) { if (!isTouch) return; if (v) buildDpad(); if (dpadEl) dpadEl.style.display = v ? 'grid' : 'none'; if (v) dimDpad(); }
+  // fade an element in/out (cross-fade the pad and the re-enable button instead of popping)
+  function setVis(el, show, disp) {
+    if (!el) return;
+    if (show) { el.style.display = disp; if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => { el.style.opacity = '1'; }); else el.style.opacity = '1'; }
+    else { el.style.opacity = '0'; setTimeout(() => { if (el.style.opacity === '0') el.style.display = 'none'; }, 220); }
+  }
+  function setHidden(h) {
+    dpadHidden = h; try { localStorage.setItem(DPAD_HIDE_KEY, h ? '1' : '0'); } catch (_) {}
+    const playing = state === 'playing';
+    setVis(dpadEl, !h && playing, 'grid');
+    setVis(showBtnEl, h && playing, 'block');
+    applyReserve();
+    if (!h) dimDpad();
+  }
+  function showDpad(v) {
+    if (!isTouch) return;
+    if (v) buildDpad();
+    setVis(dpadEl, v && !dpadHidden, 'grid');
+    setVis(showBtnEl, v && dpadHidden, 'block');
+    applyReserve();
+    if (v && !dpadHidden) dimDpad();
+  }
 
   const startBtn = document.getElementById('startBtn');
   if (startBtn) startBtn.addEventListener('click', startGame);
