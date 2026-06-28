@@ -525,11 +525,16 @@
 
   // ---- Resize ----
   function resize() {
+    const oldPFX = PF_X;
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
     // Constrain play column so block traversal feels snappy
     PF_W = Math.max(340, Math.min(Math.round(W * 0.27), MAX_PLAY_W, W));
     PF_X = (W - PF_W) / 2;
+    // keep the existing stack centered after a rotate/resize: the column recenters, so shift
+    // every placed block (and the moving block) by the same delta instead of leaving them off-side
+    const dx = PF_X - oldPFX;
+    if (dx && blocks.length) { for (let i = 0; i < blocks.length; i++) blocks[i].x += dx; if (mover) mover.x += dx; }
     // Reserve headroom for the kit center-top HUD: top:8px landscape, top:50px portrait (≤560px)
     TOP_PAD = W <= 560 ? 92 : 48;
   }
