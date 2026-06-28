@@ -143,9 +143,13 @@
     const portrait = H > W || W <= 560;
     topMargin = portrait ? 92 : 48;
     brickW = Math.floor((W - BRICK_GAP * (BRICK_COLS + 1)) / BRICK_COLS);
-    brickH = Math.max(12, Math.floor(brickW * 0.32));
     brickOffX = Math.floor((W - (brickW + BRICK_GAP) * BRICK_COLS + BRICK_GAP) / 2);
     brickOffY = topMargin + 12;
+    // Cap brick height so the whole row block fills at most ~half the space above the paddle —
+    // guarantees a reaction gap below the lowest brick in BOTH orientations (esp. short/landscape).
+    const spaceAbovePaddle = (H - 60 - PADDLE_H) - brickOffY;
+    const maxBlock = Math.max(60, spaceAbovePaddle * 0.5);
+    brickH = Math.max(6, Math.min(Math.floor(brickW * 0.32), Math.floor(maxBlock / BRICK_ROWS) - BRICK_GAP));
     paddleW = Math.floor(W * 0.14);
     if (!paddleX) paddleX = W / 2;
   }

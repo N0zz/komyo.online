@@ -38,6 +38,7 @@
   #overlay .hint { opacity:0.55; font-size:13px; }
   .blink { animation:blink 1.1s steps(2,start) infinite; }
   @keyframes blink { to { opacity:0.25; } }
+  @media (max-height: 540px) { #overlay { justify-content: flex-start; padding-top: 16px; gap: 6px; overflow-y: auto; } #overlay h1 { font-size: 34px; letter-spacing: 5px; } #overlay p { font-size: 13px; line-height: 1.4; } }
   .cards { display:flex; gap:16px; flex-wrap:wrap; justify-content:center; max-width:840px; }
   /* compact grid for the wave shop, which lists many upgrades — fits without fullscreen */
   .cards.shop { gap:10px; max-width:920px; }
@@ -605,7 +606,7 @@
   };
 
   // ---- Touch controls (mobile): aim-and-go joystick + fire; desktop is unaffected ----
-  const HAS_PAUSE = true;
+  const HAS_PAUSE = false; // no on-screen pause button (it sat behind the kit's top-right buttons); Esc still pauses on desktop
   const isTouch = (typeof matchMedia!=='undefined' && matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window);
   let joyActive=false, joyAngle=0, joyMag=0, joyId=null, fireBtn=null;
   function applyTouch(){ if(!isTouch||!ship) return;

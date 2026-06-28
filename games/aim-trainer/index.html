@@ -536,9 +536,9 @@
       ctx.fillText('x' + (1 + Math.floor(combo / 3)) + ' COMBO', W - 16, HUD_H + 8);
     }
 
-    // sprint progress bar
+    // sprint progress bar — race is to SPRINT_TARGET targets HIT, not points
     if (state === 'playing' && mode === 'sprint') {
-      const pct = Math.min(score / SPRINT_TARGET, 1);
+      const pct = Math.min(hits / SPRINT_TARGET, 1);
       ctx.fillStyle = '#1a2535';
       ctx.fillRect(0, H - 8, W, 8);
       ctx.fillStyle = '#ff7a3c';

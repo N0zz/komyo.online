@@ -72,7 +72,7 @@
   #panelTower button:disabled { opacity:0.4; cursor:default; }
 
   #overlay { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; gap:14px; background:rgba(20,12,6,0.82); padding:24px; }
+    text-align:center; gap:14px; background:rgba(20,12,6,0.82); padding:24px; overflow-y:auto; }
   #overlay.hidden { display:none; }
   #overlay h1 { margin:0; font-size:46px; letter-spacing:4px; color:var(--gold); text-shadow:0 2px 0 #2c1d10; }
   #overlay p { margin:2px; font-size:15px; opacity:0.9; max-width:520px; line-height:1.5; }
@@ -95,7 +95,20 @@
   .map-btn .sw { display:inline-block; width:13px; height:13px; border-radius:50%; flex:none;
     border:1px solid rgba(0,0,0,0.4); }
   @media (max-width: 480px) {
-    .map-picker { grid-template-columns:repeat(2, 1fr); }
+    .map-picker { grid-template-columns:repeat(2, 1fr); gap:8px; }
+    #overlay { gap:9px; padding:16px 12px; justify-content:flex-start; }
+    #overlay h1 { font-size:32px; }
+    #overlay p { font-size:13px; }
+    .map-btn { padding:10px 12px; }
+  }
+  /* short screens (landscape phones): keep the whole menu on-screen + scrollable, smaller header */
+  @media (max-height: 560px) {
+    #overlay { gap:8px; padding:12px; justify-content:flex-start; }
+    #overlay h1 { font-size:26px; letter-spacing:2px; }
+    #overlay p { font-size:12px; margin:1px; }
+    .map-picker { grid-template-columns:repeat(4, 1fr); gap:8px; max-width:none; }
+    .map-btn { padding:8px 10px; }
+    .map-btn .desc { display:none; } /* tile still shows name + best; drop blurb to fit landscape */
   }
 
   #shareRow { --gamekit-accent:#e0b25a; }
@@ -146,7 +159,6 @@
   <p class="hint">Pick a tower below, tap a grass tile to build &middot; tap a tower to upgrade/sell &middot; Start Wave when ready.</p>
   <p style="font-size:13px;opacity:0.7;margin-top:4px;">Choose a map:</p>
   <div class="map-picker" id="mapPicker"></div>
-  <p id="mapFlavor" style="font-size:12px;opacity:0.85;max-width:480px;margin-top:6px;min-height:34px;"></p>
   <button id="startGameBtn" style="margin-top:6px;">Begin</button>
 </div>
 
@@ -240,8 +252,6 @@
     WP = MAPS[i].wp.slice();
     computeRoad();
     document.querySelectorAll('.map-btn').forEach(b => b.classList.toggle('active', Number(b.dataset.map) === i));
-    const mf = $('mapFlavor');
-    if (mf) { const m = MAPS[i]; mf.innerHTML = '<b>' + m.name + '</b> — ' + m.surfaceLabel + '<br><span style="opacity:0.8">Event ' + EVENTS[m.event].icon + ' ' + EVENTS[m.event].label + '</span>'; }
   }
 
   function buildMapPicker() {
@@ -296,7 +306,9 @@
     const botGap = portrait ? 92 : 12;
     const leftGap = portrait ? 0 : SIDEBAR;
     const availW = W - leftGap;
-    ts = Math.floor(Math.min(availW / COLS, (H - topGap - botGap) / ROWS));
+    // divide by COLS+1, not COLS: the path enters half a cell off the left (col -1) and the KEEP
+    // sits half a cell off the right (col COLS), so reserve that spill or the castle clips off-screen.
+    ts = Math.floor(Math.min(availW / (COLS + 1), (H - topGap - botGap) / ROWS));
     ox = leftGap + Math.floor((availW - COLS * ts) / 2);
     oy = (topGap - 2) + Math.floor(((H - topGap - botGap) - ROWS * ts) / 2);
     reflowEntities();
