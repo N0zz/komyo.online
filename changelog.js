@@ -5,6 +5,11 @@
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
   { date: '2026-06-28', title: 'Challenges, score cards & more', items: [
+    'New: game tiles now show up to three genre tags, each in its own consistent color, and you can filter by any of them.',
+    'New: a stack of fresh games is on the way — peek the "coming soon" tiles for what we’re building next.',
+    'Fix: Keep Defender — the castle and path no longer clip off the screen edge, and the board clears the score bar.',
+    'Fix: Bubble Pop — in landscape on phones the starting bubbles no longer crowd the launcher.',
+    'Fix: Asteroids+ — the boss no longer overlaps the score bar on phone screens.',
     'New: Asteroids+ — the roguelite Asteroids (XP, upgrades, bosses, a wave shop) is now its own game. Plain Asteroids is the classic arcade one. Pick your mode right inside each game.',
     'New: Daily & Weekly Challenges — tap 🏆 for today’s challenge plus a bigger weekly one. Earn points (1 per daily, 5 per weekly) that only ever go up, with a History list of everything you’ve completed (up to a year, "Load more" to go back).',
     'New: Score cards — share a picture of your score from the end screen (📷), straight to your apps.',
