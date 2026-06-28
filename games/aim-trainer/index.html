@@ -536,13 +536,17 @@
       ctx.fillText('x' + (1 + Math.floor(combo / 3)) + ' COMBO', W - 16, HUD_H + 8);
     }
 
-    // sprint progress bar — race is to SPRINT_TARGET targets HIT, not points
+    // sprint progress bar — race is to SPRINT_TARGET targets HIT, not points. Lifted off the very
+    // bottom edge + thicker + with an inline count so it's actually visible on mobile.
     if (state === 'playing' && mode === 'sprint') {
       const pct = Math.min(hits / SPRINT_TARGET, 1);
-      ctx.fillStyle = '#1a2535';
-      ctx.fillRect(0, H - 8, W, 8);
-      ctx.fillStyle = '#ff7a3c';
-      ctx.fillRect(0, H - 8, W * pct, 8);
+      const barH = 14, bx = 20, bw = W - 40, by = H - barH - 12;
+      ctx.fillStyle = '#1a2535'; ctx.fillRect(bx, by, bw, barH);
+      ctx.fillStyle = '#ff7a3c'; ctx.fillRect(bx, by, bw * pct, barH);
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(hits + ' / ' + SPRINT_TARGET, W / 2, by + barH / 2);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
     }
 
     // timed time warning flash
