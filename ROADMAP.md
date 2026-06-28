@@ -92,14 +92,6 @@ wipes progress — lean on Export/Import), timestamp-based offline accrual (not 
   into a reusable `gamekit.menu` (declarative config → consistent menus, less per-game markup). Only
   worth it if per-game menu boilerplate starts to hurt as games scale. Decide before the next batch.
 
-- **Standardize the tag/genre system** *(bug + idea)*. **Bug:** tag colors aren't tied to the tag —
-  two games with the same genre can show different-colored tag pills (e.g. ARCADE is blue on Asteroids
-  but pink on Brick Breaker). Each genre needs **one canonical color**, defined once and looked up by
-  tag (not per-game `accent`). Fix when standardizing tags. **Idea:** allow **2–3 tags per game**
-  (a game is often both e.g. `ARCADE` + `SHOOTER`). Before adopting, think through the **display
-  caveats**: tile pill crowding / wrapping, badge vs tag stacking, how filters combine (AND vs OR
-  across a game's multiple tags), genre-row placement when a game belongs to several, and SEO/llms map.
-
 ### Platforms
 
 - **TV & controller support** (Android/Google TV · remote · gamepad) — full design at
