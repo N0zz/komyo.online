@@ -21,8 +21,9 @@ window.CHALLENGES = {
     'aim-50':     { slug: 'aim-trainer',   title: 'Score 70 in Range',             metric: 'score', target: 70 },
     'td-wave5':   { slug: 'tower-defense', title: 'Reach wave 5 in Keep Defender', metric: 'wave',  target: 5 },
     'td-300':     { slug: 'tower-defense', title: 'Score 300 in Keep Defender',    metric: 'score', target: 300 },
-    'ast-1k':     { slug: 'asteroids',     title: 'Score 1,000 in Asteroids',      metric: 'score', target: 1000 },
-    'ast-3k':     { slug: 'asteroids',     title: 'Score 3,000 in Asteroids',      metric: 'score', target: 3000 },
+    'ast-2k':     { slug: 'asteroids',      title: 'Score 2,000 in Asteroids',      metric: 'score', target: 2000 },
+    'astp-50k':   { slug: 'asteroids-plus', title: 'Score 50,000 in Asteroids+',    metric: 'score', target: 50000 },
+    'astp-150k':  { slug: 'asteroids-plus', title: 'Score 150,000 in Asteroids+',   metric: 'score', target: 150000 },
     // ---- cross-game / meta (today) ----
     'play2':      { title: 'Play 2 different games today',  scope: 'cross', range: 'day', metric: 'distinctGames',  target: 2 },
     'play3':      { title: 'Play 3 different games today',  scope: 'cross', range: 'day', metric: 'distinctGames',  target: 3 },
@@ -37,8 +38,8 @@ window.CHALLENGES = {
   // curated daily rotation — mixes single-game + cross-game and avoids repeating the same game back-to-back
   daily: [
     'snake-20', 'play2', 'bub-1k', 'td-wave5', 'fly-5', 'total2k', 'aim-20', 'brk-500',
-    'play3', 'stk-10', 'ast-1k', 'genres2', 'snake-50', 'bub-3k', 'aim-50', 'brk-1500',
-    'fly-15', 'stk-20', 'td-300', 'ast-3k',
+    'play3', 'stk-10', 'astp-50k', 'genres2', 'snake-50', 'bub-3k', 'aim-50', 'brk-1500',
+    'fly-15', 'stk-20', 'td-300', 'astp-150k', 'ast-2k',
   ],
   weekly: ['wk-distinct5', 'wk-play12', 'wk-genres3', 'wk-score15k'],
 };
