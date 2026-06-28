@@ -121,6 +121,14 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
   `<script src=...>` (analytics.js, **game-kit.js**, gtag) in `<head>` don't confuse it. The kit is
   loaded as a separate sandbox pre-script (the real `game-kit.js`). Keep that pattern.
 - No browser automation here — the harness is the regression net. Always run after changes.
+- **Layout/overlap tests (standard for every live game).** Each game exposes a read-only
+  `__test.layout` getter returning JS-computed bounds in canvas px (`W`, `H`, a `topReserve` for the
+  `.gamekit-hud` headroom, and the key drawn elements' rects), and its `test.mjs` has a `resize(w,h)`
+  helper (`gamekit.layout.__emit(w,h)` — sets the viewport + fires layout callbacks synchronously) plus
+  a section asserting, across **portrait (390×780) / landscape (780×390) / desktop (1280×800)**, that
+  content stays on-screen and clears the HUD (no score-box overlap). When you add/change a game's
+  layout, extend these — don't fabricate coords for DOM/CSS-positioned HUD elements (only JS-computed
+  layouts can be measured headlessly). Reference: `games/breakout/`.
 
 ## Local preview (test in a browser before pushing)
 
