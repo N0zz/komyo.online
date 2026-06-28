@@ -296,6 +296,7 @@
   }
 
   const SIDEBAR = 132; // landscape: width reserved on the LEFT for the vertical toolbar strip
+  let topReserve = 78; // top headroom reserved for the .gamekit-hud (recomputed each resize)
   function resize() {
     W = canvas.width = window.innerWidth;
     H = canvas.height = window.innerHeight;
@@ -303,15 +304,21 @@
     // Reserve top room for the (center-top, possibly 2-row) HUD. Portrait drops the HUD to its
     // own row under the nav, so it needs more headroom.
     const topGap = portrait ? 108 : 78;
+    topReserve = topGap;
     // Toolbar reserve: PORTRAIT → bottom bar (92px); LANDSCAPE → left strip (SIDEBAR px).
     const botGap = portrait ? 92 : 12;
     const leftGap = portrait ? 0 : SIDEBAR;
     const availW = W - leftGap;
-    // divide by COLS+1, not COLS: the path enters half a cell off the left (col -1) and the KEEP
-    // sits half a cell off the right (col COLS), so reserve that spill or the castle clips off-screen.
-    ts = Math.floor(Math.min(availW / (COLS + 1), (H - topGap - botGap) / ROWS));
-    ox = leftGap + Math.floor((availW - COLS * ts) / 2);
-    oy = (topGap - 2) + Math.floor(((H - topGap - botGap) - ROWS * ts) / 2);
+    // The drawn board is wider than COLS cells: the path enters half a cell off the LEFT (col -1,
+    // its tile centre at ox-ts/2) and the KEEP sits off the RIGHT (col COLS centre at ox+15.5*ts,
+    // its sprite reaching ~0.38*ts further right). Reserve that asymmetric spill — ~0.5 cell left
+    // + ~0.9 cell right ≈ 1.4 extra cells — so neither the road mouth nor the castle clips.
+    const SPILL_L = 0.5, SPILL_R = 0.9; // half-cells of content beyond the COLS-wide grid
+    ts = Math.floor(Math.min(availW / (COLS + SPILL_L + SPILL_R), (H - topGap - botGap) / ROWS));
+    // centre the FULL content span (grid + both spills), then offset the grid past the left spill.
+    const contentW = (COLS + SPILL_L + SPILL_R) * ts;
+    ox = leftGap + Math.floor((availW - contentW) / 2 + SPILL_L * ts);
+    oy = topGap + Math.floor(((H - topGap - botGap) - ROWS * ts) / 2);
     reflowEntities();
   }
   window.gamekit.layout.on(resize); // kit: resize + orientationchange + visualViewport, debounced (was hand-wired here)
@@ -1515,6 +1522,32 @@
     towerRange(i) { const t = towers[i]; return t ? (t.eRange ?? t.range) : null; }, // EFFECTIVE range = drawn ring (TASK 3)
     enemyPx(i) { const e = enemies[i]; return e ? { x: e.x, y: e.y } : null; },
     get geom() { return { ts, ox, oy, W, H }; },
+    // JS-computed layout snapshot in canvas/px space (used by the on-screen regression test).
+    // topReserve = top headroom reserved for the .gamekit-hud; everything board-side must clear it.
+    get layout() {
+      // path bounding box over every waypoint (in pixels, includes the off-grid entry/exit cells)
+      let pminx = Infinity, pminy = Infinity, pmaxx = -Infinity, pmaxy = -Infinity;
+      for (const [c, r] of WP) {
+        const px = cx(c), py = cy(r);
+        if (px < pminx) pminx = px; if (px > pmaxx) pmaxx = px;
+        if (py < pminy) pminy = py; if (py > pmaxy) pmaxy = py;
+      }
+      // keep rect at the path end. drawKeep uses hw=s*0.38, body top at y-hh (hh=s*0.36),
+      // and a flag spire reaching up to y - hh - bh - s*0.3 (bh=s*0.16). Bound the full sprite.
+      const kx = cx(WP[WP.length - 1][0]), ky = cy(WP[WP.length - 1][1]), s = ts;
+      const keep = {
+        x: kx, y: ky,
+        left: kx - s * 0.38, right: kx + s * 0.38,
+        top: ky - s * 0.36 - s * 0.16 - s * 0.3, // body top minus battlement minus flag spire
+        bottom: ky + s * 0.36 + s * 0.25,         // body bottom plus gate
+      };
+      return {
+        W, H, topReserve,
+        path: { left: pminx, right: pmaxx, top: pminy, bottom: pmaxy },
+        keep,
+        grid: { left: ox, top: oy, right: ox + COLS * ts, bottom: oy + ROWS * ts },
+      };
+    },
     // dynamic difficulty (TASK 4)
     get difficulty() { return difficulty; },
     setDifficulty(d) { difficulty = d; updateHud(); },

@@ -302,6 +302,34 @@ function run() {
   ok(Un().state === 'over', 'undefended run still ends (keep falls)');
   ok(Un().difficulty <= 1.0 + 1e-9, 'threat never rose during a losing run (' + Un().difficulty.toFixed(2) + ')');
 
+  section('Keep Defender: layout fits the screen (portrait / landscape / desktop)');
+  const VIEWPORTS = [
+    { name: 'portrait phone',  w: 390, h: 780 },
+    { name: 'landscape phone', w: 780, h: 390 },
+    { name: 'desktop',         w: 1280, h: 800 },
+  ];
+  for (const v of VIEWPORTS) {
+    const gv = runInline('index.html'); const V = () => gv.test();
+    V().selectMap(0); V().start();
+    V().resizeTo(v.w, v.h);
+    V().step(1);
+    const L = V().layout;
+    const tag = '[' + v.name + '] ';
+    // canvas exactly tracks the viewport
+    ok(L.W === v.w && L.H === v.h, tag + 'canvas == viewport (' + L.W + 'x' + L.H + ')');
+    // path bounding box stays fully on-screen
+    ok(L.path.left >= 0 && L.path.right <= L.W, tag + 'path within 0..W (' + L.path.left.toFixed(1) + '..' + L.path.right.toFixed(1) + ' / W=' + L.W + ')');
+    ok(L.path.top >= 0 && L.path.bottom <= L.H, tag + 'path within 0..H (' + L.path.top.toFixed(1) + '..' + L.path.bottom.toFixed(1) + ' / H=' + L.H + ')');
+    // keep sprite (incl. flag spire) stays fully on-screen
+    ok(L.keep.left >= 0 && L.keep.right <= L.W, tag + 'keep within 0..W (' + L.keep.left.toFixed(1) + '..' + L.keep.right.toFixed(1) + ' / W=' + L.W + ')');
+    ok(L.keep.top >= 0 && L.keep.bottom <= L.H, tag + 'keep within 0..H (' + L.keep.top.toFixed(1) + '..' + L.keep.bottom.toFixed(1) + ' / H=' + L.H + ')');
+    // playable grid stays on-screen
+    ok(L.grid.left >= 0 && L.grid.right <= L.W && L.grid.top >= 0 && L.grid.bottom <= L.H, tag + 'grid within the canvas');
+    // topmost board content clears the score HUD (no overlap with the center-top pill)
+    const topMost = Math.min(L.path.top, L.keep.top, L.grid.top);
+    ok(topMost >= L.topReserve, tag + 'board content clears the top HUD (top=' + topMost.toFixed(1) + ' >= reserve=' + L.topReserve + ')');
+  }
+
   console.log('\n----------------------------------------');
   console.log('PASS: ' + pass + '   FAIL: ' + fail);
   if (fail) { console.log('FAILURES:'); fails.forEach(f => console.log('  - ' + f)); process.exit(1); }

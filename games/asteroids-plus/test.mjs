@@ -113,6 +113,9 @@ function runGame(file, { search = '' } = {}) {
     key(type, key) { (handlers[type] || []).forEach(fn => { try { fn({ key, preventDefault() {} }); } catch (e) { errors.push(type + ' ' + key + ': ' + e.stack); } }); },
     down(k) { this.key('keydown', k); }, up(k) { this.key('keyup', k); },
     step(n = 1) { for (let i = 0; i < n; i++) { clock += 1000 / 60; const cb = pending; pending = null; if (cb) { try { cb(); } catch (e) { errors.push('frame: ' + e.stack); } } } },
+    // drive a viewport change: the kit's __emit sets window dims + fires the layout callbacks (the
+    // game's resize()) synchronously; fall back to setting dims directly if the kit is absent.
+    resize(w, h) { if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h); else { win.innerWidth = w; win.innerHeight = h; } },
     get clock() { return clock; },
   };
   return api;
@@ -573,6 +576,45 @@ testShop('index.html?prog=shop');
 testShopProgression('index.html?prog=shop');
 testTieredPricing('index.html?prog=shop');
 testMilestonePick('index.html?prog=milestones');
+
+// ---------------- Layout: everything on-screen + clears the top HUD, in portrait / landscape / desktop ----------------
+function testLayoutFits(file) {
+  section(file + ' (layout fits the screen — on-screen + no HUD overlap)');
+  const VIEWPORTS = [
+    { name: 'portrait phone', w: 390, h: 780 },
+    { name: 'landscape phone', w: 780, h: 390 },
+    { name: 'desktop', w: 1280, h: 800 },
+  ];
+  for (const v of VIEWPORTS) {
+    const g = runGame(file);
+    const T = () => g.test();
+    T().start(); g.step(2);
+    g.resize(v.w, v.h); g.step(1); // relayout (the game's resize fires via the kit) + one frame
+    // the canvas is a viewport-scaled buffer (CSS stretches it to 100vw/100vh); compute the same
+    // scale the game uses so we assert canvas == viewport in this game's actual model.
+    const m = Math.min(v.w, v.h), S = m < 640 ? Math.min(2.6, 900 / m) : 1;
+    const expW = Math.round(v.w * S), expH = Math.round(v.h * S);
+    const L = T().layout;
+    ok(L.W === expW && L.H === expH, v.name + ': canvas fills viewport (' + L.W + 'x' + L.H + ' == ' + expW + 'x' + expH + ' @S=' + S.toFixed(2) + ')');
+    ok(L.topReserve > 0, v.name + ': HUD reservation computed (' + L.topReserve + 'px)');
+    // ship sits on-screen within the canvas
+    ok(L.shipTop >= 0 && L.shipBottom <= L.H, v.name + ': ship within height (' + Math.round(L.shipTop) + '..' + Math.round(L.shipBottom) + ' in 0..' + L.H + ')');
+    ok(L.shipLeft >= 0 && L.shipRight <= L.W, v.name + ': ship within width (' + Math.round(L.shipLeft) + '..' + Math.round(L.shipRight) + ' in 0..' + L.W + ')');
+
+    // boss is the top-most JS-drawn element — it must spawn fully on-screen AND clear the top HUD pill
+    T().gotoWave(5); g.step(2);
+    const B = T().layout;
+    ok(B.bossTop != null, v.name + ': boss present at wave 5');
+    ok(B.bossTop >= 0 && B.bossBottom <= B.H, v.name + ': boss within height (' + Math.round(B.bossTop) + '..' + Math.round(B.bossBottom) + ' in 0..' + B.H + ')');
+    ok(B.bossLeft >= 0 && B.bossRight <= B.W, v.name + ': boss within width (' + Math.round(B.bossLeft) + '..' + Math.round(B.bossRight) + ' in 0..' + B.W + ')');
+    ok(B.bossTop >= B.topReserve, v.name + ': boss clears the top HUD (bossTop ' + Math.round(B.bossTop) + ' >= topReserve ' + B.topReserve + ')');
+    // and it stays clear after it drifts (the bounce clamp must respect the reservation, not just y>80)
+    g.step(400);
+    const B2 = T().layout;
+    if (B2.bossTop != null) ok(B2.bossTop >= B2.topReserve, v.name + ': boss stays clear of the HUD after drifting (bossTop ' + Math.round(B2.bossTop) + ' >= ' + B2.topReserve + ')');
+  }
+}
+testLayoutFits('index.html?prog=levelup');
 
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);

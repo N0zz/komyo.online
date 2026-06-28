@@ -95,7 +95,8 @@ function runGame() {
   try { vm.runInContext(KIT, ctx, { filename: 'game-kit.js' }); vm.runInContext(code, ctx, { filename: 'index.html' }); }
   catch (e) { bootErr = e.stack; }
 
-  return { getEl, win, store, bootErr, T: () => win.__test };
+  function resize(w, h) { if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h); else { win.innerWidth = w; win.innerHeight = h; } }
+  return { getEl, win, store, bootErr, resize, T: () => win.__test };
 }
 
 // ---- Tests ----
@@ -324,6 +325,48 @@ section('Bubble Pop: setShotColor / aimAngle API');
   T().shoot();
   ok(T().isShooting === true, 'shoot() starts a shot');
   T().step(5);
+}
+
+section('Bubble Pop: layout fits the screen (portrait / landscape / desktop)');
+{
+  const VIEWPORTS = [
+    { name: 'portrait phone', w: 390, h: 780 },
+    { name: 'landscape phone', w: 780, h: 390 },
+    { name: 'desktop', w: 1280, h: 800 },
+  ];
+  for (const vp of VIEWPORTS) {
+    const gl = runGame();
+    gl.resize(vp.w, vp.h);
+    gl.T().startMode('arcade'); // fresh full grid for this viewport
+    gl.T().step(1);
+    const L = gl.T().layout;
+
+    ok(L.W === vp.w && L.H === vp.h,
+      `${vp.name}: canvas matches viewport (${L.W}x${L.H} vs ${vp.w}x${vp.h})`);
+    ok(L.grid != null, `${vp.name}: grid is populated`);
+
+    // Grid bounding box stays fully on-screen
+    ok(L.grid.left >= 0 && L.grid.right <= L.W,
+      `${vp.name}: grid within 0..W (left=${L.grid.left.toFixed(1)} right=${L.grid.right.toFixed(1)} W=${L.W})`);
+    ok(L.grid.top >= 0 && L.grid.bottom <= L.H,
+      `${vp.name}: grid within 0..H (top=${L.grid.top.toFixed(1)} bottom=${L.grid.bottom.toFixed(1)} H=${L.H})`);
+
+    // Grid top row clears the HUD headroom (no overlap with the score pill)
+    ok(L.grid.top >= L.topReserve,
+      `${vp.name}: grid top clears HUD reserve (top=${L.grid.top.toFixed(1)} >= ${L.topReserve})`);
+
+    // Shooter on-screen
+    ok(L.shooterX >= 0 && L.shooterX <= L.W,
+      `${vp.name}: shooter X within 0..W (${L.shooterX.toFixed(1)} / ${L.W})`);
+    ok(L.shooterY >= 0 && L.shooterY <= L.H,
+      `${vp.name}: shooter Y within 0..H (${L.shooterY.toFixed(1)} / ${L.H})`);
+
+    // Shooter sits below the grid and above the bottom edge
+    ok(L.shooterY > L.grid.bottom,
+      `${vp.name}: shooter below grid (shooterY=${L.shooterY.toFixed(1)} > gridBottom=${L.grid.bottom.toFixed(1)})`);
+    ok(L.shooterY < L.H,
+      `${vp.name}: shooter above bottom edge (shooterY=${L.shooterY.toFixed(1)} < H=${L.H})`);
+  }
 }
 
 // ---- Summary ----
