@@ -294,7 +294,7 @@
   .cc .bar { height:7px; border-radius:99px; background:var(--surface-2); overflow:hidden; }
   .cc .bar i { display:block; height:100%; background:linear-gradient(90deg,#9fe8ff,#7fffb0); }
   .cc .cmeta { display:flex; align-items:center; justify-content:space-between; margin-top:8px; font-size:12px; color:var(--muted); }
-  .cc .cplay { font-family:var(--mono); font-size:11px; letter-spacing:1px; color:#06121a; background:#9fe8ff; border:none; border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:700; }
+  .cc .cplay { font-family:var(--mono); font-size:11px; letter-spacing:1px; color:#06121a; background:#9fe8ff; border:none; border-radius:8px; padding:6px 12px; cursor:pointer; font-weight:700; text-decoration:none; display:inline-block; }
   .cdone { color:#7fe0a0; font-family:var(--mono); font-size:11px; letter-spacing:1px; }
   .clist .crow { display:flex; align-items:center; gap:10px; padding:8px 2px; font-size:13px; color:var(--muted); border-top:1px solid var(--border); }
   .clist .crow .st { width:18px; text-align:center; }
@@ -455,30 +455,12 @@
     <div class="dresize" title="Drag to resize"></div>
     <div class="dh"><span class="dt">🏆 Challenges</span><button class="dx" data-close aria-label="Close challenges">✕</button></div>
     <div class="dscroll">
-      <div class="cmock-top">🚧 Challenges are a preview — coming soon.</div>
-      <div class="cpreview" aria-hidden="true">
-        <span class="streak">🔥 3-day streak</span>
-        <div class="csec">Today</div>
-        <div class="cc">
-          <div class="top"><span class="game">🫧 BUBBLE POP</span></div>
-          <div class="goal">Score <b>2,000</b> in one run</div>
-          <div class="bar"><i style="width:64%"></i></div>
-          <div class="cmeta"><span>1,280 / 2,000</span><button class="cplay" type="button">▶ Play</button></div>
-        </div>
-        <div class="csec">This week</div>
-        <div class="cc">
-          <div class="top"><span class="game">🏰 KEEP DEFENDER</span><span class="cdone">✓ Done</span></div>
-          <div class="goal">Survive <b>10 waves</b></div>
-          <div class="bar"><i style="width:100%;background:#7fe0a0"></i></div>
-          <div class="cmeta"><span>10 / 10 waves</span><span class="cdone">Completed</span></div>
-        </div>
-        <div class="csec">Recent</div>
-        <div class="clist">
-          <div class="crow"><span class="st">✓</span> Reach 30 in Meadow Flyer</div>
-          <div class="crow"><span class="st">✓</span> 50 targets in Range</div>
-          <div class="crow"><span class="st" style="color:var(--faint)">○</span> Stack 12 blocks</div>
-        </div>
-      </div>
+      <span class="streak" id="chalStreak">🔥 0 days</span>
+      <div class="csec">Today</div>
+      <div id="chalToday"></div>
+      <div class="csec">This week</div>
+      <div id="chalWeek"></div>
+      <div class="cmock">Progress is saved on this device · honor-system, just for fun.</div>
     </div>
   </aside>
 
@@ -575,6 +557,7 @@
 
   <script src="games.js"></script>
   <script src="changelog.js"></script>
+  <script src="challenges.js"></script>
   <script>
     const grid = document.getElementById('grid');
 
@@ -792,7 +775,7 @@
         const x = el.querySelector('[data-close]'); if (x && x.focus) x.focus();
       };
       const mb = document.getElementById('menuBtn'); if (mb) mb.addEventListener('click', () => open(menu));
-      const cb = document.getElementById('chalBtn'); if (cb) cb.addEventListener('click', () => open(chal));
+      const cb = document.getElementById('chalBtn'); if (cb) cb.addEventListener('click', () => { open(chal); if (window.__renderChallenges) window.__renderChallenges(); });
       if (scrim) scrim.addEventListener('click', close);
       document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
       [menu, chal].forEach(d => d && d.addEventListener('click', e => {
@@ -1041,6 +1024,67 @@
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
       modal.addEventListener('close', () => lock(false));
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
+    })();
+
+    // ---- Daily / weekly Challenges panel (🏆 right drawer) ----
+    (function () {
+      const K = window.gamekit, C = window.CHALLENGES;
+      const todayEl = document.getElementById('chalToday'), weekEl = document.getElementById('chalWeek'), streakEl = document.getElementById('chalStreak');
+      if (!K || !todayEl) return;
+      const genreOf = {};
+      (window.GAMES || []).forEach(g => { if (g && g.slug) genreOf[g.slug] = g.tag || ''; });
+      const WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000); // a Monday — week buckets
+      const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+      // aggregate the per-day activity logs for the current UTC week (kit keeps ~8 days)
+      function weekAgg() {
+        const day = K.utcDayNumber(), start = WEEK_ANCHOR + Math.floor((day - WEEK_ANCHOR) / 7) * 7;
+        const slugs = new Set(); let totalScore = 0, count = 0;
+        for (let d = start; d <= day; d++) {
+          let log = null; try { log = JSON.parse(lsGet('gamekit_played_' + K.utcDateStr(d * 86400000)) || 'null'); } catch (e) {}
+          if (log) { (log.slugs || []).forEach(s => slugs.add(s)); totalScore += log.totalScore || 0; count += log.count || 0; }
+        }
+        return { slugs: [...slugs], totalScore, count };
+      }
+      const distinctGenres = slugs => { const s = new Set(); slugs.forEach(x => { if (genreOf[x]) s.add(genreOf[x]); }); return s.size; };
+      const crossVal = (m, a) => m === 'distinctGames' ? a.slugs.length : m === 'totalGames' ? a.count : m === 'totalScore' ? a.totalScore : m === 'distinctGenres' ? distinctGenres(a.slugs) : 0;
+      function evalGoal(goal) {
+        if (!goal) return null;
+        let val = 0;
+        if (goal.scope === 'cross') { val = crossVal(goal.metric, goal.range === 'week' ? weekAgg() : K.playedToday()); }
+        else { const r = K.lastResult(goal.slug); if (r) val = goal.metric === 'score' ? r.score : goal.metric === 'time' ? r.time : ((r.stats && r.stats[goal.metric]) || 0); }
+        return { val, target: goal.target, done: val >= goal.target, pct: Math.max(0, Math.min(1, val / goal.target)), title: goal.title, slug: goal.slug };
+      }
+      function pick(list, bucket) {
+        if (!list || !list.length) return null;
+        const day = K.utcDayNumber();
+        const idx = bucket === 'week' ? Math.floor((day - WEEK_ANCHOR) / 7) : day;
+        return C.goals[list[((idx % list.length) + list.length) % list.length]];
+      }
+      function card(g) {
+        if (!g) return '';
+        const e = evalGoal(g), pct = Math.round(e.pct * 100);
+        const play = e.slug ? '<a class="cplay" href="games/' + e.slug + '/">▶ Play</a>' : '';
+        const meta = e.done ? '<span class="cdone">✓ Done</span>' : ('<span>' + e.val + ' / ' + e.target + '</span>' + play);
+        return '<div class="cc"><div class="goal">' + e.title + '</div><div class="bar"><i style="width:' + pct + '%' + (e.done ? ';background:#7fe0a0' : '') + '"></i></div><div class="cmeta">' + meta + '</div></div>';
+      }
+      // friendly cumulative "N days" counter — bumps once per UTC day the daily is completed; NEVER resets
+      function bumpProgress(dailyDone) {
+        let p = { lastDone: '', done: 0 };
+        try { p = JSON.parse(lsGet('gamekit_progress') || 'null') || p; } catch (e) {}
+        const today = K.utcDateStr();
+        if (dailyDone && p.lastDone !== today) { p.done = (p.done || 0) + 1; p.lastDone = today; try { localStorage.setItem('gamekit_progress', JSON.stringify(p)); } catch (e) {} }
+        return p.done || 0;
+      }
+      function render() {
+        if (!C || !todayEl) return;
+        const daily = pick(C.daily, 'day'), de = daily && evalGoal(daily);
+        todayEl.innerHTML = card(daily);
+        weekEl.innerHTML = card(pick(C.weekly, 'week'));
+        const n = bumpProgress(de && de.done);
+        if (streakEl) streakEl.textContent = '🔥 ' + n + (n === 1 ? ' day' : ' days');
+      }
+      window.__renderChallenges = render;
+      render(); // initialise on load (no-op headless / when challenges.js absent)
     })();
 
     // ---- "Your data" help toggle (hamburger) ----

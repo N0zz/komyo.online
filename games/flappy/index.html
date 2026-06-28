@@ -310,6 +310,7 @@
     const cur = getBest();
     if (score > cur) saveBest(score);
     best = getBest();
+    window.gamekit.recordResult('flappy', { mode: '', score: score });
     updateHud();
     $('goScoreEl').textContent = 'Score: ' + score;
     $('goBestEl').textContent = 'BEST ' + best;

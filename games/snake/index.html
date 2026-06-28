@@ -316,6 +316,7 @@
     SND.play('crash');
     const newBest = score > best;
     if (newBest) { best = score; saveBest(best); }
+    window.gamekit.recordResult('snake', { mode: '', score: score, stats: { length: snake ? snake.length : 1 } });
     updateHud();
     if (goScore) goScore.textContent = score;
     if (goStats) goStats.textContent = 'LENGTH ' + (snake ? snake.length : 1);

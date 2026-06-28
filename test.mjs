@@ -53,8 +53,12 @@ function runInline(file, extraSandbox = {}) {
 function testCatalogue() {
   section('index.html (catalogue)');
   const games = fs.readFileSync(path.join(DIR, 'games.js'), 'utf8');
-  const g = runInline('index.html', { __preCode: KIT + '\n' + games });
+  const challenges = fs.readFileSync(path.join(DIR, 'challenges.js'), 'utf8');
+  const g = runInline('index.html', { __preCode: KIT + '\n' + games + '\n' + challenges });
   ok(g.bootErr === null, 'catalogue boots: ' + g.bootErr);
+  ok(typeof g.win.__renderChallenges === 'function', 'challenges panel render is wired');
+  let cerr = null; try { g.win.__renderChallenges(); } catch (e) { cerr = e.message; }
+  ok(cerr === null, 'rendering challenges does not throw: ' + cerr);
   const GAMES = g.win.GAMES;
   ok(Array.isArray(GAMES) && GAMES.length >= 2, 'games.js exposes games (got ' + (GAMES && GAMES.length) + ')');
   const grid = g.getEl('grid');
@@ -148,7 +152,7 @@ function testKit() {
   const sandbox = {
     window: { addEventListener() {} }, document: doc, navigator: {}, location: {},
     localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
-    setTimeout: () => 0, setInterval: () => 0, Math, JSON, String, Number, Array, Object, encodeURIComponent, console,
+    setTimeout: () => 0, setInterval: () => 0, Math, JSON, String, Number, Array, Object, Date, encodeURIComponent, console,
   };
   sandbox.globalThis = sandbox;
   const ctx = vm.createContext(sandbox);
@@ -185,6 +189,13 @@ function testKit() {
   F.layout.__emit(420, 840);
   ok(lay && lay.portrait === true && lay.narrow === true && lay.hudTop === 92, 'portrait → narrow, hudTop 92 (' + (lay && lay.hudTop) + ')');
   ok(F.layout.requireOrientation('') === true, 'requireOrientation falsy → satisfied (no lock)');
+  // results + per-day activity log (powers challenges)
+  F.recordResult('snake', { mode: 'classic', score: 42, stats: { length: 5 } });
+  const rr = F.lastResult('snake');
+  ok(rr && rr.score === 42 && rr.mode === 'classic' && rr.stats.length === 5, 'recordResult/lastResult round-trips');
+  F.recordResult('bubbles', { score: 100 });
+  const pt = F.playedToday();
+  ok(pt.slugs.indexOf('snake') >= 0 && pt.slugs.indexOf('bubbles') >= 0 && pt.count === 2 && pt.totalScore === 142, 'activity log tracks distinct games + totals');
   // headless-safe (incl. the audio menu + reset + music flag)
   let threw = null;
   try { F.nav({ music: true, reset: 'snake_' }); F.shareRow(doc.getElementById('sr'), { slug: 'snake', message: () => 'x' }); F.pwa(); F.resetScores('snake_'); } catch (e) { threw = e.message; }

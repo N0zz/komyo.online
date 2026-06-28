@@ -1014,6 +1014,7 @@
   function gameOver() {
     state = 'over';
     saveBest();
+    window.gamekit.recordResult('tower-defense', { mode: '', score: score, stats: { wave: wave } });
     SND.play('over');
     enemies = []; shots = []; spawnQ = [];
     overlay.innerHTML =

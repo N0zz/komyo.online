@@ -127,6 +127,47 @@
     } catch (e) {}
   }
 
+  // ---------- per-game results + per-day activity log (powers challenges + score cards) ----------
+  function nowMs() { try { return (typeof Date !== 'undefined' && Date.now) ? Date.now() : 0; } catch (e) { return 0; } }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function utcDateStr(ms) { try { var d = (ms != null) ? new Date(ms) : new Date(); return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate()); } catch (e) { return '1970-01-01'; } }
+  // whole UTC days since epoch — the stable, timezone-independent key for "same challenge for everyone".
+  function utcDayNumber(ms) { try { var d = (ms != null) ? new Date(ms) : new Date(); return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86400000); } catch (e) { return 0; } }
+  function emptyLog() { return { slugs: [], totalScore: 0, count: 0 }; }
+  function pruneOldLogs() {
+    if (typeof localStorage === 'undefined' || typeof localStorage.key !== 'function') return;
+    try {
+      var today = utcDayNumber(), kill = [];
+      for (var i = 0; i < localStorage.length; i++) {
+        var k = localStorage.key(i);
+        if (k && k.indexOf('gamekit_played_') === 0) {
+          var n = utcDayNumber(Date.parse(k.slice('gamekit_played_'.length) + 'T00:00:00Z'));
+          if (today - n > 8) kill.push(k); // keep ~a week of activity
+        }
+      }
+      for (var j = 0; j < kill.length; j++) { try { localStorage.removeItem(kill[j]); } catch (e) {} }
+    } catch (e) {}
+  }
+  // recordResult(slug, {mode, score, time, stats}) — called by each game on game-over. Stores the
+  // latest result + appends to today's UTC activity log (for cross-game "play N games" challenges).
+  function recordResult(slug, data) {
+    if (!slug) return null;
+    data = data || {};
+    var rec = { mode: (data.mode != null ? String(data.mode) : ''), score: (+data.score || 0), time: (+data.time || 0), stats: (data.stats || {}), ts: nowMs() };
+    lsSet('gamekit_result_' + slug, JSON.stringify(rec));
+    try {
+      var key = 'gamekit_played_' + utcDateStr();
+      var log = JSON.parse(lsGet(key) || 'null') || emptyLog();
+      if (log.slugs.indexOf(slug) < 0) log.slugs.push(slug);
+      log.totalScore += rec.score; log.count += 1;
+      lsSet(key, JSON.stringify(log));
+      pruneOldLogs();
+    } catch (e) {}
+    return rec;
+  }
+  function lastResult(slug) { try { return JSON.parse(lsGet('gamekit_result_' + slug) || 'null'); } catch (e) { return null; } }
+  function playedToday() { try { return JSON.parse(lsGet('gamekit_played_' + utcDateStr()) || 'null') || emptyLog(); } catch (e) { return emptyLog(); } }
+
   // ---------- top-right sound menu (+ optional per-game "reset scores") ----------
   function audioMenu(opts) {
     opts = opts || {};
@@ -350,7 +391,7 @@
     __emit: function (w, h) { try { if (typeof window !== 'undefined') { if (w != null) window.innerWidth = w; if (h != null) window.innerHeight = h; } } catch (e) {} fireLayout(); },
   };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
