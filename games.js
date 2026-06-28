@@ -9,7 +9,6 @@ window.GAMES = [
     icon: "🛸",
     accent: "#9fe8ff",
     tag: "ARCADE",
-    badges: ["pick"],
     added: "2026-06-26",
     updated: "2026-06-28",
   },
@@ -17,9 +16,10 @@ window.GAMES = [
     slug: "asteroids-plus",
     title: "Asteroids+",
     blurb: "Roguelite Asteroids — XP, upgrades, bosses and a wave shop. Build a run, survive the waves.",
-    icon: "🛸",
-    accent: "#9fe8ff",
+    icon: "☄️",
+    accent: "#b98cff",
     tag: "ROGUELIKE",
+    badges: ["pick"],
     added: "2026-06-28",
   },
   {
@@ -36,12 +36,12 @@ window.GAMES = [
   {
     slug: "bubbles",
     title: "Bubble Pop",
-    blurb: "Shoot glossy soap bubbles to pop matching groups of 3+. Arcade, Endless, and Zen modes with special shots.",
+    blurb: "Shoot glossy soap bubbles to pop matching groups of 3+. Arcade, Speedrun, Endless, and Zen modes with special shots.",
     icon: "🫧",
     accent: "#2ee8c8",
     tag: "PUZZLE",
     added: "2026-06-26",
-    updated: "2026-06-27",
+    updated: "2026-06-28",
   },
 
   // ---- coming soon ----
@@ -53,7 +53,7 @@ window.GAMES = [
     accent: "#ff5cc8",
     tag: "ARCADE",
     added: "2026-06-26",
-    updated: "2026-06-27",
+    updated: "2026-06-28",
   },
   {
     slug: "invaders",
