@@ -301,6 +301,20 @@
   .cmock { margin:14px 4px 4px; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--faint); text-align:center; }
   .cmock-top { position:sticky; top:0; z-index:2; margin:-6px -8px 12px; padding:11px 14px; text-align:center; font-family:var(--mono); font-size:11px; letter-spacing:1px; color:#ffce5c; background:rgba(255,206,92,0.12); backdrop-filter:blur(2px); border-bottom:1px solid color-mix(in srgb,#ffce5c 35%,transparent); }
   .cpreview { opacity:0.4; pointer-events:none; user-select:none; }
+  /* recent-scores ticker (bottom-right, chat-style, dimmed) */
+  .ticker { position:fixed; right:14px; bottom:14px; z-index:40; width:min(260px,72vw); display:none;
+    flex-direction:column; gap:6px; opacity:0.7; transition:opacity .15s; }
+  .ticker.show { display:flex; }
+  .ticker:hover { opacity:1; }
+  .ticker .tk-head { display:flex; align-items:center; justify-content:space-between; font-family:var(--mono);
+    font-size:9px; letter-spacing:1.5px; text-transform:uppercase; color:var(--faint); padding:0 4px; }
+  .ticker .tk-hide { background:none; border:none; color:var(--faint); cursor:pointer; font-size:12px; line-height:1; padding:2px 4px; }
+  .ticker .tk-hide:hover { color:#fff; }
+  .ticker .tk-msg { background:var(--surface-2); border:1px solid var(--border); border-radius:10px 10px 10px 3px;
+    padding:7px 10px; font-size:12px; line-height:1.35; color:var(--muted); box-shadow:0 4px 14px rgba(0,0,0,0.35); }
+  .ticker .tk-msg b { color:#9fe8ff; }
+  .ticker .tk-msg .tk-g { color:var(--text); }
+  @media (max-width:560px){ .ticker { bottom:10px; right:10px; width:min(220px,68vw); } }
   .ditem.coffee { color:#ffce5c; }
   .ditem.coffee:hover { background:rgba(255,206,92,0.10); }
   .ditem .di svg { width:16px; height:16px; display:block; margin:0 auto; fill:currentColor; }
@@ -554,6 +568,11 @@
       <button id="cbDecline" class="cb-btn" type="button">Decline</button>
       <button id="cbAccept" class="cb-btn cb-accept" type="button">Accept</button>
     </div>
+  </div>
+
+  <div class="ticker" id="ticker" aria-hidden="true">
+    <div class="tk-head"><span>Recent plays</span><button class="tk-hide" id="tkHide" type="button" aria-label="Hide recent plays">✕</button></div>
+    <div id="tkList"></div>
   </div>
 
   <script src="games.js"></script>
@@ -1096,6 +1115,25 @@
         const games = (window.GAMES || []).filter(g => g && !g.soon).map(g => ({ slug: g.slug, title: g.title || g.slug }));
         window.gamekit.embedModal({ games });
       });
+    })();
+
+    // ---- Recent-scores ticker (bottom-right, chat-style; dimmed, hideable) ----
+    (function () {
+      const K = window.gamekit, box = document.getElementById('ticker'), list = document.getElementById('tkList'), hide = document.getElementById('tkHide');
+      if (!K || !box || !list || !K.recentResults) return;
+      const titleOf = {}; (window.GAMES || []).forEach(g => { if (g && g.slug) titleOf[g.slug] = g.title || g.slug; });
+      const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      const hidden = () => { try { return localStorage.getItem('gamekit_ticker_hidden') === '1'; } catch (e) { return false; } };
+      function render() {
+        if (hidden()) { box.classList.remove('show'); return; }
+        const recent = (K.recentResults() || []).slice(0, 4);
+        if (!recent.length) { box.classList.remove('show'); return; }
+        const who = esc(K.player ? K.player() : 'you');
+        list.innerHTML = recent.map(r => '<div class="tk-msg"><b>' + who + '</b> · ' + (r.score | 0) + ' in <span class="tk-g">' + esc(titleOf[r.slug] || r.slug) + '</span></div>').join('');
+        box.classList.add('show'); box.setAttribute('aria-hidden', 'false');
+      }
+      if (hide) hide.addEventListener('click', () => { try { localStorage.setItem('gamekit_ticker_hidden', '1'); } catch (e) {} box.classList.remove('show'); });
+      render();
     })();
 
     // ---- "Your data" help toggle (hamburger) ----
