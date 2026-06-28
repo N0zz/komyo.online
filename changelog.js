@@ -5,13 +5,14 @@
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
   { date: '2026-06-28', title: 'Challenges, score cards & more', items: [
-    'New: Daily & Weekly Challenges — tap 🏆 for today’s challenge plus a bigger weekly one. Earn points (1 per daily, 5 per weekly) that only ever go up.',
+    'New: Daily & Weekly Challenges — tap 🏆 for today’s challenge plus a bigger weekly one. Earn points (1 per daily, 5 per weekly) that only ever go up, with a History list of everything you’ve completed (up to a year, "Load more" to go back).',
     'New: Score cards — share a picture of your score from the end screen (📷), straight to your apps.',
     'New: Embed games on your own site or blog — an Embed button in each game’s sound menu, plus "Embed a game" in the main menu.',
     'New: a ⏸ pause button in every game (top-right, next to sound).',
     'New: Export / import your data — back it up or move it between devices, no account needed (in the menu under "Your data").',
     'New: a Compact tile view (button by the filters) so more games fit on screen, plus an FAQ and a Privacy policy in the menu.',
     'Fix: games now re-fit correctly when you rotate your phone between portrait and landscape — Stack stays centered, Brick Breaker keeps room to react, Bubble Pop sticks to portrait on phones, Tower Defense’s menu and keep fit the screen, Asteroids’ end screen fits in landscape.',
+    'Fix: the Filter panel now fits the screen on phones in landscape — it no longer runs off the edge, and the genre list scrolls.',
     'Fix: Range’s "race to 100" progress bar now tracks targets hit, not points.',
     'Fix: Keep Defender — the upgrade button is greyed out until you can afford it, then pops in.',
   ] },
