@@ -269,6 +269,11 @@
   .fchk input { accent-color:#9fe8ff; }
   .filter-clear { display:inline-block; margin-top:10px; font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--faint); }
   .filter-clear:hover { color:#9fe8ff; }
+  /* narrow screens: a 230px panel anchored to the centered button overflows the left edge —
+     pin it to the viewport with margins and let the long genre list scroll. */
+  @media (max-width: 560px) {
+    .filter-pop { position:fixed; left:8px; right:8px; top:auto; width:auto; max-height:72vh; overflow-y:auto; }
+  }
   .no-results { grid-column:1 / -1; text-align:center; color:var(--muted); padding:54px 0; font-size:15px; }
   .no-results button { margin-left:6px; font-family:var(--mono); font-size:12px; cursor:pointer; padding:7px 13px; border-radius:9px;
     color:var(--text); background:var(--surface-2); border:1px solid var(--border); }
@@ -332,6 +337,15 @@
   .clist .crow { display:flex; align-items:center; gap:10px; padding:8px 2px; font-size:13px; color:var(--muted); border-top:1px solid var(--border); }
   .clist .crow .st { width:18px; text-align:center; }
   .cmock { margin:14px 4px 4px; font-family:var(--mono); font-size:10px; letter-spacing:1px; color:var(--faint); text-align:center; }
+  .chist-list { display:flex; flex-direction:column; }
+  .chist { display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--border); }
+  .chist .ck { font-size:14px; width:18px; text-align:center; flex:none; }
+  .chist .ct { flex:1; min-width:0; font-size:13px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .chist .cd { font-family:var(--mono); font-size:10px; color:var(--faint); flex:none; }
+  .chist .cp { font-family:var(--mono); font-size:10px; color:#ffce5c; flex:none; }
+  .chist-more { display:block; width:100%; margin:10px 0 2px; padding:9px; font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:9px; cursor:pointer; }
+  .chist-more:hover { border-color:#9fe8ff; }
+  .chist-empty { margin:8px 4px; font-family:var(--mono); font-size:11px; color:var(--faint); text-align:center; }
   .cmock-top { position:sticky; top:0; z-index:2; margin:-6px -8px 12px; padding:11px 14px; text-align:center; font-family:var(--mono); font-size:11px; letter-spacing:1px; color:#ffce5c; background:rgba(255,206,92,0.12); backdrop-filter:blur(2px); border-bottom:1px solid color-mix(in srgb,#ffce5c 35%,transparent); }
   .cpreview { opacity:0.4; pointer-events:none; user-select:none; }
   .ditem.coffee { color:#ffce5c; }
@@ -494,6 +508,10 @@
       <div id="chalToday"></div>
       <div class="csec">This week</div>
       <div id="chalWeek"></div>
+      <div class="csec">History</div>
+      <div id="chalHistory" class="chist-list"></div>
+      <div id="chalEmpty" class="chist-empty" hidden>Complete a challenge and it'll show up here.</div>
+      <button id="chalMore" class="chist-more" type="button" hidden>Load more</button>
       <div class="cmock">Saved on this device — no accounts, no leaderboards. Just for fun.</div>
     </div>
   </aside>
@@ -1205,22 +1223,59 @@
       // friendly cumulative POINTS — daily challenge = 1 pt, weekly = 5 pts (each period#id awarded
       // once). Only ever grows, NEVER resets (no predatory streak).
       const DAILY_PTS = 1, WEEKLY_PTS = 5;
-      function award(key, pts) {
+      // snapshot history — when a challenge is first completed we store a dated record (title + points
+      // frozen at that moment, so retuning the rotation/targets later never rewrites the past). Kept
+      // ~1 year by date; a hard count cap is a backstop (daily+weekly ≈ 372/yr, so the date prune binds).
+      function pushHistory(rec) {
+        let h = [];
+        try { h = JSON.parse(lsGet('gamekit_history') || 'null') || []; } catch (e) {}
+        if (!Array.isArray(h)) h = [];
+        h.unshift(rec);
+        const cutoff = K.utcDayNumber() - 366;
+        h = h.filter(r => r && (r.day == null || r.day >= cutoff));
+        if (h.length > 500) h.length = 500;
+        try { localStorage.setItem('gamekit_history', JSON.stringify(h)); } catch (e) {}
+      }
+      function award(key, pts, snap) {
         let done = {};
         try { done = JSON.parse(lsGet('gamekit_done') || 'null') || {}; } catch (e) {}
-        if (key && !(key in done)) { done[key] = pts; try { localStorage.setItem('gamekit_done', JSON.stringify(done)); } catch (e) {} }
+        if (key && !(key in done)) {
+          done[key] = pts;
+          try { localStorage.setItem('gamekit_done', JSON.stringify(done)); } catch (e) {}
+          if (snap) pushHistory({ day: K.utcDayNumber(), date: K.utcDateStr(), id: snap.id, title: snap.title, kind: snap.kind, pts });
+        }
         let total = 0; for (const k in done) total += (done[k] | 0); return total;
       }
+      // ---- history view (latest first, "load more") ----
+      const histEl = document.getElementById('chalHistory'), moreEl = document.getElementById('chalMore'), emptyEl = document.getElementById('chalEmpty');
+      const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const PAGE = 8; let histShown = PAGE;
+      const fmtDate = s => { const p = (s || '').split('-'); return p.length < 3 ? (s || '') : (MON[(+p[1]) - 1] || '') + ' ' + (+p[2]); };
+      const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      function renderHistory() {
+        if (!histEl) return;
+        let h = [];
+        try { h = JSON.parse(lsGet('gamekit_history') || 'null') || []; } catch (e) {}
+        if (!Array.isArray(h)) h = [];
+        if (!h.length) { histEl.innerHTML = ''; if (moreEl) moreEl.hidden = true; if (emptyEl) emptyEl.hidden = false; return; }
+        if (emptyEl) emptyEl.hidden = true;
+        histEl.innerHTML = h.slice(0, histShown).map(r =>
+          '<div class="chist"><span class="ck">' + (r.kind === 'weekly' ? '🏆' : '⭐') + '</span><span class="ct">' + esc(r.title) +
+          '</span><span class="cd">' + fmtDate(r.date) + '</span><span class="cp">+' + (r.pts | 0) + '</span></div>').join('');
+        if (moreEl) moreEl.hidden = h.length <= histShown;
+      }
+      if (moreEl) moreEl.addEventListener('click', () => { histShown += PAGE; renderHistory(); });
       function render() {
         if (!C || !todayEl) return;
         const daily = pick(C.daily, 'day'), weekly = pick(C.weekly, 'week');
         const de = daily && evalGoal(daily.goal), we = weekly && evalGoal(weekly.goal);
         todayEl.innerHTML = card(daily && daily.goal, DAILY_PTS);
         weekEl.innerHTML = card(weekly && weekly.goal, WEEKLY_PTS);
-        if (de && de.done) award(daily.period + '#' + daily.id, (daily.goal && daily.goal.points) || DAILY_PTS);
-        if (we && we.done) award(weekly.period + '#' + weekly.id, (weekly.goal && weekly.goal.points) || WEEKLY_PTS);
+        if (de && de.done) award(daily.period + '#' + daily.id, (daily.goal && daily.goal.points) || DAILY_PTS, { id: daily.id, title: daily.goal && daily.goal.title, kind: 'daily' });
+        if (we && we.done) award(weekly.period + '#' + weekly.id, (weekly.goal && weekly.goal.points) || WEEKLY_PTS, { id: weekly.id, title: weekly.goal && weekly.goal.title, kind: 'weekly' });
         const n = award();
         if (streakEl) streakEl.textContent = '🔥 ' + n + (n === 1 ? ' point' : ' points');
+        renderHistory();
       }
       window.__renderChallenges = render;
       render(); // initialise on load (no-op headless / when challenges.js absent)
