@@ -113,6 +113,8 @@ function runGame(file, { search = '' } = {}) {
     key(type, key) { (handlers[type] || []).forEach(fn => { try { fn({ key, preventDefault() {} }); } catch (e) { errors.push(type + ' ' + key + ': ' + e.stack); } }); },
     down(k) { this.key('keydown', k); }, up(k) { this.key('keyup', k); },
     step(n = 1) { for (let i = 0; i < n; i++) { clock += 1000 / 60; const cb = pending; pending = null; if (cb) { try { cb(); } catch (e) { errors.push('frame: ' + e.stack); } } } },
+    // drive a viewport change: the kit's __emit sets window dims + fires the relayout callbacks synchronously
+    resize(w, h) { if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h); else { win.innerWidth = w; win.innerHeight = h; } },
     get clock() { return clock; },
   };
   return api;
@@ -550,6 +552,37 @@ smokeClassic('index.html?v=classic');
 smokeSpeedrun('index.html?v=classic');
 smokeClassic('index.html?v=enh', { enhanced: true });
 smokeSpeedrun('index.html?v=enh');
+
+// ---------------- Layout regression: fits the screen, clears the top HUD ----------------
+function layoutFits(file) {
+  section(file + ': layout fits the screen (no off-screen / HUD overlap)');
+  const VIEWPORTS = [
+    { name: 'portrait phone', w: 390, h: 780 },
+    { name: 'landscape phone', w: 780, h: 390 },
+    { name: 'desktop', w: 1280, h: 800 },
+  ];
+  for (const v of VIEWPORTS) {
+    const g = runGame(file);
+    const T = () => g.test();
+    T().start();          // start a real play session
+    g.resize(v.w, v.h);   // rotate / resize the viewport
+    g.step(1);            // one frame so positions settle to the new viewport, as happens live
+    ok(g.errors.length === 0, file + ' [' + v.name + '] no error on resize: ' + (g.errors[0] || ''));
+    const L = T().layout;
+    // canvas is scaled (S) on small screens, so it won't equal the viewport — assert the scale model instead
+    const m = Math.min(v.w, v.h), S = m < 640 ? Math.min(2.6, 900 / m) : 1;
+    ok(L.W === Math.round(v.w * S) && L.H === Math.round(v.h * S),
+      file + ' [' + v.name + '] canvas matches scaled viewport (W=' + L.W + ' H=' + L.H + ' S=' + L.S.toFixed(2) + ')');
+    ok(L.W > 0 && L.H > 0, file + ' [' + v.name + '] canvas has positive size');
+    // the ship (the only JS-positioned on-canvas actor) must be fully within 0..W / 0..H
+    ok(L.shipLeft >= 0 && L.shipRight <= L.W, file + ' [' + v.name + '] ship within horizontal bounds (' + L.shipLeft.toFixed(0) + '..' + L.shipRight.toFixed(0) + ' / ' + L.W + ')');
+    ok(L.shipTop >= 0 && L.shipBottom <= L.H, file + ' [' + v.name + '] ship within vertical bounds (' + L.shipTop.toFixed(0) + '..' + L.shipBottom.toFixed(0) + ' / ' + L.H + ')');
+    // the ship must not sit under the top score HUD (its reserved headroom, in canvas px)
+    ok(L.topReserve > 0, file + ' [' + v.name + '] HUD reserves top headroom (' + L.topReserve.toFixed(0) + 'px canvas)');
+    ok(L.shipTop >= L.topReserve, file + ' [' + v.name + '] ship clears the top HUD (top=' + L.shipTop.toFixed(0) + ' >= reserve=' + L.topReserve.toFixed(0) + ')');
+  }
+}
+layoutFits('index.html?v=classic');
 
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);

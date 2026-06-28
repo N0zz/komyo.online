@@ -309,6 +309,23 @@
   // game-kit nav: top-left ‹ Menu (quits to the launcher) + top-right sound menu (SFX + Music + Reset)
   if (KIT) { KIT.nav({ music: true, reset: 'asteroids_', home: '../../', onMenu: () => { quitToMenu(); } }); KIT.pwa(); }
 
+  // ---- test hook: state getters + a layout snapshot for the headless harness (inert in normal play) ----
+  window.__test = {
+    start(){ startGame(); }, step(){ update(); },
+    get state(){ return state; }, get score(){ return score; }, get lives(){ return lives; },
+    get shipAngle(){ return ship ? ship.angle : 0; },
+    // layout snapshot in CANVAS px (the world coords everything is drawn in). The canvas is
+    // scaled up by S on small screens, so topReserve (the CSS HUD headroom) is converted to
+    // canvas px too. Only JS-computed values are exposed; the HUD pill itself is CSS-positioned.
+    get layout(){
+      const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1;
+      const hudTop=(KIT&&KIT.layout&&KIT.layout.hudTop)?KIT.layout.hudTop():(window.innerHeight>window.innerWidth?92:48);
+      const o={ W, H, S, topReserve:hudTop*S };
+      if(ship){ o.shipLeft=ship.x-ship.r; o.shipRight=ship.x+ship.r; o.shipTop=ship.y-ship.r; o.shipBottom=ship.y+ship.r; }
+      return o;
+    },
+  };
+
   resize(); spawnWave(4); updateHud(); loop();
   if (!HAS_V) showModePicker(); // entry with no mode chosen → show the in-page picker
 })();

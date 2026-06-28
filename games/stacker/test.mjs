@@ -110,8 +110,13 @@ function runStacker() {
   try { vm.runInContext(KIT, ctx, { filename: 'game-kit.js' }); vm.runInContext(code, ctx, { filename: 'stacker/index.html' }); }
   catch (e) { bootErr = e.stack || e.message; }
 
+  function resize(w, h) {
+    if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h);
+    else { win.innerWidth = w; win.innerHeight = h; }
+  }
+
   return {
-    bootErr, store,
+    bootErr, store, win, resize,
     test: () => win.__test,
     el: getEl,
     handlers,
@@ -342,6 +347,50 @@ const playedScore = TM3().score;
 TM3().refreshMenuBests();
 ok(TM3().menuBest('classic') === 'best: ' + playedScore,
   'classic best line shows the just-played score ' + playedScore + ' (got ' + TM3().menuBest('classic') + ')');
+
+// ---- Layout: fits the screen across viewports ----
+
+section('Stack: layout fits the screen across 3 viewports (centered, on-screen, clears HUD)');
+const VIEWPORTS = [
+  { name: 'portrait phone', w: 390, h: 780 },
+  { name: 'landscape phone', w: 780, h: 390 },
+  { name: 'desktop', w: 1280, h: 800 },
+];
+for (const vp of VIEWPORTS) {
+  const gl = runStacker();
+  gl.resize(vp.w, vp.h);
+  gl.test().start();
+  gl.test().step(1);
+  // Build a tall tower so the camera scrolls and the top approaches the HUD band.
+  // Step frames between drops: the camera eases toward its target ~7%/frame, exactly as it
+  // does in real play (frames always elapse while the mover travels), so it converges instead
+  // of lagging behind a zero-frame burst of drops.
+  for (let i = 0; i < 30; i++) { gl.test().dropPerfect(); gl.test().step(30); }
+  gl.test().step(120); // let the camera fully settle
+
+  const L = gl.test().layout;
+  const tag = '[' + vp.name + '] ';
+
+  ok(L.W === vp.w && L.H === vp.h, tag + 'canvas matches viewport (' + L.W + 'x' + L.H + ' vs ' + vp.w + 'x' + vp.h + ')');
+
+  // Moving block fully on-screen, horizontally and vertically.
+  ok(L.mover.left >= 0 && L.mover.right <= L.W,
+    tag + 'moving block within 0..W (left=' + L.mover.left.toFixed(1) + ' right=' + L.mover.right.toFixed(1) + ' W=' + L.W + ')');
+  ok(L.mover.top >= 0 && L.mover.bottom <= L.H,
+    tag + 'moving block within 0..H (top=' + L.mover.top.toFixed(1) + ' bottom=' + L.mover.bottom.toFixed(1) + ' H=' + L.H + ')');
+
+  // Stack column horizontally on-screen.
+  ok(L.stackLeft >= 0 && L.stackRight <= L.W,
+    tag + 'stack within 0..W (left=' + L.stackLeft.toFixed(1) + ' right=' + L.stackRight.toFixed(1) + ' W=' + L.W + ')');
+
+  // Topmost drawn pixel clears the top HUD reservation (no overlap with score pill).
+  ok(L.topCanvas >= L.topReserve,
+    tag + 'top of tower clears HUD reserve (topCanvas=' + L.topCanvas.toFixed(1) + ' >= topReserve=' + L.topReserve + ')');
+
+  // "Stays centered": base/stack center ≈ W/2.
+  ok(Math.abs(L.baseCenterX - L.W / 2) <= 1,
+    tag + 'stack centered on W/2 (baseCenterX=' + L.baseCenterX.toFixed(1) + ' W/2=' + (L.W / 2) + ')');
+}
 
 // ---- Summary ----
 console.log('\n----------------------------------------');

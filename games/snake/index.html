@@ -667,6 +667,23 @@
     get best() { return best; },
     get cols() { return COLS; },
     get rows() { return ROWS; },
+    // JS-computed layout bounds in canvas/px space (for layout regression tests).
+    // Arena box hugs the left (D-pad sits in the right strip in landscape); topReserve is the
+    // HUD headroom the arena must clear so the score pill never overlaps the board.
+    get layout() {
+      const landscape = W > H;
+      let portrait = false;
+      try { portrait = !!(window.matchMedia && window.matchMedia('(orientation:portrait)').matches) && W <= 560; } catch (_) {}
+      const topReserve = portrait ? 90 : 48;
+      const rBottom = (dpadReserve && !landscape) ? dpadReserve : 0;
+      const rSide = (dpadReserve && landscape) ? dpadReserve : 0;
+      return {
+        W, H, landscape, topReserve, rBottom, rSide, dpadReserve,
+        offX, offY, cell: cellW, cols: COLS, rows: ROWS,
+        arenaLeft: offX, arenaTop: offY,
+        arenaRight: offX + COLS * cellW, arenaBottom: offY + ROWS * cellH,
+      };
+    },
     get speed() { return opts.speed; },
     get interval() { return getInterval(); },
     get topScoresHtml() { return topScoresEl ? topScoresEl.innerHTML : ''; },

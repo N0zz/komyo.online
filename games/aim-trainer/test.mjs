@@ -117,7 +117,8 @@ function runGame(file, dims) {
   try { vm.runInContext(KIT, ctx, { filename: 'game-kit.js' }); vm.runInContext(code, ctx, { filename: file }); }
   catch (e) { bootErr = e.stack; }
 
-  return { getEl, win, store, bootErr, test: () => win.__test };
+  function resize(w, h) { if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h); else { win.innerWidth = w; win.innerHeight = h; } }
+  return { getEl, win, store, bootErr, resize, test: () => win.__test };
 }
 
 console.log('Running Range (aim-trainer) headless tests…');
@@ -522,6 +523,36 @@ section('moving targets: flick aim still hits a moving target at its current pos
   const hitsBefore = Tm().hits;
   if (moving) Tm().shootAt(moving.x, moving.y);
   ok(Tm().hits === hitsBefore + 1, 'clicking a moving target at its reported position registers a hit');
+}
+
+section('Range: layout fits the screen (on-screen + no targets under the HUD)');
+{
+  const VIEWPORTS = [
+    { name: 'portrait phone', w: 390, h: 780 },
+    { name: 'landscape phone', w: 780, h: 390 },
+    { name: 'desktop', w: 1280, h: 800 },
+  ];
+  for (const v of VIEWPORTS) {
+    const gl = runGame('index.html');
+    gl.resize(v.w, v.h);   // viewport is set before the player hits READY UP
+    gl.test().start();     // first target spawns into the resized playfield
+    gl.test().setSeed(7);
+    gl.test().step(2);
+    const L = gl.test().layout;
+    ok(L.W === v.w && L.H === v.h, v.name + ': canvas matches viewport (' + L.W + 'x' + L.H + ')');
+    // spawn region (full target disc) stays within the canvas
+    ok(L.spawn.left >= 0 && L.spawn.right <= L.W, v.name + ': spawn region within width (' + Math.round(L.spawn.left) + '..' + Math.round(L.spawn.right) + ' in 0..' + L.W + ')');
+    ok(L.spawn.top >= 0 && L.spawn.bottom <= L.H, v.name + ': spawn region within height (' + Math.round(L.spawn.top) + '..' + Math.round(L.spawn.bottom) + ' in 0..' + L.H + ')');
+    // spawn region clears the top HUD pill (targets never spawn under the score HUD)
+    ok(L.spawn.top >= L.topReserve, v.name + ': spawn clears the HUD (spawnTop ' + Math.round(L.spawn.top) + ' >= topReserve ' + L.topReserve + ')');
+    // any live targets are fully on-screen (including their radius) and below the HUD
+    ok(L.targetsBox != null, v.name + ': has a live target after start');
+    if (L.targetsBox) {
+      const b = L.targetsBox;
+      ok(b.left >= 0 && b.right <= L.W, v.name + ': live targets within width (' + Math.round(b.left) + '..' + Math.round(b.right) + ' in 0..' + L.W + ')');
+      ok(b.top >= L.topReserve && b.bottom <= L.H, v.name + ': live targets on-screen + below HUD (' + Math.round(b.top) + '..' + Math.round(b.bottom) + ' in ' + L.topReserve + '..' + L.H + ')');
+    }
+  }
 }
 
 console.log('\n----------------------------------------');

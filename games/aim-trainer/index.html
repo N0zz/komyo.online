@@ -681,6 +681,23 @@
     get elapsed() { return elapsedFrames / 60; }, // seconds elapsed (useful for sprint)
     get elapsedFrames() { return elapsedFrames; },
     get targets() { return targets.map(t => ({ x: t.x, y: t.y, r: t.r, vx: t.vx, vy: t.vy, moving: t.moving })); },
+    // layout snapshot for on-screen / HUD-overlap tests (px in canvas space)
+    get layout() {
+      const pad = 80, maxR = TARGET_BASE_R * 1.35; // r = TARGET_BASE_R * (0.75 + rng*0.6)
+      // Spawn region: target CENTERS land in [pad, W-pad] x [HUD_H+pad, H-pad]; the rect below
+      // accounts for the largest possible radius so the full disc stays on-screen / below the HUD.
+      const spawn = {
+        left: pad - maxR, right: W - pad + maxR,
+        top: HUD_H + pad - maxR, bottom: H - pad + maxR,
+      };
+      let bbox = null;
+      if (targets.length) {
+        let l = Infinity, r = -Infinity, t = Infinity, b = -Infinity;
+        for (const tg of targets) { l = Math.min(l, tg.x - tg.r); r = Math.max(r, tg.x + tg.r); t = Math.min(t, tg.y - tg.r); b = Math.max(b, tg.y + tg.r); }
+        bbox = { left: l, right: r, top: t, bottom: b };
+      }
+      return { W, H, topReserve: HUD_H, spawn, targetsBox: bbox };
+    },
     get movingTargets() { return movingTargets; },
     setMoving(on) { movingTargets = !!on; saveMoving(movingTargets); syncMovingToggle(); },
     get bestScore() {

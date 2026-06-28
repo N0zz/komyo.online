@@ -558,6 +558,27 @@
 
   // ---- __test hook ----
   window.__test = {
+    // JS-computed layout snapshot in canvas/px space — drives the headless layout-fit regression test.
+    get layout() {
+      const top = blocks.length ? blocks[blocks.length - 1] : null;
+      const moverTopCanvas = mover ? worldToCanvas(mover.y) : null;
+      // Topmost drawn pixel across placed blocks + the moving block (smallest canvas-y).
+      let topCanvas = Infinity;
+      for (const b of blocks) topCanvas = Math.min(topCanvas, worldToCanvas(b.y));
+      if (mover && state === 'playing') topCanvas = Math.min(topCanvas, moverTopCanvas);
+      return {
+        W, H, topReserve: TOP_PAD, blockH: BLOCK_H,
+        pfX: PF_X, pfW: PF_W,
+        baseCenterX: top ? top.x + top.w / 2 : null,
+        mover: mover ? {
+          left: mover.x, right: mover.x + mover.w, w: mover.w,
+          top: moverTopCanvas, bottom: moverTopCanvas + BLOCK_H,
+        } : null,
+        stackLeft: top ? top.x : null,
+        stackRight: top ? top.x + top.w : null,
+        topCanvas: topCanvas === Infinity ? null : topCanvas,
+      };
+    },
     get state() { return state; },
     get score() { return score; },
     get blocks() { return blocks.length > 0 ? blocks.length - 1 : 0; },

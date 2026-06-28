@@ -115,6 +115,11 @@ function runGame() {
     bootErr, store,
     el: getEl,
     test: () => win.__test,
+    resize(w, h) {
+      const L = win.gamekit && win.gamekit.layout;
+      if (L && L.__emit) L.__emit(w, h);
+      else { win.innerWidth = w; win.innerHeight = h; }
+    },
     key(type, key) { (docHandlers[type] || []).forEach(fn => { try { fn({ key, preventDefault() {} }); } catch (e) { console.error('key error:', e.message); } }); },
     down(k) { this.key('keydown', k); },
   };
@@ -484,6 +489,48 @@ section('top scores panel renders in menu');
   T.refreshMenu();
   ok(String(T.topScoresHtml).indexOf(String(sc)) >= 0, 'top scores panel shows the recorded score (' + sc + ') html=' + T.topScoresHtml);
   ok(String(T.topScoresHtml).indexOf('Small') >= 0, 'top scores panel shows the mode label');
+}
+
+section('Neon Snake: layout fits the screen (arena on-screen, no HUD overlap)');
+{
+  const VIEWPORTS = [
+    { name: 'portrait phone', w: 390, h: 780 },
+    { name: 'landscape phone', w: 780, h: 390 },
+    { name: 'desktop', w: 1280, h: 800 },
+  ];
+  for (const v of VIEWPORTS) {
+    const g = runGame();
+    const T = g.test();
+    T.start();             // real game, medium board by default
+    g.resize(v.w, v.h);    // drive the orientation-aware resize()
+    T.step(1);             // advance one tick so state is live
+    const L = T.layout;
+
+    // canvas/viewport sizing matches the emitted viewport
+    ok(L.W === v.w && L.H === v.h, v.name + ': canvas matches viewport (' + L.W + 'x' + L.H + ' vs ' + v.w + 'x' + v.h + ')');
+
+    // arena bounding box stays within the viewport on all sides
+    ok(L.arenaLeft >= 0, v.name + ': arena left edge on-screen (' + L.arenaLeft + ' >= 0)');
+    ok(L.arenaTop >= 0, v.name + ': arena top edge on-screen (' + L.arenaTop + ' >= 0)');
+    ok(L.arenaRight <= L.W, v.name + ': arena right edge on-screen (' + L.arenaRight + ' <= ' + L.W + ')');
+    ok(L.arenaBottom <= L.H, v.name + ': arena bottom edge on-screen (' + L.arenaBottom + ' <= ' + L.H + ')');
+
+    // arena clears the top HUD headroom (no score-pill overlap)
+    ok(L.arenaTop >= L.topReserve, v.name + ': arena top clears HUD reserve (' + L.arenaTop + ' >= ' + L.topReserve + ')');
+
+    // landscape reserves a side strip for the D-pad — arena must not run into it
+    if (L.landscape) {
+      ok(L.arenaRight <= L.W - L.rSide, v.name + ': arena clears the reserved side strip (' + L.arenaRight + ' <= ' + (L.W - L.rSide) + ')');
+    } else {
+      ok(L.arenaBottom <= L.H - L.rBottom, v.name + ': arena clears the reserved bottom strip (' + L.arenaBottom + ' <= ' + (L.H - L.rBottom) + ')');
+    }
+
+    // sane positive arena that fits the available space
+    ok(L.cell > 0, v.name + ': cell size is positive (' + L.cell + ')');
+    const avW = L.W - L.rSide, avH = L.H - L.topReserve - L.rBottom;
+    ok(L.cols * L.cell <= avW, v.name + ': arena width fits available width (' + (L.cols * L.cell) + ' <= ' + avW + ')');
+    ok(L.rows * L.cell <= avH, v.name + ': arena height fits available height (' + (L.rows * L.cell) + ' <= ' + avH + ')');
+  }
 }
 
 console.log('\n----------------------------------------');

@@ -98,7 +98,11 @@ function runGame(initialStore) {
   try { vm.runInContext(KIT, ctx, { filename: 'game-kit.js' }); vm.runInContext(code, ctx, { filename: 'index.html' }); }
   catch (e) { bootErr = e.stack; }
 
-  return { win, store, bootErr, test: () => win.__test, getEl, fireKey: (key) => (handlers['keydown'] || []).forEach(fn => fn({ key, preventDefault() {} })) };
+  function resize(w, h) {
+    if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h);
+    else { win.innerWidth = w; win.innerHeight = h; }
+  }
+  return { win, store, bootErr, test: () => win.__test, getEl, resize, fireKey: (key) => (handlers['keydown'] || []).forEach(fn => fn({ key, preventDefault() {} })) };
 }
 
 // ----------------------------------------------------------------
@@ -437,6 +441,60 @@ section('Bird unlocks');
   ok(T().selectBird(paid.id) === true, 'can select after unlocking');
   ok(T().selectedBird === paid.id, 'selected bird now in use (got ' + T().selectedBird + ')');
   ok(g.store['flappy_bird'] === paid.id, 'selection persisted to flappy_bird');
+}
+
+// (v) layout fits the screen across portrait / landscape / desktop viewports
+section('Meadow Flyer: layout fits the screen across viewports');
+{
+  const VIEWPORTS = [
+    { name: 'portrait phone', w: 390, h: 780 },
+    { name: 'landscape phone', w: 780, h: 390 },
+    { name: 'desktop', w: 1280, h: 800 },
+  ];
+  for (const vp of VIEWPORTS) {
+    g = runGame();
+    T().start();
+    g.resize(vp.w, vp.h);
+    T().step(1);
+    const L = T().layout;
+    // Step past the spawn grace period (frame >= 60) to surface a real pipe, keeping the bird
+    // alive by flapping toward the playable band's center so the gap-placement asserts run.
+    let lp = T().layout;
+    const center = (lp.playTop + lp.playBottom) / 2;
+    for (let i = 0; i < 90 && T().state === 'playing' && !lp.gap; i++) {
+      if (T().bird.y > center) T().flap();
+      T().step(1);
+      lp = T().layout;
+    }
+    const G = lp; // layout snapshot that (likely) now carries a pipe gap
+    const tag = '[' + vp.name + ' ' + vp.w + 'x' + vp.h + '] ';
+
+    // canvas tracks the viewport exactly
+    ok(L.W === vp.w && L.H === vp.h, tag + 'canvas matches viewport (got ' + L.W + 'x' + L.H + ')');
+
+    // bird is fully on-screen horizontally and vertically
+    ok(L.bird.left >= 0 && L.bird.right <= L.W, tag + 'bird within 0..W (left=' + L.bird.left + ', right=' + L.bird.right + ', W=' + L.W + ')');
+    ok(L.bird.top >= 0 && L.bird.bottom <= L.H, tag + 'bird within 0..H (top=' + L.bird.top + ', bottom=' + L.bird.bottom + ', H=' + L.H + ')');
+
+    // the ground strip sits within the canvas height
+    ok(L.groundY > 0 && L.groundY < L.H, tag + 'ground is within height (groundY=' + L.groundY + ', H=' + L.H + ')');
+
+    // playable band clears the HUD reserve at the top and ends at the ground — no overlap with the score pill
+    ok(L.playTop >= L.topReserve, tag + 'play band top clears the HUD reserve (playTop=' + L.playTop + ' >= topReserve=' + L.topReserve + ')');
+    ok(L.playBottom <= L.groundY, tag + 'play band bottom does not exceed the ground (playBottom=' + L.playBottom + ', groundY=' + L.groundY + ')');
+
+    // the bird spawns inside the playable band (below the HUD, above the ground)
+    ok(L.bird.top >= L.topReserve && L.bird.bottom <= L.groundY, tag + 'bird sits inside the play band (top=' + L.bird.top + ' >= ' + L.topReserve + ', bottom=' + L.bird.bottom + ' <= ' + L.groundY + ')');
+
+    // if a pipe has spawned, its gap is positioned within the play area (below the HUD, above the ground)
+    if (G.gap) {
+      ok(G.gap.gapTop >= G.topReserve, tag + 'pipe gap top clears the HUD reserve (gapTop=' + G.gap.gapTop + ' >= ' + G.topReserve + ')');
+      ok(G.gap.gapBottom <= G.groundY, tag + 'pipe gap bottom stays above the ground (gapBottom=' + G.gap.gapBottom + ' <= ' + G.groundY + ')');
+      ok(G.gap.gapBottom > G.gap.gapTop, tag + 'pipe gap has positive height (gapTop=' + G.gap.gapTop + ', gapBottom=' + G.gap.gapBottom + ')');
+    } else {
+      ok(true, tag + 'no pipe spawned yet — gap placement check skipped');
+    }
+  }
 }
 
 // ----------------------------------------------------------------

@@ -238,6 +238,13 @@
     ROW_H = R * 1.73;
     const portrait = H > W || W <= 560;
     topMargin = portrait ? 92 : 48;
+    // Vertical fit: on short (landscape phone) screens the default row spacing makes the
+    // starting grid spill past the lose line / shooter. Compress ROW_H so the initial grid
+    // (GRID_ROWS_START rows, top at topMargin+R) clears the lose line (H-SHOOTER_Y_OFFSET-3R)
+    // with a one-row breather. Never expand beyond the default spacing.
+    const playBand = (H - SHOOTER_Y_OFFSET - R * 3) - (topMargin + R);
+    const fitRowH = playBand / (GRID_ROWS_START + 1);
+    if (fitRowH > 0 && fitRowH < ROW_H) ROW_H = fitRowH;
   }
   window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
@@ -1185,6 +1192,30 @@
     get shooterX() { return shooterX(); },
     get shooterY() { return shooterY(); },
     get COLS_COUNT() { return COLS_COUNT; },
+
+    // JS-computed layout snapshot (canvas/px space) for regression tests.
+    // Grid bounding box spans all occupied cells across both even/odd (half-step) rows;
+    // empty grid → null box. topReserve is the HUD headroom the grid must clear.
+    get layout() {
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity, count = 0;
+      for (let r = 0; r < grid.length; r++) {
+        for (let c = 0; c < COLS_COUNT; c++) {
+          if (!grid[r][c]) continue;
+          const bx = gridX(c, r), by = gridY(r);
+          if (bx - R < minX) minX = bx - R;
+          if (bx + R > maxX) maxX = bx + R;
+          if (by - R < minY) minY = by - R;
+          if (by + R > maxY) maxY = by + R;
+          count++;
+        }
+      }
+      const grid_ = count ? { left: minX, right: maxX, top: minY, bottom: maxY } : null;
+      return {
+        W, H, topReserve: topMargin, R,
+        grid: grid_,
+        shooterX: shooterX(), shooterY: shooterY(),
+      };
+    },
   };
 
   refreshMenuBests();

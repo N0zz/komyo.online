@@ -741,6 +741,27 @@
     get bird()  { return { x: bird.x, y: bird.y, vy: bird.vy }; },
     get nextGap() { return obstacles.length > 0 ? obstacles.find(o => !o.passed) : null; },
     get obstacles() { return obstacles; },
+    // JS-computed layout snapshot (canvas/px space) for layout-regression tests.
+    get layout() {
+      const groundH = 28;
+      const groundY = H - groundH;            // top edge of the ground strip
+      const o = obstacles.find(x => !x.passed) || obstacles[0] || null;
+      return {
+        W, H,
+        topReserve: topInset,                 // headroom the playfield clears for the center-top HUD
+        groundY,
+        bird: {
+          x: bird.x, y: bird.y, r: BIRD_R,
+          left: bird.x - BIRD_R, right: bird.x + BIRD_R,
+          top: bird.y - BIRD_R, bottom: bird.y + BIRD_R,
+        },
+        // Vertical band the bird can occupy (ceiling..floor used by the collision check).
+        playTop: topInset,
+        playBottom: groundY,
+        // Nearest pipe gap (null until one spawns). gapTop/gapBottom are the gap's vertical extent.
+        gap: o ? { x: o.x, gapTop: o.gapY, gapBottom: o.gapY + o.gap } : null,
+      };
+    },
     get best() { return getBest(); },
     get mode() { return mode; },
     get GAP_H() { return GAP_H; },
