@@ -1,6 +1,9 @@
-name: Discord push notice
+name: Discord changelog
 
-# Posts a message to the Discord changelog channel on every push to main.
+# Posts to the Discord changelog channel ONLY when changelog.js gains new entries on a
+# push to main (covers batched pushes AND merges). The post mirrors the in-page changelog
+# exactly — no chore/ci/docs/refactor noise. See .github/scripts/post-changelog.mjs.
+#
 # The webhook lives in a repo SECRET (never in this public file): add it at
 # Settings → Secrets and variables → Actions → New repository secret
 #   name:  DISCORD_CHANGELOG_WEBHOOK
@@ -10,21 +13,19 @@ name: Discord push notice
 on:
   push:
     branches: [main]
+    paths: ['changelog.js']
 
 jobs:
   notify:
     runs-on: ubuntu-latest
     steps:
-      - name: Post commits to Discord
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # need history so we can diff changelog.js against the push base
+      - name: Post new changelog entries to Discord
         env:
           WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
-          COMMITS: ${{ toJSON(github.event.commits) }}
+          BEFORE: ${{ github.event.before }}
         run: |
           if [ -z "$WEBHOOK" ]; then echo "DISCORD_CHANGELOG_WEBHOOK not set — skipping."; exit 0; fi
-          # All commits in this push (covers batched pushes AND merges to main), each with its
-          # FULL message in a code block; cap at 20 commits / 1900 chars so it can't overflow Discord.
-          lines=$(printf '%s' "$COMMITS" | jq -r '(. // []) | [ .[0:20][] | "```\n" + .message + "\n```" ] | join("\n\n")')
-          [ -z "$lines" ] && { echo "no commits to post"; exit 0; }
-          payload=$(jq -Rn --arg t "📝 **Komyo Games** update" --arg m "$lines" \
-            '{username:"Komyo Games", content: (($t + "\n" + $m)[0:1900]), allowed_mentions:{parse:[]}}')
-          curl -sS -H "Content-Type: application/json" -d "$payload" "$WEBHOOK"
+          node .github/scripts/post-changelog.mjs
