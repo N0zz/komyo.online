@@ -96,19 +96,20 @@
     border:1px solid rgba(0,0,0,0.4); }
   @media (max-width: 480px) {
     .map-picker { grid-template-columns:repeat(2, 1fr); gap:8px; }
-    #overlay { gap:9px; padding:16px 12px; justify-content:flex-start; }
+    /* top padding clears the kit's top nav (which sits above the menu overlay) so the title isn't hidden */
+    #overlay { gap:9px; padding:58px 12px 16px; justify-content:flex-start; }
     #overlay h1 { font-size:32px; }
     #overlay p { font-size:13px; }
     .map-btn { padding:10px 12px; }
   }
   /* short screens (landscape phones): keep the whole menu on-screen + scrollable, smaller header */
   @media (max-height: 560px) {
-    #overlay { gap:8px; padding:12px; justify-content:flex-start; }
+    #overlay { gap:8px; padding:56px 12px 12px; justify-content:flex-start; }
     #overlay h1 { font-size:26px; letter-spacing:2px; }
     #overlay p { font-size:12px; margin:1px; }
     .map-picker { grid-template-columns:repeat(4, 1fr); gap:8px; max-width:none; }
     .map-btn { padding:8px 10px; }
-    .map-btn .desc { display:none; } /* tile still shows name + best; drop blurb to fit landscape */
+    .map-btn .desc { font-size:10px; line-height:1.3; } /* keep the blurb, just smaller in landscape */
   }
 
   #shareRow { --gamekit-accent:#e0b25a; }
