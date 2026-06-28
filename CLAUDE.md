@@ -103,7 +103,7 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
    on a new game (drives the auto **NEW** badge for 7 days). **Whenever you ship a notable update to a
    game (new mode/feature — not every bugfix), bump that game's `updated: "YYYY-MM-DD"`** (drives the
    **UPDATED** badge for 7 days). Keep these dates accurate — they're the only source for those badges.
-   Also **add a `CHANGELOG` bullet** in `index.html` for the change (see Catalogue specifics).
+   Also **add a `CHANGELOG` bullet** in `changelog.js` for the change (see Catalogue specifics).
    When a game goes **live** (not `soon`), add its `https://komyo.online/games/<slug>/` URL to
    both `sitemap.xml` and `llms.txt`. `robots.txt` allows all crawlers (search + AI/LLM) and points
    at the sitemap; `llms.txt` is a curated markdown map of the site for LLMs.
@@ -149,14 +149,17 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
   UPDATED); **POPULAR** (purple, `badges: ["pick"]`) is manual. Add a type = one map entry + a color
   rule. Header carries a **mascot placeholder**
   (chibi fox-girl inline SVG — swap for real art later).
-- **Changelog:** the `CHANGELOG` array in `index.html` (newest first) drives the 🗒️ Changelog modal
-  (opened from the ☰ menu; date-grouped releases split by `<hr>`, lazy-loaded, searchable incl. by
-  date). Each entry is one **release per date**:
+- **Changelog:** the `window.CHANGELOG` array in **`changelog.js`** (newest first, loaded as a
+  `<script src>` and cached in the SW shell) drives the 🗒️ Changelog modal (opened from the ☰ menu;
+  date-grouped releases split by `<hr>`, lazy-loaded, searchable incl. by date) **and** the Discord
+  changelog post. Each entry is one **release per date**:
   `{ date: 'YYYY-MM-DD', title: '…', items: ['New: …', 'Fix: …', 'Added …'] }`. **After shipping any
   player-facing change, add a bullet** — to today's release if one already exists, otherwise prepend a
   new dated release. Keep bullets plain-language and about what a *player* notices (a new game, a bug
   they'd hit, a mode/feature) — **never** internal/kit/test/build/refactor work. Write it for players,
-  not as a commit log.
+  not as a commit log. **Discord:** a push that edits `changelog.js` triggers `.github/workflows/
+  discord-changelog.yml` → `post-changelog.mjs`, which posts **only the entries added in that push**
+  (diff vs the push base), so Discord mirrors this file exactly. Non-changelog pushes post nothing.
 - Monetization is optional only: **Buy Me a Coffee** (footer) + GitHub Sponsors (README badge
   only — the footer Sponsor link was removed; footer = coffee + a GitHub-icon repo link).
 
