@@ -25,7 +25,6 @@
   @media (max-width:560px) { #topHud { top:50px; max-width:calc(100vw - 16px); gap:8px 20px; } }
   /* short screens (landscape phones): make the HUD a slim top bar instead of a tall box (~30% → ~10%) */
   @media (max-height:560px) {
-    body.touch #topHud { top:8px; } /* landscape: room beside the nav → sit flush at the very top */
     #topHud { padding:2px 12px; gap:14px; border-radius:8px; }
     #hudL { font-size:15px; letter-spacing:1px; }
     #hudL .label { font-size:8px; }
@@ -89,7 +88,6 @@
   .tc-knob { position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px; border-radius:50%; background:rgba(159,232,255,0.55); box-shadow:0 0 16px rgba(120,200,255,0.6); }
   .tc-fire { position:absolute; right:24px; bottom:34px; width:96px; height:96px; border-radius:50%; border:2px solid rgba(255,150,150,0.6); background:rgba(80,20,20,0.45); color:#ffc0c0; font:bold 15px "Courier New",monospace; letter-spacing:2px; pointer-events:auto; touch-action:none; display:flex; align-items:center; justify-content:center; opacity:0.5; }
   .tc-pause { position:absolute; right:16px; top:14px; width:46px; height:46px; border-radius:10px; border:1px solid rgba(120,200,255,0.4); background:rgba(10,16,30,0.6); color:#cfe8ff; font:bold 15px "Courier New",monospace; pointer-events:auto; }
-  body.touch #topHud { top: 52px; }
   body.touch #xpwrap { bottom: 172px; width: min(420px, 60vw); }
   /* landscape phone: the screen is short, so 172px floats the XP bar mid-playfield — drop it near the bottom */
   @media (max-height: 560px) { body.touch #xpwrap { bottom: 22px; width: min(360px, 56vw); } }

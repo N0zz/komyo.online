@@ -524,6 +524,21 @@
     __emit: function (w, h) { try { if (typeof window !== 'undefined') { if (w != null) window.innerWidth = w; if (h != null) window.innerHeight = h; } } catch (e) {} fireLayout(); },
   };
 
+  // Unlock/resume the AudioContext on the first user gesture — browsers block (and warn about)
+  // audio that starts without one. After the first tap/key, sounds play cleanly.
+  (function () {
+    if (typeof document === 'undefined' || !document.addEventListener) return;
+    var unlock = function () {
+      ensureAC();
+      if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
+    };
+    var evs = ['pointerdown', 'touchstart', 'keydown'];
+    for (var i = 0; i < evs.length; i++) {
+      try { document.addEventListener(evs[i], unlock, { once: true }); }
+      catch (e) { try { document.addEventListener(evs[i], unlock); } catch (_) {} }
+    }
+  })();
+
   var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
