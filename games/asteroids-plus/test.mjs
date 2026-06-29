@@ -44,6 +44,15 @@ function makeEl(id) {
   return el;
 }
 
+// Deterministic Math for the game sandbox so a run is reproducible (the game uses Math.random for
+// spawns/collisions/pickups; without a seed, random asteroid hits set the same invuln window that
+// absorbs the test's manual hurt() calls → the "dies after enough hits" check was flaky).
+function makeSeededMath(seed) {
+  let s = (seed >>> 0) || 0x2545f491;
+  const m = Object.create(Math);
+  m.random = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+  return m;
+}
 function runGame(file, { search = '' } = {}) {
   // a file token may carry its own query (e.g. 'roguelite.html?prog=shop') — the knobs that
   // used to be separate files. Split it off and merge into the mocked location.search.
@@ -92,7 +101,7 @@ function runGame(file, { search = '' } = {}) {
     performance: win.performance,
     requestAnimationFrame: (cb) => { pending = cb; return 1; },
     cancelAnimationFrame: () => {},
-    URLSearchParams, Math, JSON, String, Number, Array, Object, parseInt, parseFloat,
+    URLSearchParams, Math: makeSeededMath(0x1234abcd), JSON, String, Number, Array, Object, parseInt, parseFloat,
     isFinite, isNaN, Date, console,
     navigator: { userAgent: 'test' },
   };
