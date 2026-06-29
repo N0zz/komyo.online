@@ -272,14 +272,20 @@
   }
 
   // ---------- top-left nav: ‹ Menu · Komyo Games › (+ injects the top-right sound menu) ----------
+  // The ‹ Menu button (go to the game's own menu) is only meaningful DURING play — on the game's menu
+  // it confuses people who expect it to go back to the site (that's the "Komyo Games ›" link). Games
+  // call showMenuButton(true) when play starts and (false) on their menu screen.
+  var _menuBtn = null;
+  function showMenuButton(show) { if (_menuBtn && _menuBtn.style) _menuBtn.style.display = show ? '' : 'none'; }
   function nav(opts) {
     opts = opts || {};
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'gamekit-nav';
       wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">&#x2039; Menu</button>'
-        + '<a class="gamekit-back" id="gamekitHome" target="_top" href="' + (opts.home || '../../') + '">Komyo Games &#x203A;</a>';
+        + '<a class="gamekit-back" id="gamekitHome" target="_top" href="' + (opts.home || '../../') + '"><span class="gamekit-home-label">Komyo Games </span>&#x203A;</a>';
       document.body.appendChild(wrap);
       var menu = document.getElementById('gamekitMenu');
+      _menuBtn = menu || null;
       if (menu) menu.addEventListener('click', function () {
         if (typeof opts.onMenu === 'function') { try { opts.onMenu(); } catch (e) {} }
         else { try { location.reload(); } catch (e) {} }
@@ -566,7 +572,7 @@
     }
   })();
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
