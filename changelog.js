@@ -4,6 +4,11 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-06-29', title: 'Polish & fixes', items: [
+    'Fix: on narrow phones the top bar no longer crowds itself — the Menu button and the sound/pause buttons keep clear of each other.',
+    'Fix: the ‹ Menu button now only shows while you’re actually playing, not on a game’s own menu (where it was easy to mistake for “back to the website”).',
+    'Fix: Range — on phones the shot marker now stays exactly where you fired, instead of drifting along with your finger.',
+  ] },
   { date: '2026-06-28', title: 'Challenges, score cards & more', items: [
     'New: game tiles now show up to three genre tags, each in its own consistent color, and you can filter by any of them.',
     'New: a stack of fresh games is on the way — peek the "coming soon" tiles for what we’re building next.',
