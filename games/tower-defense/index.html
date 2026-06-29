@@ -98,8 +98,11 @@
   .diff-btn { font-family:inherit; cursor:pointer; text-align:left; padding:10px 14px; border-radius:10px;
     color:var(--parch); background:linear-gradient(180deg,#6a4a2c,#4a3220); border:2px solid #2c1d10;
     display:flex; flex-direction:column; gap:4px; }
-  .diff-btn.active { border-color:var(--gold); box-shadow:0 0 8px rgba(224,178,90,0.5); }
-  .diff-btn .nm { font-size:15px; font-weight:bold; }
+  .diff-btn.active { border-color:var(--gold); box-shadow:0 0 0 2px var(--gold), 0 0 18px rgba(224,178,90,0.7); }
+  .diff-btn .nm { display:flex; align-items:center; gap:6px; font-size:15px; font-weight:bold; }
+  .diff-btn.active .nm { color:var(--gold); }
+  .diff-btn .tick { color:var(--gold); margin-left:auto; opacity:0; font-size:14px; }
+  .diff-btn.active .tick { opacity:1; }
   .diff-btn .desc { font-size:11px; line-height:1.35; opacity:0.85; }
   @media (max-width: 480px) {
     .map-picker { grid-template-columns:repeat(2, 1fr); gap:8px; }
@@ -169,9 +172,9 @@
   <div class="map-picker" id="mapPicker"></div>
   <p style="font-size:13px;opacity:0.7;margin-top:8px;">Difficulty:</p>
   <div class="diff-picker" id="diffPicker">
-    <button class="diff-btn" data-diff="easy"><span class="nm">Easy</span><span class="desc">Approachable, still a fair fight</span></button>
-    <button class="diff-btn" data-diff="medium"><span class="nm">Medium</span><span class="desc">Tanky foes · tight gold</span></button>
-    <button class="diff-btn" data-diff="hard"><span class="nm">Hard</span><span class="desc">Brutal · for veterans</span></button>
+    <button class="diff-btn" data-diff="easy"><span class="nm">Easy<span class="tick">✓</span></span><span class="desc">Approachable, still a fair fight</span></button>
+    <button class="diff-btn" data-diff="medium"><span class="nm">Medium<span class="tick">✓</span></span><span class="desc">Tanky foes · tight gold</span></button>
+    <button class="diff-btn" data-diff="hard"><span class="nm">Hard<span class="tick">✓</span></span><span class="desc">Brutal · for veterans</span></button>
   </div>
   <button id="startGameBtn" style="margin-top:6px;">Begin</button>
 </div>
