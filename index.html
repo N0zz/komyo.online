@@ -266,7 +266,7 @@
     border-radius:999px; color:#06121a; background:#9fe8ff; }
   .filter-pop { display:none; position:absolute; top:calc(100% + 8px); right:0; z-index:45; width:230px; text-align:left;
     background:var(--surface-2); border:1px solid var(--border); border-radius:12px; padding:12px 13px; box-shadow:0 16px 44px rgba(0,0,0,0.55);
-    resize:vertical; overflow:auto; min-height:200px; max-height:82vh; }
+    resize:both; overflow:auto; min-width:220px; min-height:200px; max-height:82vh; }
   .filter-pop.show { display:block; }
   .filter-pop .fh { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); margin:2px 0 7px; }
   .filter-pop .fh:not(:first-child) { margin-top:12px; }
@@ -912,6 +912,19 @@
         pop.classList.toggle('show', open);
         const narrow = window.matchMedia && window.matchMedia('(max-width: 560px)').matches;
         try { document.body.style.overflow = (open && narrow) ? 'hidden' : ''; } catch (e) {}
+        // Left-anchor the panel at its current spot so the native resize grip grows it toward the
+        // cursor (right + down) instead of jumping left; cap max-width to the viewport so it can't run
+        // off-screen. (Inline width/height from a previous resize are kept, so the size is remembered.)
+        try {
+          if (open && !narrow) {
+            pop.style.left = ''; pop.style.right = ''; pop.style.maxWidth = ''; // reset to CSS (right:0) to measure
+            const r = pop.getBoundingClientRect(), wrap = pop.closest('.filter-wrap');
+            const wl = wrap ? wrap.getBoundingClientRect().left : 0;
+            pop.style.left = (r.left - wl) + 'px';
+            pop.style.right = 'auto';
+            pop.style.maxWidth = Math.max(220, window.innerWidth - r.left - 8) + 'px';
+          } else { pop.style.left = ''; pop.style.right = ''; pop.style.maxWidth = ''; }
+        } catch (e) {}
       };
       const fc = document.getElementById('filterClear');
       if (fc) fc.addEventListener('click', e => { e.preventDefault(); clearFilters(); setPop(false); });
