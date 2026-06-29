@@ -275,6 +275,16 @@
   .seg button.on { background:#9fe8ff; color:#06121a; font-weight:700; border-color:#9fe8ff; }
   .fchk { display:flex; align-items:center; gap:8px; padding:5px 2px; font-size:13px; color:var(--text); cursor:pointer; }
   .fchk input { accent-color:#9fe8ff; }
+  /* Highlights + Genre as selectable chips (color dot + accent ring when on) */
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip { appearance:none; -webkit-appearance:none; display:inline-flex; align-items:center; gap:7px; margin:0;
+    font-family:var(--mono); font-size:11px; letter-spacing:1px; padding:6px 11px 6px 9px; border-radius:8px; cursor:pointer;
+    background:var(--surface-2); border:1px solid var(--border); color:var(--muted); transition:color .12s, border-color .12s, background .12s; }
+  .chip .dot { width:9px; height:9px; border-radius:50%; background:var(--c,var(--accent)); flex:0 0 auto; box-shadow:0 0 8px -1px var(--c,var(--accent)); }
+  .chip:hover { color:var(--text); border-color:color-mix(in srgb, var(--c,var(--accent)) 55%, var(--border)); }
+  .chip.on { color:var(--text); border-color:var(--c,var(--accent)); background:color-mix(in srgb, var(--c,var(--accent)) 16%, var(--surface-2));
+    box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--c,var(--accent)) 45%, transparent); }
+  .chip:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   .filter-clear { display:inline-block; margin-top:10px; font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--faint); }
   .filter-clear:hover { color:#9fe8ff; }
   /* narrow screens: a 230px panel anchored to the centered button overflows the left edge —
@@ -421,10 +431,10 @@
               <button type="button" data-type="mp">Multi</button>
             </div>
             <div class="fh">Highlights</div>
-            <div id="badgeList">
-              <label class="fchk"><input type="checkbox" data-badge="new"> <span class="gtag" style="color:#ffd24d">NEW</span></label>
-              <label class="fchk"><input type="checkbox" data-badge="updated"> <span class="gtag" style="color:#4db6ff">UPDATED</span></label>
-              <label class="fchk"><input type="checkbox" data-badge="pick"> <span class="gtag" style="color:#b98cff">POPULAR</span></label>
+            <div id="badgeList" class="chips">
+              <button type="button" class="chip" data-badge="new" aria-pressed="false" style="--c:#ffd24d"><span class="dot"></span>NEW</button>
+              <button type="button" class="chip" data-badge="updated" aria-pressed="false" style="--c:#4db6ff"><span class="dot"></span>UPDATED</button>
+              <button type="button" class="chip" data-badge="pick" aria-pressed="false" style="--c:#b98cff"><span class="dot"></span>POPULAR</button>
             </div>
             <div class="fh">Genre</div>
             <div id="genreList"></div>
@@ -826,7 +836,7 @@
     function clearFilters() {
       FILTER.q = ''; FILTER.genres.clear(); FILTER.badges.clear(); FILTER.type = 'all'; FILTER.showSoon = true;
       const s = document.getElementById('search'); if (s) s.value = '';
-      document.querySelectorAll('#genreList input, #badgeList input').forEach(i => { i.checked = false; });
+      document.querySelectorAll('#genreList .chip, #badgeList .chip').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); });
       document.querySelectorAll('#typeSeg button').forEach(b => b.classList.toggle('on', b.dataset.type === 'all'));
       const ss = document.getElementById('showSoon'); if (ss) ss.checked = true;
       fcountUpdate(); render();
@@ -844,17 +854,17 @@
       const btn = document.getElementById('filterBtn'), pop = document.getElementById('filterPop'), genreList = document.getElementById('genreList');
       if (!btn || !pop || !genreList) return;
       const tags = [...new Set((window.GAMES || []).flatMap(tagsOf))].sort();
-      genreList.innerHTML = tags.map(t => '<label class="fchk"><input type="checkbox" value="' + t + '"> <span class="gtag" style="color:' + tagColorOf(t) + '">' + t + '</span></label>').join('');
-      genreList.addEventListener('change', e => {
-        const v = e.target.value; if (e.target.checked) FILTER.genres.add(v); else FILTER.genres.delete(v);
+      genreList.className = 'chips';
+      genreList.innerHTML = tags.map(t => '<button type="button" class="chip" data-genre="' + t + '" aria-pressed="false" style="--c:' + tagColorOf(t) + '"><span class="dot"></span>' + t + '</button>').join('');
+      const toggleChip = (b, set) => {
+        const v = b.dataset.genre || b.dataset.badge; if (!v) return;
+        const on = !set.has(v); if (on) set.add(v); else set.delete(v);
+        b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
         fcountUpdate(); render();
-      });
+      };
+      genreList.addEventListener('click', e => { const b = e.target.closest('button[data-genre]'); if (b) toggleChip(b, FILTER.genres); });
       const badgeList = document.getElementById('badgeList');
-      if (badgeList) badgeList.addEventListener('change', e => {
-        const v = e.target.dataset.badge; if (!v) return;
-        if (e.target.checked) FILTER.badges.add(v); else FILTER.badges.delete(v);
-        fcountUpdate(); render();
-      });
+      if (badgeList) badgeList.addEventListener('click', e => { const b = e.target.closest('button[data-badge]'); if (b) toggleChip(b, FILTER.badges); });
       const seg = document.getElementById('typeSeg');
       if (seg) seg.addEventListener('click', e => {
         const b = e.target.closest('button[data-type]'); if (!b) return;
@@ -876,8 +886,8 @@
       btn.addEventListener('click', e => { e.stopPropagation(); setPop(!pop.classList.contains('show')); });
       document.addEventListener('click', e => { if (!(e.target.closest && e.target.closest('.filter-wrap'))) setPop(false); });
       // reflect any URL-loaded filter state into the controls
-      genreList.querySelectorAll('input').forEach(i => { i.checked = FILTER.genres.has(i.value); });
-      if (badgeList) badgeList.querySelectorAll('input').forEach(i => { i.checked = FILTER.badges.has(i.dataset.badge); });
+      genreList.querySelectorAll('.chip').forEach(b => { const on = FILTER.genres.has(b.dataset.genre); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      if (badgeList) badgeList.querySelectorAll('.chip').forEach(b => { const on = FILTER.badges.has(b.dataset.badge); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
       if (seg) seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.type === FILTER.type));
       if (ss) ss.checked = FILTER.showSoon;
       fcountUpdate();
