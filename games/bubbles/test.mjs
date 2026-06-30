@@ -355,6 +355,16 @@ section('Bubble Pop: layout fits the screen (portrait / landscape / desktop)');
     ok(L.grid.top >= L.topReserve,
       `${vp.name}: grid top clears HUD reserve (top=${L.grid.top.toFixed(1)} >= ${L.topReserve})`);
 
+    // Walls bound the play column: grid sits inside [walls.left, walls.right], below the ceiling,
+    // and the walls themselves are inset from the screen edges (room for the wall + margin).
+    ok(L.walls != null, `${vp.name}: walls exposed`);
+    ok(L.grid.left >= L.walls.left - 0.5 && L.grid.right <= L.walls.right + 0.5,
+      `${vp.name}: grid within walls (grid ${L.grid.left.toFixed(1)}..${L.grid.right.toFixed(1)} vs walls ${L.walls.left.toFixed(1)}..${L.walls.right.toFixed(1)})`);
+    ok(L.grid.top >= L.walls.ceiling - 0.5,
+      `${vp.name}: grid top below the ceiling (top=${L.grid.top.toFixed(1)} >= ceiling=${L.walls.ceiling.toFixed(1)})`);
+    ok(L.walls.left - L.walls.thickness >= 0 && L.walls.right + L.walls.thickness <= L.W,
+      `${vp.name}: walls (incl. thickness) fit on-screen`);
+
     // Shooter on-screen
     ok(L.shooterX >= 0 && L.shooterX <= L.W,
       `${vp.name}: shooter X within 0..W (${L.shooterX.toFixed(1)} / ${L.W})`);
@@ -367,6 +377,29 @@ section('Bubble Pop: layout fits the screen (portrait / landscape / desktop)');
     ok(L.shooterY < L.H,
       `${vp.name}: shooter above bottom edge (shooterY=${L.shooterY.toFixed(1)} < H=${L.H})`);
   }
+}
+
+// ---- Shots bounce off the play-column wall, not the screen edge (landscape, where the column is inset) ----
+section('Bubble Pop: shot bounces off the column wall');
+{
+  const gb = runGame();
+  gb.resize(1280, 800);            // wide → column is centered, walls well inside the screen
+  gb.T().startMode('arcade');
+  gb.T().step(1);
+  const L0 = gb.T().layout, walls = L0.walls, R = L0.R, W = L0.W;
+  gb.T().aimAngle(-0.25);          // shallow rightward-up shot → reaches the right wall low, before the grid
+  gb.T().shoot();
+  let maxX = -Infinity, reachedWall = false;
+  for (let i = 0; i < 60; i++) {
+    gb.T().step(1);
+    const s = gb.T().shot;
+    if (!s) break;                 // landed
+    maxX = Math.max(maxX, s.x);
+    if (s.x >= walls.right - R - 3) reachedWall = true;
+  }
+  ok(reachedWall, `shot reaches the right wall (maxX=${maxX.toFixed(1)}, wall=${walls.right.toFixed(1)})`);
+  ok(maxX <= walls.right + 0.5, `shot never crosses the wall (maxX=${maxX.toFixed(1)} <= ${walls.right.toFixed(1)})`);
+  ok(maxX < W - R - 1, `bounces off the column, not the screen edge (maxX=${maxX.toFixed(1)} << W=${W})`);
 }
 
 // ---- Descent keeps the shape (no horizontal reshape) + landing snaps to nearest empty cell ----
