@@ -279,12 +279,42 @@ function testChallenges() {
   for (const id of (C.weekly || [])) ok(!!goals[id], 'weekly rotation id "' + id + '" is a defined goal');
 }
 
+// ---------------- service workers (sw-core + per-scope) ----------------
+function testServiceWorkers() {
+  section('service workers (sw-core + per-scope)');
+  const core = fs.readFileSync(path.join(DIR, 'sw-core.js'), 'utf8');
+  const scopes = [['sw.js', 'root'], ['games/aim-trainer/sw.js', 'aim-trainer'], ['games/asteroids/sw.js', 'asteroids'],
+    ['games/asteroids-plus/sw.js', 'asteroids-plus'], ['games/breakout/sw.js', 'breakout'], ['games/bubbles/sw.js', 'bubbles'],
+    ['games/flappy/sw.js', 'flappy'], ['games/snake/sw.js', 'snake'], ['games/stacker/sw.js', 'stacker'], ['games/tower-defense/sw.js', 'tower-defense']];
+  for (const [file, scope] of scopes) {
+    const src = fs.readFileSync(path.join(DIR, file), 'utf8');
+    const listeners = {}; let opened = null;
+    const sb = {
+      location: { origin: 'https://komyo.online' },
+      addEventListener: (t, fn) => { listeners[t] = fn; }, skipWaiting: () => {}, clients: { claim: () => {} },
+      caches: { open: n => { opened = n; return Promise.resolve({ add: () => Promise.resolve(), match: () => Promise.resolve(null), put: () => {} }); }, keys: () => Promise.resolve([]), delete: () => Promise.resolve() },
+      fetch: () => Promise.reject(new Error('offline')), Response: { error: () => ({}) }, Promise, console, URL,
+    };
+    sb.self = sb; sb.globalThis = sb;
+    const ctx = vm.createContext(sb);
+    sb.importScripts = rel => vm.runInContext(rel.indexOf('sw-core') >= 0 ? core : '', ctx, { filename: rel });
+    let err = null;
+    try { vm.runInContext(src, ctx, { filename: file }); } catch (e) { err = e.message; }
+    ok(err === null, file + ' loads + imports sw-core: ' + err);
+    ok(typeof listeners.install === 'function' && typeof listeners.activate === 'function' && typeof listeners.fetch === 'function',
+      file + ' registers install/activate/fetch');
+    try { if (listeners.install) listeners.install({ waitUntil() {} }); } catch (e) {}
+    ok(opened === 'komyo-' + scope + '-dev', file + ' precaches the scope-keyed cache (got ' + opened + ')');
+  }
+}
+
 console.log('Running arcade tests…');
 testCatalogue();
 testTD();
 testLiveGames();
 testKit();
 testChallenges();
+testServiceWorkers();
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);
 if (fail) { console.log('\nFailures:'); fails.forEach(f => console.log(' - ' + f)); process.exit(1); }

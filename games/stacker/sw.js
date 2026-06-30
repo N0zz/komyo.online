@@ -1,9 +1,5 @@
-// stacker — installable PWA + offline (network-first). Self-contained single page.
-const CACHE = 'stacker-v1';
-const SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../game-kit.js','../../game-kit.css','../../version.js'];
-self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));
-self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())));
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(fetch(e.request).then(r => { const cp = r.clone(); caches.open(CACHE).then(c => c.put(e.request, cp)).catch(() => {}); return r; }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html'))));
-});
+// stacker — installable PWA + offline via the shared sw-core (stale-while-revalidate, versioned cache).
+self.SCOPE = 'stacker';
+self.VERSION = 'dev'; // stamped with the commit SHA at deploy
+self.SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../analytics.js','../../game-kit.js','../../game-kit.css','../../version.js'];
+importScripts('../../sw-core.js');
