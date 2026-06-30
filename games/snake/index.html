@@ -52,6 +52,11 @@
   #dpadShow { position:fixed; right:10px; top:56px; z-index:7; display:none; opacity:0; transition:opacity 0.2s ease;
     padding:7px 12px; border-radius:12px; border:1px solid rgba(127,255,176,0.5); background:rgba(10,22,16,0.72);
     color:#7fffb0; font:600 18px/1 system-ui,sans-serif; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  /* touch-only handle to slide the arena up/down (remembered) — sits in the board's top-left corner */
+  #boardGrip { position:fixed; z-index:8; width:34px; height:34px; border-radius:9px; display:none;
+    align-items:center; justify-content:center; opacity:0.5; cursor:ns-resize; touch-action:none; user-select:none;
+    background:rgba(10,22,16,0.6); border:1px solid rgba(127,255,176,0.5); color:#7fffb0; font:16px/1 system-ui,sans-serif; }
+  #boardGrip:active { opacity:0.9; background:rgba(127,255,176,0.28); }
   #overlay h1 { margin:0; font-size:52px; letter-spacing:6px; color:#0ff; text-shadow:0 0 30px #0ff,0 0 60px #0af; }
   #overlay p { margin:4px; font-size:14px; opacity:0.8; letter-spacing:1px; }
   #overlay .sub { opacity:0.5; font-size:12px; letter-spacing:1px; }
@@ -201,6 +206,7 @@
   let COLS, ROWS;
   let W, H, cellW, cellH, offX, offY;
   let dpadReserve = 0; // space kept clear for the on-screen D-pad (touch) so it never overlaps the arena
+  let boardShiftY = 0; // touch players can slide the arena up/down (persisted); clamped each layout
   let dpadEl = null, dpadHidden = false, dpadOrient = null; // declared early so resize() can lay it out safely
 
   // ---- Per-mode best scores ----
@@ -252,8 +258,14 @@
     const cell = Math.min(cellW, cellH);
     cellW = cellH = cell;
     offX = Math.floor((avW - COLS * cell) / 2); // arena hugs the left; D-pad sits in the right strip (landscape)
-    offY = hud + Math.floor((avH - ROWS * cell) / 2);
+    // vertical position = centered, plus the player's saved up/down shift, clamped so the arena always
+    // clears the HUD on top and the D-pad reserve on the bottom (write the clamp back so it can't run past).
+    const baseOffY = hud + Math.floor((avH - ROWS * cell) / 2);
+    const minOffY = hud, maxOffY = Math.max(hud, H - rBottom - ROWS * cell);
+    offY = Math.max(minOffY, Math.min(maxOffY, baseOffY + boardShiftY));
+    boardShiftY = offY - baseOffY;
     layoutDpad();
+    placeGrip();
   }
   window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
@@ -559,9 +571,40 @@
 
   // On-screen D-pad (touch only): tap an arrow to turn — no swiping required.
   const isTouch = (typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches) || (typeof window !== 'undefined' && 'ontouchstart' in window);
-  let dpadBtns = null, hideZoneEl = null, showBtnEl = null;
+  let dpadBtns = null, hideZoneEl = null, showBtnEl = null, gripEl = null;
   const DPAD_POS_KEY = 'snake_dpad_pos', DPAD_HIDE_KEY = 'snake_dpad_hidden', DPAD_RESERVE = 200;
+  const BOARD_SHIFT_KEY = 'snake_board_shift';
   try { dpadHidden = localStorage.getItem(DPAD_HIDE_KEY) === '1'; } catch (_) {}
+  try { boardShiftY = parseInt(localStorage.getItem(BOARD_SHIFT_KEY) || '0', 10) || 0; } catch (_) {}
+
+  // ---- Board move handle (touch): slide the arena up/down so it clears the player's thumb ----
+  function placeGrip() {
+    if (!gripEl) return;
+    gripEl.style.left = (offX + 4) + 'px';
+    gripEl.style.top = (offY + 4) + 'px';
+  }
+  function buildGrip() {
+    if (gripEl || typeof document === 'undefined' || !document.body || !document.createElement) return;
+    gripEl = document.createElement('div'); gripEl.id = 'boardGrip'; gripEl.textContent = '↕';
+    gripEl.title = 'Drag to move the board up or down';
+    gripEl.setAttribute('aria-label', 'Drag to move the board up or down');
+    document.body.appendChild(gripEl);
+    let drag = false, startY = 0, startShift = 0;
+    gripEl.addEventListener('pointerdown', (e) => {
+      drag = true; startY = e.clientY; startShift = boardShiftY;
+      try { gripEl.setPointerCapture(e.pointerId); } catch (_) {}
+      if (e.preventDefault) e.preventDefault();
+    });
+    gripEl.addEventListener('pointermove', (e) => {
+      if (!drag) return; boardShiftY = startShift + (e.clientY - startY); resize(); // resize clamps + repositions
+    });
+    const end = () => {
+      if (!drag) return; drag = false;
+      try { localStorage.setItem(BOARD_SHIFT_KEY, String(Math.round(boardShiftY))); } catch (_) {}
+    };
+    gripEl.addEventListener('pointerup', end); gripEl.addEventListener('pointercancel', end);
+    placeGrip();
+  }
   if (isTouch && !dpadHidden) dpadReserve = DPAD_RESERVE; // first layout already leaves room
   function dirClass() { return dir ? (dir.x === 1 ? 'r' : dir.x === -1 ? 'l' : dir.y === 1 ? 'd' : 'u') : null; }
   function dimDpad() { if (!dpadBtns) return; const cur = dirClass(), opp = { r: 'l', l: 'r', u: 'd', d: 'u' }[cur]; ['u', 'l', 'r', 'd'].forEach(c => { if (dpadBtns[c]) dpadBtns[c].classList.toggle('dim', c === cur || c === opp); }); }
@@ -649,9 +692,10 @@
   }
   function showDpad(v) {
     if (!isTouch) return;
-    if (v) buildDpad();
+    if (v) { buildDpad(); buildGrip(); }
     setVis(dpadEl, v && !dpadHidden, 'grid');
     setVis(showBtnEl, v && dpadHidden, 'block');
+    if (gripEl) { gripEl.style.display = v ? 'flex' : 'none'; if (v) placeGrip(); }  // board-move handle (independent of the D-pad hide state)
     applyReserve();
     if (v && !dpadHidden) dimDpad();
   }
@@ -686,6 +730,8 @@
       };
     },
     get speed() { return opts.speed; },
+    get boardShiftY() { return boardShiftY; },
+    nudgeBoard(dy) { boardShiftY += dy; resize(); return boardShiftY; },   // slide the arena up/down (clamped in resize)
     get interval() { return getInterval(); },
     get topScoresHtml() { return topScoresEl ? topScoresEl.innerHTML : ''; },
     start: startGame,
