@@ -357,8 +357,16 @@
   const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
   // end-screen share row is built by the game-kit into this placeholder
   const SHARE_ROW = '<div id="shareRow"></div>';
+  // In Speedrun the RESULT is the time, not score/wave — so the share + Discord post lead with the clear time.
+  // (die() also sets srDone, so a cleared run is distinguished by state==='won', not srDone.)
+  function shareMsg(finalScore, won) {
+    if (SPEEDRUN) return state === 'won'
+      ? KIT.shareText({ verb: 'I cleared', score: fmtTime(srElapsed), unit: '', game: 'Asteroids+', emoji: '🛸', mode: 'Speedrun', extra: ['cleared wave ' + SR_TARGET_WAVE] })
+      : KIT.shareText({ verb: 'I reached', score: 'wave ' + wave, unit: '', game: 'Asteroids+', emoji: '🛸', mode: 'Speedrun', extra: ['run failed at ' + fmtTime(srElapsed)] });
+    return KIT.shareText({ verb: won ? 'I beat' : 'I scored', score: finalScore, game: 'Asteroids+', emoji: '🛸', mode: ({ levelup: 'Level-up', milestones: 'Milestones', shop: 'Wave shop' }[PROGRESSION] || 'Roguelite'), extra: won ? ['VICTORY · all ' + RUN_END_WAVE + ' waves'] : ['wave ' + wave] });
+  }
   function wireShareRow(finalScore, won) {
-    if (KIT) KIT.shareRow($('shareRow'), { slug: 'asteroids-plus', title: 'Asteroids+', message: () => KIT.shareText({ verb: won ? 'I beat' : 'I scored', score: finalScore, game: 'Asteroids+', emoji: '🛸', mode: (SPEEDRUN ? 'Speedrun' : ({ levelup: 'Level-up', milestones: 'Milestones', shop: 'Wave shop' }[PROGRESSION] || 'Roguelite')), extra: won ? ['VICTORY · all ' + RUN_END_WAVE + ' waves'] : ['wave ' + wave] }), params: () => ({ prog: PROGRESSION }) });
+    if (KIT) KIT.shareRow($('shareRow'), { slug: 'asteroids-plus', title: 'Asteroids+', message: () => shareMsg(finalScore, won), params: () => (SPEEDRUN ? { prog: PROGRESSION, speedrun: '1' } : { prog: PROGRESSION }) });
   }
 
   // ---- Spawning / waves ----
@@ -738,6 +746,7 @@
   // ---- Test hook (harmless; used by headless test harness) ----
   window.__test = {
     get state(){ return state; }, get score(){ return score; }, get wave(){ return wave; }, get level(){ return level; },
+    shareMsg(){ return KIT ? shareMsg(score, false) : ''; },
     get hp(){ return ship?ship.hp:0; }, get enemies(){ return enemiesLeft(); }, get credits(){ return credits; },
     get upgrades(){ return JSON.parse(JSON.stringify(up)); }, get progression(){ return PROGRESSION; }, get speedrun(){ return SPEEDRUN; },
     get picks(){ return pickOptions.map(o=>o.id); }, get sel(){ return selIdx; }, get magnet(){ return ship?ship.magnet:0; },
