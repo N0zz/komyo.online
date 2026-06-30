@@ -164,6 +164,10 @@ function smokeSpeedrun(file) {
   const t = g.el('timerVal').textContent;
   ok(/^\d\d:\d\d\.\d\d$/.test(t), file + ' timer formats mm:ss.cs (got ' + t + ')');
   ok(t !== '00:00.00', file + ' timer advances during play (got ' + t + ')');
+  // in speedrun the share/Discord result is the TIME, not score/level → mode-aware message, never the Classic one
+  const sm = g.test().shareMsg();
+  ok(/Speedrun/.test(sm) && !/Classic|level /.test(sm) && /\d\d:\d\d\.\d\d/.test(sm),
+    file + ' speedrun share leads with time, not score/level (got "' + sm + '")');
 }
 
 // ---------------- Roguelite deep tests ----------------
