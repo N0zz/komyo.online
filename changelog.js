@@ -4,6 +4,12 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-06-30', title: 'Walls, taps & rotation', items: [
+    'New: Bubble Pop — the play area now has real walls and a ceiling, in both portrait and landscape. Shots bounce off the side walls and stick to the top, and on wide screens the bubbles sit in a centered column.',
+    'Fix: Bubble Pop — on phones, tapping a new spot now shoots there. Before, a fresh tap could still fire at wherever you last aimed.',
+    'New: Neon Snake — on phones, drag the ↕ handle in the board’s corner to slide the playfield up or down to a comfier spot. It’s remembered next time.',
+    'Fix: installed games now respect your phone’s rotation lock — if you’ve turned auto-rotate off, the app stays put instead of spinning. (Reinstall the game to pick this up.)',
+  ] },
   { date: '2026-06-29', title: 'Polish & fixes', items: [
     'New: Asteroids+ — a big rebalance. It’s now a finite run that ends with a two-boss finale on wave 30 (beat it for a Victory), upgrades are gentler and now lapse after a few waves so you keep choosing, and a new red kamikaze enemy (from wave 6) charges in and explodes — don’t pop it in your face.',
     'New: Asteroids+ — light aim assist: shots that just graze an enemy curve in and connect.',
