@@ -5,6 +5,7 @@
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
   { date: '2026-06-30', title: 'Walls, taps & rotation', items: [
+    'New: Asteroids & Bubble Pop — a 🎮 Controls button (top-right) shows how to play (keyboard, mouse, touch) any time, even mid-game; and the Play button is now bigger and always reachable.',
     'New: a CHALLENGE badge on game tiles — when a game is the focus of today’s daily or this week’s weekly challenge, its tile is marked so you can spot it at a glance, with a matching CHALLENGE filter to show just those games.',
     'Improved: search now matches a game’s labels too — type “challenge”, “popular”, “new” or “updated” to see just those games.',
     'New: Bubble Pop — a redesigned start menu. Pick your mode from cards (Arcade / Speedrun / Endless / Zen) that show what each one plays like, with a little icon and your best score; the whole menu is keyboard-friendly, pause works the same from Esc or the ⏸ button, and hitting Menu mid-game asks before it drops your run.',
