@@ -200,8 +200,15 @@
   const MENU_BTN = '<button class="btn" id="menuBtn">QUIT TO MENU</button>';
   // end-screen share row is built by the game-kit into this placeholder
   const SHARE_ROW = '<div id="shareRow"></div>';
+  // In Speedrun the RESULT is the time, not score/level — so the share + Discord post lead with the clear time.
+  function shareMsg(finalScore) {
+    if (SPEEDRUN) return srDone
+      ? KIT.shareText({ verb: 'I cleared', score: fmtTime(srElapsed), unit: '', game: 'Asteroids', emoji: '🛸', mode: 'Speedrun', extra: ['reached ' + SR_TARGET_SCORE + ' pts'] })
+      : KIT.shareText({ verb: 'I reached', score: score, unit: 'pts', game: 'Asteroids', emoji: '🛸', mode: 'Speedrun', extra: ['run failed at ' + fmtTime(srElapsed)] });
+    return KIT.shareText({ score: finalScore, game: 'Asteroids', emoji: '🛸', mode: ENHANCED ? 'Classic+' : 'Classic', extra: ['level ' + level] });
+  }
   function wireShareRow(finalScore) {
-    if (KIT) KIT.shareRow(document.getElementById('shareRow'), { slug: 'asteroids', title: 'Asteroids', message: () => KIT.shareText({ score: finalScore, game: 'Asteroids', emoji: '🛸', mode: ENHANCED ? 'Classic+' : 'Classic', extra: ['level ' + level] }), params: () => ({ v: ENHANCED ? 'enh' : 'classic' }) });
+    if (KIT) KIT.shareRow(document.getElementById('shareRow'), { slug: 'asteroids', title: 'Asteroids', message: () => shareMsg(finalScore), params: () => (SPEEDRUN ? { v: ENHANCED ? 'enh' : 'classic', speedrun: '1' } : { v: ENHANCED ? 'enh' : 'classic' }) });
   }
   function checkWeaponUpgrade(){ if(!ENHANCED) return; const nx=WEAPONS[weaponLevel]; if(nx && score>=nx.score){ weaponLevel=nx.level; flash('WEAPON UPGRADED'); updateHud(); } }
 
@@ -227,7 +234,7 @@
     if(SPEEDRUN && !srDone && score>=SR_TARGET_SCORE) winRun();
     if(asteroids.length===0){ level++; spawnWave(3+level); } }
   function killShip(){ SND.play('hit'); burst(ship.x,ship.y,'255,160,120',40,4); lives--; updateHud(); if(lives<=0){ state='dead'; showGameOver(); } else spawnShip(); }
-  function winRun(){ srDone=true; state='won'; SND.stopMusic(); SND.play('level'); const isBest=saveBest(srElapsed);
+  function winRun(){ srDone=true; state='won'; SND.stopMusic(); SND.play('level'); const isBest=saveBest(srElapsed); if(window.gamekit&&window.gamekit.recordResult)window.gamekit.recordResult('asteroids',{mode:'speedrun',score:score,time:srElapsed,stats:{wave:level}});
     overlay.innerHTML='<h1 class="win">COMPLETE</h1><p>Time: <strong>'+fmtTime(srElapsed)+'</strong>'+(isBest?'  ★ NEW BEST':'')+'</p><p class="hint">'+SR_TARGET_SCORE+' points reached</p><p class="blink">press ENTER or SPACE to run again</p><div class="row">'+MENU_BTN+'</div>'+SHARE_ROW;
     overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
   function showGameOver(){ SND.stopMusic(); SND.play('over'); const best=!SPEEDRUN&&saveBestScore(score); if(window.gamekit&&window.gamekit.recordResult)window.gamekit.recordResult('asteroids',{mode:SPEEDRUN?'speedrun':'',score:score,time:SPEEDRUN?srElapsed:0,stats:{wave:level}}); overlay.innerHTML='<h1>GAME OVER</h1><p>Final score: <strong>'+score+'</strong>'+(best?'  ★ NEW BEST':'')+'</p>'+(SPEEDRUN?'<p class="hint">run failed at '+fmtTime(srElapsed)+'</p>':'<p class="hint">reached wave '+level+'</p>')+'<p class="blink">press ENTER or SPACE to play again</p><div class="row">'+MENU_BTN+'</div>'+SHARE_ROW; overlay.classList.remove('hidden'); wireOverlay(); wireShareRow(score); }
@@ -314,6 +321,7 @@
   window.__test = {
     start(){ startGame(); }, step(){ update(); },
     get state(){ return state; }, get score(){ return score; }, get lives(){ return lives; },
+    shareMsg(){ return KIT ? shareMsg(score) : ''; },
     get shipAngle(){ return ship ? ship.angle : 0; },
     // layout snapshot in CANVAS px (the world coords everything is drawn in). The canvas is
     // scaled up by S on small screens, so topReserve (the CSS HUD headroom) is converted to
