@@ -309,10 +309,12 @@ section('Bubble Pop: per-mode bests for menu');
   ok(Tb().bestFor('arcade') >= 700, 'bestFor(arcade) returns persisted arcade best (got ' + Tb().bestFor('arcade') + ')');
   ok(Tb().bestFor('endless') >= 1200, 'bestFor(endless) returns persisted endless best (got ' + Tb().bestFor('endless') + ')');
   ok(Tb().bestFor('zen') === 0, 'bestFor(zen) is 0 when never played (got ' + Tb().bestFor('zen') + ')');
-  // refreshMenuBests must be headless-safe (querySelectorAll mocked to [])
-  let threw = false;
-  try { Tb().refreshMenuBests(); } catch (e) { threw = true; }
-  ok(!threw, 'refreshMenuBests() is headless-safe');
+  // the kit start menu (mode cards): from the end screen → Menu → start menu, then a card pick + Play
+  Tb().menu().activate('menu');
+  const sm = Tb().menu();
+  ok(sm && sm.selection().mode, 'start menu opens with a mode preselected');
+  if (sm) { sm.select('mode', 'endless'); sm.activate('play'); }
+  ok(Tb().state === 'playing' && Tb().mode === 'endless', 'picking a mode card + Play starts that mode (got ' + Tb().mode + '/' + Tb().state + ')');
 }
 
 section('Bubble Pop: setShotColor / aimAngle API');

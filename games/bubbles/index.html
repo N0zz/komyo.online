@@ -121,7 +121,8 @@
 <div id="chargeLabel">CHARGE</div>
 <div id="specialIndicator">⚡ SPECIAL READY</div>
 
-<div id="overlay">
+<!-- start / pause / end screens are rendered by gamekit.menu; these stay only as hidden anchors -->
+<div id="overlay" class="hidden">
   <h1>Bubble Pop</h1>
   <p>Shoot bubbles to pop matching groups of 3 or more.</p>
   <div class="mode-btns">
@@ -177,6 +178,7 @@
 
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
+  const KIT = window.gamekit;
   SND.define({
     shoot: ({ tone }) => { tone(520, 0.06, 'triangle', 0.07); },
     pop:   ({ tone }) => { tone(880, 0.08, 'sine', 0.1); tone(1100, 0.05, 'sine', 0.06); },
@@ -336,12 +338,6 @@
   function bestFor(m) {
     try { const v = localStorage.getItem('bubbles_best_' + m); return v ? (parseInt(v, 10) || 0) : 0; } catch(e) { return 0; }
   }
-  function refreshMenuBests() {
-    document.querySelectorAll('.m-best').forEach(el => {
-      const m = el.dataset.best;
-      if (m) el.textContent = 'best: ' + bestFor(m);
-    });
-  }
 
   // ---- Start / modes ----
   function startMode(m) {
@@ -366,13 +362,75 @@
     aimAngle = -Math.PI / 2;
     loadBest();
     state = 'playing';
-    $('overlay').classList.add('hidden');
-    $('gameOver').classList.add('hidden');
-    $('wonScreen').classList.add('hidden');
-    if (window.gamekit && window.gamekit.showMenuButton) window.gamekit.showMenuButton(true);
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     updateHud();
   }
   function startGame() { startMode(mode); }
+
+  // ---- shared menus (gamekit.menu) — candy/aqua theme; structure/behaviour from the kit ----
+  const MENU_THEME = { accent:'#2ee8c8', glow:'0 0 18px rgba(46,232,200,0.42)',
+    bg:'radial-gradient(circle at 50% 26%, rgba(22,40,64,0.97), rgba(13,31,45,0.98))', border:'rgba(46,232,200,0.32)',
+    overlay:'rgba(9,20,30,0.74)', title:'#7ee8ff', new:'#ffe066', 'on-accent':'#06121a' };
+  // mini mechanic previews drawn into each mode card's canvas
+  const PV_COLS = ['#ff7eb6','#2ee8c8','#ffe066','#7ee8ff','#b78cff'];
+  function pvBubbles(g,w,h){ for(let r=0;r<2;r++) for(let c=0;c<5;c++){ g.fillStyle=PV_COLS[(r*5+c)%PV_COLS.length]; g.beginPath(); g.arc(16+c*((w-32)/4), 22+r*20, 8, 0, 7); g.fill(); }
+    g.fillStyle='#7ee8ff'; g.beginPath(); g.arc(w/2,h-18,9,0,7); g.fill(); g.strokeStyle='rgba(126,232,255,.5)'; g.lineWidth=2; g.beginPath(); g.moveTo(w/2,h-18); g.lineTo(w/2,h-42); g.stroke(); }
+  // big centered mode motif, drawn as a ~40%-opacity watermark over the bubble cluster
+  // motif = the hero (bold, full colour, with a glow for clean figure/ground); bubbles = quiet texture behind
+  function pvCard(g,w,h,draw,col){ try{
+    g.save(); g.globalAlpha=0.28; pvBubbles(g,w,h); g.restore();
+    g.save(); g.strokeStyle=col; g.fillStyle=col; g.lineWidth=Math.max(3, Math.min(w,h)*0.06); g.lineJoin='round'; g.lineCap='round';
+    g.shadowColor='rgba(6,16,24,0.9)'; g.shadowBlur=Math.min(w,h)*0.14; draw(g, w/2, h/2, Math.min(w,h)*0.56); g.restore();
+  }catch(e){} }
+  function icClock(g,cx,cy,s){ const r=s/2; g.beginPath(); g.arc(cx,cy,r,0,7); g.stroke(); g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx,cy-r*0.56); g.moveTo(cx,cy); g.lineTo(cx+r*0.44,cy+r*0.18); g.stroke(); }
+  function icChevron(g,cx,cy,s){ const a=s*0.5; [-s*0.2, s*0.12].forEach(dy=>{ g.beginPath(); g.moveTo(cx-a,cy-a*0.45+dy); g.lineTo(cx,cy+a*0.45+dy); g.lineTo(cx+a,cy-a*0.45+dy); g.stroke(); }); }
+  function icZzz(g,cx,cy,s){ g.textAlign='center'; g.textBaseline='middle';
+    const z=(sz,dx,dy)=>{ g.font='800 '+Math.round(s*sz)+'px system-ui,sans-serif'; g.fillText('z', cx+dx*s, cy+dy*s); };
+    z(0.34,-0.32,0.26); z(0.48,-0.02,0.04); z(0.66,0.30,-0.22); } // sleepy zzz: grows as it drifts up-right
+  function icInfinity(g,cx,cy,s){ const r=s*0.23, off=r*0.96; g.beginPath(); g.arc(cx-off,cy,r,0,7); g.stroke(); g.beginPath(); g.arc(cx+off,cy,r,0,7); g.stroke(); }
+  function pvArcade(g,w,h){ pvCard(g,w,h,icChevron,'#2ee8c8'); } // grid descends as you shoot
+  function pvSpeed(g,w,h){ pvCard(g,w,h,icClock,'#ffe066'); }
+  function pvEndless(g,w,h){ pvCard(g,w,h,icInfinity,'#b78cff'); } // rows push in forever
+  function pvZen(g,w,h){ pvCard(g,w,h,icZzz,'#7ee8ff'); }
+  const MODE_HINT = { arcade:'Pop groups of 3+; clear the board to advance.', speedrun:'Beat the timer — the grid drops on a clock.', endless:'Rows push in forever — survive and score.', zen:'Relax and pop. No fail, no descent.' };
+  function shareMsg(){ return KIT.shareText({ score: score, game:'Bubble Pop', emoji:'🫧', mode: mode.charAt(0).toUpperCase()+mode.slice(1), extra:['level '+level] }); }
+  function showStartMenu(){
+    state = 'ready'; if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if(!KIT) return;
+    KIT.menu.show({ kind:'start', theme:MENU_THEME, title:'BUBBLE POP',
+      groups:[{ id:'mode', label:'MODE', style:'cards', default: mode, choices:[
+        { id:'arcade',   label:'ARCADE',   preview:pvArcade,  desc:'Clear the board to advance. The grid creeps down a step every few shots.', mech:['Clear to advance','Descends as you shoot'], best:()=>bestFor('arcade') },
+        { id:'speedrun', label:'SPEEDRUN', preview:pvSpeed,   desc:'Clear the board to advance — but the grid drops on a timer. Race it.',     mech:['Timed descent','Race the clock'],      best:()=>bestFor('speedrun') },
+        { id:'endless',  label:'ENDLESS',  preview:pvEndless, desc:'New rows push in from the top forever. Survive and rack up the score.',    mech:['Endless','Survival'],                  best:()=>bestFor('endless') },
+        { id:'zen',      label:'ZEN',      preview:pvZen,     desc:'No pressure, no descent. Just pop bubbles and relax.',                     mech:['No fail','Relax'],                     best:()=>bestFor('zen') },
+      ]}],
+      hint: st => MODE_HINT[st.mode] || '',
+      actions:[{ id:'play', label:'PLAY ▶', primary:true }],
+      onChange: st => KIT.stampUrl({ mode: st.mode }),
+      onPlay: st => { KIT.stampUrl({ mode: st.mode }); startMode(st.mode); },
+    });
+    KIT.stampUrl({ mode: mode });
+  }
+  function showEnd(won){
+    state = won ? 'won' : 'over';
+    const prevBest = bestScore; saveBest(); const isBest = score > prevBest;
+    if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    SND.play(won ? 'won' : 'lose');
+    if(!KIT) return;
+    KIT.menu.show({ kind:'end', theme:MENU_THEME, title: won ? 'CLEARED! ✨' : 'GAME OVER',
+      score: score, best: bestScore, newBest: isBest, lines: [ won ? ('Level ' + level + ' · all levels cleared') : ('Reached level ' + level) ],
+      share: { slug:'bubbles', title:'Bubble Pop', message: ()=>shareMsg(), params: ()=>({ mode: mode }) },
+      record: { slug:'bubbles', mode: mode, score: score },
+      actions:[ {id:'again',label:'PLAY AGAIN',primary:true}, {id:'menu',label:'MENU'} ],
+      onAction:(id)=>{ if(id==='again') startMode(mode); else if(id==='menu') toMenu(); } });
+  }
+  function pauseGame(){ if(state!=='playing' || !KIT) return; state='paused';
+    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:'PAUSED', lines:['Score '+score+' · Level '+level],
+      actions:[ {id:'resume',label:'RESUME (ESC)',primary:true}, {id:'menu',label:'QUIT TO MENU',danger:true} ],
+      onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') toMenu(); }, onEsc: resumeGame });
+  }
+  function resumeGame(){ if(state!=='paused') return; state='playing'; if(KIT) KIT.menu.hide(); }
+  function toMenu(){ saveBest(); if(KIT) KIT.menu.hide(); showStartMenu(); }
 
   // ---- HUD ----
   function updateHud() {
@@ -721,27 +779,14 @@
     }
   }
 
-  function triggerLose() {
-    state = 'over';
-    saveBest();
-    window.gamekit.recordResult('bubbles', { mode: mode, score: score });
-    SND.play('lose');
-    $('goScore').textContent = 'Score: ' + score;
-    $('goBest').textContent = 'Best: ' + bestScore;
-    $('gameOver').classList.remove('hidden');
-  }
+  function triggerLose() { showEnd(false); }
 
   // ---- Win condition (arcade / speedrun: clear board to advance) ----
   function checkWin() {
     if (mode !== 'arcade' && mode !== 'speedrun') return;
     if (countBubbles() === 0) {
       if (level >= 5) {
-        state = 'won';
-        saveBest();
-        SND.play('won');
-        $('wonScore').textContent = 'Score: ' + score;
-        $('wonBest').textContent = 'Best: ' + bestScore;
-        $('wonScreen').classList.remove('hidden');
+        showEnd(true);
       } else {
         level++;
         gridOffsetY = 0;
@@ -1083,7 +1128,7 @@
     if (K && K.isPaused && K.isPaused()) return; // kit pause
     // when locked + held the wrong way: kit shows the "↻ rotate" overlay and we FREEZE (skip update)
     if (portraitLockActive() && K && K.layout && K.layout.requireOrientation && !K.layout.requireOrientation('portrait')) return;
-    try { update(); render(); } catch(e) { if (typeof console !== 'undefined') console.error(e); }
+    try { if (state === 'playing') update(); render(); } catch(e) { if (typeof console !== 'undefined') console.error(e); }
   }
 
   // ---- Input ----
@@ -1124,6 +1169,7 @@
   canvas.addEventListener('touchend', e => { e.preventDefault(); handleShoot(e); }, { passive: false });
 
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); return; }
     if (state !== 'playing') return;
     if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') {
       aimAngle = Math.max(-Math.PI + 0.2, aimAngle - 0.1);
@@ -1134,33 +1180,14 @@
     }
   });
 
-  // Mode picker
-  document.querySelectorAll('.mode-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      mode = btn.dataset.mode;
-      document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
-    });
-  });
-  { const pm = window.gamekit && window.gamekit.param && window.gamekit.param('mode'); if (['arcade', 'speedrun', 'endless', 'zen'].indexOf(pm) >= 0) { mode = pm; document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === pm)); } } // deep-link ?mode=
+  // deep-link ?mode= seeds the start menu's preselected mode
+  { const pm = KIT && KIT.param && KIT.param('mode'); if (['arcade', 'speedrun', 'endless', 'zen'].indexOf(pm) >= 0) mode = pm; }
 
-  $('startBtn').addEventListener('click', startGame);
-  $('goRetry').addEventListener('click', startGame);
-  $('goMenu').addEventListener('click', () => {
-    $('gameOver').classList.add('hidden');
-    $('overlay').classList.remove('hidden');
-    if (window.gamekit && window.gamekit.showMenuButton) window.gamekit.showMenuButton(false);
-    refreshMenuBests();
-  });
-  $('wonNext').addEventListener('click', startGame);
-
-  // ---- Share row + top nav (game-kit) ----
-  window.gamekit.shareRow(document.getElementById('shareRow'), {
-    slug: 'bubbles', title: 'Bubble Pop',
-    message: () => window.gamekit.shareText({ score: score, game: 'Bubble Pop', emoji: '🫧', mode: mode.charAt(0).toUpperCase() + mode.slice(1), extra: ['level ' + level] }),
-    params: () => ({ mode: mode }),
-  });
-  window.gamekit.nav({ reset: 'bubbles_' });
-  if (window.gamekit && window.gamekit.showMenuButton) window.gamekit.showMenuButton(false); // initial = mode picker
+  // ---- top nav (game-kit): ‹ Menu + komyo › guard a live run; ⏸ + Esc drive the menu pause ----
+  KIT.nav({ reset: 'bubbles_', home: '../../', onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false });
+  showStartMenu(); // open the unified start menu (mode preselected from ?mode=)
 
   // ---- __test API ----
   window.__test = {
@@ -1172,7 +1199,7 @@
     get level() { return level; },
     get mode() { return mode; },
     bestFor(m) { return bestFor(m); },
-    refreshMenuBests() { refreshMenuBests(); },
+    menu() { return KIT ? KIT.menu.current() : null; },
     get chargeLevel() { return chargeLevel; },
     get specialReady() { return specialReady; },
     get specialType() { return specialType; },
@@ -1256,7 +1283,6 @@
     },
   };
 
-  refreshMenuBests();
   resize(); loop();
 })();
   window.gamekit.pwa();
