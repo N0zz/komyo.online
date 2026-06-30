@@ -533,6 +533,26 @@ section('Neon Snake: layout fits the screen (arena on-screen, no HUD overlap)');
   }
 }
 
+// ---- Board move handle: sliding the arena up/down stays clamped on-screen ----
+section('Neon Snake: board move handle stays clamped');
+{
+  const g = runGame();
+  const T = g.test();
+  T.start();
+  g.resize(390, 780); // portrait
+  T.step(1);
+  // slide way up → arena still clears the HUD headroom, and the shift is clamped (not unbounded)
+  T.nudgeBoard(-9999);
+  let L = T.layout;
+  ok(L.arenaTop >= L.topReserve - 0.5, 'up: arena still clears HUD reserve (' + L.arenaTop + ' >= ' + L.topReserve + ')');
+  ok(T.boardShiftY > -9999, 'up: shift is clamped, not unbounded (' + T.boardShiftY + ')');
+  // slide way down → arena bottom stays above the bottom reserve, shift clamped
+  T.nudgeBoard(99999);
+  L = T.layout;
+  ok(L.arenaBottom <= L.H - L.rBottom + 0.5, 'down: arena clears the bottom strip (' + L.arenaBottom + ' <= ' + (L.H - L.rBottom) + ')');
+  ok(T.boardShiftY < 99999, 'down: shift is clamped, not unbounded (' + T.boardShiftY + ')');
+}
+
 console.log('\n----------------------------------------');
 console.log('PASS: ' + pass + '   FAIL: ' + fail);
 if (fail > 0) { console.log('\nFailures:'); fails.forEach(f => console.log(' - ' + f)); process.exit(1); }
