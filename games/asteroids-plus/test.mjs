@@ -286,6 +286,10 @@ function testSpeedrunWin(file, prog) {
   ok(T().state === 'won', file + ' clearing wave-5 boss wins the speedrun (got ' + T().state + ')');
   const best = g.store['asteroids_best_roguelite-' + prog];
   ok(best != null && parseInt(best, 10) > 0, file + ' best time saved (' + best + ')');
+  // a cleared speedrun shares the TIME as the result, not the score or a Roguelite/Victory line
+  const sm = T().shareMsg();
+  ok(/Speedrun/.test(sm) && /\d\d:\d\d\.\d\d/.test(sm) && !/VICTORY|Roguelite|Level-up/.test(sm),
+    file + ' speedrun-win share leads with time (got "' + sm + '")');
 }
 
 function testMagnet(file) {
