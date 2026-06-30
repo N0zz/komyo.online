@@ -79,10 +79,12 @@
   .badge-new b     { background-image:linear-gradient(90deg,#fff6c2,#ffd24d,#fff,#ffd24d,#fff6c2); filter:drop-shadow(0 0 5px rgba(255,195,60,0.95)); }
   .badge-updated b { background-image:linear-gradient(90deg,#bfefff,#4db6ff,#fff,#4db6ff,#bfefff); filter:drop-shadow(0 0 5px rgba(70,160,255,0.95)); }
   .badge-pick b    { background-image:linear-gradient(90deg,#ead4ff,#b98cff,#fff,#b98cff,#ead4ff); filter:drop-shadow(0 0 5px rgba(160,100,255,0.95)); }
+  .badge-challenge b { background-image:linear-gradient(90deg,#bff7df,#46e0a0,#fff,#46e0a0,#bff7df); filter:drop-shadow(0 0 5px rgba(70,224,160,0.95)); }
   .badge .spk { position:absolute; width:3px; height:3px; border-radius:50%; opacity:0; }
   .badge-new .spk     { background:#fff3b0; box-shadow:0 0 6px 1px rgba(255,210,90,0.95); }
   .badge-updated .spk { background:#d6f0ff; box-shadow:0 0 6px 1px rgba(90,170,255,0.95); }
   .badge-pick .spk    { background:#ecdcff; box-shadow:0 0 6px 1px rgba(170,115,255,0.95); }
+  .badge-challenge .spk { background:#cffae8; box-shadow:0 0 6px 1px rgba(70,224,160,0.95); }
   .badge .spk:nth-child(2){ left:88%; top:-3px; animation:spk 1.8s ease-in-out infinite; }
   .badge .spk:nth-child(3){ left:-5px; top:5px; animation:spk 2.3s .6s ease-in-out infinite; }
   .badge .spk:nth-child(4){ left:42%; top:13px; animation:spk 2s 1.1s ease-in-out infinite; }
@@ -346,7 +348,7 @@
   .dw-edit { background:none; border:none; color:var(--faint); cursor:pointer; font-size:12px; line-height:1; padding:2px 4px; }
   .dw-edit:hover { color:#9fe8ff; }
   @media (prefers-reduced-motion: reduce){ .dw-word { transition:none; } }
-  .dscroll > .dgrp:last-child { margin-top:auto; }
+  .dscroll > .dbottom { margin-top:auto; } /* pin the Share group (+ version below it) to the drawer bottom */
   .dgrp { padding:10px 4px 2px; }
   .dl { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:0 8px 6px; text-align:center; }
   .ditem { display:flex; align-items:center; gap:11px; width:100%; text-align:left; padding:10px 10px; border-radius:10px;
@@ -462,6 +464,7 @@
             <div id="badgeList" class="chips">
               <button type="button" class="chip" data-badge="new" aria-pressed="false" style="--c:#ffd24d"><span class="dot"></span>NEW</button>
               <button type="button" class="chip" data-badge="updated" aria-pressed="false" style="--c:#4db6ff"><span class="dot"></span>UPDATED</button>
+              <button type="button" class="chip" data-badge="challenge" aria-pressed="false" style="--c:#46e0a0"><span class="dot"></span>CHALLENGE</button>
               <button type="button" class="chip" data-badge="pick" aria-pressed="false" style="--c:#b98cff"><span class="dot"></span>POPULAR</button>
             </div>
             <div class="fh">Genre</div>
@@ -536,7 +539,7 @@
         <a class="ditem coffee" href="https://buymeacoffee.com/komyo.online" target="_blank" rel="noopener"><span class="di">☕</span> Buy me a coffee</a>
         <button class="ditem" id="merchBtn" type="button"><span class="di">🛍️</span> Merch / Store <span class="mock">SOON</span></button>
       </div>
-      <div class="dgrp">
+      <div class="dgrp dbottom">
         <div class="dl">Share</div>
         <div class="share dshare">
           <a class="sbtn" id="dShareNative" href="#" style="display:none" aria-label="Share…" title="Share…"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></a>
@@ -728,10 +731,27 @@
 
     // tile badges — add a type here (label + css class) and reference it from a game's `badges: [...]`
     const BADGES = {
-      new:     { label: 'NEW',     cls: 'badge-new' },
-      updated: { label: 'UPDATED', cls: 'badge-updated' },
-      pick:    { label: 'POPULAR', cls: 'badge-pick' },
+      new:       { label: 'NEW',       cls: 'badge-new' },
+      updated:   { label: 'UPDATED',   cls: 'badge-updated' },
+      challenge: { label: 'CHALLENGE', cls: 'badge-challenge' },
+      pick:      { label: 'POPULAR',   cls: 'badge-pick' },
     };
+    // slugs that have an ACTIVE game-specific challenge right now (today's daily + this week's weekly
+    // picks that target a single game). Generic cross-game goals ("play 2 games") have no slug → never
+    // light up a tile. Mirrors the pick() index math in the Challenges panel.
+    const CH_WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000);
+    function activeChallengeSlugs() {
+      const out = new Set(), C = window.CHALLENGES, K = window.gamekit;
+      if (!C || !C.goals || !K || !K.utcDayNumber) return out;
+      const day = K.utcDayNumber();
+      const at = (list, isWeek) => {
+        if (!list || !list.length) return null;
+        const idx = isWeek ? Math.floor((day - CH_WEEK_ANCHOR) / 7) : day;
+        return C.goals[list[((idx % list.length) + list.length) % list.length]] || null;
+      };
+      [at(C.daily, false), at(C.weekly, true)].forEach(g => { if (g && g.slug) out.add(g.slug); });
+      return out;
+    }
     // badges stack (vertical, top-left). Auto NEW/UPDATED from dates (≤7 days) sit on top;
     // manual badges (e.g. "pick") follow. NEW wins over UPDATED; duplicates are de-duped.
     // the badge keys a game currently shows (date-driven NEW/UPDATED + manual) — single source
@@ -742,8 +762,9 @@
       const daysSince = d => { const t = d ? Date.parse(d) : NaN; return isFinite(t) ? (Date.now() - t) / 86400000 : Infinity; };
       if (daysSince(g.added) <= 7) keys.push('new');
       else if (daysSince(g.updated) <= 7) keys.push('updated');
+      if (activeChallengeSlugs().has(g.slug)) keys.push('challenge');
       // priority order; de-dupe; hard-cap at 3 so the stack can never crowd the tile
-      const ORDER = ['new', 'updated', 'pick'], seen = {};
+      const ORDER = ['new', 'updated', 'challenge', 'pick'], seen = {};
       return keys
         .filter(k => BADGES[k] && !seen[k] && (seen[k] = 1))
         .sort((a, b) => ((ORDER.indexOf(a) + 1 || 99) - (ORDER.indexOf(b) + 1 || 99)))
