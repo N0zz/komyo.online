@@ -5,6 +5,7 @@
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
   { date: '2026-06-30', title: 'Walls, taps & rotation', items: [
+    'Fix: Asteroids & Asteroids+ — in Speedrun mode your shared/Discord result now leads with your clear time (the actual goal), instead of your score and wave.',
     'Improved: offline play — open komyo once online and every game is saved to play offline (even ones you haven’t opened yet), and refreshing with no connection no longer breaks the app. Try it in airplane mode!',
     'New: Bubble Pop — the play area now has real walls and a ceiling, in both portrait and landscape. Shots bounce off the side walls and stick to the top, and on wide screens the bubbles sit in a centered column.',
     'Fix: Bubble Pop — on phones, tapping a new spot now shoots there. Before, a fresh tap could still fire at wherever you last aimed.',
