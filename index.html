@@ -450,7 +450,7 @@
       </div>
       <div class="sub">a catalogue of self-contained browser games</div>
       <div class="controls">
-        <div class="searchbox">🔍 <input id="search" type="search" placeholder="Search…" aria-label="Search games" autocomplete="off"><button class="search-help" type="button" aria-label="Search tips">?<span class="search-tip">Search by <b>game name</b> or <b>genre</b> — try “arcade”, “puzzle”, “kids”, or a title like “snake”.</span></button></div>
+        <div class="searchbox">🔍 <input id="search" type="search" placeholder="Search…" aria-label="Search games" autocomplete="off"><button class="search-help" type="button" aria-label="Search tips">?<span class="search-tip">Search by <b>game name</b>, <b>genre</b>, or a <b>label</b> — try “arcade”, “puzzle”, “challenge”, or a title like “snake”.</span></button></div>
         <div class="filter-wrap">
           <button class="ibtn filter-btn" id="filterBtn" aria-haspopup="true" aria-expanded="false">⚙ Filter ▾<span class="fcount" id="fcount" hidden></span></button>
           <div class="filter-pop" id="filterPop">
@@ -830,7 +830,8 @@
       if (FILTER.type === 'single' && g.mp) return false;
       if (FILTER.type === 'mp' && !g.mp) return false;
       if (FILTER.q) {
-        const hay = ((g.title || '') + ' ' + tagsOf(g).join(' ') + ' ' + (g.blurb || '')).toLowerCase();
+        const labels = badgeKeys(g).map(k => (BADGES[k] && BADGES[k].label) || '').join(' ');
+        const hay = ((g.title || '') + ' ' + tagsOf(g).join(' ') + ' ' + (g.blurb || '') + ' ' + labels).toLowerCase();
         if (!hay.includes(FILTER.q)) return false;
       }
       return true;
