@@ -1,12 +1,5 @@
-// Service worker — installable + offline. Network-first (updates when online, cache fallback offline).
-const CACHE = 'asteroids-plus-v1';
-const ASSETS = [
-  './', './index.html', './favicon.svg', './manifest.json',
-  '../../game-kit.js', '../../game-kit.css','../../version.js', './icon-192.png','./icon-512.png',
-];
-self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting())); });
-self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  e.respondWith(fetch(e.request).then(resp => { const copy = resp.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {}); return resp; }).catch(() => caches.match(e.request).then(r => r || caches.match('./index.html'))));
-});
+// asteroids-plus — installable PWA + offline via the shared sw-core (stale-while-revalidate, versioned cache).
+self.SCOPE = 'asteroids-plus';
+self.VERSION = 'dev'; // stamped with the commit SHA at deploy
+self.SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../analytics.js','../../game-kit.js','../../game-kit.css','../../version.js'];
+importScripts('../../sw-core.js');

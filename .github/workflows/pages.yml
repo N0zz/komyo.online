@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Stamp version.js with the commit SHA
+      - name: Stamp the commit SHA into version.js + the service workers
         run: |
           SHA_SHORT="${GITHUB_SHA:0:7}"
           BUILT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -35,7 +35,11 @@ jobs:
           // Generated at deploy by .github/workflows/pages.yml from \$GITHUB_SHA — do not edit by hand.
           window.KOMYO_VERSION = { sha: '${SHA_SHORT}', url: 'https://github.com/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA}', built: '${BUILT}' };
           EOF
-          echo "Stamped version.js → ${SHA_SHORT}"
+          # Bump every SW's cache version so each deploy = a fresh cache + a new worker (silent auto-update).
+          for f in sw.js games/*/sw.js; do
+            sed -i "s/self.VERSION = 'dev'/self.VERSION = '${SHA_SHORT}'/" "$f"
+          done
+          echo "Stamped version.js + $(grep -l "self.VERSION = '${SHA_SHORT}'" sw.js games/*/sw.js | wc -l) SWs → ${SHA_SHORT}"
 
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3

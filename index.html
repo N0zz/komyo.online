@@ -1541,6 +1541,22 @@
         });
       } catch (e) {}
     })();
+
+    // Idle-preload every live game's shell so they're all playable offline after one online visit.
+    // Each fetch flows through the service worker (stale-while-revalidate), which caches it. Runs one
+    // at a time on idle so it never competes with the page; skipped if offline or no SW.
+    (function () {
+      try {
+        if (!('serviceWorker' in navigator) || navigator.onLine === false) return;
+        var urls = (window.GAMES || []).filter(function (g) { return g && g.slug && !g.soon; })
+          .map(function (g) { return 'games/' + g.slug + '/'; });
+        var i = 0, idle = window.requestIdleCallback || function (fn) { return setTimeout(fn, 400); };
+        (function next() {
+          if (i >= urls.length) return;
+          fetch(urls[i++], { credentials: 'same-origin' }).catch(function () {}).then(function () { idle(next); });
+        })();
+      } catch (e) {}
+    })();
   </script>
 </body>
 </html>
