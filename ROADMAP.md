@@ -174,6 +174,15 @@ from day one.
   game-specific challenges only** — generic cross-game goals (e.g. "play 2 games") must NOT light up
   the badge on every tile; only a challenge scoped to that game's slug counts. Drives players toward
   games with something to chase today.
+- **In-game Challenges button (🏆 top bar)** *(idea — pairs with the CHALLENGE badge)* — when you start a
+  game that has an active challenge, you currently can't see the goal without going back to the catalogue.
+  Add a 🏆 button to the in-game top bar that opens the **same Challenges panel** as the home page — so you
+  can check (or re-check mid-run) today's daily + weekly goals and progress without leaving the game. Opens
+  as a kit modal that freezes the game (like the other top-bar overlays), highlighting *this game's* active
+  goal. **Main lift:** the challenge logic (`CHALLENGES`, the UTC daily/weekly pick math, `evalGoal`,
+  progress) lives inline in `index.html` today — it needs to move into `game-kit.js` (shared module) so the
+  catalogue and the in-game button render from one source. Could also auto-show only when the current game
+  actually has an active challenge.
 - **Custom error pages** — verify what GitHub Pages actually allows. A root **`404.html`** *is*
   supported → build a branded one (mascot + search / back-to-catalogue; ties into the mascot reuse).
   Other codes (403 / 5xx) are served by GitHub/Fastly and **aren't customizable** on a static Pages
