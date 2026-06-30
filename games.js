@@ -43,7 +43,7 @@ window.GAMES = [
     accent: "#2ee8c8",
     tags: ["PUZZLE", "CASUAL"],
     added: "2026-06-26",
-    updated: "2026-06-28",
+    updated: "2026-06-30",
   },
 
   // ---- coming soon ----
@@ -158,7 +158,7 @@ window.GAMES = [
     accent: "#7fffb0",
     tags: ["CLASSIC", "ARCADE"],
     added: "2026-06-26",
-    updated: "2026-06-28",
+    updated: "2026-06-30",
   },
 
   // ---- coming soon: new ideas ----
