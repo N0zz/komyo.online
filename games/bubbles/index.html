@@ -199,6 +199,7 @@
   // Headroom so the playfield/bubbles clear the shared center-top .gamekit-hud pill.
   // Landscape: pill at top:8px → ~48px. Portrait (≤560px): pill drops to top:50px → ~92px.
   let topMargin = 48;
+  let WALL = 8; // thickness of the play-column walls (set in resize); side walls bounce, ceiling attaches
   let state = 'ready'; // 'ready'|'playing'|'over'|'won'
   let mode = 'arcade';
   let score = 0, bestScore = 0, level = 1;
@@ -245,27 +246,34 @@
     // always fits the viewport width — otherwise narrow / zoomed screens clip columns.
     R = Math.max(9, Math.min(18, Math.floor((W - 24) / (2 * (COLS_COUNT + 1)))));
     ROW_H = R * 1.73;
+    WALL = Math.max(6, Math.round(R * 0.55));
     const portrait = H > W || W <= 560;
     topMargin = portrait ? 92 : 48;
     // Vertical fit: on short (landscape phone) screens the default row spacing makes the
     // starting grid spill past the lose line / shooter. Compress ROW_H so the initial grid
     // (GRID_ROWS_START rows, top at topMargin+R) clears the lose line (H-SHOOTER_Y_OFFSET-3R)
     // with a one-row breather. Never expand beyond the default spacing.
-    const playBand = (H - SHOOTER_Y_OFFSET - R * 3) - (topMargin + R);
+    const playBand = (H - SHOOTER_Y_OFFSET - R * 3) - (topMargin + WALL + R);
     const fitRowH = playBand / (GRID_ROWS_START + 1);
     if (fitRowH > 0 && fitRowH < ROW_H) ROW_H = fitRowH;
   }
   window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
   // ---- Grid geometry ----
-  function gridX(col, row) {
+  // The play column is a centered band wide enough to hold the 12 cols + the half-step offset rows.
+  // left/right are its inner wall faces; shots bounce there. ceilTop is the playable top (below the ceiling).
+  function fieldBounds() {
     const totalW = COLS_COUNT * R * 2;
-    const startX = Math.floor((W - totalW) / 2) + R;
+    const startX = Math.floor((W - (totalW + R)) / 2) + R;
+    return { left: startX - R, right: startX + totalW, startX, totalW };
+  }
+  function ceilTop() { return topMargin + WALL; }
+  function gridX(col, row) {
     const offset = ((row + gridParity) % 2 === 1) ? R : 0;
-    return startX + col * R * 2 + offset;
+    return fieldBounds().startX + col * R * 2 + offset;
   }
   function gridY(row) {
-    return topMargin + gridOffsetY + row * ROW_H + R + 2;
+    return ceilTop() + gridOffsetY + row * ROW_H + R + 2;
   }
 
   // ---- Color helpers ----
@@ -620,14 +628,15 @@
     const points = [[sx, sy]];
     let x = sx, y = sy;
     let vx = Math.cos(angle) * 8, vy = Math.sin(angle) * 8;
-    const left = R;
-    const right = W - R;
+    const fb = fieldBounds();
+    const left = fb.left + R;
+    const right = fb.right - R;
     for (let i = 0; i < steps; i++) {
       x += vx; y += vy;
       if (x <= left) { x = left; vx = Math.abs(vx); }
       if (x >= right) { x = right; vx = -Math.abs(vx); }
       points.push([x, y]);
-      if (y < topMargin + R) break;
+      if (y < ceilTop() + R) break;
     }
     return points;
   }
@@ -786,13 +795,14 @@
       shotBubble.x += shotBubble.vx;
       shotBubble.y += shotBubble.vy;
 
-      // Wall bounces
-      if (shotBubble.x <= R) { shotBubble.x = R; shotBubble.vx = Math.abs(shotBubble.vx); }
-      if (shotBubble.x >= W - R) { shotBubble.x = W - R; shotBubble.vx = -Math.abs(shotBubble.vx); }
+      // Side-wall bounces (off the play column's edges, not the screen edges)
+      const fb = fieldBounds();
+      if (shotBubble.x <= fb.left + R) { shotBubble.x = fb.left + R; shotBubble.vx = Math.abs(shotBubble.vx); }
+      if (shotBubble.x >= fb.right - R) { shotBubble.x = fb.right - R; shotBubble.vx = -Math.abs(shotBubble.vx); }
 
-      // Hit ceiling
-      if (shotBubble.y <= topMargin + R) {
-        landBubble(shotBubble.x, topMargin + R);
+      // Hit ceiling → attach to the top row (the ceiling doesn't bounce)
+      if (shotBubble.y <= ceilTop() + R) {
+        landBubble(shotBubble.x, ceilTop() + R);
         return;
       }
 
@@ -932,12 +942,27 @@
 
     if (state !== 'playing' && state !== 'over' && state !== 'won') return;
 
-    // Lose line
+    // Walls: ceiling + left + right of the play column. Side walls bounce shots; the ceiling is the
+    // top boundary shots attach to. In landscape the column is centered, so the walls frame the middle.
+    const wb = fieldBounds();
+    ctx.fillStyle = '#1c374f';
+    ctx.fillRect(wb.left - WALL, topMargin, WALL, H - topMargin);                    // left
+    ctx.fillRect(wb.right, topMargin, WALL, H - topMargin);                          // right
+    ctx.fillRect(wb.left - WALL, topMargin, (wb.right + WALL) - (wb.left - WALL), WALL); // ceiling
+    ctx.strokeStyle = 'rgba(46,232,200,0.45)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(wb.left, topMargin + WALL); ctx.lineTo(wb.right, topMargin + WALL);   // ceiling face
+    ctx.moveTo(wb.left, topMargin + WALL); ctx.lineTo(wb.left, H);                   // left face
+    ctx.moveTo(wb.right, topMargin + WALL); ctx.lineTo(wb.right, H);                 // right face
+    ctx.stroke();
+
+    // Lose line (spans the play column)
     const loseY = H - SHOOTER_Y_OFFSET - R * 3;
     ctx.strokeStyle = 'rgba(255,77,109,0.3)';
     ctx.setLineDash([6, 6]);
     ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(0, loseY); ctx.lineTo(W, loseY); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(wb.left, loseY); ctx.lineTo(wb.right, loseY); ctx.stroke();
     ctx.setLineDash([]);
 
     // Grid bubbles
@@ -1064,9 +1089,10 @@
   function getCanvasXY(e) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = W / rect.width, scaleY = H / rect.height;
-    if (e.touches && e.touches.length > 0) {
-      return { x: (e.touches[0].clientX - rect.left) * scaleX, y: (e.touches[0].clientY - rect.top) * scaleY };
-    }
+    // touchend has no e.touches — the lifted finger's position lives in e.changedTouches, so a pure
+    // TAP (no drag) still reports where it landed; otherwise a tap would shoot the previous aim.
+    const t = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]);
+    if (t) return { x: (t.clientX - rect.left) * scaleX, y: (t.clientY - rect.top) * scaleY };
     return { x: (e.clientX - rect.left) * scaleX, y: (e.clientY - rect.top) * scaleY };
   }
 
@@ -1194,6 +1220,7 @@
 
     get W() { return W; },
     get H() { return H; },
+    get shot() { return shotBubble ? { x: shotBubble.x, y: shotBubble.y, vx: shotBubble.vx } : null; },
     gridX,
     gridY,
     get loseY() { return H - SHOOTER_Y_OFFSET - R * 3; },
@@ -1218,9 +1245,11 @@
         }
       }
       const grid_ = count ? { left: minX, right: maxX, top: minY, bottom: maxY } : null;
+      const fb = fieldBounds();
       return {
         W, H, topReserve: topMargin, R,
         grid: grid_,
+        walls: { left: fb.left, right: fb.right, ceiling: ceilTop(), thickness: WALL },
         shooterX: shooterX(), shooterY: shooterY(),
       };
     },
