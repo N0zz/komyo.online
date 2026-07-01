@@ -186,7 +186,9 @@
   #fbModal, #nlModal, #clModal, #aboutModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal, #profileModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
   #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop, #settingsModal::backdrop, #profileModal::backdrop { background:rgba(5,8,13,0.66); }
   #profileModal { width:min(760px,95vw); }
-  .about.profile { max-height:88vh; overflow-y:auto; }
+  .about.profile { max-height:88vh; display:flex; flex-direction:column; overflow:hidden; }
+  #profileBody { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; overflow:hidden; }
+  .pf-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; }
   /* about modal */
   #aboutModal { width:min(520px,94vw); }
   .about { padding:18px 20px 20px; display:flex; flex-direction:column; gap:12px; }
@@ -205,43 +207,50 @@
   .setvol { width:120px; accent-color:#9fe8ff; }
   .setvol:disabled { opacity:.4; }
   .profile .pf-name { color:var(--muted); font-size:14px; margin:-4px 0 2px; }
-  .pf-stats { display:flex; flex-wrap:wrap; gap:10px 20px; margin:8px 0 4px; }
+  /* identity row: name (left) + genre · since (right), reusing the modal header line */
+  #pfTitle { display:flex; align-items:baseline; flex:1; min-width:0; gap:8px 14px; flex-wrap:wrap; }
+  #pfTitle .pf-meta { margin-left:auto; font-family:inherit; font-weight:400; font-size:12px; letter-spacing:0; color:var(--faint); white-space:nowrap; }
+  /* stats row: the four big counts (left) + good-runs / challenges highlights (right) */
+  .pf-top { display:flex; justify-content:space-between; align-items:flex-end; gap:10px 28px; flex-wrap:wrap; margin:10px 0 2px; }
+  .pf-stats { display:flex; flex-wrap:wrap; gap:10px 20px; }
   .pf-stat { display:flex; flex-direction:column; gap:1px; }
   .pf-stat b { font-size:24px; color:var(--text); font-variant-numeric:tabular-nums; line-height:1.1; }
   .pf-stat span { font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint); }
-  .pf-facts { display:flex; flex-direction:column; gap:5px; margin:12px 0 2px; font-size:14px; color:var(--muted); }
-  .pf-facts b { color:var(--text); }
+  .pf-hl { display:flex; flex-direction:column; gap:4px; align-items:flex-end; text-align:right; font-size:13.5px; color:var(--muted); }
+  .pf-hl b { color:var(--text); font-variant-numeric:tabular-nums; }
+  /* per-card column labels so the value column reads as "best" and the mode column is named */
+  .pf-rhead { display:grid; grid-template-columns:1fr auto; gap:12px; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); padding-bottom:5px; margin-bottom:2px; border-bottom:1px solid var(--border); }
+  .pf-rhead span:last-child { text-align:right; }
   .pf-sec { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin:16px 0 8px; border-top:1px solid var(--border); padding-top:14px; }
-  .pf-mp { display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:10px; }
-  .pf-mprow { display:grid; grid-template-columns:1fr auto; column-gap:12px; row-gap:4px; align-items:baseline; padding:11px 12px; border-radius:12px; }
-  .pf-mpg { grid-column:1; grid-row:1; font-size:14px; font-weight:600; color:var(--text); }
-  .pf-mptot { grid-column:2; grid-row:1 / span 2; align-self:center; text-align:right; font-size:20px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
-  .pf-mpmodes { grid-column:1; grid-row:2; display:flex; flex-wrap:wrap; gap:4px 6px; }
-  .pf-mchip { font-size:11.5px; color:var(--muted); background:rgba(255,255,255,0.04); border:1px solid var(--border); border-radius:6px; padding:1px 7px; }
-  .pf-mchip b { color:var(--text); font-weight:600; }
-  .pf-tiles { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px; margin-top:8px; }
-  .pf-tinted { border:1px solid color-mix(in srgb, var(--acc,#9fe8ff) 28%, var(--border)); background:linear-gradient(155deg, color-mix(in srgb, var(--acc,#9fe8ff) 13%, transparent), transparent 62%), rgba(255,255,255,0.015); }
-  .pf-tile { border-radius:12px; padding:12px 13px; }
-  .pf-th { font-size:14.5px; font-weight:600; color:var(--text); margin-bottom:9px; }
+  /* one unified per-game block (most-played first): header = title + total plays, then each mode's best.
+     Tint matches the catalogue tiles (accent radial from the top) so a game reads the same everywhere. */
+  .pf-tinted { border:1px solid color-mix(in srgb, var(--acc,#9fe8ff) 28%, var(--border)); background:radial-gradient(120% 130% at 50% 0%, color-mix(in srgb, var(--acc,#9fe8ff) 20%, var(--surface)), var(--surface) 70%); }
+  .pf-games { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; align-items:stretch; }
+  .pf-game { border-radius:12px; padding:12px 14px; }
+  .pf-gh { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:9px; }
+  .pf-gt { font-size:14.5px; font-weight:600; color:var(--text); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pf-gp { flex:0 0 auto; font-size:12px; color:var(--faint); font-variant-numeric:tabular-nums; }
+  .pf-gp b { color:var(--text); font-weight:700; font-size:15px; }
   .pf-rows { display:flex; flex-direction:column; gap:3px; }
-  .pf-row { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:14px; }
-  .pf-row .pr-mode { color:var(--muted); }
-  .pf-row .pr-best { color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .pf-row .pr-plays { color:var(--faint); font-size:12px; font-weight:400; margin-left:6px; }
+  .pf-row { display:grid; grid-template-columns:1fr auto; align-items:baseline; gap:12px; font-size:14px; }
+  .pf-row .pr-mode { color:var(--muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pf-row .pr-mode .pr-x { color:var(--faint); font-size:12px; margin-left:5px; }
+  .pf-row .pr-val { color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right; }
   .pf-empty { color:var(--muted); font-size:15px; line-height:1.6; }
-  .pf-share { margin-top:16px; }
+  /* pinned to the bottom of the panel (outside the scroll area) so it's always reachable */
+  .pf-share { flex:0 0 auto; margin:0 -20px -20px; padding:13px 20px 20px; border-top:1px solid var(--border); background:var(--surface); }
   .pf-share button { width:100%; padding:11px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:600; cursor:pointer; }
   .pf-share button:hover { border-color:#9fe8ff; }
   /* FAQ modal (reuses .about container) */
   #faqModal { width:min(560px,94vw); }
   .faq { max-height:80vh; overflow-y:auto; }
   /* themed scrollbars for scrollable modals/drawers (default is a stark white/grey bar) */
-  .faq, .cl-list, .filter-pop, .dscroll, .data-ta { scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
-  .faq::-webkit-scrollbar, .cl-list::-webkit-scrollbar, .filter-pop::-webkit-scrollbar, .dscroll::-webkit-scrollbar, .data-ta::-webkit-scrollbar { width:10px; height:10px; }
-  .faq::-webkit-scrollbar-track, .cl-list::-webkit-scrollbar-track, .filter-pop::-webkit-scrollbar-track, .dscroll::-webkit-scrollbar-track, .data-ta::-webkit-scrollbar-track { background:transparent; }
-  .faq::-webkit-scrollbar-thumb, .cl-list::-webkit-scrollbar-thumb, .filter-pop::-webkit-scrollbar-thumb, .dscroll::-webkit-scrollbar-thumb, .data-ta::-webkit-scrollbar-thumb {
+  .faq, .cl-list, .filter-pop, .dscroll, .data-ta, .pf-scroll { scrollbar-width:thin; scrollbar-color:var(--border) transparent; }
+  .faq::-webkit-scrollbar, .cl-list::-webkit-scrollbar, .filter-pop::-webkit-scrollbar, .dscroll::-webkit-scrollbar, .data-ta::-webkit-scrollbar, .pf-scroll::-webkit-scrollbar { width:10px; height:10px; }
+  .faq::-webkit-scrollbar-track, .cl-list::-webkit-scrollbar-track, .filter-pop::-webkit-scrollbar-track, .dscroll::-webkit-scrollbar-track, .data-ta::-webkit-scrollbar-track, .pf-scroll::-webkit-scrollbar-track { background:transparent; }
+  .faq::-webkit-scrollbar-thumb, .cl-list::-webkit-scrollbar-thumb, .filter-pop::-webkit-scrollbar-thumb, .dscroll::-webkit-scrollbar-thumb, .data-ta::-webkit-scrollbar-thumb, .pf-scroll::-webkit-scrollbar-thumb {
     background:var(--border); border:2px solid transparent; background-clip:padding-box; border-radius:999px; }
-  .faq::-webkit-scrollbar-thumb:hover, .cl-list::-webkit-scrollbar-thumb:hover, .filter-pop::-webkit-scrollbar-thumb:hover, .dscroll::-webkit-scrollbar-thumb:hover, .data-ta::-webkit-scrollbar-thumb:hover { background:var(--faint); }
+  .faq::-webkit-scrollbar-thumb:hover, .cl-list::-webkit-scrollbar-thumb:hover, .filter-pop::-webkit-scrollbar-thumb:hover, .dscroll::-webkit-scrollbar-thumb:hover, .data-ta::-webkit-scrollbar-thumb:hover, .pf-scroll::-webkit-scrollbar-thumb:hover { background:var(--faint); }
   .faq-q { font-weight:700; color:var(--text); font-size:15.5px; margin-top:6px; }
   .faq-a { margin:0; font-size:14.5px; line-height:1.62; color:var(--muted); }
   .faq-a b { color:var(--text); } .faq-a a { color:#9fe8ff; }
@@ -1391,6 +1400,8 @@
       const lock = v => { try { document.body.style.overflow = v ? 'hidden' : ''; } catch (e) {} };
       const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
       const fmt = n => (typeof n === 'number' && n.toLocaleString) ? n.toLocaleString() : String(n);
+      // speedrun/time bests are stored in ms (canonical) → mm:ss.cs, matching the in-game timer
+      const fmtTime = ms => { ms = Math.max(0, ms | 0); const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000), cs = Math.floor((ms % 1000) / 10); return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + String(cs).padStart(2, '0'); };
       const meta = slug => { for (let i = 0; i < GAMES.length; i++) if (GAMES[i].slug === slug) return GAMES[i]; return null; };
       const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
       let shareData = null;
@@ -1445,58 +1456,57 @@
         const p = (K && K.profile) ? K.profile() : null;
         const who = (K && K.player) ? K.player() : 'anonymous';
         const titleEl = document.getElementById('pfTitle'); if (titleEl) titleEl.textContent = '👤 ' + who;
-        const played = [];
-        if (p) GAMES.forEach(gm => {
-          const pg = p.perGame[gm.slug];
-          if (!pg || pg.best <= 0) return;
-          const modes = pg.modes.filter(m => m.score > 0);
-          if (modes.length) played.push({ gm, modes, best: pg.best, plays: pg.plays });
-        });
-        if (!played.length) {
-          body.innerHTML = '<p class="pf-empty">No scores yet — play a few games and your bests, favorites and stats show up here, sorted by game. Everything stays on this device.</p>';
+        // one list, most-played first: every game with plays, each showing its modes' bests
+        const ranked = [];
+        if (p) GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm, pg }); });
+        ranked.sort((a, b) => b.pg.plays - a.pg.plays || b.pg.best - a.pg.best);
+        if (!ranked.length) {
+          body.innerHTML = '<p class="pf-empty">No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.</p>';
           shareData = null; return;
         }
-        const byTag = {};
-        GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays && gm.tag) byTag[gm.tag] = (byTag[gm.tag] || 0) + pg.plays; });
-        let favTag = '', favTagN = 0; for (const t in byTag) if (byTag[t] > favTagN) { favTag = t; favTagN = byTag[t]; }
         const favGameMeta = meta(p.favGame.slug), accent = (favGameMeta && favGameMeta.accent) || '#9fe8ff';
-        // challenge points + completions (lifetime, from the challenge history)
+        // challenge completions (lifetime, from the challenge history)
         let chDone = 0;
         try { const h = JSON.parse(localStorage.getItem('gamekit_history') || '[]'); if (Array.isArray(h)) chDone = h.length; } catch (e) {}
-        const chips = [['Games', p.gamesPlayed], ['Modes', p.modesPlayed], ['Plays', p.plays], ['Days', p.daysPlayed]];
-        let html = '<div class="pf-stats">';
-        chips.forEach(s => { html += '<div class="pf-stat"><b>' + esc(String(s[1])) + '</b><span>' + esc(s[0]) + '</span></div>'; });
-        html += '</div><div class="pf-facts">';
-        if (favTag) html += '<span>🎯 Favorite genre — <b>' + esc(favTag) + '</b></span>';
-        if (p.goodRuns) html += '<span>💪 <b>' + p.goodRuns + '</b> good ' + (p.goodRuns === 1 ? 'run' : 'runs') + ' (cleared a game’s bar)</span>';
-        html += '<span>🏆 <b>' + chDone + '</b> ' + (chDone === 1 ? 'challenge' : 'challenges') + ' completed</span>';
-        if (p.since) { try { html += '<span>📅 Playing since <b>' + new Date(p.since).toLocaleDateString(undefined, { month: 'long', year: 'numeric' }) + '</b></span>'; } catch (e) {} }
-        html += '</div>';
-        // Most played — per game: mode-by-mode play breakdown + total, sorted by total
-        const ranked = [];
-        GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm: gm, pg: pg }); });
-        ranked.sort((a, b) => b.pg.plays - a.pg.plays);
-        if (ranked.length) {
-          html += '<div class="pf-sec">Most played</div><div class="pf-mp">';
-          ranked.forEach(it => {
-            const ms = it.pg.modes.slice().filter(m => m.plays > 0).sort((a, b) => b.plays - a.plays);
-            const chipsHtml = ms.map(m => '<span class="pf-mchip">' + esc(m.mode || 'Best') + ' <b>×' + m.plays + '</b></span>').join('');
-            html += '<div class="pf-mprow pf-tinted" style="--acc:' + (it.gm.accent || '#9fe8ff') + '"><div class="pf-mpg">' + (it.gm.icon || '🎮') + ' ' + esc(it.gm.title) + '</div><div class="pf-mptot">' + it.pg.plays + '</div><div class="pf-mpmodes">' + chipsHtml + '</div></div>';
-          });
-          html += '</div>';
+        // identity row: name (the modal title) + genre · playing-since, right-aligned in the same line
+        if (titleEl) {
+          let sinceStr = '';
+          if (p.since) { try { sinceStr = '📅 Since ' + esc(new Date(p.since).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })); } catch (e) {} }
+          titleEl.innerHTML = '👤 ' + esc(who) + (sinceStr ? '<span class="pf-meta">' + sinceStr + '</span>' : '');
         }
-        // Best scores — per game (most-played first), each mode's PB + plays
+        // stat labels pluralize with their count ("1 Day", not "1 Days")
+        const chips = [['Game', p.gamesPlayed], ['Mode', p.modesPlayed], ['Play', p.plays], ['Day', p.daysPlayed]];
+        let html = '<div class="pf-scroll"><div class="pf-top"><div class="pf-stats">';
+        chips.forEach(s => { const lbl = s[1] === 1 ? s[0] : s[0] + 's'; html += '<div class="pf-stat"><b>' + esc(fmt(s[1])) + '</b><span>' + esc(lbl) + '</span></div>'; });
+        html += '</div><div class="pf-hl">';
+        if (p.goodRuns) html += '<span title="Runs that cleared a game’s bar">💪 <b>' + fmt(p.goodRuns) + '</b> good ' + (p.goodRuns === 1 ? 'run' : 'runs') + '</span>';
+        html += '<span>🏆 <b>' + fmt(chDone) + '</b> ' + (chDone === 1 ? 'challenge' : 'challenges') + '</span>';
+        html += '</div></div>';
+        // Your games — total plays in the header (its unit shown once), then each mode's best;
+        // a per-mode "×N" appears only when that mode was played more than once (no ×1 noise).
         const rows = [];
-        played.sort((a, b) => b.plays - a.plays);
-        html += '<div class="pf-sec">Records by game</div><div class="pf-tiles">';
-        played.forEach(function (it) {
-          const gm = it.gm;
-          html += '<div class="pf-tile pf-tinted" style="--acc:' + (gm.accent || '#9fe8ff') + '"><div class="pf-th">' + (gm.icon || '🎮') + ' ' + esc(gm.title) + '</div><div class="pf-rows">';
-          it.modes.forEach(m => { html += '<div class="pf-row"><span class="pr-mode">' + esc(m.mode || 'Best') + '</span><span class="pr-best">' + fmt(m.score) + '<span class="pr-plays">' + plural(m.plays, 'play') + '</span></span></div>'; });
-          html += '</div></div>';
-          rows.push({ name: gm.title, best: fmt(it.best), mode: (it.modes[0] && it.modes[0].mode) || '', accent: gm.accent });
+        html += '<div class="pf-sec">Your games</div><div class="pf-games">';
+        ranked.forEach(function (it) {
+          const gm = it.gm, pg = it.pg;
+          const modes = pg.modes.slice().filter(m => m.plays > 0).sort((a, b) => b.plays - a.plays || b.score - a.score);
+          let rowsHtml = '';
+          modes.forEach(m => {
+            // show plays on every mode (even single-mode, where it repeats the header total) for consistency; hide only ×1
+            const x = m.plays > 1 ? ' <i class="pr-x" title="' + fmt(m.plays) + ' plays">×' + fmt(m.plays) + '</i>' : '';
+            // time-primary modes (named "Speedrun"/"Sprint" by convention) show their time (stored ms);
+            // every other mode shows its score. (score modes may also record a run duration we ignore.)
+            const isTimeMode = /speedrun|sprint/i.test(m.mode || '');
+            const val = (isTimeMode && m.time > 0) ? fmtTime(m.time) : (m.score > 0 ? fmt(m.score) : '—');
+            rowsHtml += '<div class="pf-row"><span class="pr-mode">' + esc(m.mode || 'Best') + x + '</span><span class="pr-val">' + val + '</span></div>';
+          });
+          html += '<div class="pf-game pf-tinted" style="--acc:' + (gm.accent || '#9fe8ff') + '">'
+            + '<div class="pf-gh"><span class="pf-gt">' + (gm.icon || '🎮') + ' ' + esc(gm.title) + '</span>'
+            + '<span class="pf-gp"><b>' + fmt(pg.plays) + '</b> ' + (pg.plays === 1 ? 'play' : 'plays') + '</span></div>'
+            + '<div class="pf-rows"><div class="pf-rhead"><span>Mode</span><span>Best</span></div>' + rowsHtml + '</div></div>';
+          rows.push({ name: gm.title, best: fmt(pg.best), mode: (modes[0] && modes[0].mode) || '', accent: gm.accent });
         });
-        html += '</div>';
+        html += '</div>'; // close .pf-games
+        html += '</div>'; // close .pf-scroll (the games list scrolls; the share button below stays pinned)
         html += '<div class="pf-share"><button type="button" id="pfShare">📷 Share my profile</button></div>';
         body.innerHTML = html;
         shareData = { player: who, accent: accent, stats: [{ label: 'Games', value: p.gamesPlayed }, { label: 'Modes', value: p.modesPlayed }, { label: 'Plays', value: p.plays }, { label: 'Days', value: p.daysPlayed }], rows: rows };
@@ -1510,6 +1520,7 @@
             .catch(done);
         });
       }
+      window.__renderProfile = render; // exposed for tests
       if (btn) btn.addEventListener('click', () => { render(); modal.showModal(); lock(true); });
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
       modal.addEventListener('close', () => lock(false));
