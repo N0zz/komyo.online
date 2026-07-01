@@ -375,7 +375,7 @@ section('Breakout: best score per mode persists in localStorage');
   }
 }
 
-section('Breakout: end screen shows score/best + share row');
+section('Breakout: game over shows the kit end menu; Play Again restarts');
 {
   const ge = runGame();
   const Te = ge.T;
@@ -387,32 +387,22 @@ section('Breakout: end screen shows score/best + share row');
   let eg = 0;
   while (Te().state === 'playing' && eg++ < 500) { Te().setBall(640, 790, 0, 10); Te().step(10); }
   ok(Te().state === 'over', 'reached game over');
-  const endOv = ge.getEl('endOverlay');
-  ok(!endOv.classList.contains('hidden'), 'end overlay is shown on game over');
-  ok(ge.getEl('overlay').classList.contains('hidden'), 'menu overlay is hidden on game over');
-  ok(String(ge.getEl('endScore').textContent) === String(sc), 'end screen shows final score (' + ge.getEl('endScore').textContent + ')');
-  ok(Number(ge.getEl('endBest').textContent) >= sc, 'end screen shows best >= score');
-  // Play again returns to a fresh game
-  ge.getEl('againBtn').fire('click');
-  ok(Te().state === 'playing', 'Play again starts a new game');
-  ok(Te().score === 0, 'Play again resets score');
-  ok(endOv.classList.contains('hidden'), 'end overlay hidden after Play again');
+  ok(Te().menu() != null, 'kit end menu is shown on game over');
+  ok(Number(ge.store['breakout_best_classic'] || 0) >= sc, 'best persisted >= final score (' + ge.store['breakout_best_classic'] + ' >= ' + sc + ')');
+  // Play again via the end menu's primary action
+  Te().menu().activate('again');
+  ok(Te().state === 'playing', 'Play Again starts a new game');
+  ok(Te().score === 0, 'Play Again resets score');
 }
 
 section('Breakout: 2× speed toggle defaults off, persists, applies');
 {
-  // default off when no pref stored
   const gd = runGame();
   ok(gd.T().speedMult === 1, 'speedMult defaults to 1 (got ' + gd.T().speedMult + ')');
-  const box = gd.getEl('speed2x');
-  ok(box.checked !== true, 'speed checkbox unchecked by default');
-  // toggling the checkbox sets the multiplier and persists
-  box.checked = true;
-  box.fire('change');
+  gd.T().setSpeed(true); // mirrors the menu's 2× toggle
   ok(gd.T().speedMult === 2, 'enabling 2× speed sets speedMult to 2 (got ' + gd.T().speedMult + ')');
   ok(gd.store['breakout_speed2x'] === '1', 'speed pref persisted as "1" (got ' + gd.store['breakout_speed2x'] + ')');
-  box.checked = false;
-  box.fire('change');
+  gd.T().setSpeed(false);
   ok(gd.T().speedMult === 1, 'disabling 2× speed resets speedMult to 1');
   ok(gd.store['breakout_speed2x'] === '0', 'speed pref persisted as "0"');
 }
@@ -424,7 +414,7 @@ section('Breakout: 2× speed sub-steps collisions cleanly (no tunnelling)');
   // (collisions resolve per sub-step rather than via a doubled, tunnel-prone step).
   const ga = runGame();
   const Ta = ga.T;
-  ga.getEl('speed2x').checked = true; ga.getEl('speed2x').fire('change');
+  ga.T().setSpeed(true);
   ok(Ta().speedMult === 2, '2× enabled for sub-step test');
   Ta().start(); Ta().launch(); Ta().setPaddle(640);
   const before = Ta().bricks;
@@ -435,47 +425,15 @@ section('Breakout: 2× speed sub-steps collisions cleanly (no tunnelling)');
   ok(Ta().state === 'playing', '2× run stays in a valid playing state');
 }
 
-section('Breakout: menu best labels reflect stored per-mode bests');
+section('Breakout: best(mode) reflects stored per-mode bests');
 {
-  // Boot-time test: seed the harness store BEFORE the script runs via a custom run.
-  const fsmod = (await import('node:fs')).default;
-  const vmmod = (await import('node:vm')).default;
-  const pathmod = (await import('node:path')).default;
-  const dir = pathmod.dirname(new URL(import.meta.url).pathname);
-  const src = fsmod.readFileSync(pathmod.join(dir, 'index.html'), 'utf8');
-  const mm = src.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
-  const code = mm[1];
-  const elCache = {};
-  function mkEl(id) {
-    const classes = new Set();
-    const el = { id, textContent: '', value: '', dataset: {}, children: [],
-      style: new Proxy({}, { get: (t, p) => t[p] ?? '', set: (t, p, v) => { t[p] = v; return true; } }),
-      classList: { add: (...c) => c.forEach(x => classes.add(x)), remove: (...c) => c.forEach(x => classes.delete(x)),
-        toggle: (c, f) => { const has = classes.has(c); const want = f === undefined ? !has : !!f; if (want) classes.add(c); else classes.delete(c); return want; }, contains: c => classes.has(c) },
-      _l: {}, addEventListener: (t, fn) => { (el._l[t] ||= []).push(fn); }, removeEventListener: () => {},
-      fire: (t, ev = {}) => (el._l[t] || []).forEach(fn => fn({ preventDefault() {}, ...ev })),
-      appendChild: c => { el.children.push(c); return c; }, querySelectorAll: () => [], querySelector: () => null,
-      getContext: () => new Proxy({}, { get: (_, p) => { if (p === 'canvas') return { width: 1280, height: 800 }; return () => {}; }, set: () => true }),
-      focus: () => {}, setAttribute() {}, getAttribute() { return null; },
-      getBoundingClientRect: () => ({ left: 0, top: 0, width: 1280, height: 800 }) };
-    return el;
-  }
-  const getEl = id => (elCache[id] ||= mkEl(id));
-  const store = { breakout_best_classic: '250', breakout_best_endless: '99', breakout_best_survival: '7' };
-  const handlers = {};
-  const win = { innerWidth: 1280, innerHeight: 800, addEventListener: (t, fn) => { (handlers[t] ||= []).push(fn); }, removeEventListener: () => {}, __test: undefined };
-  const doc = { getElementById: getEl, createElement: tag => mkEl('new-' + tag), addEventListener: () => {}, querySelectorAll: () => [], body: mkEl('body') };
-  const sandbox = { window: win, document: doc, location: { search: '' }, navigator: {},
-    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
-    requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, setInterval: () => 0, clearInterval: () => {},
-    matchMedia: () => ({ matches: false }), URLSearchParams, Math, JSON, String, Number, Array, Object, parseInt, parseFloat, isFinite, isNaN, Date, console };
-  sandbox.globalThis = sandbox;
-  const seedCtx = vmmod.createContext(sandbox);
-  vmmod.runInContext(KIT, seedCtx, { filename: 'game-kit.js' });
-  vmmod.runInContext(code, seedCtx, { filename: 'index.html' });
-  ok(getEl('bestClassic').textContent === 'best: 250', 'classic best label shows stored best (got ' + getEl('bestClassic').textContent + ')');
-  ok(getEl('bestEndless').textContent === 'best: 99', 'endless best label shows stored best (got ' + getEl('bestEndless').textContent + ')');
-  ok(getEl('bestSurvival').textContent === 'best: 7', 'survival best label shows stored best (got ' + getEl('bestSurvival').textContent + ')');
+  const gm = runGame();
+  gm.store['breakout_best_classic'] = '250';
+  gm.store['breakout_best_endless'] = '99';
+  gm.store['breakout_best_survival'] = '7';
+  ok(gm.T().best('classic') === 250, 'classic best 250 (got ' + gm.T().best('classic') + ')');
+  ok(gm.T().best('endless') === 99, 'endless best 99 (got ' + gm.T().best('endless') + ')');
+  ok(gm.T().best('survival') === 7, 'survival best 7 (got ' + gm.T().best('survival') + ')');
 }
 
 section('Breakout: 2× speed pref restored at boot from storage');
@@ -512,7 +470,6 @@ section('Breakout: 2× speed pref restored at boot from storage');
   vmmod.runInContext(KIT, seedCtx2, { filename: 'game-kit.js' });
   vmmod.runInContext(code, seedCtx2, { filename: 'index.html' });
   ok(win.__test.speedMult === 2, 'speedMult restored to 2 from stored pref (got ' + win.__test.speedMult + ')');
-  ok(mkEl('speed2x').checked === true, 'speed checkbox reflects restored pref');
 }
 
 // ---- Layout: everything on-screen + no overlap with the HUD, in portrait / landscape / desktop ----

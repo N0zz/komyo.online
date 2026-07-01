@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
 <script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
 <style>
   :root { --mg:#ff00ff; --cy:#00ffff; --bg:#0a0010; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -26,35 +27,12 @@
      the synthwave value colors. */
   #hud .val { color:var(--cy); text-shadow:0 0 8px var(--cy); }
   #hud .hrt { color:var(--mg); text-shadow:0 0 8px var(--mg); }
-  #overlay, #endOverlay { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; gap:16px; background:rgba(10,0,16,0.88); padding:24px; }
-  #overlay.hidden, #endOverlay.hidden { display:none; }
-  #overlay h1, #endOverlay h1 { margin:0; font-size:42px; letter-spacing:6px; color:var(--mg);
-    text-shadow:0 0 20px var(--mg), 0 0 40px var(--mg); }
-  #overlay p, #endOverlay p { margin:2px; font-size:14px; opacity:0.85; max-width:480px; line-height:1.6; letter-spacing:1px; }
-  #overlay .hint, #endOverlay .hint { opacity:0.5; font-size:12px; letter-spacing:1px; }
+  /* start / pause / end screens come from the shared gamekit.menu (MENU_THEME below) */
   /* touch-only hint: which screen half moves the paddle (the canvas handles the actual input) */
   /* fixed offset near the paddle so it's clear of the bricks in BOTH orientations (13% floated up over the bricks in portrait) */
   #bkpad { position:fixed; left:0; right:0; bottom:64px; z-index:6; display:none; justify-content:space-between; padding:0 20px; pointer-events:none; user-select:none; }
   #bkpad span { font-size:32px; line-height:1; color:rgba(0,255,255,0.42); text-shadow:0 0 12px rgba(0,255,255,0.5); }
   body.bktouch #bkpad { display:flex; }
-  #againBtn { font-family:inherit; cursor:pointer; font-size:15px; letter-spacing:3px; padding:11px 28px;
-    border-radius:4px; color:#fff; background:transparent; border:2px solid var(--mg);
-    text-shadow:0 0 8px var(--mg); box-shadow:0 0 16px rgba(255,0,255,0.4), inset 0 0 16px rgba(255,0,255,0.1); }
-  .modeBtn { font-family:inherit; cursor:pointer; font-size:13px; letter-spacing:2px; padding:8px 18px;
-    border-radius:4px; color:#fff; background:transparent; border:2px solid rgba(255,0,255,0.4);
-    text-shadow:0 0 6px rgba(255,0,255,0.5); }
-  .modeBtn.active { border-color:var(--cy); text-shadow:0 0 8px var(--cy); box-shadow:0 0 12px rgba(0,255,255,0.3); }
-  .modeBtn .mbest { display:block; font-size:9px; letter-spacing:1px; opacity:0.6; margin-top:3px; }
-  .opt { display:flex; align-items:center; gap:8px; font-size:12px; letter-spacing:2px; cursor:pointer;
-    color:#fff; opacity:0.85; user-select:none; }
-  .opt input { appearance:none; -webkit-appearance:none; width:16px; height:16px; margin:0; cursor:pointer;
-    border:2px solid rgba(0,255,255,0.5); border-radius:3px; background:transparent; position:relative; }
-  .opt input:checked { background:var(--cy); box-shadow:0 0 8px var(--cy); border-color:var(--cy); }
-  #startBtn { font-family:inherit; cursor:pointer; font-size:15px; letter-spacing:3px; padding:11px 28px;
-    border-radius:4px; color:#fff; background:transparent; border:2px solid var(--mg);
-    text-shadow:0 0 8px var(--mg); box-shadow:0 0 16px rgba(255,0,255,0.4), inset 0 0 16px rgba(255,0,255,0.1); }
-  #shareRow { --gamekit-accent:#ff5cc8; margin-top:4px; }
 </style>
 </head>
 <body>
@@ -67,34 +45,11 @@
   <div class="stat"><span class="lbl">LEVEL</span><span class="val" id="levelEl">1</span></div>
   <div class="stat"><span class="lbl">MODE</span><span class="val" id="modeEl">CLASSIC</span></div>
 </div>
-<div id="overlay">
-  <h1>BRICK BREAKER</h1>
-  <p>Destroy all bricks. Catch power-ups. Don't let the ball fall.</p>
-  <div id="modeRow" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
-    <button class="modeBtn" data-mode="classic" id="modeBtnClassic">CLASSIC<span class="mbest" id="bestClassic">best: 0</span></button>
-    <button class="modeBtn" data-mode="endless" id="modeBtnEndless">ENDLESS<span class="mbest" id="bestEndless">best: 0</span></button>
-    <button class="modeBtn" data-mode="survival" id="modeBtnSurvival">SURVIVAL<span class="mbest" id="bestSurvival">best: 0</span></button>
-  </div>
-  <p id="modeDesc" class="hint">Level progression — clear all bricks</p>
-  <label class="opt"><input type="checkbox" id="speed2x">2× SPEED</label>
-  <p class="hint">Move: ← → keys or mouse · on phone, hold the left / right side of the screen</p>
-  <p class="hint">Launch the ball: Space, click, or tap</p>
-  <button id="startBtn">INSERT COIN</button>
-</div>
-<div id="endOverlay" class="hidden">
-  <h1>GAME OVER</h1>
-  <p>Mode <b id="endMode" style="color:var(--mg)">CLASSIC</b></p>
-  <p style="font-size:20px;letter-spacing:2px">Score <b id="endScore" style="color:var(--cy)">0</b></p>
-  <p class="hint">Best <b id="endBest" style="color:var(--cy)">0</b></p>
-  <button id="againBtn">PLAY AGAIN</button>
-  <div id="shareRow"></div>
-</div>
 <script>
 (() => {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const overlay = document.getElementById('overlay');
-  const endOverlay = document.getElementById('endOverlay');
+  const KIT = window.gamekit;
 
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
@@ -256,9 +211,7 @@
   function startGame() {
     reset();
     state = 'playing';
-    window.gamekit.showMenuButton(true); // entering active play
-    overlay.classList.add('hidden');
-    if (endOverlay) endOverlay.classList.add('hidden');
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     updateHud();
   }
 
@@ -296,7 +249,7 @@
       state = 'over';
       saveBest();
       best = loadBest(gameMode);
-      showEndScreen();
+      showEnd();
     } else {
       ballStuck = true;
       balls = [{ x: paddleX, y: paddleY() - BALL_R - PADDLE_H / 2, vx: 0, vy: 0 }];
@@ -304,15 +257,58 @@
     }
   }
 
-  function showEndScreen() {
-    window.gamekit.recordResult('breakout', { mode: gameMode, score: score });
-    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
-    set('endMode', gameMode.toUpperCase());
-    set('endScore', score);
-    set('endBest', best);
-    if (endOverlay) endOverlay.classList.remove('hidden');
-    updateHud();
+  // ---- shared menus (gamekit.menu) — synthwave theme + a neon perspective-grid backdrop ----
+  const MENU_THEME = { accent: '#ff5cc8', glow: '0 0 20px rgba(255,92,200,0.5)', bg: 'rgba(20,8,30,0.72)',
+    border: 'rgba(255,92,200,0.35)', overlay: 'rgba(10,0,16,0.6)', title: '#ff8fd8', new: '#ffd23f', 'on-accent': '#180a1e', 'accent-soft': 'rgba(255,92,200,0.2)' };
+  function menuBackdrop(g, w, h) {
+    g.fillStyle = '#0a0010'; g.fillRect(0, 0, w, h);
+    const lg = g.createLinearGradient(0, 0, 0, h); lg.addColorStop(0, 'rgba(10,0,16,1)'); lg.addColorStop(.6, 'rgba(40,0,40,.5)'); lg.addColorStop(1, 'rgba(80,10,60,.4)'); g.fillStyle = lg; g.fillRect(0, 0, w, h);
+    const hz = h * .5, mx = w / 2; g.strokeStyle = 'rgba(255,60,220,.34)'; g.lineWidth = 1;
+    for (let i = 1; i <= 18; i++) { const y = hz + (i * i) * ((h - hz) / 300); if (y > h) break; g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    for (let v = -10; v <= 10; v++) { g.beginPath(); g.moveTo(mx + v * 18, hz); g.lineTo(mx + v * 170, h); g.stroke(); }
+    const pal = ['#ff2d78', '#ff6b35', '#ffd23f', '#00e5ff', '#b14fff', '#39ff14'], cols = 12, bw = w / cols;
+    g.save(); g.globalAlpha = .5; for (let r = 0; r < 4; r++) for (let c = 0; c < cols; c++) { g.fillStyle = pal[r % 6]; g.shadowColor = pal[r % 6]; g.shadowBlur = 9; g.fillRect(c * bw + 2, 14 + r * 15, bw - 4, 9); } g.restore();
   }
+  function pvBrick(g, w, h, rows) { g.fillStyle = '#0a0010'; g.fillRect(0, 0, w, h); const cols = 6, bw = w / cols;
+    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) { g.fillStyle = ['#ff2d78', '#ff6b35', '#ffd23f', '#00e5ff'][r % 4]; g.fillRect(c * bw + 2, 10 + r * 11, bw - 4, 8); }
+    g.fillStyle = '#00ffff'; g.fillRect(w / 2 - 14, h - 10, 28, 5); g.beginPath(); g.arc(w / 2, h - 20, 4, 0, 7); g.fill(); }
+  function setSpeed(on) { speedMult = on ? 2 : 1; saveSpeedPref(!!on); }
+  const modeParams = st => (st.speed2x ? { mode: st.mode, speed2x: '1' } : { mode: st.mode });
+  function showStartMenu() {
+    state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'BRICK BREAKER', backdrop: menuBackdrop,
+      groups: [{ id: 'mode', label: 'MODE', style: 'cards', default: gameMode, choices: [
+        { id: 'classic', label: 'Classic', mech: ['Levels', 'Clear to advance'], best: () => loadBest('classic'), preview: (g, w, h) => pvBrick(g, w, h, 3) },
+        { id: 'endless', label: 'Endless', mech: ['Rows drop in', 'Score chase'], best: () => loadBest('endless'), preview: (g, w, h) => pvBrick(g, w, h, 4) },
+        { id: 'survival', label: 'Survival', mech: ['Wall descends', 'Beat it back'], best: () => loadBest('survival'), preview: (g, w, h) => pvBrick(g, w, h, 5) },
+      ] }],
+      toggles: [{ id: 'speed2x', label: '2× speed', caption: 'faster ball & paddle', default: loadSpeedPref() }],
+      actions: [{ id: 'play', label: 'INSERT COIN', primary: true }],
+      hint: st => MODE_DESCS[st.mode] || '',
+      onChange: st => { gameMode = st.mode; setSpeed(st.speed2x); KIT.stampUrl(modeParams(st)); },
+      onPlay: st => { gameMode = st.mode; setSpeed(st.speed2x); KIT.stampUrl(modeParams(st)); startMode(st.mode); },
+    });
+    KIT.stampUrl(modeParams({ mode: gameMode, speed2x: speedMult === 2 }));
+  }
+  function shareMsg() { return KIT.shareText({ score: score, game: 'Brick Breaker', emoji: '🧱', mode: gameMode.charAt(0).toUpperCase() + gameMode.slice(1), extra: ['level ' + level] }); }
+  function showEnd() {
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.recordResult('breakout', { mode: gameMode, score: score });
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER', backdrop: menuBackdrop,
+      score: score, best: best, newBest: score >= best && score > 0, lines: [gameMode.toUpperCase() + ' · level ' + level],
+      share: { slug: 'breakout', title: 'Brick Breaker', message: () => shareMsg(), params: () => modeParams({ mode: gameMode, speed2x: speedMult === 2 }) },
+      actions: [ { id: 'again', label: 'PLAY AGAIN', primary: true }, { id: 'menu', label: 'MENU' } ],
+      onAction: id => { if (id === 'again') startMode(gameMode); else if (id === 'menu') toMenu(); } });
+  }
+  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED', lines: ['Score ' + score + ' · level ' + level],
+      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
+  }
+  function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
+  function toMenu() { saveBest(); if (KIT) KIT.menu.hide(); showStartMenu(); }
 
   function updateHud() {
     document.getElementById('scoreEl').textContent = score;
@@ -677,6 +673,8 @@
   canvas.addEventListener('pointercancel', relTouch);
 
   window.addEventListener('keydown', e => {
+    if (state === 'playing' && e.key === 'Escape') { e.preventDefault(); pauseGame(); return; }
+    if (state !== 'playing') return;
     if (e.key === 'ArrowLeft') paddleTarget = Math.max(0, paddleX - 30);
     if (e.key === 'ArrowRight') paddleTarget = Math.min(W, paddleX + 30);
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); launch(); }
@@ -686,42 +684,16 @@
   window.addEventListener('keydown', e => { keys[e.key] = true; });
   window.addEventListener('keyup', e => { keys[e.key] = false; });
 
-  document.getElementById('startBtn').addEventListener('click', startGame);
-  { const ab = document.getElementById('againBtn'); if (ab) ab.addEventListener('click', startGame); }
-
-  // ---- Share row + top nav (game-kit) ----
-  window.gamekit.shareRow(document.getElementById('shareRow'), {
-    slug: 'breakout', title: 'Brick Breaker',
-    message: () => window.gamekit.shareText({ score: score, game: 'Brick Breaker', emoji: '🧱', mode: gameMode.charAt(0).toUpperCase() + gameMode.slice(1), extra: ['level ' + level] }),
-    params: () => ({ mode: gameMode }),
-  });
-  window.gamekit.nav({ reset: 'breakout_' });
-  window.gamekit.showMenuButton(false); // initial state = menu/mode-picker
-
-  // Menu: per-mode best scores (refreshed when the menu is shown)
-  function refreshMenuBests() {
-    const ids = { classic: 'bestClassic', endless: 'bestEndless', survival: 'bestSurvival' };
-    for (const m in ids) { const e = document.getElementById(ids[m]); if (e) e.textContent = 'best: ' + loadBest(m); }
-  }
-
-  // Mode picker
-  const modeBtns = document.querySelectorAll('.modeBtn');
-  const modeDescEl = document.getElementById('modeDesc');
-  function setActiveMode(mode) {
-    gameMode = mode;
-    modeBtns.forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
-    if (modeDescEl) modeDescEl.textContent = MODE_DESCS[mode] || '';
-  }
-  modeBtns.forEach(b => b.addEventListener('click', e => { e.stopPropagation(); setActiveMode(b.dataset.mode); }));
-  setActiveMode('classic'); // default highlight
-  { const pm = window.gamekit && window.gamekit.param && window.gamekit.param('mode'); if (['classic', 'endless', 'survival'].indexOf(pm) >= 0) setActiveMode(pm); } // deep-link ?mode=
-  refreshMenuBests();
-
-  // 2× speed toggle (persisted)
-  const speedBox = document.getElementById('speed2x');
-  function applySpeedFromPref() { const on = loadSpeedPref(); speedMult = on ? 2 : 1; if (speedBox) speedBox.checked = on; }
-  if (speedBox) speedBox.addEventListener('change', () => { const on = !!speedBox.checked; speedMult = on ? 2 : 1; saveSpeedPref(on); });
-  applySpeedFromPref();
+  // ---- top nav (game-kit) ----
+  { const pm = KIT && KIT.param && KIT.param('mode'); if (['classic', 'endless', 'survival'].indexOf(pm) >= 0) gameMode = pm; } // deep-link ?mode=
+  { const ps = KIT && KIT.param && KIT.param('speed2x'); if (ps === '1') { speedMult = 2; saveSpeedPref(true); } else speedMult = loadSpeedPref() ? 2 : 1; }
+  KIT.nav({ reset: 'breakout_', home: '../../', theme: MENU_THEME, challenges: 'breakout', onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
+    controls: { title: 'Brick Breaker — Controls',
+      mouse: [ ['Move', 'Slide paddle'], ['Click', 'Launch'] ],
+      keyboard: [ ['← →', 'Move paddle'], ['Space · Enter', 'Launch'], ['Esc', 'Pause'] ],
+      touch: [ ['Hold L / R side', 'Slide paddle'], ['Tap', 'Launch'] ] } });
 
   // ---- Key hold polling ----
   function pollKeys() {
@@ -798,6 +770,9 @@
     start: startGame,
     startMode,
     launch,
+    menu() { return KIT ? KIT.menu.current() : null; },
+    best(m) { return loadBest(m); },
+    setSpeed(on) { setSpeed(on); },
     setPaddle(x) { paddleX = x; paddleTarget = x; },
     setBall(x, y, vx, vy) {
       if (!balls.length) balls.push({ x, y, vx, vy });
@@ -810,6 +785,7 @@
   resize();
   updateHud();
   loop2();
+  showStartMenu(); // open the shared start menu (mode/speed preselected from ?mode= / ?speed2x=)
 })();
   window.gamekit.pwa();
 </script>
