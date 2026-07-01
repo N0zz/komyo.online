@@ -244,9 +244,9 @@
   /* ---- earned title (lifetime challenge points) — escalating shine, tier 0→8 ---- */
   .pf-titlebar { position:relative; overflow:hidden; display:flex; align-items:center; gap:11px; padding:12px 14px; margin-bottom:12px; border:1px solid var(--border); border-radius:13px; background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent),var(--surface); }
   .pf-tb-emoji { font-size:22px; position:relative; z-index:2; }
-  .pf-tb-main { position:relative; z-index:2; display:flex; flex-direction:column; gap:2px; min-width:0; }
-  .pf-tb-label { font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); }
+  .pf-tb-main { position:relative; z-index:2; display:flex; flex-direction:column; gap:4px; min-width:0; }
   .pf-title { position:relative; font-size:18px; line-height:1.15; }
+  .pf-tb-name { position:relative; z-index:2; font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:6px; }
   .pf-tb-pts { position:relative; z-index:2; margin-left:auto; text-align:right; font-family:var(--mono); font-size:15px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
   .pf-tb-pts span { display:block; font-size:9px; font-weight:400; letter-spacing:1px; color:var(--faint); }
   .pf-pfx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
@@ -1522,19 +1522,19 @@
         try { const d = JSON.parse(localStorage.getItem('gamekit_done') || '{}'); for (const k in d) chPts += (d[k] | 0); } catch (e) {}
         try { const h = JSON.parse(localStorage.getItem('gamekit_history') || '[]'); if (Array.isArray(h)) chDone = h.length; } catch (e) {}
         const TT = (window.CHALLENGES && window.CHALLENGES.titleFor) ? window.CHALLENGES.titleFor(chPts) : { tier: 0, emoji: '🎖️', title: '' };
-        // identity row: name (shined to the title's tier) + playing-since
-        if (titleEl) {
-          let sinceStr = '';
-          if (p && p.since) { try { sinceStr = '📅 Since ' + esc(new Date(p.since).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })); } catch (e) {} }
-          titleEl.className = 'pf-t' + TT.tier;
-          titleEl.innerHTML = '👤 <span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span>' + (sinceStr ? '<span class="pf-meta">' + sinceStr + '</span>' : '');
-        }
-        // earned-title banner (shown in both empty + populated states); particles for the shiny tiers (3+)
+        let sinceStr = '';
+        if (p && p.since) { try { sinceStr = new Date(p.since).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }); } catch (e) {} }
+        // the modal title stays a plain header — identity (name + title) lives in the full-width box below
+        if (titleEl) { titleEl.className = ''; titleEl.textContent = '👤 My profile'; }
+        // full-width identity box: title + username together (both shined to the tier), points on the right;
+        // shown in both empty + populated states; particles for the shiny tiers (3+)
         const tb = '<div class="pf-titlebar pf-t' + TT.tier + '">'
           + (TT.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + TT.tier + '"></canvas>' : '')
           + '<span class="pf-tb-emoji">' + (TT.emoji || '🎖️') + '</span>'
-          + '<span class="pf-tb-main"><span class="pf-tb-label">Title</span>'
-          + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(TT.title) + '">' + esc(TT.title) + '</span></span></span>'
+          + '<div class="pf-tb-main">'
+          + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(TT.title) + '">' + esc(TT.title) + '</span></span>'
+          + '<span class="pf-tb-name">👤 <span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span></span>'
+          + '</div>'
           + '<span class="pf-tb-pts">' + fmt(chPts) + '<span>PTS</span></span></div>';
         // one list, most-played first: every game with plays, each showing its modes' bests
         const ranked = [];
@@ -1552,6 +1552,7 @@
         html += '</div><div class="pf-hl">';
         if (p.goodRuns) html += '<span title="Runs that cleared a game’s bar">💪 <b>' + fmt(p.goodRuns) + '</b> good ' + (p.goodRuns === 1 ? 'run' : 'runs') + '</span>';
         html += '<span>🏆 <b>' + fmt(chDone) + '</b> ' + (chDone === 1 ? 'challenge' : 'challenges') + '</span>';
+        if (sinceStr) html += '<span>📅 Since <b>' + esc(sinceStr) + '</b></span>';
         html += '</div></div>';
         // Your games — total plays in the header (its unit shown once), then each mode's best;
         // a per-mode "×N" appears only when that mode was played more than once (no ×1 noise).

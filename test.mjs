@@ -162,8 +162,8 @@ function testCatalogue() {
     ok(h.includes('×' + grp(7)), 'a single-mode game still shows its per-mode ×N (consistency)');
     ok(!h.includes('×' + grp(1) + '</i>'), 'no ×1 noise anywhere');
     ok(h.includes('01:32.00'), 'a Speedrun mode shows its record as time (mm:ss.cs), not points');
-    const pfTitleHtml = g.getEl('pfTitle').innerHTML || '';
-    ok(pfTitleHtml.includes('Since'), 'identity row carries "playing since" beside the name');
+    ok(h.includes('📅 Since'), 'playing-since is surfaced in the highlights');
+    ok((g.getEl('pfTitle').textContent || '').includes('My profile'), 'modal header is a plain "My profile" (identity lives in the box below)');
     // (2) singular labels — the "1 DAYS" bug
     for (const k of Object.keys(g.store)) if (k.indexOf('gamekit_') === 0) delete g.store[k];
     g.store['gamekit_pb'] = JSON.stringify({ snake: { 'Classic': { score: 5, time: 0, plays: 1, stats: {} } } });
@@ -193,7 +193,7 @@ function testCatalogue() {
       ok(bh.includes('Knight of the Realm') && bh.includes('pf-t3'), 'profile shows the earned title (Knight, tier 3) at 50 pts');
       ok(bh.includes('50<span>PTS'), 'profile surfaces the challenge-points total (50)');
       ok(bh.includes('pf-pfx'), 'a premium tier (3+) gets a particle canvas');
-      ok((g.getEl('pfTitle').className || '').includes('pf-t3') && (g.getEl('pfTitle').innerHTML || '').includes('pf-sh'), 'username takes the title tier shine');
+      ok(bh.includes('pf-tb-name') && bh.includes('pf-t3'), 'title + username share one full-width box, shined to the tier');
     }
   }
 }
