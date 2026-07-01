@@ -351,6 +351,9 @@
       var keys = [], i;
       for (i = 0; i < localStorage.length; i++) { var k = localStorage.key(i); if (k && k.indexOf(prefix) === 0) keys.push(k); }
       for (i = 0; i < keys.length; i++) { try { localStorage.removeItem(keys[i]); } catch (e) {} }
+      // also drop this game's bests/plays from the unified profile store, so the two never diverge
+      var slug = prefix.replace(/_+$/, ''), pb = pbLoad();
+      if (pb[slug]) { delete pb[slug]; lsSet('gamekit_pb', JSON.stringify(pb)); }
     } catch (e) {}
   }
 
@@ -495,6 +498,25 @@
       for (var j = 0; j < kill.length; j++) { try { localStorage.removeItem(kill[j]); } catch (e) {} }
     } catch (e) {}
   }
+  // ---------- single source of truth for bests (gamekit_pb): games read/write via best()/saveBest();
+  //            recordResult() also writes here (+ a play). score keeps the MAX, time keeps the best (MIN>0). ----------
+  function pbLoad() { try { return JSON.parse(lsGet('gamekit_pb') || 'null') || {}; } catch (e) { return {}; } }
+  function pbSave(slug, mode, score, time, countPlay, stats) {
+    if (!slug) return { isBest: false, record: { score: 0, time: 0, plays: 0, stats: {} } };
+    var pb = pbLoad(), pg = pb[slug] || (pb[slug] = {}), mk = (mode != null ? String(mode) : '');
+    var me = pg[mk] || (pg[mk] = { score: 0, time: 0, plays: 0 }), isBest = false;
+    score = +score || 0; time = +time || 0;
+    if (score > (me.score || 0)) { me.score = score; isBest = true; }
+    if (time > 0 && (!(me.time > 0) || time < me.time)) { me.time = time; isBest = true; }   // best time = min
+    if (countPlay) me.plays = (me.plays || 0) + 1;
+    if (stats) { me.stats = me.stats || {}; for (var k in stats) if (Object.prototype.hasOwnProperty.call(stats, k)) { var v = +stats[k] || 0; if (v > (me.stats[k] || 0)) me.stats[k] = v; } }   // stats keep the max (e.g. best wave)
+    lsSet('gamekit_pb', JSON.stringify(pb));
+    return { isBest: isBest, record: { score: me.score || 0, time: me.time || 0, plays: me.plays || 0, stats: me.stats || {} } };
+  }
+  function getBest(slug, mode) { var pb = pbLoad(), g = pb[slug], r = g && g[(mode != null ? String(mode) : '')]; return r ? { score: r.score || 0, time: r.time || 0, plays: r.plays || 0, stats: r.stats || {} } : { score: 0, time: 0, plays: 0, stats: {} }; }
+  function getBestScore(slug, mode) { return getBest(slug, mode).score; }
+  function saveBest(slug, mode, data) { data = data || {}; return pbSave(slug, mode, data.score, data.time, false, data.stats); }
+
   // recordResult(slug, {mode, score, time, stats}) — called by each game on game-over. Stores the
   // latest result + appends to today's UTC activity log (for cross-game "play N games" challenges).
   function recordResult(slug, data) {
@@ -521,12 +543,53 @@
       for (var sk in rec.stats) { if (Object.prototype.hasOwnProperty.call(rec.stats, sk)) { var sv = +rec.stats[sk] || 0; if (sv > (cur.stats[sk] || 0)) cur.stats[sk] = sv; } }
       best[slug] = cur;
       lsSet(bkey, JSON.stringify(best));
+      // all-time best per (slug, mode) — the single source of truth (menus + profile), +1 play
+      pbSave(slug, rec.mode, rec.score, rec.time, true, rec.stats);
+      // lifetime rollup for the profile: member-since, distinct days played, lifetime good runs
+      var st = JSON.parse(lsGet('gamekit_stats') || 'null') || { first: 0, days: 0, lastDay: '', goodRuns: 0 };
+      if (!st.first) st.first = rec.ts;
+      var today = utcDateStr();
+      if (st.lastDay !== today) { st.days = (st.days || 0) + 1; st.lastDay = today; }
+      if (par && rec.score >= par) st.goodRuns = (st.goodRuns || 0) + 1;
+      lsSet('gamekit_stats', JSON.stringify(st));
       pruneOldLogs();
     } catch (e) {}
     return rec;
   }
   function lastResult(slug) { try { return JSON.parse(lsGet('gamekit_result_' + slug) || 'null'); } catch (e) { return null; } }
   function playedToday() { try { return JSON.parse(lsGet('gamekit_played_' + utcDateStr()) || 'null') || emptyLog(); } catch (e) { return emptyLog(); } }
+  // profile() — aggregate all-time bests from the uniform gamekit_pb store (device-only). The catalogue
+  // enriches per-slug data with titles/icons from games.js; the kit just returns the numbers.
+  function profile() {
+    var pb; try { pb = JSON.parse(lsGet('gamekit_pb') || 'null') || {}; } catch (e) { pb = {}; }
+    var st; try { st = JSON.parse(lsGet('gamekit_stats') || 'null') || {}; } catch (e) { st = {}; }
+    var perGame = {}, gamesPlayed = 0, modesPlayed = 0, plays = 0;
+    var top = { slug: null, score: 0, mode: '' }, favGame = { slug: null, plays: 0 }, favMode = { slug: null, mode: '', plays: 0 };
+    for (var slug in pb) {
+      if (!Object.prototype.hasOwnProperty.call(pb, slug)) continue;
+      var g = pb[slug], modes = [], gBest = 0, gPlays = 0, played = false;
+      for (var m in g) {
+        if (!Object.prototype.hasOwnProperty.call(g, m)) continue;
+        var e = g[m], sc = e.score || 0, pl = e.plays || 0;
+        if (pl > 0) { modesPlayed++; played = true; }
+        gPlays += pl;
+        modes.push({ mode: m, score: sc, plays: pl });
+        if (sc > gBest) gBest = sc;
+        if (sc > top.score) top = { slug: slug, score: sc, mode: m };
+        if (pl > favMode.plays) favMode = { slug: slug, mode: m, plays: pl };
+      }
+      if (played) gamesPlayed++;
+      plays += gPlays;
+      if (gPlays > favGame.plays) favGame = { slug: slug, plays: gPlays };
+      modes.sort(function (a, b) { return b.score - a.score; });
+      perGame[slug] = { modes: modes, best: gBest, plays: gPlays, played: played };
+    }
+    return {
+      perGame: perGame, gamesPlayed: gamesPlayed, modesPlayed: modesPlayed, plays: plays,
+      top: top, favGame: favGame, favMode: favMode,
+      since: st.first || 0, daysPlayed: st.days || 0, goodRuns: st.goodRuns || 0,
+    };
+  }
 
   // ---------- universal pause (button in the top-right cluster + overlay; games skip update when isPaused) ----------
   var _paused = false, _pauseOv = null, _pauseBtns = [];
@@ -788,6 +851,51 @@
           im.onerror = function () { if (done) return; done = true; try { x.textAlign = 'center'; x.font = '230px system-ui, sans-serif'; x.fillText('🦊', W - 270, 400); x.textAlign = 'left'; } catch (e) {} finish(); };
           im.src = opts.mascot || '../../favicon.svg';
         } catch (e) { finish(); }
+      } catch (e) { resolve(null); }
+    });
+  }
+  // A shareable "My Profile" card: header + a stats row + a list of top games.
+  // opts: { player, accent, stats:[{label,value}], rows:[{name,best,mode,accent}] }
+  function buildProfileCard(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      try {
+        if (typeof document === 'undefined' || !document.createElement) return resolve(null);
+        var c = document.createElement('canvas'); c.width = 1200; c.height = 630;
+        var x = c.getContext && c.getContext('2d'); if (!x) return resolve(null);
+        var W = 1200, H = 630, accent = opts.accent || '#9fe8ff';
+        var who = opts.player || (typeof player === 'function' ? player() : 'anonymous');
+        var rr = function (X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
+        var g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#0a0f17'); g.addColorStop(1, '#121a28'); x.fillStyle = g; x.fillRect(0, 0, W, H);
+        try { var rg = x.createRadialGradient(W - 200, 150, 40, W - 200, 150, 620); rg.addColorStop(0, accent); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.globalAlpha = 0.14; x.fillStyle = rg; x.fillRect(0, 0, W, H); x.globalAlpha = 1; } catch (e) {}
+        x.fillStyle = 'rgba(255,255,255,0.02)'; rr(36, 36, W - 72, H - 72, 28); x.fill();
+        x.strokeStyle = accent; x.globalAlpha = 0.5; x.lineWidth = 2; rr(36, 36, W - 72, H - 72, 28); x.stroke(); x.globalAlpha = 1;
+        x.fillStyle = accent; rr(36, 36, 12, H - 72, 6); x.fill();
+        x.textAlign = 'left';
+        x.fillStyle = accent; x.font = '800 28px system-ui, sans-serif'; x.fillText('KOMYO GAMES', 92, 104);
+        // avatar glyph: a simple blob head + shoulders, in the accent
+        var ax = 108; x.fillStyle = accent;
+        x.beginPath(); x.arc(ax, 138, 16, 0, 7); x.fill();                 // head
+        x.beginPath(); x.arc(ax, 196, 30, Math.PI, 2 * Math.PI); x.fill(); // shoulders (upward dome)
+        x.fillStyle = '#eef4fc'; x.font = '700 52px system-ui, sans-serif'; x.fillText(who, ax + 52, 172);
+        var stats = opts.stats || [], sx = 92;
+        for (var i = 0; i < stats.length; i++) {
+          x.fillStyle = accent; x.font = '800 44px system-ui, sans-serif'; var v = String(stats[i].value); x.fillText(v, sx, 252);
+          x.fillStyle = '#8aa0ba'; x.font = '600 19px ui-monospace, monospace'; x.fillText(String(stats[i].label).toUpperCase(), sx, 286);
+          sx += Math.max(x.measureText(v).width, 140) + 56;
+        }
+        x.strokeStyle = 'rgba(255,255,255,0.09)'; x.lineWidth = 1; x.beginPath(); x.moveTo(92, 314); x.lineTo(W - 92, 314); x.stroke();
+        var rows = opts.rows || [], y = 358;
+        for (var r2 = 0; r2 < rows.length && r2 < 6; r2++) {
+          var row = rows[r2];
+          x.fillStyle = row.accent || '#cdd9e8'; x.beginPath(); x.arc(104, y - 10, 7, 0, 7); x.fill();
+          x.textAlign = 'left'; x.fillStyle = '#dfe8f4'; x.font = '600 30px system-ui, sans-serif'; x.fillText(String(row.name), 126, y);
+          x.textAlign = 'right'; x.fillStyle = accent; x.font = '700 30px ui-monospace, monospace'; x.fillText(String(row.best), W - 96, y);
+          if (row.mode) { x.fillStyle = '#7a8aa0'; x.font = '400 19px system-ui, sans-serif'; x.fillText(String(row.mode), W - 96, y + 23); }
+          y += (row.mode ? 58 : 46);
+        }
+        x.textAlign = 'right'; x.fillStyle = '#7a8aa0'; x.font = '600 28px ui-monospace, monospace'; x.fillText('komyo.online', W - 92, H - 66); x.textAlign = 'left';
+        try { if (c.toBlob) c.toBlob(function (b) { resolve(b || null); }, 'image/png'); else resolve(null); } catch (e) { resolve(null); }
       } catch (e) { resolve(null); }
     });
   }
@@ -1350,7 +1458,7 @@
   }
   var menu = { show: menuShow, hide: menuHide, current: function () { return _menuHandle; } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, versionTag: versionTag };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, versionTag: versionTag };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
