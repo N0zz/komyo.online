@@ -15,6 +15,7 @@
 <script src="../../analytics.js" defer></script>
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
+<script src="../../challenges.js"></script>
 <script src="../../game-kit.js"></script>
 <style>
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -102,60 +103,11 @@
   <div><div class="lbl">LENGTH</div><b id="lenEl">1</b></div>
 </div>
 
-<div id="overlay">
-<div class="screen" id="menuScreen">
-  <h1>NEON SNAKE</h1>
-  <p>Navigate the grid. Eat the food. Don't crash.</p>
-  <div class="opts">
-    <div class="opt-row">
-      <span class="opt-label">WALLS</span>
-      <div class="opt-btns">
-        <button class="opt-btn" data-opt="walls" data-val="solid">SOLID</button>
-        <button class="opt-btn" data-opt="walls" data-val="wrap">WRAP</button>
-      </div>
-    </div>
-    <div class="opt-row">
-      <span class="opt-label">SPEED</span>
-      <div class="opt-btns">
-        <button class="opt-btn" data-opt="speed" data-val="slow">SLOW</button>
-        <button class="opt-btn" data-opt="speed" data-val="normal">NORMAL</button>
-        <button class="opt-btn" data-opt="speed" data-val="fast">FAST</button>
-      </div>
-    </div>
-    <div class="opt-row">
-      <span class="opt-label">SIZE</span>
-      <div class="opt-btns">
-        <button class="opt-btn" data-opt="size" data-val="small">SMALL</button>
-        <button class="opt-btn" data-opt="size" data-val="medium">MEDIUM</button>
-        <button class="opt-btn" data-opt="size" data-val="large">LARGE</button>
-      </div>
-    </div>
-  </div>
-  <div id="topScores" class="topscores"></div>
-  <p class="sub">Arrow keys / WASD · on phone, swipe or use the on-screen arrows (drag the dot to move them)</p>
-  <button id="startBtn">PLAY</button>
-</div>
-
-<div class="screen hidden" id="endScreen">
-  <h1>GAME OVER</h1>
-  <div id="goScore">0</div>
-  <div id="goStats">LENGTH 1</div>
-  <div id="goBest">BEST: 0</div>
-  <button id="restartBtn" style="margin-top:8px;">PLAY AGAIN</button>
-  <div id="shareRow"></div>
-</div>
-</div>
-
 <script>
 (() => {
   const canvas = document.getElementById('game');
   const ctx = canvas.getContext('2d');
-  const overlay = document.getElementById('overlay');
-  const menuScreen = document.getElementById('menuScreen');
-  const endScreen = document.getElementById('endScreen');
-  const goScore = document.getElementById('goScore');
-  const goStats = document.getElementById('goStats');
-  const goBest = document.getElementById('goBest');
+  const KIT = window.gamekit;
   const scoreEl = document.getElementById('scoreEl');
   const bestEl = document.getElementById('bestEl');
   const lenEl = document.getElementById('lenEl');
@@ -357,26 +309,104 @@
     SND.play('crash');
     const newBest = score > best;
     if (newBest) { best = score; saveBest(best); }
-    window.gamekit.recordResult('snake', { mode: '', score: score, stats: { length: snake ? snake.length : 1 } });
     updateHud();
-    if (goScore) goScore.textContent = score;
-    if (goStats) goStats.textContent = 'LENGTH ' + (snake ? snake.length : 1);
-    if (goBest) { goBest.textContent = (newBest ? 'NEW BEST: ' : 'BEST: ') + best; goBest.classList.toggle('newbest', newBest); }
-    if (menuScreen) menuScreen.classList.add('hidden');
-    if (endScreen) endScreen.classList.remove('hidden');
-    overlay.classList.remove('hidden');
     showDpad(false);
+    showEnd(newBest);
   }
 
   function startGame() {
     reset();
     state = 'playing';
-    window.gamekit.showMenuButton(true);
-    if (endScreen) endScreen.classList.add('hidden');
-    if (menuScreen) menuScreen.classList.remove('hidden');
-    overlay.classList.add('hidden');
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     showDpad(true);
   }
+
+  // ---- shared menus (gamekit.menu) — neon theme + a live-grid snake backdrop ----
+  const MENU_THEME = { accent: '#00ffdc', glow: '0 0 18px rgba(0,255,220,0.5)', bg: 'rgba(6,12,16,0.72)',
+    border: 'rgba(0,220,255,0.32)', overlay: 'rgba(4,8,12,0.6)', title: '#7dfff0', 'on-accent': '#03140f', 'accent-soft': 'rgba(0,255,220,0.16)' };
+  function roundRectM(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+  // a live "demo" snake wandering the menu grid: it moves on a timer and turns at random every ~1–3s
+  var mb = null;
+  function mbInit(cols, rows) {
+    const c = Math.floor(cols / 2), r = Math.floor(rows / 2);
+    mb = { cols, rows, dir: [1, 0], cells: [[c - 2, r], [c - 1, r], [c, r]],
+      food: [Math.min(cols - 3, c + 4), r], step: 6, since: 0, turnEvery: 8 + Math.floor(Math.random() * 22), lastStep: -999 };
+  }
+  function mbTurn() { const d = mb.dir, opts = d[0] !== 0 ? [[0, -1], [0, 1]] : [[-1, 0], [1, 0]]; mb.dir = opts[Math.floor(Math.random() * opts.length)]; }
+  function mbStep() {
+    const head = mb.cells[mb.cells.length - 1];
+    const nx = ((head[0] + mb.dir[0]) % mb.cols + mb.cols) % mb.cols;
+    const ny = ((head[1] + mb.dir[1]) % mb.rows + mb.rows) % mb.rows;
+    mb.cells.push([nx, ny]);
+    if (nx === mb.food[0] && ny === mb.food[1]) { mb.food = [1 + Math.floor(Math.random() * (mb.cols - 2)), 1 + Math.floor(Math.random() * (mb.rows - 2))]; if (mb.cells.length > 24) mb.cells.shift(); }
+    else mb.cells.shift();
+  }
+  function menuBackdrop(g, w, h, st, frame) {
+    frame = frame || 0;
+    g.fillStyle = '#050a0f'; g.fillRect(0, 0, w, h);
+    const cs = 27, cols = Math.floor(w / cs), rows = Math.floor(h / cs);
+    g.strokeStyle = 'rgba(0,180,255,.07)'; g.lineWidth = 1;
+    for (let x = 0; x <= w; x += cs) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+    for (let y = 0; y <= h; y += cs) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    if (!mb || mb.cols !== cols || mb.rows !== rows) mbInit(cols, rows);
+    if (frame - mb.lastStep >= mb.step) { // advance the demo snake on its own tick
+      mb.lastStep = frame; mb.since++;
+      if (mb.since >= mb.turnEvery) { mbTurn(); mb.since = 0; mb.turnEvery = 8 + Math.floor(Math.random() * 22); }
+      mbStep();
+    }
+    g.fillStyle = '#f0f'; g.shadowColor = '#f0f'; g.shadowBlur = 16; g.beginPath(); g.arc(mb.food[0] * cs + cs / 2, mb.food[1] * cs + cs / 2, cs * .28, 0, 7); g.fill(); g.shadowBlur = 0;
+    const n = mb.cells.length; g.save();
+    for (let k = 0; k < n; k++) { const t = (n - 1 - k) / n; g.fillStyle = 'rgb(0,' + Math.round(255 - 45 * t) + ',' + Math.round(220 - 140 * t) + ')'; g.shadowColor = 'rgba(0,255,220,.6)'; g.shadowBlur = (k === n - 1) ? 18 : 7; const px = mb.cells[k][0] * cs, py = mb.cells[k][1] * cs; roundRectM(g, px + cs * .06, py + cs * .06, cs * .88, cs * .88, cs * .3); g.fill(); }
+    g.restore();
+  }
+  function pvWall(g, w, h, wrap) {
+    g.fillStyle = '#050a0f'; g.fillRect(0, 0, w, h); g.strokeStyle = wrap ? '#00ffdc' : '#2a5a55'; if (g.setLineDash) g.setLineDash(wrap ? [4, 4] : []); g.lineWidth = 2; g.strokeRect(4, 4, w - 8, h - 8); if (g.setLineDash) g.setLineDash([]);
+    g.fillStyle = '#00ffdc'; g.shadowColor = '#00ffdc'; g.shadowBlur = 8; for (let i = 0; i < 4; i++) g.fillRect(14 + i * 9, h / 2, 7, 7); g.shadowBlur = 0;
+    g.fillStyle = '#f0f'; g.beginPath(); g.arc(w - 18, 20, 5, 0, 7); g.fill();
+  }
+  const SPD_LABEL = { slow: 'Slow', normal: 'Normal', fast: 'Fast' };
+  const SZ_LABEL = { small: 'Small', medium: 'Medium', large: 'Large' };
+  function comboBest(o) { const m = loadBests(); return parseInt(m[modeKey(o)], 10) || 0; }
+  function showStartMenu() {
+    state = 'ready'; showDpad(false); if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'NEON SNAKE', backdrop: menuBackdrop, backdropAnimate: true,
+      groups: [
+        { id: 'walls', label: 'WALLS', style: 'cards', default: opts.walls, choices: [
+          { id: 'solid', label: 'Solid walls', mech: ['Classic'], preview: (g, w, h) => pvWall(g, w, h, false) },
+          { id: 'wrap', label: 'Wrap-around', mech: ['No edges'], preview: (g, w, h) => pvWall(g, w, h, true) },
+        ] },
+        { id: 'speed', label: 'SPEED', style: 'slider', default: opts.speed, choices: [ { id: 'slow', label: 'Slow' }, { id: 'normal', label: 'Normal' }, { id: 'fast', label: 'Fast' } ] },
+        { id: 'size', label: 'BOARD', default: opts.size, choices: [ { id: 'small', label: 'Small' }, { id: 'medium', label: 'Medium' }, { id: 'large', label: 'Large' } ] },
+      ],
+      actions: [{ id: 'play', label: 'PLAY', primary: true }],
+      hint: st => { const b = comboBest({ walls: st.walls, speed: st.speed, size: st.size }); return (b > 0 ? 'Best ' + b + ' · ' : '') + 'Arrows / WASD · swipe · on-screen D-pad on phones.'; },
+      onChange: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); best = loadBest(); if (bestEl) bestEl.textContent = best; KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); },
+      onPlay: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); startGame(); },
+    });
+    KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size });
+  }
+  function shareMsg() {
+    const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+    const m = [cap(opts.speed), opts.walls === 'wrap' ? 'Wrap' : 'Walls']; if (opts.size !== 'medium') m.push(cap(opts.size));
+    return KIT.shareText({ score: score, game: 'Neon Snake', emoji: '🐍', mode: m.join(' · '), extra: ['length ' + (snake ? snake.length : 0)] });
+  }
+  function showEnd(newBest) {
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER', backdrop: menuBackdrop,
+      score: score, best: best, newBest: newBest, lines: ['Length ' + (snake ? snake.length : 1) + ' · ' + SPD_LABEL[opts.speed] + ' · ' + SZ_LABEL[opts.size] + ' · ' + (opts.walls === 'wrap' ? 'Wrap' : 'Solid')],
+      share: { slug: 'snake', title: 'Neon Snake', message: () => shareMsg(), params: () => ({ walls: opts.walls, speed: opts.speed, size: opts.size }) },
+      record: { slug: 'snake', mode: '', score: score, stats: { length: snake ? snake.length : 1 } },
+      actions: [ { id: 'again', label: 'PLAY AGAIN', primary: true }, { id: 'menu', label: 'MENU' } ],
+      onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
+  }
+  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused'; showDpad(false);
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED', lines: ['Score ' + score],
+      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame }); }
+  function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); showDpad(true); }
+  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
 
   // ---- Tick timing ----
   let lastTick = 0;
@@ -385,56 +415,7 @@
     return Math.max(cfg.min, cfg.base - (snake.length - 1) * cfg.ramp);
   }
 
-  // ---- Top scores (menu) ----
-  const topScoresEl = document.getElementById('topScores');
-  const SPEED_LABEL = { slow: 'Slow', normal: 'Normal', fast: 'Fast' };
-  const SIZE_LABEL = { small: 'Small', medium: 'Medium', large: 'Large' };
-  const WALLS_LABEL = { solid: 'Solid', wrap: 'Wrap' };
-  function renderTopScores() {
-    if (!topScoresEl) return;
-    const m = loadBests();
-    const cur = modeKey(opts);
-    const keys = Object.keys(m).filter(k => (parseInt(m[k], 10) || 0) > 0);
-    keys.sort((a, b) => (parseInt(m[b], 10) || 0) - (parseInt(m[a], 10) || 0));
-    let html = '<div class="ts-title">TOP SCORES</div>';
-    if (keys.length === 0) {
-      html += '<div class="ts-empty">No scores yet — play a round!</div>';
-    } else {
-      html += keys.map(k => {
-        const parts = k.split(':');
-        const label = (SPEED_LABEL[parts[1]] || parts[1]) + ' · ' + (SIZE_LABEL[parts[2]] || parts[2]) + ' · ' + (WALLS_LABEL[parts[0]] || parts[0]);
-        const isCur = k === cur ? ' cur' : '';
-        return '<div class="ts-row' + isCur + '"><span class="ts-mode">' + label + '</span><span class="ts-val">' + (parseInt(m[k], 10) || 0) + '</span></div>';
-      }).join('');
-    }
-    topScoresEl.innerHTML = html;
-  }
-
-  // ---- Option picker UI ----
-  function syncOptBtns() {
-    if (!overlay) return;
-    const btns = overlay.querySelectorAll ? overlay.querySelectorAll('.opt-btn') : [];
-    btns.forEach(btn => {
-      const active = opts[btn.dataset.opt] === btn.dataset.val;
-      btn.classList.toggle('active', active);
-    });
-  }
-
-  function initOptBtns() {
-    if (!overlay) return;
-    const btns = overlay.querySelectorAll ? overlay.querySelectorAll('.opt-btn') : [];
-    btns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        opts[btn.dataset.opt] = btn.dataset.val;
-        saveOpts();
-        syncOptBtns();
-        // reflect the selected mode's best in the HUD + highlight its row
-        best = loadBest();
-        if (bestEl) bestEl.textContent = best;
-        renderTopScores();
-      });
-    });
-  }
+  // (options + per-combo bests now live in the shared gamekit.menu — see showStartMenu)
 
   // ---- Render ----
   function render(ts) {
@@ -553,7 +534,7 @@
   document.addEventListener('keydown', e => {
     const d = KEY_MAP[e.key];
     if (d) { e.preventDefault(); if (state === 'playing') nextDir = DIR_MAP[d]; }
-    if (e.key === 'Enter' && state === 'ready') startGame();
+    if (e.key === 'Escape' && state === 'playing') { e.preventDefault(); pauseGame(); }
   });
 
   // Touch swipe
@@ -701,8 +682,6 @@
     if (v && !dpadHidden) dimDpad();
   }
 
-  const startBtn = document.getElementById('startBtn');
-  if (startBtn) startBtn.addEventListener('click', startGame);
 
   // ---- Test hook ----
   window.__test = {
@@ -734,7 +713,8 @@
     get boardShiftY() { return boardShiftY; },
     nudgeBoard(dy) { boardShiftY += dy; resize(); return boardShiftY; },   // slide the arena up/down (clamped in resize)
     get interval() { return getInterval(); },
-    get topScoresHtml() { return topScoresEl ? topScoresEl.innerHTML : ''; },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    comboBest(o) { return comboBest(o || opts); },
     start: startGame,
     startMode(o) {
       if (o && o.wrap !== undefined) opts.walls = o.wrap ? 'wrap' : 'solid';
@@ -744,42 +724,30 @@
       saveOpts();
       startGame();
     },
-    refreshMenu() { best = loadBest(); if (bestEl) bestEl.textContent = best; renderTopScores(); },
     setDir(dx, dy) { nextDir = { x: dx, y: dy }; },
     turn(d) { nextDir = DIR_MAP[d]; },
     step(n) { for (let i = 0; i < (n || 1); i++) tick(); },
     placeFoodAt(x, y) { if (state === 'playing') { pendingFood = { x, y }; food = { x, y }; } },
   };
 
-  const restartBtn = document.getElementById('restartBtn');
-  if (restartBtn) restartBtn.addEventListener('click', startGame);
-
-  // ---- Share row + top nav (game-kit) ----
-  window.gamekit.shareRow(document.getElementById('shareRow'), {
-    slug: 'snake', title: 'Neon Snake',
-    message: () => {
-      const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-      const m = [cap(opts.speed), opts.walls === 'wrap' ? 'Wrap' : 'Walls'];
-      if (opts.size !== 'medium') m.push(cap(opts.size));
-      return window.gamekit.shareText({ score: score, game: 'Neon Snake', emoji: '🐍', mode: m.join(' · '), extra: ['length ' + (snake ? snake.length : 0)] });
-    },
-    params: () => ({ speed: opts.speed, walls: opts.walls, size: opts.size }),
-  });
-  window.gamekit.nav({ reset: 'snake_' });
-  window.gamekit.showMenuButton(false);
+  // ---- top nav (game-kit) ----
+  KIT.nav({ reset: 'snake_', home: '../../', theme: MENU_THEME, challenges: 'snake', onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
+    controls: { title: 'Neon Snake — Controls',
+      keyboard: [ ['Arrows · WASD', 'Turn'], ['Esc', 'Pause'] ],
+      touch: [ ['Swipe', 'Turn'], ['On-screen D-pad', 'Turn'], ['Drag ↕ handle', 'Slide the board'] ] } });
 
   loadOpts();
+  // deep-link ?walls=&speed=&size= → preselect options
+  { const P = KIT && KIT.param; if (P) { const w = P('walls'), s = P('speed'), z = P('size'); if (w === 'solid' || w === 'wrap') opts.walls = w; if (SPEED_CFG[s]) opts.speed = s; if (GRID_SIZES[z]) opts.size = z; } }
   applyGridSize();
   resize();
-  initOptBtns();
-  syncOptBtns();
-  // deep-link ?walls=&speed=&size= → preselect options
-  { const P = window.gamekit && window.gamekit.param; if (P) { const w = P('walls'), s = P('speed'), z = P('size'); if (w === 'solid' || w === 'wrap') opts.walls = w; if (SPEED_CFG[s]) opts.speed = s; if (GRID_SIZES[z]) opts.size = z; applyGridSize(); syncOptBtns(); best = loadBest(); if (bestEl) bestEl.textContent = best; } }
   best = loadBest();
   if (bestEl) bestEl.textContent = best;
-  renderTopScores();
   reset();
   requestAnimationFrame(loop);
+  showStartMenu(); // open the shared start menu (options preselected from ?walls=/?speed=/?size=)
 })();
   window.gamekit.pwa();
 </script>
