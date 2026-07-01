@@ -108,7 +108,9 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
    Also **add a `CHANGELOG` bullet** in `changelog.js` for the change (see Catalogue specifics).
    When a game goes **live** (not `soon`), add its `https://komyo.online/games/<slug>/` URL to
    both `sitemap.xml` and `llms.txt`. `robots.txt` allows all crawlers (search + AI/LLM) and points
-   at the sitemap; `llms.txt` is a curated markdown map of the site for LLMs.
+   at the sitemap; `llms.txt` is a curated markdown map of the site for LLMs. **Any new standalone
+   page** (e.g. `tos.html`, `privacy.html`, a future about/guide page) also goes in `sitemap.xml`
+   (low `<priority>` ~0.3) and, if useful to LLMs, in `llms.txt` — not just games.
 6. Run **all** the suites and keep them green.
 
 ## Testing
