@@ -57,6 +57,19 @@
   font: 600 13px/1.1 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 1px; color: #fff; pointer-events: none; text-align: center; }
 .gamekit-hud .lbl { display: block; font-size: 9px; letter-spacing: 1.5px; opacity: .5; margin-bottom: 2px; }
 @media (max-width: 560px) { .gamekit-hud { top: 50px; max-width: calc(100vw - 16px); gap: 8px 14px; padding: 5px 12px; font-size: 12px; } }
+/* Narrow (portrait phone): the whole top row must fit — the left nav can't hide (no hamburger) and the
+   right cluster keeps ALL its buttons, so shrink both. Combined with the measured label-collapse
+   (.gamekit-nav-tight), this keeps the row from overlapping down to ~320px wide. */
+@media (max-width: 560px) {
+  .gamekit-nav { left: 6px; gap: 6px; }
+  .gamekit-audio { right: 6px; gap: 4px; }
+  .gamekit-au-btn, .gamekit-au-resetbtn { width: 34px; height: 32px; }
+  .gamekit-back { padding: 6px 9px; }
+}
+@media (max-width: 380px) {
+  .gamekit-audio { gap: 3px; }
+  .gamekit-au-btn, .gamekit-au-resetbtn { width: 31px; height: 31px; font-size: 13px; }
+}
 
 /* in-page confirm dialog (reset scores) */
 .gamekit-confirm { position: fixed; inset: 0; z-index: 9600; display: flex; align-items: center; justify-content: center; background: rgba(5, 8, 13, 0.66); }
