@@ -1146,7 +1146,7 @@
     try {
       if (_tapShown) return;                                   // once per page load — never re-show, even on fast clicks / re-entry
       if (typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function') return;
-      if (sfxMuted && musMuted) return;                        // nothing to unlock → no friction
+      if (musMuted) return;                                    // splash only exists for AUTOPLAY music — SFX unlocks on the first in-game gesture, so no need (and no friction) when music is off
       if (ac && ac.state === 'running') return;                // audio already unlocked this load → skip
       if (document.querySelector && document.querySelector('.gamekit-tap')) return;
       _tapShown = true;

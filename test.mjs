@@ -406,7 +406,7 @@ function testKitChrome() {
   // tap-to-play audio splash
   ok(css.includes('.gamekit-tap'), 'tap-to-play splash style present');
   ok(js.includes('function tapToStart') && js.includes('tapToStart();'), 'tapToStart is defined and called from nav()');
-  ok(js.includes('sfxMuted && musMuted'), 'splash is skipped when both audio channels are muted');
+  ok(/if \(musMuted\) return;/.test(js), 'splash is skipped when music is off (SFX self-unlocks on first gesture)');
   // game_start analytics event
   ok(js.includes("'game_start'") && js.includes('function currentSlug'), 'game_start event fires with the URL slug');
   // SW update: manual button when visible (no surprise reload that re-triggered the splash)
