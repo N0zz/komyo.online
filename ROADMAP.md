@@ -154,9 +154,9 @@ from day one.
   single-game + cross-game goals, plus a 1-year completion History). Targets are **provisional** —
   playtest and retune (Snake already bumped 50→250); confirm the UTC daily-reset behaves.
 
-- **Privacy policy — legal review** *(in progress)*. `komyo.online/privacy.html` now shows a "being finalized"
-  placeholder (the AI draft was pulled — we won't present an unreviewed policy as authoritative); it still
-  links from the cookie banner + About. **Waiting on the lawyer's response** (handoff briefs:
+- **Privacy policy — legal review** *(in progress)*. The plain-language AI draft is published at
+  `komyo.online/privacy.html` (treat as v1 — accurate, not lawyer-hardened) and links from the cookie
+  banner + About. **Waiting on the lawyer's response** (handoff briefs:
   `~/komyo-prawnik-brief-pl.md` PL + `~/komyo-privacy-lawyer-brief.md` EN). Open: PL-authoritative
   version + LLM convenience translations, the children/analytics question, and the Discord auto-post
   clause. Revisit `privacy.html` once counsel replies.
@@ -186,6 +186,12 @@ from day one.
   quiet it once opened (like a read notification). **Main lift:** the challenge logic (`CHALLENGES`, the UTC
   daily/weekly pick math, `evalGoal`, progress) lives inline in `index.html` today — it needs to move into
   `game-kit.js` (shared module) so the catalogue and the in-game button render from one source.
+- **CI check: `updated` badge stays honest** *(idea — dev tooling)* — a GitHub Action that fails when a
+  game's OWN files changed but its `updated` date in `games.js` wasn't bumped (so the UPDATED badge never
+  goes stale/missing). **Crucial nuance:** shared changes (`game-kit.js/css`, `challenges.js`, etc.) affect
+  every game and must NOT require bumping any game's `updated` — a minor menu/kit tweak shouldn't mark all
+  9 games "updated" when the games themselves didn't change. So: "game changed" = a diff under
+  `games/<slug>/` (probably excluding deploy-stamped `sw.js` VERSION churn); shared/kit diffs are exempt.
 - **Custom error pages** — verify what GitHub Pages actually allows. A root **`404.html`** *is*
   supported → build a branded one (mascot + search / back-to-catalogue; ties into the mascot reuse).
   Other codes (403 / 5xx) are served by GitHub/Fastly and **aren't customizable** on a static Pages
