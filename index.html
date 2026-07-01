@@ -241,6 +241,13 @@
   .pf-share { flex:0 0 auto; margin:0 -20px -20px; padding:13px 20px 20px; border-top:1px solid var(--border); background:var(--surface); }
   .pf-share button { width:100%; padding:11px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:600; cursor:pointer; }
   .pf-share button:hover { border-color:#9fe8ff; }
+  /* Discord Activity: games open in an in-page iframe (mobile Discord blocks top-frame navigation) */
+  .act-frame { position:fixed; inset:0; z-index:300; background:var(--bg,#0a0e14); display:flex; flex-direction:column; }
+  .act-frame[hidden] { display:none; }
+  .act-bar { flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1px solid var(--border); background:var(--surface); }
+  .act-bar button { font:600 13px/1 var(--mono,ui-monospace,monospace); letter-spacing:1px; color:#fff; background:rgba(8,12,20,0.66); border:1px solid var(--border); border-radius:8px; padding:8px 12px; cursor:pointer; }
+  .act-bar button:hover { border-color:#9fe8ff; }
+  .act-frame iframe { flex:1 1 auto; width:100%; border:0; display:block; }
   /* FAQ modal (reuses .about container) */
   #faqModal { width:min(560px,94vw); }
   .faq { max-height:80vh; overflow-y:auto; }
@@ -1749,6 +1756,35 @@
       });
     })();
 
+    // ---- Discord Activity mode — open games in an in-page iframe instead of navigating ----
+    // Discord Activities are served from <app-id>.discordsays.com and MUST behave like a single-page
+    // app: mobile Discord treats a top-frame navigation (to games/<slug>/index.html) as leaving the
+    // Activity and closes it ("tried to open disallowed page"). Desktop is lenient. So in Activity
+    // context we keep the catalogue as the sole top document and load the game into a nested iframe
+    // (nested-frame navigation is allowed). Relative src stays on discordsays.com → proxied to komyo.
+    (function () {
+      let inActivity = false;
+      try { inActivity = /(^|\.)discordsays\.com$/i.test(location.hostname); } catch (e) {}
+      if (!inActivity) return;
+      document.documentElement.classList.add('in-activity');
+      const ov = document.createElement('div'); ov.className = 'act-frame'; ov.hidden = true;
+      ov.innerHTML = '<div class="act-bar"><button type="button" id="actBack">‹ Games</button></div><iframe id="actIframe" title="Game" allow="autoplay; fullscreen; gamepad"></iframe>';
+      document.body.appendChild(ov);
+      const frame = ov.querySelector('#actIframe');
+      const lock = v => { try { document.body.style.overflow = v ? 'hidden' : ''; } catch (e) {} };
+      const open = href => { frame.src = href; ov.hidden = false; lock(true); };
+      const close = () => { ov.hidden = true; frame.removeAttribute('src'); lock(false); };
+      ov.querySelector('#actBack').addEventListener('click', close);
+      // intercept game-tile clicks (capture phase, before the tile's own navigation)
+      document.addEventListener('click', e => {
+        const a = e.target.closest && e.target.closest('a.tile[href]');
+        if (!a) return;
+        const href = a.getAttribute('href') || '';
+        if (/^games\//.test(href)) { e.preventDefault(); e.stopPropagation(); open(href); }
+      }, true);
+      window.__activityOpenGame = open; // used by the 🎲 random button
+    })();
+
     // ---- 🎲 Random game — launch a random game, preferring ones not yet played ----
     // (a game "played" = it has a gamekit_pb entry). Fallback: when everything's been tried,
     // pick from all. Reused pool rule matches the design: only the BUTTON filters to unplayed.
@@ -1763,8 +1799,10 @@
         if (!all.length) return;
         const pool = window.__randomPool(all, playedSlugs());
         const g = pool[Math.floor(Math.random() * pool.length)];
+        if (!g || !g.slug) return;
         if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'random' });
-        if (g && g.slug) location.href = 'games/' + g.slug + '/';
+        if (window.__activityOpenGame) window.__activityOpenGame('games/' + g.slug + '/'); // Discord Activity: iframe, don't navigate
+        else location.href = 'games/' + g.slug + '/';
       });
     })();
 
