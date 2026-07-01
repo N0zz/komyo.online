@@ -345,7 +345,7 @@ function testChallenges() {
     ok(activeSlugs.has(gl.slug), 'challenge "' + id + '" → game "' + gl.slug + '" is active (not soon)');
   }
   // C) cross goals are well-formed (no stray slug; a recognized metric)
-  const crossMetrics = new Set(['distinctGames', 'totalGames', 'totalScore', 'distinctGenres']);
+  const crossMetrics = new Set(['distinctGames', 'totalGames', 'totalScore', 'distinctGenres', 'goodRuns']);
   for (const [id, gl] of crossGoals) {
     ok(!gl.slug, 'cross goal "' + id + '" carries no game slug');
     ok(crossMetrics.has(gl.metric), 'cross goal "' + id + '" uses a known metric (' + gl.metric + ')');
