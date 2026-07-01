@@ -743,8 +743,10 @@
   // ---------- PWA auto-update ----------
   function pwa(file) {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-    var reloaded = false, had = !!navigator.serviceWorker.controller;
-    navigator.serviceWorker.addEventListener('controllerchange', function () { if (reloaded || !had) return; reloaded = true; try { location.reload(); } catch (e) {} });
+    var had = !!navigator.serviceWorker.controller;
+    // a new build took over → don't reload mid-run; mark it pending and apply at a safe moment
+    navigator.serviceWorker.addEventListener('controllerchange', function () { if (_swReloaded || !had) return; _pendingReload = true; safeReload(); });
+    if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('visibilitychange', function () { if (document.hidden) safeReload(); });
     var register = function () {
       try {
         navigator.serviceWorker.register(file || 'sw.js').then(function (r) {
@@ -824,7 +826,16 @@
   // properties (--gkm-accent / --gkm-bg / --gkm-glow / --gkm-shadow / --gkm-border / --gkm-text /
   // --gkm-overlay / --gkm-radius / --gkm-font). A game themes them in its own CSS, or passes a
   // `theme` object to menu.show() (short keys → those vars) for per-screen tweaks.
-  var _menuEl = null, _menuKey = null, _menuHandle = null;
+  var _menuEl = null, _menuKey = null, _menuHandle = null, _menuKind = null;
+  // deferred service-worker update: never reload mid-run — wait for a safe moment (a start/end menu is
+  // open, or the tab is backgrounded). Pause doesn't count (you'll resume on the same version).
+  var _pendingReload = false, _swReloaded = false;
+  function safeReload() {
+    if (!_pendingReload || _swReloaded) return;
+    var hidden = (typeof document !== 'undefined' && document.hidden);
+    var atMenu = _menuEl && _menuKind && _menuKind !== 'pause';
+    if (hidden || atMenu) { _swReloaded = true; try { location.reload(); } catch (e) {} }
+  }
   function stampUrl(params) {
     try {
       if (typeof history === 'undefined' || !history.replaceState || typeof location === 'undefined') return;
@@ -835,7 +846,7 @@
   function menuHide() {
     if (_menuKey) { try { document.removeEventListener('keydown', _menuKey, true); } catch (e) {} _menuKey = null; }
     if (_menuEl) { try { if (_menuEl.parentNode) _menuEl.parentNode.removeChild(_menuEl); } catch (e) {} _menuEl = null; }
-    _menuHandle = null;
+    _menuHandle = null; _menuKind = null;
   }
   function applyMenuTheme(el, theme) {
     if (!el || !el.style || !theme) return;
@@ -972,7 +983,8 @@
 
     applyMenuTheme(ov, cfg.theme);
     document.body.appendChild(ov);
-    _menuEl = ov;
+    _menuEl = ov; _menuKind = kind;
+    if (_pendingReload) safeReload(); // a start/end menu is a safe moment to apply a deferred SW update
     if (cfg.record) { try { recordResult(cfg.record.slug || (cfg.share && cfg.share.slug), cfg.record); } catch (e) {} }
     if (shareHost) { try { shareRow(shareHost, cfg.share); } catch (e) {} }
 
