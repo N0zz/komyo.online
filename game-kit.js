@@ -240,7 +240,11 @@
   function utcDateStr(ms) { try { var d = (ms != null) ? new Date(ms) : new Date(); return d.getUTCFullYear() + '-' + pad2(d.getUTCMonth() + 1) + '-' + pad2(d.getUTCDate()); } catch (e) { return '1970-01-01'; } }
   // whole UTC days since epoch — the stable, timezone-independent key for "same challenge for everyone".
   function utcDayNumber(ms) { try { var d = (ms != null) ? new Date(ms) : new Date(); return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86400000); } catch (e) { return 0; } }
-  function emptyLog() { return { slugs: [], totalScore: 0, count: 0 }; }
+  function emptyLog() { return { slugs: [], totalScore: 0, count: 0, goodRuns: 0 }; }
+  // per-game "good run" bar — a run at/above this counts as one good run toward cross-game goals.
+  // Keeps cross goals FAIR across wildly different score scales (a run is one good run, never more),
+  // so a single big-score game (e.g. Asteroids+) can't single-handedly complete a weekly goal.
+  var CH_PAR = { snake: 100, bubbles: 1000, breakout: 500, stacker: 12, flappy: 8, 'aim-trainer': 250, 'tower-defense': 300, asteroids: 2000, 'asteroids-plus': 50000 };
 
   // ---------- challenges (shared source: the catalogue panel + the in-game 🏆 button read this) ----------
   // Reads window.CHALLENGES (loaded via challenges.js) + the kit's own per-day activity/best storage.
@@ -264,16 +268,17 @@
     return !!((t.daily && t.daily.goal && t.daily.goal.slug === slug) || (t.weekly && t.weekly.goal && t.weekly.goal.slug === slug));
   }
   function chWeekAgg() {
-    var day = utcDayNumber(), start = CH_WEEK_ANCHOR + Math.floor((day - CH_WEEK_ANCHOR) / 7) * 7, seen = {}, slugs = [], totalScore = 0, count = 0, d;
+    var day = utcDayNumber(), start = CH_WEEK_ANCHOR + Math.floor((day - CH_WEEK_ANCHOR) / 7) * 7, seen = {}, slugs = [], totalScore = 0, count = 0, goodRuns = 0, d;
     for (d = start; d <= day; d++) {
       var log = null; try { log = JSON.parse(lsGet('gamekit_played_' + utcDateStr(d * 86400000)) || 'null'); } catch (e) {}
-      if (log) { (log.slugs || []).forEach(function (s) { if (!seen[s]) { seen[s] = 1; slugs.push(s); } }); totalScore += log.totalScore || 0; count += log.count || 0; }
+      if (log) { (log.slugs || []).forEach(function (s) { if (!seen[s]) { seen[s] = 1; slugs.push(s); } }); totalScore += log.totalScore || 0; count += log.count || 0; goodRuns += log.goodRuns || 0; }
     }
-    return { slugs: slugs, totalScore: totalScore, count: count };
+    return { slugs: slugs, totalScore: totalScore, count: count, goodRuns: goodRuns };
   }
   function chCrossVal(m, a, genreOf) {
     if (m === 'distinctGames') return a.slugs.length;
     if (m === 'totalGames') return a.count;
+    if (m === 'goodRuns') return a.goodRuns || 0;
     if (m === 'totalScore') return a.totalScore;
     if (m === 'distinctGenres') { var seen = {}, n = 0; a.slugs.forEach(function (x) { var g = genreOf && genreOf[x]; if (g && !seen[g]) { seen[g] = 1; n++; } }); return n; }
     return 0;
@@ -284,7 +289,7 @@
     var dStr = utcDateStr(), val = 0;
     if (goal.scope === 'cross') {
       if (goal.range === 'week') val = chCrossVal(goal.metric, chWeekAgg(), genreOf);
-      else { var lg = null; try { lg = JSON.parse(lsGet('gamekit_played_' + dStr) || 'null'); } catch (e) {} lg = lg || emptyLog(); val = chCrossVal(goal.metric, { slugs: lg.slugs || [], totalScore: lg.totalScore || 0, count: lg.count || 0 }, genreOf); }
+      else { var lg = null; try { lg = JSON.parse(lsGet('gamekit_played_' + dStr) || 'null'); } catch (e) {} lg = lg || emptyLog(); val = chCrossVal(goal.metric, { slugs: lg.slugs || [], totalScore: lg.totalScore || 0, count: lg.count || 0, goodRuns: lg.goodRuns || 0 }, genreOf); }
     } else {
       var best = null; try { best = (JSON.parse(lsGet('gamekit_daybest_' + dStr) || 'null') || {})[goal.slug] || null; } catch (e) {}
       if (best) val = goal.metric === 'score' ? (best.score || 0) : goal.metric === 'time' ? (best.time || 0) : ((best.stats && best.stats[goal.metric]) || 0);
@@ -302,11 +307,14 @@
       if (!entry || !entry.goal) return '<div class="gkch-empty">No ' + kindLabel.toLowerCase() + ' challenge right now.</div>';
       var g = entry.goal, e = chEval(g, genreOf), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
       var prog = e ? (e.done ? '✓ Done' : (fmtScore(e.val) + ' / ' + fmtScore(e.target))) : '';
+      // "good runs" goal: spell out the bar — the current game's exact bar in-game, generic on the catalogue
+      var hint = '';
+      if (g.metric === 'goodRuns') hint = '<div class="gkch-hint">' + ((slug && CH_PAR[slug]) ? ('A good run here = ' + fmtScore(CH_PAR[slug]) + '+') : 'A good run beats a game’s mark.') + '</div>';
       return '<div class="gkch-card' + (mine ? ' mine' : '') + (e && e.done ? ' done' : '') + '">'
         + '<div class="gkch-k">' + kindLabel + (mine ? ' · <b>THIS GAME</b>' : '') + '</div>'
         + '<div class="gkch-t">' + g.title + '</div>'
         + '<div class="gkch-bar"><span style="width:' + pct + '%"></span></div>'
-        + '<div class="gkch-p">' + prog + '</div></div>';
+        + '<div class="gkch-p">' + prog + '</div>' + hint + '</div>';
     }
     var body = chGoals() ? (card(t.daily, 'Today') + card(t.weekly, 'This week'))
       : '<div class="gkch-empty">Challenges aren’t loaded here.</div>';
@@ -352,6 +360,7 @@
       var log = JSON.parse(lsGet(key) || 'null') || emptyLog();
       if (log.slugs.indexOf(slug) < 0) log.slugs.push(slug);
       log.totalScore += rec.score; log.count += 1;
+      var par = CH_PAR[slug]; if (par && rec.score >= par) log.goodRuns = (log.goodRuns || 0) + 1; // a run that clears the game's bar
       lsSet(key, JSON.stringify(log));
       // per-day BEST per slug (max of each numeric metric) — lets the catalogue detect a daily-challenge
       // completion for the day it happened, even if you never reopened the catalogue that day or later
@@ -1062,6 +1071,9 @@
       toggleRefs.push(ref);
     });
 
+    // "✓ Good run" cue: if this end-screen result cleared the game's good-run bar, celebrate it (and
+    // hint that it counts toward the cross-game challenge) — generic, so every game's end menu gets it.
+    if (cfg.record && cfg.record.slug) { var _par = CH_PAR[cfg.record.slug]; if (_par && (+cfg.record.score || 0) >= _par) scroll.appendChild(mkEl('p', 'gkm-goodrun', '✓ Good run — counts toward today’s challenge')); }
     (cfg.lines || []).forEach(function (ln) { scroll.appendChild(mkEl('p', 'gkm-line', ln)); });
     var hintEl = cfg.hint ? mkEl('p', 'gkm-hint') : null; if (hintEl) scroll.appendChild(hintEl);
     var shareHost = cfg.share ? mkEl('div', 'gkm-share-host') : null; if (shareHost) scroll.appendChild(shareHost);

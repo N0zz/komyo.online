@@ -112,6 +112,7 @@
 .gamekit-menu .gkm-best { margin: 0 0 6px; font-size: 12px; opacity: .85; }
 .gamekit-menu .gkm-best .gkm-new { color: var(--gkm-new, #ffd86b); opacity: 1; }
 .gamekit-menu .gkm-line { margin: 2px 0; font-size: 12px; opacity: .7; }
+.gamekit-menu .gkm-goodrun { margin: 6px 0 2px; font: 700 12px/1.3 var(--gkm-font, ui-monospace, monospace); letter-spacing: .5px; color: var(--gkm-accent, #9fe8ff); text-shadow: var(--gkm-glow, none); }
 .gamekit-menu .gkm-share-host { margin-top: 16px; }
 /* a menu with mode cards gets a wider box + a slightly larger start title */
 .gamekit-menu.gkm-wide .gkm-box { width: min(640px, 100%); }
@@ -286,6 +287,7 @@
 .gamekit-challenges .gkch-bar span { display: block; height: 100%; border-radius: 99px; background: var(--gkm-accent, #9fe8ff); }
 .gamekit-challenges .gkch-card.done .gkch-bar span { background: var(--gkm-new, #7fe0a0); }
 .gamekit-challenges .gkch-p { font-size: 11px; margin-top: 6px; color: #9fb2c9; font-variant-numeric: tabular-nums; }
+.gamekit-challenges .gkch-hint { font-size: 11px; margin-top: 5px; color: var(--gkm-accent, #9fe8ff); opacity: .85; }
 .gamekit-challenges .gkch-empty { color: #8294ac; font-size: 13px; padding: 8px 0; }
 .gamekit-challenges .gkch-note { margin: 12px 0 0; font-size: 11px; color: #6b7a90; line-height: 1.5; }
 .gamekit-challenges .gkch-x { position: absolute; top: 12px; right: 14px; background: none; border: none; color: #9fb2c8; font-size: 17px; line-height: 1; cursor: pointer; padding: 2px; }
