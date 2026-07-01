@@ -20,3 +20,5 @@ Komyo Games is a hobby project. Each game is a single self-contained HTML/Canvas
 
 - [Source on GitHub](https://github.com/N0zz/komyo.online): full source for the site and every game.
 - [License](https://github.com/N0zz/komyo.online/blob/main/LICENSE): PolyForm Noncommercial 1.0.0 — free for any noncommercial use; commercial use not permitted.
+- [Privacy](https://komyo.online/privacy.html): what's stored (on-device only) and the optional, consent-gated analytics.
+- [Terms of Service](https://komyo.online/tos.html): plain-language terms of use.
