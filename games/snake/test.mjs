@@ -372,31 +372,22 @@ section('options persist to localStorage');
   ok(parsed.size === 'large', 'saved size=large (got ' + parsed.size + ')');
 }
 
-section('end screen toggles without clobbering the menu picker');
+section('kit menus: start plays; game over opens the end menu; Play Again restarts');
 {
   const g = runGame();
   const T = g.test();
-  const menuScreen = g.el('menuScreen');
-  const endScreen = g.el('endScreen');
-  // (initial hidden state lives in the static HTML class attr, which the mock doesn't parse;
-  //  startGame() drives the transitions explicitly, so assert those instead.)
   T.start();
-  ok(endScreen.classList.contains('hidden'), 'startGame hides the end screen');
-  ok(!menuScreen.classList.contains('hidden'), 'startGame shows the menu screen');
-  // drive into a wall to end the game (solid default)
+  ok(T.state === 'playing', 'startGame → playing');
   T.turn('up');
   let guard = 0;
   while (T.state === 'playing' && guard++ < 50) T.step(1);
   ok(T.state === 'over', 'game ended (state=' + T.state + ')');
-  ok(endScreen.classList.contains('hidden') === false, 'end screen shown on game over');
-  ok(menuScreen.classList.contains('hidden'), 'menu screen hidden on game over');
-  // restart hides end, restores menu DOM
-  T.start();
-  ok(endScreen.classList.contains('hidden'), 'end screen hidden again after restart');
-  ok(!menuScreen.classList.contains('hidden'), 'menu screen restored after restart');
+  ok(T.menu() != null, 'kit end menu shown on game over');
+  T.menu().activate('again');
+  ok(T.state === 'playing', 'Play Again restarts');
 }
 
-section('end screen reports final score/length/best');
+section('game over preserves final score/length/best');
 {
   const g = runGame();
   const T = g.test();
@@ -408,9 +399,10 @@ section('end screen reports final score/length/best');
   T.turn('up');
   let guard = 0;
   while (T.state === 'playing' && guard++ < 50) T.step(1);
-  ok(g.el('goScore').textContent === finalScore, 'goScore shows final score (got ' + g.el('goScore').textContent + ')');
-  ok(String(g.el('goStats').textContent).indexOf(String(finalLen)) >= 0, 'goStats shows final length (' + g.el('goStats').textContent + ')');
-  ok(String(g.el('goBest').textContent).indexOf('BEST') >= 0, 'goBest shows best (' + g.el('goBest').textContent + ')');
+  ok(T.state === 'over', 'reached game over');
+  ok(T.score === finalScore, 'score preserved at game over (' + T.score + ')');
+  ok(T.length === finalLen, 'length preserved (' + T.length + ')');
+  ok(T.best >= finalScore, 'best >= final score (' + T.best + ')');
 }
 
 section('slow speed option');
@@ -469,13 +461,12 @@ section('per-mode best scores');
   ok(!('solid:fast:large' in bests) || bests['solid:fast:large'] === 0, 'different mode has independent best');
 }
 
-section('top scores panel renders in menu');
+section('per-combo best via best(opts)');
 {
   const g = runGame();
   const T = g.test();
-  // Fresh game with no scores -> empty message.
-  ok(String(T.topScoresHtml).indexOf('TOP SCORES') >= 0, 'top scores panel has a title');
-  // Play + die to record a best, then a switching of option re-renders panel.
+  const combo = { walls: 'solid', speed: 'normal', size: 'small' };
+  ok(T.comboBest(combo) === 0, 'fresh combo best is 0');
   T.startMode({ speed: 'normal', size: 'small', wrap: false });
   const h = T.head;
   T.placeFoodAt(h.x + 1, h.y);
@@ -485,10 +476,7 @@ section('top scores panel renders in menu');
   let guard = 0;
   while (T.state === 'playing' && guard++ < 60) T.step(1);
   ok(T.state === 'over', 'game ended to record a best');
-  // Returning to the menu re-renders the panel from persisted bests.
-  T.refreshMenu();
-  ok(String(T.topScoresHtml).indexOf(String(sc)) >= 0, 'top scores panel shows the recorded score (' + sc + ') html=' + T.topScoresHtml);
-  ok(String(T.topScoresHtml).indexOf('Small') >= 0, 'top scores panel shows the mode label');
+  ok(T.comboBest(combo) === sc, 'best(combo) reflects the recorded score (' + sc + ' vs ' + T.comboBest(combo) + ')');
 }
 
 section('Neon Snake: layout fits the screen (arena on-screen, no HUD overlap)');
