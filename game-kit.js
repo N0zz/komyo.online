@@ -1044,8 +1044,16 @@
   function pwa(file) {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
     var had = !!navigator.serviceWorker.controller;
-    // a new build took over → don't reload mid-run; mark it pending and apply at a safe moment
-    navigator.serviceWorker.addEventListener('controllerchange', function () { if (_swReloaded || !had) return; _pendingReload = true; safeReload(); });
+    var pgStart = (typeof Date !== 'undefined' && Date.now) ? Date.now() : 0;
+    // A new build took over → offer an update (never surprise-reload while the page is visible; see
+    // safeReload). Ignore the hand-over that fires right after load — on a first game visit the page is
+    // briefly controlled by the catalogue's root SW, then this game's own SW claims it: same version, not
+    // an update, and reloading there was what re-triggered the "tap to play" splash.
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (_swReloaded || !had) return;
+      if (pgStart && (Date.now() - pgStart) < 4000) return; // first-load SW scope hand-over, not a new version
+      _pendingReload = true; safeReload();
+    });
     if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('visibilitychange', function () { if (document.hidden) safeReload(); });
     var register = function () {
       try {
@@ -1161,14 +1169,24 @@
   // `theme` object to menu.show() (short keys → those vars) for per-screen tweaks.
   var _menuEl = null, _menuKey = null, _menuHandle = null, _menuKind = null;
   var _bdRaf = 0, _bdFrame = 0, _bdResize = null; // per-menu backdrop canvas: rAF id, frame counter, resize listener
-  // deferred service-worker update: never reload mid-run — wait for a safe moment (a start/end menu is
-  // open, or the tab is backgrounded). Pause doesn't count (you'll resume on the same version).
-  var _pendingReload = false, _swReloaded = false;
+  // Deferred service-worker update. NEVER surprise-reload while the page is visible (that interrupts play
+  // and re-triggered the tap-to-play splash). When a new build is ready: reload silently only if the tab
+  // is backgrounded; otherwise show a small "New version — tap to update" button and let the player choose.
+  var _pendingReload = false, _swReloaded = false, _updateBtn = null;
+  function doReload() { if (_swReloaded) return; _swReloaded = true; try { location.reload(); } catch (e) {} }
+  function showUpdateButton() {
+    try {
+      if (_updateBtn || typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function') return;
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'gamekit-update';
+      b.setAttribute('aria-label', 'A new version is available — tap to update'); b.textContent = '🔄 New version — tap to update';
+      b.addEventListener('click', doReload);
+      document.body.appendChild(b); _updateBtn = b;
+    } catch (e) {}
+  }
   function safeReload() {
     if (!_pendingReload || _swReloaded) return;
-    var hidden = (typeof document !== 'undefined' && document.hidden);
-    var atMenu = _menuEl && _menuKind && _menuKind !== 'pause';
-    if (hidden || atMenu) { _swReloaded = true; try { location.reload(); } catch (e) {} }
+    if (typeof document !== 'undefined' && document.hidden) doReload(); // backgrounded → apply silently
+    else showUpdateButton();                                           // visible → offer a button, don't interrupt
   }
   function stampUrl(params) {
     try {

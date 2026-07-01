@@ -409,6 +409,9 @@ function testKitChrome() {
   ok(js.includes('sfxMuted && musMuted'), 'splash is skipped when both audio channels are muted');
   // game_start analytics event
   ok(js.includes("'game_start'") && js.includes('function currentSlug'), 'game_start event fires with the URL slug');
+  // SW update: manual button when visible (no surprise reload that re-triggered the splash)
+  ok(css.includes('.gamekit-update'), 'update-available button style present');
+  ok(js.includes('showUpdateButton') && js.includes('document.hidden) doReload'), 'new build → silent reload only when hidden, else an update button');
 }
 
 function testChallenges() {
