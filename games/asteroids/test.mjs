@@ -61,7 +61,7 @@ function runGame(file, { search = '' } = {}) {
   const getEl = (id) => (elCache[id] ||= makeEl(id));
   // canvas needs getContext
   const handlers = {};
-  let pending = null;
+  let rafQ = []; // multiple concurrent rAF callbacks (game loop + menu-backdrop loop), like a real browser
   let clock = 1000;
   const errors = [];
 
@@ -90,7 +90,7 @@ function runGame(file, { search = '' } = {}) {
       removeItem: k => { delete store[k]; },
     },
     performance: win.performance,
-    requestAnimationFrame: (cb) => { pending = cb; return 1; },
+    requestAnimationFrame: (cb) => { rafQ.push(cb); return rafQ.length; },
     cancelAnimationFrame: () => {},
     URLSearchParams, Math, JSON, String, Number, Array, Object, parseInt, parseFloat,
     isFinite, isNaN, Date, console,
@@ -112,7 +112,7 @@ function runGame(file, { search = '' } = {}) {
     test: () => win.__test,
     key(type, key) { (handlers[type] || []).slice().forEach(fn => { try { fn({ key, preventDefault() {}, stopPropagation() {} }); } catch (e) { errors.push(type + ' ' + key + ': ' + e.stack); } }); },
     down(k) { this.key('keydown', k); }, up(k) { this.key('keyup', k); },
-    step(n = 1) { for (let i = 0; i < n; i++) { clock += 1000 / 60; const cb = pending; pending = null; if (cb) { try { cb(); } catch (e) { errors.push('frame: ' + e.stack); } } } },
+    step(n = 1) { for (let i = 0; i < n; i++) { clock += 1000 / 60; const q = rafQ; rafQ = []; q.forEach(cb => { try { cb(); } catch (e) { errors.push('frame: ' + e.stack); } }); } },
     // drive a viewport change: the kit's __emit sets window dims + fires the relayout callbacks synchronously
     resize(w, h) { if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h); else { win.innerWidth = w; win.innerHeight = h; } },
     get clock() { return clock; },
