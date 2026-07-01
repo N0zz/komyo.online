@@ -290,6 +290,12 @@ function testKit() {
   let ctlErr = null;
   try { F.controls({ title: 'Controls', keyboard: [['Space', 'Shoot'], ['Esc', 'Pause']], touch: [['Tap', 'Shoot']] }); } catch (e) { ctlErr = e.message; }
   ok(ctlErr === null && typeof F.controls === 'function', 'controls board builds headless: ' + ctlErr);
+  // challenges: activeChallenge(slug) + the in-game panel (reads window.CHALLENGES + kit storage)
+  sandbox.window.CHALLENGES = { goals: { tg: { slug: 'testgame', title: 'Score 10 in Test', metric: 'score', target: 10 } }, daily: ['tg'], weekly: [] };
+  ok(F.activeChallenge('testgame') === true, 'activeChallenge true when this game is today’s pick');
+  ok(F.activeChallenge('other') === false, 'activeChallenge false for a game with no active challenge');
+  let chpErr = null; try { F.challengesPanel({ slug: 'testgame' }); } catch (e) { chpErr = e.message; }
+  ok(chpErr === null && typeof F.challengesPanel === 'function', 'challenges panel builds headless: ' + chpErr);
   // ---- cards group + boolean toggle: state merges selection + toggles; dynamic best/mech are fns ----
   let played2 = null, cardErr = null, hc = null;
   try {
@@ -300,7 +306,7 @@ function testKit() {
           mech: st => ['1 weapon', st.speedrun ? { label: 'Goal 2,000', hot: true } : null], best: st => st.speedrun ? '01:00.0' : 12340 },
         { id: 'enh', label: 'CLASSIC+', tag: 'UPGRADES', preview: function () {}, desc: 'tiers', mech: ['weapon tiers'], best: 9 },
       ] }],
-      toggles: [{ id: 'speedrun', label: 'SPEEDRUN', caption: '— race', default: false }],
+      toggles: [{ id: 'speedrun', label: 'SPEEDRUN', caption: '— race', default: false, disabled: s => s.mode === 'enh' }],
       actions: [{ id: 'play', label: 'Play', primary: true }],
       onPlay: s => { played2 = s; },
     });

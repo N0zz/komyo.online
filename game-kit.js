@@ -236,6 +236,90 @@
   // whole UTC days since epoch — the stable, timezone-independent key for "same challenge for everyone".
   function utcDayNumber(ms) { try { var d = (ms != null) ? new Date(ms) : new Date(); return Math.floor(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) / 86400000); } catch (e) { return 0; } }
   function emptyLog() { return { slugs: [], totalScore: 0, count: 0 }; }
+
+  // ---------- challenges (shared source: the catalogue panel + the in-game 🏆 button read this) ----------
+  // Reads window.CHALLENGES (loaded via challenges.js) + the kit's own per-day activity/best storage.
+  var CH_WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000); // a Monday — matches the catalogue
+  function chGoals() { return (typeof window !== 'undefined' && window.CHALLENGES) ? window.CHALLENGES : null; }
+  function chPick(list, isWeek) {
+    if (!list || !list.length) return null;
+    var day = utcDayNumber(), idx = isWeek ? Math.floor((day - CH_WEEK_ANCHOR) / 7) : day;
+    return list[((idx % list.length) + list.length) % list.length];
+  }
+  // today's daily + this week's weekly pick (same math as the catalogue)
+  function chToday() {
+    var C = chGoals(); if (!C || !C.goals) return { daily: null, weekly: null };
+    var d = chPick(C.daily, false), w = chPick(C.weekly, true);
+    return { daily: d ? { id: d, goal: C.goals[d] } : null, weekly: w ? { id: w, goal: C.goals[w] } : null };
+  }
+  // does THIS game have an active game-specific challenge right now? (drives the badge + the notify glow)
+  function chActiveSlug(slug) {
+    if (!slug) return false;
+    var t = chToday();
+    return !!((t.daily && t.daily.goal && t.daily.goal.slug === slug) || (t.weekly && t.weekly.goal && t.weekly.goal.slug === slug));
+  }
+  function chWeekAgg() {
+    var day = utcDayNumber(), start = CH_WEEK_ANCHOR + Math.floor((day - CH_WEEK_ANCHOR) / 7) * 7, seen = {}, slugs = [], totalScore = 0, count = 0, d;
+    for (d = start; d <= day; d++) {
+      var log = null; try { log = JSON.parse(lsGet('gamekit_played_' + utcDateStr(d * 86400000)) || 'null'); } catch (e) {}
+      if (log) { (log.slugs || []).forEach(function (s) { if (!seen[s]) { seen[s] = 1; slugs.push(s); } }); totalScore += log.totalScore || 0; count += log.count || 0; }
+    }
+    return { slugs: slugs, totalScore: totalScore, count: count };
+  }
+  function chCrossVal(m, a, genreOf) {
+    if (m === 'distinctGames') return a.slugs.length;
+    if (m === 'totalGames') return a.count;
+    if (m === 'totalScore') return a.totalScore;
+    if (m === 'distinctGenres') { var seen = {}, n = 0; a.slugs.forEach(function (x) { var g = genreOf && genreOf[x]; if (g && !seen[g]) { seen[g] = 1; n++; } }); return n; }
+    return 0;
+  }
+  // evaluate a goal's progress from kit storage; genreOf (slug→genre) optional (only distinctGenres needs it)
+  function chEval(goal, genreOf) {
+    if (!goal) return null;
+    var dStr = utcDateStr(), val = 0;
+    if (goal.scope === 'cross') {
+      if (goal.range === 'week') val = chCrossVal(goal.metric, chWeekAgg(), genreOf);
+      else { var lg = null; try { lg = JSON.parse(lsGet('gamekit_played_' + dStr) || 'null'); } catch (e) {} lg = lg || emptyLog(); val = chCrossVal(goal.metric, { slugs: lg.slugs || [], totalScore: lg.totalScore || 0, count: lg.count || 0 }, genreOf); }
+    } else {
+      var best = null; try { best = (JSON.parse(lsGet('gamekit_daybest_' + dStr) || 'null') || {})[goal.slug] || null; } catch (e) {}
+      if (best) val = goal.metric === 'score' ? (best.score || 0) : goal.metric === 'time' ? (best.time || 0) : ((best.stats && best.stats[goal.metric]) || 0);
+    }
+    var target = goal.target || 0;
+    return { val: val, target: target, done: val >= target, pct: target ? Math.max(0, Math.min(1, val / target)) : 0 };
+  }
+  // in-game challenges board (🏆 top-bar button → modal): today's daily + this week's weekly, progress
+  // from kit storage, with the goal that targets `opts.slug` (this game) highlighted. Modal (freezes game).
+  function challengesPanel(opts) {
+    opts = opts || {};
+    if (typeof document === 'undefined' || !document.body || !document.createElement) return;
+    var slug = opts.slug, genreOf = opts.genres || null, t = chToday();
+    function card(entry, kindLabel) {
+      if (!entry || !entry.goal) return '<div class="gkch-empty">No ' + kindLabel.toLowerCase() + ' challenge right now.</div>';
+      var g = entry.goal, e = chEval(g, genreOf), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
+      var prog = e ? (e.done ? '✓ Done' : (fmtScore(e.val) + ' / ' + fmtScore(e.target))) : '';
+      return '<div class="gkch-card' + (mine ? ' mine' : '') + (e && e.done ? ' done' : '') + '">'
+        + '<div class="gkch-k">' + kindLabel + (mine ? ' · <b>THIS GAME</b>' : '') + '</div>'
+        + '<div class="gkch-t">' + g.title + '</div>'
+        + '<div class="gkch-bar"><span style="width:' + pct + '%"></span></div>'
+        + '<div class="gkch-p">' + prog + '</div></div>';
+    }
+    var body = chGoals() ? (card(t.daily, 'Today') + card(t.weekly, 'This week'))
+      : '<div class="gkch-empty">Challenges aren’t loaded here.</div>';
+    var ov = document.createElement('div'); ov.className = 'gamekit-challenges';
+    ov.innerHTML = '<div class="gkch-box"><button class="gkch-x" type="button" aria-label="Close">&#x2715;</button>'
+      + '<h3>🏆 Challenges</h3>' + body
+      + '<p class="gkch-note">Any mode counts — your best today is what matters. Full list &amp; history on the home page.</p></div>';
+    if (opts.theme) applyMenuTheme(ov, opts.theme);
+    document.body.appendChild(ov);
+    _modalOpen++;
+    var done = false;
+    function close() { if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} }
+    function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
+    var x = ov.querySelector ? ov.querySelector('.gkch-x') : null; if (x) x.addEventListener('click', close);
+    ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
+    if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
+  }
+
   function pruneOldLogs() {
     if (typeof localStorage === 'undefined' || typeof localStorage.key !== 'function') return;
     try {
@@ -324,6 +408,7 @@
     wrap.innerHTML = '<button class="gamekit-au-btn gamekit-au-pausebtn" id="gamekitPause" type="button" aria-pressed="false" aria-label="Pause" title="Pause">⏸</button>'
       + '<button class="gamekit-au-btn" id="gamekitAudioBtn" type="button" aria-label="Sound settings" title="Sound settings">🔊</button>'
       + '<div class="gamekit-au-panel" id="gamekitAudioPanel">' + rows + '</div>'
+      + (opts.challenges ? '<button class="gamekit-au-btn gamekit-au-chbtn" id="gamekitChallenges" type="button" aria-label="Challenges" title="Today’s challenges">🏆</button>' : '')
       + (opts.controls ? '<button class="gamekit-au-btn gamekit-au-ctlbtn" id="gamekitControls" type="button" aria-label="Controls" title="How to play — controls">🎮</button>' : '')
       + '<button class="gamekit-au-btn gamekit-au-embedbtn" id="gamekitEmbed" type="button" aria-label="Embed this game" title="Embed this game on your website or blog">&#x29C9;</button>'
       + (opts.reset ? '<button class="gamekit-au-resetbtn" id="gamekitReset" type="button" aria-label="Reset this game’s scores" title="Reset this game’s saved scores">↺</button>' : '');
@@ -361,6 +446,13 @@
       var m = ((typeof location !== 'undefined' && location.pathname) ? location.pathname : '').match(/games\/([^\/?#]+)/);
       embedModal({ slug: m ? m[1] : '', title: (typeof document !== 'undefined' ? document.title : '') });
     });
+    if (opts.challenges) {
+      var chb = document.getElementById('gamekitChallenges');
+      if (chb) {
+        if (chActiveSlug(opts.challenges) && chb.classList) chb.classList.add('gkm-notify'); // glow: this game has an active challenge
+        chb.addEventListener('click', function () { if (chb.classList) chb.classList.remove('gkm-notify'); challengesPanel({ slug: opts.challenges, genres: opts.genres, theme: opts.theme }); });
+      }
+    }
     if (opts.controls) { var ctlb = document.getElementById('gamekitControls'); if (ctlb) ctlb.addEventListener('click', function () { controlsModal(opts.controls, opts.theme); }); }
     var pb = document.getElementById('gamekitPause'); _pauseBtnEl = pb;
     if (pb) {
@@ -443,7 +535,7 @@
         guarded(function () { try { (window.top || window).location.href = href; } catch (err) { try { location.href = href; } catch (e2) {} } });
       });
     }
-    audioMenu({ music: !!opts.music, reset: opts.reset, onPause: opts.onPause, controls: opts.controls, theme: opts.theme });
+    audioMenu({ music: !!opts.music, reset: opts.reset, onPause: opts.onPause, controls: opts.controls, challenges: opts.challenges, genres: opts.genres, theme: opts.theme });
     versionTag();
     if (typeof layout !== 'undefined' && layout && layout.on) layout.on(fitNav);
     fitNav();
@@ -855,7 +947,7 @@
       lab.appendChild(mkEl('span', 'gkm-check-box'));
       lab.appendChild(mkEl('span', 'gkm-check-txt', t.label + (t.caption ? ' <span class="cap">' + t.caption + '</span>' : '')));
       rowT.appendChild(lab); scroll.appendChild(rowT);
-      var ref = { el: lab, kind: 'toggle', id: t.id };
+      var ref = { el: lab, kind: 'toggle', id: t.id, cfg: t };
       lab.addEventListener('click', function (e) { if (e && e.preventDefault) e.preventDefault(); toggleOne(ref); setFocusEl(lab); });
       lab.addEventListener('mouseenter', function () { setFocusEl(lab); });
       toggleRefs.push(ref);
@@ -889,13 +981,20 @@
     function setFocus(i) { if (!focusables.length) return; fi = (i % focusables.length + focusables.length) % focusables.length; for (var k = 0; k < focusables.length; k++) { if (focusables[k].el.classList) focusables[k].el.classList.toggle('gkm-focus', k === fi); } }
     function setFocusEl(el) { for (var k = 0; k < focusables.length; k++) if (focusables[k].el === el) { setFocus(k); return; } }
     function paintChoices() { for (var k = 0; k < choiceRefs.length; k++) { var r = choiceRefs[k]; if (r.el.classList) r.el.classList.toggle('gkm-on', sel[r.grp] === r.choice); } }
-    function paintToggles() { for (var k = 0; k < toggleRefs.length; k++) { var r = toggleRefs[k]; if (r.el.classList) r.el.classList.toggle('gkm-on', !!tog[r.id]); } }
+    function paintToggles() {
+      var st = state();
+      for (var k = 0; k < toggleRefs.length; k++) {
+        var r = toggleRefs[k];
+        r.disabled = r.cfg && r.cfg.disabled ? (typeof r.cfg.disabled === 'function' ? !!r.cfg.disabled(st) : !!r.cfg.disabled) : false;
+        if (r.el.classList) { r.el.classList.toggle('gkm-on', !!tog[r.id]); r.el.classList.toggle('gkm-disabled', r.disabled); }
+      }
+    }
     function renderDynamic() { var st = state(); for (var k = 0; k < dynamic.length; k++) try { dynamic[k](st); } catch (e) {} }
     function renderHint() { if (hintEl) { try { hintEl.textContent = cfg.hint(state()); } catch (e) {} } }
     function refresh() { paintChoices(); paintToggles(); renderDynamic(); renderHint(); }
     function changed() { refresh(); if (typeof cfg.onChange === 'function') { try { cfg.onChange(state()); } catch (e) {} } }
     function selectChoice(ref) { sel[ref.grp] = ref.choice; changed(); }
-    function toggleOne(ref) { tog[ref.id] = !tog[ref.id]; changed(); }
+    function toggleOne(ref) { if (ref.disabled) return; tog[ref.id] = !tog[ref.id]; changed(); }
     function fireAction(a) {
       var go = function () { if (a.id === 'play' && typeof cfg.onPlay === 'function') cfg.onPlay(state()); else if (typeof cfg.onAction === 'function') cfg.onAction(a.id, state()); };
       var cm = a.confirm ? (typeof a.confirm === 'function' ? a.confirm() : a.confirm) : null;
@@ -934,7 +1033,7 @@
   }
   var menu = { show: menuShow, hide: menuHide, current: function () { return _menuHandle; } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, versionTag: versionTag };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, versionTag: versionTag };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

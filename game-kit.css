@@ -116,16 +116,16 @@
 .gamekit-menu-start .gkm-title { font-size: 30px; letter-spacing: 5px; }
 
 /* ---- mode cards (style:'cards') — preview left, text column right ---- */
-.gamekit-menu .gkm-cards { display: flex; flex-direction: column; gap: 12px; text-align: left; }
-.gamekit-menu .gkm-card { display: grid; grid-template-columns: 120px 1fr; gap: 18px; align-items: center; cursor: pointer;
+.gamekit-menu .gkm-cards { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.gamekit-menu .gkm-card { display: grid; grid-template-columns: 92px 1fr; gap: 15px; align-items: center; cursor: pointer;
   background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 14px;
-  padding: 15px 17px; transition: border-color .15s, box-shadow .15s, transform .12s; }
+  padding: 11px 14px; transition: border-color .15s, box-shadow .15s, transform .12s; }
 .gamekit-menu .gkm-card:hover { border-color: var(--gkm-accent, #9fe8ff); transform: translateY(-1px); }
 .gamekit-menu .gkm-card.gkm-on { border-color: var(--gkm-accent, #9fe8ff); box-shadow: 0 0 0 1px var(--gkm-accent, #9fe8ff), var(--gkm-glow, 0 0 26px rgba(159, 232, 255, .26)); }
 .gamekit-menu .gkm-card.gkm-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
-.gamekit-menu .gkm-card-pv { width: 120px; height: 120px; border-radius: 11px; background: rgba(0, 0, 0, .35); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); display: block; }
+.gamekit-menu .gkm-card-pv { width: 92px; height: 92px; border-radius: 11px; background: rgba(0, 0, 0, .35); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); display: block; }
 .gamekit-menu .gkm-card.gkm-on .gkm-card-pv { box-shadow: inset 0 0 0 1px var(--gkm-accent, #9fe8ff); }
-.gamekit-menu .gkm-card-body { min-width: 0; display: flex; flex-direction: column; gap: 9px; }
+.gamekit-menu .gkm-card-body { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
 .gamekit-menu .gkm-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
 .gamekit-menu .gkm-card-nm { font: 700 18px/1.2 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px;
   color: var(--gkm-title, var(--gkm-text, #eaf3ff)); display: flex; align-items: center; gap: 9px; transition: color .15s; }
@@ -156,6 +156,9 @@
 .gamekit-menu .gkm-check.gkm-on .gkm-check-box::after { opacity: 1; transform: scale(1); }
 .gamekit-menu .gkm-check-txt { font: 700 14px/1.2 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; color: var(--gkm-text, #eaf3ff); }
 .gamekit-menu .gkm-check-txt .cap { font-weight: 400; letter-spacing: .3px; color: #93a5bd; font-size: 12px; }
+/* a toggle that doesn't apply in the current mode — grayed, keeps its checked state, not clickable */
+.gamekit-menu .gkm-check.gkm-disabled { opacity: 0.4; cursor: not-allowed; }
+.gamekit-menu .gkm-check.gkm-disabled:hover { border-color: var(--gkm-border, rgba(255, 255, 255, 0.16)); box-shadow: none; }
 
 /* controls board (🎮 top-bar button → modal) */
 .gamekit-au-ctlbtn { font-size: 15px; }
@@ -174,6 +177,33 @@
 .gamekit-controls .gkctl-note { margin: 14px 0 0; font-size: 12px; color: #6b7a90; line-height: 1.5; }
 .gamekit-controls .gkctl-x { position: absolute; top: 12px; right: 14px; background: none; border: none; color: #9fb2c8; font-size: 17px; line-height: 1; cursor: pointer; padding: 2px; }
 .gamekit-controls .gkctl-x:hover { color: var(--gkm-text, #fff); }
+
+/* in-game challenges board (🏆 top-bar button → modal) + the "active challenge" notify glow */
+.gamekit-au-chbtn { font-size: 15px; position: relative; }
+.gamekit-au-btn.gkm-notify { position: relative; animation: gkNotify 1.9s ease-in-out infinite; }
+.gamekit-au-btn.gkm-notify::after { content: ""; position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: #ffd166; box-shadow: 0 0 6px 1px rgba(255, 209, 102, 0.9); }
+@keyframes gkNotify { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 209, 102, 0.5); } 50% { box-shadow: 0 0 0 5px rgba(255, 209, 102, 0); } }
+@media (prefers-reduced-motion: reduce) { .gamekit-au-btn.gkm-notify { animation: none; } }
+.gamekit-challenges { position: fixed; inset: 0; z-index: 9200; display: flex; align-items: center; justify-content: center; padding: 18px;
+  background: var(--gkm-overlay, rgba(6, 9, 15, 0.82)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gamekit-challenges .gkch-box { position: relative; width: min(400px, 100%); max-height: calc(100vh - 36px); overflow-y: auto; box-sizing: border-box;
+  background: var(--gkm-bg, rgba(14, 20, 32, 0.97)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 16px; padding: 22px;
+  box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6)); color: var(--gkm-text, #eaf2fb); font-family: var(--gkm-font, ui-monospace, monospace); }
+.gamekit-challenges h3 { margin: 0 0 14px; font-size: 18px; letter-spacing: 1px; color: var(--gkm-title, var(--gkm-text, #eaf3ff)); text-shadow: var(--gkm-glow, none); }
+.gamekit-challenges .gkch-card { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; text-align: left; }
+.gamekit-challenges .gkch-card.mine { border-color: var(--gkm-accent, #9fe8ff); box-shadow: 0 0 0 1px var(--gkm-accent, #9fe8ff), var(--gkm-glow, none); }
+.gamekit-challenges .gkch-card.done { opacity: 0.85; }
+.gamekit-challenges .gkch-k { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #6b7a90; }
+.gamekit-challenges .gkch-card.mine .gkch-k b { color: var(--gkm-accent, #9fe8ff); }
+.gamekit-challenges .gkch-t { font-size: 14px; margin: 5px 0 9px; color: var(--gkm-text, #eaf3ff); font-family: var(--gkm-font-body, system-ui, sans-serif); }
+.gamekit-challenges .gkch-bar { height: 7px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.gamekit-challenges .gkch-bar span { display: block; height: 100%; border-radius: 99px; background: var(--gkm-accent, #9fe8ff); }
+.gamekit-challenges .gkch-card.done .gkch-bar span { background: var(--gkm-new, #7fe0a0); }
+.gamekit-challenges .gkch-p { font-size: 11px; margin-top: 6px; color: #9fb2c9; font-variant-numeric: tabular-nums; }
+.gamekit-challenges .gkch-empty { color: #8294ac; font-size: 13px; padding: 8px 0; }
+.gamekit-challenges .gkch-note { margin: 12px 0 0; font-size: 11px; color: #6b7a90; line-height: 1.5; }
+.gamekit-challenges .gkch-x { position: absolute; top: 12px; right: 14px; background: none; border: none; color: #9fb2c8; font-size: 17px; line-height: 1; cursor: pointer; padding: 2px; }
+.gamekit-challenges .gkch-x:hover { color: var(--gkm-text, #fff); }
 
 @media (max-width: 560px) {
   /* stay horizontal with a smaller SQUARE preview — never stretch the canvas into a wide banner */
