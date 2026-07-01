@@ -368,6 +368,14 @@
 .gamekit-tap-inner small { font-size: 11px; letter-spacing: 1.5px; color: rgba(255, 255, 255, 0.55); font-weight: 400; }
 @keyframes gkTapPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
 @media (prefers-reduced-motion: reduce) { .gamekit-tap { transition: none; } .gamekit-tap-play { animation: none; } }
+
+/* "New version — tap to update" — shown (bottom-center) when a new build is ready and the tab is visible,
+   instead of a surprise reload. Clicking it reloads. */
+.gamekit-update { position: fixed; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 90;
+  font: 600 12px/1 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 1px; color: #fff; cursor: pointer;
+  background: rgba(8, 12, 20, 0.92); border: 1px solid #9fe8ff; border-radius: 999px; padding: 9px 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 18px -6px #9fe8ff; -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gamekit-update:hover { background: rgba(8, 12, 20, 1); }
 .gamekit-share .sbtn:disabled { opacity: 0.55 !important; cursor: default !important; }
 
 /* "rotate your phone" overlay (gamekit.layout.requireOrientation) — for games locked to one orientation */
