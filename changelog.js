@@ -4,6 +4,16 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-01', title: 'A fresh menu for every game', items: [
+    'New: every game now opens with a redesigned menu — pick your mode and options from cards, sliders and toggles, over a gentle animated backdrop of the game itself (drifting asteroids, a wandering snake, meadow leaves by day and fireflies by night, your Keep Defender map, and more). Play, pause, 🎮 Controls and 🏆 Challenges work the same in every game.',
+    'New: Range — choose Timed (10 / 30 / 60s) or a Sprint target (10 / 50 / 100 targets), with a moving-targets toggle.',
+    'New: Keep Defender — pick your map from a preview picker and set the difficulty on a slider.',
+    'New: Meadow Flyer — choose Day or Night and your flyer from a grid; sunny days now have leaves drifting on the wind.',
+    'New: Neon Snake, Brick Breaker & Stack — the same card/slider menus, with your picks saved in the link so you can share the exact setup.',
+    'New: you now start with a playful random nickname (like “Sneaky Otter”) instead of “anonymous” — change it anytime in the menu (✏️).',
+    'New: a Terms of Service page — find it in the menu under License & privacy.',
+    'Fix: the changelog search now narrows to the lines that match your words and highlights them.',
+  ] },
   { date: '2026-07-01', title: 'Challenges in your games', items: [
     'New: Asteroids & Bubble Pop — a 🏆 Challenges button right in the game shows today’s daily and weekly goals (and gently glows when the game you’re in is the one with a challenge), so you can check the goal without going back to the menu.',
     'New: a back-to-top button on the home page — appears once you’ve scrolled the games list down.',

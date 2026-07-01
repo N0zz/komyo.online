@@ -168,6 +168,13 @@ from day one.
   one consistent menu system across all games, less per-game markup, easy to rebuild. Migrate every
   live game onto it.
 
+- **Menu backdrops should share the real game engine** *(refactor — someday, not now)* — each menu's
+  animated `cfg.backdrop` is currently a **hand-written re-derivation** of the game's look (starfield,
+  meadow, neon snake, TD map…). That means any change to a game's visuals must be duplicated in its
+  backdrop and **can drift** out of sync. Rework so a menu backdrop renders a **live idle frame of the
+  actual game** (factor each game's scene draw into a shared `drawScene(frame)` the menu can call), so
+  there's one source of truth. Bigger refactor (needs ambient-motion in a non-playing state); deferred.
+
 - **"CHALLENGE" tile badge + filter** *(idea)* — a new badge (alongside NEW / UPDATED / POPULAR in
   the `BADGES` map) on a game tile when that game has an **active today's/weekly challenge**, and a
   matching **filter** ("has an active challenge") that lists only those games. **Must key off
@@ -207,6 +214,10 @@ from day one.
 
 ### Distribution
 
+- **Promo video / ad montage** *(idea)* — record short clips of the menus (now with animated
+  backdrops) + a few games, cut a simple montage for ad/social use, and upload it to the **Discord
+  app / server** too (activity preview, announcements). Cheap marketing asset once the menus + games
+  look final.
 - **List on game portals** — itch.io, free-to-play indexes.
 - **Discord Activity (play inside a voice channel)** *(idea — strong architectural fit)* — register a
   Discord app with **Activities** enabled (Embedded App SDK) so people launch komyo **inside a voice
