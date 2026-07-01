@@ -56,10 +56,10 @@
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
   SND.define({
-    hit: ({ tone }) => { tone(880, 0.06, 'square', 0.08); tone(1200, 0.04, 'sine', 0.05); },
-    miss: ({ noise }) => noise(0.08, 0.06),
-    spawn: ({ tone }) => tone(440, 0.04, 'sine', 0.04),
-    end: ({ tone }) => { [660, 550, 440].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'triangle', 0.1), i * 100)); },
+    hit: (c) => { c.voice({ f: 1100, dur: 0.05, type: 'square', gain: 0.1, filter: 'bandpass', cutoff: 1800, q: 2 }); c.voice({ f: 1760, dur: 0.04, type: 'sine', gain: 0.05, t: c.now() + 0.015, reverb: 0.1 }); },
+    miss: (c) => c.noiseHit({ dur: 0.1, gain: 0.08, filter: 'lowpass', cutoff: 700, cutoffTo: 300 }),
+    spawn: (c) => c.voice({ f: 660, dur: 0.05, type: 'sine', gain: 0.05, filter: 'highpass', cutoff: 400 }),
+    end: (c) => c.play('gameover'),
   });
 
   // ---- Constants ----
@@ -592,13 +592,14 @@
       else if (pm === 'timed') { selectedMode = 'timed'; const s = parseInt(P('secs'), 10); if ([10, 30, 60].indexOf(s) >= 0) sessionSeconds = s; }
       const mv = P('moving'); if (mv === '0' || mv === '1') movingTargets = mv === '1';
   } }
-  KIT.nav({ reset: 'aim-trainer_', home: '../../', theme: MENU_THEME, challenges: 'aim-trainer', onMenu: () => toMenu(),
+  KIT.nav({ music: true, reset: 'aim-trainer_', home: '../../', theme: MENU_THEME, challenges: 'aim-trainer', onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Range — Controls',
       mouse: [ ['Move', 'Aim'], ['Click', 'Shoot'] ],
       keyboard: [ ['Esc', 'Pause'] ],
       touch: [ ['Tap', 'Shoot where you tap'] ] } });
+  KIT.music.play('tactical');
 
   // ---- Test hook ----
   window.__test = {

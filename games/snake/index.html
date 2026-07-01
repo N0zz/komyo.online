@@ -115,9 +115,9 @@
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
   SND.define({
-    eat: ({ tone }) => { tone(660, 0.06, 'square', 0.12); tone(880, 0.08, 'sine', 0.07); },
-    turn: ({ tone }) => tone(220, 0.03, 'triangle', 0.04),
-    crash: ({ tone }) => { [220, 165, 110].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'sawtooth', 0.14), i * 80)); },
+    eat: (c) => { c.voice({ f: 520, slideTo: 940, dur: 0.10, type: 'square', gain: 0.16, filter: 'lowpass', cutoff: 2600, reverb: 0.12 }); c.voice({ f: 1240, dur: 0.06, type: 'sine', gain: 0.06, t: c.now() + 0.02 }); },
+    turn: (c) => c.voice({ f: 300, dur: 0.035, type: 'triangle', gain: 0.05, filter: 'bandpass', cutoff: 900, q: 4 }),
+    crash: (c) => { c.noiseHit({ dur: 0.35, gain: 0.25, filter: 'lowpass', cutoff: 1400, cutoffTo: 120, reverb: 0.2 }); c.voice({ f: 200, slideTo: 60, dur: 0.4, type: 'sawtooth', gain: 0.2, filter: 'lowpass', cutoff: 800 }); },
   });
 
   // ---- Grid sizes ----
@@ -731,12 +731,13 @@
   };
 
   // ---- top nav (game-kit) ----
-  KIT.nav({ reset: 'snake_', home: '../../', theme: MENU_THEME, challenges: 'snake', onMenu: () => toMenu(),
+  KIT.nav({ music: true, reset: 'snake_', home: '../../', theme: MENU_THEME, challenges: 'snake', onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Neon Snake — Controls',
       keyboard: [ ['Arrows · WASD', 'Turn'], ['Esc', 'Pause'] ],
       touch: [ ['Swipe', 'Turn'], ['On-screen D-pad', 'Turn'], ['Drag ↕ handle', 'Slide the board'] ] } });
+  KIT.music.play('neon');   // menu + in-game bed (reuses the loop throughout)
 
   loadOpts();
   // deep-link ?walls=&speed=&size= → preselect options

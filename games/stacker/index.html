@@ -54,11 +54,11 @@
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
   SND.define({
-    place: ({ tone }) => tone(440, 0.08, 'triangle', 0.1),
-    perfect: ({ tone }) => [523, 659, 784].forEach((f, i) => setTimeout(() => tone(f, 0.18, 'sine', 0.1), i * 40)),
-    drop: ({ tone }) => tone(180, 0.15, 'sawtooth', 0.08),
-    over: ({ tone }) => [330, 220, 165].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'sawtooth', 0.1), i * 120)),
-    timeup: ({ tone }) => [330, 220, 165, 110].forEach((f, i) => setTimeout(() => tone(f, 0.25, 'sine', 0.09), i * 40)),
+    place: (c) => c.voice({ f: 440, dur: 0.1, type: 'triangle', gain: 0.12, filter: 'lowpass', cutoff: 1600, reverb: 0.12 }),
+    perfect: (c) => { [523, 659, 784, 1047].forEach((f, i) => c.voice({ f, dur: 0.2, type: 'sine', gain: 0.09, reverb: 0.32, t: c.now() + i * 0.045 })); },
+    drop: (c) => c.voice({ f: 200, slideTo: 110, dur: 0.16, type: 'triangle', gain: 0.1, filter: 'lowpass', cutoff: 900 }),
+    over: (c) => c.play('lose'),
+    timeup: (c) => c.play('gameover'),
   });
 
   // ---- Constants ----
@@ -578,13 +578,14 @@
     toMenu() { toMenu(); },
   };
 
-  KIT.nav({ reset: 'stacker_', home: '../../', theme: MENU_THEME, challenges: 'stacker', onMenu: () => toMenu(),
+  KIT.nav({ music: true, reset: 'stacker_', home: '../../', theme: MENU_THEME, challenges: 'stacker', onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Stack — Controls',
       mouse: [ ['Click', 'Drop the block'] ],
       keyboard: [ ['Space  ·  Enter', 'Drop the block'], ['Esc', 'Pause'] ],
       touch: [ ['Tap', 'Drop the block'] ] } });
+  KIT.music.play('pastel');
 
   resize();
   updateHud();
