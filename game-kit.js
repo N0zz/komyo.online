@@ -18,6 +18,17 @@
   var sfxVol = clamp01(lsGet(SFX_V), 0.8);
   var musVol = clamp01(lsGet(MUS_V), 0.6);
 
+  // Aggregate, consent-gated: report a mute toggle so we can see, across players, how often sound /
+  // music gets switched off (and roughly how loud). No-op unless analytics.js loaded + consented.
+  function trackAudioPref(channel, on, vol) {
+    try {
+      if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') {
+        var b = vol < 0.34 ? 'low' : (vol < 0.67 ? 'mid' : 'high');
+        window.gamekitTrack('audio_pref', { channel: channel, state: on ? 'on' : 'off', vol_bucket: b });
+      }
+    } catch (e) {}
+  }
+
   var ac, master, verbNode, verbWet, musicGain, defs = {}, audioUIs = [], musicListeners = [];
   function ensureAC() {
     if (ac !== undefined) return;
@@ -128,7 +139,7 @@
     },
     isMuted: function () { return sfxMuted; },
     setMuted: function (m) { sfxMuted = !!m; lsSet(SFX_M, sfxMuted ? '1' : '0'); syncAudioUI(); },
-    toggle: function () { sfxMuted = !sfxMuted; lsSet(SFX_M, sfxMuted ? '1' : '0'); syncAudioUI(); return sfxMuted; },
+    toggle: function () { sfxMuted = !sfxMuted; lsSet(SFX_M, sfxMuted ? '1' : '0'); syncAudioUI(); trackAudioPref('sfx', !sfxMuted, sfxVol); return sfxMuted; },
     volume: function (v) { if (v === undefined) return sfxVol; sfxVol = clamp01(v, sfxVol); lsSet(SFX_V, String(sfxVol)); syncAudioUI(); },
   };
   // shared stingers — any game plays via sound.play('victory'|'newbest'|'levelup'|'gameover'|'lose').
@@ -226,7 +237,7 @@
     volume: function (v) { if (v === undefined) return musVol; musVol = clamp01(v, musVol); lsSet(MUS_V, String(musVol)); if (musicGain) musicGain.gain.value = musMuted ? 0 : musVol; syncAudioUI(); notifyMusic(); },
     gain: function () { return musMuted ? 0 : musVol; },
     setMuted: function (m) { musMuted = !!m; lsSet(MUS_M, musMuted ? '1' : '0'); if (musicGain) musicGain.gain.value = musMuted ? 0 : musVol; syncAudioUI(); notifyMusic(); },
-    toggle: function () { musMuted = !musMuted; lsSet(MUS_M, musMuted ? '1' : '0'); if (musicGain) musicGain.gain.value = musMuted ? 0 : musVol; syncAudioUI(); notifyMusic(); return musMuted; },
+    toggle: function () { musMuted = !musMuted; lsSet(MUS_M, musMuted ? '1' : '0'); if (musicGain) musicGain.gain.value = musMuted ? 0 : musVol; syncAudioUI(); notifyMusic(); trackAudioPref('music', !musMuted, musVol); return musMuted; },
     subscribe: function (cb) { if (typeof cb === 'function') { musicListeners.push(cb); try { cb({ muted: musMuted, volume: musVol, gain: musMuted ? 0 : musVol }); } catch (e) {} } },
     play: musicPlay, stop: musicStop, current: function () { return _mtKey; }, themes: THEMES,
   };
@@ -554,6 +565,8 @@
       lsSet('gamekit_stats', JSON.stringify(st));
       pruneOldLogs();
     } catch (e) {}
+    // aggregate, consent-gated: which games/modes actually get played to completion
+    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('game_play', { slug: slug, mode: rec.mode || '(default)' }); } catch (e) {}
     return rec;
   }
   function lastResult(slug) { try { return JSON.parse(lsGet('gamekit_result_' + slug) || 'null'); } catch (e) { return null; } }
