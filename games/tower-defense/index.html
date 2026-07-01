@@ -484,7 +484,7 @@
       backdrop: (g, w, h, st) => menuMapRender(g, w, h, MAPS[parseInt((st && st.map) || mapIndex, 10) || 0]),
       groups: [
         { id: 'map', label: 'MAP', style: 'popup', pickerTitle: 'CHOOSE A MAP', default: String(mapIndex),
-          choices: MAPS.map((m, i) => ({ id: String(i), label: m.name, desc: (m.desc || m.surfaceLabel), best: () => getMapBest(i).wave, pvW: 210, pvH: 110, preview: (g, w, h) => menuMapRender(g, w, h, m) })) },
+          choices: MAPS.map((m, i) => ({ id: String(i), label: m.name, desc: (m.desc || m.surfaceLabel), best: st => getMapBest(i, st.diff).score, pvW: 210, pvH: 110, preview: (g, w, h) => menuMapRender(g, w, h, m) })) },
         { id: 'diff', label: 'DIFFICULTY', style: 'slider', default: diffLevel, choices: [ { id: 'easy', label: 'Easy' }, { id: 'medium', label: 'Medium' }, { id: 'hard', label: 'Hard' } ] },
       ],
       actions: [{ id: 'play', label: 'Defend', primary: true }],
@@ -500,29 +500,29 @@
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'THE KEEP HAS FALLEN', backdrop: (g, w, h) => menuMapRender(g, w, h, MAPS[mapIndex]),
       score: score, best: bestScore, newBest: score >= bestScore && score > 0,
       lines: ['Waves survived: ' + wave + ' · ' + MAPS[mapIndex].name + ' · ' + DIFF().label],
-      share: { slug: 'tower-defense', title: 'Keep Defender', message: () => KIT.shareText({ verb: 'I survived', score: wave, unit: 'waves', game: 'Keep Defender', emoji: '🏰', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, extra: ['Score ' + score] }), params: () => ({ map: mapIndex, diff: diffLevel }) },
+      share: { slug: 'tower-defense', title: 'Keep Defender', message: () => KIT.shareText({ score: score, game: 'Keep Defender', emoji: '🏰', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, extra: ['wave ' + wave] }), params: () => ({ map: mapIndex, diff: diffLevel }) },
       actions: [ { id: 'again', label: 'Play again', primary: true }, { id: 'menu', label: 'Menu' } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
   }
   function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
 
-  // Per-map records: { score, wave } keyed by map index. Legacy single 'best' migrates to map 0.
-  function bestKey(i) { return 'tower-defense_best_' + i; }
-  function getMapBest(i) {
+  // Per-map × per-difficulty records: { score, wave }. Score is the primary metric; keeping records
+  // separate per difficulty keeps them fair (a Hard run never competes against an Easy one).
+  function bestKey(i, diff) { return 'tower-defense_best_' + i + '_' + (diff || diffLevel); }
+  function getMapBest(i, diff) {
     try {
-      const raw = localStorage.getItem(bestKey(i));
+      const raw = localStorage.getItem(bestKey(i, diff));
       if (raw) { const o = JSON.parse(raw); return { score: o.score | 0, wave: o.wave | 0 }; }
-      if (i === 0) { const legacy = localStorage.getItem('tower-defense_best'); if (legacy !== null) return { score: parseInt(legacy, 10) || 0, wave: 0 }; }
     } catch (e) {}
     return { score: 0, wave: 0 };
   }
-  function loadBest() { bestScore = getMapBest(mapIndex).score; }
+  function loadBest() { bestScore = getMapBest(mapIndex, diffLevel).score; }
   function saveBest() {
     try {
-      const cur = getMapBest(mapIndex);
+      const cur = getMapBest(mapIndex, diffLevel);
       if (score > cur.score || wave > cur.wave) {
         const rec = { score: Math.max(score, cur.score), wave: Math.max(wave, cur.wave) };
-        localStorage.setItem(bestKey(mapIndex), JSON.stringify(rec));
+        localStorage.setItem(bestKey(mapIndex, diffLevel), JSON.stringify(rec));
         bestScore = rec.score;
       }
     } catch (e) {}

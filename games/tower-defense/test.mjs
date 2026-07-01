@@ -168,13 +168,13 @@ function run() {
   D().collectDrop(0);
   ok(D().haste > 0, 'haste drop grants a temporary buff');
 
-  section('per-map best persists');
-  // game-over on map 0 writes a per-map record; the menu should read it back
+  section('per-map × per-difficulty best persists');
+  // game-over on map 1 writes a record keyed by map AND difficulty; the menu should read it back
   const g6 = runInline('index.html'); const P = () => g6.test();
   P().selectMap(1); P().start();
   let guard6 = 0; while (P().hp > 0 && guard6++ < 60000) { if (P().state === 'build') P().startWave(); P().step(1); }
   ok(P().state === 'over', 'ran a map-1 game to game over');
-  ok('tower-defense_best_1' in g6.store, 'per-map best key written for map 1');
+  ok(Object.keys(g6.store).some(k => k.startsWith('tower-defense_best_1_')), 'per-map/difficulty best key written for map 1 (got ' + Object.keys(g6.store).filter(k => k.startsWith('tower-defense_best_1')).join(',') + ')');
 
   section('tower icons + tooltips (TASK 1/2)');
   const g7 = runInline('index.html'); const I = () => g7.test();
