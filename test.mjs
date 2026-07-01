@@ -17,7 +17,7 @@ function makeEl() {
     style: new Proxy({}, { get: (t, p) => p === 'setProperty' ? ((k, v) => { t[k] = v; }) : (t[p] ?? ''), set: (t, p, v) => (t[p] = v, true) }),
     classList: { add:(...c)=>c.forEach(x=>cl.add(x)), remove:(...c)=>c.forEach(x=>cl.delete(x)), toggle:(c,f)=>{const w=f===undefined?!cl.has(c):!!f; w?cl.add(c):cl.delete(c); return w;}, contains:c=>cl.has(c) },
     _l: {}, addEventListener:(t,fn)=>{(el._l[t]||=[]).push(fn);}, removeEventListener(){}, fire:(t,e={})=>(el._l[t]||[]).forEach(fn=>fn({preventDefault(){},stopPropagation(){},...e})),
-    appendChild:c=>{el.children.push(c); return c;}, querySelectorAll:()=>[], querySelector:()=>null, getContext:()=>ctx2d(), focus(){}, setAttribute(){}, getAttribute(){return null;}, getBoundingClientRect:()=>({left:0,top:0,width:1280,height:800}),
+    appendChild:c=>{el.children.push(c); return c;}, querySelectorAll:()=>[], querySelector:()=>null, getContext:()=>ctx2d(), focus(){}, setAttribute(){}, getAttribute(){return null;}, getBoundingClientRect:()=>({left:0,top:0,width:1280,height:800}), showModal(){}, close(){},
   };
   let h=''; Object.defineProperty(el,'innerHTML',{get:()=>h,set:v=>{h=String(v??''); if(!v) el.children=[];}});
   return el;
@@ -130,6 +130,49 @@ function testCatalogue() {
       ok(distinct.size > 1, 'randomSlug varies across days (got ' + distinct.size + ' distinct over ' + playable.length + ' days)');
       ok(C.randomSlug(5, []) === '', 'randomSlug is safe with an empty pool');
     }
+  }
+
+  // ---- profile card: big numbers format + dedup + pluralization ----
+  if (typeof g.win.__renderProfile === 'function') {
+    const body = g.getEl('profileBody');
+    // (1) huge values: comma grouping, merged "Your games" block, ×N only when >1
+    for (const k of Object.keys(g.store)) if (k.indexOf('gamekit_') === 0) delete g.store[k];
+    g.store['gamekit_pb'] = JSON.stringify({
+      asteroids: { 'Classic': { score: 300000, time: 0, plays: 90000, stats: {} }, 'Classic+': { score: 240000, time: 0, plays: 30000, stats: {} }, 'Classic Speedrun': { score: 2500, time: 92000, plays: 500, stats: {} } }, // Speedrun = time-primary
+
+      bubbles: { 'Endless': { score: 30000, time: 0, plays: 5, stats: {} }, 'Arcade': { score: 22000, time: 0, plays: 3, stats: {} } },          // multi → ×5 shown
+      'tower-defense': { 'Ice · Hard': { score: 90000, time: 0, plays: 120000, stats: {} } }, // single → header 120,000 plays, no ×
+      snake: { 'Fast · Walls': { score: 300, time: 0, plays: 7, stats: {} } },                // single, 7 plays → ×7 hidden (redundant with header)
+      'aim-trainer': { 'Timed · 30s': { score: 10000, time: 0, plays: 1, stats: {} } },        // single, 1 play → no ×
+    });
+    g.store['gamekit_stats'] = JSON.stringify({ first: Date.UTC(2024, 0, 1), days: 920, lastDay: '2026-07-01', goodRuns: 80000 });
+    g.store['gamekit_history'] = JSON.stringify(Array.from({ length: 1800 }, (_, i) => ({ id: 'x' + i, day: i })));
+    let perr = null; try { g.win.__renderProfile(); } catch (e) { perr = e.message; }
+    ok(perr === null, 'profile renders with huge numbers without error: ' + perr);
+    const h = body.innerHTML || '';
+    const grp = n => Number(n).toLocaleString(); // same runtime → locale-agnostic (matches the render's fmt)
+    ok(h.includes(grp(300000)), 'big record uses fmt grouping (' + grp(300000) + ')');
+    ok(h.includes(grp(120000) + '</b> play'), 'huge play total is grouped in the header (' + grp(120000) + ')');
+    ok(h.includes(grp(80000)), 'good runs uses fmt grouping (' + grp(80000) + ')');
+    ok(h.includes('<b>' + grp(1800) + '</b> ' + (1800 === 1 ? 'challenge' : 'challenges')), 'challenges uses fmt grouping (' + grp(1800) + ')');
+    ok(h.includes('Your games') && !h.includes('Most played') && !h.includes('Records by game'), 'sections merged into one "Your games" block');
+    ok(h.includes('pf-rhead') && h.includes('>Best<'), 'each card labels its value column "Best"');
+    ok(h.includes('×' + grp(5) + '</i>'), 'a multi-mode game shows per-mode ×5');
+    ok(h.includes('×' + grp(90000) + '</i>'), 'a high per-mode play count is grouped too (×' + grp(90000) + ')');
+    ok(h.includes('×' + grp(7)), 'a single-mode game still shows its per-mode ×N (consistency)');
+    ok(!h.includes('×' + grp(1) + '</i>'), 'no ×1 noise anywhere');
+    ok(h.includes('01:32.00'), 'a Speedrun mode shows its record as time (mm:ss.cs), not points');
+    const pfTitleHtml = g.getEl('pfTitle').innerHTML || '';
+    ok(pfTitleHtml.includes('Since'), 'identity row carries "playing since" beside the name');
+    // (2) singular labels — the "1 DAYS" bug
+    for (const k of Object.keys(g.store)) if (k.indexOf('gamekit_') === 0) delete g.store[k];
+    g.store['gamekit_pb'] = JSON.stringify({ snake: { 'Classic': { score: 5, time: 0, plays: 1, stats: {} } } });
+    g.store['gamekit_stats'] = JSON.stringify({ first: Date.UTC(2026, 6, 1), days: 1, lastDay: '2026-07-01', goodRuns: 0 });
+    g.store['gamekit_history'] = '[]';
+    g.win.__renderProfile();
+    const h2 = body.innerHTML || '';
+    ok(h2.includes('<span>Day</span>') && !h2.includes('<span>Days</span>'), 'stat label is "Day" (singular) at count 1, not "Days"');
+    ok(h2.includes('<span>Game</span>') && h2.includes('<span>Play</span>'), 'Game / Play labels also singular at count 1');
   }
 }
 
