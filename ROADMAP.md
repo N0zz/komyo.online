@@ -159,22 +159,15 @@ from day one.
   single-game + cross-game goals, plus a 1-year completion History). Targets are **provisional** —
   playtest and retune (Snake already bumped 50→250); confirm the UTC daily-reset behaves.
 
-- **Aggregate usage insights via GA4** *(idea — data to drive decisions)* — fire a few **anonymous,
-  aggregate** GA4 custom events so we can answer real product questions instead of guessing:
-  - **Audio prefs** — event on SFX/Music mute toggle (+ maybe a coarse volume bucket). If most players
-    disable music, flip music to **opt-in** (or lower its default). Fire from the kit's `sound`/`music`
-    toggles + a one-time "current state" ping on load.
-  - **Challenge engagement** — events for challenge *shown* / *completed* (with the goal id + daily-vs-weekly).
-    Reveals completion **rates** per goal → which are too hard (near-0% done) or trivial, and which get
-    skipped, to retune targets from real data (feeds the tuning item above).
-  - **Per-game/mode completion & session** — optional: game start / game-over by mode to see what's actually
-    played vs. ignored.
-  - **Policy fit (important):** only OK because GA4 is **already consent-gated** (loads only after the cookie
-    banner's Accept) — so it must (a) fire **only** when consented, via the existing `analytics.js` gate,
-    (b) stay **anonymous & aggregate** (event counts, no per-user dossiers — that would clash with our
-    no-accounts / device-only ethos), and (c) be reflected in `privacy.html` (name the event categories).
-    Caveat: it only samples *consented* users, so read it as a trend, not a census. If even anonymous
-    behavioral events feel off-brand, the fallback is self-playtest + tester feedback (slower, no tracking).
+- **Aggregate usage insights via GA4 — v1 SHIPPED (2026-07-01).** Anonymous, consent-gated GA4 events
+  via `window.gamekitTrack` (no-ops unless the cookie banner was accepted; counts only, no per-user
+  data). Shipped: `audio_state` (load ping) + `audio_pref` (mute toggles, from the kit so in-game +
+  Settings both count); `challenge_shown` + `challenge_done` (→ completion rates per goal);
+  `feature_open` (profile/faq/changelog/settings/data/embed/challenges/newsletter/feedback/random);
+  `data_export`/`data_import`; `game_play` {slug,mode}. Event categories named in `privacy.html` §3.
+  **Next (read once real data flows):** if most players disable music, flip it to opt-in / lower the
+  default; retune challenge targets from `challenge_done`÷`challenge_shown`. Caveat: samples only
+  *consented* users → read as a trend, not a census.
 
 - **Privacy policy — legal review** *(in progress)*. The plain-language AI draft is published at
   `komyo.online/privacy.html` (treat as v1 — accurate, not lawyer-hardened) and links from the cookie
@@ -263,13 +256,12 @@ from day one.
   them** with a low `<priority>` so search engines can discover them; also cross-check `llms.txt` and
   `robots.txt` list what we intend. One-time audit + a note in CLAUDE.md's "when a page goes live" step
   so new standalone pages get added going forward.
-- **"Play a random game" button + challenge** *(idea — discovery)* — a 🎲 button on the catalogue that
-  launches a random game. Two flavors: **random across all** games, or **random among games you haven't
-  played yet** (read `gamekit.profile()` / `gamekit_pb` to know what's unplayed) — nice for pushing
-  people to try new ones. **Fallback:** when nothing's unplayed, the button just picks from all games.
-  Also a **random-game challenge** (daily/weekly): "Play [today's random pick] today." **Base the
-  *challenge* on ALL games, not unplayed** — an "unplayed" challenge would be impossible/broken for
-  players who've already played everything. Only the *button* gets the unplayed filter.
+- **"Play a random game" button + challenge — SHIPPED (2026-07-01).** 🎲 Random button in the toolbar
+  picks a playable game, **prefers unplayed** (a `gamekit_pb` entry = played), falls back to all when
+  everything's been tried. Plus a `scope:'random'` daily & weekly challenge ("play today's/this-week's
+  pick") resolved from the deterministic, same-for-everyone `CHALLENGES.randomSlug(idx, playable)` — based
+  on **all** games (never unplayed), lights the CHALLENGE tile badge on the pick, and stores the resolved
+  game title in history. Only the *button* filters to unplayed.
 ### Platforms
 
 - **TV & controller support** (Android/Google TV · remote · gamepad) — full design at
