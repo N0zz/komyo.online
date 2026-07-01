@@ -149,25 +149,21 @@
   //      music stays a local procedural engine whose master gain is driven by the kit's Music channel. ----
   const KIT = (typeof window !== 'undefined' && window.gamekit) ? window.gamekit : null;
   if (KIT) KIT.sound.define({
-    shoot:({tone})=>tone(660,0.07,'square',0.08), pop:({tone})=>tone(320,0.06,'square',0.06), explode:({noise})=>noise(0.3,0.35), hit:({tone})=>tone(170,0.12,'sawtooth',0.22),
-    pickup:({tone})=>{tone(880,0.07);setTimeout(()=>tone(1320,0.1),55);}, level:({tone})=>[523,659,784].forEach((f,i)=>setTimeout(()=>tone(f,0.12,'triangle',0.18),i*70)),
-    boss:({tone})=>tone(90,0.7,'sawtooth',0.3), over:({tone})=>[440,330,220].forEach((f,i)=>setTimeout(()=>tone(f,0.25,'sawtooth',0.18),i*150)),
+    shoot:(c)=>{ c.voice({f:2000,slideTo:240,dur:0.16,type:'sawtooth',gain:0.11,filter:'lowpass',cutoff:3200,cutoffTo:500,q:7,reverb:0.12}); c.voice({f:2600,slideTo:320,dur:0.1,type:'square',gain:0.04}); },
+    pop:(c)=>c.voice({f:320,slideTo:200,dur:0.07,type:'square',gain:0.07,filter:'lowpass',cutoff:1600}),
+    explode:(c)=>{ c.noiseHit({dur:0.4,gain:0.3,filter:'lowpass',cutoff:1600,cutoffTo:80,reverb:0.3}); c.voice({f:120,slideTo:40,dur:0.35,type:'sawtooth',gain:0.14}); },
+    hit:(c)=>c.voice({f:170,slideTo:90,dur:0.14,type:'sawtooth',gain:0.2,filter:'lowpass',cutoff:1000}),
+    pickup:(c)=>{ c.voice({f:880,dur:0.08,type:'sine',gain:0.12,reverb:0.2}); c.voice({f:1320,dur:0.12,type:'sine',gain:0.1,reverb:0.25,t:c.now()+0.05}); },
+    level:(c)=>c.play('levelup'),
+    boss:(c)=>{ c.voice({f:70,dur:0.8,type:'sawtooth',gain:0.22,filter:'lowpass',cutoff:400,reverb:0.3,vibrato:5,vibratoDepth:8}); c.voice({f:141,dur:0.8,type:'square',gain:0.06,filter:'lowpass',cutoff:300}); },
+    over:(c)=>c.play('gameover'),
   });
-  const SND = (() => {
-    let ac, master, musG, mt=null;
-    function ensure(){ if(ac!==undefined) return; const AC=window.AudioContext||window.webkitAudioContext; if(!AC){ ac=null; return; }
-      ac=new AC(); master=ac.createGain(); master.gain.value=1; master.connect(ac.destination);
-      musG=ac.createGain(); musG.gain.value=(KIT?KIT.music.gain():0.5); musG.connect(master); }
-    const scale=[220,277.18,329.63,440,329.63,277.18]; let step=0;
-    function mtick(){ if(!ac) return; const f=scale[step%scale.length]*(Math.floor(step/6)%2?0.5:1); const o=ac.createOscillator(),v=ac.createGain(); o.type='triangle'; o.frequency.value=f; v.gain.value=0; v.gain.linearRampToValueAtTime(0.16,ac.currentTime+0.03); v.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+0.4); o.connect(v); v.connect(musG); o.start(); o.stop(ac.currentTime+0.45); step++; }
-    return {
-      play(n){ if(KIT) KIT.sound.play(n); },
-      startMusic(){ ensure(); if(!ac||mt) return; if(ac.state==='suspended') ac.resume(); mt=setInterval(mtick,250); },
-      stopMusic(){ if(mt){ clearInterval(mt); mt=null; } },
-      setGain(g){ ensure(); if(musG) musG.gain.value=g; },
-    };
-  })();
-  if (KIT) KIT.music.subscribe(s => SND.setGain(s.gain));
+  // SFX + music both run through the shared game-kit engine now (kit owns the driving 'space' track).
+  const SND = {
+    play(n){ if(KIT) KIT.sound.play(n); },
+    startMusic(){ if(KIT) KIT.music.play('space'); },
+    stopMusic(){ /* music persists across menu/pause — one continuous menu + in-game bed */ },
+  };
   function fmtTime(ms){ const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
   function saveBest(ms){ try{ const p=localStorage.getItem(BEST_KEY); if(p==null||ms<parseInt(p,10)){ localStorage.setItem(BEST_KEY,String(Math.floor(ms))); return true; } }catch(e){} return false; }
   function readStat(key){ try{ const v=localStorage.getItem(key); return v==null?null:parseInt(v,10); }catch(e){ return null; } }
@@ -353,7 +349,7 @@
   // unified start menu (mode picker) — kit-rendered, themed, one screen. Play applies the mode + starts
   // in-place (no reload); the address bar reflects the picks so refresh/share reopen the same mode.
   function showStartMenu(){
-    state='menu'; SND.stopMusic(); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); } overlay.classList.add('hidden');
+    state='menu'; SND.startMusic(); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); } overlay.classList.add('hidden');
     if(!KIT) return;
     genMenuRocks();
     const bestScore = k => { const v=readStat('asteroids_score_roguelite-'+k); return v==null?'—':v; };
