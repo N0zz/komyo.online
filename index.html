@@ -186,8 +186,8 @@
   #fbModal, #nlModal, #clModal, #aboutModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal, #profileModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
   #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop, #settingsModal::backdrop, #profileModal::backdrop { background:rgba(5,8,13,0.66); }
   #profileModal { width:min(760px,95vw); }
-  .about.profile { max-height:88vh; display:flex; flex-direction:column; overflow:hidden; position:relative; }
-  .pf-x { position:absolute; top:12px; right:12px; z-index:10; }
+  .about.profile { max-height:88vh; display:flex; flex-direction:column; overflow:hidden; position:relative; padding:44px 20px 20px; }
+  .pf-x { position:absolute; top:15px; right:16px; z-index:10; }
   #profileBody { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; overflow:hidden; }
   .pf-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; }
   /* about modal */
@@ -243,12 +243,13 @@
   .pf-share button { width:100%; padding:11px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:600; cursor:pointer; }
   .pf-share button:hover { border-color:#9fe8ff; }
   /* ---- earned title (lifetime challenge points) — escalating shine, tier 0→8 ---- */
-  .pf-titlebar { position:relative; overflow:hidden; display:flex; align-items:center; gap:11px; padding:12px 42px 12px 14px; margin-bottom:12px; border:1px solid var(--border); border-radius:13px; background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent),var(--surface); }
+  .pf-titlebar { position:relative; overflow:hidden; display:flex; align-items:center; gap:12px; padding:13px 16px; margin-bottom:12px; border:1px solid var(--border); border-radius:13px; background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent),var(--surface); }
   .pf-tb-emoji { font-size:22px; position:relative; z-index:2; }
-  .pf-tb-main { position:relative; z-index:2; display:flex; flex-direction:column; gap:4px; min-width:0; }
-  .pf-title { position:relative; font-size:18px; line-height:1.15; }
-  .pf-tb-name { position:relative; z-index:2; font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:6px; }
-  .pf-tb-pts { position:relative; z-index:2; margin-left:auto; text-align:right; font-family:var(--mono); font-size:15px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; }
+  .pf-tb-main { position:relative; z-index:2; display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .pf-tb-label { font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); }
+  .pf-title { position:relative; font-size:19px; line-height:1.15; }
+  .pf-tb-name { position:relative; z-index:2; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; }
+  .pf-tb-pts { position:relative; z-index:2; margin-left:auto; text-align:right; font-family:var(--mono); font-size:16px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; }
   .pf-tb-pts span { display:block; font-size:9px; font-weight:400; letter-spacing:1px; color:var(--faint); }
   .pf-pfx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
   .pf-halo { position:absolute; inset:-8px -18px; z-index:0; border-radius:50%; filter:blur(14px); opacity:0; pointer-events:none; }
@@ -1531,10 +1532,11 @@
           + (TT.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + TT.tier + '"></canvas>' : '')
           + '<span class="pf-tb-emoji">' + (TT.emoji || '🎖️') + '</span>'
           + '<div class="pf-tb-main">'
+          + '<span class="pf-tb-label">Title</span>'
           + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(TT.title) + '">' + esc(TT.title) + '</span></span>'
           + '<span class="pf-tb-name">👤 <span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span></span>'
           + '</div>'
-          + '<span class="pf-tb-pts">' + fmt(chPts) + '<span>PTS</span></span></div>';
+          + '<span class="pf-tb-pts">🏆 ' + fmt(chPts) + '<span>CHALLENGE PTS</span></span></div>';
         // one list, most-played first: every game with plays, each showing its modes' bests
         const ranked = [];
         if (p) GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm, pg }); });
@@ -1550,7 +1552,6 @@
         chips.forEach(s => { const lbl = s[1] === 1 ? s[0] : s[0] + 's'; html += '<div class="pf-stat"><b>' + esc(fmt(s[1])) + '</b><span>' + esc(lbl) + '</span></div>'; });
         html += '</div><div class="pf-hl">';
         if (p.goodRuns) html += '<span title="Runs that cleared a game’s bar">💪 <b>' + fmt(p.goodRuns) + '</b> good ' + (p.goodRuns === 1 ? 'run' : 'runs') + '</span>';
-        html += '<span>🏆 <b>' + fmt(chDone) + '</b> ' + (chDone === 1 ? 'challenge' : 'challenges') + '</span>';
         if (sinceStr) html += '<span>📅 Since <b>' + esc(sinceStr) + '</b></span>';
         html += '</div></div>';
         // Your games — total plays in the header (its unit shown once), then each mode's best;
@@ -1599,19 +1600,27 @@
         stopTitleFx();
         const cv = body.querySelector && body.querySelector('.pf-pfx');
         if (!cv || !cv.getContext) return;
-        const CFG = { 3: { n: 7, cols: ['#d3deed', '#fff'], sz: [.6, 1.6], v: .12, glow: 4 }, 4: { n: 10, cols: ['#b98cff', '#c9b3ff'], sz: [.7, 2], v: .16, glow: 5 }, 5: { n: 13, cols: ['#b98cff', '#9fe8ff'], sz: [.7, 2.2], v: .18, glow: 6 }, 6: { n: 16, cols: ['#9fe8ff', '#7fe8d0', '#fff'], sz: [.7, 2.4], v: .22, glow: 7 }, 7: { n: 22, cols: ['#ff8ad1', '#b98cff', '#9fe8ff', '#7fffc4'], sz: [.8, 2.6], v: .26, glow: 8 }, 8: { n: 30, cols: ['#ffd76a', '#fff3c0', '#fff', '#ff9ad1'], sz: [.9, 3], v: .32, glow: 10 } };
+        const CFG = { 3: { n: 9, cols: ['#d3deed', '#fff'], sz: [.7, 1.8], v: .13, glow: 5 }, 4: { n: 12, cols: ['#b98cff', '#c9b3ff'], sz: [.7, 2], v: .16, glow: 5 }, 5: { n: 15, cols: ['#b98cff', '#9fe8ff'], sz: [.7, 2.2], v: .18, glow: 6 }, 6: { n: 18, cols: ['#9fe8ff', '#7fe8d0', '#fff'], sz: [.7, 2.4], v: .22, glow: 7 }, 7: { n: 24, cols: ['#ff8ad1', '#b98cff', '#9fe8ff', '#7fffc4'], sz: [.8, 2.6], v: .26, glow: 8 }, 8: { n: 32, cols: ['#ffd76a', '#fff3c0', '#fff', '#ff9ad1'], sz: [.9, 3], v: .32, glow: 10 } };
         const cfg = CFG[+cv.getAttribute('data-tier')]; if (!cfg) return;
         const ctx = cv.getContext('2d'); if (!ctx) return;
         const dpr = Math.min(window.devicePixelRatio || 1, 2), rnd = (a, b) => a + Math.random() * (b - a);
         let W = 0, H = 0; const ps = [];
-        const size = () => { const r = cv.getBoundingClientRect(); W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); };
         const spawn = y => ({ x: rnd(0, W), y: y == null ? rnd(0, H) : y, r: rnd(cfg.sz[0], cfg.sz[1]), c: cfg.cols[(Math.random() * cfg.cols.length) | 0], vy: rnd(cfg.v * .6, cfg.v * 1.5), sway: rnd(.2, .9), ph: rnd(0, 6.28), tw: rnd(1.5, 3.5) });
-        size(); for (let i = 0; i < cfg.n; i++) ps.push(spawn());
         const draw = (t, moving) => { ctx.clearRect(0, 0, W, H); for (const q of ps) { ctx.globalAlpha = moving ? (.35 + .65 * (.5 + .5 * Math.sin(t * (6.28 / q.tw) + q.ph))) : .7; ctx.fillStyle = q.c; ctx.shadowBlur = cfg.glow; ctx.shadowColor = q.c; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.28); ctx.fill(); } ctx.globalAlpha = 1; ctx.shadowBlur = 0; };
         const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (reduce || typeof requestAnimationFrame !== 'function') { draw(0, false); return; }
-        const frame = ms => { const t = ms / 1000; for (const q of ps) { q.y -= q.vy; q.x += Math.sin(t * q.sway + q.ph) * .25; if (q.y < -6) { const np = spawn(H + 6); for (const k in np) q[k] = np[k]; } } draw(t, true); _pfRaf = requestAnimationFrame(frame); };
-        _pfRaf = requestAnimationFrame(frame);
+        const raf = (typeof requestAnimationFrame === 'function') ? requestAnimationFrame : null;
+        // the modal is shown right AFTER render(), so the canvas has no size yet — wait for layout
+        let tries = 0;
+        const begin = () => {
+          const r = cv.getBoundingClientRect();
+          if ((!r.width || !r.height)) { if (raf && tries++ < 40) { _pfRaf = raf(begin); } return; }
+          W = r.width; H = r.height; cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          for (let i = 0; i < cfg.n; i++) ps.push(spawn());
+          if (reduce || !raf) { draw(0, false); return; }
+          const frame = ms => { const t = ms / 1000; for (const q of ps) { q.y -= q.vy; q.x += Math.sin(t * q.sway + q.ph) * .25; if (q.y < -6) { const np = spawn(H + 6); for (const k in np) q[k] = np[k]; } } draw(t, true); _pfRaf = raf(frame); };
+          _pfRaf = raf(frame);
+        };
+        if (raf) _pfRaf = raf(begin); else begin();
       }
       window.__renderProfile = render; // exposed for tests
       if (btn) btn.addEventListener('click', () => { render(); modal.showModal(); lock(true); });
