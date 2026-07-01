@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-01', title: 'Asteroids+ joins the new menu', items: [
+    'New: Asteroids+ now opens with the same one-screen card menu as every other game — pick Level-up, Milestones or Wave Shop (plus Speedrun) in a single screen, over a drifting field of asteroids and enemy ships. Its level-up picker and between-wave shop got the matching look too.',
+    'New: Asteroids+ asks before you leave a run from the menu, so you don’t lose a run by accident.',
+  ] },
   { date: '2026-07-01', title: 'A fresh menu for every game', items: [
     'New: every game now opens with a redesigned menu — pick your mode and options from cards, sliders and toggles, over a gentle animated backdrop of the game itself (drifting asteroids, a wandering snake, meadow leaves by day and fireflies by night, your Keep Defender map, and more). Play, pause, 🎮 Controls and 🏆 Challenges work the same in every game.',
     'New: Range — choose Timed (10 / 30 / 60s) or a Sprint target (10 / 50 / 100 targets), with a moving-targets toggle.',
