@@ -54,12 +54,12 @@
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
   SND.define({
-    bounce: ({ tone }) => tone(440, 0.05, 'square', 0.07),
-    break: ({ tone }) => { tone(660, 0.08, 'sawtooth', 0.1); tone(880, 0.06, 'square', 0.05); },
-    lose: ({ tone }) => [330, 220, 165].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'sawtooth', 0.1), i * 100)),
-    launch: ({ tone }) => tone(220, 0.12, 'triangle', 0.08),
-    power: ({ tone }) => { tone(440, 0.05, 'triangle', 0.08); setTimeout(() => tone(660, 0.07, 'triangle', 0.1), 60); },
-    levelup: ({ tone }) => [330, 440, 550, 660].forEach((f, i) => setTimeout(() => tone(f, 0.15, 'triangle', 0.1), i * 80)),
+    bounce: (c) => c.voice({ f: 520, dur: 0.05, type: 'triangle', gain: 0.13, filter: 'bandpass', cutoff: 1400, q: 3 }),
+    break: (c) => { c.voice({ f: 740, slideTo: 1180, dur: 0.09, type: 'square', gain: 0.11, filter: 'highpass', cutoff: 500, reverb: 0.14 }); c.noiseHit({ dur: 0.06, gain: 0.07, filter: 'highpass', cutoff: 3000 }); },
+    launch: (c) => c.voice({ f: 220, slideTo: 340, dur: 0.12, type: 'triangle', gain: 0.1, filter: 'lowpass', cutoff: 1600 }),
+    power: (c) => { [440, 660, 990].forEach((f, i) => c.voice({ f, dur: 0.12, type: 'triangle', gain: 0.1, reverb: 0.2, t: c.now() + i * 0.05 })); },
+    levelup: (c) => c.play('levelup'),
+    lose: (c) => c.play('lose'),
   });
 
   // ---- Config ----
@@ -687,13 +687,14 @@
   // ---- top nav (game-kit) ----
   { const pm = KIT && KIT.param && KIT.param('mode'); if (['classic', 'endless', 'survival'].indexOf(pm) >= 0) gameMode = pm; } // deep-link ?mode=
   { const ps = KIT && KIT.param && KIT.param('speed2x'); if (ps === '1') { speedMult = 2; saveSpeedPref(true); } else speedMult = loadSpeedPref() ? 2 : 1; }
-  KIT.nav({ reset: 'breakout_', home: '../../', theme: MENU_THEME, challenges: 'breakout', onMenu: () => toMenu(),
+  KIT.nav({ music: true, reset: 'breakout_', home: '../../', theme: MENU_THEME, challenges: 'breakout', onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Brick Breaker — Controls',
       mouse: [ ['Move', 'Slide paddle'], ['Click', 'Launch'] ],
       keyboard: [ ['← →', 'Move paddle'], ['Space · Enter', 'Launch'], ['Esc', 'Pause'] ],
       touch: [ ['Hold L / R side', 'Slide paddle'], ['Tap', 'Launch'] ] } });
+  KIT.music.play('synthwave');
 
   // ---- Key hold polling ----
   function pollKeys() {

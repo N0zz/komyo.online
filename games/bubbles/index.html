@@ -181,12 +181,12 @@
   const SND = window.gamekit.sound;
   const KIT = window.gamekit;
   SND.define({
-    shoot: ({ tone }) => { tone(520, 0.06, 'triangle', 0.07); },
-    pop:   ({ tone }) => { tone(880, 0.08, 'sine', 0.1); tone(1100, 0.05, 'sine', 0.06); },
-    drop:  ({ tone }) => { [660, 440, 330].forEach((f, i) => setTimeout(() => tone(f, 0.07, 'triangle', 0.05), i * 40)); },
-    lose:  ({ tone }) => { [330, 220, 165, 110].forEach((f, i) => setTimeout(() => tone(f, 0.25, 'sawtooth', 0.12), i * 160)); },
-    special: ({ tone }) => { [440, 660, 880, 1100].forEach((f, i) => setTimeout(() => tone(f, 0.1, 'sine', 0.1), i * 60)); },
-    won:   ({ tone }) => { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => tone(f, 0.2, 'sine', 0.12), i * 120)); },
+    shoot: (c) => c.voice({ f: 420, slideTo: 640, dur: 0.07, type: 'triangle', gain: 0.1, filter: 'lowpass', cutoff: 1800 }),
+    pop:   (c) => { c.voice({ f: 900, slideTo: 1500, dur: 0.06, type: 'sine', gain: 0.12, reverb: 0.16 }); c.noiseHit({ dur: 0.03, gain: 0.04, filter: 'bandpass', cutoff: 2400, q: 6 }); },
+    drop:  (c) => { [660, 440, 330].forEach((f, i) => c.voice({ f, dur: 0.08, type: 'triangle', gain: 0.06, t: c.now() + i * 0.04 })); },
+    special: (c) => { [523, 659, 880, 1175].forEach((f, i) => c.voice({ f, dur: 0.14, type: 'sine', gain: 0.1, reverb: 0.3, t: c.now() + i * 0.06 })); },
+    won:   (c) => c.play('victory'),
+    lose:  (c) => c.play('lose'),
   });
 
   // ---- Constants ----
@@ -1189,13 +1189,14 @@
   { const pm = KIT && KIT.param && KIT.param('mode'); if (['arcade', 'endless', 'zen'].indexOf(pm) >= 0) mode = pm; if (KIT && KIT.param && KIT.param('timed') === '1') timeDescent = true; }
 
   // ---- top nav (game-kit): ‹ Menu + komyo › guard a live run; ⏸ + Esc drive the menu pause ----
-  KIT.nav({ reset: 'bubbles_', home: '../../', theme: MENU_THEME, challenges: 'bubbles', onMenu: () => toMenu(),
+  KIT.nav({ music: true, reset: 'bubbles_', home: '../../', theme: MENU_THEME, challenges: 'bubbles', onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Bubble Pop — Controls',
       mouse: [ ['Move','Aim'], ['Click','Shoot'] ],
       keyboard: [ ['← →  ·  A D','Aim'], ['Space  ·  Enter','Shoot'], ['Esc','Pause'] ],
       touch: [ ['Move / drag','Aim'], ['Tap','Shoot'] ] } });
+  KIT.music.play('candy');
   showStartMenu(); // open the unified start menu (mode preselected from ?mode=)
 
   // ---- __test API ----
