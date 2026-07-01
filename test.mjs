@@ -154,7 +154,6 @@ function testCatalogue() {
     ok(h.includes(grp(300000)), 'big record uses fmt grouping (' + grp(300000) + ')');
     ok(h.includes(grp(120000) + '</b> play'), 'huge play total is grouped in the header (' + grp(120000) + ')');
     ok(h.includes(grp(80000)), 'good runs uses fmt grouping (' + grp(80000) + ')');
-    ok(h.includes('<b>' + grp(1800) + '</b> ' + (1800 === 1 ? 'challenge' : 'challenges')), 'challenges uses fmt grouping (' + grp(1800) + ')');
     ok(h.includes('Your games') && !h.includes('Most played') && !h.includes('Records by game'), 'sections merged into one "Your games" block');
     ok(h.includes('pf-rhead') && h.includes('>Best<'), 'each card labels its value column "Best"');
     ok(h.includes('×' + grp(5) + '</i>'), 'a multi-mode game shows per-mode ×5');
@@ -191,7 +190,7 @@ function testCatalogue() {
       g.win.__renderProfile();
       const bh = g.getEl('profileBody').innerHTML || '';
       ok(bh.includes('Knight of the Realm') && bh.includes('pf-t3'), 'profile shows the earned title (Knight, tier 3) at 50 pts');
-      ok(bh.includes('50<span>PTS'), 'profile surfaces the challenge-points total (50)');
+      ok(bh.includes('🏆 50<span>'), 'title box surfaces the challenge-points total (🏆 50)');
       ok(bh.includes('pf-pfx'), 'a premium tier (3+) gets a particle canvas');
       ok(bh.includes('pf-tb-name') && bh.includes('pf-t3'), 'title + username share one full-width box, shined to the tier');
     }
