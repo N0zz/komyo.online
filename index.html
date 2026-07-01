@@ -1488,7 +1488,7 @@
       dh.addEventListener('click', (e) => { e.stopPropagation(); const on = dn.classList.toggle('show'); dh.setAttribute('aria-expanded', on ? 'true' : 'false'); });
     })();
 
-    // ---- welcome banner + display name (first-visit prompt · ✏️ edit · cycling-language greeting) ----
+    // ---- welcome banner + display name (default anonymous · set via the ✏️ edit only · cycling greeting) ----
     (function () {
       const modal = document.getElementById('nameModal');
       const form = document.getElementById('nameForm'), input = document.getElementById('nameInput'), skip = document.getElementById('nameSkip');
@@ -1507,7 +1507,7 @@
       if (form) form.addEventListener('submit', e => { e.preventDefault(); apply(input ? input.value : ''); try { modal.close(); } catch (_) {} });
       if (skip) skip.addEventListener('click', () => { if (!editing) apply(''); try { modal.close(); } catch (_) {} }); // first-visit skip = anonymous
       if (edit) edit.addEventListener('click', () => open(true));
-      refresh();
+      refresh(); // default is 'anonymous'; no entry prompt — a name is set only via the drawer ✏️ (true opt-in)
       if (word) {
         const words = ['Welcome', 'Bienvenue', 'Bienvenido', 'Willkommen', 'Benvenuto', 'Witaj', 'Olá', 'Välkommen', 'Hoş geldin', 'ようこそ', '환영합니다', '欢迎', 'Привіт', 'مرحبا'];
         // random order each visit: shuffle, cycle through, reshuffle on each full pass
@@ -1519,8 +1519,6 @@
           if (++i >= seq.length) { i = 0; seq = shuffle(words.slice()); }
         }, 2800);
       }
-      let has = null; try { has = localStorage.getItem('gamekit_name'); } catch (e) {}
-      if (!has) open(false);
     })();
 
     if ('serviceWorker' in navigator) {

@@ -7,6 +7,7 @@ window.CHANGELOG = [
   { date: '2026-07-01', title: 'Challenges in your games', items: [
     'New: Asteroids & Bubble Pop — a 🏆 Challenges button right in the game shows today’s daily and weekly goals (and gently glows when the game you’re in is the one with a challenge), so you can check the goal without going back to the menu.',
     'New: a back-to-top button on the home page — appears once you’ve scrolled the games list down.',
+    'Improved: no more name pop-up when you arrive — you start as anonymous, and set a display name only if you want to (menu → ✏️). One less thing between you and the games.',
     'Changed: Bubble Pop — Speedrun is now a “Time-based descent” toggle you can switch on for Arcade or Endless (leave it off and the grid moves as you shoot instead of on a clock). Zen never descends.',
   ] },
   { date: '2026-06-30', title: 'Walls, taps & rotation', items: [
