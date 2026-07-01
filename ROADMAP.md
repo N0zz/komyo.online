@@ -179,10 +179,13 @@ from day one.
   Add a 🏆 button to the in-game top bar that opens the **same Challenges panel** as the home page — so you
   can check (or re-check mid-run) today's daily + weekly goals and progress without leaving the game. Opens
   as a kit modal that freezes the game (like the other top-bar overlays), highlighting *this game's* active
-  goal. **Main lift:** the challenge logic (`CHALLENGES`, the UTC daily/weekly pick math, `evalGoal`,
-  progress) lives inline in `index.html` today — it needs to move into `game-kit.js` (shared module) so the
-  catalogue and the in-game button render from one source. Could also auto-show only when the current game
-  actually has an active challenge.
+  goal. **Always show the button** (so players learn it's always there); when the current game HAS an active
+  challenge, give it a **notification state** — a subtle glow/pulse or a small dot badge — as a "there's
+  something for you here" nudge (reuse `activeChallengeSlugs`). Keep it subtle (a gentle pulse/dot, NOT a
+  bounce — distracting mid-game) and **reduced-motion-safe** (static dot/glow, no animation); optionally
+  quiet it once opened (like a read notification). **Main lift:** the challenge logic (`CHALLENGES`, the UTC
+  daily/weekly pick math, `evalGoal`, progress) lives inline in `index.html` today — it needs to move into
+  `game-kit.js` (shared module) so the catalogue and the in-game button render from one source.
 - **Custom error pages** — verify what GitHub Pages actually allows. A root **`404.html`** *is*
   supported → build a branded one (mascot + search / back-to-catalogue; ties into the mascot reuse).
   Other codes (403 / 5xx) are served by GitHub/Fastly and **aren't customizable** on a static Pages
