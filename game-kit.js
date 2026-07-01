@@ -18,12 +18,64 @@
   var sfxVol = clamp01(lsGet(SFX_V), 0.8);
   var musVol = clamp01(lsGet(MUS_V), 0.6);
 
-  var ac, defs = {}, audioUIs = [], musicListeners = [];
+  var ac, master, verbNode, verbWet, musicGain, defs = {}, audioUIs = [], musicListeners = [];
   function ensureAC() {
     if (ac !== undefined) return;
     var AC = (typeof AudioContext !== 'undefined' && AudioContext) ||
              (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext));
-    ac = AC ? (function () { try { return new AC(); } catch (e) { return null; } })() : null;
+    if (!AC) { ac = null; return; }
+    try {
+      ac = new AC();
+      master = ac.createGain(); master.gain.value = 1; master.connect(ac.destination);
+      verbNode = ac.createConvolver(); verbNode.buffer = makeImpulse(2.0, 2.4);          // shared algorithmic reverb
+      verbWet = ac.createGain(); verbWet.gain.value = 0.5; verbNode.connect(verbWet); verbWet.connect(master);
+      musicGain = ac.createGain(); musicGain.gain.value = musMuted ? 0 : musVol; musicGain.connect(master);
+    } catch (e) { ac = null; }
+  }
+  function makeImpulse(dur, decay) {
+    var len = Math.max(1, (ac.sampleRate || 44100) * dur), buf = ac.createBuffer(2, len, ac.sampleRate);
+    for (var c = 0; c < 2; c++) { var d = buf.getChannelData(c);
+      for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, decay); }
+    return buf;
+  }
+  function acNow() { return ac ? ac.currentTime : 0; }
+  // ---- low-level synth voices (shared by SFX and the music engine); routed to o.out (default master),
+  //      with an optional reverb send that taps post-gain so it scales with the voice. Headless-inert. ----
+  function synthVoice(o) {
+    ensureAC(); if (!ac) return; o = o || {};
+    try {
+      var t = (o.t != null) ? o.t : ac.currentTime, dur = o.dur || 0.2, out = o.out || master;
+      var osc = ac.createOscillator(); osc.type = o.type || 'sine';
+      osc.frequency.setValueAtTime(o.f || 440, t);
+      if (o.slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.slideTo), t + dur);
+      if (o.detune) osc.detune.value = o.detune;
+      if (o.vibrato) { var lfo = ac.createOscillator(), lg = ac.createGain(); lfo.frequency.value = o.vibrato; lg.gain.value = o.vibratoDepth || 6; lfo.connect(lg); lg.connect(osc.frequency); lfo.start(t); lfo.stop(t + dur + 0.05); }
+      var g = ac.createGain(), peak = (o.gain != null ? o.gain : 0.2), a = (o.attack != null ? o.attack : 0.006);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + a);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      var node = osc;
+      if (o.filter) { var bq = ac.createBiquadFilter(); bq.type = o.filter; bq.frequency.setValueAtTime(o.cutoff || 1200, t); if (o.cutoffTo) bq.frequency.exponentialRampToValueAtTime(Math.max(40, o.cutoffTo), t + dur); if (o.q) bq.Q.value = o.q; node.connect(bq); node = bq; }
+      node.connect(g); g.connect(out);
+      if (o.reverb && verbNode) { var s = ac.createGain(); s.gain.value = o.reverb; g.connect(s); s.connect(verbNode); }
+      osc.start(t); osc.stop(t + dur + 0.05);
+    } catch (e) {}
+  }
+  function synthNoise(o) {
+    ensureAC(); if (!ac) return; o = o || {};
+    try {
+      var t = (o.t != null) ? o.t : ac.currentTime, dur = o.dur || 0.2, out = o.out || master;
+      var src = ac.createBufferSource(), len = Math.max(1, ac.sampleRate * dur), b = ac.createBuffer(1, len, ac.sampleRate), dt = b.getChannelData(0);
+      for (var i = 0; i < len; i++) dt[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      src.buffer = b;
+      var bq = ac.createBiquadFilter(); bq.type = o.filter || 'lowpass'; bq.frequency.setValueAtTime(o.cutoff || 900, t);
+      if (o.cutoffTo) bq.frequency.exponentialRampToValueAtTime(Math.max(40, o.cutoffTo), t + dur);
+      if (o.q) bq.Q.value = o.q;
+      var g = ac.createGain(); g.gain.setValueAtTime(o.gain != null ? o.gain : 0.2, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(bq); bq.connect(g); g.connect(out);
+      if (o.reverb && verbNode) { var s = ac.createGain(); s.gain.value = o.reverb; g.connect(s); s.connect(verbNode); }
+      src.start(t);
+    } catch (e) {}
   }
   function tone(f, d, type, g) {
     if (sfxMuted) return; ensureAC(); if (!ac) return;
@@ -32,7 +84,7 @@
       o.type = type || 'sine'; o.frequency.value = f;
       v.gain.value = (g || 0.1) * sfxVol;
       v.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + d);
-      o.connect(v); v.connect(ac.destination); o.start(); o.stop(ac.currentTime + d);
+      o.connect(v); v.connect(master); o.start(); o.stop(ac.currentTime + d);
     } catch (e) {}
   }
   function noise(d, g) {
@@ -44,9 +96,13 @@
       n.buffer = b;
       var v = ac.createGain(); v.gain.value = (g || 0.2) * sfxVol;
       var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900;
-      n.connect(lp); lp.connect(v); v.connect(ac.destination); n.start();
+      n.connect(lp); lp.connect(v); v.connect(master); n.start();
     } catch (e) {}
   }
+  // SFX-channel wrappers (mute-gated, scaled by sfxVol) handed to sound.define callbacks.
+  function sfxVoice(o) { if (sfxMuted) return; o = o || {}; var c = {}; for (var k in o) c[k] = o[k]; c.gain = (o.gain != null ? o.gain : 0.2) * sfxVol; c.out = master; synthVoice(c); }
+  function sfxNoise(o) { if (sfxMuted) return; o = o || {}; var c = {}; for (var k in o) c[k] = o[k]; c.gain = (o.gain != null ? o.gain : 0.2) * sfxVol; c.out = master; synthNoise(c); }
+  function seq(arr, gap, fn) { for (var i = 0; i < arr.length; i++) (function (x, idx) { setTimeout(function () { fn(x, idx); }, idx * gap); })(arr[i], i); }
   function syncAudioUI() {
     for (var i = 0; i < audioUIs.length; i++) {
       var u = audioUIs[i];
@@ -62,26 +118,117 @@
   function notifyMusic() { var st = { muted: musMuted, volume: musVol, gain: musMuted ? 0 : musVol }; for (var i = 0; i < musicListeners.length; i++) { try { musicListeners[i](st); } catch (e) {} } }
 
   var sound = {
-    tone: tone, noise: noise,
+    tone: tone, noise: noise, voice: sfxVoice, noiseHit: sfxNoise, seq: seq,
+    // callback ctx: { tone, noise, voice, noiseHit, seq, now } — voice/noiseHit take the rich synth opts.
     define: function (map) { if (map) for (var k in map) if (Object.prototype.hasOwnProperty.call(map, k)) defs[k] = map[k]; return sound; },
     play: function (name) {
       if (sfxMuted) return; ensureAC();
       if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
-      var fn = defs[name]; if (fn) { try { fn({ tone: tone, noise: noise }); } catch (e) {} }
+      var fn = defs[name]; if (fn) { try { fn({ tone: tone, noise: noise, voice: sfxVoice, noiseHit: sfxNoise, seq: seq, now: acNow, play: sound.play }); } catch (e) {} }
     },
     isMuted: function () { return sfxMuted; },
     setMuted: function (m) { sfxMuted = !!m; lsSet(SFX_M, sfxMuted ? '1' : '0'); syncAudioUI(); },
     toggle: function () { sfxMuted = !sfxMuted; lsSet(SFX_M, sfxMuted ? '1' : '0'); syncAudioUI(); return sfxMuted; },
     volume: function (v) { if (v === undefined) return sfxVol; sfxVol = clamp01(v, sfxVol); lsSet(SFX_V, String(sfxVol)); syncAudioUI(); },
   };
-  // Music: kit owns the SETTINGS + UI; a game with music subscribes and applies gain()/muted to its own audio.
+  // shared stingers — any game plays via sound.play('victory'|'newbest'|'levelup'|'gameover'|'lose').
+  sound.define({
+    victory: function (c) { var t = c.now(); [[523, 0], [659, 0.12], [784, 0.24], [1047, 0.36]].forEach(function (p) { c.voice({ f: p[0], dur: 0.5, type: 'triangle', gain: 0.12, filter: 'lowpass', cutoff: 3000, reverb: 0.35, t: t + p[1] }); c.voice({ f: p[0] / 2, dur: 0.5, type: 'sine', gain: 0.05, t: t + p[1] }); }); c.voice({ f: 1568, dur: 0.7, type: 'sine', gain: 0.08, reverb: 0.4, t: t + 0.5 }); },
+    newbest: function (c) { var t = c.now();[523, 659, 784, 1047, 1319].forEach(function (f, i) { c.voice({ f: f, dur: 0.3, type: 'triangle', gain: 0.11, reverb: 0.35, t: t + i * 0.07 }); }); c.noiseHit({ dur: 0.5, gain: 0.05, filter: 'highpass', cutoff: 6000, reverb: 0.4, t: t + 0.35 }); },
+    levelup: function (c) { var t = c.now();[392, 494, 587, 784].forEach(function (f, i) { c.voice({ f: f, dur: 0.22, type: 'square', gain: 0.1, filter: 'lowpass', cutoff: 2600, reverb: 0.28, t: t + i * 0.08 }); }); },
+    gameover: function (c) { var t = c.now();[440, 330, 247].forEach(function (f, i) { c.voice({ f: f, slideTo: f * 0.8, dur: 0.4, type: 'triangle', gain: 0.11, filter: 'lowpass', cutoff: 1800, cutoffTo: 500, reverb: 0.25, t: t + i * 0.16 }); }); },
+    lose: function (c) { var t = c.now();[330, 247, 165, 110].forEach(function (f, i) { c.voice({ f: f, slideTo: f * 0.82, dur: 0.45, type: 'sawtooth', gain: 0.12, filter: 'lowpass', cutoff: 1400, cutoffTo: 300, reverb: 0.25, t: t + i * 0.17 }); }); },
+  });
+
+  // ---------- generative music engine (procedural, kit-owned; routed through musicGain = Music channel) ----------
+  var NT = function (root, scale, deg) { if (deg == null) return null; var L = scale.length, oct = Math.floor(deg / L), s = scale[((deg % L) + L) % L]; return root * Math.pow(2, oct) * Math.pow(2, s / 12); };
+  var NEAR = function (v, arr) { return arr.reduce(function (a, b) { return Math.abs(b - v) < Math.abs(a - v) ? b : a; }); };
+  // theme: { bpm, root, scale[semitones], prog[chord-root scale-degrees, one/bar], waves:{bass,lead}, cutoff, perc, density,
+  //          + optional ambient/sub/sparkle/leadVib (drift) or arp/zap (driving). See docs at top of file.
+  var THEMES = {
+    space:    { bpm: 124, root: 130.81, scale: [0, 2, 3, 5, 7, 10], prog: [0, 0, 5, 3, 0, 0, 4, 5], waves: { bass: 'sawtooth', lead: 'square' }, cutoff: 1800, perc: true, density: 0.5, arp: true, zap: true },
+    neon:     { bpm: 122, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4, 0, 5, 6, 4], waves: { bass: 'square', lead: 'square' }, cutoff: 1900, perc: true, density: 0.6 },
+    synthwave:{ bpm: 98, root: 110, scale: [0, 3, 5, 7, 10], prog: [0, 4, 3, 4, 2, 4, 3, 0], waves: { bass: 'sawtooth', lead: 'sawtooth' }, cutoff: 1500, perc: true, density: 0.5 },
+    meadow:   { bpm: 90, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 4, 0, 2, 4, 3], waves: { bass: 'triangle', lead: 'sine' }, cutoff: 2400, perc: false, density: 0.5 },
+    candy:    { bpm: 110, root: 174.61, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 5, 4, 0, 5, 3, 4], waves: { bass: 'triangle', lead: 'triangle' }, cutoff: 2600, perc: true, density: 0.62 },
+    pastel:   { bpm: 82, root: 196, scale: [0, 2, 4, 7, 9, 12], prog: [0, 3, 4, 2, 0, 4, 3, 4], waves: { bass: 'sine', lead: 'triangle' }, cutoff: 2000, perc: false, density: 0.38 },
+    tactical: { bpm: 126, root: 130.81, scale: [0, 2, 3, 7, 8, 10], prog: [0, 0, 3, 4, 0, 5, 3, 4], waves: { bass: 'square', lead: 'sawtooth' }, cutoff: 1300, perc: true, density: 0.5 },
+    castle:   { bpm: 86, root: 110, scale: [0, 2, 3, 5, 7, 8, 12], prog: [0, 3, 4, 0, 5, 3, 6, 4], waves: { bass: 'triangle', lead: 'square' }, cutoff: 1700, perc: false, density: 0.46 },
+    // Keep Defender per-map (same medieval family, mood by biome)
+    kd_grass:   { bpm: 96, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 4, 0, 2, 4, 3], waves: { bass: 'triangle', lead: 'triangle' }, cutoff: 2500, perc: false, density: 0.5 },
+    kd_ice:     { bpm: 76, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4, 0, 3, 5, 4], waves: { bass: 'sine', lead: 'sine' }, cutoff: 3200, perc: false, density: 0.34 },
+    kd_lava:    { bpm: 118, root: 98, scale: [0, 2, 3, 5, 7, 8, 11], prog: [0, 0, 5, 0, 3, 4, 5, 0], waves: { bass: 'sawtooth', lead: 'square' }, cutoff: 1500, perc: true, density: 0.56 },
+    kd_desert:  { bpm: 100, root: 123.47, scale: [0, 1, 3, 5, 7, 8, 10], prog: [0, 3, 1, 4, 0, 5, 3, 1], waves: { bass: 'triangle', lead: 'sawtooth' }, cutoff: 2000, perc: true, density: 0.5 },
+    kd_dungeon: { bpm: 72, root: 82.41, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 3, 4, 0, 5, 3, 4, 0], waves: { bass: 'sine', lead: 'square' }, cutoff: 1400, perc: false, density: 0.36 },
+    kd_marsh:   { bpm: 84, root: 92.5, scale: [0, 2, 3, 5, 7, 9, 10], prog: [0, 3, 4, 2, 0, 4, 3, 2], waves: { bass: 'triangle', lead: 'triangle' }, cutoff: 1150, perc: true, density: 0.44 },
+  };
+  var _mt = null, _mtStep = 0, _mtMel = 0, _mtTheme = null, _mtKey = null;
+  function mvoice(o) { o.out = musicGain; synthVoice(o); }
+  function mnoise(o) { o.out = musicGain; synthNoise(o); }
+  function schedStep(T, L, spb, tt) {
+    var step = _mtStep, s = step % 8, bar = Math.floor(step / 8);
+    var chord = T.prog[bar % T.prog.length], nextChord = T.prog[(bar + 1) % T.prog.length], phraseEnd = (bar % 4 === 3);
+    var tones = [chord + L, chord + 2 + L, chord + 4 + L];
+    if (s === 0) [chord, chord + 2, chord + 4].forEach(function (d) { var f = NT(T.root, T.scale, d); if (f) mvoice({ f: f / 2, dur: spb * 8.2, type: 'sine', gain: T.ambient ? 0.04 : 0.028, attack: T.ambient ? 0.7 : 0.25, filter: 'lowpass', cutoff: 1000, reverb: T.ambient ? 0.6 : 0.42, t: tt }); });
+    if (T.sub && s === 0) { var df = NT(T.root / 4, T.scale, chord); if (df) mvoice({ f: df, dur: spb * 8.6, type: 'sine', gain: 0.06, attack: 0.6, filter: 'lowpass', cutoff: 340, reverb: 0.5, t: tt }); }
+    if (T.sparkle && Math.random() < 0.11) { var kf = NT(T.root, T.scale, NEAR(_mtMel, tones) + L + (Math.random() < 0.5 ? 4 : 7)); if (kf) mvoice({ f: kf, dur: spb * 3.5, type: 'sine', gain: 0.045, attack: 0.02, filter: 'lowpass', cutoff: 5200, reverb: 0.65, t: tt + Math.random() * spb }); }
+    if (s === 0) mvoice({ f: NT(T.root / 2, T.scale, chord), dur: spb * 2.4, type: T.waves.bass, gain: 0.17, filter: 'lowpass', cutoff: 600, t: tt });
+    else if (s === 4) mvoice({ f: NT(T.root / 2, T.scale, phraseEnd ? nextChord : chord + 4), dur: spb * 2.2, type: T.waves.bass, gain: 0.14, filter: 'lowpass', cutoff: 600, t: tt });
+    else if (T.perc && s === 6) mvoice({ f: NT(T.root / 2, T.scale, chord), dur: spb * 1.2, type: T.waves.bass, gain: 0.09, filter: 'lowpass', cutoff: 550, t: tt });
+    if (T.arp) {
+      var at = [chord + L, chord + 2 + L, chord + 4 + L, chord + L + L, chord + 4 + L, chord + 2 + L], sub = spb / 2;
+      for (var k = 0; k < 2; k++) { var af = NT(T.root, T.scale, at[(step * 2 + k) % at.length]); mvoice({ f: af, dur: sub * 0.9, type: T.waves.lead, gain: 0.04, filter: 'lowpass', cutoff: T.cutoff, reverb: 0.22, t: tt + k * sub }); }
+    }
+    if (T.zap && s === 0 && bar % 4 === 2) mvoice({ f: 1900, slideTo: 320, dur: 0.2, type: 'sawtooth', gain: 0.06, filter: 'lowpass', cutoff: 3000, cutoffTo: 520, q: 6, reverb: 0.25, t: tt });
+    var dens = T.density + (phraseEnd ? 0.18 : 0) + (s === 0 ? 0.25 : 0);
+    if (!T.arp && Math.random() < dens) {
+      if (s === 0 || Math.random() < 0.35) _mtMel = NEAR(_mtMel, tones);
+      else { var steps = [-2, -1, -1, 1, 1, 2]; _mtMel += steps[(Math.random() * steps.length) | 0]; }
+      _mtMel = Math.max(L, Math.min(L * 2 + 3, _mtMel));
+      var lf = NT(T.root, T.scale, _mtMel), ldur = (Math.random() < 0.25 ? spb * 0.55 : spb * 1.35) * (T.ambient ? (2.4 + Math.random() * 1.6) : 1);
+      var atk = T.ambient ? 0.18 : 0.006, rv = T.ambient ? 0.55 : 0.3, gn = T.ambient ? 0.06 : 0.085;
+      mvoice({ f: lf, dur: ldur, type: T.waves.lead, gain: gn, attack: atk, filter: 'lowpass', cutoff: T.cutoff, reverb: rv, vibrato: T.leadVib, vibratoDepth: 4, t: tt });
+      mvoice({ f: lf, dur: ldur, type: T.waves.lead, gain: gn * 0.5, detune: 9, attack: atk, filter: 'lowpass', cutoff: T.cutoff, reverb: rv, t: tt });
+    }
+    if (T.perc) {
+      if (s % 4 === 0) mvoice({ f: 120, slideTo: 45, dur: 0.14, type: 'sine', gain: T.arp ? 0.14 : 0.2, t: tt });
+      if (s === 2 || s === 6) mnoise({ dur: 0.12, gain: T.arp ? 0.045 : 0.07, filter: 'highpass', cutoff: 1600, reverb: 0.12, t: tt });
+      if (!T.arp && s % 2 === 1) mnoise({ dur: 0.03, gain: 0.028, filter: 'highpass', cutoff: 7000, t: tt });
+      if (phraseEnd && s >= 6) mnoise({ dur: 0.04, gain: 0.05, filter: 'highpass', cutoff: 3000, t: tt + spb * 0.5 });
+    }
+  }
+  var _mtNext = 0;
+  // Start the step scheduler — but ONLY once the context exists AND is running. We never create the
+  // AudioContext here (Chrome penalizes contexts created before a gesture): the gesture unlock creates
+  // + resumes it and then calls this. So at page load this is a no-op; music begins on the first tap/key.
+  function startScheduler() {
+    if (_mt || !_mtTheme) return;
+    if (!ac || ac.state !== 'running') return;   // do NOT create the context here — the gesture unlock owns creation
+    _mtNext = ac.currentTime + 0.06;
+    _mt = setInterval(function () {
+      if (!ac || !_mtTheme) return;
+      if (ac.state !== 'running') { _mtNext = ac.currentTime + 0.06; return; }   // idle while backgrounded
+      var T2 = _mtTheme, L = T2.scale.length, spb = 60 / T2.bpm / 2, guard = 0;
+      while (_mtNext < ac.currentTime + 0.14 && guard++ < 64) { schedStep(T2, L, spb, _mtNext); _mtStep++; _mtNext += spb; }
+    }, 25);
+  }
+  function musicPlay(key) {
+    var T = THEMES[key]; if (!T) return;
+    _mtTheme = T; _mtKey = key; _mtStep = 0; _mtMel = T.scale.length + 3;   // remembered; swaps seamlessly if running
+    startScheduler();   // no-op until a gesture has created + resumed the context (then the unlock kicks it)
+  }
+  function musicStop() { if (_mt) { try { clearInterval(_mt); } catch (e) {} _mt = null; } _mtTheme = null; _mtKey = null; }
+
+  // Music channel: kit owns settings + UI + the generative engine. play(themeKey)/stop()/current().
+  // subscribe() kept for back-compat (a game with its own engine can still follow the gain).
   var music = {
     isMuted: function () { return musMuted; },
-    volume: function (v) { if (v === undefined) return musVol; musVol = clamp01(v, musVol); lsSet(MUS_V, String(musVol)); syncAudioUI(); notifyMusic(); },
+    volume: function (v) { if (v === undefined) return musVol; musVol = clamp01(v, musVol); lsSet(MUS_V, String(musVol)); if (musicGain) musicGain.gain.value = musMuted ? 0 : musVol; syncAudioUI(); notifyMusic(); },
     gain: function () { return musMuted ? 0 : musVol; },
-    setMuted: function (m) { musMuted = !!m; lsSet(MUS_M, musMuted ? '1' : '0'); syncAudioUI(); notifyMusic(); },
-    toggle: function () { musMuted = !musMuted; lsSet(MUS_M, musMuted ? '1' : '0'); syncAudioUI(); notifyMusic(); return musMuted; },
+    setMuted: function (m) { musMuted = !!m; lsSet(MUS_M, musMuted ? '1' : '0'); if (musicGain) musicGain.gain.value = musMuted ? 0 : musVol; syncAudioUI(); notifyMusic(); },
+    toggle: function () { musMuted = !musMuted; lsSet(MUS_M, musMuted ? '1' : '0'); if (musicGain) musicGain.gain.value = musMuted ? 0 : musVol; syncAudioUI(); notifyMusic(); return musMuted; },
     subscribe: function (cb) { if (typeof cb === 'function') { musicListeners.push(cb); try { cb({ muted: musMuted, volume: musVol, gain: musMuted ? 0 : musVol }); } catch (e) {} } },
+    play: musicPlay, stop: musicStop, current: function () { return _mtKey; }, themes: THEMES,
   };
 
   // ---------- in-page confirm dialog (replaces the browser confirm()) ----------
@@ -822,18 +969,22 @@
     __emit: function (w, h) { try { if (typeof window !== 'undefined') { if (w != null) window.innerWidth = w; if (h != null) window.innerHeight = h; } } catch (e) {} fireLayout(); },
   };
 
-  // Unlock/resume the AudioContext on the first user gesture — browsers block (and warn about)
-  // audio that starts without one. After the first tap/key, sounds play cleanly.
+  // Unlock/resume the AudioContext on user gestures. Browsers keep it SUSPENDED until a real gesture,
+  // so on a fresh load / refresh nothing plays until the first tap or key — that's unavoidable. We
+  // listen in the CAPTURE phase so a game canvas that calls stopPropagation can't swallow the gesture
+  // (that was making music flaky, e.g. Bubble Pop), and keep listening (not `once`) so audio also
+  // recovers after a tab-switch re-suspends the context.
   (function () {
     if (typeof document === 'undefined' || !document.addEventListener) return;
     var unlock = function () {
-      ensureAC();
-      if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
+      ensureAC(); if (!ac) return;                                  // create the context DURING the gesture
+      if (ac.state === 'running') { startScheduler(); return; }
+      try { var p = ac.resume(); if (p && p.then) p.then(startScheduler, function () {}); else startScheduler(); } catch (e) {}
     };
     var evs = ['pointerdown', 'touchstart', 'keydown'];
     for (var i = 0; i < evs.length; i++) {
-      try { document.addEventListener(evs[i], unlock, { once: true }); }
-      catch (e) { try { document.addEventListener(evs[i], unlock); } catch (_) {} }
+      try { document.addEventListener(evs[i], unlock, { capture: true, passive: true }); }
+      catch (e) { try { document.addEventListener(evs[i], unlock, true); } catch (_) {} }
     }
   })();
 
