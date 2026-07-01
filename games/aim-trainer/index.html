@@ -149,7 +149,7 @@
       $('hTime').className = '';
       $('hBestLbl').textContent = 'BEST TIME';
       const bt = loadBest('sprint', 0);
-      $('hBest').textContent = bt > 0 ? (bt / 60).toFixed(1) + 's' : '--';
+      $('hBest').textContent = bt > 0 ? (bt / 1000).toFixed(1) + 's' : '--';
     } else {
       $('hScoreLbl').textContent = 'SCORE';
       $('hTimeLbl').textContent = 'TIME';
@@ -245,7 +245,7 @@
     SND.play('end');
     const acc = hits + misses > 0 ? Math.round(hits / (hits + misses) * 100) : 0;
     let isBest = false;
-    if (mode === 'sprint') { const prev = loadBest('sprint', 0); isBest = prev === 0 || elapsedFrames < prev; if (isBest) saveBest('sprint', 0, elapsedFrames); }
+    if (mode === 'sprint') { const prev = loadBest('sprint', 0), ms = Math.round(elapsedFrames / 60 * 1000); isBest = prev === 0 || ms < prev; if (isBest) saveBest('sprint', 0, ms); }
     else { const prev = loadBest('timed', sessionSeconds); isBest = score > prev; if (isBest) saveBest('timed', sessionSeconds, score); }
     showEnd(acc, isBest);
     updateHud();
@@ -300,7 +300,7 @@
       groups: [
         { id: 'mode', label: 'MODE', style: 'cards', default: m, choices: [
           { id: 'timed', label: 'Timed', mech: ['Beat the clock'], best: st => loadBest('timed', Number(st.amount) || DEFAULT_SESSION), preview: (g, w, h) => pvRange(g, w, h, 'timed') },
-          { id: 'sprint', label: 'Sprint', mech: ['Race to a count'], best: () => { const t = loadBest('sprint', 0); return t > 0 ? (t / 60).toFixed(1) + 's' : '--'; }, preview: (g, w, h) => pvRange(g, w, h, 'sprint') },
+          { id: 'sprint', label: 'Sprint', mech: ['Race to a count'], best: () => { const t = loadBest('sprint', 0); return t > 0 ? (t / 1000).toFixed(1) + 's' : '--'; }, preview: (g, w, h) => pvRange(g, w, h, 'sprint') },
         ] },
         { id: 'amount', label: m === 'sprint' ? 'TARGETS' : 'DURATION', default: m === 'sprint' ? String(SPRINT_TARGET) : String(sessionSeconds), choices: amounts },
       ],
@@ -328,10 +328,10 @@
     const detail = acc + '% accuracy · ' + hits + ' hits · ' + misses + ' misses' + (bestReact < Infinity ? (' · ' + bestReact + 'ms') : '');
     const cfg = { kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true, title: isSprint ? 'SPRINT CLEAR' : "TIME'S UP", lines: [detail],
       share: { slug: 'aim-trainer', title: 'Range', message: () => shareMsg(), params: () => rangeParams() },
-      record: { slug: 'aim-trainer', mode: modeLabel(mode, mode === 'sprint' ? SPRINT_TARGET : sessionSeconds), score: score, time: elapsedFrames, stats: { accuracy: acc } },
+      record: { slug: 'aim-trainer', mode: modeLabel(mode, mode === 'sprint' ? SPRINT_TARGET : sessionSeconds), score: score, time: Math.round(elapsedFrames / 60 * 1000), stats: { accuracy: acc } },
       actions: [ { id: 'again', label: 'FIRE AGAIN', primary: true }, { id: 'menu', label: 'MENU' } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } };
-    if (isSprint) { const bt = loadBest('sprint', 0); cfg.score = elapsedFrames; cfg.scoreText = (elapsedFrames / 60).toFixed(2) + 's'; cfg.lines.unshift('Best ' + (bt > 0 ? (bt / 60).toFixed(2) + 's' : '--')); }
+    if (isSprint) { const bt = loadBest('sprint', 0); cfg.score = elapsedFrames; cfg.scoreText = (elapsedFrames / 60).toFixed(2) + 's'; cfg.lines.unshift('Best ' + (bt > 0 ? (bt / 1000).toFixed(2) + 's' : '--')); }
     else { cfg.score = score; cfg.best = loadBest('timed', sessionSeconds); cfg.newBest = isBest; }
     KIT.menu.show(cfg);
   }
@@ -641,7 +641,7 @@
       if (mode === 'timed') return loadBest('timed', sessionSeconds);
       return 0;
     },
-    get bestTime() { return loadBest('sprint', 0); }, // frames; 0 = no best
+    get bestTime() { return loadBest('sprint', 0); }, // ms; 0 = no best
     get mode() { return mode; },
     start() {
       mode = 'timed';

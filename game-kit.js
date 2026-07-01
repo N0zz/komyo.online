@@ -586,7 +586,7 @@
         var e = g[m], sc = e.score || 0, pl = e.plays || 0;
         if (pl > 0) { modesPlayed++; played = true; }
         gPlays += pl;
-        modes.push({ mode: m, score: sc, plays: pl });
+        modes.push({ mode: m, score: sc, plays: pl, time: e.time || 0 });
         if (sc > gBest) gBest = sc;
         if (sc > top.score) top = { slug: slug, score: sc, mode: m };
         if (pl > favMode.plays) favMode = { slug: slug, mode: m, plays: pl };
