@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-01', title: 'Your player profile 👤', items: [
+    'New: a My profile page (menu → 👤 My profile) — see your totals, favorite game and genre, good runs, and your best score in every mode of every game, laid out as tiles and ranked by how much you play them. Share the whole thing as an image.',
+    'Everything stays on your device (nothing to sign up for), and carries over with Export / import.',
+  ] },
   { date: '2026-07-01', title: 'Sound on 🔊', items: [
     'New: every game now has music — a themed backdrop track that plays on the menu and keeps going while you play. Keep Defender even changes its tune per map (grassland, ice, lava, desert, dungeon, marsh).',
     'Improved: punchier sound effects across every game — richer hits, pops, explosions and pickups, with a touch of space. Asteroids fire now sounds like a proper laser.',
