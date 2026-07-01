@@ -408,6 +408,14 @@
   .dresize::after { content:''; position:absolute; top:50%; transform:translateY(-50%); width:3px; height:36px; border-radius:3px; background:var(--border); }
   .drawer.left .dresize::after { right:3px; } .drawer.right .dresize::after { left:3px; }
   .dresize:hover::after { background:#9fe8ff; }
+  /* back-to-top button — appears once you've scrolled the games list down */
+  .totop { position:fixed; right:16px; bottom:16px; z-index:40; width:46px; height:46px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:21px; line-height:1; color:#06121a;
+    background:#9fe8ff; border:none; box-shadow:0 6px 20px rgba(0,0,0,0.45);
+    opacity:0; transform:translateY(12px) scale(0.9); pointer-events:none; transition:opacity .2s, transform .2s; }
+  .totop.show { opacity:0.92; transform:none; pointer-events:auto; }
+  .totop:hover { opacity:1; box-shadow:0 8px 26px rgba(159,232,255,0.4); }
+  @media (prefers-reduced-motion: reduce) { .totop { transition:none; } }
 </style>
 </head>
 <body>
@@ -1577,6 +1585,23 @@
           if (i >= urls.length) return;
           fetch(urls[i++], { credentials: 'same-origin' }).catch(function () {}).then(function () { idle(next); });
         })();
+      } catch (e) {}
+    })();
+
+    // back-to-top button — shows after scrolling the games list down, smooth-scrolls to the top
+    (function () {
+      try {
+        if (typeof document === 'undefined' || !document.body || !document.createElement) return;
+        var btn = document.createElement('button');
+        btn.id = 'toTop'; btn.className = 'totop'; btn.type = 'button';
+        btn.setAttribute('aria-label', 'Back to top'); btn.title = 'Back to top';
+        btn.innerHTML = '↑';
+        document.body.appendChild(btn);
+        var reduce = false; try { reduce = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
+        btn.addEventListener('click', function () { try { window.scrollTo({ top: 0, behavior: reduce ? 'auto' : 'smooth' }); } catch (e) { try { window.scrollTo(0, 0); } catch (_) {} } });
+        var onScroll = function () { if (btn.classList) btn.classList.toggle('show', (window.scrollY || window.pageYOffset || 0) > 500); };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
       } catch (e) {}
     })();
   </script>
