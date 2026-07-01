@@ -12,6 +12,11 @@ challenges, tv-controller.
   expiry, kamikaze, finite 30-wave finale) — **shipped but still being playtested** (tracked in the
   `komyo-asteroids-plus-rebalance` note; difficulty tiers parked). Meadow Flyer speed-creep shipped.
   Other games were fine or got minor tweaks. Layout already locked by per-game `__test.layout` tests.
+- **Sound & music — DONE (2026-07-01).** Kit-owned procedural music engine + richer SFX + shared reverb +
+  stingers; music on every game's menu & in-game (Keep Defender swaps per-map biome tracks), Asteroids
+  laser shot; catalogue global Settings page. See the `komyo-audio-design` note.
+- **`gamekit.menu` framework — DONE (2026-07-01).** All 9 games migrated to the declarative kit menu
+  (cards / sliders / grid / map-popup + animated backdrops), suites green.
 
 ## 🚀 Path to launch (ordered)
 
@@ -45,22 +50,22 @@ The one ordered track. Everything else in this file is unordered backlog feeding
    (geometric HP, economy, snowball, drop rates, difficulty tiers). The queue's per-game **Effort**
    column already encodes this; treat balance-heavy as a high hidden cost. (See the
    `komyo-avoid-balance-heavy-genres` note.)
-5. **Sound + music pass** — review & redesign SFX across all games for consistency; add **music** to
-   the games that warrant it (only Asteroids has music today).
-6. **Score-card redesign** *(gated on the real mascot)* — redesign the card art + settle the share
+5. **Score-card redesign** *(gated on the real mascot)* — redesign the card art + settle the share
    affordance. My weak point — may need design help. **~1 session.**
-7. **Target tuning** *(needs testing first)* — testers + self playtest (on staging), then retune
+6. **Target tuning** *(needs testing first)* — testers + self playtest (on staging), then retune
    daily/weekly challenge targets; confirm the UTC daily reset behaves. **~1 session.**
-8. **Pre-launch QA** — real-device pass on staging (iPhone / Android / desktop): touch, audio unlock,
+7. **Pre-launch QA** — real-device pass on staging (iPhone / Android / desktop): touch, audio unlock,
    PWA install, rotation, visuals. **Test newsletter sending** (Kit form → inbox). Confirm GA4 events +
-   the in-site feedback path fire so post-launch feedback has inputs.
-9. **Privacy policy signed off** *(external gate — counsel)* — hard blocker for any public launch
+   the in-site feedback path fire so post-launch feedback has inputs. **Test Export / import** — verify
+   the base64 blob round-trips a full account (scores, favorites, **profile: `gamekit_pb` + `gamekit_stats`**,
+   challenge history) between two devices with no loss.
+8. **Privacy policy signed off** *(external gate — counsel)* — hard blocker for any public launch
    (GA4 + Discord auto-post + EU visitors).
-10. **Discord / community readiness** — ✅ **server set up (done)**: roles, rules, channels, verification,
-    automod/anti-spam, reporting path; score auto-post + changelog flow there. **Only open item:
-    moderators** — ask friends to volunteer; **if nobody bites, launch without mods** (someone will want
-    the role) — *not a launch blocker.* Fine to start small with family + friends.
-11. **Launch rollout (staged):** family + friends → let them share further → social media → launch
+9. **Discord / community readiness** — ✅ **server set up (done)**: roles, rules, channels, verification,
+   automod/anti-spam, reporting path; score auto-post + changelog flow there. **Only open item:
+   moderators** — ask friends to volunteer; **if nobody bites, launch without mods** (someone will want
+   the role) — *not a launch blocker.* Fine to start small with family + friends.
+10. **Launch rollout (staged):** family + friends → let them share further → social media → launch
     posts (forums / portals / Reddit) → consider **paid ads** (Facebook / Google / wherever fits) →
     organic growth from shared scores + their friends joining.
 
@@ -154,6 +159,23 @@ from day one.
   single-game + cross-game goals, plus a 1-year completion History). Targets are **provisional** —
   playtest and retune (Snake already bumped 50→250); confirm the UTC daily-reset behaves.
 
+- **Aggregate usage insights via GA4** *(idea — data to drive decisions)* — fire a few **anonymous,
+  aggregate** GA4 custom events so we can answer real product questions instead of guessing:
+  - **Audio prefs** — event on SFX/Music mute toggle (+ maybe a coarse volume bucket). If most players
+    disable music, flip music to **opt-in** (or lower its default). Fire from the kit's `sound`/`music`
+    toggles + a one-time "current state" ping on load.
+  - **Challenge engagement** — events for challenge *shown* / *completed* (with the goal id + daily-vs-weekly).
+    Reveals completion **rates** per goal → which are too hard (near-0% done) or trivial, and which get
+    skipped, to retune targets from real data (feeds the tuning item above).
+  - **Per-game/mode completion & session** — optional: game start / game-over by mode to see what's actually
+    played vs. ignored.
+  - **Policy fit (important):** only OK because GA4 is **already consent-gated** (loads only after the cookie
+    banner's Accept) — so it must (a) fire **only** when consented, via the existing `analytics.js` gate,
+    (b) stay **anonymous & aggregate** (event counts, no per-user dossiers — that would clash with our
+    no-accounts / device-only ethos), and (c) be reflected in `privacy.html` (name the event categories).
+    Caveat: it only samples *consented* users, so read it as a trend, not a census. If even anonymous
+    behavioral events feel off-brand, the fallback is self-playtest + tester feedback (slower, no tracking).
+
 - **Privacy policy — legal review** *(in progress)*. The plain-language AI draft is published at
   `komyo.online/privacy.html` (treat as v1 — accurate, not lawyer-hardened) and links from the cookie
   banner + About. **Waiting on the lawyer's response** (handoff briefs:
@@ -203,7 +225,17 @@ from day one.
   supported → build a branded one (mascot + search / back-to-catalogue; ties into the mascot reuse).
   Other codes (403 / 5xx) are served by GitHub/Fastly and **aren't customizable** on a static Pages
   site — confirm the limits and document what we can/can't do.
-- **"My profile" modal + shareable stats card** *(idea)* — a profile the player opens from the catalogue
+- **"My profile" — v1 SHIPPED (2026-07-01).** Catalogue ☰ → 👤 My profile: summary (games / modes / plays /
+  days), favorites (favorite game by plays, most-played mode, favorite genre, top score, good runs,
+  playing-since), per-game PB tables (best + plays, only games with a PB), and a shareable stats-card
+  image. Backed by the kit's **single source of truth for bests** — all 9 games read/write via
+  `gamekit.best`/`gamekit.saveBest` (`gamekit_pb`, keyed by a human mode label) + `gamekit_stats` for
+  lifetime rollups. No per-game best-keys, so menu & profile can't diverge; reset prunes the store; portable
+  via Export/import. **Wrapped-style expansion (next):** play/longest streak, challenges completed, this-week /
+  this-month / all-time toggles, "new games tried", milestone badges (played-every-game, first-10k,
+  N-day-streak), night-owl/early-bird from play-hour, and a **"Your year in komyo"** multi-slide seasonal
+  card. Deeper ones (total minutes played) need coarse session-time tracking in the kit. Original spec:
+- **"My profile" modal + shareable stats card** *(original spec, superseded by v1 above)* — a profile the player opens from the catalogue
   (☰ menu, next to Settings) that summarizes THIS device's play: total games played + total game-modes
   played, and the best score across everything. Below the summary, per-game high-score tables/lists
   **sorted by game**, showing each mode's PB. **Only list games where the player has a PB** — if every
@@ -219,6 +251,13 @@ from day one.
   them** with a low `<priority>` so search engines can discover them; also cross-check `llms.txt` and
   `robots.txt` list what we intend. One-time audit + a note in CLAUDE.md's "when a page goes live" step
   so new standalone pages get added going forward.
+- **"Play a random game" button + challenge** *(idea — discovery)* — a 🎲 button on the catalogue that
+  launches a random game. Two flavors: **random across all** games, or **random among games you haven't
+  played yet** (read `gamekit.profile()` / `gamekit_pb` to know what's unplayed) — nice for pushing
+  people to try new ones. **Fallback:** when nothing's unplayed, the button just picks from all games.
+  Also a **random-game challenge** (daily/weekly): "Play [today's random pick] today." **Base the
+  *challenge* on ALL games, not unplayed** — an "unplayed" challenge would be impossible/broken for
+  players who've already played everything. Only the *button* gets the unplayed filter.
 ### Platforms
 
 - **TV & controller support** (Android/Google TV · remote · gamepad) — full design at
@@ -280,6 +319,30 @@ Filter for all of these: **does it keep the no-server / no-ads / no-accounts ide
   wrapper + Apple review — harder.)
 - **itch.io HTML5 uploads** — zip each game; itch hosts + brings players, ad-free-friendly, embeddable.
   Concretizes "list on portals."
+- **Cloud-sync the Export/import blob** *(idea — optional convenience)* — let a player connect a personal
+  storage provider (Google Drive / Dropbox / OneDrive) so the base64 export auto-syncs (backup + carry
+  between devices) without manual export/import. Client-side OAuth to the *user's own* drive — **no komyo
+  backend, no accounts on our side** (keeps the no-server / privacy stance). Watch: OAuth needs registered
+  app credentials + redirect handling on a static site, and token storage; keep it strictly opt-in. Nice
+  step up from manual Export/import once profiles matter to people.
+- **Challenge-points progression / economy** *(idea — big; needs a backend to do properly)* — spend the
+  challenge points on rewards:
+  - **Titles** — unlock cosmetic titles at point thresholds, shown on the profile page (cheap, client-only).
+  - **Collectibles shop** — buy **mascot skins** with points; the mascot is the logo + shows on score cards,
+    so a skin is visible and worth chasing (client-only if purchases live on-device).
+  - **Discord roles/titles** — spend points for a Discord role — a real status carrot. Needs a Discord bot +
+    OAuth (link account → grant role), i.e. a small backend.
+  - **The hard part = anti-cheat.** Points on-device are trivially forged (export → bump → import), so any
+    reward that grants *external* value (a Discord role) must verify the **whole history** — plays, records,
+    and challenge-completion log — not just the number. Recompute expected points from that history; if it
+    doesn't reconcile (claims 1000 but history supports ~10), reject and optionally flag (a jokey **"cheater"**
+    role). Note honestly: since everything is currently client-side, a determined cheater can craft a
+    *consistent* fake history offline — client verification only raises the bar (you'd have to recreate a
+    plausible full history), it doesn't prevent. **True** integrity needs server-side authoritative recording
+    (log each result as it happens), which is a real departure from today's **no-backend / no-accounts /
+    device-only** model. So: titles + mascot-skin shop are doable client-side now; Discord-role spending and
+    real anti-cheat are a separate, backend-gated project — decide if the status payoff justifies leaving the
+    serverless stance.
 - **More share targets + story-format card** — add WhatsApp / Telegram / Bluesky / Mastodon / Threads
   intents (just URL schemes) + a **vertical "story" score-card** for IG/TikTok Stories. Cheap; leverages
   the existing share row.
