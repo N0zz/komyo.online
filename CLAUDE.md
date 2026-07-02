@@ -13,67 +13,132 @@ Game design knobs we honor (per-genre, distilled from external playbooks): @game
 ## Layout
 
 ```text
-index.html      catalogue (renders tiles from games.js) + PWA install + share + feedback + newsletter
-games.js        catalogue manifest — window.GAMES = [{slug,title,blurb,icon,accent,tag,soon?}]
+index.html      catalogue (renders tiles from games.js) + drawers/modals (profile, settings, challenges…)
+games.js        catalogue manifest — window.GAMES = [{slug,title,blurb,icon,accent,tag,soon?,added?,updated?,mp?,players?,badges?}]
+challenges.js   window.CHALLENGES — daily/weekly goals + per-game goodRun bars + the titles ladder
+changelog.js    window.CHANGELOG — player-facing releases (drives the 🗒️ modal + the Discord post)
 analytics.js    GA4 loader, consent-gated (see "Analytics")
-game-kit.js    SHARED game shell — sound engine + mute, top nav, share row, PWA auto-update
-game-kit.css   shared shell styles (nav buttons, share row)
+version.js      build stamp {sha, built} — 'dev' locally, stamped by the Pages deploy workflow
+game-kit.js     SHARED game shell — see "Shared kit" (nav, menus, sound, loop, layout, best store, PWA)
+game-kit.css    shared shell styles (nav/menus/HUD/share row)
+sw-core.js      shared service-worker engine — each sw.js sets SCOPE/VERSION/SHELL and imports it
 test.mjs        top-level suite: catalogue + Keep Defender + live-games boot + game-kit test
 test-harness.mjs  the ONE shared headless harness (sandbox/bootGame/runLayoutSuite) all suites import
-scripts/        post-changelog.mjs (Discord changelog action) + gen-icon.mjs (icon generation)
+scripts/        post-changelog.mjs (Discord changelog action) + gen-icon.mjs (icon generation) + bench.sh
 manifest.json sw.js favicon.svg og-image.png logo-*.png   CNAME .nojekyll .gitignore
 games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, favicon.svg, icon-192/512.png)
 ```
 
 ## Game conventions (the rules that matter)
 
+These are **hard contracts** — the test suites and the kit assume them; breaking one usually fails
+silently, not loudly.
+
 - **No external dependencies / assets.** No build, no CDNs/fonts/images — visuals are canvas
-  vector + system fonts + emoji-as-text. Games DO load two **in-repo, same-origin** shared files
-  (`../../game-kit.js` + `../../game-kit.css`) plus `analytics.js`; these ship with the site and are
-  cached offline (each game's `sw.js` SHELL), so they're not external "dependencies." All
-  game-specific logic stays inline in the one `index.html`.
+  vector + system fonts + emoji-as-text. Games DO load the **in-repo, same-origin** shared head
+  files (see "Shared kit"); these ship with the site and are cached offline (each game's `sw.js`
+  SHELL), so they're not external "dependencies." All game-specific logic stays inline in the one
+  `index.html`.
+- **The slug is the ONE identity:** folder name = `games.js` slug = `nav({slug})` = the
+  `record`/`share`/`saveBest` slug = the `CHALLENGES.goodRun` key. A mismatch breaks silently
+  (wrong URLs, orphaned storage keys, dead challenges, a reset that wipes another game).
 - **One inline `<script>` (IIFE) before `</body>`** that sets `window.__test`.
 - **`window.__test` hook** — getters for state + a `step(n)` that drives the core `update()`
-  **directly** (never relies on `requestAnimationFrame`, which is a no-op in tests). Must be
-  deterministic so the headless harness can drive it. Harmless in normal play.
-- **Headless-safe:** guard `AudioContext` (lazy, inert if absent), `navigator.vibrate` (only
-  if present), `matchMedia`; `ctx.roundRect` fallback. Must boot in a mocked DOM without throwing.
-- **Shell comes from game-kit** (see "Shared kit"): the top-left nav (‹ Menu · komyo ›), the
-  top-right **sound menu** (SFX + Music + reset-scores), the sound engine, the end-screen share row,
-  and PWA registration are all `gamekit.*` calls — do NOT re-implement them per game. Put the score/best
-  HUD in a **`.gamekit-hud`** container (center-top; clears the left nav and right sound menu).
-- **Three-screen schema (every game):** (1) MENU — title + mode/options selection with a
-  CLEAR selected-state indicator on the active choice; (2) GAME; (3) SCOREBOARD/END — final
-  score + best (persisted in `localStorage`) + a "Play again" action + the kit **share row**.
-- **Each game is its own installable PWA:** `manifest.json` + `sw.js` + `icon-192/512.png`
-  (distinct color-emoji icon) + apple/theme meta in `<head>`.
+  **directly** (never relies on `requestAnimationFrame`, a no-op in tests), deterministic
+  (support a seeded RNG where the game rolls `Math.random` in asserted paths), plus a read-only
+  `layout` getter (JS-computed bounds in canvas px, incl. `topReserve`). Harmless in normal play.
+- **Headless-safe:** guard `AudioContext` (lazy, inert if absent), `navigator.vibrate`,
+  `matchMedia`. Must boot in a mocked DOM without throwing. (`ctx.roundRect` is safe everywhere —
+  the kit installs the polyfill.)
+- **Shell comes from game-kit** (see "Shared kit"): nav, pause, sound menu, ☰ game menu,
+  challenges, controls, menus, share row and PWA registration are all `gamekit.*` calls — do NOT
+  re-implement them per game. Score/best HUD lives in a **`.gamekit-hud`** container; reserve
+  **`gamekit.layout.hudTop()`** px of top headroom (92 narrow / 48 desktop — never re-derive the
+  numbers per game).
+- **Three screens, all `gamekit.menu`:** (1) START — mode/options via menu `groups`/`toggles`
+  with a clear selected state; (2) GAME; (3) END — `menu.show({kind:'end', record, share, …})`
+  with score + best + "Play again" + the kit share row. **`record:` in the end menu is the ONLY
+  way results are recorded** — never call `gamekit.recordResult` directly (the menu path is
+  idempotent per run; an imperative call double-counts).
+- **Best scores:** the kit best store only — `gamekit.saveBest(slug, modeLabel, {score})` /
+  `gamekit.bestScore(slug, modeLabel)`, no per-game best keys. Compute `isBest` BEFORE the single
+  end-of-run save (mid-run saves make "★ New best!" never fire), aim-trainer's `endGame` is the
+  reference.
+- **Main loop = `gamekit.loop(update, render, opts)`** — the kit's fixed-timestep accumulator
+  (60 Hz steps at any refresh rate, kit-pause built in). Never `rAF → update()` directly — that
+  ships a frame-rate-dependent game. `update()` must stay drivable via `__test.step(n)`.
+- **Canvas sizing = `gamekit.fitCanvas(canvas, W, H)`** in the game's resize path, re-run via
+  `gamekit.layout.on(…)` — the game computes its CSS size, the kit applies the retina backing
+  store; ALL drawing + pointer math stays in CSS px (scale pointers by `W / rect.width`, never
+  `canvas.width`). Scaled-world games (asteroids, asteroids-plus) keep their own sizing.
+- **SFX:** `SND.define({…})` must never reuse a kit-owned stinger name (`levelup`, `lose`, …) —
+  the kit plays those itself, so an override self-recurses into silence.
+- **Game-over restart accepts tap AND key;** touch aim maps to canvas coords, not client coords.
+- **Each game is its own installable PWA:** `manifest.json` + `sw.js` (sets `SCOPE`/`VERSION`/
+  `SHELL`, imports `../../sw-core.js`) + `icon-192/512.png` (distinct color-emoji icon) +
+  apple/theme meta in `<head>`.
 - **Distinct visual theme per game.** (asteroids=space, keep-defender=castle/parchment,
   bubbles=candy/aqua, snake=neon, breakout=synthwave, flappy=meadow, stacker=pastel, range=tactical.)
 - **Responsive:** size the playfield from the viewport (don't hardcode px) so it fits narrow /
   zoomed screens — see the Bubble Pop fit fix.
 
-## Shared kit (`game-kit.js` + `game-kit.css`)
+## Shared kit (`game-kit.js` + `game-kit.css` + `sw-core.js`)
 
-Load in `<head>` (NOT `defer`, so `window.gamekit` exists before the inline script):
-`<link rel="stylesheet" href="../../game-kit.css">` then `<script src="../../game-kit.js"></script>`.
-API on `window.gamekit`:
+**The `<head>` unit is atomic** (NOT `defer`, so `window.gamekit` exists before the inline script),
+in this order: `analytics.js` · `game-kit.css` · `version.js` · `game-kit.js` · `challenges.js`.
+The game's `sw.js` SHELL must list the SAME shared files in lockstep — a missing one silently kills
+that feature offline. Games alias the API once: `const KIT = window.gamekit;`.
 
-- `gamekit.sound` — **SFX** channel: AudioContext engine + per-channel mute & volume
-  (`gamekit_sfx_muted`/`gamekit_sfx_vol`). Register sounds with `gamekit.sound.define({ name: ({tone,noise}) => {…} })`;
-  play with `gamekit.sound.play('name')` (no-ops when muted/headless). Per-game pattern:
-  `const SND = window.gamekit.sound; SND.define({…});` then keep every `SND.play('…')` call.
-- `gamekit.music` — **Music** channel (settings + UI only; `gamekit_music_muted`/`gamekit_music_vol`). A game
-  with music keeps its own music engine and does `gamekit.music.subscribe(s => applyGain(s.gain))`
-  (`s.gain` is 0 when muted). Only asteroids uses this today.
-- `gamekit.nav({ music, reset, onMenu })` — injects the top-left `‹ Menu · komyo ›` bar **and** the
-  top-right cluster: ⏸ pause, 🔊 **sound menu** (SFX mute+slider, ♪ Music when `music:true`) and the
-  **☰ game menu** (version + an Update button that IS the status — greyed "✓ Up to date" / lit
-  "🔆 Update now", "⧉ Embed this game", and — when `reset` is given a localStorage **prefix** like
-  `'snake_'` — "↺ Reset game data"). `onMenu` overrides the
-  Menu button's default `location.reload()` (asteroids uses it to drop its `?v` and reshow the picker).
-- `gamekit.shareRow(el, { slug, title, message })` — builds + wires Native/X/Reddit/Copy into `el`;
-  `message` is a function → a standalone sentence (no url), evaluated at click time. (Its `.sbtn`
-  visual props are `!important` so a game's broad `#overlay button {…}` rule can't clobber the icons.)
+- `gamekit.nav({ slug, music, home, theme, onMenu, onPause, confirmLeave, controls, genres })` —
+  the whole top chrome: left `‹ Menu · komyo ›` bar + right cluster (⏸ pause, 🔊 sound menu with
+  SFX/♪ Music sliders, 🏆 challenges, 🎮 controls when `controls` given, and the **☰ game menu** —
+  version + an Update button that IS the status, "⧉ Embed this game", "↺ Reset game data").
+  **`slug` derives the localStorage reset prefix (`slug + '_'`) and the challenges key** — don't
+  pass `reset:`/`challenges:` (explicit overrides exist but shouldn't be needed). `onMenu`
+  overrides the Menu button's default reload (asteroids: drop `?v`, reshow the picker);
+  `confirmLeave: true|msg|fn` guards mid-run exits (pauses under the confirm); `onPause` wires ⏸.
+- `gamekit.menu` — the declarative three-screen framework: `menu.show(cfg)` / `menu.hide()`.
+  cfg: `kind:'start'|'pause'|'end'`, `title`, `score/scoreText/best/newBest/lines`, `groups`
+  (option rows; `style:'cards'` = rich mode cards with a canvas `preview(ctx,w,h,state)`;
+  `style:'shop'` = an action grid for buy/pick — powers the Asteroids+ level-up picker + shop),
+  `toggles`, `hint(state)`, `banner(state)`, `actions:[{id,label,primary?,danger?,confirm?}]`,
+  `onPlay/onAction/onChange/onEsc`, `theme` (`--gkm-*` vars), `backdrop` (animated canvas), and
+  `share:{slug,accent,icon,title,message,params}` (share row + score card + Discord) +
+  **`record:{slug,mode,score,time?,stats?}`** — the kit records it exactly once per run
+  (idempotent across menu re-shows). Speedrun/sprint records render as TIME from `record.time`.
+- `gamekit.sound` — **SFX** channel (`gamekit_sfx_muted`/`_vol`): `SND.define({ name:
+  ({tone,noise,voice,noiseHit,seq,now,play}) => {…} })`, `SND.play('name')` (no-op when
+  muted/headless). Never define a kit-owned stinger name (`levelup`, `lose`, …).
+- `gamekit.music` — **Music** channel: the kit's procedural engine (`gamekit.music.play('track')`),
+  plus `subscribe(s => applyGain(s.gain))` for a game with its own engine (asteroids).
+- `gamekit.loop(update, render, {mult?, frame?})` — THE main loop: fixed-timestep accumulator
+  (1000/60 ms steps at any refresh rate), kit-pause built in (paused → render only), 100 ms stall
+  clamp. `mult()` scales game-time (a 2× toggle = exactly 2×); `frame()` runs once per display
+  frame (input polling). Headless it never ticks — tests drive `__test.step(n)`.
+- `gamekit.layout` — `w/h/portrait/landscape/narrow` getters, **`hudTop()`** (the ONE HUD headroom
+  number: 92 narrow / 48 otherwise; narrow = portrait or ≤560px wide), `on(cb)` (coalesced
+  relayout on resize/orientationchange/visualViewport), `requireOrientation('portrait'|'landscape')`
+  (rotate overlay), and the test hook `__emit(w,h)`.
+- `gamekit.fitCanvas(canvas, w, h, opts?)` — sets the CSS box + a devicePixelRatio-scaled backing
+  store (cap 2; headless → 1) + the matching transform, so drawing stays in CSS px. Call from the
+  game's resize path. `{dpr:false}` opts out (scaled-world canvases).
+- `gamekit.roundRect(g, x, y, w, h, r)` — beginPath + rounded-rect path (caller fills/strokes);
+  the kit also installs the `ctx.roundRect` polyfill (array radii supported) so bare calls are
+  always safe.
+- **Best store (the single source of truth, `gamekit_pb`):** `gamekit.saveBest(slug, modeLabel,
+  {score,time?,stats?})`, `gamekit.bestScore(slug, modeLabel)`, `gamekit.best(...)` →
+  `{score,time,plays,stats}`; `gamekit_stats` holds lifetime rollups. `modeLabel` is the human
+  label the profile shows ("Classic", "Marsh · Hard"). `gamekit.recordResult` exists internally —
+  games use the end menu's `record:`, never call it.
+- **Challenges (kit-owned logic, data in `challenges.js`):** `gamekit.challengeEval` (the ONE
+  evaluator — the catalogue routes through it), `gamekit.activeChallenge(slug)` (drives the 🏆
+  glow), `gamekit.challengesPanel(opts)` (the in-game 🏆 modal). `window.CHALLENGES` carries
+  goals + daily/weekly rotations, **`goodRun` per-game bars (every live game needs one or it
+  silently never earns good runs)**, the `titles` ladder, `randomSlug`.
+- `gamekit.shareRow(el, { slug, title, message })` — Native/X/Reddit/Copy; `message` is a fn → a
+  standalone sentence (no url), evaluated at click time. `gamekit.scoreCard/profileCard/shareCard`
+  render + share the neon card images; the Discord auto-post is consent-tiered
+  (`gamekit.discordTier()`: no consent → nothing, consent → anonymous, Settings toggle → named).
 - `gamekit.pwa()` — SW registration + the ONE update policy (catalogue passes `'sw.js'`): a new build
   reloads silently only pre-interaction (launch fast-path) or when the tab is backgrounded; an in-use
   page just gets a dot on ☰ — apply via the ☰ Update button (`gamekit.updates.apply()`; the
@@ -82,17 +147,18 @@ API on `window.gamekit`:
 - `gamekit.updates` — `check()` (fresh `version.js` vs the running build), `apply()` (update every
   scope's SW + reload), `state()`/`onChange(cb)`; `gamekit.buildInfo()` → `{sha, built, when, label}`
   (label = `sha · local deploy date+time`, shown by `versionTag()`, the ☰ panel and the catalogue
-  footer/drawer).
-- `gamekit.resetScores(prefix)` — clears only the localStorage keys starting with `prefix`.
-- `gamekit.shareUrls(url, msg)` — pure helper the kit test asserts.
-- **`.gamekit-hud`** (CSS) — the standard **center-top** HUD (translucent pill, wraps; clears the left
-  nav and the right sound menu). Games put their score/best/etc. items in a `.gamekit-hud` container and
-  reserve ~48px (landscape) / ~92px (portrait) top headroom.
+  footer/Settings).
+- Misc: `gamekit.isPaused()/setPaused/togglePause` (any kit overlay counts as paused — the loop
+  freezes under modals), `gamekit.showMenuButton/showPauseButton(bool)`, `gamekit.confirm(msg,
+  onYes, yesLabel)`, `gamekit.resetScores(prefix)`, `gamekit.stampUrl(params)`/`param(name)`
+  (deep-link state), `gamekit.player()/setName()`, `gamekit.shareUrls/shareText`,
+  `gamekit.embedModal`, `gamekit.versionTag()`.
+- **`.gamekit-hud`** (CSS) — the standard **center-top** HUD (translucent pill, wraps; clears the
+  left nav and the right cluster). Games put score/best items in a `.gamekit-hud` container and
+  reserve `gamekit.layout.hudTop()` px of top headroom in their layout.
 
-Each game's `sw.js` SHELL must include `'../../game-kit.js','../../game-kit.css'` (offline). The kit
-is fully headless-safe (every browser API guarded). **Asteroids is on the kit too** — a single-engine
-game (no launcher/iframe): SFX via `gamekit.sound`, music gain via `gamekit.music.subscribe`, Menu via
-`onMenu` → drop `?v` and reshow the in-page mode picker.
+The kit is fully headless-safe (every browser API guarded). **Asteroids is on the kit too** — a
+single-engine game (no launcher/iframe); the roguelite lives separately in `games/asteroids-plus/`.
 
 ## Adding / changing a game
 
@@ -107,16 +173,22 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
 
 ### Build steps
 
-1. `games/<slug>/index.html` — load game-kit in `<head>`; use `gamekit.nav`/`gamekit.sound`/`gamekit.shareRow`/
-   `gamekit.pwa` for the shell; keep game logic inline with the `__test` hook.
+1. `games/<slug>/index.html` — the atomic `<head>` unit (see "Shared kit"); shell = `gamekit.nav
+   ({slug, …})` + `gamekit.menu` (start/pause/end screens with `record:` + `share:`) +
+   `gamekit.loop` + `gamekit.fitCanvas` + `gamekit.pwa()`; game logic inline with the `__test`
+   hook (incl. the `layout` getter). Reference: `games/breakout/index.html`.
 2. `games/<slug>/test.mjs` — import the shared harness (`../../test-harness.mjs`):
    `bootGame('games/<slug>/index.html', opts)` (kit preloaded automatically) + game-specific
    asserts driven via `__test`, a `runLayoutSuite` section, and `summary()` at the end.
    Reference: `games/breakout/test.mjs`.
 3. Icon: `node scripts/gen-icon.mjs <emoji> <background-css> games/<slug>` (Chrome headless 512 →
    `sips` 192).
-4. `manifest.json` + `sw.js` (network-first; SHELL = the HTML + icons + the two `../../game-kit.*` files).
-5. Add an entry to `games.js` (`soon: true` = greyed "coming soon" tile). Set **`added: "YYYY-MM-DD"`**
+4. `manifest.json` + `sw.js` (sets `SCOPE`/`VERSION`/`SHELL`, imports `../../sw-core.js`
+   — stale-while-revalidate; SHELL = the HTML + icons + the shared head files, in lockstep with
+   `<head>`).
+5. Add the game's **`CHALLENGES.goodRun` bar** (and, when it goes live, goal entries) in
+   `challenges.js` — without the bar it never earns good runs.
+6. Add an entry to `games.js` (`soon: true` = greyed "coming soon" tile). Set **`added: "YYYY-MM-DD"`**
    on a new game (drives the auto **NEW** badge for 7 days). **Whenever you ship a notable update to a
    game (new mode/feature — not every bugfix), bump that game's `updated: "YYYY-MM-DD"`** (drives the
    **UPDATED** badge for 7 days). Keep these dates accurate — they're the only source for those badges.
@@ -126,7 +198,7 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
    at the sitemap; `llms.txt` is a curated markdown map of the site for LLMs. **Any new standalone
    page** (e.g. `tos.html`, `privacy.html`, a future about/guide page) also goes in `sitemap.xml`
    (low `<priority>` ~0.3) and, if useful to LLMs, in `llms.txt` — not just games.
-6. Run **all** the suites and keep them green.
+7. Run **all** the suites and keep them green.
 
 ## Testing
 
