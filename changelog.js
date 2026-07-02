@@ -6,10 +6,15 @@
 window.CHANGELOG = [
   { date: '2026-07-02', title: 'Titles & better sharing 👑', items: [
     'New: earn a title with challenge points — from Goblin of the Gutter to Emperor of Eternity. Your profile shows it off with an ever-shinier glow (and sparkles at the higher ranks).',
+    'New: tap the little (i) next to your title to see the whole ladder — every rank, its shine, and the points it takes.',
     'Improved: the profile page got a cleaner look — your title, name, challenge points, good runs and play stats all up top.',
+    'New: score cards got a full redesign — every game shares a flashy card in its own colors, with a glowing frame, sparkles and your name. Speedruns show your time.',
+    'New: the Discord games-log now posts the score card itself, with the play link right under it.',
     'New: sharing a score card or your profile now opens a small menu — send it straight to an app, copy the image, or download it.',
     'Fix: the shared profile image is now cropped to its content (no more half-empty picture) and includes the title sparkles.',
     'Fix: copying a shared image no longer pastes twice in Discord and other chats.',
+    'Fix: in Neon Snake, quick double-turns now land exactly as pressed (inputs are buffered, none get lost).',
+    'Fix: Meadow Flyer on wide screens no longer starts with a long empty flight — the first trees are a fair distance away, like on phones.',
   ] },
   { date: '2026-07-01', title: 'Roll the dice 🎲', items: [
     'New: a 🎲 Random button on the home page picks a game for you — it leans toward ones you haven’t tried yet, an easy way to discover something new.',
