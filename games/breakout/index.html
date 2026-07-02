@@ -58,9 +58,8 @@
     break: (c) => { c.voice({ f: 740, slideTo: 1180, dur: 0.09, type: 'square', gain: 0.11, filter: 'highpass', cutoff: 500, reverb: 0.14 }); c.noiseHit({ dur: 0.06, gain: 0.07, filter: 'highpass', cutoff: 3000 }); },
     launch: (c) => c.voice({ f: 220, slideTo: 340, dur: 0.12, type: 'triangle', gain: 0.1, filter: 'lowpass', cutoff: 1600 }),
     power: (c) => { [440, 660, 990].forEach((f, i) => c.voice({ f, dur: 0.12, type: 'triangle', gain: 0.1, reverb: 0.2, t: c.now() + i * 0.05 })); },
-    levelup: (c) => c.play('levelup'),
-    lose: (c) => c.play('lose'),
   });
+
 
   // ---- Config ----
   const PADDLE_H = 14, BALL_R = 7;
