@@ -98,13 +98,13 @@
   function saveBest() { if (KIT) KIT.saveBest('breakout', modeLabel(gameMode), { score: score }); }
 
   function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H); // retina-sharp backing store; drawing stays in CSS px
     // Reserve headroom so the playfield clears the shared center-top .gamekit-hud pill.
-    // Landscape: pill at top:8px → ~48px. Portrait: the 5-stat pill drops to top:50px and wraps to
-    // two rows, so it needs more headroom or the top bricks tuck under it. Landscape is unchanged.
-    const portrait = H > W || W <= 560;
-    topMargin = portrait ? 128 : 48;
+    // Landscape: pill at top:8px → ~48px (kit hudTop). Narrow: the 5-stat pill drops to top:50px
+    // and wraps to two rows, so it needs more than the kit's 92 or the top bricks tuck under it.
+    topMargin = KIT.layout.narrow ? 128 : KIT.layout.hudTop();
     brickW = Math.floor((W - BRICK_GAP * (BRICK_COLS + 1)) / BRICK_COLS);
     brickOffX = Math.floor((W - (brickW + BRICK_GAP) * BRICK_COLS + BRICK_GAP) / 2);
     brickOffY = topMargin + 12;
@@ -294,8 +294,8 @@
   function showEnd() {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.recordResult('breakout', { mode: modeLabel(gameMode), score: score });
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER', backdrop: menuBackdrop,
+      record: { slug: 'breakout', mode: modeLabel(gameMode), score: score },
       score: score, best: best, newBest: score >= best && score > 0, lines: [gameMode.toUpperCase() + ' · level ' + level],
       share: { slug: 'breakout', accent: '#ff5cc8', icon: '🧱', title: 'Brick Breaker', message: () => shareMsg(), params: () => modeParams({ mode: gameMode, speed2x: speedMult === 2 }) },
       actions: [ { id: 'again', label: 'PLAY AGAIN', primary: true }, { id: 'menu', label: 'MENU' } ],
@@ -550,11 +550,7 @@
     gr.addColorStop(1, '#0088aa');
     ctx.fillStyle = gr;
     ctx.beginPath();
-    if (ctx.roundRect) {
-      ctx.roundRect(paddleX - pw / 2, py, pw, PADDLE_H, 6);
-    } else {
-      ctx.rect(paddleX - pw / 2, py, pw, PADDLE_H);
-    }
+    ctx.roundRect(paddleX - pw / 2, py, pw, PADDLE_H, 6); // kit installs the polyfill
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.restore();
@@ -679,7 +675,7 @@
   // ---- top nav (game-kit) ----
   { const pm = KIT && KIT.param && KIT.param('mode'); if (['classic', 'endless', 'survival'].indexOf(pm) >= 0) gameMode = pm; } // deep-link ?mode=
   { const ps = KIT && KIT.param && KIT.param('speed2x'); if (ps === '1') { speedMult = 2; saveSpeedPref(true); } else speedMult = loadSpeedPref() ? 2 : 1; }
-  KIT.nav({ music: true, reset: 'breakout_', home: '../../', theme: MENU_THEME, challenges: 'breakout', onMenu: () => toMenu(),
+  KIT.nav({ slug: 'breakout', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Brick Breaker — Controls',
