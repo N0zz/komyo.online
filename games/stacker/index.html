@@ -549,6 +549,7 @@
     start() { startGame(); },
     startMode(m) { startGameMode(m); },
     drop() { drop(); },
+    setMover(x) { if (mover) mover.x = x; },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
     dropPerfect() {
       if (state !== 'playing' || !mover || blocks.length === 0) return;
