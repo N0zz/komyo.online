@@ -1,121 +1,11 @@
-// Headless test harness for Classic Asteroids (games/asteroids/index.html — Classic +
-// Classic-Enhanced behind the ?v= flag, plus ?speedrun=1). Mocks the DOM + canvas, runs the
-// game's IIFE in a vm sandbox, steps the requestAnimationFrame loop manually, simulates input,
-// and asserts behavior. (The roguelite variant is a separate game — see
-// games/asteroids-plus/test.mjs.)
-import fs from 'node:fs';
-import vm from 'node:vm';
-import path from 'node:path';
+// Headless tests for Classic Asteroids (games/asteroids/index.html — Classic + Classic-Enhanced
+// behind the ?v= flag, plus ?speedrun=1) — boots via the shared harness, drives window.__test
+// and the rAF loop (bespoke engine, not on gamekit.loop). (The roguelite variant is a separate
+// game — see games/asteroids-plus/test.mjs.)
+import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
 
-const DIR = path.dirname(new URL(import.meta.url).pathname);
-let pass = 0, fail = 0;
-const fails = [];
-function ok(cond, msg) { if (cond) { pass++; } else { fail++; fails.push(msg); console.log('  ✗ ' + msg); } }
-function section(t) { console.log('\n=== ' + t + ' ==='); }
-
-function makeCtx2d() {
-  return new Proxy({}, {
-    get: (_, p) => { if (p === 'canvas') return { width: 1280, height: 800 }; return () => {}; },
-    set: () => true,
-  });
-}
-
-function makeEl(id) {
-  const classes = new Set();
-  const el = {
-    id, _id: id, textContent: '', value: '',
-    dataset: {}, children: [],
-    style: new Proxy({}, { get: (t, p) => t[p] ?? '', set: (t, p, v) => { t[p] = v; return true; } }),
-    classList: {
-      add: (...c) => c.forEach(x => classes.add(x)),
-      remove: (...c) => c.forEach(x => classes.delete(x)),
-      toggle: (c, f) => { const has = classes.has(c); const want = f === undefined ? !has : !!f; if (want) classes.add(c); else classes.delete(c); return want; },
-      contains: c => classes.has(c),
-    },
-    _l: {},
-    addEventListener: (type, fn) => { (el._l[type] ||= []).push(fn); },
-    removeEventListener: () => {},
-    fire: (type, ev = {}) => (el._l[type] || []).forEach(fn => fn({ preventDefault() {}, ...ev })),
-    appendChild: (c) => { el.children.push(c); return c; },
-    querySelectorAll: () => [], querySelector: () => null,
-    getContext: () => makeCtx2d(),
-    focus: () => {},
-  };
-  let _html = '';
-  Object.defineProperty(el, 'innerHTML', { get: () => _html, set: v => { _html = String(v ?? ''); if (v === '' || v == null) el.children = []; } });
-  return el;
-}
-
-function runGame(file, { search = '' } = {}) {
-  // a file token may carry its own query (e.g. 'index.html?v=enh') — split it off and merge
-  // into the mocked location.search.
-  const qi = file.indexOf('?');
-  if (qi >= 0) { const fq = file.slice(qi + 1); file = file.slice(0, qi); search = search ? (search + '&' + fq) : ('?' + fq); }
-  const html = fs.readFileSync(path.join(DIR, file), 'utf8');
-  const m = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
-  if (!m) throw new Error('no inline script found in ' + file);
-  const code = m[1];
-
-  const elCache = {};
-  const getEl = (id) => (elCache[id] ||= makeEl(id));
-  // canvas needs getContext
-  const handlers = {};
-  let rafQ = []; // multiple concurrent rAF callbacks (game loop + menu-backdrop loop), like a real browser
-  let clock = 1000;
-  const errors = [];
-
-  const store = {};
-  const win = {
-    innerWidth: 1280, innerHeight: 800,
-    addEventListener: (type, fn) => { (handlers[type] ||= []).push(fn); },
-    removeEventListener: () => {},
-    performance: { now: () => clock },
-    __test: undefined,
-  };
-  const documentMock = {
-    getElementById: getEl,
-    createElement: (tag) => makeEl('new-' + tag),
-    addEventListener: (type, fn) => { (handlers[type] ||= []).push(fn); },
-    querySelectorAll: () => [],
-    body: makeEl('body'),
-  };
-  const sandbox = {
-    window: win, document: documentMock,
-    location: { search }, localStorage: {
-      getItem: k => (k in store ? store[k] : null),
-      setItem: (k, v) => { store[k] = String(v); },
-      removeItem: k => { delete store[k]; },
-    },
-    performance: win.performance,
-    requestAnimationFrame: (cb) => { rafQ.push(cb); return rafQ.length; },
-    cancelAnimationFrame: () => {},
-    URLSearchParams, Math, JSON, String, Number, Array, Object, parseInt, parseFloat,
-    isFinite, isNaN, Date, console,
-    navigator: { userAgent: 'test' },
-  };
-  sandbox.globalThis = sandbox;
-  const ctx = vm.createContext(sandbox);
-
-  // preload the shared game-kit so window.gamekit exists before the game's inline script (mirrors the <head> load order)
-  try { vm.runInContext(fs.readFileSync(path.join(DIR, '..', '..', 'game-kit.js'), 'utf8'), ctx, { filename: 'game-kit.js' }); }
-  catch (e) { errors.push('kit boot: ' + e.message); }
-
-  try { vm.runInContext(code, ctx, { filename: file }); }
-  catch (e) { errors.push('boot: ' + e.message); }
-
-  const api = {
-    file, errors, store,
-    el: getEl,
-    test: () => win.__test,
-    key(type, key) { (handlers[type] || []).slice().forEach(fn => { try { fn({ key, preventDefault() {}, stopPropagation() {} }); } catch (e) { errors.push(type + ' ' + key + ': ' + e.stack); } }); },
-    down(k) { this.key('keydown', k); }, up(k) { this.key('keyup', k); },
-    step(n = 1) { for (let i = 0; i < n; i++) { clock += 1000 / 60; const q = rafQ; rafQ = []; q.forEach(cb => { try { cb(); } catch (e) { errors.push('frame: ' + e.stack); } }); } },
-    // drive a viewport change: the kit's __emit sets window dims + fires the relayout callbacks synchronously
-    resize(w, h) { if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h); else { win.innerWidth = w; win.innerHeight = h; } },
-    get clock() { return clock; },
-  };
-  return api;
-}
+// seeded RNG: spawn positions/rock shapes are random — a fixed seed makes runs reproducible
+const runGame = (file, opts = {}) => bootGame('games/asteroids/' + file, { seed: 0xA57E401D, ...opts });
 
 // ---------------- Classic / Enhanced smoke tests ----------------
 function smokeClassic(file, { enhanced = false } = {}) {
@@ -164,6 +54,54 @@ function smokeSpeedrun(file) {
     file + ' speedrun share leads with time, not score/level (got "' + sm + '")');
 }
 
+// ---------------- Core mechanics: shoot → score, collision → lives, death → end screen ----------------
+function mechanics(file) {
+  section(file + ' (mechanics: shoot/score, collision/lives, game over)');
+  const g = runGame(file);
+  const T = () => g.test();
+  g.step(10);
+  g.down('Enter'); g.step(2); // start via the kit menu
+  ok(T().state === 'playing', file + ' game is playing');
+
+  // shooting an asteroid raises the score: park one rock far away (so the field never empties
+  // into an auto wave-respawn) + a big rock dead ahead of a pinned ship, then hold fire
+  // (small rocks drift 2-3px/frame and can dodge the bullet line — a size-3 rock, r=56, can't)
+  T().clearRocks();
+  T().spawnRockAt(1200, 40, 1);   // parked survivor, far from the action
+  T().setShip(400, 400, 0);       // aim east
+  T().spawnRockAt(460, 400, 3);   // size-3 target right in front (first bullet can't miss)
+  ok(T().rocks === 2, file + ' field staged with 2 rocks (got ' + T().rocks + ')');
+  const s0 = T().score;
+  g.down(' ');
+  let fg = 0;
+  while (T().score === s0 && fg++ < 60) { T().setShip(400, 400, 0); T().step(1); }
+  g.up(' ');
+  ok(T().score >= s0 + 20, file + ' shooting an asteroid raises the score (' + s0 + ' -> ' + T().score + ' in ' + fg + ' frames)');
+  ok(T().rocks >= 2, file + ' the hit big rock split into fragments (got ' + T().rocks + ')');
+
+  // ship–asteroid collision costs a life (invuln forced off; killShip respawns at center)
+  const l0 = T().lives;
+  T().setInvuln(0);
+  T().setShip(300, 300, 0);
+  T().spawnRockAt(300, 300, 2);   // rock on top of the ship
+  T().step(1);
+  ok(T().lives === l0 - 1, file + ' collision costs exactly 1 life (' + l0 + ' -> ' + T().lives + ')');
+  ok(T().state === 'playing', file + ' run continues with lives remaining');
+
+  // draining all lives reaches the end screen (kit menu + share message)
+  let dg = 0;
+  while (T().lives > 0 && T().state === 'playing' && dg++ < 10) {
+    T().setInvuln(0);
+    T().setShip(300, 300, 0);
+    T().spawnRockAt(300, 300, 2);
+    T().step(1);
+  }
+  ok(T().lives === 0, file + ' all lives drained (got ' + T().lives + ')');
+  ok(T().state === 'dead', file + ' lives→0 ends the run (state=' + T().state + ')');
+  ok(T().menu() != null, file + ' end screen (kit menu with share row) is shown');
+  ok(typeof T().shareMsg() === 'string' && T().shareMsg().length > 0, file + ' share message is ready (' + T().shareMsg() + ')');
+}
+
 // ---------------- Run ----------------
 // Asteroids = Classic + Enhanced (one engine, index.html, variant via ?v=classic|enh). The
 // roguelite progressions moved to their own game — see games/asteroids-plus/test.mjs.
@@ -173,39 +111,30 @@ smokeClassic('index.html?v=classic');
 smokeSpeedrun('index.html?v=classic');
 smokeClassic('index.html?v=enh', { enhanced: true });
 smokeSpeedrun('index.html?v=enh');
+mechanics('index.html?v=classic');
+mechanics('index.html?v=enh');
 
 // ---------------- Layout regression: fits the screen, clears the top HUD ----------------
-function layoutFits(file) {
-  section(file + ': layout fits the screen (no off-screen / HUD overlap)');
-  const VIEWPORTS = [
-    { name: 'portrait phone', w: 390, h: 780 },
-    { name: 'landscape phone', w: 780, h: 390 },
-    { name: 'desktop', w: 1280, h: 800 },
-  ];
-  for (const v of VIEWPORTS) {
-    const g = runGame(file);
-    const T = () => g.test();
-    T().start();          // start a real play session
-    g.resize(v.w, v.h);   // rotate / resize the viewport
-    g.step(1);            // one frame so positions settle to the new viewport, as happens live
-    ok(g.errors.length === 0, file + ' [' + v.name + '] no error on resize: ' + (g.errors[0] || ''));
-    const L = T().layout;
+section('index.html?v=classic: layout fits the screen (no off-screen / HUD overlap)');
+runLayoutSuite(
+  () => { const g = runGame('index.html?v=classic'); g.test().start(); return g; },
+  (g, v) => {
+    g.step(1); // one frame so positions settle to the new viewport, as happens live
+    ok(g.errors.length === 0, '[' + v.name + '] no error on resize: ' + (g.errors[0] || ''));
+    const L = g.test().layout;
     // canvas is scaled (S) on small screens, so it won't equal the viewport — assert the scale model instead
     const m = Math.min(v.w, v.h), S = m < 640 ? Math.min(2.6, 900 / m) : 1;
     ok(L.W === Math.round(v.w * S) && L.H === Math.round(v.h * S),
-      file + ' [' + v.name + '] canvas matches scaled viewport (W=' + L.W + ' H=' + L.H + ' S=' + L.S.toFixed(2) + ')');
-    ok(L.W > 0 && L.H > 0, file + ' [' + v.name + '] canvas has positive size');
+      '[' + v.name + '] canvas matches scaled viewport (W=' + L.W + ' H=' + L.H + ' S=' + L.S.toFixed(2) + ')');
+    ok(L.W > 0 && L.H > 0, '[' + v.name + '] canvas has positive size');
     // the ship (the only JS-positioned on-canvas actor) must be fully within 0..W / 0..H
-    ok(L.shipLeft >= 0 && L.shipRight <= L.W, file + ' [' + v.name + '] ship within horizontal bounds (' + L.shipLeft.toFixed(0) + '..' + L.shipRight.toFixed(0) + ' / ' + L.W + ')');
-    ok(L.shipTop >= 0 && L.shipBottom <= L.H, file + ' [' + v.name + '] ship within vertical bounds (' + L.shipTop.toFixed(0) + '..' + L.shipBottom.toFixed(0) + ' / ' + L.H + ')');
+    ok(L.shipLeft >= 0 && L.shipRight <= L.W, '[' + v.name + '] ship within horizontal bounds (' + L.shipLeft.toFixed(0) + '..' + L.shipRight.toFixed(0) + ' / ' + L.W + ')');
+    ok(L.shipTop >= 0 && L.shipBottom <= L.H, '[' + v.name + '] ship within vertical bounds (' + L.shipTop.toFixed(0) + '..' + L.shipBottom.toFixed(0) + ' / ' + L.H + ')');
     // the ship must not sit under the top score HUD (its reserved headroom, in canvas px)
-    ok(L.topReserve > 0, file + ' [' + v.name + '] HUD reserves top headroom (' + L.topReserve.toFixed(0) + 'px canvas)');
-    ok(L.shipTop >= L.topReserve, file + ' [' + v.name + '] ship clears the top HUD (top=' + L.shipTop.toFixed(0) + ' >= reserve=' + L.topReserve.toFixed(0) + ')');
-  }
-}
-layoutFits('index.html?v=classic');
+    ok(L.topReserve > 0, '[' + v.name + '] HUD reserves top headroom (' + L.topReserve.toFixed(0) + 'px canvas)');
+    ok(L.shipTop >= L.topReserve, '[' + v.name + '] ship clears the top HUD (top=' + L.shipTop.toFixed(0) + ' >= reserve=' + L.topReserve.toFixed(0) + ')');
+  },
+  { size: false } // scaled-world canvas — the scale-model assert above replaces the raw W/H match
+);
 
-console.log('\n----------------------------------------');
-console.log('PASS: ' + pass + '   FAIL: ' + fail);
-if (fail > 0) { console.log('\nFailures:'); fails.forEach(f => console.log(' - ' + f)); process.exit(1); }
-else console.log('All tests passed ✓');
+summary();

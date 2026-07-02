@@ -355,8 +355,12 @@
 
   // ---- test hook: state getters + a layout snapshot for the headless harness (inert in normal play) ----
   window.__test = {
-    start(){ startGame(); }, step(){ update(); },
+    start(){ startGame(); }, step(n){ for(let i=0;i<(n||1);i++) update(); },
     get state(){ return state; }, get score(){ return score; }, get lives(){ return lives; },
+    get rocks(){ return asteroids.length; },
+    clearRocks(){ asteroids.length=0; }, spawnRockAt(x,y,s){ asteroids.push(makeAsteroid(x,y,s)); },
+    setShip(x,y,a){ if(ship){ ship.x=x; ship.y=y; ship.vx=0; ship.vy=0; if(a!=null) ship.angle=a; } },
+    setInvuln(n){ invuln=n; },
     menu(){ return KIT ? KIT.menu.current() : null; },
     shareMsg(){ return KIT ? shareMsg(score) : ''; },
     get shipAngle(){ return ship ? ship.angle : 0; },
