@@ -43,7 +43,7 @@
   <div class="stat"><span class="lbl">BEST</span><span class="val" id="bestEl">0</span></div>
   <div class="stat"><span class="lbl">LIVES</span><span class="hrt" id="livesEl">♥♥♥</span></div>
   <div class="stat"><span class="lbl">LEVEL</span><span class="val" id="levelEl">1</span></div>
-  <div class="stat"><span class="lbl">MODE</span><span class="val" id="modeEl">CLASSIC</span></div>
+  <div class="stat" style="opacity:.75"><span class="lbl">MODE</span><span class="val" id="modeEl">CLASSIC</span></div>
 </div>
 <script>
 (() => {
@@ -77,6 +77,7 @@
 
   // ---- State ----
   let W, H, paddleW, paddleX, brickW, brickH, brickOffX, brickOffY, topMargin = 44;
+  let dpr = 1, bgCache = null, brickSprites = null; // prerendered static layers (see buildStaticLayers)
   let state = 'ready'; // ready | playing | over
   let score = 0, best = 0, lives = LIVES_START, level = 1;
   let balls = [], bricks = [], particles = [], powerups = [], trail = [];
@@ -100,7 +101,7 @@
   function resize() {
     W = window.innerWidth;
     H = window.innerHeight;
-    KIT.fitCanvas(canvas, W, H); // retina-sharp backing store; drawing stays in CSS px
+    dpr = KIT.fitCanvas(canvas, W, H).dpr; // retina-sharp backing store; drawing stays in CSS px
     // Reserve headroom so the playfield clears the shared center-top .gamekit-hud pill.
     // Landscape: pill at top:8px → ~48px (kit hudTop). Narrow: the 5-stat pill drops to top:50px
     // and wraps to two rows, so it needs more than the kit's 92 or the top bricks tuck under it.
@@ -115,6 +116,7 @@
     brickH = Math.max(6, Math.min(Math.floor(brickW * 0.32), Math.floor(maxBlock / BRICK_ROWS) - BRICK_GAP));
     paddleW = Math.floor(W * 0.14);
     if (!paddleX) paddleX = W / 2;
+    buildStaticLayers();
   }
   window.gamekit.layout.on(() => { resize(); if (ballStuck && balls.length) snapBallToPaddle(); }); // + orientationchange/visualViewport
   if (typeof window.matchMedia !== 'undefined') { /* guard */ }
@@ -314,7 +316,7 @@
     document.getElementById('bestEl').textContent = best;
     document.getElementById('livesEl').textContent = '♥'.repeat(Math.max(0, lives));
     document.getElementById('levelEl').textContent = level;
-    document.getElementById('modeEl').textContent = gameMode.toUpperCase();
+    document.getElementById('modeEl').textContent = modeLabel(gameMode) + (speedMult === 2 ? ' · 2×' : '');
   }
 
   // ---- Collision ----
@@ -465,70 +467,117 @@
   }
 
   // ---- Render ----
-  function drawGrid() {
-    const vp = H - 50;
+  // paints the full static backdrop (bg + sunset + neon grid + scanlines + HUD glow strip) into g
+  function paintBackdrop(g) {
+    g.fillStyle = '#0a0010';
+    g.fillRect(0, 0, W, H);
+    const sg = g.createLinearGradient(0, 0, 0, H * 0.5);
+    sg.addColorStop(0, 'rgba(10,0,16,1)');
+    sg.addColorStop(0.6, 'rgba(40,0,40,0.6)');
+    sg.addColorStop(1, 'rgba(80,10,60,0.5)');
+    g.fillStyle = sg;
+    g.fillRect(0, 0, W, H * 0.5);
     const lines = 20;
-    ctx.save();
+    g.save();
     // horizon gradient
     const gy = Math.round(H * 0.5);
-    const gr = ctx.createLinearGradient(0, gy, 0, H);
+    const gr = g.createLinearGradient(0, gy, 0, H);
     gr.addColorStop(0, 'rgba(255,0,255,0)');
     gr.addColorStop(0.5, 'rgba(255,0,255,0.08)');
     gr.addColorStop(1, 'rgba(255,0,255,0.22)');
-    ctx.fillStyle = gr;
-    ctx.fillRect(0, gy, W, H - gy);
+    g.fillStyle = gr;
+    g.fillRect(0, gy, W, H - gy);
 
     // perspective grid lines (horizontal)
-    ctx.strokeStyle = 'rgba(255,0,255,0.25)';
-    ctx.lineWidth = 1;
+    g.strokeStyle = 'rgba(255,0,255,0.25)';
+    g.lineWidth = 1;
     for (let i = 0; i <= lines; i++) {
       const t = i / lines;
       const yt = gy + (H - gy) * t;
-      ctx.globalAlpha = t * 0.7;
-      ctx.beginPath(); ctx.moveTo(0, yt); ctx.lineTo(W, yt); ctx.stroke();
+      g.globalAlpha = t * 0.7;
+      g.beginPath(); g.moveTo(0, yt); g.lineTo(W, yt); g.stroke();
     }
     // vertical lines converging to horizon center
     const cx2 = W / 2;
-    ctx.globalAlpha = 0.18;
+    g.globalAlpha = 0.18;
     for (let i = -10; i <= 10; i++) {
       const bx = cx2 + i * (W / 10);
-      ctx.beginPath(); ctx.moveTo(cx2, gy); ctx.lineTo(bx, H); ctx.stroke();
+      g.beginPath(); g.moveTo(cx2, gy); g.lineTo(bx, H); g.stroke();
     }
-    ctx.globalAlpha = 1;
-    ctx.restore();
+    g.globalAlpha = 1;
+    g.restore();
 
     // scanlines
-    ctx.save();
-    ctx.globalAlpha = 0.03;
-    ctx.fillStyle = '#000';
-    for (let y = 0; y < H; y += 4) { ctx.fillRect(0, y, W, 2); }
-    ctx.globalAlpha = 1;
-    ctx.restore();
+    g.save();
+    g.globalAlpha = 0.03;
+    g.fillStyle = '#000';
+    for (let y = 0; y < H; y += 4) { g.fillRect(0, y, W, 2); }
+    g.globalAlpha = 1;
+    g.restore();
+    // subtle glow strip at the playfield top edge, matching the HUD bottom border
+    g.save();
+    g.globalAlpha = 0.15;
+    g.fillStyle = '#ff00ff';
+    g.fillRect(0, topMargin - 1, W, 1);
+    g.restore();
+  }
+
+  // Prerender the backdrop + one glowing brick sprite per color (fresh + damaged) at the canvas
+  // dpr — per-frame shadowBlur on ~60 bricks plus ~200 scanline fills ate the whole frame budget
+  // on hi-dpi screens. Rebuilt on every resize; falls back to live painting headless (mock ctx).
+  const SPR_PAD = 14; // room around a brick for its glow
+  function buildStaticLayers() {
+    bgCache = null; brickSprites = null;
+    try {
+      const bg = document.createElement('canvas');
+      bg.width = Math.max(1, Math.round(W * dpr)); bg.height = Math.max(1, Math.round(H * dpr));
+      const g = bg.getContext('2d');
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      paintBackdrop(g);
+      const spr = { ok: [], dmg: [] };
+      for (let i = 0; i < BRICK_COLORS.length; i++) {
+        const col = BRICK_COLORS[i];
+        for (const dmg of [false, true]) {
+          const c = document.createElement('canvas');
+          c.width = Math.max(1, Math.round((brickW + SPR_PAD * 2) * dpr));
+          c.height = Math.max(1, Math.round((brickH + SPR_PAD * 2) * dpr));
+          const s = c.getContext('2d');
+          s.setTransform(dpr, 0, 0, dpr, 0, 0);
+          s.shadowColor = col;
+          s.shadowBlur = 12;
+          s.fillStyle = dmg ? '#442222' : col;
+          s.fillRect(SPR_PAD + 1, SPR_PAD + 1, brickW - 2, brickH - 2);
+          s.strokeStyle = col;
+          s.lineWidth = 1.5;
+          s.strokeRect(SPR_PAD + 1, SPR_PAD + 1, brickW - 2, brickH - 2);
+          (dmg ? spr.dmg : spr.ok)[i] = c;
+        }
+      }
+      bgCache = bg; brickSprites = spr;
+    } catch (e) { bgCache = null; brickSprites = null; }
   }
 
   function drawBricks() {
     for (const b of bricks) {
       const { x, y, w, h } = brickRect(b);
-      const col = BRICK_COLORS[b.r % BRICK_COLORS.length];
-      // glow
-      ctx.shadowColor = col;
-      ctx.shadowBlur = 12;
-      // fill
-      if (b.maxHp > 1 && b.hp === b.maxHp) {
-        ctx.fillStyle = col;
-      } else if (b.maxHp > 1) {
-        ctx.fillStyle = '#442222';
+      const ci = b.r % BRICK_COLORS.length;
+      const dmg = b.maxHp > 1 && b.hp < b.maxHp;
+      const spr = brickSprites && (dmg ? brickSprites.dmg : brickSprites.ok)[ci];
+      if (spr) {
+        ctx.drawImage(spr, x - SPR_PAD, y - SPR_PAD, w + SPR_PAD * 2, h + SPR_PAD * 2);
       } else {
-        ctx.fillStyle = col;
+        const col = BRICK_COLORS[ci];
+        ctx.shadowColor = col;
+        ctx.shadowBlur = 12;
+        ctx.fillStyle = dmg ? '#442222' : col;
+        ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+        ctx.shadowBlur = 0;
       }
-      ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
-      // border
-      ctx.strokeStyle = col;
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
-      ctx.shadowBlur = 0;
       // HP cracks
-      if (b.maxHp > 1 && b.hp < b.maxHp) {
+      if (dmg) {
         ctx.strokeStyle = 'rgba(255,255,255,0.3)';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -602,39 +651,19 @@
     }
   }
 
-  function drawHudGlow() {
-    // subtle glow strip at the playfield top edge, matching the HUD bottom border
-    ctx.save();
-    ctx.globalAlpha = 0.15;
-    ctx.fillStyle = '#ff00ff';
-    ctx.fillRect(0, topMargin - 1, W, 1);
-    ctx.globalAlpha = 1;
-    ctx.restore();
-  }
-
   function render() {
     const shake = shakeFrames > 0 ? (Math.random() * 4 - 2) : 0;
     ctx.save();
     if (shake) ctx.translate(shake, shake * 0.5);
 
-    // background
-    ctx.fillStyle = '#0a0010';
-    ctx.fillRect(0, 0, W, H);
-    // sunset gradient
-    const sg = ctx.createLinearGradient(0, 0, 0, H * 0.5);
-    sg.addColorStop(0, 'rgba(10,0,16,1)');
-    sg.addColorStop(0.6, 'rgba(40,0,40,0.6)');
-    sg.addColorStop(1, 'rgba(80,10,60,0.5)');
-    ctx.fillStyle = sg;
-    ctx.fillRect(0, 0, W, H * 0.5);
+    if (bgCache) ctx.drawImage(bgCache, 0, 0, W, H);
+    else paintBackdrop(ctx);
 
-    drawGrid();
     drawBricks();
     drawPowerups();
     drawParticles();
     drawBalls();
     drawPaddle();
-    drawHudGlow();
     ctx.restore();
   }
 
