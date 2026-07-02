@@ -395,19 +395,54 @@
 
   // ---------- post a score to the public Komyo Games Discord (webhook, intentional/button only) ----------
   var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1520515996933296378/YlXg2W8ypFcQGMHRf0BvWxp10-m7Z7DggStKrBZfusWo8e_emNF6gLpiVjfb0YIExL24';
-  function postDiscord(text, url) {
+  function postDiscord(text, url, file) {
     try {
       if (typeof fetch !== 'function' || typeof FormData === 'undefined') return;
       var fd = new FormData();
-      // fixed username (no impersonation via override) + no pings (player name/text can't @everyone)
-      // play link as a masked markdown link in the message text (webhook content renders these) →
-      // a tidy "▶ Play this game on Komyo" instead of a raw ?query URL, and no embed box.
-      var content = String(text);
-      if (url) content += '\n[▶ Play this game on Komyo](' + String(url) + ')';
-      var payload = { username: 'Komyo Games', content: content.slice(0, 1800), allowed_mentions: { parse: [] } };
+      // fixed username (no impersonation via override) + no pings (player name/text can't @everyone).
+      // With a score-card `file`: Components V2 (verified 2026-07-02) — a MediaGallery with the bare
+      // (boxless) card image, then a TextDisplay with the clickable masked play link BELOW it; the
+      // only single-message layout Discord renders that way (plain content sits above attachments,
+      // embeds draw the quote box, embed footers aren't clickable). Without a file: plain text +
+      // masked markdown play link.
+      var link = url ? '[▶ Play this game on Komyo](<' + String(url) + '>)' : '';
+      var payload = { username: 'Komyo Games', allowed_mentions: { parse: [] } };
+      var endpoint = proxyUrl(DISCORD_WEBHOOK);
+      if (file) {
+        var fname = 'komyo-score.' + (file.type === 'image/webp' ? 'webp' : file.type === 'image/jpeg' ? 'jpg' : 'png');
+        payload.flags = 32768; // IS_COMPONENTS_V2 (content/embeds must stay unset)
+        payload.components = [{ type: 12, items: [{ media: { url: 'attachment://' + fname } }] }];
+        if (link) payload.components.push({ type: 10, content: link });
+        payload.attachments = [{ id: 0, filename: fname }];
+        try { fd.append('files[0]', file, fname); } catch (e) {}
+        endpoint += (endpoint.indexOf('?') < 0 ? '?' : '&') + 'with_components=true';
+      } else {
+        payload.content = (String(text || '') + (link ? '\n' + link : '')).slice(0, 1800);
+      }
       fd.append('payload_json', JSON.stringify(payload));
-      fetch(proxyUrl(DISCORD_WEBHOOK), { method: 'POST', body: fd })['catch'](function () {}); // multipart = no CORS preflight; fire-and-forget (proxied in a Discord Activity)
+      fetch(endpoint, { method: 'POST', body: fd })['catch'](function () {}); // multipart = no CORS preflight; fire-and-forget (proxied in a Discord Activity)
     } catch (e) {}
+  }
+  // downscaled copy of a card blob for the Discord post (the shared/copied card stays full-res)
+  function shrinkBlob(blob, factor) {
+    return new Promise(function (res) {
+      try {
+        var u = URL.createObjectURL(blob), im = new Image();
+        im.onload = function () {
+          try {
+            var cc = document.createElement('canvas');
+            cc.width = Math.max(1, Math.round(im.naturalWidth * factor)); cc.height = Math.max(1, Math.round(im.naturalHeight * factor));
+            cc.getContext('2d').drawImage(im, 0, 0, cc.width, cc.height); URL.revokeObjectURL(u);
+            cc.toBlob(function (b) {
+              if (b && b.type === 'image/webp') return res(b);
+              cc.toBlob(function (b2) { res(b2 || b || blob); }, 'image/jpeg', 0.85);
+            }, 'image/webp', 0.85);
+          } catch (e) { res(blob); }
+        };
+        im.onerror = function () { try { URL.revokeObjectURL(u); } catch (e) {} res(blob); };
+        im.src = u;
+      } catch (e) { res(blob); }
+    });
   }
 
   // ---------- per-game results + per-day activity log (powers challenges + score cards) ----------
@@ -840,6 +875,20 @@
   // Draws a 1200×630 card (brand bg + mascot + big score + game title + komyo.online) on an
   // offscreen canvas and resolves a PNG Blob. Mascot = the in-repo favicon.svg (placeholder until
   // real art); falls back to a 🦊 glyph if it can't load. Headless-safe → resolves null.
+  // mm:ss.cs from ms — the speedrun/sprint time shown on TIME score cards (matches the in-game timer)
+  function fmtMs(ms) { ms = Math.max(0, ms | 0); var p2 = function (n) { return (n < 10 ? '0' : '') + n; }; return p2(Math.floor(ms / 60000)) + ':' + p2(Math.floor(ms % 60000 / 1000)) + '.' + p2(Math.floor(ms % 1000 / 10)); }
+  function mixHex(a, b, t) {
+    try {
+      var pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16), m = 0, i;
+      for (i = 16; i >= 0; i -= 8) m |= Math.round(((pa >> i & 255) * (1 - t)) + ((pb >> i & 255) * t)) << i;
+      return '#' + ('00000' + m.toString(16)).slice(-6);
+    } catch (e) { return a; }
+  }
+  // Score-card PNG (1200×630) — "neon marquee": themed by the game's accent (top glow, perspective
+  // grid floor, glowing frame, white→accent gradient score, baked sparkles), the game's icon emoji
+  // drawn bare with an accent glow top-left (NOT the boxed PWA icon png), mascot logo + stacked
+  // KOMYO/GAMES wordmark top-right, ▶ play-on CTA bottom-right. opts: { slug, title, accent, icon,
+  // score, scoreText, label ('SCORE'|'TIME'), sub, player, mascot } — 'TIME' renders a step smaller.
   function buildScoreCard(opts) {
     opts = opts || {};
     return new Promise(function (resolve) {
@@ -850,36 +899,119 @@
         var W = 1200, H = 630, accent = opts.accent || '#9fe8ff';
         var who = opts.player || (typeof player === 'function' ? player() : 'anonymous');
         var rr = function (X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
-        // base + diagonal sheen
+        var lsp = function (v) { try { x.letterSpacing = v; } catch (e) {} };
+        var noFx = function () { x.globalAlpha = 1; x.shadowBlur = 0; lsp('0px'); };
+        // base
         var g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#0a0f17'); g.addColorStop(1, '#121a28');
         x.fillStyle = g; x.fillRect(0, 0, W, H);
-        // accent glow, top-right
-        try { var rg = x.createRadialGradient(W - 200, 150, 40, W - 200, 150, 620); rg.addColorStop(0, accent); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.globalAlpha = 0.16; x.fillStyle = rg; x.fillRect(0, 0, W, H); x.globalAlpha = 1; } catch (e) {}
-        // inner panel
-        x.fillStyle = 'rgba(255,255,255,0.02)'; rr(36, 36, W - 72, H - 72, 28); x.fill();
-        x.strokeStyle = accent; x.globalAlpha = 0.55; x.lineWidth = 2; rr(36, 36, W - 72, H - 72, 28); x.stroke(); x.globalAlpha = 1;
-        // accent rail
-        x.fillStyle = accent; rr(36, 36, 12, H - 72, 6); x.fill();
+        // top accent glow (wide ellipse, like the mock's 70%×60% radial)
+        try { x.save(); x.translate(W / 2, -70); x.scale(1.7, 1); var rg = x.createRadialGradient(0, 0, 30, 0, 0, 420); rg.addColorStop(0, accent); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.globalAlpha = 0.34; x.fillStyle = rg; x.fillRect(-W, 0, W * 2, H + 100); x.restore(); noFx(); } catch (e) {}
+        // perspective grid floor
+        var hz = H * 0.55, cx2 = W / 2;
+        x.strokeStyle = accent; x.lineWidth = 1;
+        x.globalAlpha = 0.1;
+        for (var gi = -7; gi <= 7; gi++) { x.beginPath(); x.moveTo(cx2 + gi * 108, hz); x.lineTo(cx2 + gi * 108 * 2.6, H + 40); x.stroke(); }
+        x.globalAlpha = 0.08;
+        for (var gj = 1; gj <= 6; gj++) { var gy = hz + (H - hz) * Math.pow(gj / 6, 1.8); x.beginPath(); x.moveTo(0, gy); x.lineTo(W, gy); x.stroke(); }
+        noFx();
+        // frame — exact port of the mock's box-shadow pair. Both glows are the shadow of the frame's
+        // SOLID silhouette (full intensity at the edge — a stroked line's shadow is far too faint):
+        // outer `0 0 1.1em accent40%` + inset `0 0 1.4em accent14%`, then the crisp 1px border.
+        // Offset-shadow trick: the filled shape is drawn 2000px off-canvas so only its shadow lands
+        // in view, clipped to the side it belongs to.
+        var FR = function () { var X = 42, Y = 42, w2 = W - 84, h2 = H - 84, r2 = 30; x.moveTo(X + r2, Y); x.arcTo(X + w2, Y, X + w2, Y + h2, r2); x.arcTo(X + w2, Y + h2, X, Y + h2, r2); x.arcTo(X, Y + h2, X, Y, r2); x.arcTo(X, Y, X + w2, Y, r2); x.closePath(); };
+        x.save(); x.beginPath(); x.rect(0, 0, W, H); FR(); x.clip('evenodd');
+        x.shadowColor = accent; x.globalAlpha = 0.4; x.shadowBlur = 42; x.shadowOffsetX = 2000; x.translate(-2000, 0);
+        x.beginPath(); FR(); x.fillStyle = '#000'; x.fill(); x.restore();
+        x.save(); x.beginPath(); FR(); x.clip();
+        x.shadowColor = accent; x.globalAlpha = 0.14; x.shadowBlur = 54; x.shadowOffsetX = 2000; x.translate(-2000, 0);
+        x.beginPath(); x.rect(-200, -200, W + 400, H + 400); FR(); x.fillStyle = '#000'; x.fill('evenodd'); x.restore(); noFx();
+        x.strokeStyle = accent; x.globalAlpha = 0.65; x.lineWidth = 3; rr(42, 42, W - 84, H - 84, 30); x.stroke(); noFx();
+        // sparkles — big soft halos (the mock's box-shadow blur is 4× the dot size)
+        for (var pi = 0; pi < 16; pi++) {
+          var psz = 3 + Math.random() * 12, px2 = W * (0.03 + Math.random() * 0.94), py2 = H * (0.06 + Math.random() * 0.88);
+          var pa = (Math.random() * 0.5 + 0.35) * 0.7, hr = psz * 3.2;
+          try { var hg = x.createRadialGradient(px2, py2, 0, px2, py2, hr); hg.addColorStop(0, accent); hg.addColorStop(1, 'rgba(0,0,0,0)'); x.globalAlpha = pa * 0.35; x.fillStyle = hg; x.beginPath(); x.arc(px2, py2, hr, 0, 6.29); x.fill(); } catch (e) {}
+          x.globalAlpha = pa; x.fillStyle = Math.random() < 0.35 ? '#fff' : accent;
+          x.beginPath(); x.arc(px2, py2, psz / 2, 0, 6.29); x.fill();
+        }
+        noFx();
         x.textAlign = 'left';
-        // wordmark + game title
-        x.fillStyle = accent; x.font = '800 30px system-ui, sans-serif'; x.fillText('KOMYO GAMES', 92, 118);
-        x.fillStyle = '#eef4fc'; x.font = '600 58px system-ui, sans-serif'; x.fillText(String(opts.title || 'Komyo Games'), 90, 210);
-        // score label + big number
-        x.fillStyle = '#8aa0ba'; x.font = '600 26px ui-monospace, monospace'; x.fillText('SCORE', 92, 290);
-        x.fillStyle = accent; x.font = '800 190px system-ui, sans-serif';
-        x.fillText(String(opts.scoreText != null ? opts.scoreText : (opts.score || 0)), 88, 470);
-        // sub (mode/stats) + player + footer
-        if (opts.sub) { x.fillStyle = '#9fb2c8'; x.font = '400 34px system-ui, sans-serif'; x.fillText(String(opts.sub), 92, 524); }
-        x.fillStyle = '#cdd9e8'; x.font = '600 30px system-ui, sans-serif'; x.fillText('— ' + who, 92, opts.sub ? 566 : 540);
-        x.textAlign = 'right'; x.fillStyle = '#7a8aa0'; x.font = '600 30px ui-monospace, monospace'; x.fillText('komyo.online', W - 92, 566); x.textAlign = 'left';
-        var finish = function () { try { if (c.toBlob) c.toBlob(function (b) { resolve(b || null); }, 'image/png'); else resolve(null); } catch (e) { resolve(null); } };
-        var drawMascot = function (img) { try { x.globalAlpha = 0.97; x.drawImage(img, W - 430, 120, 320, 320); x.globalAlpha = 1; } catch (e) {} finish(); };
-        try {
-          var im = new Image(); var done = false;
-          im.onload = function () { if (done) return; done = true; drawMascot(im); };
-          im.onerror = function () { if (done) return; done = true; try { x.textAlign = 'center'; x.font = '230px system-ui, sans-serif'; x.fillText('🦊', W - 270, 400); x.textAlign = 'left'; } catch (e) {} finish(); };
-          im.src = opts.mascot || '../../favicon.svg';
-        } catch (e) { finish(); }
+        // game title (ellipsized so it can't reach the brand) + mode
+        var title = String(opts.title || 'Komyo Games');
+        x.fillStyle = '#eef4fc'; x.font = '700 64px system-ui, sans-serif';
+        while (title.length > 2 && x.measureText(title).width > 590) title = title.replace(/…?$/, '').slice(0, -1) + '…';
+        x.fillText(title, 288, 130);
+        if (opts.sub) { x.fillStyle = '#9fb2c8'; x.font = '600 32px ui-monospace, monospace'; lsp('5px'); x.fillText(String(opts.sub).toUpperCase(), 290, 192); lsp('0px'); }
+        // label + gradient score (TIME strings are wider → a step smaller)
+        var isTime = (opts.label || '') === 'TIME';
+        x.fillStyle = '#67788f'; x.font = '600 30px ui-monospace, monospace'; lsp('9px'); x.fillText(isTime ? 'TIME' : 'SCORE', 88, 268); lsp('0px');
+        var scoreText = String(opts.scoreText != null ? opts.scoreText : (opts.score || 0));
+        var fs = isTime ? 157 : 192, sy = 265;
+        var sg = x.createLinearGradient(0, sy, 0, sy + fs);
+        sg.addColorStop(0.12, '#ffffff'); sg.addColorStop(0.58, accent); sg.addColorStop(1, mixHex(accent, '#ffffff', 0.45));
+        // tight accent halo + crisp gradient fill on top — the shine lives in the gradient contrast
+        // (white top edge → saturated accent), not in a wide haze
+        var sbx = 84, sby = sy + fs * 0.82;
+        x.font = '800 ' + fs + 'px system-ui, sans-serif'; x.shadowColor = accent; x.fillStyle = accent;
+        x.globalAlpha = 0.75; x.shadowBlur = 20; x.fillText(scoreText, sbx, sby);
+        noFx(); x.fillStyle = sg; x.fillText(scoreText, sbx, sby);
+        // player
+        x.fillStyle = '#cdd9e8'; x.font = '600 36px system-ui, sans-serif'; x.fillText('— ' + who, 86, H - 62);
+        // ▶ play-on CTA, bottom-right (triangle drawn, not an emoji — consistent everywhere)
+        x.textAlign = 'right';
+        x.fillStyle = '#dfe9f5'; x.font = '700 40px ui-monospace, monospace'; x.fillText('www.komyo.online', W - 82, H - 60);
+        x.fillStyle = '#67788f'; x.font = '600 27px ui-monospace, monospace'; lsp('7.5px');
+        var cy = H - 132; x.fillText('PLAY ON', W - 82, cy); var pw = x.measureText('PLAY ON').width; lsp('0px');
+        x.fillStyle = accent; x.beginPath(); var tx = W - 82 - pw - 30, ty = cy - 10;
+        x.moveTo(tx, ty - 15); x.lineTo(tx, ty + 15); x.lineTo(tx + 24, ty); x.closePath(); x.fill();
+        x.textAlign = 'left';
+        // async art: the game's own icon (top-left) + the mascot logo & stacked wordmark (top-right)
+        var loadImg = function (src) {
+          return new Promise(function (res) {
+            try {
+              var im = new Image(), done = false;
+              im.onload = function () { if (!done) { done = true; res(im); } };
+              im.onerror = function () { if (!done) { done = true; res(null); } };
+              im.src = src;
+              if (typeof setTimeout === 'function') setTimeout(function () { if (!done) { done = true; res(null); } }, 1500);
+            } catch (e) { res(null); }
+          });
+        };
+        // Output = 780×410 (drawn at 1200×630 for detail, downscaled at encode) — a ROUNDED-corner
+        // card on transparency (WebP keeps the alpha; the Safari JPEG fallback squares off dark).
+        // WebP ≈ 10× smaller than PNG for this gradient-heavy art; browsers without a WebP encoder
+        // (Safari) silently hand back PNG → re-encode as JPEG there.
+        var finish = function () {
+          try {
+            var out = c;
+            try {
+              var R = 40, S = 0.65;
+              var c2 = document.createElement('canvas');
+              c2.width = Math.round(W * S); c2.height = Math.round(H * S);
+              var g2 = c2.getContext('2d'); g2.scale(S, S);
+              g2.beginPath(); g2.moveTo(R, 0); g2.arcTo(W, 0, W, H, R); g2.arcTo(W, H, 0, H, R); g2.arcTo(0, H, 0, 0, R); g2.arcTo(0, 0, W, 0, R); g2.closePath();
+              g2.clip(); g2.drawImage(c, 0, 0);
+              out = c2;
+            } catch (e) {}
+            if (!out.toBlob) return resolve(null);
+            out.toBlob(function (b) {
+              if (b && b.type === 'image/webp') return resolve(b);
+              out.toBlob(function (b2) { resolve(b2 || b || null); }, 'image/jpeg', 0.85);
+            }, 'image/webp', 0.85);
+          } catch (e) { resolve(null); }
+        };
+        if (opts.icon) { x.shadowColor = accent; x.font = '120px system-ui, sans-serif'; x.globalAlpha = 0.9; x.shadowBlur = 26; x.fillText(String(opts.icon), 84, 158); noFx(); }
+        loadImg(opts.mascot || '../../favicon.svg').then(function (logo) {
+          try {
+            var lx = W - 82 - 250;
+            if (logo) x.drawImage(logo, lx, 54, 100, 100);
+            else { x.font = '86px system-ui, sans-serif'; x.fillText('🦊', lx, 134); }
+            x.fillStyle = accent; x.font = '800 36px system-ui, sans-serif'; lsp('5px');
+            x.fillText('KOMYO', lx + 122, 95); x.fillText('GAMES', lx + 122, 139); lsp('0px');
+          } catch (e) {}
+          finish();
+        });
       } catch (e) { resolve(null); }
     });
   }
@@ -941,10 +1073,29 @@
   function shareCardBlob(blob, opts) {
     if (!blob) return;
     opts = opts || {};
-    var name = (opts.slug || 'komyo') + '-score.png';
+    var ext = blob.type === 'image/webp' ? '.webp' : blob.type === 'image/jpeg' ? '.jpg' : '.png';
+    var name = (opts.slug || 'komyo') + '-score' + ext;
     if (typeof document === 'undefined' || !document.body) return;
+    // clipboards only take image/png — re-encode the (webp/jpeg) card on demand for the Copy action
+    var toPng = function (b) {
+      if (b.type === 'image/png') return Promise.resolve(b);
+      return new Promise(function (res, rej) {
+        try {
+          var u = URL.createObjectURL(b), im = new Image();
+          im.onload = function () {
+            try {
+              var cc = document.createElement('canvas'); cc.width = im.naturalWidth; cc.height = im.naturalHeight;
+              cc.getContext('2d').drawImage(im, 0, 0); URL.revokeObjectURL(u);
+              cc.toBlob(function (p) { p ? res(p) : rej(new Error('png')); }, 'image/png');
+            } catch (e) { rej(e); }
+          };
+          im.onerror = function () { try { URL.revokeObjectURL(u); } catch (e) {} rej(new Error('img')); };
+          im.src = u;
+        } catch (e) { rej(e); }
+      });
+    };
     var file = null;
-    try { if (typeof File !== 'undefined') file = new File([blob], name, { type: 'image/png' }); } catch (e) {}
+    try { if (typeof File !== 'undefined') file = new File([blob], name, { type: blob.type || 'image/png' }); } catch (e) {}
     var canNative = false, canCopy = false;
     try { canNative = !!(file && typeof navigator !== 'undefined' && navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share); } catch (e) {}
     try { canCopy = !!(typeof ClipboardItem !== 'undefined' && typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.write); } catch (e) {}
@@ -980,7 +1131,8 @@
     });
     if (bCopy) bCopy.addEventListener('click', function () {
       try {
-        navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]).then(function () {
+        // promise-valued ClipboardItem keeps the write inside the user gesture (Safari requires it)
+        navigator.clipboard.write([new ClipboardItem({ 'image/png': toPng(blob) })]).then(function () {
           bCopy.textContent = '✓ Copied!';
           if (typeof setTimeout === 'function') setTimeout(close, 900); else close();
         }, function () { downloadBlob(blob, name); close(); });
@@ -1035,16 +1187,23 @@
     // 📷 score card (Level 2): render a branded PNG and share/copy/download it. Score/mode come
     // from the game's last recorded result (recordResult), so no per-game wiring is needed; a game
     // may still pass o.card ({score, sub, accent, mascot} or a fn) to customise.
-    if (cardBtn) cardBtn.addEventListener('click', function () {
+    // card options from the last recorded result — shared by the 📷 button and the Discord auto-post
+    var cardOpts = function () {
       var lr = lastResult(o.slug) || {};
       var extra = (typeof o.card === 'function') ? (o.card() || {}) : (o.card || {});
       var score = (extra.score != null) ? extra.score : (lr.score || 0);
       var opts = {
         title: o.title || 'Komyo Games', slug: o.slug,
-        accent: extra.accent || o.accent, mascot: extra.mascot || o.mascot,
+        accent: extra.accent || o.accent, mascot: extra.mascot || o.mascot, icon: extra.icon || o.icon,
         score: score, scoreText: (typeof score === 'number' && score.toLocaleString) ? score.toLocaleString() : String(score),
         sub: (extra.sub != null) ? extra.sub : (lr.mode || ''),
       };
+      // speedrun/sprint modes: the record IS the time (same rule as the profile) → TIME card
+      if (/speedrun|sprint/i.test(String(opts.sub)) && extra.score == null && lr.time > 0) { opts.label = 'TIME'; opts.scoreText = fmtMs(lr.time); }
+      return opts;
+    };
+    if (cardBtn) cardBtn.addEventListener('click', function () {
+      var opts = cardOpts();
       buildScoreCard(opts).then(function (b) { shareCardBlob(b, opts); });
     });
     // auto-post the score to the Komyo Games Discord when the end-screen share row is on-screen.
@@ -1057,9 +1216,13 @@
         if (!visible()) return;
         var msg = getMsg(), now = (typeof Date !== 'undefined' ? Date.now() : 0);
         if (!msg || msg === lastMsg || now - lastAt <= 3000) return;
+        lastMsg = msg; lastAt = now;   // claim BEFORE the async card render (no double-fire)
         var who = (player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous';
-        postDiscord('**' + who + '** — ' + msg, getUrl());
-        lastMsg = msg; lastAt = now;
+        // post the score card image (downscaled 50% for chat); text line = fallback if the render fails
+        buildScoreCard(cardOpts()).then(function (b) {
+          if (!b) return postDiscord('**' + who + '** — ' + msg, getUrl());
+          shrinkBlob(b, 0.5).then(function (s) { postDiscord('', getUrl(), s); });
+        });
       };
       if (typeof setTimeout === 'function') setTimeout(maybePost, 0);   // already-visible (built at game-over)
       if (typeof IntersectionObserver !== 'undefined') {               // hidden → shown later (built at init)

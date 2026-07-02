@@ -298,7 +298,7 @@
     KIT.recordResult('breakout', { mode: modeLabel(gameMode), score: score });
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER', backdrop: menuBackdrop,
       score: score, best: best, newBest: score >= best && score > 0, lines: [gameMode.toUpperCase() + ' · level ' + level],
-      share: { slug: 'breakout', title: 'Brick Breaker', message: () => shareMsg(), params: () => modeParams({ mode: gameMode, speed2x: speedMult === 2 }) },
+      share: { slug: 'breakout', accent: '#ff5cc8', icon: '🧱', title: 'Brick Breaker', message: () => shareMsg(), params: () => modeParams({ mode: gameMode, speed2x: speedMult === 2 }) },
       actions: [ { id: 'again', label: 'PLAY AGAIN', primary: true }, { id: 'menu', label: 'MENU' } ],
       onAction: id => { if (id === 'again') startMode(gameMode); else if (id === 'menu') toMenu(); } });
   }

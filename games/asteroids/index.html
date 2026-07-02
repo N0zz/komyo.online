@@ -238,7 +238,7 @@
     } else { newBest = saveBestScore(score); title='GAME OVER'; scoreText=String(score); best=(KIT ? KIT.bestScore('asteroids', keyLabel(KEY, false)) : 0); lines=['Reached wave ' + level]; }
     if(!KIT) return;
     KIT.menu.show({ kind:'end', theme:MENU_THEME, title, backdrop:menuBackdrop, backdropAnimate:true, score:score, scoreText, best, newBest, lines,
-      share:{ slug:'asteroids', title:'Asteroids', message: ()=>shareMsg(score), params: ()=> (SPEEDRUN ? { v: ENHANCED?'enh':'classic', speedrun:'1' } : { v: ENHANCED?'enh':'classic' }) },
+      share:{ slug:'asteroids', accent: '#9fe8ff', icon: '🛸', title:'Asteroids', message: ()=>shareMsg(score), params: ()=> (SPEEDRUN ? { v: ENHANCED?'enh':'classic', speedrun:'1' } : { v: ENHANCED?'enh':'classic' }) },
       record,
       actions:[ {id:'again',label:'PLAY AGAIN',primary:true}, {id:'menu',label:'MENU'} ],
       onAction:(id)=>{ if(id==='again') startGame(); else if(id==='menu') toMenu(); } });

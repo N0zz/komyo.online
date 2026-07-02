@@ -506,7 +506,7 @@
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'THE KEEP HAS FALLEN', backdrop: (g, w, h) => menuMapRender(g, w, h, MAPS[mapIndex]),
       score: score, best: bestScore, newBest: score >= bestScore && score > 0,
       lines: ['Waves survived: ' + wave + ' · ' + MAPS[mapIndex].name + ' · ' + DIFF().label],
-      share: { slug: 'tower-defense', title: 'Keep Defender', message: () => KIT.shareText({ score: score, game: 'Keep Defender', emoji: '🏰', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, extra: ['wave ' + wave] }), params: () => ({ map: mapIndex, diff: diffLevel }) },
+      share: { slug: 'tower-defense', accent: '#e0b25a', icon: '🏰', title: 'Keep Defender', message: () => KIT.shareText({ score: score, game: 'Keep Defender', emoji: '🏰', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, extra: ['wave ' + wave] }), params: () => ({ map: mapIndex, diff: diffLevel }) },
       actions: [ { id: 'again', label: 'Play again', primary: true }, { id: 'menu', label: 'Menu' } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
   }
