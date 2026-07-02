@@ -26,6 +26,7 @@
   /* .gamekit-hud (shared kit) provides center-top placement, pill, wrap + font; keep only item colors. */
   #hud .stat b { color:var(--accent); }
   #hud #hTime.warn { color:#ff3c3c; }
+  #hud #hMode { color:var(--dim); font-weight:400; }
   /* start / pause / end screens come from the shared gamekit.menu (MENU_THEME below) */
 </style>
 </head>
@@ -36,6 +37,7 @@
   <div class="stat"><span class="lbl">ACC</span><b id="hAcc">--%</b></div>
   <div class="stat"><span id="hTimeLbl" class="lbl">TIME</span><b id="hTime">30</b></div>
   <div class="stat"><span id="hBestLbl" class="lbl">BEST</span><b id="hBest">0</b></div>
+  <div class="stat"><b id="hMode">Timed 30s</b></div>
 </div>
 
 <script>
@@ -101,6 +103,7 @@
   // one label per mode+amount — the single key for bests (menu + profile) AND the record.
   // Timed keeps the best SCORE (max); Sprint keeps the best TIME (min). Moving is a toggle, not its own board.
   const modeLabel = (m, amt) => m === 'sprint' ? ('Sprint · ' + amt + ' targets') : ('Timed · ' + amt + 's');
+  const hudModeLabel = () => (mode === 'sprint' ? ('Sprint ' + SPRINT_TARGET) : ('Timed ' + sessionSeconds + 's')) + (movingTargets ? ' · moving' : '');
   function loadBest(m, s) {
     if (!KIT) return 0;
     return m === 'sprint' ? KIT.best('aim-trainer', modeLabel('sprint', SPRINT_TARGET)).time
@@ -127,6 +130,11 @@
     H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
     HUD_H = hudBottom();
+    // pull live targets back on-screen — a rotation can otherwise strand the current target
+    for (const t of targets) {
+      t.x = Math.min(Math.max(t.x, t.r + 4), W - t.r - 4);
+      t.y = Math.min(Math.max(t.y, HUD_H + t.r + 4), H - t.r - 4);
+    }
   }
   window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
@@ -134,6 +142,7 @@
     const acc = hits + misses > 0 ? Math.round(hits / (hits + misses) * 100) : null;
     $('hScore').textContent = score;
     $('hAcc').textContent = acc !== null ? acc + '%' : '--%';
+    $('hMode').textContent = hudModeLabel();
 
     if (mode === 'sprint') {
       $('hScoreLbl').textContent = 'TARGETS';

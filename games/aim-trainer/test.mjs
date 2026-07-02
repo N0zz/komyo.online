@@ -343,6 +343,18 @@ section('moving targets: stay within the playfield (bounce)');
   ok(!outOfBounds, 'moving targets never leave the playfield bounds');
 }
 
+section('rotation: a live target is pulled back on-screen');
+{
+  const gr = runGame(); // boots at 1280×800
+  const Tr = gr.T;
+  Tr().start();
+  ok(Tr().targets.length > 0, 'a target is live before the rotate');
+  gr.resize(390, 780); // landscape → portrait: the old spawn area is mostly gone
+  const t = Tr().targets[0];
+  ok(t && t.x >= 0 && t.x <= 390 && t.y >= 0 && t.y <= 780,
+    'target clamped into the new viewport (got ' + (t && (Math.round(t.x) + ',' + Math.round(t.y))) + ')');
+}
+
 section('moving targets: flick aim still hits a moving target at its current position');
 {
   const gm = runGame();
