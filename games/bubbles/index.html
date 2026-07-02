@@ -39,63 +39,6 @@
   #chargeLabel { position:fixed; right:26px; top:56px; z-index:5; font-size:9px;
     letter-spacing:1px; color:var(--gold); writing-mode:vertical-lr; transform:rotate(180deg); }
 
-  #overlay { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; text-align:center; gap:12px;
-    background:rgba(9,18,26,0.92); padding:24px; }
-  #overlay.hidden { display:none; }
-  #overlay h1 { margin:0; font-size:52px; letter-spacing:3px; font-weight:900;
-    background:linear-gradient(135deg,var(--aqua),#7ee8ff,var(--aqua2));
-    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
-    filter:drop-shadow(0 0 18px rgba(46,232,200,0.5)); }
-  #overlay p { margin:2px 0; font-size:14px; color:var(--dim); max-width:400px; line-height:1.5; }
-  .mode-btns { display:flex; gap:10px; flex-wrap:wrap; justify-content:center; margin-top:6px; }
-  .mode-btn { font-family:inherit; cursor:pointer; font-size:13px; padding:8px 18px;
-    border-radius:10px; border:1.5px solid var(--border); color:var(--text);
-    background:rgba(46,232,200,0.1); letter-spacing:.5px; transition:all 0.15s; }
-  .mode-btn:hover { background:rgba(46,232,200,0.22);
-    border-color:var(--aqua); box-shadow:0 0 12px rgba(46,232,200,0.3); }
-  .mode-btn.active { background:rgba(46,232,200,0.28); border-color:var(--aqua);
-    box-shadow:0 0 16px rgba(46,232,200,0.45); position:relative; }
-  .mode-btn.active::after { content:'✓ SELECTED'; position:absolute; top:-9px; right:8px;
-    font-size:8px; font-weight:700; letter-spacing:1px; color:#0d1f2d;
-    background:var(--aqua); border-radius:5px; padding:1px 6px; }
-  .mode-btn .m-title { font-size:15px; font-weight:700; color:var(--aqua); }
-  .mode-btn .m-desc { font-size:11px; color:var(--dim); margin-top:2px; }
-  .mode-btn .m-best { font-size:10px; letter-spacing:1px; text-transform:uppercase; margin-top:5px;
-    color:var(--gold); font-weight:700; }
-  #overlay button.play-btn { font-family:inherit; cursor:pointer; font-size:16px;
-    letter-spacing:1px; padding:12px 36px; border-radius:12px; border:2px solid var(--aqua2);
-    color:#0d1f2d; background:linear-gradient(135deg,var(--aqua),var(--aqua2));
-    font-weight:700; margin-top:4px; box-shadow:0 0 20px rgba(46,232,200,0.4);
-    transition:all 0.15s; }
-  #overlay button.play-btn:hover { box-shadow:0 0 30px rgba(46,232,200,0.6); }
-
-  #gameOver { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; text-align:center; gap:14px;
-    background:rgba(9,18,26,0.9); padding:24px; }
-  #gameOver.hidden { display:none; }
-  #gameOver h2 { margin:0; font-size:42px; font-weight:900; letter-spacing:2px; color:var(--gold); }
-  #gameOver .go-score { font-size:28px; color:var(--aqua); font-weight:700; }
-  #gameOver .go-best { font-size:15px; color:var(--dim); }
-  #gameOver .go-btns { display:flex; gap:12px; margin-top:8px; }
-  #gameOver button { font-family:inherit; cursor:pointer; font-size:14px; padding:10px 22px;
-    border-radius:10px; border:1.5px solid var(--border); color:var(--text);
-    background:rgba(46,232,200,0.12); letter-spacing:.5px; }
-  #gameOver button.primary { border-color:var(--aqua2); color:#0d1f2d;
-    background:linear-gradient(135deg,var(--aqua),var(--aqua2)); font-weight:700; }
-
-  #shareRow { --gamekit-accent:#2ee8c8; }
-
-  #wonScreen { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; text-align:center; gap:14px;
-    background:rgba(9,18,26,0.9); padding:24px; }
-  #wonScreen.hidden { display:none; }
-  #wonScreen h2 { margin:0; font-size:42px; font-weight:900; color:var(--aqua); letter-spacing:2px; }
-  #wonScreen .w-score { font-size:28px; color:var(--gold); font-weight:700; }
-  #wonScreen button { font-family:inherit; cursor:pointer; font-size:14px; padding:10px 22px;
-    border-radius:10px; border:1.5px solid var(--aqua2); color:#0d1f2d;
-    background:linear-gradient(135deg,var(--aqua),var(--aqua2)); font-weight:700; margin-top:4px; }
-
   /* Sits just under the HUD, centered over the playfield, so it tracks the HUD
      across viewport sizes instead of floating near the shooter. */
   #specialIndicator { position:fixed; top:56px; left:50%; transform:translateX(-50%);
@@ -121,54 +64,6 @@
 </div>
 <div id="chargeLabel">CHARGE</div>
 <div id="specialIndicator">⚡ SPECIAL READY</div>
-
-<!-- start / pause / end screens are rendered by gamekit.menu; these stay only as hidden anchors -->
-<div id="overlay" class="hidden">
-  <h1>Bubble Pop</h1>
-  <p>Shoot bubbles to pop matching groups of 3 or more.</p>
-  <div class="mode-btns">
-    <button class="mode-btn active" data-mode="arcade">
-      <div class="m-title">Arcade</div>
-      <div class="m-desc">Clear board to advance<br>Grid descends as you shoot</div>
-      <div class="m-best" data-best="arcade">best: 0</div>
-    </button>
-    <button class="mode-btn" data-mode="speedrun">
-      <div class="m-title">Speedrun</div>
-      <div class="m-desc">Clear board to advance<br>Grid descends on a timer — race it</div>
-      <div class="m-best" data-best="speedrun">best: 0</div>
-    </button>
-    <button class="mode-btn" data-mode="endless">
-      <div class="m-title">Endless</div>
-      <div class="m-desc">New rows push in forever<br>Survive &amp; rack up score</div>
-      <div class="m-best" data-best="endless">best: 0</div>
-    </button>
-    <button class="mode-btn" data-mode="zen">
-      <div class="m-title">Zen</div>
-      <div class="m-desc">No pressure, no descent<br>Just pop and relax</div>
-      <div class="m-best" data-best="zen">best: 0</div>
-    </button>
-  </div>
-  <p style="font-size:12px;color:var(--dim);margin-top:6px;">Mouse/touch to aim &middot; Click/tap to shoot &middot; A/D or ← → to aim &middot; Space to fire</p>
-  <button class="play-btn" id="startBtn">Play</button>
-</div>
-
-<div id="gameOver" class="hidden">
-  <h2>GAME OVER</h2>
-  <div class="go-score" id="goScore">0</div>
-  <div class="go-best" id="goBest">Best: 0</div>
-  <div class="go-btns">
-    <button class="primary" id="goRetry">Play Again</button>
-    <button id="goMenu">Menu</button>
-  </div>
-  <div id="shareRow"></div>
-</div>
-
-<div id="wonScreen" class="hidden">
-  <h2>CLEARED! ✨</h2>
-  <div class="w-score" id="wonScore">0</div>
-  <div class="go-best" id="wonBest">Best: 0</div>
-  <button id="wonNext">Next Level</button>
-</div>
 
 <script>
 (() => {
@@ -379,14 +274,12 @@
     g.save(); g.strokeStyle=col; g.fillStyle=col; g.lineWidth=Math.max(3, Math.min(w,h)*0.06); g.lineJoin='round'; g.lineCap='round';
     g.shadowColor='rgba(6,16,24,0.9)'; g.shadowBlur=Math.min(w,h)*0.14; draw(g, w/2, h/2, Math.min(w,h)*0.56); g.restore();
   }catch(e){} }
-  function icClock(g,cx,cy,s){ const r=s/2; g.beginPath(); g.arc(cx,cy,r,0,7); g.stroke(); g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx,cy-r*0.56); g.moveTo(cx,cy); g.lineTo(cx+r*0.44,cy+r*0.18); g.stroke(); }
   function icChevron(g,cx,cy,s){ const a=s*0.5; [-s*0.2, s*0.12].forEach(dy=>{ g.beginPath(); g.moveTo(cx-a,cy-a*0.45+dy); g.lineTo(cx,cy+a*0.45+dy); g.lineTo(cx+a,cy-a*0.45+dy); g.stroke(); }); }
   function icZzz(g,cx,cy,s){ g.textAlign='center'; g.textBaseline='middle';
     const z=(sz,dx,dy)=>{ g.font='800 '+Math.round(s*sz)+'px system-ui,sans-serif'; g.fillText('z', cx+dx*s, cy+dy*s); };
     z(0.34,-0.32,0.26); z(0.48,-0.02,0.04); z(0.66,0.30,-0.22); } // sleepy zzz: grows as it drifts up-right
   function icInfinity(g,cx,cy,s){ const r=s*0.23, off=r*0.96; g.beginPath(); g.arc(cx-off,cy,r,0,7); g.stroke(); g.beginPath(); g.arc(cx+off,cy,r,0,7); g.stroke(); }
   function pvArcade(g,w,h){ pvCard(g,w,h,icChevron,'#2ee8c8'); } // grid descends as you shoot
-  function pvSpeed(g,w,h){ pvCard(g,w,h,icClock,'#ffe066'); }
   function pvEndless(g,w,h){ pvCard(g,w,h,icInfinity,'#b78cff'); } // rows push in forever
   function pvZen(g,w,h){ pvCard(g,w,h,icZzz,'#7ee8ff'); }
   const MODE_HINT = { arcade:'Pop groups of 3+; clear the board to advance.', endless:'Rows push in forever — survive and score.', zen:'Relax and pop. No fail, no descent.' };
