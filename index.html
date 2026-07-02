@@ -805,7 +805,13 @@
         <button class="settoggle" id="setMusToggle" type="button" role="switch" aria-checked="true">On</button>
         <input class="setvol" id="setMusVol" type="range" min="0" max="100" aria-label="Music volume">
       </div>
-      <p class="about-foot">Saved on this device. Each game also has these controls in its top-right menu.</p>
+      <div class="setrow">
+        <span class="setlbl"><span class="di">📣</span> Show my nickname in Discord score posts</span>
+        <button class="settoggle" id="setDiscordName" type="button" role="switch" aria-checked="false">Off</button>
+      </div>
+      <p class="about-foot">Saved on this device. Each game also has the sound controls in its top-right menu.
+        Scores post to our public Discord only if you've accepted cookies — anonymously unless you turn the
+        nickname on.</p>
     </div>
   </dialog>
 
@@ -830,7 +836,7 @@
       <div class="faq-q">What makes komyo different from other game sites?</div>
       <p class="faq-a">Most free-game sites run on ads, trackers, pop-ups and "sign up to save your score." komyo doesn't: <b>no ads, no accounts, no pop-ups, nothing about you on a server.</b> Every game is one clean, self-contained page that loads fast and even works offline. It won't have the <i>most</i> games on the internet — it's a small, hand-picked set, each one actually polished — but it'll always be the calm, no-strings way to just play. Made for fun, not for funnels.</p>
       <div class="faq-q">Do I need an account? Where's my data stored?</div>
-      <p class="faq-a">There are <b>no accounts</b> — komyo has no logins and no server that keeps your stuff. Your scores, progress, favorites and settings live <b>only in your browser, on this device</b>. The one optional exception is Google Analytics, and only if you accept the cookie banner — decline and nothing about you is collected.</p>
+      <p class="faq-a">There are <b>no accounts</b> — komyo has no logins and no server that keeps your stuff. Your scores, progress, favorites and settings live <b>only in your browser, on this device</b>. The optional exceptions, both only if you accept the cookie banner: Google Analytics, and an anonymous score post to our public Discord when you finish a game (your nickname is attached only if you turn that on in ⚙️ Settings). Decline the banner and nothing about you is collected or sent.</p>
       <div class="faq-q">Are there leaderboards or online rankings?</div>
       <p class="faq-a">No — on purpose. Leaderboards need accounts and a server to store everyone's scores, and we don't keep any of that (see above). You're playing against <b>your own best</b>. Scores you choose to share go straight to our <a href="https://discord.gg/hz2fhpD5sz" target="_blank" rel="noopener">Discord</a>, not a database.</p>
       <div class="faq-q">Is it really free? Any ads or payments?</div>
@@ -1386,7 +1392,7 @@
     (function () {
       const btn = document.getElementById('resetAll');
       if (!btn) return;
-      const KEEP = { gamekit_consent: 1, gamekit_sfx_muted: 1, gamekit_sfx_vol: 1, gamekit_music_muted: 1, gamekit_music_vol: 1, gamekit_name: 1 };
+      const KEEP = { gamekit_consent: 1, gamekit_sfx_muted: 1, gamekit_sfx_vol: 1, gamekit_music_muted: 1, gamekit_music_vol: 1, gamekit_name: 1, gamekit_discord_name: 1 };
       const wipe = () => {
         try {
           const keys = [];
@@ -1478,6 +1484,15 @@
         musT.addEventListener('click', () => { K.music.toggle(); sync(); });
         sfxV.addEventListener('input', e => { K.sound.volume(((e.target && e.target.value) || 0) / 100); });
         musV.addEventListener('input', e => { K.music.volume(((e.target && e.target.value) || 0) / 100); });
+      }
+      // Discord nickname opt-in (gamekit_discord_name) — the kit's discordTier() reads this
+      const dnT = document.getElementById('setDiscordName');
+      if (dnT) {
+        const dnGet = () => { try { return localStorage.getItem('gamekit_discord_name') === '1'; } catch (e) { return false; } };
+        const dnSync = () => paint(dnT, dnGet());
+        dnT.addEventListener('click', () => { try { localStorage.setItem('gamekit_discord_name', dnGet() ? '0' : '1'); } catch (e) {} dnSync(); });
+        if (btn) btn.addEventListener('click', dnSync);
+        dnSync();
       }
     })();
 
