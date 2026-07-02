@@ -352,13 +352,19 @@ function run() {
   }
   ok(!!boss, 'wave 5 spawns a boss');
   if (boss) {
-    const expHp = Math.round(200 * Bs().waveHpK() * 3.0); // map 0 diff = 1.0
-    ok(boss.maxHp === expHp, 'boss HP uses the halved 200 base (got ' + boss.maxHp + ', expected ' + expHp + ')');
+    ok(Bs().diffConfig.bossHpMul === 0.5, 'hard bossHpMul is 0.5 (got ' + Bs().diffConfig.bossHpMul + ')');
+    const expHp = Math.round(400 * (Bs().waveHpK() * 1 * 3.0 * Bs().diffConfig.bossHpMul)); // map 0 diff = 1.0
+    ok(boss.maxHp === expHp, 'hard boss HP is halved via bossHpMul (got ' + boss.maxHp + ', expected ' + expHp + ')');
     ok(Math.abs(boss.speed - 0.4) < 1e-9, 'boss walks at 0.4 and ignores the threat speed nudge (got ' + boss.speed + ')');
     let other = null;
     for (let i = 0; i < Bs().enemies; i++) { const e = Bs().enemyInfo(i); if (e && e.type !== 'boss') { other = e; break; } }
     if (other) ok(other.speed > boss.speed, 'non-boss enemies in the same wave keep the threat speed nudge (' + other.speed.toFixed(2) + ' > 0.4)');
   }
+  // the nerf is difficulty-scoped: easy bosses unchanged, medium moderately relieved
+  Dm().setDifficultyLevel('easy');
+  ok(Dm().diffConfig.bossHpMul === 1.0, 'easy bosses keep full HP (bossHpMul 1.0)');
+  Dm().setDifficultyLevel('medium');
+  ok(Dm().diffConfig.bossHpMul === 0.7, 'medium bosses at 0.7 (got ' + Dm().diffConfig.bossHpMul + ')');
 
   section('targeting priority (per-tower mode)');
   const gT = runInline('index.html'); const Tg = () => gT.test();
