@@ -51,6 +51,15 @@ window.CHALLENGES = {
   weekly: ['wk-distinct5', 'wk-play12', 'rand-weekly', 'wk-genres3', 'wk-good10'],
 };
 
+// "Good run" bar per game — a run scoring at least this counts toward the goodRuns challenge
+// metric (kit increments it when a result is recorded; the challenge panel hint reads it too).
+// EVERY live game needs an entry — a missing slug silently never earns good runs. Targets are
+// provisional, tune with the goal targets above.
+window.CHALLENGES.goodRun = {
+  snake: 100, bubbles: 1000, breakout: 500, stacker: 12, flappy: 8,
+  'aim-trainer': 250, 'tower-defense': 300, asteroids: 2000, 'asteroids-plus': 50000,
+};
+
 // Deterministic, same-for-everyone pick for scope:'random' goals — chosen from ALL playable
 // slugs by the day (daily) or week index. Pure so the catalogue's evalGoal and the tile-badge
 // resolver agree. `playable` = window.GAMES filtered to non-soon, in catalogue order.

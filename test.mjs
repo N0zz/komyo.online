@@ -444,7 +444,7 @@ async function testKit() {
   try { F.controls({ title: 'Controls', keyboard: [['Space', 'Shoot'], ['Esc', 'Pause']], touch: [['Tap', 'Shoot']] }); } catch (e) { ctlErr = e.message; }
   ok(ctlErr === null && typeof F.controls === 'function', 'controls board builds headless: ' + ctlErr);
   // challenges: activeChallenge(slug) + the in-game panel (reads window.CHALLENGES + kit storage)
-  g.win.CHALLENGES = { goals: { tg: { slug: 'testgame', title: 'Score 10 in Test', metric: 'score', target: 10 } }, daily: ['tg'], weekly: [] };
+  g.win.CHALLENGES = { goals: { tg: { slug: 'testgame', title: 'Score 10 in Test', metric: 'score', target: 10 } }, daily: ['tg'], weekly: [], goodRun: { snake: 100, breakout: 500 } };
   ok(F.activeChallenge('testgame') === true, 'activeChallenge true when this game is today’s pick');
   ok(F.activeChallenge('other') === false, 'activeChallenge false for a game with no active challenge');
   let chpErr = null; try { F.challengesPanel({ slug: 'testgame' }); } catch (e) { chpErr = e.message; }

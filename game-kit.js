@@ -11,6 +11,33 @@
   function lsSet(k, v) { try { if (typeof localStorage !== 'undefined') localStorage.setItem(k, v); } catch (e) {} }
   function clamp01(v, d) { v = parseFloat(v); return (typeof v === 'number' && isFinite(v)) ? Math.max(0, Math.min(1, v)) : d; }
 
+  // ---------- canvas helpers ----------
+  // Rounded-rect subpath (no beginPath — matches native ctx.roundRect semantics). r is a number or a
+  // CSS-style radii array ([tl,tr,br,bl] / [tl+br,tr+bl] / [r]); radii clamp to the box.
+  function rrPath(g, x, y, w, h, r) {
+    var a = Array.isArray(r) ? r : [r || 0];
+    var tl = a[0] || 0, tr = a.length > 1 ? a[1] || 0 : tl, br = a.length > 2 ? a[2] || 0 : tl, bl = a.length > 3 ? a[3] || 0 : (a.length > 1 ? tr : tl);
+    var m = Math.min(w, h) / 2;
+    tl = Math.min(tl, m); tr = Math.min(tr, m); br = Math.min(br, m); bl = Math.min(bl, m);
+    g.moveTo(x + tl, y);
+    g.arcTo(x + w, y, x + w, y + h, tr);
+    g.arcTo(x + w, y + h, x, y + h, br);
+    g.arcTo(x, y + h, x, y, bl);
+    g.arcTo(x, y, x + w, y, tl);
+    g.closePath();
+  }
+  // One polyfill for every game (old Safari + the headless mock) — bare ctx.roundRect(...) just works.
+  try {
+    if (typeof CanvasRenderingContext2D !== 'undefined' && !CanvasRenderingContext2D.prototype.roundRect)
+      CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h, r) { rrPath(this, x, y, w, h, r); return this; };
+  } catch (e) {}
+  // Convenience for game code: full fresh path, caller just fills/strokes.
+  function roundRect(g, x, y, w, h, r) {
+    g.beginPath();
+    if (typeof g.roundRect === 'function') g.roundRect(x, y, w, h, r);
+    else rrPath(g, x, y, w, h, r);
+  }
+
   // ---------- audio state (two channels: SFX kit-played, Music settings-only) ----------
   var SFX_M = 'gamekit_sfx_muted', SFX_V = 'gamekit_sfx_vol', MUS_M = 'gamekit_music_muted', MUS_V = 'gamekit_music_vol';
   var sfxMuted = lsGet(SFX_M) === '1';
@@ -90,6 +117,7 @@
   }
   function tone(f, d, type, g) {
     if (sfxMuted) return; ensureAC(); if (!ac) return;
+    if (ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
     try {
       var o = ac.createOscillator(), v = ac.createGain();
       o.type = type || 'sine'; o.frequency.value = f;
@@ -100,6 +128,7 @@
   }
   function noise(d, g) {
     if (sfxMuted) return; ensureAC(); if (!ac) return;
+    if (ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
     try {
       var n = ac.createBufferSource(), b = ac.createBuffer(1, Math.max(1, ac.sampleRate * d), ac.sampleRate);
       var dt = b.getChannelData(0);
@@ -466,7 +495,9 @@
   // per-game "good run" bar — a run at/above this counts as one good run toward cross-game goals.
   // Keeps cross goals FAIR across wildly different score scales (a run is one good run, never more),
   // so a single big-score game (e.g. Asteroids+) can't single-handedly complete a weekly goal.
-  var CH_PAR = { snake: 100, bubbles: 1000, breakout: 500, stacker: 12, flappy: 8, 'aim-trainer': 250, 'tower-defense': 300, asteroids: 2000, 'asteroids-plus': 50000 };
+  // The table itself lives in challenges.js (CHALLENGES.goodRun) — data with the other challenge
+  // knobs, loaded by the catalogue AND every game, and part of the new-game wiring checklist.
+  function chGoodRun(slug) { var C = chGoals(); return (slug && C && C.goodRun && C.goodRun[slug]) || 0; }
 
   // ---------- challenges (shared source: the catalogue panel + the in-game 🏆 button read this) ----------
   // Reads window.CHALLENGES (loaded via challenges.js) + the kit's own per-day activity/best storage.
@@ -548,7 +579,7 @@
       var prog = e ? (e.done ? '✓ Done' : (fmtScore(e.val) + ' / ' + fmtScore(e.target))) : '';
       // "good runs" goal: spell out the bar — the current game's exact bar in-game, generic on the catalogue
       var hint = '';
-      if (g.metric === 'goodRuns') hint = '<div class="gkch-hint">' + ((slug && CH_PAR[slug]) ? ('A good run here = ' + fmtScore(CH_PAR[slug]) + '+') : 'A good run beats a game’s mark.') + '</div>';
+      if (g.metric === 'goodRuns') hint = '<div class="gkch-hint">' + (chGoodRun(slug) ? ('A good run here = ' + fmtScore(chGoodRun(slug)) + '+') : 'A good run beats a game’s mark.') + '</div>';
       return '<div class="gkch-card' + (mine ? ' mine' : '') + (e && e.done ? ' done' : '') + '">'
         + '<div class="gkch-k">' + kindLabel + (mine ? ' · <b>THIS GAME</b>' : '') + '</div>'
         + '<div class="gkch-t">' + g.title + '</div>'
@@ -618,7 +649,7 @@
       var log = JSON.parse(lsGet(key) || 'null') || emptyLog();
       if (log.slugs.indexOf(slug) < 0) log.slugs.push(slug);
       log.totalScore += rec.score; log.count += 1;
-      var par = CH_PAR[slug]; if (par && rec.score >= par) log.goodRuns = (log.goodRuns || 0) + 1; // a run that clears the game's bar
+      var par = chGoodRun(slug); if (par && rec.score >= par) log.goodRuns = (log.goodRuns || 0) + 1; // a run that clears the game's bar
       lsSet(key, JSON.stringify(log));
       // per-day BEST per slug (max of each numeric metric) — lets the catalogue detect a daily-challenge
       // completion for the day it happened, even if you never reopened the catalogue that day or later
@@ -879,6 +910,12 @@
 
   function nav(opts) {
     opts = opts || {};
+    // slug is the one identity: reset prefix + challenges key derive from it (explicit opts override),
+    // so folder = games.js slug = reset prefix = challenge key can't drift apart per game.
+    if (opts.slug) {
+      if (opts.reset == null) opts.reset = opts.slug + '_';
+      if (opts.challenges == null) opts.challenges = opts.slug;
+    }
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'gamekit-nav';
       wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">&#x2039; Menu</button>'
@@ -1432,6 +1469,29 @@
     __emit: function (w, h) { try { if (typeof window !== 'undefined') { if (w != null) window.innerWidth = w; if (h != null) window.innerHeight = h; } } catch (e) {} fireLayout(); },
   };
 
+  // ---------- fitCanvas: the ONE canvas sizing + DPR policy ----------
+  // The game computes its CSS size (each has its own playfield policy) and calls this from its
+  // resize path; the kit sets the CSS box, scales the backing store by devicePixelRatio (capped
+  // at 2, headless-safe → 1) and applies the matching transform, so game code keeps drawing in
+  // CSS pixels. Omit w/h for a full-viewport canvas. {dpr:false} opts out (scaled-world canvases
+  // that manage their own transforms); games that call ctx.setTransform with absolute values must
+  // compose the returned dpr in (or opt out). Reads of canvas.width in game logic should switch
+  // to the game's own W/H (CSS px) — the backing store is dpr-scaled.
+  function fitCanvas(canvas, w, h, opts) {
+    opts = opts || {};
+    if (w == null) w = vw();
+    if (h == null) h = vh();
+    var dpr = 1;
+    if (opts.dpr !== false) { try { dpr = Math.min(Math.max(1, (typeof window !== 'undefined' && window.devicePixelRatio) || 1), opts.maxDpr || 2); } catch (e) {} }
+    try {
+      if (canvas.style) { canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; }
+      canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+      var g = canvas.getContext && canvas.getContext('2d');
+      if (g && g.setTransform) g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    } catch (e) {}
+    return { w: w, h: h, dpr: dpr };
+  }
+
   // Unlock/resume the AudioContext on user gestures. Browsers keep it SUSPENDED until a real gesture,
   // so on a fresh load / refresh nothing plays until the first tap or key — that's unavoidable. We
   // listen in the CAPTURE phase so a game canvas that calls stopPropagation can't swallow the gesture
@@ -1804,7 +1864,7 @@
 
     // "✓ Good run" cue: if this end-screen result cleared the game's good-run bar, celebrate it (and
     // hint that it counts toward the cross-game challenge) — generic, so every game's end menu gets it.
-    if (cfg.record && cfg.record.slug) { var _par = CH_PAR[cfg.record.slug]; if (_par && (+cfg.record.score || 0) >= _par) scroll.appendChild(mkEl('p', 'gkm-goodrun', '✓ Good run — counts toward today’s challenge')); }
+    if (cfg.record && cfg.record.slug) { var _par = chGoodRun(cfg.record.slug); if (_par && (+cfg.record.score || 0) >= _par) scroll.appendChild(mkEl('p', 'gkm-goodrun', '✓ Good run — counts toward today’s challenge')); }
     (cfg.lines || []).forEach(function (ln) { scroll.appendChild(mkEl('p', 'gkm-line', ln)); });
     var hintEl = cfg.hint ? mkEl('p', 'gkm-hint') : null; if (hintEl) scroll.appendChild(hintEl);
     var shareHost = cfg.share ? mkEl('div', 'gkm-share-host') : null; if (shareHost) scroll.appendChild(shareHost);
@@ -1901,7 +1961,7 @@
   }
   var menu = { show: menuShow, hide: menuHide, current: function () { return _menuHandle; } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, versionTag: versionTag, updates: updates, buildInfo: buildInfo };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, versionTag: versionTag, updates: updates, buildInfo: buildInfo };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
