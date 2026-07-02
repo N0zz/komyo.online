@@ -279,23 +279,39 @@
   // nothing behind it reacts).
   var _modalOpen = 0;
   var _confirmOn = false; // one confirm at a time — repeated clicks must not stack overlays
-  function confirmDialog(msg, onYes, yesLabel, onCancel) {
+  function confirmDialog(msg, onYes, yesLabel, onCancel, opts) {
     if (typeof document === 'undefined' || !document.body) { if (onYes) onYes(); return; }
     if (_confirmOn) return;
     _confirmOn = true;
+    var holdMs = (opts && +opts.hold) || 0; // destructive confirms: press-and-HOLD the yes button
     var ov = document.createElement('div'); ov.className = 'gamekit-confirm';
     ov.innerHTML = '<div class="gamekit-confirm-box"><p>' + msg + '</p><div class="gamekit-confirm-btns">'
       + '<button class="gamekit-cf-no" type="button">Cancel</button>'
-      + '<button class="gamekit-cf-yes" type="button">' + (yesLabel || 'OK') + '</button></div></div>';
+      + '<button class="gamekit-cf-yes' + (holdMs ? ' gkm-cf-hold' : '') + '" type="button">' + (yesLabel || 'OK') + '</button></div></div>';
     document.body.appendChild(ov);
     var no = ov.querySelector ? ov.querySelector('.gamekit-cf-no') : null;
     var yes = ov.querySelector ? ov.querySelector('.gamekit-cf-yes') : null;
     var btns = [no, yes], fi = 0; // 0 = Cancel (default focus), 1 = yes/Leave
     function paint() { for (var i = 0; i < btns.length; i++) if (btns[i] && btns[i].classList) btns[i].classList.toggle('gkm-cf-focus', i === fi); }
     var done = false;
+    var hTimer = 0, hStart = 0;
+    function setHoldFill(p) { try { if (yes && yes.style && yes.style.setProperty) yes.style.setProperty('--gk-hold', Math.round(p * 100) + '%'); } catch (e) {} }
+    function stopHold() { if (hTimer) { clearInterval(hTimer); hTimer = 0; } setHoldFill(0); }
+    function startHold() {
+      if (done || hTimer || typeof setInterval !== 'function') return;
+      hStart = (typeof Date !== 'undefined' && Date.now) ? Date.now() : 0;
+      hTimer = setInterval(function () {
+        var now = (typeof Date !== 'undefined' && Date.now) ? Date.now() : hStart + holdMs;
+        var p = Math.min(1, (now - hStart) / holdMs);
+        setHoldFill(p);
+        if (p >= 1) { stopHold(); finish(onYes); }
+      }, 50);
+    }
     function finish(cb) {
       if (done) return; done = true; _confirmOn = false; _modalOpen = Math.max(0, _modalOpen - 1);
+      stopHold();
       try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
+      try { document.removeEventListener('keyup', onKeyUp, true); } catch (e) {}
       try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
       if (cb) try { cb(); } catch (e) {}
     }
@@ -305,16 +321,35 @@
       if (e.stopImmediatePropagation) e.stopImmediatePropagation(); else if (e.stopPropagation) e.stopPropagation();
       var k = e.key;
       if (k === 'Escape' || k === 'Esc') finish(onCancel);
-      else if (k === 'Enter' || k === ' ' || k === 'Spacebar') finish(fi === 1 ? onYes : onCancel);
+      else if (k === 'Enter' || k === ' ' || k === 'Spacebar') {
+        if (fi !== 1) finish(onCancel);
+        else if (holdMs) startHold(); // hold the key down for the full duration (keyup cancels)
+        else finish(onYes);
+      }
       else if (k === 'ArrowLeft' || k === 'ArrowUp' || k === 'a' || k === 'A' || k === 'w' || k === 'W') { fi = 0; paint(); }
       else if (k === 'ArrowRight' || k === 'ArrowDown' || k === 'd' || k === 'D' || k === 's' || k === 'S' || k === 'Tab') { fi = (fi + 1) % 2; paint(); }
     }
+    function onKeyUp(e) { if (!e || done) return; var k = e.key; if (k === 'Enter' || k === ' ' || k === 'Spacebar') stopHold(); }
     if (no) { no.addEventListener('click', function () { finish(onCancel); }); no.addEventListener('mouseenter', function () { fi = 0; paint(); }); }
-    if (yes) { yes.addEventListener('click', function () { finish(onYes); }); yes.addEventListener('mouseenter', function () { fi = 1; paint(); }); }
+    if (yes) {
+      if (holdMs) {
+        var press = function (e) { if (e && e.preventDefault) e.preventDefault(); fi = 1; paint(); startHold(); };
+        var release = function () { stopHold(); };
+        yes.addEventListener('pointerdown', press);
+        yes.addEventListener('pointerup', release);
+        yes.addEventListener('pointerleave', release);
+        yes.addEventListener('touchstart', press);
+        yes.addEventListener('touchend', release);
+        yes.addEventListener('touchcancel', release);
+      } else {
+        yes.addEventListener('click', function () { finish(onYes); });
+      }
+      yes.addEventListener('mouseenter', function () { fi = 1; paint(); });
+    }
     ov.addEventListener('click', function (e) { if (e && e.target === ov) finish(onCancel); });
     paint();
     _modalOpen++;
-    if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
+    if (typeof document.addEventListener === 'function') { document.addEventListener('keydown', onKey, true); document.addEventListener('keyup', onKeyUp, true); }
   }
 
   // ---------- embed modal (iframe snippet) — used by the per-game nav button + catalogue menu ----------
@@ -849,7 +884,7 @@
       var rb = document.getElementById('gamekitReset');
       if (rb) rb.addEventListener('click', function () {
         setMore(false);
-        confirmDialog('Reset your saved scores for this game?', function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} }, 'Reset');
+        confirmDialog('Reset your saved scores for this game?', function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} }, 'Hold to reset', null, { hold: 3000 });
       });
     }
     var eb = document.getElementById('gamekitEmbed');

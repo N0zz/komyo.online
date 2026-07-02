@@ -1428,7 +1428,7 @@
         const wasOpen = !!(sm && sm.open);
         if (wasOpen) { try { sm.close(); } catch (_) {} }
         const back = () => { if (wasOpen && sm) { try { sm.showModal(); } catch (_) {} } };
-        if (window.gamekit && window.gamekit.confirm) window.gamekit.confirm(msg, wipe, 'Reset', back);
+        if (window.gamekit && window.gamekit.confirm) window.gamekit.confirm(msg, wipe, 'Hold to reset', back, { hold: 3000 });
         else if (typeof confirm !== 'function' || confirm(msg)) wipe();
       });
     })();
