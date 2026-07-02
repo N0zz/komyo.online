@@ -1,7 +1,7 @@
 // Daily & weekly challenge catalogue (window.CHALLENGES). Same-for-everyone selection is
 // UTC-date-driven (see index.html). Targets are PROVISIONAL — tune once real results flow.
 //   goal: { id, title, slug?, metric, op?, target, scope?:'cross'|'random', range?:'day'|'week' }
-//   - single-game goal: checked vs gamekit.lastResult(slug) — metric 'score'|'time'|<stats key>
+//   - single-game goal: checked vs the kit's per-day best (gamekit_daybest) — metric 'score'|'time'|<stats key>
 //   - scope:'cross' goal: checked vs the per-day activity log (range 'day') or this week's
 //     aggregate (range 'week') — metric 'distinctGames'|'totalGames'|'totalScore'|'distinctGenres'
 //   - scope:'random' goal: "play today's / this-week's pick" — the slug + title are resolved at

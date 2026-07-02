@@ -494,19 +494,36 @@
     if (m === 'distinctGenres') { var seen = {}, n = 0; a.slugs.forEach(function (x) { var g = genreOf && genreOf[x]; if (g && !seen[g]) { seen[g] = 1; n++; } }); return n; }
     return 0;
   }
-  // evaluate a goal's progress from kit storage; genreOf (slug→genre) optional (only distinctGenres needs it)
-  function chEval(goal, genreOf) {
+  function chDayLog(dStr) {
+    var lg = null; try { lg = JSON.parse(lsGet('gamekit_played_' + dStr) || 'null'); } catch (e) {}
+    lg = lg || emptyLog();
+    return { slugs: lg.slugs || [], totalScore: lg.totalScore || 0, count: lg.count || 0, goodRuns: lg.goodRuns || 0 };
+  }
+  function chDayNum(dStr) { try { var n = utcDayNumber(Date.parse(dStr + 'T00:00:00Z')); return isFinite(n) ? n : utcDayNumber(); } catch (e) { return utcDayNumber(); } }
+  // evaluate a goal's progress from kit storage — THE one evaluator (in-game 🏆 panel + the catalogue
+  // both route here). opts: genres (slug→genre; only distinctGenres needs it), day ('YYYY-MM-DD',
+  // defaults to today; week-range goals always read the current week), playable + titles (ordered live
+  // slugs + slug→title, resolve scope:'random' picks — without them a random goal shows no progress).
+  function chEval(goal, opts) {
     if (!goal) return null;
-    var dStr = utcDateStr(), val = 0;
+    opts = opts || {};
+    var genreOf = opts.genres || null, dStr = opts.day || utcDateStr(), val = 0;
+    if (goal.scope === 'random') {
+      var C = chGoals(), isWeek = goal.range === 'week', dn = chDayNum(dStr);
+      var idx = isWeek ? Math.floor((dn - CH_WEEK_ANCHOR) / 7) : dn;
+      var slug = (C && C.randomSlug && opts.playable) ? C.randomSlug(idx, opts.playable) : '';
+      var played = !!slug && ((isWeek ? chWeekAgg() : chDayLog(dStr)).slugs.indexOf(slug) >= 0);
+      var title = slug ? ('Play ' + ((opts.titles && opts.titles[slug]) || 'a game') + (isWeek ? ' this week' : ' today')) : goal.title;
+      return { val: played ? 1 : 0, target: 1, done: played, pct: played ? 1 : 0, title: title, slug: slug };
+    }
     if (goal.scope === 'cross') {
-      if (goal.range === 'week') val = chCrossVal(goal.metric, chWeekAgg(), genreOf);
-      else { var lg = null; try { lg = JSON.parse(lsGet('gamekit_played_' + dStr) || 'null'); } catch (e) {} lg = lg || emptyLog(); val = chCrossVal(goal.metric, { slugs: lg.slugs || [], totalScore: lg.totalScore || 0, count: lg.count || 0, goodRuns: lg.goodRuns || 0 }, genreOf); }
+      val = chCrossVal(goal.metric, goal.range === 'week' ? chWeekAgg() : chDayLog(dStr), genreOf);
     } else {
       var best = null; try { best = (JSON.parse(lsGet('gamekit_daybest_' + dStr) || 'null') || {})[goal.slug] || null; } catch (e) {}
       if (best) val = goal.metric === 'score' ? (best.score || 0) : goal.metric === 'time' ? (best.time || 0) : ((best.stats && best.stats[goal.metric]) || 0);
     }
     var target = goal.target || 0;
-    return { val: val, target: target, done: val >= target, pct: target ? Math.max(0, Math.min(1, val / target)) : 0 };
+    return { val: val, target: target, done: val >= target, pct: target ? Math.max(0, Math.min(1, val / target)) : 0, title: goal.title, slug: goal.slug };
   }
   // in-game challenges board (🏆 top-bar button → modal): today's daily + this week's weekly, progress
   // from kit storage, with the goal that targets `opts.slug` (this game) highlighted. Modal (freezes game).
@@ -516,7 +533,7 @@
     var slug = opts.slug, genreOf = opts.genres || null, t = chToday();
     function card(entry, kindLabel) {
       if (!entry || !entry.goal) return '<div class="gkch-empty">No ' + kindLabel.toLowerCase() + ' challenge right now.</div>';
-      var g = entry.goal, e = chEval(g, genreOf), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
+      var g = entry.goal, e = chEval(g, { genres: genreOf }), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
       var prog = e ? (e.done ? '✓ Done' : (fmtScore(e.val) + ' / ' + fmtScore(e.target))) : '';
       // "good runs" goal: spell out the bar — the current game's exact bar in-game, generic on the catalogue
       var hint = '';
@@ -1371,6 +1388,7 @@
   // --gkm-overlay / --gkm-radius / --gkm-font). A game themes them in its own CSS, or passes a
   // `theme` object to menu.show() (short keys → those vars) for per-screen tweaks.
   var _menuEl = null, _menuKey = null, _menuHandle = null, _menuKind = null;
+  var _recRun = 1, _recDone = 0; // record idempotency: run counter (armed by menuHide) vs last run recorded
   var _bdRaf = 0, _bdFrame = 0, _bdResize = null; // per-menu backdrop canvas: rAF id, frame counter, resize listener
   // Deferred service-worker update. NEVER surprise-reload while the page is visible (that interrupts play
   // and re-triggered the tap-to-play splash). When a new build is ready: reload silently only if the tab
@@ -1398,13 +1416,16 @@
       history.replaceState(null, '', qs ? location.pathname + '?' + qs : location.pathname);
     } catch (e) {}
   }
-  function menuHide() {
+  function menuTeardown() {
     if (_menuKey) { try { document.removeEventListener('keydown', _menuKey, true); } catch (e) {} _menuKey = null; }
     if (_bdRaf && typeof cancelAnimationFrame === 'function') { try { cancelAnimationFrame(_bdRaf); } catch (e) {} } _bdRaf = 0;
     if (_bdResize && typeof window !== 'undefined' && window.removeEventListener) { try { window.removeEventListener('resize', _bdResize); } catch (e) {} } _bdResize = null;
     if (_menuEl) { try { if (_menuEl.parentNode) _menuEl.parentNode.removeChild(_menuEl); } catch (e) {} _menuEl = null; }
     _menuHandle = null; _menuKind = null;
   }
+  // public hide = a game dismissing the menu (a new run starts) → arm the next cfg.record.
+  // menuShow's internal rebuild uses menuTeardown directly so a re-shown end menu can't re-record.
+  function menuHide() { _recRun++; menuTeardown(); }
   function applyMenuTheme(el, theme) {
     if (!el || !el.style || !theme) return;
     for (var k in theme) {
@@ -1447,7 +1468,7 @@
     cfg = cfg || {};
     var noop = function () {};
     if (typeof document === 'undefined' || !document.body || !document.createElement) return { hide: noop, el: null, selection: function () { return {}; }, select: noop, toggle: noop, activate: noop };
-    menuHide();
+    menuTeardown();
     var kind = cfg.kind || 'start';
     var groups = cfg.groups || [];
     var toggles = cfg.toggles || [];
@@ -1676,7 +1697,7 @@
       }
     }
     if (_pendingReload) safeReload(); // a start/end menu is a safe moment to apply a deferred SW update
-    if (cfg.record) { try { recordResult(cfg.record.slug || (cfg.share && cfg.share.slug), cfg.record); } catch (e) {} }
+    if (cfg.record && _recDone !== _recRun) { _recDone = _recRun; try { recordResult(cfg.record.slug || (cfg.share && cfg.share.slug), cfg.record); } catch (e) {} }
     if (shareHost) { try { shareRow(shareHost, cfg.share); } catch (e) {} }
 
     var focusables = choiceRefs.concat(pickRefs).concat(toggleRefs).concat(popupRefs).concat(actionRefs);
@@ -1741,7 +1762,7 @@
   }
   var menu = { show: menuShow, hide: menuHide, current: function () { return _menuHandle; } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, versionTag: versionTag };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, versionTag: versionTag };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
