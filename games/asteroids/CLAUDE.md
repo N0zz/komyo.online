@@ -36,10 +36,12 @@ variants are the same code behind the flag. The test drives each variant by quer
 
 ## Testing
 
-- `node test.mjs` — headless harness (mocks DOM/canvas, steps the game loop, simulates
-  input, asserts state transitions). It must stay green; add assertions for new behavior.
+- `node test.mjs` — boots through the repo-root `test-harness.mjs` (`bootGame` with a fixed
+  `{seed}` — spawns are RNG; steps the rAF loop, simulates input, asserts state transitions).
+  It must stay green; add assertions for new behavior.
 - The `window.__test` hook (harmless in normal play) lets the harness drive state. **Classic's hook:**
-  `start`, `step`, `state`, `score`, `lives`, `shipAngle`, `layout`, `shareMsg`. Keep it in sync when
+  `start`, `step(n)`, `state`, `score`, `lives`, `rocks`, `clearRocks`, `spawnRockAt(x,y,size)`,
+  `setShip(x,y,angle)`, `setInvuln(n)`, `shipAngle`, `menu`, `layout`, `shareMsg`. Keep it in sync when
   adding mechanics. (asteroids-plus has its own richer hook — `gotoWave`, `giveUpgrade`, `clearEnemies`,
   `killBossNow`, … — they don't exist here.)
 - There is no browser automation available here; the harness is the regression net.
