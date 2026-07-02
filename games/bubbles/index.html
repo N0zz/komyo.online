@@ -58,6 +58,7 @@
   <div class="stat"><span class="lbl">Score</span><span class="val" id="scoreEl">0</span></div>
   <div class="stat"><span class="lbl">Best</span><span class="val" id="bestEl">0</span></div>
   <div class="stat"><span class="lbl">Level</span><span class="val" id="levelEl">1</span></div>
+  <div class="stat" style="opacity:.75"><span class="lbl">Mode</span><span class="val" id="modeEl">Arcade</span></div>
 </div>
 <div id="chargeMeter">
   <div id="chargeFill" style="height:0%;margin-top:auto;"></div>
@@ -320,6 +321,7 @@
     $('scoreEl').textContent = score;
     $('bestEl').textContent = bestScore;
     $('levelEl').textContent = level;
+    $('modeEl').textContent = modeLabel(mode) + (timeDescent && mode !== 'zen' ? ' · timed' : '');
     const pct = Math.round(chargeLevel * 100);
     const fill = $('chargeFill');
     if (fill) {
@@ -666,6 +668,24 @@
 
   // ---- Win condition (arcade: clear the board to advance through levels) ----
   function checkWin() {
+    if (mode === 'zen') {
+      // no fail, no end — a cleared board celebrates and refills so there's always something to pop
+      if (countBubbles() === 0) {
+        level++;
+        gridOffsetY = 0;
+        gridParity = 0;
+        descentTimer = 0;
+        shotsThisLevel = 0;
+        shotsSinceDescent = 0;
+        grid = makeGrid(GRID_ROWS_START + Math.min(level, 5), Math.min(COLORS.length, 4 + level));
+        shotColor = pickShotColor();
+        nextColor = pickShotColor();
+        SND.play('won');
+        float(W / 2, H / 2, 'BOARD CLEARED!', '#ffe14d');
+        updateHud();
+      }
+      return;
+    }
     if (mode !== 'arcade') return;
     if (countBubbles() === 0) {
       if (level >= 5) {

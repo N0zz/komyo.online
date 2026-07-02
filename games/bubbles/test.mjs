@@ -71,13 +71,14 @@ section('Bubble Pop: shoot + pop (matching 3-group)');
   T3().startMode('zen'); // zen: no descent pressure, no level advance on clear
 
   // Build a cluster of 3 same-color near center ceiling, plus a lone different-color
-  // so the board is never fully cleared (avoids level-advance in arcade).
-  // Row 0, cols 5,6,7 = color 2. Row 1 col 0 = color 0 (different, isolated).
+  // so the board is never fully cleared (zen refills an emptied board).
+  // Row 0, cols 5,6,7 = color 2. Row 0 col 0 = color 0 (different, ceiling-attached so it
+  // survives the floater drop — a row-1 anchor would fall and empty the board).
   T3().clearGrid();
   T3().setGridCell(0, 5, 2);
   T3().setGridCell(0, 6, 2);
   T3().setGridCell(0, 7, 2);
-  T3().setGridCell(1, 0, 0); // anchor so grid isn't empty after pop
+  T3().setGridCell(0, 0, 0); // anchor so grid isn't empty after pop
 
   const countBefore = T3().bubbleCount;
   const scoreBefore = T3().score;
@@ -93,6 +94,26 @@ section('Bubble Pop: shoot + pop (matching 3-group)');
   const scoreAfter = T3().score;
   ok(scoreAfter > scoreBefore, 'popping 3-group: score increased (' + scoreBefore + ' -> ' + scoreAfter + ')');
   ok(countAfter < countBefore, 'popping 3-group: bubbleCount decreased (' + countBefore + ' -> ' + countAfter + ')');
+}
+
+section('Bubble Pop: zen refills a cleared board (no dead end)');
+{
+  const gz = runGame();
+  const Tz = gz.T;
+  Tz().startMode('zen');
+  const lvl0 = Tz().level;
+  // Only a 3-group on the ceiling — popping it empties the board entirely.
+  Tz().clearGrid();
+  Tz().setGridCell(0, 5, 2);
+  Tz().setGridCell(0, 6, 2);
+  Tz().setGridCell(0, 7, 2);
+  Tz().setShotColor(2);
+  Tz().aimAngle(-Math.PI / 2);
+  Tz().shoot();
+  Tz().step(150);
+  ok(Tz().state === 'playing', 'zen: still playing after the board cleared (no end screen)');
+  ok(Tz().bubbleCount > 0, 'zen: cleared board refilled (' + Tz().bubbleCount + ' bubbles)');
+  ok(Tz().level === lvl0 + 1, 'zen: refill bumps the level (' + lvl0 + ' -> ' + Tz().level + ')');
 }
 
 section('Bubble Pop: non-matching shot just attaches');
