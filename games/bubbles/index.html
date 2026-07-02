@@ -132,23 +132,15 @@
 
   // ---- Resize ----
   function resize() {
-    // Render at device-pixel resolution so bubbles stay sharp on retina/hi-dpi screens
-    // (drawing coords stay in CSS px via the transform; W/H below are CSS px).
-    const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
     W = window.innerWidth;
     H = window.innerHeight;
-    canvas.width = Math.round(W * dpr);
-    canvas.height = Math.round(H * dpr);
-    canvas.style.width = W + 'px';
-    canvas.style.height = H + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    KIT.fitCanvas(canvas, W, H); // retina-sharp backing store; drawing stays in CSS px
     // Shrink bubbles so the fixed 12-column grid (incl. the half-step offset rows)
     // always fits the viewport width — otherwise narrow / zoomed screens clip columns.
     R = Math.max(9, Math.min(18, Math.floor((W - 24) / (2 * (COLS_COUNT + 1)))));
     ROW_H = R * 1.73;
     WALL = Math.max(6, Math.round(R * 0.55));
-    const portrait = H > W || W <= 560;
-    topMargin = portrait ? 92 : 48;
+    topMargin = KIT.layout.hudTop();
     // Vertical fit: on short (landscape phone) screens the default row spacing makes the
     // starting grid spill past the lose line / shooter. Compress ROW_H so the initial grid
     // (GRID_ROWS_START rows, top at topMargin+R) clears the lose line (H-SHOOTER_Y_OFFSET-3R)
@@ -1077,7 +1069,7 @@
   { const pm = KIT && KIT.param && KIT.param('mode'); if (['arcade', 'endless', 'zen'].indexOf(pm) >= 0) mode = pm; if (KIT && KIT.param && KIT.param('timed') === '1') timeDescent = true; }
 
   // ---- top nav (game-kit): ‹ Menu + komyo › guard a live run; ⏸ + Esc drive the menu pause ----
-  KIT.nav({ music: true, reset: 'bubbles_', home: '../../', theme: MENU_THEME, challenges: 'bubbles', onMenu: () => toMenu(),
+  KIT.nav({ slug: 'bubbles', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Bubble Pop — Controls',
