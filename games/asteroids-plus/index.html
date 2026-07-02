@@ -141,8 +141,6 @@
   // ---- Speedrun ----
   let SPEEDRUN = new URLSearchParams(location.search).has('speedrun');
   const SR_TARGET_WAVE = 5; // clear wave 5 (first boss)
-  let KEY = 'roguelite-' + PROGRESSION; // localStorage suffix, per progression
-  let BEST_KEY = 'asteroids_best_' + KEY;
   const now = () => (window.performance && performance.now) ? performance.now() : Date.now();
   let srElapsed=0, srPrev=0, srDone=false;
 
@@ -169,7 +167,6 @@
   // single-source best labels (kit store): normal keeps best SCORE (+ wave stat), speedrun keeps best TIME (min)
   function progLabel(prog, sr){ const base = { levelup:'Level-up', milestones:'Milestones', shop:'Wave Shop' }[prog] || 'Level-up'; return sr ? (base + ' Speedrun') : base; }
   function saveBest(ms){ return KIT ? KIT.saveBest('asteroids-plus', progLabel(PROGRESSION, true), { time: Math.floor(ms) }).isBest : false; }
-  function readStat(key){ try{ const v=localStorage.getItem(key); return v==null?null:parseInt(v,10); }catch(e){ return null; } }
 
   // mode-specific HUD element visibility — called at boot and whenever a run's mode is chosen (no reload)
   function applyModeHud(){
@@ -281,7 +278,7 @@
       g.save(); g.translate(x,y); g.rotate(rot); mbEnemy(g,k.t,k.r); g.restore(); } }
 
   // set the runtime mode + storage keys + HUD (menu Play calls this before starting a run — no reload)
-  function applyProgression(prog, sr){ PROGRESSION = (prog==='milestones'||prog==='shop') ? prog : 'levelup'; SPEEDRUN = !!sr; KEY='roguelite-'+PROGRESSION; BEST_KEY='asteroids_best_'+KEY; applyModeHud(); }
+  function applyProgression(prog, sr){ PROGRESSION = (prog==='milestones'||prog==='shop') ? prog : 'levelup'; SPEEDRUN = !!sr; applyModeHud(); }
   function startGame(){ if(KIT) KIT.menu.hide(); resetRun(); startWave(1); state='playing'; overlay.classList.add('hidden');
     srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT){ KIT.showMenuButton(true); KIT.showPauseButton(true); } applyModeHud(); updateHud(); }
   function pauseGame(){ state='paused'; if(!KIT) return;
@@ -527,7 +524,6 @@
     ship.hp--; SND.play('hit'); burst(ship.x,ship.y,'255,120,120',26,3.5); invuln=110; noHit=0; updateHud();
     if(ship.hp<=0) die();
   }
-  function saveStat(key,v){ try{ const p=localStorage.getItem(key); if(p==null||v>parseInt(p,10)){ localStorage.setItem(key,String(v)); return true; } }catch(e){} return false; }
   function die(){ state='dead'; if(SPEEDRUN) srDone=true; burst(ship.x,ship.y,'255,160,120',50,5); SND.play('over');
     let newBest=false; if(!SPEEDRUN && KIT){ newBest = KIT.saveBest('asteroids-plus', progLabel(PROGRESSION, false), { score: score, stats: { wave: wave } }).isBest; }
     showEnd({ title:'GAME OVER', scoreText:String(score), best: SPEEDRUN ? null : (KIT ? KIT.bestScore('asteroids-plus', progLabel(PROGRESSION, false)) : 0), newBest,
