@@ -25,7 +25,7 @@ window.CHANGELOG = [
     'Fix: “Reset all data” on the home page keeps your chosen player name.',
     'Fix: the “Have 3 good runs today” and “10 good runs this week” challenges now actually track your good runs and award their points — they could never complete before. Challenge progress also can’t double-count a run anymore.',
     'Improved: Keep Defender score now rewards difficulty — points count ×1.5 on Medium and ×2 on Hard, so a hard run isn’t out-scored by a cruisy easy one (gold rewards are unchanged).',
-    'Fix: Keep Defender bosses were nearly unkillable on Hard — they now have half the health, lumber 20% slower, and no longer get the hidden speed boost from the threat meter (regular enemies still do).',
+    'Fix: Keep Defender bosses were nearly unkillable on Hard — they now have half the health on Hard and 30% less on Medium (Easy bosses are unchanged), lumber 20% slower, and no longer get the hidden speed boost from the threat meter (regular enemies still do).',
     'Improved: Keep Defender stays readable and audible late-game — with a board full of towers, spell/blast effects thin out past a visual budget and rapid-fire sounds are rate-limited instead of stacking into noise.',
   ] },
   { date: '2026-07-01', title: 'Roll the dice 🎲', items: [

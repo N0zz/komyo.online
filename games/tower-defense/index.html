@@ -203,9 +203,9 @@
   // hpBase/hpGrow drive GEOMETRIC per-enemy HP scaling (waveHpK); the economy fields starve
   // income (lower start gold, lower interest + cap, smaller bounties via rewardMul).
   const DIFFICULTY = {
-    easy:   { label:'Easy',   hpBase:2.0, hpGrow:1.17, startGold:90, interestRate:0.015, interestCap:12, rewardMul:0.75, scoreMul:1.0 },
-    medium: { label:'Medium', hpBase:2.3, hpGrow:1.22, startGold:80, interestRate:0.010, interestCap:8,  rewardMul:0.65, scoreMul:1.5 },
-    hard:   { label:'Hard',   hpBase:2.6, hpGrow:1.26, startGold:70, interestRate:0.008, interestCap:6,  rewardMul:0.55, scoreMul:2.0 },
+    easy:   { label:'Easy',   hpBase:2.0, hpGrow:1.17, startGold:90, interestRate:0.015, interestCap:12, rewardMul:0.75, scoreMul:1.0, bossHpMul:1.0 },
+    medium: { label:'Medium', hpBase:2.3, hpGrow:1.22, startGold:80, interestRate:0.010, interestCap:8,  rewardMul:0.65, scoreMul:1.5, bossHpMul:0.7 },
+    hard:   { label:'Hard',   hpBase:2.6, hpGrow:1.26, startGold:70, interestRate:0.008, interestCap:6,  rewardMul:0.55, scoreMul:2.0, bossHpMul:0.5 },
   };
   const DIFF_KEY = 'tower-defense_diff';
   let diffLevel = 'medium';
@@ -383,7 +383,7 @@
     grunt:   { hp: 36,  speed: 1.05, reward: 3,   color: '#9a6a44', rr: 0.30, leak: 1 },
     runner:  { hp: 22,  speed: 2.0,  reward: 3,   color: '#d8b24a', rr: 0.25, leak: 1 },
     brute:   { hp: 140, speed: 0.62, reward: 8,   color: '#7a7a88', rr: 0.40, leak: 2 },
-    boss:    { hp: 200, speed: 0.4,  reward: 90,  color: '#b04141', rr: 0.55, leak: 6 },
+    boss:    { hp: 400, speed: 0.4,  reward: 90,  color: '#b04141', rr: 0.55, leak: 6 },
     armored: { hp: 78,  speed: 0.85, reward: 10,  color: '#6a8a6a', rr: 0.35, leak: 1, armored: true },
     swarm:   { hp: 11,  speed: 1.8,  reward: 1,   color: '#c09040', rr: 0.20, leak: 1 },
   };
@@ -642,7 +642,7 @@
     // Baseline roughly doubled (1.7 base + 0.5/wave) to offset the new buffs/drops, then
     // the live `difficulty` multiplier ramps it further when the path stays clear (TASK 4).
     const dm = MAPS[mapIndex].diff || 1;
-    const k = waveHpK() * dm * difficulty;
+    const k = waveHpK() * dm * difficulty * (type === 'boss' ? (DIFF().bossHpMul || 1) : 1);
     const hpv = Math.max(1, Math.round(b.hp * k));
     // surface affects movement; difficulty also nudges speed up (capped so it stays playable) —
     // except bosses: slow-and-tanky is their archetype, and threat already scales their HP
