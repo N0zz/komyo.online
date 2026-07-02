@@ -42,20 +42,6 @@
   const canvas = $('game'), ctx = canvas.getContext('2d');
   const KIT = window.gamekit;
 
-  // roundRect polyfill for Safari < 15.4
-  if (typeof ctx.roundRect !== 'function') {
-    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
-      const rx = Array.isArray(r) ? r[0] : (r || 0);
-      this.beginPath();
-      this.moveTo(x + rx, y);
-      this.lineTo(x + w - rx, y); this.quadraticCurveTo(x + w, y, x + w, y + rx);
-      this.lineTo(x + w, y + h - rx); this.quadraticCurveTo(x + w, y + h, x + w - rx, y + h);
-      this.lineTo(x + rx, y + h); this.quadraticCurveTo(x, y + h, x, y + h - rx);
-      this.lineTo(x, y + rx); this.quadraticCurveTo(x, y, x + rx, y);
-      this.closePath();
-    };
-  }
-
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
   SND.define({
@@ -171,11 +157,10 @@
   }
 
   function resize() {
-    W = canvas.width = window.innerWidth;
-    H = canvas.height = window.innerHeight;
-    // Reserve headroom so the playfield clears the center-top HUD. The kit drops the HUD to
-    // top:50px on narrow/portrait screens (CSS max-width:560px), so reserve more there.
-    topInset = (W <= 560) ? 92 : 48;
+    W = window.innerWidth;
+    H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    topInset = KIT.layout.hudTop();
     bird.y = startY();
     initParallax();
   }
@@ -899,7 +884,7 @@
   });
 
   // ---- top nav (game-kit) ----
-  KIT.nav({ music: true, reset: 'flappy_', home: '../../', theme: FLAPPY.day, challenges: 'flappy', onMenu: () => toMenu(),
+  KIT.nav({ slug: 'flappy', music: true, home: '../../', theme: FLAPPY.day, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Meadow Flyer — Controls',
