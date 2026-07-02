@@ -428,6 +428,18 @@ function testKit() {
   ok(rnd && rnd.done === true && rnd.slug === 'snake' && rnd.title === 'Play Neon Snake today', 'challengeEval resolves a random pick (title + played)');
   const rnd2 = F.challengeEval({ scope: 'random', range: 'day', title: 'Mystery pick' }, {});
   ok(rnd2 && rnd2.done === false && rnd2.target === 1 && rnd2.title === 'Mystery pick', 'random goal without a playable list reports honestly (no false Done)');
+  // Discord auto-post gate: no consent → off; consent → anonymous; Settings opt-in → named
+  delete store['gamekit_consent']; delete store['gamekit_discord_name'];
+  ok(F.discordTier() === 'off', 'discordTier: no cookie consent → off (nothing is sent)');
+  store['gamekit_consent'] = 'denied';
+  ok(F.discordTier() === 'off', 'discordTier: declined consent → off');
+  store['gamekit_consent'] = 'granted';
+  ok(F.discordTier() === 'anon', 'discordTier: consent alone → anonymous posts');
+  store['gamekit_discord_name'] = '1';
+  ok(F.discordTier() === 'named', 'discordTier: consent + Settings opt-in → named posts');
+  store['gamekit_discord_name'] = '0';
+  ok(F.discordTier() === 'anon', 'discordTier: opt-in toggled back off → anonymous again');
+  delete store['gamekit_consent']; delete store['gamekit_discord_name'];
   // ---- cards group + boolean toggle: state merges selection + toggles; dynamic best/mech are fns ----
   let played2 = null, cardErr = null, hc = null;
   try {

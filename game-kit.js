@@ -393,7 +393,15 @@
       .replace('https://discord.com', '/.proxy/dhook');
   }
 
-  // ---------- post a score to the public Komyo Games Discord (webhook, intentional/button only) ----------
+  // ---------- post a score to the public Komyo Games Discord (webhook) ----------
+  // Three-tier gate for the end-screen AUTO-post (manual share buttons are always user-intent):
+  // no cookie consent → nothing is sent at all (the request itself exposes the player's IP to
+  // Discord, same class as GA4); consent → posts as "anonymous"; the Settings opt-in
+  // (gamekit_discord_name) attaches the device nickname.
+  function discordTier() {
+    if (lsGet('gamekit_consent') !== 'granted') return 'off';
+    return lsGet('gamekit_discord_name') === '1' ? 'named' : 'anon';
+  }
   var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1520515996933296378/YlXg2W8ypFcQGMHRf0BvWxp10-m7Z7DggStKrBZfusWo8e_emNF6gLpiVjfb0YIExL24';
   function postDiscord(text, url, file) {
     try {
@@ -1226,18 +1234,23 @@
     });
     // auto-post the score to the Komyo Games Discord when the end-screen share row is on-screen.
     // Handles BOTH patterns: built once at init (hidden → shown later) AND rebuilt at game-over
-    // (already visible). Dedupe + 3s throttle; replaces any prior observer on this el.
+    // (already visible). Gated by discordTier() (consent → anonymous, opt-in → named).
+    // Dedupe + 60s throttle (per player per tab — rapid retries collapse into one post);
+    // replaces any prior observer on this el.
     (function () {
       var lastMsg = '', lastAt = 0;
       var visible = function () { try { return !!(el.getClientRects && el.getClientRects().length); } catch (e) { return false; } };
       var maybePost = function () {
         if (!visible()) return;
+        var tier = discordTier();
+        if (tier === 'off') return;
         var msg = getMsg(), now = (typeof Date !== 'undefined' ? Date.now() : 0);
-        if (!msg || msg === lastMsg || now - lastAt <= 3000) return;
+        if (!msg || msg === lastMsg || now - lastAt <= 60000) return;
         lastMsg = msg; lastAt = now;   // claim BEFORE the async card render (no double-fire)
-        var who = (player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous';
+        var who = tier === 'named' ? ((player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous') : 'anonymous';
         // post the score card image (downscaled 50% for chat); text line = fallback if the render fails
-        buildScoreCard(cardOpts()).then(function (b) {
+        var opts = cardOpts(); opts.player = who;
+        buildScoreCard(opts).then(function (b) {
           if (!b) return postDiscord('**' + who + '** — ' + msg, getUrl());
           shrinkBlob(b, 0.5).then(function (s) { postDiscord('', getUrl(), s); });
         });
@@ -1762,7 +1775,7 @@
   }
   var menu = { show: menuShow, hide: menuHide, current: function () { return _menuHandle; } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, versionTag: versionTag };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, versionTag: versionTag };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
