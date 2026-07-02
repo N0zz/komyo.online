@@ -197,6 +197,9 @@ from day one.
 
 ### In flight / near-term
 
+- **Review local Claude Code memories about komyo** (added 2026-07-02) — audit the Claude memory
+  notes for stale komyo entries: plans that shipped, superseded decisions, rebrand leftovers;
+  prune/merge so future sessions don't act on outdated context.
 - **Real mascot art** *(in progress)* — chibi fox-girl (Holo-ish, red/orange hair, fox ears); replaces
   the header + score-card placeholder; reuse on social, stickers, 404, newsletter, empty states.
 - **Score-card share — settle UX, then redesign.** The image card is shipped and works, but two

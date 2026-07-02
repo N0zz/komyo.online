@@ -5,6 +5,9 @@
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
   { date: '2026-07-02', title: 'Titles & better sharing 👑', items: [
+    'New: Meadow Flyer\'s flyers are real characters now, and there are nine — bee, robin, bluebird, parrot, plus new raven, owl, Bielik (the white-tailed eagle) and Raróg (the fiery falcon of Slavic legend), topped by a phoenix made of fire with a glowing ember trail. Menu icons show the actual birds (no more yellow icon on a blue bird), and unlocks are a real ladder up to 1,000 banked points.',
+    'New: every game has a ☰ menu (top right) showing your game version and an Update button — greyed "Up to date" when you\'re current, lit up when a new version is ready (a little dot on ☰ too). Updates never interrupt your play anymore. Embed and Reset scores moved in there as well.',
+    'New: Settings now shows the site version with an "Update now" button that refreshes the site and every game at once — and version labels everywhere show when the build was deployed.',
     'New: earn a title with challenge points — from Goblin of the Gutter to Emperor of Eternity. Your profile shows it off with an ever-shinier glow (and sparkles at the higher ranks).',
     'New: tap the little (i) next to your title to see the whole ladder — every rank, its shine, and the points it takes.',
     'Improved: the profile page got a cleaner look — your title, name, challenge points, good runs and play stats all up top.',
