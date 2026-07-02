@@ -129,7 +129,7 @@ window.GAMES = [
     accent: "#8fd3a6",
     tags: ["CASUAL", "ARCADE"],
     added: "2026-06-26",
-    updated: "2026-07-01",
+    updated: "2026-07-02",
   },
   {
     slug: "aim-trainer",

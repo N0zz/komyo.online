@@ -112,14 +112,18 @@
   function getCash() { return parseInt(localStorage.getItem(CASH_KEY) || '0', 10); }
   function addCash(n) { localStorage.setItem(CASH_KEY, getCash() + n); }
 
-  // Each bird: a body colour + emoji label, locked until enough TOTAL banked cash.
+  // Each bird: colours + a per-id canvas model (drawBirdModel — also the menu icon), locked until
+  // enough TOTAL banked cash. `emoji` is only for share TEXT (icons come from the model).
   const BIRDS = [
     { id: 'bee',     emoji: '🐝', body: '#f9e040', wing: '#f0c828', cost: 0 },
-    { id: 'robin',   emoji: '🐦', body: '#e07850', wing: '#c45e3a', cost: 25 },
-    { id: 'bluebird',emoji: '🐤', body: '#5fa8e8', wing: '#3f86c8', cost: 60 },
-    { id: 'parrot',  emoji: '🦜', body: '#5fd07a', wing: '#3aa858', cost: 120 },
-    { id: 'flamingo',emoji: '🦩', body: '#f57fb0', wing: '#e05f95', cost: 220 },
-    { id: 'phoenix', emoji: '🔥', body: '#ff8a3a', wing: '#e85a1a', cost: 400 },
+    { id: 'robin',   emoji: '🐦', body: '#a86a48', wing: '#7a4e34', cost: 50 },
+    { id: 'bluebird',emoji: '🕊️', body: '#5fa8e8', wing: '#3f86c8', cost: 100 },
+    { id: 'parrot',  emoji: '🦜', body: '#5fd07a', wing: '#3aa858', cost: 200 },
+    { id: 'owl',     emoji: '🦉', body: '#b08a5a', wing: '#8a6a40', cost: 300 },
+    { id: 'bielik',  emoji: '🦅', name: 'Bielik', body: '#a8875c', wing: '#7a6038', cost: 500 },
+    { id: 'rarog',   emoji: '🔥', name: 'Raróg', body: '#c8232e', wing: '#8a1a22', cost: 700 },
+    { id: 'raven',   emoji: '🐦‍⬛', body: '#17181d', wing: '#0c0d11', cost: 850 },
+    { id: 'phoenix', emoji: '🔥', body: '#ff8a3a', wing: '#e85a1a', cost: 1000 },
   ];
   const SEL_KEY = 'flappy_bird';
   function birdUnlocked(b) { return getCash() >= b.cost; }
@@ -259,7 +263,15 @@
         g.restore(); g.globalAlpha = 1;
       }
     }
-    g.font = '30px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(selectedBird.emoji, w * .4, h * .44);
+    // the selected bird itself flies across the top sky (same model as in-game) — up there it
+    // stays visible instead of hiding behind the centered menu panel
+    const bx = ((frame * 1.1) % (w + 120)) - 60;
+    const by = h * 0.12 + Math.sin(frame * 0.05) * h * 0.03;
+    g.save(); g.translate(bx, by); g.scale(1.5, 1.5);
+    if (selectedBird.id === 'phoenix') { g.shadowColor = 'rgba(255,140,40,0.85)'; g.shadowBlur = 18; }
+    else if (selectedBird.id === 'raven') { g.shadowColor = 'rgba(170,200,255,0.55)'; g.shadowBlur = 11; }
+    drawBirdModel(g, selectedBird, Math.sin(frame * 0.18) * 3.5 + 2);
+    g.restore();
   }
   let flappyHandle = null;
   function showStartMenu() {
@@ -271,8 +283,16 @@
       groups: [
         { id: 'tod', label: 'TIME OF DAY', default: mode, choices: [ { id: 'day', label: '☀️ Day' }, { id: 'night', label: '🌙 Night' } ] },
         { id: 'bird', label: 'FLYER', style: 'grid', default: selectedBird.id, choices: BIRDS.map(b => ({
-          id: b.id, label: cap(b.id), pvW: 44, pvH: 40,
-          preview: g => { g.font = '30px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(b.emoji, 22, 20); },
+          id: b.id, label: b.name || cap(b.id), pvW: 44, pvH: 40,
+          // the icon IS the in-game model (drawBirdModel), so they can never mismatch
+          preview: g => {
+            g.save();
+            g.translate(22, b.id === 'phoenix' ? 25 : 21); g.scale(0.8, 0.8);
+            if (b.id === 'phoenix') { g.shadowColor = 'rgba(255,140,40,0.85)'; g.shadowBlur = 14; }
+            else if (b.id === 'raven') { g.shadowColor = 'rgba(170,200,255,0.55)'; g.shadowBlur = 8; }
+            drawBirdModel(g, b, 2);
+            g.restore();
+          },
           locked: () => !birdUnlocked(b), cost: b.cost, sub: b.cost === 0 ? 'Free' : 'Unlocked',
         })) },
       ],
@@ -293,7 +313,7 @@
     setVars(flappyHandle.el, FLAPPY[mode]);
     KIT.stampUrl({ bird: selectedBird.id, mode: mode });
   }
-  function shareMsg() { return KIT.shareText({ verb: 'I flew to', score: score, game: 'Meadow Flyer', emoji: '🐤', mode: selectedBird.emoji + ' ' + cap(selectedBird.id) }); }
+  function shareMsg() { return KIT.shareText({ verb: 'I flew to', score: score, game: 'Meadow Flyer', emoji: '🐤', mode: selectedBird.emoji + ' ' + (selectedBird.name || cap(selectedBird.id)) }); }
   function showEnd(isBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
@@ -465,6 +485,10 @@
       p.x += p.vx; p.y += p.vy; p.vy += 0.07; p.life -= 0.035;
       if (p.life <= 0) particles.splice(i, 1);
     }
+    // phoenix: ember trail streaming off the tail (state here, painted with the other particles)
+    if (state === 'playing' && selectedBird.id === 'phoenix' && frame % 2 === 0) {
+      particles.push({ x: bird.x - BIRD_R + 2, y: bird.y + (Math.random() * 8 - 4), vx: -1.4 - Math.random() * 0.8, vy: -0.5 + Math.random() * 0.7, life: 0.5 + Math.random() * 0.3, col: ['#ffd24a', '#ffa03a', '#ff6a2a'][(Math.random() * 3) | 0] });
+    }
 
     // parallax scroll
     cloudScroll += 0.28;
@@ -572,33 +596,209 @@
     ctx.beginPath(); ctx.arc(o.x + OBS_W / 2, botY + 8, 10, 0, Math.PI * 2); ctx.fill();
   }
 
+  // ---- per-bird models — ONE renderer feeds the in-game bird, the menu icons AND the menu
+  // backdrop mascot, so the icon can never mismatch the bird again. Flat shapes only (no gradient
+  // objects): the menu icons also render in the headless harness where those don't exist.
+  function drawBirdModel(g, b, flapOff) {
+    const R = BIRD_R;
+    const eye = (x, y, r) => {
+      g.fillStyle = '#3a2a17'; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'white'; g.beginPath(); g.arc(x + r * 0.35, y - r * 0.4, r * 0.4, 0, Math.PI * 2); g.fill();
+    };
+    const body = (col, rx, ry) => { g.fillStyle = col; g.beginPath(); g.ellipse(0, 0, rx || R, ry || R * 0.8, 0, 0, Math.PI * 2); g.fill(); };
+    const clipBody = () => { g.save(); g.beginPath(); g.ellipse(0, 0, R, R * 0.8, 0, 0, Math.PI * 2); g.clip(); };
+    const wings = col => {
+      g.fillStyle = col;
+      g.beginPath(); g.ellipse(-4, -flapOff - 4, 10, 6, -0.4, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(-4, flapOff + 4, 10, 6, 0.4, 0, Math.PI * 2); g.fill();
+    };
+    const beak = col => {
+      g.fillStyle = col;
+      g.beginPath(); g.moveTo(R * 0.8, -1); g.lineTo(R * 1.24, 1); g.lineTo(R * 0.8, 3); g.closePath(); g.fill();
+    };
+    if (b.id === 'bee') {
+      body(b.body);
+      clipBody(); // brown stripes, clipped to the body
+      g.fillStyle = '#6a4a18'; g.fillRect(-10, -R, 5, R * 2); g.fillRect(-1, -R, 5, R * 2);
+      g.restore();
+      g.fillStyle = '#6a4a18'; // stinger
+      g.beginPath(); g.moveTo(-R + 1, -2); g.lineTo(-R - 5, 0); g.lineTo(-R + 1, 2); g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.75)'; // gauzy wings above the back
+      g.beginPath(); g.ellipse(-2, -flapOff - 9, 9, 5, -0.5, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(3, -flapOff - 8, 7, 4, -0.3, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = '#8a6020'; g.lineWidth = 1.5; // antennae + pom-poms
+      g.beginPath(); g.moveTo(-2, -R * 0.7); g.quadraticCurveTo(-8, -R * 1.3, -12, -R * 1.5); g.stroke();
+      g.beginPath(); g.moveTo(4, -R * 0.7); g.quadraticCurveTo(8, -R * 1.3, 11, -R * 1.5); g.stroke();
+      g.fillStyle = '#f9c080';
+      g.beginPath(); g.arc(-12, -R * 1.5, 2.5, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.arc(11, -R * 1.5, 2.5, 0, Math.PI * 2); g.fill();
+      eye(R * 0.55, -2, 3);
+    } else if (b.id === 'robin') {
+      g.fillStyle = b.wing; // tail
+      g.beginPath(); g.moveTo(-R + 3, -4); g.lineTo(-R - 8, -3); g.lineTo(-R + 3, 4); g.closePath(); g.fill();
+      body(b.body);
+      clipBody(); // the red breast + cream belly
+      g.fillStyle = '#e8542e'; g.beginPath(); g.ellipse(R * 0.5, R * 0.25, R * 0.62, R * 0.6, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#f2e2c8'; g.beginPath(); g.ellipse(-R * 0.25, R * 0.6, R * 0.65, R * 0.42, 0, 0, Math.PI * 2); g.fill();
+      g.restore();
+      wings(b.wing);
+      beak('#e8b23a');
+      eye(R * 0.55, -2, 3);
+    } else if (b.id === 'bluebird') {
+      g.fillStyle = b.wing; // tail
+      g.beginPath(); g.moveTo(-R + 3, -4); g.lineTo(-R - 8, -2); g.lineTo(-R + 3, 4); g.closePath(); g.fill();
+      body(b.body);
+      clipBody(); // white belly + deeper head cap
+      g.fillStyle = '#eef6ff'; g.beginPath(); g.ellipse(0, R * 0.5, R * 0.82, R * 0.5, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#3f74c8'; g.beginPath(); g.ellipse(R * 0.4, -R * 0.5, R * 0.62, R * 0.42, 0, 0, Math.PI * 2); g.fill();
+      g.restore();
+      wings(b.wing);
+      beak('#f0a030');
+      eye(R * 0.55, -2, 3);
+    } else if (b.id === 'parrot') {
+      // long tail feathers (red / yellow / blue)
+      const tails = [['#e04040', -5], ['#f0c828', -1], ['#4a90e0', 3]];
+      for (const [col, ty] of tails) {
+        g.fillStyle = col;
+        g.beginPath(); g.moveTo(-R + 4, ty - 1.6); g.lineTo(-R - 11, ty + 1); g.lineTo(-R + 4, ty + 2.4); g.closePath(); g.fill();
+      }
+      body(b.body);
+      g.fillStyle = '#f2f6f2'; // white cheek patch
+      g.beginPath(); g.arc(R * 0.5, -2, 4.4, 0, Math.PI * 2); g.fill();
+      wings(b.wing);
+      g.fillStyle = '#4a90e0'; // blue wing tips
+      g.beginPath(); g.ellipse(-9, -flapOff - 5, 4.5, 3, -0.4, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(-9, flapOff + 5, 4.5, 3, 0.4, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#f0a020'; // hooked beak
+      g.beginPath(); g.moveTo(R * 0.68, -5); g.quadraticCurveTo(R * 1.5, -4, R * 1.1, 4);
+      g.quadraticCurveTo(R * 0.95, 1.5, R * 0.68, 1); g.closePath(); g.fill();
+      eye(R * 0.5, -2.5, 2.4);
+    } else if (b.id === 'raven') {
+      g.fillStyle = b.wing; // long wedge tail
+      g.beginPath(); g.moveTo(-R + 3, -4); g.lineTo(-R - 10, -1); g.lineTo(-R + 3, 4); g.closePath(); g.fill();
+      body(b.body);
+      clipBody(); // blue-violet sheen across the back
+      g.fillStyle = 'rgba(90,110,190,0.28)'; g.beginPath(); g.ellipse(-R * 0.1, -R * 0.4, R * 0.85, R * 0.4, -0.15, 0, Math.PI * 2); g.fill();
+      g.restore();
+      g.fillStyle = b.wing; // shaggy throat hackles
+      g.beginPath(); g.moveTo(R * 0.5, 2); g.lineTo(R * 0.35, 7); g.lineTo(R * 0.2, 3); g.lineTo(R * 0.05, 7.5); g.lineTo(-R * 0.1, 3.5); g.closePath(); g.fill();
+      wings(b.wing);
+      g.fillStyle = 'rgba(90,110,190,0.3)'; // sheen on the near wing
+      g.beginPath(); g.ellipse(-4, flapOff + 4, 6, 3.2, 0.4, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#1c1e26'; // long straight raven bill
+      g.beginPath(); g.moveTo(R * 0.72, -4); g.lineTo(R * 1.45, 0.5); g.lineTo(R * 0.72, 2.5); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,0.25)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(R * 0.75, -2.5); g.lineTo(R * 1.35, 0.3); g.stroke();
+      g.fillStyle = '#9aa3b8'; // pale ring so the dark eye reads on black
+      g.beginPath(); g.arc(R * 0.5, -4, 3.4, 0, Math.PI * 2); g.fill();
+      eye(R * 0.5, -4, 2.4);
+    } else if (b.id === 'owl') {
+      g.fillStyle = b.wing; // stubby tail
+      g.beginPath(); g.moveTo(-R + 3, -3); g.lineTo(-R - 6, -1); g.lineTo(-R + 3, 4); g.closePath(); g.fill();
+      body(b.body);
+      clipBody(); // barred tawny belly
+      g.fillStyle = '#d8b888'; g.beginPath(); g.ellipse(0, R * 0.45, R * 0.8, R * 0.5, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = 'rgba(90,60,30,0.5)'; g.lineWidth = 1;
+      for (let sy = 2; sy <= 9; sy += 3) { g.beginPath(); g.moveTo(-7, sy); g.lineTo(8, sy + 1); g.stroke(); }
+      g.restore();
+      g.fillStyle = b.body; // ear tufts
+      g.beginPath(); g.moveTo(R * 0.1, -R * 0.6); g.lineTo(R * 0.22, -R * 1.25); g.lineTo(R * 0.48, -R * 0.62); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(-R * 0.35, -R * 0.62); g.lineTo(-R * 0.3, -R * 1.1); g.lineTo(-R * 0.02, -R * 0.6); g.closePath(); g.fill();
+      wings(b.wing);
+      g.fillStyle = '#e8d8b8'; // pale facial disc
+      g.beginPath(); g.arc(R * 0.45, -3, 7, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = '#8a6a40'; g.lineWidth = 1.2;
+      g.beginPath(); g.arc(R * 0.45, -3, 7, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = '#f0a020'; // the big owl eye
+      g.beginPath(); g.arc(R * 0.45, -3, 4.4, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#2a1d10'; g.beginPath(); g.arc(R * 0.45, -3, 2.2, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'white'; g.beginPath(); g.arc(R * 0.45 + 1, -4, 0.9, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#5a4426'; // tiny down-hooked beak
+      g.beginPath(); g.moveTo(R * 0.85, 1); g.lineTo(R * 1.1, 4.5); g.lineTo(R * 0.7, 4); g.closePath(); g.fill();
+    } else if (b.id === 'bielik') {
+      // orzeł bielik (white-tailed eagle): pale head, big yellow hooked beak, the white tail
+      g.fillStyle = '#f2efe6'; // the signature white tail
+      g.beginPath(); g.moveTo(-R + 4, -4); g.lineTo(-R - 10, -3); g.lineTo(-R - 8, 3.5); g.lineTo(-R + 4, 4); g.closePath(); g.fill();
+      body(b.body);
+      clipBody(); // pale head + neck over the brown body
+      g.fillStyle = '#e8dfc8'; g.beginPath(); g.ellipse(R * 0.55, -R * 0.25, R * 0.72, R * 0.62, 0, 0, Math.PI * 2); g.fill();
+      g.restore();
+      wings(b.wing);
+      g.fillStyle = '#3f3018'; // dark "fingered" wing tips
+      g.beginPath(); g.ellipse(-10, -flapOff - 6, 4, 2.4, -0.4, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(-10, flapOff + 6, 4, 2.4, 0.4, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#e8b23a'; // the big yellow hooked beak
+      g.beginPath(); g.moveTo(R * 0.66, -5.5); g.quadraticCurveTo(R * 1.5, -4.5, R * 1.12, 3.5);
+      g.quadraticCurveTo(R * 0.95, 1, R * 0.66, 0.5); g.closePath(); g.fill();
+      g.strokeStyle = '#4a3a22'; g.lineWidth = 1.6; // fierce brow ridge
+      g.beginPath(); g.moveTo(R * 0.2, -7.5); g.lineTo(R * 0.72, -6.5); g.stroke();
+      g.fillStyle = '#e8b23a'; // yellow eagle eye
+      g.beginPath(); g.arc(R * 0.45, -4.5, 3.2, 0, Math.PI * 2); g.fill();
+      eye(R * 0.45, -4.5, 2.2);
+    } else if (b.id === 'rarog') {
+      // Raróg — the fiery falcon of Slavic legend, in deep crimson: crested red raptor with
+      // amber-embered wing and tail tips (a hint of the fire the phoenix goes all-in on)
+      g.fillStyle = b.wing; // tail
+      g.beginPath(); g.moveTo(-R + 3, -3.5); g.lineTo(-R - 9, -2); g.lineTo(-R + 3, 3.5); g.closePath(); g.fill();
+      g.fillStyle = '#f0a020'; // ember tail tip
+      g.beginPath(); g.moveTo(-R - 5, -2.2); g.lineTo(-R - 12, -1); g.lineTo(-R - 5, 1.6); g.closePath(); g.fill();
+      body(b.body);
+      clipBody(); // lighter barred belly + darker head cap
+      g.fillStyle = '#e8564a'; g.beginPath(); g.ellipse(R * 0.1, R * 0.5, R * 0.75, R * 0.45, 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = 'rgba(90,10,16,0.45)'; g.lineWidth = 1;
+      for (let sx = -6; sx <= 8; sx += 4) { g.beginPath(); g.moveTo(sx, R * 0.25); g.lineTo(sx + 2, R * 0.8); g.stroke(); }
+      g.fillStyle = '#6e1018'; g.beginPath(); g.ellipse(R * 0.4, -R * 0.5, R * 0.66, R * 0.44, 0, 0, Math.PI * 2); g.fill();
+      g.restore();
+      g.fillStyle = '#6e1018'; // spiky crest
+      g.beginPath(); g.moveTo(R * 0.02, -R * 0.7); g.lineTo(R * 0.18, -R * 1.25); g.lineTo(R * 0.38, -R * 0.68); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(-R * 0.28, -R * 0.66); g.lineTo(-R * 0.12, -R * 1.05); g.lineTo(R * 0.06, -R * 0.66); g.closePath(); g.fill();
+      g.fillStyle = '#4a0d12'; // malar stripe (the falcon cheek mark)
+      g.beginPath(); g.moveTo(R * 0.48, -2.5); g.lineTo(R * 0.6, 3); g.lineTo(R * 0.34, 2); g.closePath(); g.fill();
+      wings(b.wing);
+      g.fillStyle = '#f0a020'; // ember wing tips
+      g.beginPath(); g.ellipse(-10, -flapOff - 6, 3.5, 2.2, -0.4, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(-10, flapOff + 6, 3.5, 2.2, 0.4, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#8a93a0'; // hooked raptor beak
+      g.beginPath(); g.moveTo(R * 0.7, -4.5); g.quadraticCurveTo(R * 1.35, -3.5, R * 1.05, 3);
+      g.quadraticCurveTo(R * 0.9, 0.5, R * 0.7, 0.5); g.closePath(); g.fill();
+      // amber-ringed raptor eye on the dark cap
+      g.fillStyle = '#f0a020'; g.beginPath(); g.arc(R * 0.42, -4.5, 3.6, 0, Math.PI * 2); g.fill();
+      eye(R * 0.42, -4.5, 2.4);
+    } else if (b.id === 'phoenix') {
+      // flame-tail streamers (long → short, deep → bright)
+      const tails = [['#ff6a2a', -4, 14], ['#ffa03a', 0, 11], ['#ffd24a', 4, 8]];
+      for (const [col, ty, len] of tails) {
+        g.fillStyle = col;
+        g.beginPath(); g.moveTo(-R + 4, ty - 2);
+        g.quadraticCurveTo(-R - len * 0.5, ty - 5, -R - len, ty);
+        g.quadraticCurveTo(-R - len * 0.5, ty + 2.5, -R + 4, ty + 2); g.closePath(); g.fill();
+      }
+      body('#e83a1a'); // layered fire body (flat rings instead of a gradient)
+      body('#ff8a3a', R * 0.78, R * 0.6);
+      body('#ffd24a', R * 0.4, R * 0.28);
+      wings('#e85a1a');
+      g.fillStyle = '#ffa03a'; // inner flame wings
+      g.beginPath(); g.ellipse(-4, -flapOff - 4, 6, 3.5, -0.4, 0, Math.PI * 2); g.fill();
+      g.beginPath(); g.ellipse(-4, flapOff + 4, 6, 3.5, 0.4, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#ffd24a'; // flame crest
+      g.beginPath(); g.moveTo(R * 0.05, -R * 0.72); g.lineTo(R * 0.22, -R * 1.35); g.lineTo(R * 0.42, -R * 0.7); g.closePath(); g.fill();
+      g.fillStyle = '#ffa03a';
+      g.beginPath(); g.moveTo(-R * 0.28, -R * 0.68); g.lineTo(-R * 0.1, -R * 1.15); g.lineTo(R * 0.1, -R * 0.68); g.closePath(); g.fill();
+      beak('#f8c03a');
+      eye(R * 0.55, -2, 3);
+    } else {
+      body(b.body); wings(b.wing); beak('#e07030'); eye(R * 0.55, -2, 3);
+    }
+  }
+
   function drawBird() {
-    const x = bird.x, y = bird.y;
     const angle = Math.max(-0.5, Math.min(1.0, bird.vy * 0.07)) + bird.wobble;
-    const flapOff = bird.flapAnim * 5;
-
     ctx.save();
-    ctx.translate(x, y);
+    ctx.translate(bird.x, bird.y);
     ctx.rotate(angle);
-
-    ctx.fillStyle = selectedBird.body;
-    ctx.beginPath(); ctx.ellipse(0, 0, BIRD_R, BIRD_R * 0.8, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = selectedBird.wing;
-    ctx.beginPath(); ctx.ellipse(-4, -flapOff - 4, 10, 6, -0.4, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(-4,  flapOff + 4, 10, 6,  0.4, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#3a2a17';
-    ctx.beginPath(); ctx.arc(BIRD_R * 0.55, -2, 3, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = 'white';
-    ctx.beginPath(); ctx.arc(BIRD_R * 0.55 + 1, -3, 1.2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#e07030';
-    ctx.beginPath(); ctx.moveTo(BIRD_R * 0.8, -1); ctx.lineTo(BIRD_R * 1.22, 1); ctx.lineTo(BIRD_R * 0.8, 3); ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = '#8a6020'; ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.moveTo(-2, -BIRD_R * 0.7); ctx.quadraticCurveTo(-8, -BIRD_R * 1.3, -12, -BIRD_R * 1.5); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(4, -BIRD_R * 0.7); ctx.quadraticCurveTo(8, -BIRD_R * 1.3, 11, -BIRD_R * 1.5); ctx.stroke();
-    ctx.fillStyle = '#f9c080';
-    ctx.beginPath(); ctx.arc(-12, -BIRD_R * 1.5, 2.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(11, -BIRD_R * 1.5, 2.5, 0, Math.PI * 2); ctx.fill();
-
+    if (selectedBird.id === 'phoenix') { ctx.shadowColor = 'rgba(255,140,40,0.85)'; ctx.shadowBlur = 18; } // fiery glow
+    else if (selectedBird.id === 'raven') { ctx.shadowColor = 'rgba(170,200,255,0.55)'; ctx.shadowBlur = 11; } // moonlit spirit glow (the near-black bird stays visible at night)
+    drawBirdModel(ctx, selectedBird, bird.flapAnim * 5);
     ctx.restore();
   }
 
