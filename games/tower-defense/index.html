@@ -35,8 +35,13 @@
   /* LANDSCAPE: dock the build toolbar as a vertical strip on the left edge so the map keeps its
      full height; in PORTRAIT it stays a horizontal bar along the bottom (the @media below). */
   @media (orientation: landscape) {
-    #bottom { right:auto; bottom:0; top:0; width:124px; flex-direction:column; justify-content:center;
-      align-items:stretch; flex-wrap:nowrap; gap:6px; padding:8px 8px; overflow-y:auto; }
+    #bottom { right:auto; bottom:0; top:0; width:124px; flex-direction:column; justify-content:flex-start;
+      align-items:stretch; flex-wrap:nowrap; gap:6px; padding:48px 8px 8px; overflow-y:auto; }
+    /* auto-margins center the stack when it fits yet keep it scrollable when it doesn't —
+       justify-content:center clips the top buttons beyond the scroll area on short screens;
+       the top padding clears the ‹ Menu nav that overlaps the strip */
+    #bottom > :first-child { margin-top:auto; }
+    #bottom > :last-child { margin-bottom:auto; }
     #bottom .tbtn { min-width:0; }
   }
   .tbtn { font-family:inherit; cursor:pointer; min-width:84px; padding:7px 10px; border-radius:9px; color:var(--parch);
@@ -147,6 +152,7 @@
   <div class="stat"><span class="lbl">REMAIN</span> <b id="remain">0</b></div>
   <div class="stat"><span class="lbl">BEST</span> <b id="best">0</b></div>
   <div class="stat"><span class="lbl">THREAT</span> <b id="threat">1.0×</b></div>
+  <div class="stat" style="opacity:.75"><span class="lbl">MODE</span> <b id="modeLbl">–</b></div>
 </div>
 <div id="waveAnnounce"></div>
 
@@ -549,6 +555,7 @@
     $('score').textContent = score;
     $('remain').textContent = enemies.length + spawnQ.length;
     $('best').textContent = bestScore;
+    $('modeLbl').textContent = mapModeLabel(mapIndex, diffLevel);
     const th = $('threat');
     if (th) {
       th.textContent = difficulty.toFixed(1) + '×';
