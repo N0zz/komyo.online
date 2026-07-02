@@ -417,7 +417,7 @@
     if(!KIT) return;
     KIT.menu.show({ kind:'end', theme:MENU_THEME, title: won ? 'CLEARED! ✨' : 'GAME OVER',
       score: score, best: bestScore, newBest: isBest, lines: [ won ? ('Level ' + level + ' · all levels cleared') : ('Reached level ' + level) ],
-      share: { slug:'bubbles', title:'Bubble Pop', message: ()=>shareMsg(), params: ()=> modeParams({ mode: mode, timed: timeDescent }) },
+      share: { slug:'bubbles', accent: '#2ee8c8', icon: '🫧', title:'Bubble Pop', message: ()=>shareMsg(), params: ()=> modeParams({ mode: mode, timed: timeDescent }) },
       record: { slug:'bubbles', mode: modeLabel(mode), score: score },
       actions:[ {id:'again',label:'PLAY AGAIN',primary:true}, {id:'menu',label:'MENU'} ],
       onAction:(id)=>{ if(id==='again') startMode(mode); else if(id==='menu') toMenu(); } });

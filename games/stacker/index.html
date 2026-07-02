@@ -319,7 +319,7 @@
     if (!KIT) return;
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: reason === 'time' ? "TIME'S UP!" : 'OOPS!', backdrop: menuBackdrop,
       score: score, best: currentBest(), newBest: isBest, lines: [MODE_CFG[mode].label],
-      share: { slug: 'stacker', title: 'Stack', message: () => shareMsg(), params: () => menuParams({ mode: mode, theme: theme }) },
+      share: { slug: 'stacker', accent: '#ff9aa2', icon: '🧊', title: 'Stack', message: () => shareMsg(), params: () => menuParams({ mode: mode, theme: theme }) },
       actions: [ { id: 'again', label: 'Play Again', primary: true }, { id: 'menu', label: 'Menu' } ],
       onAction: id => { if (id === 'again') startGameMode(mode); else if (id === 'menu') toMenu(); } });
   }

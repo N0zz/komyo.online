@@ -385,7 +385,7 @@
     if(!KIT) return;
     KIT.menu.show({ kind:'end', theme:MENU_THEME, title:o.title, backdrop:menuBackdrop, backdropAnimate:true,
       score:score, scoreText:o.scoreText, best:o.best, newBest:o.newBest, lines:o.lines,
-      share:{ slug:'asteroids-plus', title:'Asteroids+', message:()=>shareMsg(score, o.won), params:()=> (SPEEDRUN ? { prog:PROGRESSION, speedrun:'1' } : { prog:PROGRESSION }) },
+      share:{ slug:'asteroids-plus', accent: '#b98cff', icon: '☄️', title:'Asteroids+', message:()=>shareMsg(score, o.won), params:()=> (SPEEDRUN ? { prog:PROGRESSION, speedrun:'1' } : { prog:PROGRESSION }) },
       record:{ slug:'asteroids-plus', mode:progLabel(PROGRESSION, SPEEDRUN), score:score, time:0, stats:o.stats||{wave:wave} },
       actions:[ {id:'again',label:'PLAY AGAIN',primary:true}, {id:'menu',label:'MENU'} ],
       onAction:(id)=>{ if(id==='again') startGame(); else if(id==='menu') quitToMenu(); } });
