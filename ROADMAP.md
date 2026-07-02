@@ -369,8 +369,12 @@ Filter for all of these: **does it keep the no-server / no-ads / no-accounts ide
 
 - **Twitch chat (client-side, no backend)** — *the standout.* A streamer logs in with Twitch; the game
   connects to **Twitch chat over IRC-WebSocket from the browser** (no server), and viewers affect/play
-  via chat: vote the next wave, spawn a boss, names on-screen, chat-triggered events. Fits
-  "self-contained"; streamer + chat is the best organic-reach lever. Suits Keep Defender / Asteroids.
+  via chat: vote the next wave, spawn a boss, names on-screen, chat-triggered events — e.g. emoji/message
+  spam thresholds spawning monsters or firing visual effects (per-game opt-in; some games suit it, some
+  don't). Fits "self-contained"; streamer + chat is the best organic-reach lever. Suits Keep Defender /
+  Asteroids. *(2026-07-03)* **"Chat plays komyo"** variant — chat votes what game to play next and then
+  makes the moves (command voting per turn/tick); realistic for turn-based or genuinely slow games
+  (a future Sudoku / Trap the Cat / Floodgate lane, or a slowed-down Snake), hopeless for reflex games.
   (Deeper hooks — channel-point EventSub, a published Twitch **Extension** panel — need an Extension
   Backend Service → parked.)
 - **Google Play via PWA wrap** — games are already PWAs; Bubblewrap / PWABuilder wraps the catalogue (or
