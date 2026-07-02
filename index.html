@@ -506,7 +506,10 @@
     color:#ffce5c; border:1px solid color-mix(in srgb,#ffce5c 45%,transparent); background:rgba(255,206,92,0.08); }
   /* challenges (preview/mock) */
   .streak { align-self:center; display:inline-flex; align-items:center; gap:7px; margin:12px 4px 2px; font-family:var(--mono); font-size:12px; color:#ffce5c;
-    border:1px solid color-mix(in srgb,#ffce5c 40%,transparent); border-radius:999px; padding:5px 12px; background:rgba(255,206,92,0.07); }
+    border:1px solid color-mix(in srgb,#ffce5c 40%,transparent); border-radius:999px; padding:5px 12px; background:rgba(255,206,92,0.07); cursor:pointer; }
+  .streak:hover { border-color:#ffce5c; background:rgba(255,206,92,0.14); }
+  .streak .streak-i { width:15px; height:15px; border-radius:50%; border:1px solid color-mix(in srgb,#ffce5c 60%,transparent); display:inline-flex; align-items:center; justify-content:center; font:700 10px/1 var(--mono); color:color-mix(in srgb,#ffce5c 80%,transparent); }
+  .streak:hover .streak-i { color:#0c111c; background:#ffce5c; border-color:#ffce5c; }
   .csec { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:12px 4px 2px; }
   .cc { margin:6px 0; border:1px solid var(--border); border-radius:12px; padding:12px 13px; background:var(--surface); }
   .cc .top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; }
@@ -697,7 +700,7 @@
     <div class="dresize" title="Drag to resize"></div>
     <div class="dh"><span class="dt">🏆 Challenges</span><button class="dx" data-close aria-label="Close challenges">✕</button></div>
     <div class="dscroll">
-      <span class="streak" id="chalStreak">🔥 0 days</span>
+      <button class="streak" id="chalStreak" type="button" title="What do points get you?">🔥 0 points</button>
       <div class="csec">Today</div>
       <div id="chalToday"></div>
       <div class="csec">This week</div>
@@ -840,7 +843,7 @@
   <dialog id="titlesModal">
     <div class="about titles">
       <div class="cl-head"><h3>🏆 Titles</h3><button type="button" class="dx" id="titlesClose" aria-label="Close">✕</button></div>
-      <p class="tl-sub">Earn challenge points to climb the ladder — your title shows on your profile.</p>
+      <p class="tl-sub">Earn challenge points to climb the ladder — your title shows on your profile. More rewards are coming later.</p>
       <div class="tl-list" id="titlesList"></div>
     </div>
   </dialog>
@@ -1722,6 +1725,12 @@
           if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'titles' });
         });
       }
+      // challenges drawer's points pill opens the same ladder — points → titles is the payoff
+      window.__openTitlesLadder = () => {
+        if (!tlModal || !tlModal.showModal) return;
+        renderTitles(titleData().TT.tier); tlModal.showModal(); startTitleFx();
+        if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'titles' });
+      };
       if (tlClose) tlClose.addEventListener('click', () => tlModal.close());
       if (tlModal) tlModal.addEventListener('click', e => { if (e.target === tlModal) tlModal.close(); });
       if (tlModal) tlModal.addEventListener('close', () => { tlList.innerHTML = ''; startTitleFx(); });   // drop the ladder fields, keep the profile-box one running
@@ -1837,6 +1846,7 @@
     (function () {
       const K = window.gamekit, C = window.CHALLENGES;
       const todayEl = document.getElementById('chalToday'), weekEl = document.getElementById('chalWeek'), streakEl = document.getElementById('chalStreak');
+      if (streakEl) streakEl.addEventListener('click', () => { if (window.__openTitlesLadder) window.__openTitlesLadder(); });
       if (!K || !todayEl) return;
       const genreOf = {}, titleOf = {};
       (window.GAMES || []).forEach(g => { if (g && g.slug) { genreOf[g.slug] = (tagsOf(g)[0]) || ''; titleOf[g.slug] = g.title || g.slug; } });
@@ -1945,7 +1955,7 @@
         trackShown(daily, 'daily'); trackShown(weekly, 'weekly');
         backfillAndAward();
         const n = award();
-        if (streakEl) streakEl.textContent = '🔥 ' + n + (n === 1 ? ' point' : ' points');
+        if (streakEl) streakEl.innerHTML = '🔥 ' + n + (n === 1 ? ' point' : ' points') + ' <span class="streak-i">i</span>';
         renderHistory();
       }
       window.__renderChallenges = render;
