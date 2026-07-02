@@ -642,12 +642,6 @@
     ctx.restore();
   }
 
-  // ---- Loop ----
-  function loop() {
-    requestAnimationFrame(loop);
-    try { update(); render(); } catch (e) { if (window.console) console.error(e); }
-  }
-
   // ---- Input ----
   // Touch: HOLD a screen half to move — press/hold the LEFT half to slide the paddle left, the
   // RIGHT half to slide right (drag your thumb across the middle to switch). Mouse / pen stay
@@ -671,16 +665,15 @@
   canvas.addEventListener('pointerup', relTouch);
   canvas.addEventListener('pointercancel', relTouch);
 
-  window.addEventListener('keydown', e => {
-    if (state === 'playing' && e.key === 'Escape') { e.preventDefault(); pauseGame(); return; }
-    if (state !== 'playing') return;
-    if (e.key === 'ArrowLeft') paddleTarget = Math.max(0, paddleX - 30);
-    if (e.key === 'ArrowRight') paddleTarget = Math.min(W, paddleX + 30);
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); launch(); }
-  });
   // hold arrow key
   const keys = {};
-  window.addEventListener('keydown', e => { keys[e.key] = true; });
+  window.addEventListener('keydown', e => {
+    if (state === 'playing') {
+      if (e.key === 'Escape') { e.preventDefault(); pauseGame(); }
+      else if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); launch(); }
+    }
+    keys[e.key] = true;
+  });
   window.addEventListener('keyup', e => { keys[e.key] = false; });
 
   // ---- top nav (game-kit) ----
@@ -707,11 +700,8 @@
     // target so the mouse-easing step below is a no-op while holding. Mouse still glides smoothly.
     if (d) { paddleX = Math.max(pw / 2, Math.min(W - pw / 2, paddleX + d * speed)); paddleTarget = paddleX; }
   }
-  // integrate into update
-  const _update = update;
-  // (pollKeys called inline in loop)
 
-  // Override loop to include key polling.
+  // Fixed-timestep loop — polls held keys each frame, then advances physics.
   // Frame-rate-INDEPENDENT fixed timestep: physics advances at a constant 60 steps/sec of
   // game-time regardless of the display's refresh rate (60/90/120 Hz). We accumulate real
   // elapsed time and drain it in fixed STEP chunks, calling update() once per chunk; render
