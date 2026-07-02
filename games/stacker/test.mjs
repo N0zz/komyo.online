@@ -1,138 +1,19 @@
-// Headless test harness for Stack (stacker/index.html).
-// Mocks DOM/canvas, runs the IIFE in a vm sandbox, drives via window.__test.
-import fs from 'node:fs';
-import vm from 'node:vm';
-import path from 'node:path';
+// Headless tests for Stack — boots via the shared harness, drives window.__test.
+import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
 
-const DIR = path.dirname(new URL(import.meta.url).pathname);
-const KIT = fs.readFileSync(path.join(DIR, '../../game-kit.js'), 'utf8'); // shared kit, loaded before the game
-let pass = 0, fail = 0;
-const fails = [];
-function ok(cond, msg) { if (cond) { pass++; } else { fail++; fails.push(msg); console.log('  ✗ ' + msg); } }
-function section(t) { console.log('\n=== ' + t + ' ==='); }
-// bests now live in the shared kit store (gamekit_pb), keyed by the human mode label
+const FILE = 'games/stacker/index.html';
+const runGame = (opts) => bootGame(FILE, { w: 640, h: 900, ...opts });
+// bests live in the shared kit store (gamekit_pb), keyed by the human mode label
 const pbScore = (store, mode) => { try { return ((JSON.parse(store['gamekit_pb'] || '{}').stacker || {})[mode] || {}).score || 0; } catch (e) { return 0; } };
 const pbHas = (store, mode) => { try { return !!(JSON.parse(store['gamekit_pb'] || '{}').stacker || {})[mode]; } catch (e) { return false; } };
-
-function makeCtx2d() {
-  return new Proxy({}, {
-    get: (_, p) => {
-      if (p === 'canvas') return { width: 640, height: 900 };
-      if (p === 'createLinearGradient') return () => ({ addColorStop: () => {} });
-      return () => {};
-    },
-    set: () => true,
-  });
-}
-
-function makeEl(id) {
-  const classes = new Set();
-  const el = {
-    id, textContent: '', value: '', dataset: {}, children: [],
-    style: new Proxy({}, { get: (t, p) => t[p] ?? '', set: (t, p, v) => { t[p] = v; return true; } }),
-    classList: {
-      add: (...c) => c.forEach(x => classes.add(x)),
-      remove: (...c) => c.forEach(x => classes.delete(x)),
-      toggle: (c, f) => { const has = classes.has(c); const want = f === undefined ? !has : !!f; if (want) classes.add(c); else classes.delete(c); return want; },
-      contains: c => classes.has(c),
-    },
-    _l: {},
-    addEventListener: (type, fn) => { (el._l[type] ||= []).push(fn); },
-    removeEventListener: () => {},
-    fire: (type, ev = {}) => (el._l[type] || []).forEach(fn => fn({ preventDefault() {}, ...ev })),
-    appendChild: c => { el.children.push(c); return c; },
-    querySelectorAll: () => [], querySelector: () => null,
-    getContext: () => makeCtx2d(),
-    focus: () => {},
-    getBoundingClientRect: () => ({ left: 0, top: 0, width: 640, height: 900 }),
-  };
-  let _html = '';
-  Object.defineProperty(el, 'innerHTML', {
-    get: () => _html,
-    set: v => {
-      _html = String(v ?? '');
-      el.children = [];
-      // Parse out buttons added via innerHTML and re-register them in el._l-accessible form
-      const btnRe = /id="([^"]+)"/g; let m;
-      while ((m = btnRe.exec(_html)) !== null) elCache[m[1]] = makeEl(m[1]);
-    }
-  });
-  return el;
-}
-
-const elCache = {};
-function getEl(id) { return (elCache[id] ||= makeEl(id)); }
-
-function runStacker() {
-  // Reset cache for fresh run
-  Object.keys(elCache).forEach(k => delete elCache[k]);
-
-  const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
-  const m = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
-  if (!m) throw new Error('no inline script found in index.html');
-  const code = m[1];
-
-  const store = {};
-  const handlers = {};
-  const win = {
-    innerWidth: 640, innerHeight: 900,
-    addEventListener: (type, fn) => { (handlers[type] ||= []).push(fn); },
-    removeEventListener: () => {},
-    AudioContext: undefined, webkitAudioContext: undefined,
-    __test: undefined,
-  };
-  const docMock = {
-    getElementById: getEl,
-    createElement: tag => makeEl('new-' + tag),
-    addEventListener: (type, fn) => { (handlers[type] ||= []).push(fn); },
-    querySelectorAll: () => [],
-    body: makeEl('body'),
-  };
-  const sandbox = {
-    window: win, document: docMock,
-    location: { search: '' },
-    navigator: {},
-    localStorage: {
-      getItem: k => (k in store ? store[k] : null),
-      setItem: (k, v) => { store[k] = String(v); },
-      removeItem: k => { delete store[k]; },
-    },
-    requestAnimationFrame: () => 0,
-    cancelAnimationFrame: () => {},
-    setTimeout: (fn) => { /* no-op */ return 0; },
-    setInterval: () => 0,
-    clearInterval: () => {},
-    matchMedia: () => ({ matches: false }),
-    URLSearchParams, Math, JSON, String, Number, Array, Object,
-    parseInt, parseFloat, isFinite, isNaN, Date, console,
-  };
-  sandbox.globalThis = sandbox;
-  const ctx = vm.createContext(sandbox);
-
-  let bootErr = null;
-  try { vm.runInContext(KIT, ctx, { filename: 'game-kit.js' }); vm.runInContext(code, ctx, { filename: 'stacker/index.html' }); }
-  catch (e) { bootErr = e.stack || e.message; }
-
-  function resize(w, h) {
-    if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h);
-    else { win.innerWidth = w; win.innerHeight = h; }
-  }
-
-  return {
-    bootErr, store, win, resize,
-    test: () => win.__test,
-    el: getEl,
-    handlers,
-  };
-}
 
 // ---- Tests ----
 
 section('boot');
-const g = runStacker();
+const g = runGame();
 ok(g.bootErr === null, 'boots without error: ' + g.bootErr);
-ok(g.test() != null, 'exposes window.__test');
-const T = () => g.test();
+ok(g.T() != null, 'exposes window.__test');
+const T = g.T;
 ok(T().state === 'ready', 'initial state is "ready" (got ' + T().state + ')');
 ok(typeof T().score === 'number', 'score is a number');
 ok(typeof T().blocks === 'number', 'blocks getter is a number');
@@ -171,45 +52,41 @@ ok(T().state === 'playing', 'still playing after 5 perfect drops');
 
 section('combo tracking');
 // Reset and build combo
-const g2 = runStacker();
-g2.test().start();
-const T2 = () => g2.test();
+const g2 = runGame();
+g2.T().start();
+const T2 = g2.T;
 T2().dropPerfect();
 T2().dropPerfect();
 ok(T2().combo >= 2, 'combo builds up with consecutive perfects (got ' + T2().combo + ')');
 
-section('misaligned drop → game over');
-const g3 = runStacker();
-g3.test().start();
-const T3 = () => g3.test();
-// Force mover far off to one side so there's zero overlap
-const b3 = T3().base;
-// Place mover completely off to the right (past the base block)
-const m3 = T3().moving;
-// Access internal state via the test hook to simulate a fully misaligned block:
-// step until mover is at edge, then we manually drive it off
-// Instead, call drop() repeatedly until game over (since mover bounces edge to edge,
-// some drops may hit; keep dropping until it goes off or force via 0-width overlap)
-// More reliably: use the internal step to put mover in a known place then drop.
-// We'll step ~1 frame to let mover move, then override via dropPerfect first to get
-// a narrower base, then drop off the edge.
-// Simplest approach: call T3().drop() with the mover way off to the side.
-// We expose mover via T3().moving, but we can't set it from outside.
-// Let's drive via step until mover is at the far right corner and drop.
-// The mover bounces at W=640, base is ~352px wide centered, so gap on each side is ~144px.
-// A block that's 352px wide placed at x=644-352=292, base at x=144... overlap = 144+352 - 292 = 4?
-// Actually let's just rapidly drop until game over within a reasonable number of attempts.
-let guard = 0;
-while (T3().state === 'playing' && guard++ < 300) {
-  T3().step(3);
+section('zero-overlap drop → game over (seam-driven)');
+{
+  const g3 = runGame();
+  g3.T().start();
+  const T3 = g3.T;
+  const L3 = T3().layout;
+  T3().setMover(L3.stackRight + 5); // push the mover fully past the stack — zero overlap
   T3().drop();
+  ok(T3().state === 'over', 'zero-overlap drop ends the game (got ' + T3().state + ')');
 }
-ok(T3().state === 'over', 'eventually misaligned drop → state "over" (got ' + T3().state + ' after ' + guard + ' attempts)');
+
+section('partial-overlap drop does not end the game');
+{
+  const g3b = runGame();
+  g3b.T().start();
+  const T3b = g3b.T;
+  const L3b = T3b().layout;
+  const blocksBefore = T3b().blocks;
+  T3b().setMover(L3b.stackLeft + 10); // mostly overlapping, off the perfect tolerance
+  T3b().drop();
+  ok(T3b().state === 'playing', 'partial overlap keeps the game going (got ' + T3b().state + ')');
+  ok(T3b().blocks > blocksBefore, 'partial overlap still places a block (' + blocksBefore + ' -> ' + T3b().blocks + ')');
+}
 
 section('best score persistence');
-const g4 = runStacker();
-g4.test().start();
-const T4 = () => g4.test();
+const g4 = runGame();
+g4.T().start();
+const T4 = g4.T;
 // Place several perfect blocks to build up score
 for (let i = 0; i < 8; i++) T4().dropPerfect();
 const sc4 = T4().score;
@@ -221,23 +98,23 @@ const stored4 = pbScore(g4.store, 'Classic');
 ok(stored4 >= sc4 && stored4 > 0, 'best score persisted (Classic) in profile store on run end (stored=' + stored4 + ', score=' + sc4 + ')');
 
 section('game over → overlay appears');
-const g5 = runStacker();
-g5.test().start();
-const T5 = () => g5.test();
+const g5 = runGame();
+g5.T().start();
+const T5 = g5.T;
 let g5Guard = 0;
 while (T5().state === 'playing' && g5Guard++ < 300) { T5().step(3); T5().drop(); }
 // After game over, state should be 'over' (setTimeout for overlay is no-op in sandbox)
 ok(T5().state === 'over', 'state is "over" after miss (got ' + T5().state + ')');
 
 section('game-over: Space no longer restarts (menu Play does); startMode restarts');
-const g6 = runStacker();
-g6.test().start();
-const T6 = () => g6.test();
+const g6 = runGame();
+g6.T().start();
+const T6 = g6.T;
 let g6Guard = 0;
 while (T6().state === 'playing' && g6Guard++ < 300) { T6().step(3); T6().drop(); }
 ok(T6().state === 'over', 'reached game-over state');
 // Space is now ignored outside play (restart is via the kit end menu's Play Again)
-g6.handlers['keydown']?.forEach(fn => fn({ key: ' ', preventDefault() {} }));
+g6.down(' ');
 ok(T6().state === 'over', 'Space in state "over" no longer restarts (got ' + T6().state + ')');
 T6().startMode('classic');
 ok(T6().state === 'playing', 'startMode restarts the game');
@@ -247,9 +124,9 @@ ok(T6().score === 0, 'score reset to 0 on restart');
 // ---- Mode: Time Attack ----
 
 section('Time Attack — startMode("time")');
-const gt = runStacker();
-gt.test().startMode('time');
-const TT = () => gt.test();
+const gt = runGame();
+gt.T().startMode('time');
+const TT = gt.T;
 ok(TT().state === 'playing', 'time mode → state playing');
 ok(TT().mode === 'time', 'mode getter returns "time"');
 ok(TT().timeLeft === 60, 'Time Attack starts with 60s (got ' + TT().timeLeft + ')');
@@ -268,9 +145,9 @@ for (let i = 0; i < 60; i++) TT().step(1);
 ok(TT().state === 'over', 'Time Attack ends when timer hits 0 (got ' + TT().state + ')');
 
 section('Time Attack — best score persisted under correct key');
-const gt2 = runStacker();
-gt2.test().startMode('time');
-const TT2 = () => gt2.test();
+const gt2 = runGame();
+gt2.T().startMode('time');
+const TT2 = gt2.T;
 for (let i = 0; i < 5; i++) TT2().dropPerfect();
 const sc_t = TT2().score;
 ok(sc_t > 0, 'time mode score > 0 after drops (got ' + sc_t + ')');
@@ -283,9 +160,9 @@ ok(!pbHas(gt2.store, 'Classic'), 'Classic not written during time mode');
 // ---- Mode: Zen ----
 
 section('Zen — startMode("zen")');
-const gz = runStacker();
-gz.test().startMode('zen');
-const TZ = () => gz.test();
+const gz = runGame();
+gz.T().startMode('zen');
+const TZ = gz.T;
 ok(TZ().state === 'playing', 'zen mode → state playing');
 ok(TZ().mode === 'zen', 'mode getter returns "zen"');
 ok(TZ().timeLeft === 0, 'zen mode has no timer');
@@ -312,15 +189,14 @@ ok(pbScore(gz.store, 'Zen') >= sc_z, 'Zen best >= score');
 // ---- Mode isolation: separate best scores ----
 
 section('Mode best scores are independent');
-const gi = runStacker();
-gi.test().startMode('classic');
-const TI_c = () => gi.test();
+const gi = runGame();
+gi.T().startMode('classic');
+const TI_c = gi.T;
 for (let i = 0; i < 3; i++) TI_c().dropPerfect();
-const sc_classic = TI_c().score;
 TI_c().toMenu();
 
-gi.test().startMode('zen');
-const TI_z = () => gi.test();
+gi.T().startMode('zen');
+const TI_z = gi.T;
 for (let i = 0; i < 3; i++) TI_z().dropPerfect();
 TI_z().toMenu();
 // zen gives score too; both keys should exist independently
@@ -332,23 +208,23 @@ ok(gi.store['stacker_best_classic'] !== gi.store['stacker_best_zen'] || true,
 // ---- Menu (gamekit.menu) ----
 
 section('Menu — kit start menu open on boot; best(mode) exposed');
-const gm = runStacker();
-const TM = () => gm.test();
+const gm = runGame();
+const TM = gm.T;
 ok(TM().menu() != null, 'start menu (gamekit.menu) is open on boot');
 ok(typeof TM().best === 'function', 'exposes best(mode)');
 ok(TM().best('classic') === 0 && TM().best('time') === 0 && TM().best('zen') === 0, 'all bests 0 on fresh boot');
 
 section('Menu — best(mode) reflects persisted scores');
-const gm2 = runStacker();
+const gm2 = runGame();
 gm2.store['gamekit_pb'] = JSON.stringify({ stacker: { 'Classic': { score: 42, plays: 1 }, 'Zen': { score: 7, plays: 1 } } });
-const TM2 = () => gm2.test();
+const TM2 = gm2.T;
 ok(TM2().best('classic') === 42, 'classic best = 42 from storage (got ' + TM2().best('classic') + ')');
 ok(TM2().best('zen') === 7, 'zen best = 7 from storage (got ' + TM2().best('zen') + ')');
 ok(TM2().best('time') === 0, 'time best still 0');
 
 section('Menu — best rises after a play');
-const gm3 = runStacker();
-const TM3 = () => gm3.test();
+const gm3 = runGame();
+const TM3 = gm3.T;
 TM3().startMode('classic');
 for (let i = 0; i < 6; i++) TM3().dropPerfect();
 const playedScore = TM3().score;
@@ -358,49 +234,39 @@ ok(TM3().best('classic') === playedScore, 'classic best reflects the just-played
 // ---- Layout: fits the screen across viewports ----
 
 section('Stack: layout fits the screen across 3 viewports (centered, on-screen, clears HUD)');
-const VIEWPORTS = [
-  { name: 'portrait phone', w: 390, h: 780 },
-  { name: 'landscape phone', w: 780, h: 390 },
-  { name: 'desktop', w: 1280, h: 800 },
-];
-for (const vp of VIEWPORTS) {
-  const gl = runStacker();
-  gl.resize(vp.w, vp.h);
-  gl.test().start();
-  gl.test().step(1);
-  // Build a tall tower so the camera scrolls and the top approaches the HUD band.
-  // Step frames between drops: the camera eases toward its target ~7%/frame, exactly as it
-  // does in real play (frames always elapse while the mover travels), so it converges instead
-  // of lagging behind a zero-frame burst of drops.
-  for (let i = 0; i < 30; i++) { gl.test().dropPerfect(); gl.test().step(30); }
-  gl.test().step(120); // let the camera fully settle
+runLayoutSuite(
+  (v) => { const gl = runGame(); gl.resize(v.w, v.h); gl.T().start(); return gl; },
+  (gl, v, L0) => {
+    const Tl = gl.T;
+    const tag = '[' + v.name + '] ';
+    Tl().step(1);
+    // Build a tall tower so the camera scrolls and the top approaches the HUD band.
+    // Step frames between drops: the camera eases toward its target ~7%/frame, exactly as it
+    // does in real play (frames always elapse while the mover travels), so it converges instead
+    // of lagging behind a zero-frame burst of drops.
+    for (let i = 0; i < 30; i++) { Tl().dropPerfect(); Tl().step(30); }
+    Tl().step(120); // let the camera fully settle
 
-  const L = gl.test().layout;
-  const tag = '[' + vp.name + '] ';
+    const L = Tl().layout;
 
-  ok(L.W === vp.w && L.H === vp.h, tag + 'canvas matches viewport (' + L.W + 'x' + L.H + ' vs ' + vp.w + 'x' + vp.h + ')');
+    // Moving block fully on-screen, horizontally and vertically.
+    ok(L.mover.left >= 0 && L.mover.right <= L.W,
+      tag + 'moving block within 0..W (left=' + L.mover.left.toFixed(1) + ' right=' + L.mover.right.toFixed(1) + ' W=' + L.W + ')');
+    ok(L.mover.top >= 0 && L.mover.bottom <= L.H,
+      tag + 'moving block within 0..H (top=' + L.mover.top.toFixed(1) + ' bottom=' + L.mover.bottom.toFixed(1) + ' H=' + L.H + ')');
 
-  // Moving block fully on-screen, horizontally and vertically.
-  ok(L.mover.left >= 0 && L.mover.right <= L.W,
-    tag + 'moving block within 0..W (left=' + L.mover.left.toFixed(1) + ' right=' + L.mover.right.toFixed(1) + ' W=' + L.W + ')');
-  ok(L.mover.top >= 0 && L.mover.bottom <= L.H,
-    tag + 'moving block within 0..H (top=' + L.mover.top.toFixed(1) + ' bottom=' + L.mover.bottom.toFixed(1) + ' H=' + L.H + ')');
+    // Stack column horizontally on-screen.
+    ok(L.stackLeft >= 0 && L.stackRight <= L.W,
+      tag + 'stack within 0..W (left=' + L.stackLeft.toFixed(1) + ' right=' + L.stackRight.toFixed(1) + ' W=' + L.W + ')');
 
-  // Stack column horizontally on-screen.
-  ok(L.stackLeft >= 0 && L.stackRight <= L.W,
-    tag + 'stack within 0..W (left=' + L.stackLeft.toFixed(1) + ' right=' + L.stackRight.toFixed(1) + ' W=' + L.W + ')');
+    // Topmost drawn pixel clears the top HUD reservation (no overlap with score pill).
+    ok(L.topCanvas >= L.topReserve,
+      tag + 'top of tower clears HUD reserve (topCanvas=' + L.topCanvas.toFixed(1) + ' >= topReserve=' + L.topReserve + ')');
 
-  // Topmost drawn pixel clears the top HUD reservation (no overlap with score pill).
-  ok(L.topCanvas >= L.topReserve,
-    tag + 'top of tower clears HUD reserve (topCanvas=' + L.topCanvas.toFixed(1) + ' >= topReserve=' + L.topReserve + ')');
+    // "Stays centered": base/stack center ≈ W/2.
+    ok(Math.abs(L.baseCenterX - L.W / 2) <= 1,
+      tag + 'stack centered on W/2 (baseCenterX=' + L.baseCenterX.toFixed(1) + ' W/2=' + (L.W / 2) + ')');
+  }
+);
 
-  // "Stays centered": base/stack center ≈ W/2.
-  ok(Math.abs(L.baseCenterX - L.W / 2) <= 1,
-    tag + 'stack centered on W/2 (baseCenterX=' + L.baseCenterX.toFixed(1) + ' W/2=' + (L.W / 2) + ')');
-}
-
-// ---- Summary ----
-console.log('\n----------------------------------------');
-console.log('PASS: ' + pass + '   FAIL: ' + fail);
-if (fail > 0) { console.log('\nFailures:'); fails.forEach(f => console.log(' - ' + f)); process.exit(1); }
-else console.log('All tests passed ✓');
+summary();
