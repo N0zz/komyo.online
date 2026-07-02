@@ -1,137 +1,20 @@
-// Headless tests for Range (aim-trainer).
-// Mocks DOM/canvas, runs the inline IIFE in a vm sandbox, drives via window.__test.
-import fs from 'node:fs';
-import vm from 'node:vm';
-import path from 'node:path';
+// Headless tests for Range (aim-trainer) — boots via the shared harness, drives window.__test.
+import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
 
-const DIR = path.dirname(new URL(import.meta.url).pathname);
-const KIT = fs.readFileSync(path.join(DIR, '../../game-kit.js'), 'utf8'); // shared kit, loaded before the game
-let pass = 0, fail = 0;
-const fails = [];
-function ok(cond, msg) { if (cond) { pass++; } else { fail++; fails.push(msg); console.log('  ✗ ' + msg); } }
-function section(t) { console.log('\n=== ' + t + ' ==='); }
+const FILE = 'games/aim-trainer/index.html';
+const runGame = (opts) => bootGame(FILE, opts);
 // bests now live in the shared kit store (gamekit_pb): Timed keeps score, Sprint keeps time (per amount)
 const pbG = (store) => { try { return JSON.parse(store['gamekit_pb'] || '{}')['aim-trainer'] || {}; } catch (e) { return {}; } };
 const pbScore = (store, mode) => (pbG(store)[mode] || {}).score || 0;
 const pbTime = (store, mode) => (pbG(store)[mode] || {}).time || 0;
 const pbHas = (store, mode) => !!pbG(store)[mode];
 
-function makeCtx2d() {
-  return new Proxy({}, {
-    get: (_, p) => { if (p === 'canvas') return { width: 1280, height: 800 }; return () => {}; },
-    set: () => true,
-  });
-}
-
-function makeEl(id) {
-  const classes = new Set();
-  const el = {
-    id, textContent: '', value: '', dataset: {}, children: [],
-    style: new Proxy({}, { get: (t, p) => t[p] ?? '', set: (t, p, v) => { t[p] = v; return true; } }),
-    classList: {
-      add: (...c) => c.forEach(x => classes.add(x)),
-      remove: (...c) => c.forEach(x => classes.delete(x)),
-      toggle: (c, f) => { const has = classes.has(c); const want = f === undefined ? !has : !!f; if (want) classes.add(c); else classes.delete(c); return want; },
-      contains: c => classes.has(c),
-    },
-    _l: {},
-    addEventListener: (type, fn) => { (el._l[type] ||= []).push(fn); },
-    removeEventListener: () => {},
-    fire: (type, ev = {}) => (el._l[type] || []).forEach(fn => fn({ preventDefault() {}, stopPropagation() {}, ...ev })),
-    appendChild: (c) => { el.children.push(c); return c; },
-    _attrs: {},
-    setAttribute: (k, v) => { el._attrs[k] = String(v); },
-    getAttribute: (k) => (k in el._attrs ? el._attrs[k] : null),
-    querySelectorAll: () => [], querySelector: () => null,
-    getContext: () => makeCtx2d(),
-    focus: () => {},
-    getBoundingClientRect: () => ({ left: 0, top: 0, width: 1280, height: 800 }),
-  };
-  let _html = '';
-  Object.defineProperty(el, 'innerHTML', { get: () => _html, set: v => { _html = String(v ?? ''); if (!v) el.children = []; } });
-  return el;
-}
-
-function makeModeBtns() {
-  const modes = ['10', '30', '20', '60', 'sprint'];
-  return modes.map(m => {
-    const btn = makeEl('btn-' + m);
-    btn.dataset = { mode: m };
-    btn.className = m === '30' ? 'mode-btn selected' : 'mode-btn';
-    btn.classList.contains = c => btn.className.includes(c);
-    return btn;
-  });
-}
-
-function runGame(file, dims) {
-  const html = fs.readFileSync(path.join(DIR, file), 'utf8');
-  const m = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
-  if (!m) throw new Error('no inline script found in ' + file);
-  const code = m[1];
-
-  const elCache = {};
-  const modeBtns = makeModeBtns();
-
-  const getEl = (id) => {
-    if (!elCache[id]) elCache[id] = makeEl(id);
-    return elCache[id];
-  };
-  const store = {};
-  const handlers = {};
-
-  const win = {
-    innerWidth: (dims && dims.w) || 1280, innerHeight: (dims && dims.h) || 800,
-    addEventListener: (type, fn) => { (handlers[type] ||= []).push(fn); },
-    removeEventListener: () => {},
-    __test: undefined,
-  };
-
-  const docMock = {
-    getElementById: getEl,
-    createElement: (tag) => makeEl('new-' + tag),
-    addEventListener: () => {},
-    querySelectorAll: (sel) => {
-      if (sel === '.mode-btn') return modeBtns;
-      return [];
-    },
-    body: makeEl('body'),
-  };
-
-  const sandbox = {
-    window: win, document: docMock,
-    location: { search: '' },
-    navigator: {},
-    localStorage: {
-      getItem: k => (k in store ? store[k] : null),
-      setItem: (k, v) => { store[k] = String(v); },
-      removeItem: k => { delete store[k]; },
-    },
-    requestAnimationFrame: () => 0,
-    cancelAnimationFrame: () => {},
-    setTimeout: (fn, ms) => 0,
-    setInterval: () => 0,
-    clearInterval: () => {},
-    matchMedia: () => ({ matches: false }),
-    Math, JSON, String, Number, Array, Object, parseInt, parseFloat, isFinite, isNaN, Date, console,
-    URLSearchParams,
-  };
-  sandbox.globalThis = sandbox;
-
-  const ctx = vm.createContext(sandbox);
-  let bootErr = null;
-  try { vm.runInContext(KIT, ctx, { filename: 'game-kit.js' }); vm.runInContext(code, ctx, { filename: file }); }
-  catch (e) { bootErr = e.stack; }
-
-  function resize(w, h) { if (win.gamekit && win.gamekit.layout && win.gamekit.layout.__emit) win.gamekit.layout.__emit(w, h); else { win.innerWidth = w; win.innerHeight = h; } }
-  return { getEl, win, store, bootErr, resize, test: () => win.__test };
-}
-
 console.log('Running Range (aim-trainer) headless tests…');
 
 section('boot');
-const g = runGame('index.html');
+const g = runGame();
 ok(g.bootErr === null, 'boots without error: ' + g.bootErr);
-const T = () => g.test();
+const T = g.T;
 ok(T() != null, 'exposes window.__test');
 
 section('__test API surface');
@@ -154,8 +37,8 @@ ok(typeof T().mode === 'string', 'mode getter exposed');
 section('seeded RNG');
 {
   function seededPositions(seed) {
-    const gi = runGame('index.html');
-    const Ti = () => gi.test();
+    const gi = runGame();
+    const Ti = gi.T;
     Ti().start();
     Ti().setSeed(seed);
     Ti().step(5);
@@ -168,8 +51,8 @@ section('seeded RNG');
   const run2 = seededPositions(7);
   ok(JSON.stringify(run1) === JSON.stringify(run2), 'seeded RNG produces deterministic spawns (run1=' + run1 + ')');
 
-  const gBounds = runGame('index.html');
-  const Tb = () => gBounds.test();
+  const gBounds = runGame();
+  const Tb = gBounds.T;
   Tb().start();
   Tb().setSeed(0xffffffff);
   const firstTgt = Tb().targets[0];
@@ -235,8 +118,8 @@ section('timed mode: step past session → game over at limit');
 {
   const fps = 60;
   // test with 10s timed
-  const g10 = runGame('index.html');
-  const T10 = () => g10.test();
+  const g10 = runGame();
+  const T10 = g10.T;
   T10().startMode(10);
   ok(T10().state === 'playing', 'startMode(10) → playing');
   ok(T10().timeLeft >= 9.9 && T10().timeLeft <= 10, 'timeLeft starts at ~10 (got ' + T10().timeLeft + ')');
@@ -255,8 +138,8 @@ section('timed mode: step past session → game over at limit');
 
 section('sprint mode: ends after 100 targets hit');
 {
-  const gsp = runGame('index.html');
-  const Ts = () => gsp.test();
+  const gsp = runGame();
+  const Ts = gsp.T;
   Ts().startMode('sprint');
   ok(Ts().state === 'playing', 'startMode("sprint") → playing');
   ok(Ts().mode === 'sprint', 'mode is "sprint"');
@@ -277,8 +160,8 @@ section('sprint mode: ends after 100 targets hit');
 
 section('sprint: best time persists to localStorage');
 {
-  const gsp2 = runGame('index.html');
-  const Ts2 = () => gsp2.test();
+  const gsp2 = runGame();
+  const Ts2 = gsp2.T;
   Ts2().startMode('sprint');
   let safetyIter = 0;
   while (Ts2().state === 'playing' && Ts2().hits < 100 && safetyIter++ < 4000) {
@@ -292,8 +175,8 @@ section('sprint: best time persists to localStorage');
 }
 
 section('timed best score persists');
-const g2 = runGame('index.html');
-const T2 = () => g2.test();
+const g2 = runGame();
+const T2 = g2.T;
 T2().start();
 T2().step(5);
 const tgt2 = T2().targets[0];
@@ -309,42 +192,14 @@ const savedBest = pbScore(g2.store, 'Timed · 30s');
 ok(savedBest >= scoreAfterHits, 'best score written to profile store (saved=' + savedBest + ', score=' + scoreAfterHits + ')');
 
 section('new session loads saved best');
-const g4 = (() => {
-  const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
-  const m = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
-
-  const modeBtns = makeModeBtns();
-  const elCache = {};
-  const getEl = (id) => (elCache[id] ||= makeEl(id));
-  const store = { 'gamekit_pb': JSON.stringify({ 'aim-trainer': { 'Timed · 30s': { score: 9999, plays: 1 } } }) };
-  const win = { innerWidth: 1280, innerHeight: 800, addEventListener: () => {}, removeEventListener: () => {} };
-  const sandbox = {
-    window: win,
-    document: {
-      getElementById: getEl,
-      createElement: t => makeEl(t),
-      addEventListener: () => {},
-      querySelectorAll: (sel) => sel === '.mode-btn' ? modeBtns : [],
-      body: makeEl('body'),
-    },
-    location: { search: '' }, navigator: {},
-    localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
-    requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, setInterval: () => 0, clearInterval: () => {},
-    matchMedia: () => ({ matches: false }),
-    Math, JSON, String, Number, Array, Object, parseInt, parseFloat, isFinite, isNaN, Date, console, URLSearchParams,
-  };
-  sandbox.globalThis = sandbox;
-  const ctx = vm.createContext(sandbox);
-  try { vm.runInContext(KIT, ctx, { filename: 'game-kit.js' }); vm.runInContext(m[1], ctx, { filename: 'index.html' }); } catch (e) {}
-  return { test: () => win.__test };
-})();
-g4.test().start(); // start timed 30s so bestScore reads aim-trainer_best_30
-ok(g4.test().bestScore === 9999, 'best score loaded from localStorage on boot (got ' + g4.test().bestScore + ')');
+const g4 = runGame({ store: { gamekit_pb: JSON.stringify({ 'aim-trainer': { 'Timed · 30s': { score: 9999, plays: 1 } } }) } });
+g4.T().start(); // start timed 30s so bestScore reads aim-trainer_best_30
+ok(g4.T().bestScore === 9999, 'best score loaded from localStorage on boot (got ' + g4.T().bestScore + ')');
 
 section('per-mode best isolation: different timed durations use different keys');
 {
-  const giso = runGame('index.html');
-  const Tiso = () => giso.test();
+  const giso = runGame();
+  const Tiso = giso.T;
 
   // play 10s mode and end it
   Tiso().startMode(10);
@@ -375,8 +230,8 @@ section('portrait HUD clearance: targets spawn below nav + HUD band');
 {
   // Portrait viewport (taller than wide): the center-top HUD pill drops below the nav
   // to top:50px, so the playfield must clear ~92px of headroom, plus the 80px spawn pad = 172.
-  const gp = runGame('index.html', { w: 400, h: 900 });
-  const Tp = () => gp.test();
+  const gp = runGame({ w: 400, h: 900 });
+  const Tp = gp.T;
   ok(gp.bootErr === null, 'portrait boots without error: ' + gp.bootErr);
   Tp().start();
   Tp().setSeed(3);
@@ -392,8 +247,8 @@ ok(typeof T().setMoving === 'function', 'setMoving() exposed');
 
 section('moving targets: off by default, targets stay put');
 {
-  const gm = runGame('index.html');
-  const Tm = () => gm.test();
+  const gm = runGame();
+  const Tm = gm.T;
   ok(Tm().movingTargets === false, 'moving targets default off');
   Tm().start();
   Tm().setSeed(11);
@@ -409,8 +264,8 @@ section('moving targets: off by default, targets stay put');
 
 section('moving targets: toggle persists to localStorage');
 {
-  const gm = runGame('index.html');
-  const Tm = () => gm.test();
+  const gm = runGame();
+  const Tm = gm.T;
   Tm().setMoving(true);
   ok(gm.store['aim-trainer_moving'] === '1', 'enabling moving writes "1" to localStorage');
   ok(Tm().movingTargets === true, 'movingTargets reflects enabled');
@@ -418,35 +273,14 @@ section('moving targets: toggle persists to localStorage');
   ok(gm.store['aim-trainer_moving'] === '0', 'disabling moving writes "0" to localStorage');
 
   // fresh instance reads the persisted value
-  const gm3 = (() => {
-    const html = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
-    const m = html.match(/<script>([\s\S]*?)<\/script>\s*<\/body>/);
-    const modeBtns = makeModeBtns();
-    const elCache = {};
-    const getEl = (id) => (elCache[id] ||= makeEl(id));
-    const store = { 'aim-trainer_moving': '1' };
-    const win = { innerWidth: 1280, innerHeight: 800, addEventListener: () => {}, removeEventListener: () => {} };
-    const sandbox = {
-      window: win,
-      document: { getElementById: getEl, createElement: t => makeEl(t), addEventListener: () => {}, querySelectorAll: (sel) => sel === '.mode-btn' ? modeBtns : [], body: makeEl('body') },
-      location: { search: '' }, navigator: {},
-      localStorage: { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } },
-      requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, setTimeout: () => 0, setInterval: () => 0, clearInterval: () => {},
-      matchMedia: () => ({ matches: false }),
-      Math, JSON, String, Number, Array, Object, parseInt, parseFloat, isFinite, isNaN, Date, console, URLSearchParams,
-    };
-    sandbox.globalThis = sandbox;
-    const ctx = vm.createContext(sandbox);
-    try { vm.runInContext(KIT, ctx, { filename: 'game-kit.js' }); vm.runInContext(m[1], ctx, { filename: 'index.html' }); } catch (e) {}
-    return { test: () => win.__test };
-  })();
-  ok(gm3.test().movingTargets === true, 'persisted moving=1 loaded on fresh boot');
+  const gm3 = runGame({ store: { 'aim-trainer_moving': '1' } });
+  ok(gm3.T().movingTargets === true, 'persisted moving=1 loaded on fresh boot');
 }
 
 section('moving targets: ramp — more targets move and faster as score grows');
 {
-  const gm = runGame('index.html');
-  const Tm = () => gm.test();
+  const gm = runGame();
+  const Tm = gm.T;
   Tm().setMoving(true);
   Tm().startMode('sprint'); // sprint escalates spawn so multiple targets appear
   Tm().setSeed(5);
@@ -457,8 +291,8 @@ section('moving targets: ramp — more targets move and faster as score grows');
     'no movement at very low score');
 
   // sprint ends at 100, so sample the ramp from a long timed run instead.
-  const gt = runGame('index.html');
-  const Tt = () => gt.test();
+  const gt = runGame();
+  const Tt = gt.T;
   Tt().setMoving(true);
   Tt().startMode(60);
   Tt().setSeed(9);
@@ -485,8 +319,8 @@ section('moving targets: ramp — more targets move and faster as score grows');
 
 section('moving targets: stay within the playfield (bounce)');
 {
-  const gm = runGame('index.html');
-  const Tm = () => gm.test();
+  const gm = runGame();
+  const Tm = gm.T;
   Tm().setMoving(true);
   Tm().startMode(60);
   Tm().setSeed(13);
@@ -511,8 +345,8 @@ section('moving targets: stay within the playfield (bounce)');
 
 section('moving targets: flick aim still hits a moving target at its current position');
 {
-  const gm = runGame('index.html');
-  const Tm = () => gm.test();
+  const gm = runGame();
+  const Tm = gm.T;
   Tm().setMoving(true);
   Tm().startMode(60);
   Tm().setSeed(21);
@@ -530,21 +364,16 @@ section('moving targets: flick aim still hits a moving target at its current pos
   ok(Tm().hits === hitsBefore + 1, 'clicking a moving target at its reported position registers a hit');
 }
 
+// ---- Layout: everything on-screen + no targets under the HUD, in portrait / landscape / desktop ----
 section('Range: layout fits the screen (on-screen + no targets under the HUD)');
-{
-  const VIEWPORTS = [
-    { name: 'portrait phone', w: 390, h: 780 },
-    { name: 'landscape phone', w: 780, h: 390 },
-    { name: 'desktop', w: 1280, h: 800 },
-  ];
-  for (const v of VIEWPORTS) {
-    const gl = runGame('index.html');
-    gl.resize(v.w, v.h);   // viewport is set before the player hits READY UP
-    gl.test().start();     // first target spawns into the resized playfield
-    gl.test().setSeed(7);
-    gl.test().step(2);
-    const L = gl.test().layout;
-    ok(L.W === v.w && L.H === v.h, v.name + ': canvas matches viewport (' + L.W + 'x' + L.H + ')');
+runLayoutSuite(
+  () => runGame(),
+  (gl, v, L0) => {
+    const Tl = gl.T;
+    Tl().start();     // first target spawns into the resized playfield
+    Tl().setSeed(7);
+    Tl().step(2);
+    const L = Tl().layout;
     // spawn region (full target disc) stays within the canvas
     ok(L.spawn.left >= 0 && L.spawn.right <= L.W, v.name + ': spawn region within width (' + Math.round(L.spawn.left) + '..' + Math.round(L.spawn.right) + ' in 0..' + L.W + ')');
     ok(L.spawn.top >= 0 && L.spawn.bottom <= L.H, v.name + ': spawn region within height (' + Math.round(L.spawn.top) + '..' + Math.round(L.spawn.bottom) + ' in 0..' + L.H + ')');
@@ -558,9 +387,6 @@ section('Range: layout fits the screen (on-screen + no targets under the HUD)');
       ok(b.top >= L.topReserve && b.bottom <= L.H, v.name + ': live targets on-screen + below HUD (' + Math.round(b.top) + '..' + Math.round(b.bottom) + ' in ' + L.topReserve + '..' + L.H + ')');
     }
   }
-}
+);
 
-console.log('\n----------------------------------------');
-console.log('PASS: ' + pass + '   FAIL: ' + fail);
-if (fail > 0) { console.log('\nFailures:'); fails.forEach(f => console.log(' - ' + f)); process.exit(1); }
-else console.log('All tests passed ✓');
+summary();
