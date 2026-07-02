@@ -155,7 +155,16 @@
 
   // ---- State ----
   let state = 'ready'; // ready | playing | over
-  let snake, dir, nextDir, food, score, best, particles, flashAlpha, pendingFood;
+  let snake, dir, dirQueue, food, score, best, particles, flashAlpha, pendingFood;
+  // buffered turns (up to 3): spamming two quick turns inside one grid-step used to lose the
+  // first one (single next-dir slot) — now each tick consumes one queued turn in order
+  function queueDir(nd) {
+    const last = dirQueue.length ? dirQueue[dirQueue.length - 1] : dir;
+    if (!nd || !last) return;
+    if (nd.x === -last.x && nd.y === -last.y) return;
+    if (nd.x === last.x && nd.y === last.y) return;
+    if (dirQueue.length < 3) dirQueue.push(nd);
+  }
   let COLS, ROWS;
   let W, H, cellW, cellH, offX, offY;
   let dpadReserve = 0; // space kept clear for the on-screen D-pad (touch) so it never overlaps the arena
@@ -220,7 +229,7 @@
     const sx = Math.floor(COLS / 2), sy = Math.floor(ROWS / 2);
     snake = [{ x: sx, y: sy }];
     dir = { x: 1, y: 0 };
-    nextDir = { x: 1, y: 0 };
+    dirQueue = [];
     score = 0;
     best = loadBest();
     particles = [];
@@ -250,10 +259,12 @@
   function tick() {
     if (state !== 'playing') return;
 
-    // Apply pending direction (no 180° reversal)
-    const nd = nextDir;
-    if (!(nd.x === -dir.x && nd.y === -dir.y)) {
-      if (nd.x !== dir.x || nd.y !== dir.y) { dir = nd; SND.play('turn'); dimDpad(); }
+    // Apply one queued direction per tick (no 180° reversal)
+    if (dirQueue.length) {
+      const nd = dirQueue.shift();
+      if (!(nd.x === -dir.x && nd.y === -dir.y)) {
+        if (nd.x !== dir.x || nd.y !== dir.y) { dir = nd; SND.play('turn'); dimDpad(); }
+      }
     }
 
     const head = snake[0];
@@ -378,7 +389,7 @@
     if (!KIT) return;
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER', backdrop: menuBackdrop,
       score: score, best: best, newBest: newBest, lines: ['Length ' + (snake ? snake.length : 1) + ' · ' + SPD_LABEL[opts.speed] + ' · ' + SZ_LABEL[opts.size] + ' · ' + (opts.walls === 'wrap' ? 'Wrap' : 'Solid')],
-      share: { slug: 'snake', title: 'Neon Snake', message: () => shareMsg(), params: () => ({ walls: opts.walls, speed: opts.speed, size: opts.size }) },
+      share: { slug: 'snake', accent: '#7fffb0', icon: '🐍', title: 'Neon Snake', message: () => shareMsg(), params: () => ({ walls: opts.walls, speed: opts.speed, size: opts.size }) },
       record: { slug: 'snake', mode: modeLabel(opts), score: score, stats: { length: snake ? snake.length : 1 } },
       actions: [ { id: 'again', label: 'PLAY AGAIN', primary: true }, { id: 'menu', label: 'MENU' } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
@@ -515,7 +526,7 @@
 
   document.addEventListener('keydown', e => {
     const d = KEY_MAP[e.key];
-    if (d) { e.preventDefault(); if (state === 'playing') nextDir = DIR_MAP[d]; }
+    if (d) { e.preventDefault(); if (state === 'playing') queueDir(DIR_MAP[d]); }
     if (e.key === 'Escape' && state === 'playing') { e.preventDefault(); pauseGame(); }
   });
 
@@ -529,8 +540,8 @@
     touchStart = null;
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
     if (state !== 'playing') return;
-    if (Math.abs(dx) > Math.abs(dy)) nextDir = dx > 0 ? DIR_MAP.right : DIR_MAP.left;
-    else nextDir = dy > 0 ? DIR_MAP.down : DIR_MAP.up;
+    if (Math.abs(dx) > Math.abs(dy)) queueDir(dx > 0 ? DIR_MAP.right : DIR_MAP.left);
+    else queueDir(dy > 0 ? DIR_MAP.down : DIR_MAP.up);
   }, { passive: true });
 
   // On-screen D-pad (touch only): tap an arrow to turn — no swiping required.
@@ -599,7 +610,7 @@
     dpadEl = document.createElement('div'); dpadEl.id = 'dpad'; dpadBtns = {};
     [['u', '▲', 'up'], ['l', '◀', 'left'], ['r', '▶', 'right'], ['d', '▼', 'down']].forEach(([cls, glyph, d]) => {
       const b = document.createElement('button'); b.className = cls; b.type = 'button'; b.textContent = glyph; b.setAttribute('aria-label', d);
-      const turn = (e) => { if (e && e.preventDefault) e.preventDefault(); if (state === 'playing') nextDir = DIR_MAP[d]; };
+      const turn = (e) => { if (e && e.preventDefault) e.preventDefault(); if (state === 'playing') queueDir(DIR_MAP[d]); };
       b.addEventListener('touchstart', turn, { passive: false });
       b.addEventListener('click', turn);
       dpadBtns[cls] = b; dpadEl.appendChild(b);
@@ -706,8 +717,8 @@
       saveOpts();
       startGame();
     },
-    setDir(dx, dy) { nextDir = { x: dx, y: dy }; },
-    turn(d) { nextDir = DIR_MAP[d]; },
+    setDir(dx, dy) { queueDir({ x: dx, y: dy }); },
+    turn(d) { queueDir(DIR_MAP[d]); },
     step(n) { for (let i = 0; i < (n || 1); i++) tick(); },
     placeFoodAt(x, y) { if (state === 'playing') { pendingFood = { x, y }; food = { x, y }; } },
   };
