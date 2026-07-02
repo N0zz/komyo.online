@@ -17,6 +17,19 @@ challenges, tv-controller.
   laser shot; catalogue global Settings page. See the `komyo-audio-design` note.
 - **`gamekit.menu` framework — DONE (2026-07-01).** All 9 games migrated to the declarative kit menu
   (cards / sliders / grid / map-popup + animated backdrops), suites green.
+- **Profile page + share card fit — DONE (2026-07-02)** *(pending a final on-phone verify)*. Title
+  box = title + name full-width with a right meta column (🏆 pts / 💪 good runs / 📅 since — always shown,
+  never hidden at 0); core counts in a centered divider strip; ✕ floats on the modal corner; avatar emoji
+  dropped. **Shared image now matches the live modal:** crop fixed (the clone inherited `bottom:0` →
+  viewport-tall canvas), particle frame composited in, and sizing props are no longer pixel-frozen so the
+  export reflows instead of truncating when the rasterizer's fonts drift (Android).
+- **Score card — DONE (2026-07-02).** "Neon marquee" redesign, mock-transcribed: per-game accent +
+  icon theme (from the share config), silhouette frame glows, gradient score with halo, sparkles, mascot
+  logo + wordmark, ▶ play-on CTA; speedrun/sprint records render as TIME. 780×410 rounded-on-alpha WebP
+  (~20 KB; JPEG on Safari). Share menu (Share… / Copy image / Download + preview) — Copy writes a single
+  PNG flavor (fixes the Discord double-paste; cause was the OS sheet's multi-flavor Copy). The **Discord
+  games-log posts the card itself** (halved) via Components V2 — bare image, clickable play link below,
+  one request. *Mascot art refresh stays gated (Later).*
 
 ## 🚀 Path to launch (ordered)
 
@@ -34,19 +47,14 @@ audio splash + nav-fit guard, 2026-07-01. **Challenge-points titles** — 9 titl
 by lifetime points, full-width profile box with escalating shine tier 0→8, username shares the shine,
 `CHALLENGES.titles`/`titleFor()`, 🏆 CHALLENGE PTS, client-only cosmetic, 2026-07-01.)
 
-0. **Profile page + share card fit — ✅ SHIPPED (2026-07-02)** *(pending a final on-phone verify)*. Title
-   box = title + name full-width with a right meta column (🏆 pts / 💪 good runs / 📅 since — always shown,
-   never hidden at 0); core counts in a centered divider strip; ✕ floats on the modal corner; avatar emoji
-   dropped. **Shared image now matches the live modal:** crop fixed (the clone inherited `bottom:0` →
-   viewport-tall canvas), particle frame composited in, and sizing props are no longer pixel-frozen so the
-   export reflows instead of truncating when the rasterizer's fonts drift (Android).
-1. **Score card — bring it up to the title-ladder shine.** Reuse the earned-title tier language (gradient
-   text + glow + halo, ~Archmage-or-better richness); on-screen may animate, the **shared PNG bakes the
-   gradient/glow in** (see the shine/PNG/share spec kept in Later). *The mascot-driven art refresh stays
-   gated (Later).* (**Double-paste — ✅ FIXED 2026-07-02:** sharing now opens a kit share menu — Share… /
-   Copy image / Download with preview, same on all platforms; our Copy writes a single PNG clipboard
-   flavor. The old doubling was the OS share sheet's multi-flavor Copy × Discord pasting each flavor.)
-2. **Translations / i18n — analysis + estimate (~2 days).** Non-English kids struggle with English game
+0. **Review fix sessions — `~/komyo-sessions-plan.md`** (added 2026-07-02). The full-repo review
+   (`~/komyo-review-2026-07.md`) produced 9 batched work sessions: P0/P1 bugfixes (asteroids+ reset
+   wipes Classic's bests, dead goodRuns challenges, 5 games frame-rate-dependent on 120 Hz, Discord
+   auto-post consent gate), framework hardening (kit absorption + CLAUDE.md refresh + shared test
+   harness), cleanup, and a final verification pass. Kickoff per session: *"get
+   ~/komyo-sessions-plan.md, start session N"*. **Sessions 3/5/6 gate #2 (the skill)**; sessions
+   1/2/7 gate a wider rollout; the rest are anytime.
+1. **Translations / i18n — analysis + estimate (~2 days).** Non-English kids struggle with English game
    descriptions + UI, so multi-language support is a real reach lever. **Scope it before building:** target
    languages (a first few — PL + big EU/global?), architecture for a **no-build static site** (per-language
    JSON dictionaries loaded client-side + a kit `t(key)` helper + `navigator.language` detect + a language
@@ -54,28 +62,32 @@ by lifetime points, full-width profile box with escalating shine tier 0→8, use
    `games.js`, in-game menu labels + hints inlined in each game, challenges, FAQ / About / privacy). Also:
    kid-friendly wording, SEO (`hreflang` + translated `<title>`/meta/OG per language), a GA4 language read,
    RTL if we ever add Arabic/Hebrew. **Output:** decision on languages + a concrete implementation plan +
-   **effort estimate** → routes #3 vs #7.
-3. **Translations / i18n — implement IF the spike says it's easy.** If the extraction + `t()` layer turns
-   out small, ship it here; **if it's a big surface, it drops to Later (#7).**
-4. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an
-   on-framework MVP in a 20–30 min session (spec under Catalogue / kit). Big accelerator for #5.
-5. **Build games** — toward the content bar; each via the dev-process gate (design+mock → POC → MVP →
+   **effort estimate** → routes #2 vs #6.
+2. **Translations / i18n — implement IF the spike says it's easy.** If the extraction + `t()` layer turns
+   out small, ship it here; **if it's a big surface, it drops to Later (#6).**
+3. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an
+   on-framework MVP in a 20–30 min session (spec under Catalogue / kit). Big accelerator for #4.
+   **Gated on plan sessions 3/5/6** (dt-loop, shared test harness, kit absorption + CLAUDE.md refresh) —
+   built earlier it would faithfully reproduce the review's bug classes.
+4. **Build games** — toward the content bar; each via the dev-process gate (design+mock → POC → MVP →
    iterate). **Bias low-tuning genres** (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower
    defense, roguelite shooters — they ate many tuning cycles). See `komyo-avoid-balance-heavy-genres`.
-6. **Staged rollout — friends / family** *(already slowly happening, ongoing)* → let them share further.
+   Fold in the review's flagship-vs-breadth take: slot **one original-mechanic, shareable game** into
+   the queue alongside the genre remakes (see the `komyo-market-expansion-discussion` note).
+5. **Staged rollout — friends / family** *(already slowly happening, ongoing)* → let them share further.
 
 ### Later
 
-7. **Translations / i18n — implement (if the spike said it's *not* easy).** Wire the `t()` layer into the
+6. **Translations / i18n — implement (if the spike said it's *not* easy).** Wire the `t()` layer into the
    kit, extract + translate strings, language picker + persistence, `hreflang`/meta per language. The big-
-   surface branch of #2/#3 — sequence once the spike sets the language list + plan.
+   surface branch of #1/#2 — sequence once the spike sets the language list + plan.
 - **Infra:** staging env (`staging.komyo.online`) **+ consider a Cloudflare CDN in front of GH Pages**
   (bandwidth headroom past ~100 GB/mo + the escape hatch we discussed). Staging must isolate side effects:
   `noindex` + robots disallow, **no prod GA4**, **no prod Discord webhook**, **no real Kit signups**. DNS:
   `staging` CNAME → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
-- **Score card — mascot art refresh** *(gated on the real mascot; the shine + double-paste fix ship in
-  Next #1)* — refresh `buildScoreCard`/`buildProfileCard` art around the mascot. Shine/PNG/share spec that
-  #1 reuses: on-screen card can animate (glints/particles, like the titles); the **shared** card must be a
+- **Score card — mascot art refresh** *(gated on the real mascot; the shine + double-paste fix shipped
+  2026-07-02 — see Done)* — refresh `buildScoreCard`/`buildProfileCard` art around the mascot.
+  Shine/PNG/share spec the shipped card reuses: on-screen card can animate (glints/particles, like the titles); the **shared** card must be a
   **static PNG** (animation can't survive an image; a GIF/MP4 is too heavy + unsupported by share targets),
   so bake the glow/gradient/halo into the still (particles won't serialize into the DOM-snapshot + Safari
   taints → drawn-card fallback; that's fine — gradient + glow reach the bar). **Sharing = image-first, text
