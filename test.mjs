@@ -93,7 +93,7 @@ function testCatalogue() {
       const id = C.daily[((day % len) + len) % len], goal = C.goals[id];
       if (goal && goal.scope === 'cross') {
         const slugs = GAMES.filter(x => !x.soon).slice(0, 5).map(x => x.slug);
-        g.store['gamekit_played_' + dStr] = JSON.stringify({ slugs, totalScore: 1e9, count: 99 });
+        g.store['gamekit_played_' + dStr] = JSON.stringify({ slugs, totalScore: 1e9, count: 99, goodRuns: 99 });
       } else if (goal && goal.scope === 'random') {
         const playable = GAMES.filter(x => x && x.slug && !x.soon).map(x => x.slug);
         const slug = C.randomSlug(day, playable); // today's deterministic pick
@@ -105,6 +105,24 @@ function testCatalogue() {
       g.win.__renderChallenges();
       let hist = []; try { hist = JSON.parse(g.store['gamekit_history'] || '[]'); } catch (e) {}
       ok(hist.some(r => r && r.id === id), 'completing the daily challenge records it in history (back-fill, goal=' + id + ')');
+    }
+  }
+
+  // goodRuns unification: the catalogue awards a "good runs" daily via the kit's evaluator
+  // (the old duplicate catalogue evaluator had no goodRuns metric, so these could never complete)
+  {
+    const K = g.win.gamekit, C = g.win.CHALLENGES;
+    if (K && C && C.goals && C.goals.good3) {
+      const dStr = K.utcDateStr(), dailyBak = C.daily;
+      C.daily = ['good3']; // force today's daily to the goodRuns goal
+      g.store['gamekit_played_' + dStr] = JSON.stringify({ slugs: ['snake'], totalScore: 500, count: 3, goodRuns: 3 });
+      delete g.store['gamekit_done']; delete g.store['gamekit_history'];
+      g.win.__renderChallenges();
+      let done = {}; try { done = JSON.parse(g.store['gamekit_done'] || '{}'); } catch (e) {}
+      ok((dStr + '#good3') in done, 'a goodRuns daily completes + awards points on the catalogue (kit evaluator)');
+      let hist = []; try { hist = JSON.parse(g.store['gamekit_history'] || '[]'); } catch (e) {}
+      ok(hist.some(r => r && r.id === 'good3'), 'the goodRuns completion lands in history');
+      C.daily = dailyBak;
     }
   }
 
@@ -373,6 +391,13 @@ function testKit() {
   ok(endErr === null, 'end-screen menu builds headless (share row + record): ' + endErr);
   const er = F.lastResult('asteroids');
   ok(er && er.score === 1234 && er.stats.wave === 7, 'end-screen menu records the result via recordResult');
+  // record idempotency: rebuilding the same end screen (no new run) must not double-count
+  const cnt0 = F.playedToday().count;
+  F.menu.show({ kind: 'end', title: 'Game Over', record: { slug: 'asteroids', mode: 'classic', score: 1234, stats: { wave: 7 } }, actions: [] });
+  ok(F.playedToday().count === cnt0, 're-shown end menu (same run) does not record again');
+  F.menu.hide(); // a new run starts (game dismisses the menu)
+  F.menu.show({ kind: 'end', title: 'Game Over', record: { slug: 'asteroids', mode: 'classic', score: 999 }, actions: [] });
+  ok(F.playedToday().count === cnt0 + 1, 'after menu.hide (new run) the next end menu records once');
   F.menu.hide();
   // confirm dialog back-compat + new args are headless-safe
   let cfErr = null;
@@ -388,6 +413,21 @@ function testKit() {
   ok(F.activeChallenge('other') === false, 'activeChallenge false for a game with no active challenge');
   let chpErr = null; try { F.challengesPanel({ slug: 'testgame' }); } catch (e) { chpErr = e.message; }
   ok(chpErr === null && typeof F.challengesPanel === 'function', 'challenges panel builds headless: ' + chpErr);
+  // challengeEval — the ONE evaluator (catalogue routes through it): goodRuns day/week + random picks
+  ok(typeof F.challengeEval === 'function', 'kit exposes challengeEval');
+  const gr0 = F.challengeEval({ title: 'g', scope: 'cross', range: 'day', metric: 'goodRuns', target: 2 }, {});
+  ok(gr0 && gr0.done === false, 'challengeEval: goodRuns daily incomplete before par-clearing runs');
+  F.recordResult('snake', { mode: 'classic', score: 150 });   // ≥ snake's good-run bar (100)
+  F.recordResult('breakout', { score: 600 });                 // ≥ breakout's bar (500)
+  const gr1 = F.challengeEval({ title: 'g', scope: 'cross', range: 'day', metric: 'goodRuns', target: 2 }, {});
+  ok(gr1 && gr1.val === 2 && gr1.done === true, 'challengeEval: two par-clearing runs complete a goodRuns daily (got ' + (gr1 && gr1.val) + ')');
+  const grw = F.challengeEval({ title: 'g', scope: 'cross', range: 'week', metric: 'goodRuns', target: 2 }, {});
+  ok(grw && grw.done === true, 'challengeEval: weekly goodRuns aggregates the week');
+  sandbox.window.CHALLENGES.randomSlug = (idx, pl) => pl[0] || '';
+  const rnd = F.challengeEval({ scope: 'random', range: 'day', title: 'x' }, { playable: ['snake'], titles: { snake: 'Neon Snake' } });
+  ok(rnd && rnd.done === true && rnd.slug === 'snake' && rnd.title === 'Play Neon Snake today', 'challengeEval resolves a random pick (title + played)');
+  const rnd2 = F.challengeEval({ scope: 'random', range: 'day', title: 'Mystery pick' }, {});
+  ok(rnd2 && rnd2.done === false && rnd2.target === 1 && rnd2.title === 'Mystery pick', 'random goal without a playable list reports honestly (no false Done)');
   // ---- cards group + boolean toggle: state merges selection + toggles; dynamic best/mech are fns ----
   let played2 = null, cardErr = null, hc = null;
   try {

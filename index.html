@@ -913,10 +913,12 @@
     // picks that target a single game). Generic cross-game goals ("play 2 games") have no slug → never
     // light up a tile. Mirrors the pick() index math in the Challenges panel.
     const CH_WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000);
+    let chSlugsCache = null, chSlugsDay = -1; // memoized per UTC day (recomputed per tile otherwise)
     function activeChallengeSlugs() {
       const out = new Set(), C = window.CHALLENGES, K = window.gamekit;
       if (!C || !C.goals || !K || !K.utcDayNumber) return out;
       const day = K.utcDayNumber();
+      if (chSlugsCache && chSlugsDay === day) return chSlugsCache;
       const playable = (window.GAMES || []).filter(x => x && x.slug && !x.soon).map(x => x.slug);
       const at = (list, isWeek) => {
         if (!list || !list.length) return null;
@@ -928,6 +930,7 @@
         if (g.scope === 'random' && C.randomSlug) { const s = C.randomSlug(a.idx, playable); if (s) out.add(s); }
         else if (g.slug) out.add(g.slug);
       });
+      chSlugsCache = out; chSlugsDay = day;
       return out;
     }
     // badges stack (vertical, top-left). Auto NEW/UPDATED from dates (≤7 days) sit on top;
@@ -1780,46 +1783,10 @@
       (window.GAMES || []).forEach(g => { if (g && g.slug) { genreOf[g.slug] = (tagsOf(g)[0]) || ''; titleOf[g.slug] = g.title || g.slug; } });
       const PLAYABLE = (window.GAMES || []).filter(g => g && g.slug && !g.soon).map(g => g.slug); // for scope:'random' picks
       const WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000); // a Monday — week buckets
-      const dayNumOf = s => { const p = (String(s || '')).split('-'); return p.length < 3 ? K.utcDayNumber() : Math.floor(Date.UTC(+p[0], (+p[1]) - 1, +p[2]) / 86400000); };
       const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
-      // aggregate the per-day activity logs for the current UTC week (kit keeps ~8 days)
-      function weekAgg() {
-        const day = K.utcDayNumber(), start = WEEK_ANCHOR + Math.floor((day - WEEK_ANCHOR) / 7) * 7;
-        const slugs = new Set(); let totalScore = 0, count = 0;
-        for (let d = start; d <= day; d++) {
-          let log = null; try { log = JSON.parse(lsGet('gamekit_played_' + K.utcDateStr(d * 86400000)) || 'null'); } catch (e) {}
-          if (log) { (log.slugs || []).forEach(s => slugs.add(s)); totalScore += log.totalScore || 0; count += log.count || 0; }
-        }
-        return { slugs: [...slugs], totalScore, count };
-      }
-      const distinctGenres = slugs => { const s = new Set(); slugs.forEach(x => { if (genreOf[x]) s.add(genreOf[x]); }); return s.size; };
-      const crossVal = (m, a) => m === 'distinctGames' ? a.slugs.length : m === 'totalGames' ? a.count : m === 'totalScore' ? a.totalScore : m === 'distinctGenres' ? distinctGenres(a.slugs) : 0;
-      const dayLog = dStr => { try { return JSON.parse(lsGet('gamekit_played_' + dStr) || 'null') || { slugs: [], totalScore: 0, count: 0 }; } catch (e) { return { slugs: [], totalScore: 0, count: 0 }; } };
-      const bestFor = (slug, dStr) => { try { return (JSON.parse(lsGet('gamekit_daybest_' + dStr) || 'null') || {})[slug] || null; } catch (e) { return null; } };
-      // evaluate a goal for a given UTC day (defaults to today). Single-game goals read that day's
-      // BEST result; cross goals read that day's activity log (weekly cross → the current week).
-      function evalGoal(goal, dStr) {
-        if (!goal) return null;
-        dStr = dStr || K.utcDateStr();
-        let val = 0;
-        if (goal.scope === 'random') {
-          const isWeek = goal.range === 'week';
-          const dn = dayNumOf(dStr);
-          const idx = isWeek ? Math.floor((dn - WEEK_ANCHOR) / 7) : dn;
-          const slug = (C && C.randomSlug) ? C.randomSlug(idx, PLAYABLE) : '';
-          const played = isWeek ? (weekAgg().slugs.indexOf(slug) >= 0) : ((dayLog(dStr).slugs || []).indexOf(slug) >= 0);
-          const title = 'Play ' + (titleOf[slug] || 'a game') + (isWeek ? ' this week' : ' today');
-          return { val: played ? 1 : 0, target: 1, done: played, pct: played ? 1 : 0, title, slug };
-        }
-        if (goal.scope === 'cross') {
-          if (goal.range === 'week') val = crossVal(goal.metric, weekAgg());
-          else { const lg = dayLog(dStr); val = crossVal(goal.metric, { slugs: lg.slugs || [], totalScore: lg.totalScore || 0, count: lg.count || 0 }); }
-        } else {
-          const r = bestFor(goal.slug, dStr);
-          if (r) val = goal.metric === 'score' ? (r.score || 0) : goal.metric === 'time' ? (r.time || 0) : ((r.stats && r.stats[goal.metric]) || 0);
-        }
-        return { val, target: goal.target, done: val >= goal.target, pct: Math.max(0, Math.min(1, val / goal.target)), title: goal.title, slug: goal.slug };
-      }
+      // goal evaluation = the kit's single evaluator (game-kit chEval); the catalogue only binds its
+      // context (genres + playable/titles for scope:'random'). dStr = a past UTC day for the back-fill.
+      const evalGoal = (g, dStr) => K.challengeEval ? K.challengeEval(g, { genres: genreOf, day: dStr, playable: PLAYABLE, titles: titleOf }) : null;
       function pick(list, bucket) {
         if (!list || !list.length) return null;
         const day = K.utcDayNumber();
@@ -1829,7 +1796,9 @@
       }
       function card(g, pts) {
         if (!g) return '';
-        const e = evalGoal(g), pct = Math.round(e.pct * 100);
+        const e = evalGoal(g);
+        if (!e) return '';
+        const pct = Math.round(e.pct * 100);
         const play = e.slug ? '<a class="cplay" href="games/' + e.slug + '/">▶ Play</a>' : '';
         const meta = e.done ? '<span class="cdone">✓ Done</span>' : ('<span>' + e.val + ' / ' + e.target + '</span>' + play);
         const badge = pts ? '<span class="cpts">+' + pts + ' pt' + (pts === 1 ? '' : 's') + '</span>' : '';
