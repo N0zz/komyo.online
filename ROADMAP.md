@@ -389,6 +389,13 @@ Filter for all of these: **does it keep the no-server / no-ads / no-accounts ide
   - **Titles** — unlock cosmetic titles at point thresholds, shown on the profile page (cheap, client-only).
   - **Collectibles shop** — buy **mascot skins** with points; the mascot is the logo + shows on score cards,
     so a skin is visible and worth chasing (client-only if purchases live on-device).
+  - **Per-game cosmetics shop** *(added 2026-07-03)* — spend challenge points (or another global currency)
+    on in-game cosmetics: custom cursor skins (site-wide), ship color in Asteroids, ball skins in Brick
+    Breaker, castle skins in Keep Defender, target skins in Range, food color in Neon Snake, etc. Cheap
+    per-item (client-only, pure cosmetics), and it makes points matter inside every game, not just on the
+    profile. **Open decision:** migrate Meadow Flyer's birds from its own in-game currency (banked points)
+    onto this global challenge/points currency — one economy instead of two, but it changes flappy's own
+    earn-to-unlock loop; decide before the shop ships.
   - **Discord roles/titles** — spend points for a Discord role — a real status carrot. Needs a Discord bot +
     OAuth (link account → grant role), i.e. a small backend.
   - **The hard part = anti-cheat.** Points on-device are trivially forged (export → bump → import), so any
