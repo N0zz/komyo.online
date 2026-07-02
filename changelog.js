@@ -4,6 +4,13 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-02', title: 'Titles & better sharing 👑', items: [
+    'New: earn a title with challenge points — from Goblin of the Gutter to Emperor of Eternity. Your profile shows it off with an ever-shinier glow (and sparkles at the higher ranks).',
+    'Improved: the profile page got a cleaner look — your title, name, challenge points, good runs and play stats all up top.',
+    'New: sharing a score card or your profile now opens a small menu — send it straight to an app, copy the image, or download it.',
+    'Fix: the shared profile image is now cropped to its content (no more half-empty picture) and includes the title sparkles.',
+    'Fix: copying a shared image no longer pastes twice in Discord and other chats.',
+  ] },
   { date: '2026-07-01', title: 'Roll the dice 🎲', items: [
     'New: a 🎲 Random button on the home page picks a game for you — it leans toward ones you haven’t tried yet, an easy way to discover something new.',
     'New: a random-pick daily & weekly challenge — “play today’s pick” — nudging you toward games you might have missed.',
