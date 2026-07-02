@@ -409,6 +409,17 @@ Filter for all of these: **does it keep the no-server / no-ads / no-accounts ide
     device-only** model. So: titles + mascot-skin shop are doable client-side now; Discord-role spending and
     real anti-cheat are a separate, backend-gated project — decide if the status payoff justifies leaving the
     serverless stance.
+- **Duel / tournament mode** *(idea, added 2026-07-03 — feasibility TBD)* — join a P2P lobby with
+  friends, pick ~3–5 games+modes between players/teams, everyone plays them for highest score; best
+  score takes the game, most games won takes the match. To consider honestly before building:
+  (a) **"no servers" is only half-true for P2P** — WebRTC data channels are serverless for the match
+  itself, but pairing needs a signaling channel (manual room-code/copy-paste blobs are possible but
+  clunky; a tiny relay is the usual answer — collides with the no-backend stance, see Parked);
+  (b) **cheating is trivial** — scores are client-reported, so a duel is honor-system only (fine for
+  friends, meaningless for strangers — same anti-cheat wall as the points economy); (c) a cheap
+  near-term substitute: a **challenge-link mode** ("beat my 4,320 in Asteroids — same seed") that
+  shares a target via URL params, async instead of live, zero infra. Decide if the live-lobby version
+  is worth it at all given (a)+(b).
 - **More share targets + story-format card** — add WhatsApp / Telegram / Bluesky / Mastodon / Threads
   intents (just URL schemes) + a **vertical "story" score-card** for IG/TikTok Stories. Cheap; leverages
   the existing share row.
