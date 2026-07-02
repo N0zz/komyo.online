@@ -1508,16 +1508,8 @@
     ctx.globalAlpha = 1;
   }
 
-  function loop() {
-    requestAnimationFrame(loop);
-    if (window.gamekit && window.gamekit.isPaused && window.gamekit.isPaused()) return; // kit pause
-    try {
-      if (state === 'wave' || state === 'build') {
-        update();
-        if (gameSpeed === 2) update();
-      }
-      render();
-    } catch(e) { if (typeof console !== 'undefined') console.error(e); }
+  function step() {
+    if (state === 'wave' || state === 'build') update();
   }
 
   // ---- Input ----
@@ -1707,7 +1699,8 @@
     towerInfo(i) { const t = towers[i]; return t ? placedTowerStatsHtml(t) : null; },
   };
 
-  resize(); loadBest(); applyMap(mapIndex); loadDiff(); setDiff(diffLevel); updateHud(); loop();
+  resize(); loadBest(); applyMap(mapIndex); loadDiff(); setDiff(diffLevel); updateHud();
+  KIT.loop(step, render, { mult: () => gameSpeed });
   // deep-link ?map= / ?diff= → preselect before opening the menu
   { const P = KIT && KIT.param; const m = P && parseInt(P('map'), 10); if (m >= 0 && m < MAPS.length) { applyMap(m); loadBest(); }
     const d = P && P('diff'); if (d && DIFFICULTY[d]) setDiff(d); }
