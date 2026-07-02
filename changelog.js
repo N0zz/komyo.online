@@ -10,6 +10,7 @@ window.CHANGELOG = [
     'New: Settings now shows the site version with an "Update now" button that refreshes the site and every game at once — and version labels everywhere show when the build was deployed.',
     'New: earn a title with challenge points — from Goblin of the Gutter to Emperor of Eternity. Your profile shows it off with an ever-shinier glow (and sparkles at the higher ranks).',
     'New: tap the little (i) next to your title to see the whole ladder — every rank, its shine, and the points it takes.',
+    'New: in the Challenges panel, tap your points total to see what points are for — the titles ladder opens right there (more rewards planned).',
     'Improved: the profile page got a cleaner look — your title, name, challenge points, good runs and play stats all up top.',
     'New: score cards got a full redesign — every game shares a flashy card in its own colors, with a glowing frame, sparkles and your name. Speedruns show your time.',
     'New: the Discord games-log now posts the score card itself, with the play link right under it.',
