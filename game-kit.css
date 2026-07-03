@@ -154,8 +154,9 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 .gamekit-menu .gkm-line { margin: 2px 0; font-size: 12px; opacity: .7; }
 .gamekit-menu .gkm-goodrun { margin: 6px 0 2px; font: 700 12px/1.3 var(--gkm-font, ui-monospace, monospace); letter-spacing: .5px; color: var(--gkm-accent, #9fe8ff); text-shadow: var(--gkm-glow, none); }
 .gamekit-menu .gkm-share-host { margin-top: 16px; }
-/* a menu with mode cards gets a wider box + a slightly larger start title */
-.gamekit-menu.gkm-wide .gkm-box { width: min(640px, 100%); }
+/* a menu with mode cards / a shop / a grid gets a wider box (so the Drydock + level-up picker
+   aren't a cramped 2-column column on desktop) + a slightly larger start title */
+.gamekit-menu.gkm-wide .gkm-box, .gamekit-menu.gkm-split .gkm-box { width: min(640px, 100%); }
 .gamekit-menu-start .gkm-title { font-size: 30px; letter-spacing: 5px; }
 
 /* landscape phones: split menu — the big list (mode cards / thumbnail grid / shop) scrolls on the
@@ -188,9 +189,11 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
   .gamekit-menu.gkm-split .gkm-card-nm { font-size: 13px; }
   .gamekit-menu.gkm-split .gkm-card-body { gap: 5px; }
   .gamekit-menu.gkm-split .gkm-card-desc { display: none; }
-  /* shop grids fill the pane with NO scrolling: 4-across (3-across for cols:3), rows share height */
-  .gamekit-menu.gkm-split .gkm-shop { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; margin: 0; height: 100%; align-content: stretch; }
-  .gamekit-menu.gkm-split .gkm-shop-c3 { grid-template-columns: repeat(3, 1fr); }
+  /* Drydock shop (default, many items): natural rows in the LEFT pane, which scrolls when they
+     overflow — the old height:100%/1fr rows crushed a long upgrade list into unreadable slivers */
+  .gamekit-menu.gkm-split .gkm-shop { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); grid-auto-rows: max-content; margin: 0; }
+  /* the level-up picker (cols:3, only a few choices) still fills the pane, no scroll */
+  .gamekit-menu.gkm-split .gkm-shop-c3 { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; height: 100%; align-content: stretch; }
   .gamekit-menu.gkm-split .gkm-shop-c3 .gkm-shop-desc { display: none; } /* rail focdesc carries it */
   /* thumbnail grid auto-fits the pane width (more flyers → more columns, not more scrolling) */
   .gamekit-menu.gkm-split .gkm-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); margin: 0; }
@@ -296,7 +299,7 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 /* ---- action grid (style:'shop') — Asteroids+ level-up picker + between-wave shop ---- */
 .gamekit-menu .gkm-banner { margin: 2px 0 4px; font: 800 22px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 2px;
   color: var(--gkm-new, #ffd166); text-shadow: var(--gkm-glow, none); }
-.gamekit-menu .gkm-shop { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 6px 0 12px; text-align: left; }
+.gamekit-menu .gkm-shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 8px; margin: 6px 0 12px; text-align: left; }
 .gamekit-menu .gkm-shopcard { position: relative; display: flex; flex-direction: column; gap: 5px; cursor: pointer; padding: 11px 13px; border-radius: 12px;
   background: rgba(255, 255, 255, 0.05); border: 1.5px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); transition: border-color .14s, box-shadow .14s, transform .1s; }
 .gamekit-menu .gkm-shopcard:hover { border-color: var(--gkm-accent, #9fe8ff); transform: translateY(-1px); }
@@ -327,6 +330,7 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
   .gamekit-menu .gkm-buybtn { display: block; }
 }
 @media (max-width: 560px) { .gamekit-menu .gkm-shop { grid-template-columns: 1fr 1fr; } .gamekit-menu .gkm-shop-c3 { grid-template-columns: 1fr; } }
+@media (max-width: 380px) { .gamekit-menu .gkm-shop { grid-template-columns: 1fr; } }
 
 /* ---- map-picker (style:'popup') — Keep Defender ---- */
 .gamekit-menu .gkm-picker { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer;
