@@ -10,24 +10,26 @@
 //     (never "unplayed", which would be impossible for a player who's tried everything).
 window.CHALLENGES = {
   goals: {
-    // ---- single game (no mode required → any mode counts) ----
-    'snake-20':   { slug: 'snake',         title: 'Score 100 in Neon Snake',       metric: 'score', target: 100 },
-    'snake-50':   { slug: 'snake',         title: 'Score 250 in Neon Snake',       metric: 'score', target: 250 },
-    'bub-1k':     { slug: 'bubbles',       title: 'Score 1,000 in Bubble Pop',     metric: 'score', target: 1000 },
-    'bub-3k':     { slug: 'bubbles',       title: 'Score 3,000 in Bubble Pop',     metric: 'score', target: 3000 },
-    'brk-500':    { slug: 'breakout',      title: 'Score 500 in Brick Breaker',    metric: 'score', target: 500 },
-    'brk-1500':   { slug: 'breakout',      title: 'Score 1,500 in Brick Breaker',  metric: 'score', target: 1500 },
-    'stk-10':     { slug: 'stacker',       title: 'Stack 12 high in Stack',        metric: 'score', target: 12 },
-    'stk-20':     { slug: 'stacker',       title: 'Stack 25 high in Stack',        metric: 'score', target: 25 },
-    'fly-5':      { slug: 'flappy',        title: 'Pass 8 in Meadow Flyer',        metric: 'score', target: 8 },
-    'fly-15':     { slug: 'flappy',        title: 'Pass 20 in Meadow Flyer',       metric: 'score', target: 20 },
-    'aim-250':    { slug: 'aim-trainer',   title: 'Score 250 in Range',            metric: 'score', target: 250 },
-    'aim-600':    { slug: 'aim-trainer',   title: 'Score 600 in Range',            metric: 'score', target: 600 },
+    // ---- single game (two tiers per game — an "easy day" + a "hard day" in the rotation; any
+    // mode counts. Retuned 2026-07-03 from the plans/cosmetics-shop.html review) ----
+    'snake-1':    { slug: 'snake',         title: 'Score 150 in Neon Snake',       metric: 'score', target: 150 },
+    'snake-2':    { slug: 'snake',         title: 'Score 300 in Neon Snake',       metric: 'score', target: 300 },
+    'bub-1':      { slug: 'bubbles',       title: 'Score 3,000 in Bubble Pop',     metric: 'score', target: 3000 },
+    'bub-2':      { slug: 'bubbles',       title: 'Score 5,000 in Bubble Pop',     metric: 'score', target: 5000 },
+    'brk-1':      { slug: 'breakout',      title: 'Score 500 in Brick Breaker',    metric: 'score', target: 500 },
+    'brk-2':      { slug: 'breakout',      title: 'Score 1,500 in Brick Breaker',  metric: 'score', target: 1500 },
+    'stk-1':      { slug: 'stacker',       title: 'Stack 25 high in Stack',        metric: 'score', target: 25 },
+    'stk-2':      { slug: 'stacker',       title: 'Stack 50 high in Stack',        metric: 'score', target: 50 },
+    'fly-1':      { slug: 'flappy',        title: 'Score 25 in Meadow Flyer',      metric: 'score', target: 25 },
+    'fly-2':      { slug: 'flappy',        title: 'Score 50 in Meadow Flyer',      metric: 'score', target: 50 },
+    'aim-1':      { slug: 'aim-trainer',   title: 'Score 250 in Range',            metric: 'score', target: 250 },
+    'aim-2':      { slug: 'aim-trainer',   title: 'Score 600 in Range',            metric: 'score', target: 600 },
     'td-wave5':   { slug: 'tower-defense', title: 'Reach wave 5 in Keep Defender', metric: 'wave',  target: 5 },
-    'td-700':     { slug: 'tower-defense', title: 'Score 700 in Keep Defender',    metric: 'score', target: 700 },
-    'ast-4k':     { slug: 'asteroids',      title: 'Score 4,000 in Asteroids',      metric: 'score', target: 4000 },
-    'astp-50k':   { slug: 'asteroids-plus', title: 'Score 50,000 in Asteroids+',    metric: 'score', target: 50000 },
-    'astp-150k':  { slug: 'asteroids-plus', title: 'Score 150,000 in Asteroids+',   metric: 'score', target: 150000 },
+    'td-wave10':  { slug: 'tower-defense', title: 'Reach wave 10 in Keep Defender', metric: 'wave', target: 10 },
+    'ast-1':      { slug: 'asteroids',      title: 'Score 4,000 in Asteroids',      metric: 'score', target: 4000 },
+    'ast-2':      { slug: 'asteroids',      title: 'Score 8,000 in Asteroids',      metric: 'score', target: 8000 },
+    'astp-1':     { slug: 'asteroids-plus', title: 'Score 15,000 in Asteroids+',    metric: 'score', target: 15000 },
+    'astp-2':     { slug: 'asteroids-plus', title: 'Score 30,000 in Asteroids+',    metric: 'score', target: 30000 },
     // ---- cross-game / meta (today) ----
     'play2':      { title: 'Play 2 different games today',  scope: 'cross', range: 'day', metric: 'distinctGames',  target: 2 },
     'play3':      { title: 'Play 3 different games today',  scope: 'cross', range: 'day', metric: 'distinctGames',  target: 3 },
@@ -42,22 +44,26 @@ window.CHALLENGES = {
     'wk-genres3':   { title: 'Play 3 different genres this week', scope: 'cross', range: 'week', metric: 'distinctGenres', target: 3 },
     'wk-good10':    { title: 'Have 10 good runs this week',       scope: 'cross', range: 'week', metric: 'goodRuns',       target: 10 },
   },
-  // curated daily rotation — mixes single-game + cross-game and avoids repeating the same game back-to-back
+  // daily POOL — the kit picks a SHUFFLED (hashed, same-for-everyone) entry per day, so list
+  // order carries no meaning and easy/hard days interleave naturally (no back-to-back repeat
+  // of the same goal — the kit nudges off yesterday's pick).
   daily: [
-    'snake-20', 'play2', 'bub-1k', 'td-wave5', 'fly-5', 'good3', 'aim-250', 'brk-500',
-    'play3', 'stk-10', 'astp-50k', 'genres2', 'rand-daily', 'snake-50', 'bub-3k', 'aim-600',
-    'brk-1500', 'fly-15', 'stk-20', 'td-700', 'astp-150k', 'ast-4k',
+    'snake-1', 'play2', 'bub-1', 'td-wave5', 'fly-1', 'good3', 'aim-1', 'brk-1',
+    'play3', 'stk-1', 'astp-1', 'genres2', 'rand-daily', 'snake-2', 'bub-2', 'aim-2',
+    'brk-2', 'fly-2', 'stk-2', 'td-wave10', 'astp-2', 'ast-1', 'ast-2',
   ],
   weekly: ['wk-distinct5', 'wk-play12', 'rand-weekly', 'wk-genres3', 'wk-good10'],
 };
 
 // "Good run" bar per game — a run scoring at least this counts toward the goodRuns challenge
 // metric (kit increments it when a result is recorded; the challenge panel hint reads it too).
-// EVERY live game needs an entry — a missing slug silently never earns good runs. Targets are
-// provisional, tune with the goal targets above.
+// EVERY live game needs an entry — a missing slug silently never earns good runs.
+// RULE (2026-07-03): the bar = the game's HARD daily target. Keep them in lockstep when
+// retuning. tower-defense is the exception (its hard daily is wave-based) — its bar is the
+// ESTIMATED wave-10 score on medium; confirm in playtest.
 window.CHALLENGES.goodRun = {
-  snake: 100, bubbles: 1000, breakout: 500, stacker: 12, flappy: 8,
-  'aim-trainer': 250, 'tower-defense': 300, asteroids: 2000, 'asteroids-plus': 50000,
+  snake: 300, bubbles: 5000, breakout: 1500, stacker: 50, flappy: 50,
+  'aim-trainer': 600, 'tower-defense': 2000, asteroids: 8000, 'asteroids-plus': 30000,
 };
 
 // Deterministic, same-for-everyone pick for scope:'random' goals — chosen from ALL playable

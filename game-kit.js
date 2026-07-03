@@ -552,10 +552,20 @@
   // Reads window.CHALLENGES (loaded via challenges.js) + the kit's own per-day activity/best storage.
   var CH_WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000); // a Monday — matches the catalogue
   function chGoals() { return (typeof window !== 'undefined' && window.CHALLENGES) ? window.CHALLENGES : null; }
+  // integer hash (Wang) — turns the period index into a same-for-everyone "random" pick, so
+  // consecutive days jump around the pool instead of walking it in order (no easy/hard clusters)
+  function chHash(n) {
+    n = (n ^ 61) ^ (n >>> 16); n = (n + (n << 3)) | 0; n = n ^ (n >>> 4);
+    n = Math.imul(n, 0x27d4eb2d); n = n ^ (n >>> 15); return n >>> 0;
+  }
   function chPick(list, isWeek) {
     if (!list || !list.length) return null;
     var day = utcDayNumber(), idx = isWeek ? Math.floor((day - CH_WEEK_ANCHOR) / 7) : day;
-    return list[((idx % list.length) + list.length) % list.length];
+    var n = list.length;
+    if (n < 2) return list[0];
+    var i = chHash(idx) % n;
+    if (i === chHash(idx - 1) % n) i = (i + 1) % n; // never the same goal two periods in a row
+    return list[i];
   }
   // today's daily + this week's weekly pick (same math as the catalogue)
   function chToday() {
