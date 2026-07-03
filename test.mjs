@@ -404,11 +404,12 @@ async function testKit() {
         setCtl(url) { s.sandbox.navigator.serviceWorker.controller = url ? { scriptURL: url } : null; },
         fire() { (swL.controllerchange || []).forEach(fn => fn()); } };
     };
-    // launch fast-path: a new build takes control before the player touches anything → silent reload
+    // a new build NEVER auto-reloads the visible page — it only lights the badge (no silent launch
+    // reload; that raced the tap-to-play splash and forced a second tap)
     const a = mk();
     a.F2.pwa();
-    a.setCtl('https://k/sw.js'); a.fire(); // same worker URL = genuinely new build
-    ok(a.reloads() === 1, 'pre-interaction new build → one silent reload (launch fast-path)');
+    a.setCtl('https://k/sw.js'); a.fire(); // same worker URL = genuinely new build, page in view
+    ok(a.reloads() === 0 && a.F2.updates.state().available === true, 'new build (page visible) → badge only, no auto-reload');
     // scope hand-over is not an update; an in-use page only gets the badge
     const b = mk();
     b.F2.pwa();
@@ -556,7 +557,7 @@ function testKitChrome() {
   // SW update: manual button when visible (no surprise reload that re-triggered the splash)
   ok(css.includes('.gamekit-more-panel') && css.includes('.gamekit-au-morebtn'), '☰ menu panel styles present');
   ok(js.includes('ctl.scriptURL !== prevCtl.scriptURL'), 'update vs scope-hand-over told apart by worker script URL (not timing)');
-  ok(js.includes('if (!interacted) { doReload(); return; }') && !js.includes('showUpdateButton'), 'new build → silent reload only pre-interaction; in-use pages get the ☰ badge, never a reload');
+  ok(!js.includes('if (!interacted)') && !js.includes('showUpdateButton'), 'new build never auto-reloads the visible page — it lights the ☰ badge (no launch fast-path reload)');
 }
 
 function testChallenges() {
