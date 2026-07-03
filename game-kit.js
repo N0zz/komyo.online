@@ -903,6 +903,9 @@
   // first, then favorite games, then most-played, then the rest); cells reuse the shop-cell
   // interaction (touch two-step select→buy, mouse hover+click, focused-desc line, gold buy
   // button). Owned cells EQUIP on click. The titles ladder renders read-only at the bottom.
+  // shopPanel(opts): the Cosmetics store modal. opts.game = scope to ONE game (+ site-wide cursors),
+  // header becomes "🎨 <Game> cosmetics"; opts.allGames = fn → an "All games →" link (opens the full
+  // store); opts.onTitles = fn → a "See titles" button under the collection line; opts.theme, opts.onClose.
   function shopPanel(opts) {
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body || !document.createElement) return;
@@ -910,6 +913,7 @@
     if (!items.length) return; // cosmetics.js not loaded here
     var C = cosReg(), gamesMeta = (C && C.games) || {}, setsMeta = (C && C.sets) || {};
     try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('feature_open', { feature: 'cosmetics' }); } catch (e) {}
+    var scopeGame = (opts.game != null) ? String(opts.game) : null; // game-scoped (in-game) vs full store
     // ---- game ordering: site-wide first, then favorites (catalogue stars), most-played, registry order ----
     var order = [], seen = {};
     items.forEach(function (it) { if (!seen[it.game]) { seen[it.game] = 1; order.push(it.game); } });
@@ -926,15 +930,34 @@
       if (pa !== pbn) return pbn - pa;                                        // then most-played
       return baseIdx[a] - baseIdx[b];
     });
+    // game-scoped: only this game + site-wide (cursors); full store: everything.
+    var shown = scopeGame != null ? order.filter(function (g) { return g === scopeGame || g === ''; }) : order.slice();
+
     var ov = document.createElement('div'); ov.className = 'gamekit-shoppanel';
     var box = mkEl('div', 'gksp-box'); ov.appendChild(box);
     if (opts.theme) applyMenuTheme(ov, opts.theme);
     var xb = mkEl('button', 'gksp-x', '&#x2715;'); try { xb.type = 'button'; xb.setAttribute('aria-label', 'Close'); } catch (e) {}
     box.appendChild(xb);
     var head = mkEl('div', 'gksp-head');
-    head.appendChild(mkEl('span', 'gksp-title', '🎨 Cosmetics'));
+    var scopeMeta = scopeGame != null ? (gamesMeta[scopeGame] || { title: scopeGame }) : null;
+    head.appendChild(mkEl('span', 'gksp-title', '🎨 ' + (scopeMeta ? (scopeMeta.title + ' cosmetics') : 'Cosmetics')));
     var balEl = mkEl('span', 'gksp-bal'); head.appendChild(balEl);
     box.appendChild(head);
+    // controls row: search + (full store) a game filter, or (scoped) an "All games →" link
+    var ctrls = mkEl('div', 'gksp-ctrls');
+    var search = mkEl('input', 'gksp-search'); try { search.type = 'search'; search.placeholder = '🔍 Search cosmetics…'; search.setAttribute('aria-label', 'Search cosmetics'); } catch (e) {}
+    ctrls.appendChild(search);
+    var gameSel = null, allGamesLink = null;
+    if (scopeGame == null) {
+      gameSel = mkEl('select', 'gksp-filter'); try { gameSel.setAttribute('aria-label', 'Filter by game'); } catch (e) {}
+      var optAll = mkEl('option', null, 'All games'); try { optAll.value = '__all'; } catch (e) {} gameSel.appendChild(optAll);
+      shown.forEach(function (g) { var m = gamesMeta[g] || { title: g || 'Site-wide' }; var o = mkEl('option', null, (m.icon ? m.icon + ' ' : '') + (m.title || g || 'Site-wide')); try { o.value = g; } catch (e) {} gameSel.appendChild(o); });
+      ctrls.appendChild(gameSel);
+    } else if (typeof opts.allGames === 'function') {
+      allGamesLink = mkEl('button', 'gksp-allgames', 'All games →'); try { allGamesLink.type = 'button'; } catch (e) {}
+      ctrls.appendChild(allGamesLink);
+    }
+    box.appendChild(ctrls);
     var barWrap = mkEl('div', 'gksp-barrow');
     var bar = mkEl('div', 'gksp-bar'); var barFill = mkEl('i'); bar.appendChild(barFill);
     var barTxt = mkEl('span', 'gksp-bartxt');
@@ -942,28 +965,38 @@
     box.appendChild(barWrap);
     var focdesc = mkEl('div', 'gksp-focdesc'); box.appendChild(focdesc);
     var scroll = mkEl('div', 'gksp-scroll'); box.appendChild(scroll);
+    // titles pointer (no ladder table here) — only when an opener is provided (catalogue)
+    if (typeof opts.onTitles === 'function') {
+      var tl = mkEl('div', 'gksp-titleline');
+      tl.appendChild(mkEl('span', null, '🏆 Titles unlock automatically as you earn trophies.'));
+      var tb = mkEl('button', 'gksp-titlebtn', 'See titles'); try { tb.type = 'button'; } catch (e) {}
+      tb.addEventListener('click', function () { try { opts.onTitles(); } catch (e) {} });
+      tl.appendChild(tb); box.appendChild(tl);
+    }
     var buyBtn = mkEl('button', 'gksp-buy'); try { buyBtn.type = 'button'; } catch (e) {}
     box.appendChild(buyBtn);
     var cells = [], focused = -1, gameProgEls = [];
     function fmtT(n) { return fmtScore(n | 0); }
     function syncHeader() {
       balEl.textContent = '🏆 ' + fmtT(cosBalance());
-      var pr = cosProgress();
+      var pr = scopeGame != null ? cosProgress(scopeGame) : cosProgress();
       var pct = Math.round(pr.pct * 100);
       try { barFill.style.width = pct + '%'; } catch (e) {}
       barTxt.textContent = pr.owned + ' / ' + pr.total + ' unlocked · ' + pct + '%';
       gameProgEls.forEach(function (fn) { try { fn(); } catch (e) {} });
     }
+    // focused item → the desc line + the BUY/EQUIP button. Buying NEVER happens on a plain cell click
+    // (no instant spend): a cell click only SELECTS; the gold button confirms the purchase.
     function syncFocus() {
       var f = cells[focused] || null;
       cells.forEach(function (c2, i) { if (c2.el.classList) c2.el.classList.toggle('gksp-focus', i === focused); });
       if (!f) { focdesc.innerHTML = ''; buyBtn.textContent = ''; buyBtn.disabled = true; try { buyBtn.style.visibility = 'hidden'; } catch (e) {} return; }
-      var it = f.item, ownedNow = cosOwned(it.id);
+      var it = f.item, ownedNow = cosOwned(it.id), isSel = cosSelected(it.set) === it.id;
       focdesc.innerHTML = '&#9656; <b>' + it.name + '</b> — ' + (it.desc || '') +
         (ownedNow ? '' : ' <span class="gksp-price">🏆 ' + fmtT(it.price) + '</span>');
-      var isSel = cosSelected(it.set) === it.id;
-      buyBtn.textContent = ownedNow ? (isSel ? '✓ EQUIPPED · ' + it.name : 'EQUIP ' + it.name) : ('BUY ' + it.name + ' · 🏆 ' + fmtT(it.price));
+      buyBtn.textContent = ownedNow ? (isSel ? '✓ EQUIPPED' : 'EQUIP ' + it.name) : ('BUY ' + it.name + ' · 🏆 ' + fmtT(it.price));
       buyBtn.disabled = ownedNow ? isSel : cosBalance() < (+it.price || 0);
+      if (buyBtn.classList) buyBtn.classList.toggle('gksp-buy-equip', ownedNow && !isSel);
       try { buyBtn.style.visibility = ''; } catch (e) {}
     }
     function syncCells() {
@@ -975,73 +1008,72 @@
           c2.el.classList.toggle('gksp-dim', !ownedNow && cosBalance() < (+it.price || 0));
         }
         c2.sub.innerHTML = ownedNow
-          ? (isSel ? '✓ ON' : (+it.price ? '✓ OWNED' : '✓ DEFAULT'))
+          ? (isSel ? '<span class="gksp-on">✓ On</span>' : (+it.price ? '✓ Owned' : '✓ Default'))
           : '<span class="gksp-price">🏆 ' + fmtT(it.price) + '</span>';
       });
       syncHeader(); syncFocus();
     }
-    function act(idx) { // buy a locked cell / equip an owned one
-      var f = cells[idx]; if (!f) return;
+    // buy the focused unowned item (via the BUY button), OR equip a focused owned one
+    function confirmFocused() {
+      var f = cells[focused]; if (!f) return;
       var it = f.item;
       if (cosOwned(it.id)) { cosSelect(it.set, it.id); syncCells(); return; }
       if (cosBuy(it.id)) { cosSelect(it.set, it.id); try { sound.play('levelup'); } catch (e) {} syncCells(); }
     }
-    order.forEach(function (game) {
-      var meta = gamesMeta[game] || { title: game || 'Site-wide', icon: '🎮' };
-      var gh = mkEl('div', 'gksp-game');
-      var gt = mkEl('span', 'gksp-gt', (meta.icon ? meta.icon + ' ' : '') + (meta.title || game).toUpperCase());
-      var gp = mkEl('span', 'gksp-gp');
-      gh.appendChild(gt); gh.appendChild(gp); gh.appendChild(mkEl('span', 'gksp-gline'));
-      if (meta.accent && gh.style && gh.style.setProperty) { try { gh.style.setProperty('--acc', meta.accent); } catch (e) {} }
-      scroll.appendChild(gh);
-      gameProgEls.push(function () { var p = cosProgress(game); gp.textContent = p.owned + '/' + p.total; });
-      var gameSets = [], seenSet = {};
-      items.forEach(function (it) { if (it.game === game && !seenSet[it.set]) { seenSet[it.set] = 1; gameSets.push(it.set); } });
-      gameSets.forEach(function (setId) {
-        var sm = setsMeta[setId] || {};
-        if (gameSets.length > 1 || sm.note) scroll.appendChild(mkEl('div', 'gksp-set', (sm.label || setId) + (sm.note ? ' <span class="gksp-note">· ' + sm.note + '</span>' : '')));
-        var grid = mkEl('div', 'gksp-grid');
-        items.forEach(function (it) {
-          if (it.set !== setId) return;
-          var cell = mkEl('div', 'gksp-cell');
-          var cv = mkEl('canvas', 'gksp-sw'); try { cv.width = 44; cv.height = 36; } catch (e) {}
-          if (it.painter) { try { drawPreview(cv, function (g, w, h) { it.painter(g, w, h); }); } catch (e) {} }
-          var nm = mkEl('div', 'gksp-nm', it.name), sub = mkEl('div', 'gksp-sub');
-          cell.appendChild(cv); cell.appendChild(nm); cell.appendChild(sub);
-          var idx = cells.length;
-          cells.push({ el: cell, sub: sub, item: it });
-          var preFocused = false, viaTouch = false;
-          cell.addEventListener('pointerdown', function (e) { preFocused = (focused === idx); viaTouch = !!(e && e.pointerType === 'touch'); });
-          cell.addEventListener('click', function () {
-            var was = focused === idx; focused = idx; syncFocus();
-            if (viaTouch && !preFocused && !was) return; // first touch = read; second buys/equips
-            act(idx);
+    // click a cell: OWNED → equip immediately (no spend); UNOWNED → just select (BUY button confirms)
+    function clickCell(idx) {
+      focused = idx; syncFocus();
+      var f = cells[idx]; if (!f) return;
+      if (cosOwned(f.item.id)) confirmFocused();
+    }
+    // (re)build the grid from the current search + game filter
+    function rebuild() {
+      var q = (search.value || '').trim().toLowerCase();
+      var filterG = (gameSel && gameSel.value && gameSel.value !== '__all') ? gameSel.value : null;
+      scroll.innerHTML = ''; cells = []; focused = -1; gameProgEls = [];
+      var any = false;
+      shown.forEach(function (game) {
+        if (filterG != null && game !== filterG) return;
+        var meta = gamesMeta[game] || { title: game || 'Site-wide', icon: '🎮' };
+        var gameSets = [], seenSet = {};
+        items.forEach(function (it) { if (it.game === game && !seenSet[it.set]) { seenSet[it.set] = 1; gameSets.push(it.set); } });
+        // items matching the search within this game
+        var match = function (it) { return !q || it.name.toLowerCase().indexOf(q) >= 0 || (meta.title || '').toLowerCase().indexOf(q) >= 0 || ((setsMeta[it.set] || {}).label || '').toLowerCase().indexOf(q) >= 0; };
+        var gameItems = items.filter(function (it) { return it.game === game && match(it); });
+        if (!gameItems.length) return;
+        any = true;
+        var gh = mkEl('div', 'gksp-game');
+        var gt = mkEl('span', 'gksp-gt', (meta.icon ? meta.icon + ' ' : '') + (meta.title || game).toUpperCase());
+        var gp = mkEl('span', 'gksp-gp');
+        gh.appendChild(gt); gh.appendChild(gp); gh.appendChild(mkEl('span', 'gksp-gline'));
+        if (meta.accent && gh.style && gh.style.setProperty) { try { gh.style.setProperty('--acc', meta.accent); } catch (e) {} }
+        scroll.appendChild(gh);
+        (function (gm) { gameProgEls.push(function () { var p = cosProgress(gm); gp.textContent = p.owned + '/' + p.total; }); })(game);
+        gameSets.forEach(function (setId) {
+          var setItems = gameItems.filter(function (it) { return it.set === setId; });
+          if (!setItems.length) return;
+          var sm = setsMeta[setId] || {};
+          if (gameSets.length > 1 || sm.note) scroll.appendChild(mkEl('div', 'gksp-set', (sm.label || setId) + (sm.note ? ' <span class="gksp-note">· ' + sm.note + '</span>' : '')));
+          var grid = mkEl('div', 'gksp-grid');
+          setItems.forEach(function (it) {
+            var cell = mkEl('div', 'gksp-cell');
+            var cv = mkEl('canvas', 'gksp-sw'); try { cv.width = 40; cv.height = 40; } catch (e) {}
+            if (it.painter) { try { drawPreview(cv, function (g, w, h) { it.painter(g, w, h); }); } catch (e) {} }
+            var txt = mkEl('div', 'gksp-txt');
+            var nm = mkEl('div', 'gksp-nm', it.name), sub = mkEl('div', 'gksp-sub');
+            txt.appendChild(nm); txt.appendChild(sub);
+            cell.appendChild(cv); cell.appendChild(txt);
+            var idx = cells.length;
+            cells.push({ el: cell, sub: sub, item: it });
+            cell.addEventListener('click', function () { clickCell(idx); });
+            cell.addEventListener('mouseenter', function () { focused = idx; syncFocus(); });
+            grid.appendChild(cell);
           });
-          cell.addEventListener('mouseenter', function () { focused = idx; syncFocus(); });
-          grid.appendChild(cell);
+          scroll.appendChild(grid);
         });
-        scroll.appendChild(grid);
       });
-    });
-    // ---- titles — the read-only prestige ladder (automatic, lifetime trophies) ----
-    var CH = chGoals();
-    if (CH && CH.titles && CH.titles.length) {
-      var lt = cosLifetime();
-      var th = mkEl('div', 'gksp-game gksp-titles-head');
-      th.appendChild(mkEl('span', 'gksp-gt', '🎖️ TITLES — automatic, lifetime 🏆'));
-      th.appendChild(mkEl('span', 'gksp-gline'));
-      scroll.appendChild(th);
-      var cur = (typeof CH.titleFor === 'function') ? CH.titleFor(lt) : null;
-      var tl = mkEl('div', 'gksp-tl');
-      CH.titles.forEach(function (t) {
-        var got = lt >= t.min, isCur = cur && cur.tier === t.tier;
-        var row = mkEl('div', 'gksp-tlrow' + (got ? ' got' : '') + (isCur ? ' cur' : ''));
-        row.appendChild(mkEl('span', 'gksp-tlname', (t.emoji || '🎖️') + ' ' + t.title + (isCur ? ' — YOURS' : '')));
-        row.appendChild(mkEl('span', 'gksp-tlmin', got ? fmtT(t.min) + ' 🏆' : '🔒 ' + fmtT(t.min) + ' 🏆'));
-        tl.appendChild(row);
-      });
-      scroll.appendChild(tl);
-      scroll.appendChild(mkEl('div', 'gksp-tlnote', '🏆 ' + fmtT(lt) + ' lifetime — titles never spend down; buying cosmetics uses your balance only.'));
+      if (!any) scroll.appendChild(mkEl('div', 'gksp-empty', 'No cosmetics match “' + (search.value || '') + '”.'));
+      syncCells();
     }
     // mount inside an open <dialog> when there is one (the profile modal's top layer would
     // otherwise cover a body-level overlay) — same trick as the share menu
@@ -1056,13 +1088,16 @@
       try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
       if (typeof opts.onClose === 'function') { try { opts.onClose(); } catch (e) {} }
     }
-    function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
+    function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc') && document.activeElement !== search) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
     xb.addEventListener('click', close);
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
-    buyBtn.addEventListener('click', function () { if (focused >= 0) act(focused); });
+    buyBtn.addEventListener('click', function () { if (focused >= 0) confirmFocused(); });
+    if (search) search.addEventListener('input', rebuild);
+    if (gameSel) gameSel.addEventListener('change', rebuild);
+    if (allGamesLink) allGamesLink.addEventListener('click', function () { close(); try { opts.allGames(); } catch (e) {} });
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
-    syncCells();
-    return { el: ov, close: close, buy: function (id) { var i = -1; cells.forEach(function (c2, k) { if (c2.item.id === id) i = k; }); if (i >= 0) { focused = i; act(i); } } };
+    rebuild();
+    return { el: ov, close: close, buy: function (id) { var i = -1; cells.forEach(function (c2, k) { if (c2.item.id === id) i = k; }); if (i >= 0) { focused = i; syncFocus(); confirmFocused(); } } };
   }
 
   function pruneOldLogs() {
@@ -1260,6 +1295,7 @@
       + '<button class="gamekit-au-btn" id="gamekitAudioBtn" type="button" aria-label="Sound settings" title="Sound settings">🔊</button>'
       + '<div class="gamekit-au-panel" id="gamekitAudioPanel">' + rows + '</div>'
       + (opts.challenges ? '<button class="gamekit-au-btn gamekit-au-chbtn" id="gamekitChallenges" type="button" aria-label="Challenges" title="Today’s challenges">🏆</button>' : '')
+      + (opts.cosmetics ? '<button class="gamekit-au-btn gamekit-au-cosbtn" id="gamekitCosmetics" type="button" aria-label="Cosmetics" title="Cosmetics — skins for this game">🎨</button>' : '')
       + (opts.controls ? '<button class="gamekit-au-btn gamekit-au-ctlbtn" id="gamekitControls" type="button" aria-label="Controls" title="How to play — controls">🎮</button>' : '')
       + '<button class="gamekit-au-btn gamekit-au-morebtn" id="gamekitMore" type="button" aria-label="Game menu" title="Game menu">☰</button>'
       + '<div class="gamekit-au-panel gamekit-more-panel" id="gamekitMorePanel">' + more + '</div>';
@@ -1331,6 +1367,13 @@
         chb.addEventListener('click', function () { _chNotifySeen = true; if (chb.classList) chb.classList.remove('gkm-notify'); challengesPanel({ slug: opts.challenges, genres: opts.genres, theme: opts.theme }); });
       }
     }
+    if (opts.cosmetics) {
+      var cob = document.getElementById('gamekitCosmetics');
+      if (cob) cob.addEventListener('click', function () {
+        // scoped to this game (+ site-wide cursors); "All games →" opens the full store
+        shopPanel({ game: opts.cosmetics, theme: opts.theme, allGames: function () { shopPanel({ theme: opts.theme }); } });
+      });
+    }
     if (opts.controls) { var ctlb = document.getElementById('gamekitControls'); if (ctlb) ctlb.addEventListener('click', function () { controlsModal(opts.controls, opts.theme); }); }
     var pb = document.getElementById('gamekitPause'); _pauseBtnEl = pb;
     if (pb) {
@@ -1381,6 +1424,8 @@
     if (opts.slug) {
       if (opts.reset == null) opts.reset = opts.slug + '_';
       if (opts.challenges == null) opts.challenges = opts.slug;
+      // the 🎨 cosmetics button appears when the registry is loaded (scoped to this game)
+      if (opts.cosmetics == null && typeof window !== 'undefined' && window.COSMETICS) opts.cosmetics = opts.slug;
     }
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'gamekit-nav';
@@ -1421,7 +1466,7 @@
         guarded(function () { try { location.href = href; } catch (e2) {} });
       });
     }
-    audioMenu({ music: !!opts.music, reset: opts.reset, onPause: opts.onPause, controls: opts.controls, challenges: opts.challenges, genres: opts.genres, theme: opts.theme });
+    audioMenu({ music: !!opts.music, reset: opts.reset, onPause: opts.onPause, controls: opts.controls, challenges: opts.challenges, cosmetics: opts.cosmetics, genres: opts.genres, theme: opts.theme });
     versionTag();
     if (typeof layout !== 'undefined' && layout && layout.on) layout.on(fitNav);
     fitNav();
