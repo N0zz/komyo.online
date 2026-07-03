@@ -279,6 +279,8 @@
   const MODE_HINT = { arcade:'Pop groups of 3+; clear the board to advance.', endless:'Rows push in forever — survive and score.', zen:'Relax and pop. No fail, no descent.' };
   const modeParams = st => (st.timed && st.mode !== 'zen') ? { mode: st.mode, timed: '1' } : { mode: st.mode };
   function shareMsg(){ return KIT.shareText({ score: score, game:'Bubble Pop', emoji:'🫧', mode: mode.charAt(0).toUpperCase()+mode.slice(1)+(timeDescent&&mode!=='zen'?' (timed)':''), extra:['level '+level] }); }
+  // apply the menu's pop/base cosmetic selections to the shared store (buy-in-place already did)
+  function cosPick(st){ if(!KIT || !KIT.cosmetics) return; if(st['bubbles.pop']) KIT.cosmetics.select('bubbles.pop', st['bubbles.pop']); if(st['bubbles.base']) KIT.cosmetics.select('bubbles.base', st['bubbles.base']); }
   function showStartMenu(){
     state = 'ready'; if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if(!KIT) return;
@@ -287,12 +289,17 @@
         { id:'arcade',  label:'ARCADE',  preview:pvArcade,  mech:['Clear to advance','Grid descends'], best:()=>bestFor('arcade') },
         { id:'endless', label:'ENDLESS', preview:pvEndless, mech:['Endless','Rows push in'],           best:()=>bestFor('endless') },
         { id:'zen',     label:'ZEN',     preview:pvZen,     mech:['No fail','No descent'],              best:()=>bestFor('zen') },
-      ]}],
+      ]},
+      // cosmetics: pop-effect + shooter-base pickers (kit-owned select + buy-in-place)
+      ...(KIT.cosmetics && window.COSMETICS ? [
+        KIT.cosmetics.menuGroup('bubbles.pop', { label:'POP EFFECT' }),
+        KIT.cosmetics.menuGroup('bubbles.base', { label:'SHOOTER' }),
+      ] : [])],
       toggles:[{ id:'timed', label:'Time-based descent', caption:'— drops on a clock, not per shot', default: timeDescent, disabled: st => st.mode === 'zen' }],
       hint: st => (MODE_HINT[st.mode] || '') + (st.timed && st.mode !== 'zen' ? ' · timed' : ''),
       actions:[{ id:'play', label:'PLAY ▶', primary:true }],
-      onChange: st => KIT.stampUrl(modeParams(st)),
-      onPlay: st => { KIT.stampUrl(modeParams(st)); startMode(st.mode, st.timed); },
+      onChange: st => { cosPick(st); KIT.stampUrl(modeParams(st)); },
+      onPlay: st => { cosPick(st); KIT.stampUrl(modeParams(st)); startMode(st.mode, st.timed); },
     });
     KIT.stampUrl(modeParams({ mode: mode, timed: timeDescent }));
   }
@@ -552,14 +559,49 @@
     return { row: bestR, col: bestC };
   }
 
+  // ---- cosmetics: pop effects + shooter bases (challenge-trophy sets). Defaults render as today. ----
+  function popStyle() { return (KIT && KIT.cosmetics) ? KIT.cosmetics.selected('bubbles.pop') : 'bubbles.pop.classic'; }
+  function baseStyle() { return (KIT && KIT.cosmetics) ? KIT.cosmetics.selected('bubbles.base') : 'bubbles.base.aqua'; }
+  const CONFETTI_COLS = ['#ff7ab6', '#ffd166', '#7fe0a0', '#7fd0ff', '#b98cff'];
+  const BASE_SKINS = {
+    'bubbles.base.aqua':  { barrel: 'rgba(46,232,200,0.8)', glow: '232,248,255' },
+    'bubbles.base.candy': { barrel: 'rgba(255,154,209,0.9)', glow: '255,200,230' },
+    'bubbles.base.gold':  { barrel: 'rgba(255,209,102,0.9)', glow: '255,230,150' },
+  };
+  function baseSkin() { return BASE_SKINS[baseStyle()] || BASE_SKINS['bubbles.base.aqua']; }
+
   // ---- Particles ----
   function spawnParticles(x, y, colorIdx) {
     const col = COLORS[colorIdx] || '#fff';
-    for (let i = 0; i < 8; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 4;
-      particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
-        col, life: 1, size: 2 + Math.random() * 3 });
+    const style = popStyle();
+    if (style === 'bubbles.pop.confetti') {
+      for (let i = 0; i < 12; i++) { const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 4.5;
+        particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, col: CONFETTI_COLS[i % CONFETTI_COLS.length], life: 1, size: 2 + Math.random() * 2.5, shape: 'rect', spin: Math.random() * 6.28, vspin: (Math.random() - 0.5) * 0.4 }); }
+    } else if (style === 'bubbles.pop.stars') {
+      for (let i = 0; i < 8; i++) { const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 4;
+        particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, col: i % 2 ? '#ffe066' : col, life: 1, size: 3 + Math.random() * 2.5, shape: 'star', spin: Math.random() * 6.28, vspin: (Math.random() - 0.5) * 0.2 }); }
+    } else if (style === 'bubbles.pop.fireworks') {
+      for (let i = 0; i < 16; i++) { const angle = Math.random() * Math.PI * 2, speed = 3 + Math.random() * 5;
+        particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, col: i % 3 ? col : '#fff', life: 1, size: 2 + Math.random() * 3.5, shape: 'spark' }); }
+    } else { // classic — the original 8-circle pop
+      for (let i = 0; i < 8; i++) { const angle = Math.random() * Math.PI * 2, speed = 2 + Math.random() * 4;
+        particles.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, col, life: 1, size: 2 + Math.random() * 3 }); }
+    }
+  }
+  // draw one pop particle in its shape (default = circle) — used by the render particle loop
+  function drawPopParticle(p) {
+    if (p.shape === 'rect') {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.spin || 0); ctx.fillStyle = p.col;
+      ctx.fillRect(-p.size, -p.size * 0.6, p.size * 2, p.size * 1.2); ctx.restore();
+    } else if (p.shape === 'star') {
+      ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.spin || 0); ctx.fillStyle = p.col;
+      ctx.beginPath(); for (let i = 0; i < 10; i++) { const rr = i % 2 ? p.size * 0.45 : p.size, a = -1.57 + i * 0.6283; ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); ctx.restore();
+    } else if (p.shape === 'spark') {
+      ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = p.col; ctx.lineWidth = 1; ctx.globalAlpha = Math.max(0, p.life) * 0.5;
+      ctx.beginPath(); ctx.moveTo(p.x - p.vx, p.y - p.vy); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.globalAlpha = Math.max(0, p.life);
+    } else {
+      ctx.fillStyle = p.col; ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
     }
   }
 
@@ -789,6 +831,7 @@
     for (let i = particles.length - 1; i >= 0; i--) {
       const p = particles[i];
       p.x += p.vx; p.y += p.vy; p.vy += 0.15;
+      if (p.vspin) p.spin += p.vspin;
       p.life -= 0.04;
       if (p.life <= 0) particles.splice(i, 1);
     }
@@ -955,18 +998,20 @@
       ctx.setLineDash([]);
     }
 
-    // Shooter base — glow matches the loaded bubble so it never suggests a wrong color
+    // Shooter base — glow matches the loaded bubble so it never suggests a wrong color;
+    // the fallback glow + barrel colour come from the selected shooter-base cosmetic
+    const bsk = baseSkin();
     ctx.save();
     ctx.translate(sx, sy);
     const glowRgb = (!isShooting && !specialReady && COLORS[shotColor])
-      ? hexToRgb(COLORS[shotColor]) : '232,248,255';
+      ? hexToRgb(COLORS[shotColor]) : bsk.glow;
     const baseGrad = safeGrad(ctx.createRadialGradient(0, -4, 4, 0, 0, 28));
     baseGrad.addColorStop(0, `rgba(${glowRgb},0.5)`);
     baseGrad.addColorStop(1, `rgba(${glowRgb},0.05)`);
     ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI * 2);
     ctx.fillStyle = baseGrad; ctx.fill();
     // barrel
-    ctx.strokeStyle = 'rgba(46,232,200,0.8)';
+    ctx.strokeStyle = bsk.barrel;
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -994,12 +1039,11 @@
         shotBubble.isSpecial, shotBubble.specialType);
     }
 
-    // Particles
+    // Particles (shape depends on the selected pop effect)
     for (const p of particles) {
       ctx.save();
       ctx.globalAlpha = Math.max(0, p.life);
-      ctx.fillStyle = p.col;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      drawPopParticle(p);
       ctx.restore();
     }
 
@@ -1132,6 +1176,8 @@
     startMode(m, timed) { startMode(m, timed); },
 
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+    render() { render(); }, // headless: exercise the draw path (pop effects, shooter base)
+    popAt(x, y, ci) { spawnParticles(x, y, ci == null ? 0 : ci); }, // spawn pop particles for skin tests
 
     setShotColor(ci) { shotColor = ci; },
     setNextColor(ci) { nextColor = ci; },
