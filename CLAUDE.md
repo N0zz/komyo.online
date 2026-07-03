@@ -67,6 +67,8 @@ silently, not loudly.
 - **Main loop = `gamekit.loop(update, render, opts)`** — the kit's fixed-timestep accumulator
   (60 Hz steps at any refresh rate, kit-pause built in). Never `rAF → update()` directly — that
   ships a frame-rate-dependent game. `update()` must stay drivable via `__test.step(n)`.
+  (Grandfathered exceptions with their own equivalent fixed-step + isPaused accumulators:
+  breakout, snake, asteroids, asteroids-plus. New games use the kit loop.)
 - **Canvas sizing = `gamekit.fitCanvas(canvas, W, H)`** in the game's resize path, re-run via
   `gamekit.layout.on(…)` — the game computes its CSS size, the kit applies the retina backing
   store; ALL drawing + pointer math stays in CSS px (scale pointers by `W / rect.width`, never
@@ -100,7 +102,10 @@ that feature offline. Games alias the API once: `const KIT = window.gamekit;`.
 - `gamekit.menu` — the declarative three-screen framework: `menu.show(cfg)` / `menu.hide()`.
   cfg: `kind:'start'|'pause'|'end'`, `title`, `score/scoreText/best/newBest/lines`, `groups`
   (option rows; `style:'cards'` = rich mode cards with a canvas `preview(ctx,w,h,state)`;
-  `style:'shop'` = an action grid for buy/pick — powers the Asteroids+ level-up picker + shop),
+  `style:'shop'` = an action grid for buy/pick — powers the Asteroids+ level-up picker + shop;
+  shop opts: `icon:` painter per choice, `cols:3` fixed picker shape, `pickLabel:` → the
+  small-screen BUY/TAKE button; on touch the first tap selects (desc shows in a focused-desc
+  line), the second tap or that button buys — mouse hover+click buys in one go),
   `toggles`, `hint(state)`, `banner(state)`, `actions:[{id,label,primary?,danger?,confirm?}]`,
   `onPlay/onAction/onChange/onEsc`, `theme` (`--gkm-*` vars), `backdrop` (animated canvas), and
   `share:{slug,accent,icon,title,message,params}` (share row + score card + Discord) +
@@ -120,8 +125,8 @@ that feature offline. Games alias the API once: `const KIT = window.gamekit;`.
   relayout on resize/orientationchange/visualViewport), `requireOrientation('portrait'|'landscape')`
   (rotate overlay), and the test hook `__emit(w,h)`.
 - `gamekit.fitCanvas(canvas, w, h, opts?)` — sets the CSS box + a devicePixelRatio-scaled backing
-  store (cap 2; headless → 1) + the matching transform, so drawing stays in CSS px. Call from the
-  game's resize path. `{dpr:false}` opts out (scaled-world canvases).
+  store (cap 2, `opts.maxDpr` overrides; headless → 1) + the matching transform, so drawing stays
+  in CSS px. Call from the game's resize path. `{dpr:false}` opts out (scaled-world canvases).
 - `gamekit.roundRect(g, x, y, w, h, r)` — beginPath + rounded-rect path (caller fills/strokes);
   the kit also installs the `ctx.roundRect` polyfill (array radii supported) so bare calls are
   always safe.
