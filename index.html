@@ -240,10 +240,20 @@
   #pfTitle .pf-meta { margin-left:auto; font-family:inherit; font-weight:400; font-size:12px; letter-spacing:0; color:var(--faint); white-space:nowrap; }
   /* the four core counts — a clean centered strip with dividers (understated, not title-flashy) */
   .pf-stats { display:flex; justify-content:center; flex-wrap:wrap; margin:2px 0 4px; border:1px solid var(--border); border-radius:12px; background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent),var(--surface); overflow:hidden; }
-  .pf-stat { flex:1 1 0; min-width:72px; display:flex; flex-direction:column; align-items:center; gap:2px; padding:12px 8px; text-align:center; }
+  .pf-stat { flex:1 1 0; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:1px; padding:7px 8px; text-align:center; }
   .pf-stat + .pf-stat { border-left:1px solid var(--border); }
-  .pf-stat b { font-size:22px; color:var(--text); font-variant-numeric:tabular-nums; line-height:1.1; }
+  .pf-stat b { font-size:19px; color:var(--text); font-variant-numeric:tabular-nums; line-height:1.1; }
   .pf-stat span { font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); }
+  /* collection progress bar (below the stats) — tap to open the Cosmetics store */
+  .pf-collect { display:block; width:100%; margin:8px 0 4px; padding:9px 12px; border:1px solid var(--border); border-radius:12px; background:var(--surface); cursor:pointer; text-align:left; font:inherit; color:var(--muted); }
+  .pf-collect:hover { border-color:#ffce5c; }
+  .pf-collect-top { display:flex; justify-content:space-between; align-items:center; gap:10px; font-family:var(--mono); font-size:11px; letter-spacing:.5px; }
+  .pf-collect-n { color:#e8c069; font-weight:700; font-variant-numeric:tabular-nums; }
+  .pf-collect-bar { display:block; height:8px; margin-top:7px; border-radius:99px; background:rgba(255,255,255,0.08); overflow:hidden; }
+  .pf-collect-bar i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#ffce5c,#ff9a5c); }
+  /* "Title · see ladder ›" link inside the profile title box */
+  .pf-title-link { background:none; border:none; padding:0; font:inherit; color:inherit; cursor:pointer; letter-spacing:inherit; }
+  .pf-title-link:hover { color:#ffce5c; }
   /* per-card column labels so the value column reads as "best" and the mode column is named */
   .pf-rhead { display:grid; grid-template-columns:1fr auto; gap:12px; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); padding-bottom:5px; margin-bottom:2px; border-bottom:1px solid var(--border); }
   .pf-rhead span:last-child { text-align:right; }
