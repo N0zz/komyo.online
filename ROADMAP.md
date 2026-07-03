@@ -134,6 +134,7 @@ per game. Roughly easiest → hardest within each group.
 
 | Game | Effort | Build notes |
 | --- | --- | --- |
+| **2048** 🔢 `PUZZLE`+`LOGIC` | trivial–low | classic slide-and-merge grid (swipe/arrows); well-known rules = zero teaching cost; undo?, board-size variants 3×3/5×5 |
 | **Dusk Runner** 🦖 `ARCADE`+`REFLEX` | low | Chrome offline-dino style — mono line-art, ground runner, jump/duck, obstacle spawner, speed ramp, day→night palette shift |
 | **Pump Stop** ⛽ `SKILL` (+`STRATEGY` manager) | trivial–low (solo) · med (manager) | Solo: hold to pump, **stop at the target** with momentum/overrun, scored by closeness. **Tolerance is tight (~1%):** $20 off by 20¢ = fine, by 50¢ = too far under. **Manager expansion (idea, discuss later):** run **4 pumps** — cars arrive with a paid limit, stop each near its limit. Over = free-gas penalty (costs the station); tiny-under = fine; a car left under-served/unattended → patience runs out → it **blocks the pump**; **all 4 blocked = game over**. Attention is the scarce resource → triage is the game. **Open decisions:** (a) cars **auto-fill and you only tap _stop_** vs you actively **_pump_** each; (b) **one active pump at a time** vs **all at once**; (c) tolerance band (~1%? scales with difficulty?). Tension: a tight ~1% band is hard to hit while juggling 4 pumps — (a)/(b) set how forgiving it must be. |
 | **Keyfall** ⌨️ `TYPING`+`SKILL` | low–med | falling words — type each before it lands; speed ramp, combos, WPM. Opens a wider WORD/TYPING lane (more later: anagram, spelling, Wordle-style guesser) |
@@ -163,11 +164,8 @@ Not new tiles — modes (added 2026-07-03, teased in the menus as locked "SOON" 
   before the target shows = false start (penalty/discard), and cap outliers so one lapse doesn't
   wreck the average. Locked menu card ships already.
 
-Not yet tiles (ideas, added 2026-07-03):
+Not yet tiles (lane/genre ideas, added 2026-07-03 — a game gets a tile once it's picked + named):
 
-- **2048** 🔢 `PUZZLE`+`LOGIC` — trivial–low; the classic slide-and-merge grid (swipe/arrows, undo?,
-  board-size variants 3×3/5×5). Well-known rules = zero teaching cost; strong fit for the
-  low-tuning bias.
 - **More endless-racing lane** (beyond Pocket Rally) — e.g. an outrun-style pseudo-3D highway
   runner (curves + hills, canvas raster trick), a motorbike lane-splitter (near-miss scoring), or
   top-down drift/rally sprint. Pick 1–2 that feel most distinct from Pocket Rally.

@@ -163,6 +163,15 @@ window.GAMES = [
 
   // ---- coming soon: new ideas ----
   {
+    slug: "2048",
+    title: "2048",
+    blurb: "Slide and merge the tiles — double your way up to the fabled 2048.",
+    icon: "🔢",
+    accent: "#f2b179",
+    tags: ["PUZZLE", "LOGIC"],
+    soon: true,
+  },
+  {
     slug: "keyfall",
     title: "Keyfall",
     blurb: "Words rain down — type them before they hit the floor. Speed ramps, combos build, WPM tracked.",

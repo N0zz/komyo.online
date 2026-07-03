@@ -20,6 +20,8 @@ window.CHANGELOG = [
     'New: Keep Defender\'s ⏸ now opens the same pause menu as every other game (resume / quit to menu), instead of a bare overlay.',
     'Improved: the "Leave this run?" and reset boxes now match the look of the game you\'re in, and the destructive button glows red when selected, not blue.',
     'Teaser: Neon Snake\'s menu shows a locked "Enhanced" mode (wild power-up drops), and Range teases a locked "Reaction" mode (average reaction-time test) — both coming.',
+    'Fix: dismissing the "tap to play" splash no longer clicks whatever sat underneath it (no more accidentally starting a game or switching modes with that first tap).',
+    'New: 2048 joined the coming-soon shelf — the classic slide-and-merge puzzle.',
     'Fix: Keep Defender\'s score bar sits on its own row in portrait at every screen size (it could slide under the top buttons on tablets), and it\'s a slim strip on phones now.',
     'Improved: on a phone held sideways the homepage header is compact, so the games are visible right away.',
   ] },
