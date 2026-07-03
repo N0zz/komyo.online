@@ -22,6 +22,8 @@ version.js      build stamp {sha, built} — 'dev' locally, stamped by the Pages
 game-kit.js     SHARED game shell — see "Shared kit" (nav, menus, sound, loop, layout, best store, PWA)
 game-kit.css    shared shell styles (nav/menus/HUD/share row)
 sw-core.js      shared service-worker engine — each sw.js sets SCOPE/VERSION/SHELL and imports it
+plans/          PUBLIC design docs & mocks (komyo.online/plans/<name>.html — transparency by intent);
+                new plans/designs go here (not ~/), and get sitemap.xml (priority 0.2) + llms.txt entries
 test.mjs        top-level suite: catalogue + Keep Defender + live-games boot + game-kit test
 test-harness.mjs  the ONE shared headless harness (sandbox/bootGame/runLayoutSuite) all suites import
 scripts/        post-changelog.mjs (Discord changelog action) + gen-icon.mjs (icon generation) + bench.sh
