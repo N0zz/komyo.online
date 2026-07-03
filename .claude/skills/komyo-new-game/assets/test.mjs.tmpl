@@ -1,0 +1,43 @@
+// Headless tests for {{TITLE}} — boots via the shared harness, drives window.__test.
+import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
+
+const FILE = 'games/{{SLUG}}/index.html';
+const runGame = (opts) => bootGame(FILE, opts);
+
+// ---- Boot ----
+section('{{SLUG}}: boot');
+const g = runGame();
+ok(g.bootErr === null, 'boots without error: ' + g.bootErr);
+ok(g.T() != null, 'exposes window.__test');
+
+// ---- Core state ----
+section('{{SLUG}}: start()');
+{
+  const gs = runGame();
+  const T = gs.T;
+  ok(T().state === 'ready', 'initial state is "ready" (got ' + T().state + ')');
+  T().start();
+  ok(T().state === 'playing', 'start() sets state to "playing" (got ' + T().state + ')');
+  ok(T().score === 0, 'score starts at 0 (got ' + T().score + ')');
+
+  // ---- SLOT: game-specific asserts (drive __test, replace with the real mechanic's checks) ----
+  T().setPlayer(200, 200);
+  T().setTarget(200, 200);   // sit the player on the target
+  T().step(1);
+  ok(T().score > 0, 'collecting the target increases score (got ' + T().score + ')');
+}
+
+// ---- Layout: on-screen + HUD headroom, in portrait / landscape / desktop ----
+section('{{SLUG}}: layout fits the screen');
+runLayoutSuite(
+  () => { const gl = runGame(); gl.T().start(); return gl; },
+  (gl, v, L) => {
+    gl.T().step(1);
+    const layout = gl.T().layout;
+    ok(layout.playerTop >= layout.topReserve, v.name + ': player clears the HUD (top ' + Math.round(layout.playerTop) + ' >= topReserve ' + layout.topReserve + ')');
+    ok(layout.playerLeft >= 0 && layout.playerRight <= layout.W, v.name + ': player within width (' + Math.round(layout.playerLeft) + '..' + Math.round(layout.playerRight) + ' in 0..' + layout.W + ')');
+    ok(layout.playerBottom <= layout.H, v.name + ': player within height (' + Math.round(layout.playerBottom) + ' <= ' + layout.H + ')');
+  }
+);
+
+summary();
