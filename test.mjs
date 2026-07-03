@@ -32,6 +32,15 @@ function testCatalogue() {
   ok(!g.getEl('grid').classList.contains('compact'), 'density toggle → back to cozy');
   const GAMES = g.win.GAMES;
   ok(Array.isArray(GAMES) && GAMES.length >= 2, 'games.js exposes games (got ' + (GAMES && GAMES.length) + ')');
+  // tile identity must be unique — duplicate slugs break storage/URLs, duplicate icons confuse the shelf
+  {
+    const bySlug = {}, byIcon = {};
+    GAMES.forEach(gm => { (bySlug[gm.slug] ||= []).push(gm.slug); (byIcon[gm.icon] ||= []).push(gm.slug); });
+    const dupSlugs = Object.keys(bySlug).filter(k => bySlug[k].length > 1);
+    const dupIcons = Object.keys(byIcon).filter(k => byIcon[k].length > 1).map(k => k + ' (' + byIcon[k].join(', ') + ')');
+    ok(dupSlugs.length === 0, 'no duplicate slugs in games.js' + (dupSlugs.length ? ': ' + dupSlugs.join(', ') : ''));
+    ok(dupIcons.length === 0, 'no duplicate tile icons in games.js' + (dupIcons.length ? ': ' + dupIcons.join('; ') : ''));
+  }
   const grid = g.getEl('grid');
   // #grid now also holds full-width section dividers, so count only the tiles.
   const tiles = () => grid.children.filter(c => c.className && String(c.className).includes('tile'));
