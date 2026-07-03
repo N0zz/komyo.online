@@ -22,7 +22,7 @@ window.GAMES = [
     tags: ["ROGUELIKE", "SHOOTER"],
     badges: ["pick"],
     added: "2026-06-28",
-    updated: "2026-07-01",
+    updated: "2026-07-03",
   },
   {
     slug: "tower-defense",
