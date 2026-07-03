@@ -8,6 +8,20 @@
 
 **Tech Stack:** Vanilla ES5-style JS (matches the repo — no modules, no deps), `Intl.PluralRules` for plural category selection, `Intl.NumberFormat`/`toLocaleString` for numbers (already partly used). Node test harness (`test-harness.mjs`) for regression.
 
+---
+
+## Coordination with the game-creation skill (`plans/skill-new-game-plan.md`)
+
+**These two plans overlap on per-game strings and must stay consistent. Whichever ships FIRST, the SECOND must be updated to match — a hard cross-dependency.**
+
+- **If this i18n plan ships FIRST** (before the `komyo-new-game` skill is built): the skill must be authored i18n-native — its templates emit `KIT.t('game.<slug>.*', {params})` (not raw English literals), include `i18n.js` in the template `<head>` + `sw.js` SHELL, and its `scaffold.mjs` appends each new game's `en` keys to `i18n.js` (+ stub/MT `pl/es/pt/fr`). The skill plan's Phase 0 "English-inline" decision is dropped. **No task is needed in THIS plan for that** — it's owned by the skill plan's coordination section — but keep the two in sync.
+
+- **If the skill ships FIRST** (before this i18n plan): it will have generated **English-inline games**. Therefore:
+  - **Phase 5 (per-game extraction) must cover every skill-generated game**, not just the 9 games surveyed here — re-scan `games/*` at execution time for the actual set.
+  - **Task 26 must additionally update the skill** (its `assets/*.tmpl`, `references/i18n.md`, and Contract Checklist) so all *future* generated games emit keyed strings. Add that to Task 26's scope.
+
+- **Regardless of order:** the skill ships with a `references/i18n.md` stub from day one documenting this switch, so the intent is discoverable before i18n lands.
+
 ## Global Constraints
 
 Copied verbatim from `CLAUDE.md` — every task implicitly includes these:
