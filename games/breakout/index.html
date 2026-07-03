@@ -17,6 +17,7 @@
 <script src="../../version.js"></script>
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
 <style>
   :root { --mg:#ff00ff; --cy:#00ffff; --bg:#0a0010; }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -283,12 +284,17 @@
         { id: 'classic', label: 'Classic', mech: ['Levels', 'Clear to advance'], best: () => loadBest('classic'), preview: (g, w, h) => pvBrick(g, w, h, 3) },
         { id: 'endless', label: 'Endless', mech: ['Rows drop in', 'Score chase'], best: () => loadBest('endless'), preview: (g, w, h) => pvBrick(g, w, h, 4) },
         { id: 'survival', label: 'Survival', mech: ['Wall descends', 'Beat it back'], best: () => loadBest('survival'), preview: (g, w, h) => pvBrick(g, w, h, 5) },
-      ] }],
+      ] },
+      // cosmetics: paddle + ball pickers (kit-owned select + buy-in-place with challenge trophies)
+      ...(KIT.cosmetics && window.COSMETICS ? [
+        KIT.cosmetics.menuGroup('breakout.paddle', { label: 'PADDLE' }),
+        KIT.cosmetics.menuGroup('breakout.ball', { label: 'BALL' }),
+      ] : [])],
       toggles: [{ id: 'speed2x', label: '2× speed', caption: 'faster ball & paddle', default: loadSpeedPref() }],
       actions: [{ id: 'play', label: 'INSERT COIN', primary: true }],
       hint: st => MODE_DESCS[st.mode] || '',
-      onChange: st => { gameMode = st.mode; setSpeed(st.speed2x); KIT.stampUrl(modeParams(st)); },
-      onPlay: st => { gameMode = st.mode; setSpeed(st.speed2x); KIT.stampUrl(modeParams(st)); startMode(st.mode); },
+      onChange: st => { gameMode = st.mode; setSpeed(st.speed2x); if (KIT.cosmetics) { if (st['breakout.paddle']) KIT.cosmetics.select('breakout.paddle', st['breakout.paddle']); if (st['breakout.ball']) KIT.cosmetics.select('breakout.ball', st['breakout.ball']); } KIT.stampUrl(modeParams(st)); },
+      onPlay: st => { gameMode = st.mode; setSpeed(st.speed2x); if (KIT.cosmetics) { if (st['breakout.paddle']) KIT.cosmetics.select('breakout.paddle', st['breakout.paddle']); if (st['breakout.ball']) KIT.cosmetics.select('breakout.ball', st['breakout.ball']); } KIT.stampUrl(modeParams(st)); startMode(st.mode); },
     });
     KIT.stampUrl(modeParams({ mode: gameMode, speed2x: speedMult === 2 }));
   }
@@ -588,15 +594,35 @@
     }
   }
 
+  // ---- cosmetics: paddle + ball skins (selection/purchases in the shared kit store) ----
+  const PADDLE_SKINS = {
+    'breakout.paddle.synthwave': { stops: ['#00ffff', '#0088aa'], glow: '#00ffff' },
+    'breakout.paddle.wood':      { stops: ['#d09a5c', '#8a5a30'], glow: 'rgba(160,110,60,0.5)' },
+    'breakout.paddle.ice':       { stops: ['#e8fbff', '#9fd8f0'], glow: '#bfeaff' },
+    'breakout.paddle.lava':      { stops: ['#ffd166', '#ff5a2a'], glow: '#ff7a3c' },
+    'breakout.paddle.chrome':    { stops: ['#f4f8ff', '#8a97ad', '#e8eef8'], glow: '#cfd8e8' },
+  };
+  const BALL_SKINS = {
+    'breakout.ball.neon':   { trail: '#ff3df0', halo: '#00e6ff', body: '#00ffff', core: '#eaffff' },
+    'breakout.ball.eight':  { trail: 'rgba(200,210,230,0.8)', halo: '#8a97ad', body: '#15161c', core: '#15161c', eight: true },
+    'breakout.ball.comet':  { trail: '#ff9a3c', halo: '#ff7a3c', body: '#ffb03a', core: '#fff2d0' },
+    'breakout.ball.disco':  { trail: '#ff7ab6', halo: '#b98cff', body: 'disco', core: '#ffffff' },
+    'breakout.ball.plasma': { trail: '#b98cff', halo: '#7a4dff', body: '#b98cff', core: '#f0e8ff' },
+  };
+  function skinOf(map, set, fallback) {
+    const id = KIT.cosmetics && KIT.cosmetics.selected(set);
+    return map[id] || map[fallback];
+  }
+
   function drawPaddle() {
     const pw = widePaddle > 0 ? paddleW * 1.6 : paddleW;
     const py = paddleY();
+    const sk = skinOf(PADDLE_SKINS, 'breakout.paddle', 'breakout.paddle.synthwave');
     ctx.save();
-    ctx.shadowColor = '#00ffff';
+    ctx.shadowColor = sk.glow;
     ctx.shadowBlur = 18;
     const gr = ctx.createLinearGradient(paddleX - pw / 2, py, paddleX + pw / 2, py + PADDLE_H);
-    gr.addColorStop(0, '#00ffff');
-    gr.addColorStop(1, '#0088aa');
+    sk.stops.forEach((c, i) => gr.addColorStop(i / (sk.stops.length - 1), c));
     ctx.fillStyle = gr;
     ctx.beginPath();
     ctx.roundRect(paddleX - pw / 2, py, pw, PADDLE_H, 6); // kit installs the polyfill
@@ -606,9 +632,12 @@
   }
 
   function drawBalls() {
+    const sk = skinOf(BALL_SKINS, 'breakout.ball', 'breakout.ball.neon');
+    // 'disco' cycles hue continuously; every other skin is a fixed colour set
+    const body = sk.body === 'disco' ? 'hsl(' + (((typeof performance !== 'undefined' && performance.now) ? performance.now() : 0) * 0.12 % 360) + ',100%,62%)' : sk.body;
     // trail — cheap additive glow. NO shadowBlur: with many balls this loop is the
     // main multiball perf cost (each blurred arc is far more expensive than a plain one).
-    ctx.fillStyle = '#ff3df0';
+    ctx.fillStyle = sk.body === 'disco' ? body : sk.trail;
     for (const t of trail) {
       ctx.globalAlpha = t.life * 0.30;
       ctx.beginPath(); ctx.arc(t.x, t.y, BALL_R * t.life * 0.8, 0, Math.PI * 2); ctx.fill();
@@ -617,13 +646,19 @@
     // balls — layered halo/body/core instead of a per-frame radial gradient + shadowBlur
     for (const b of balls) {
       ctx.globalAlpha = 0.3;
-      ctx.fillStyle = '#00e6ff';
+      ctx.fillStyle = sk.halo;
       ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R * 1.9, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
-      ctx.fillStyle = '#00ffff';
+      ctx.fillStyle = body;
       ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#eaffff';
-      ctx.beginPath(); ctx.arc(b.x - 1, b.y - 1, BALL_R * 0.5, 0, Math.PI * 2); ctx.fill();
+      if (sk.eight) { // 8-ball: white badge + the number instead of the shine dot
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R * 0.48, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#15161c'; ctx.font = 'bold ' + Math.round(BALL_R * 0.75) + 'px "Courier New"';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('8', b.x, b.y + 0.5);
+      } else {
+        ctx.fillStyle = sk.core;
+        ctx.beginPath(); ctx.arc(b.x - 1, b.y - 1, BALL_R * 0.5, 0, Math.PI * 2); ctx.fill();
+      }
     }
   }
 
