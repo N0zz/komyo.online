@@ -147,10 +147,11 @@ that feature offline. Games alias the API once: `const KIT = window.gamekit;`.
   render + share the neon card images; the Discord auto-post is consent-tiered
   (`gamekit.discordTier()`: no consent → nothing, consent → anonymous, Settings toggle → named).
 - `gamekit.pwa()` — SW registration + the ONE update policy (catalogue passes `'sw.js'`): a new build
-  reloads silently only pre-interaction (launch fast-path) or when the tab is backgrounded; an in-use
-  page just gets a dot on ☰ — apply via the ☰ Update button (`gamekit.updates.apply()`; the
-  catalogue's lives in Settings as "Update now"). Scope hand-overs are told apart from real updates
-  by the worker **script URL**, never by timing.
+  **never auto-reloads the visible page** — it lights a dot on ☰ (and the catalogue's Settings "Update
+  now") and the player applies it via the ☰ Update button (`gamekit.updates.apply()`). The only reloads
+  are that explicit apply and a **backgrounded tab** (invisible, non-disruptive). (The old pre-interaction
+  "launch fast-path" silent reload was removed — it raced the tap-to-play splash and forced a second
+  tap.) Scope hand-overs are told apart from real updates by the worker **script URL**, never by timing.
 - `gamekit.updates` — `check()` (fresh `version.js` vs the running build), `apply()` (update every
   scope's SW + reload), `state()`/`onChange(cb)`; `gamekit.buildInfo()` → `{sha, built, when, label}`
   (label = `sha · local deploy date+time`, shown by `versionTag()`, the ☰ panel and the catalogue

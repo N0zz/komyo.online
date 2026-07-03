@@ -1916,29 +1916,23 @@
   function pwa(file) {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
     var prevCtl = navigator.serviceWorker.controller || null;
-    // "has the player touched the page yet?" — gates the silent launch-time reload
-    var interacted = false;
-    var markTouch = function () { interacted = true; };
-    try {
-      if (typeof window !== 'undefined' && window.addEventListener) { window.addEventListener('pointerdown', markTouch, true); window.addEventListener('keydown', markTouch, true); window.addEventListener('touchstart', markTouch, true); }
-      if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('pointerdown', markTouch, true);
-    } catch (e) {}
     // A new worker took control. Two cases, told apart by the worker SCRIPT URL (not a timing guess):
     //  - different URL → scope hand-over (first visit: the catalogue's root SW briefly controls a game
     //    page until the game's own SW claims it) — same build, not an update, ignore;
-    //  - same URL → a genuinely new build of THIS page's worker is live. Untouched page → reload
-    //    silently (the launch fast-path). In-use page → light the ☰ badge and leave the player alone
-    //    (backgrounding the tab applies it silently; the ☰ Refresh button applies it on demand).
+    //  - same URL → a genuinely new build of THIS page's worker is live. We NEVER auto-reload the
+    //    visible page for it (the old "launch fast-path" silent reload raced the tap-to-play splash and
+    //    forced a second tap): a new build just lights the ☰ badge / catalogue "Update now" and the
+    //    player applies it when they choose. The only reloads are an explicit Update (_upApplying) and a
+    //    backgrounded tab (invisible, non-disruptive).
     navigator.serviceWorker.addEventListener('controllerchange', function () {
       var ctl = navigator.serviceWorker.controller || null;
       var handover = !prevCtl || !ctl || (ctl.scriptURL !== prevCtl.scriptURL);
       prevCtl = ctl;
       if (_swReloaded) return;
-      if (_upApplying) { doReload(); return; }             // the player pressed Refresh — finish it
+      if (_upApplying) { doReload(); return; }             // the player pressed Update — finish it
       if (handover) return;
-      _upState.available = true; _upState.controlled = true; upEmit(); // new build already controls; reload = updated
-      if (!interacted) { doReload(); return; }
-      if (typeof document !== 'undefined' && document.hidden) doReload();
+      _upState.available = true; _upState.controlled = true; upEmit(); // new build controls → badge only
+      if (typeof document !== 'undefined' && document.hidden) doReload(); // backgrounded → apply silently
     });
     if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('visibilitychange', function () {
       if (document.hidden && _upState.available && _upState.controlled) doReload(); // backgrounded → apply silently
