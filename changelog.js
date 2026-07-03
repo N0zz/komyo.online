@@ -4,7 +4,13 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
-  { date: '2026-07-03', title: 'Offline everywhere & title reveals ✨', items: [
+  { date: '2026-07-03', title: 'The Cosmetics shop is open 🎨', items: [
+    'New: spend your challenge trophies in the 🎨 Cosmetics store — skins for every game. Open it from the 🏆 Challenges panel (the gold COSMETICS pill) or your profile. Your points are now called trophies: your lifetime total still climbs the titles ladder, and your spendable balance buys cosmetics. Spending never slows your title.',
+    'New: pick your skin right in each game\'s menu — buy a locked one on the spot with trophies. Neon Snake food (Cherry, Golden Apple, Gem, Star Fruit, Rainbow Orb), Brick Breaker paddles & balls (Wood, Neon Ice, Lava, Chrome · 8-Ball, Comet, Disco, Plasma), Keep Defender castles (Oak, Sandcastle, Ice, Obsidian), Bubble Pop pop-effects & shooters, Range targets & hit markers, Stack block palettes, Asteroids ship colours (plus a whole-game CRT Green retro mode), and Asteroids+ hulls & engine trails.',
+    'New: Meadow Flyer\'s birds joined the cosmetics — buy any bird in any order with trophies. Your old banked coins converted straight into trophies (1:1) and every bird you\'d already unlocked stays yours.',
+    'New: desktop cursor skins for the whole site — Crosshair, Paw, Pixel Sword, Neon Comet and a Rainbow Trail (the last two leave a little wake as you move).',
+    'New: good runs now pay a small bonus — your first 3 good runs each day give +2 trophies each. The end-of-run screen shows the bonus as you earn it.',
+    'New: your profile shows how much of the collection you\'ve unlocked, and the Challenges panel shows your collection bar + today\'s good-run bonus.',
     'New: visit the homepage once and EVERY game saves itself for offline — play the whole catalogue on a plane or with no signal, even games you\'ve never opened.',
     'Fix: the "Update now" buttons (Settings and the in-game ☰ menu) no longer hang on "Updating…" — updating now finishes with a quick automatic reload.',
     'New: earning a new title lights a little gold dot on the ☰ menu — open it and your new title is revealed with a shine.',

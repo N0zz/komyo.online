@@ -12,7 +12,7 @@ window.GAMES = [
     tags: ["ARCADE", "SHOOTER"],
     badges: ["pick"],
     added: "2026-06-26",
-    updated: "2026-07-01",
+    updated: "2026-07-03",
   },
   {
     slug: "asteroids-plus",
@@ -32,7 +32,7 @@ window.GAMES = [
     accent: "#e0b25a",
     tags: ["STRATEGY"],
     added: "2026-06-26",
-    updated: "2026-07-01",
+    updated: "2026-07-03",
   },
 
   {
@@ -43,7 +43,7 @@ window.GAMES = [
     accent: "#2ee8c8",
     tags: ["PUZZLE", "CASUAL"],
     added: "2026-06-26",
-    updated: "2026-07-01",
+    updated: "2026-07-03",
   },
 
   // ---- coming soon ----
@@ -55,7 +55,7 @@ window.GAMES = [
     accent: "#ff5cc8",
     tags: ["ARCADE", "REFLEX"],
     added: "2026-06-26",
-    updated: "2026-07-01",
+    updated: "2026-07-03",
   },
   {
     slug: "invaders",
@@ -92,7 +92,7 @@ window.GAMES = [
     accent: "#ff9aa2",
     tags: ["REFLEX", "CASUAL"],
     added: "2026-06-26",
-    updated: "2026-07-01",
+    updated: "2026-07-03",
   },
   {
     slug: "icy-tower",
@@ -130,7 +130,7 @@ window.GAMES = [
     tags: ["CASUAL", "ARCADE"],
     badges: ["pick"],
     added: "2026-06-26",
-    updated: "2026-07-02",
+    updated: "2026-07-03",
   },
   {
     slug: "aim-trainer",
@@ -140,7 +140,7 @@ window.GAMES = [
     accent: "#ff7a3c",
     tags: ["SKILL", "SHOOTER"],
     added: "2026-06-26",
-    updated: "2026-07-01",
+    updated: "2026-07-03",
   },
   {
     slug: "spellcaster",
