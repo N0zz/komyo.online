@@ -1,8 +1,12 @@
 // Headless tests for Neon Snake — boots via the shared harness, drives window.__test.
-import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { bootGame, ok, section, summary, runLayoutSuite, ROOT } from '../../test-harness.mjs';
 
 const FILE = 'games/snake/index.html';
 const runGame = (opts) => bootGame(FILE, opts);
+const COSMETICS = fs.readFileSync(path.join(ROOT, 'cosmetics.js'), 'utf8');
+const CHALLENGES = fs.readFileSync(path.join(ROOT, 'challenges.js'), 'utf8');
 // bests live in the shared kit store (gamekit_pb), keyed by the human combo label (speed · walls[ · size])
 const pbScore = (store, mode) => { try { return ((JSON.parse(store['gamekit_pb'] || '{}').snake || {})[mode] || {}).score || 0; } catch (e) { return 0; } };
 
@@ -431,6 +435,34 @@ section('Neon Snake: board move handle stays clamped');
   ok(T().boardShiftX < 99999, 'landscape right: X shift is clamped, not unbounded (' + T().boardShiftX + ')');
   ok(T().boardShiftY === shiftYBefore, 'landscape nudges leave the portrait Y shift untouched (' + T().boardShiftY + ')');
   ok(L.arenaTop >= L.topReserve - 0.5, 'landscape: arena still clears HUD reserve (' + L.arenaTop + ' >= ' + L.topReserve + ')');
+}
+
+section('cosmetics — food skins');
+{
+  // FOOD group appears in the start menu when the registry is loaded (kit-owned select + buy)
+  const g = runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }) } });
+  ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
+  const menu = g.T().menu();
+  ok(menu && menu.selection()['snake.food'] === 'snake.food.apple', 'start menu carries the FOOD grid, defaulting to Apple');
+  // every skin renders without throwing (owned via store, selected, then a few frames)
+  const skins = ['apple', 'cherry', 'golden', 'gem', 'star', 'rainbow'];
+  for (const key of skins) {
+    const id = 'snake.food.' + key;
+    const owned = {}; owned[id] = { c: 0, t: 0 };
+    const g2 = runGame({ preCode: [CHALLENGES, COSMETICS], store: {
+      gamekit_pts_x10: '1', gamekit_flappy_migrated: '1',
+      gamekit_owned: JSON.stringify(owned), gamekit_cos_sel: JSON.stringify({ 'snake.food': id }),
+    } });
+    ok(g2.win.gamekit.cosmetics.selected('snake.food') === id, key + ': selection honoured');
+    g2.T().start();
+    g2.step(5); // render frames draw the skinned food
+    ok(g2.errors.length === 0, key + ': renders without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
+  }
+  // buying in the menu equips the skin for the run
+  const golden = () => g.win.gamekit.cosmetics;
+  ok(golden().buy('snake.food.golden') === true && golden().select('snake.food', 'snake.food.golden'), 'buy + select with trophies');
+  g.T().start(); g.step(3);
+  ok(g.errors.length === 0, 'runs with a bought skin without errors');
 }
 
 summary();

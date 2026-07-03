@@ -16,6 +16,7 @@
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
 <script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
 <script src="../../game-kit.js"></script>
 <style>
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -387,11 +388,13 @@
         ] },
         { id: 'speed', label: 'SPEED', style: 'slider', default: opts.speed, choices: [ { id: 'slow', label: 'Slow' }, { id: 'normal', label: 'Normal' }, { id: 'fast', label: 'Fast' } ] },
         { id: 'size', label: 'BOARD', default: opts.size, choices: [ { id: 'small', label: 'Small' }, { id: 'medium', label: 'Medium' }, { id: 'large', label: 'Large' } ] },
+        // cosmetics: food-skin picker (kit-owned select + buy-in-place with challenge trophies)
+        ...(KIT.cosmetics && window.COSMETICS ? [KIT.cosmetics.menuGroup('snake.food', { label: 'FOOD' })] : []),
       ],
       actions: [{ id: 'play', label: 'PLAY', primary: true }],
       hint: () => 'Arrows / WASD · swipe · on-screen D-pad on phones.',
-      onChange: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); best = loadBest(); if (bestEl) bestEl.textContent = best; KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); },
-      onPlay: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); startGame(); },
+      onChange: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); best = loadBest(); if (bestEl) bestEl.textContent = best; if (st['snake.food'] && KIT.cosmetics) KIT.cosmetics.select('snake.food', st['snake.food']); KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); },
+      onPlay: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); if (st['snake.food'] && KIT.cosmetics) KIT.cosmetics.select('snake.food', st['snake.food']); KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); startGame(); },
     });
     KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size });
   }
@@ -426,6 +429,54 @@
 
   // (options + per-combo bests now live in the shared gamekit.menu — see showStartMenu)
 
+  // ---- Food skins (cosmetics; selection + purchases live in the shared kit store) ----
+  function foodSkin() { return (KIT.cosmetics && KIT.cosmetics.selected('snake.food')) || 'snake.food.apple'; }
+  function drawFood(fx, fy, fr, pulse, ts) {
+    const id = foodSkin();
+    ctx.save();
+    if (id === 'snake.food.cherry') {
+      ctx.strokeStyle = '#7fe0a0'; ctx.lineWidth = Math.max(1.5, fr * 0.18);
+      ctx.beginPath(); ctx.moveTo(fx - fr * 0.5, fy); ctx.quadraticCurveTo(fx, fy - fr * 1.8, fx + fr * 0.7, fy - fr * 0.3); ctx.stroke();
+      ctx.shadowBlur = 14 + pulse * 8; ctx.shadowColor = '#ff4b4b';
+      ctx.fillStyle = '#ff4b4b'; ctx.beginPath(); ctx.arc(fx - fr * 0.5, fy + fr * 0.35, fr * 0.72, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#ff6b6b'; ctx.beginPath(); ctx.arc(fx + fr * 0.65, fy + fr * 0.15, fr * 0.72, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 4; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(fx - fr * 0.7, fy + fr * 0.15, fr * 0.18, 0, Math.PI * 2); ctx.fill();
+    } else if (id === 'snake.food.golden') {
+      ctx.shadowBlur = 22 + pulse * 14; ctx.shadowColor = '#ffd166';
+      ctx.fillStyle = '#ffd166'; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 6; ctx.fillStyle = '#fff8dc';
+      ctx.beginPath(); ctx.arc(fx - fr * 0.3, fy - fr * 0.3, fr * 0.3, 0, Math.PI * 2); ctx.fill();
+    } else if (id === 'snake.food.gem') {
+      ctx.translate(fx, fy); ctx.rotate(0.2 + pulse * 0.15);
+      const gg = ctx.createLinearGradient(-fr, -fr, fr, fr);
+      gg.addColorStop(0, '#b98cff'); gg.addColorStop(1, '#7fd0ff');
+      ctx.shadowBlur = 16 + pulse * 10; ctx.shadowColor = '#9f8cff'; ctx.fillStyle = gg;
+      ctx.beginPath(); ctx.moveTo(0, -fr * 1.15); ctx.lineTo(fr * 1.15, 0); ctx.lineTo(0, fr * 1.15); ctx.lineTo(-fr * 1.15, 0); ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0; ctx.strokeStyle = 'rgba(255,255,255,0.65)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(-fr * 0.5, -fr * 0.5); ctx.lineTo(fr * 0.5, fr * 0.5); ctx.stroke();
+    } else if (id === 'snake.food.star') {
+      ctx.translate(fx, fy); ctx.rotate((ts || 0) * 0.001);
+      ctx.shadowBlur = 16 + pulse * 10; ctx.shadowColor = '#ffd166'; ctx.fillStyle = '#ffe066';
+      const R = fr * 1.25, r2 = R * 0.45;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) { const rr = i % 2 ? r2 : R, a = -Math.PI / 2 + i * Math.PI / 5; ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * rr, Math.sin(a) * rr); }
+      ctx.closePath(); ctx.fill();
+    } else if (id === 'snake.food.rainbow') {
+      const hue = ((ts || 0) * 0.12) % 360, col = 'hsl(' + hue + ',100%,62%)';
+      ctx.shadowBlur = 18 + pulse * 12; ctx.shadowColor = col;
+      ctx.fillStyle = col; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 6; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(fx - fr * 0.3, fy - fr * 0.3, fr * 0.28, 0, Math.PI * 2); ctx.fill();
+    } else { // apple — the classic neon pip
+      ctx.shadowBlur = 18 + pulse * 12; ctx.shadowColor = '#f0f';
+      ctx.fillStyle = '#f0f'; ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 6; ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(fx - fr * 0.3, fy - fr * 0.3, fr * 0.28, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
   // ---- Render ----
   function render(ts) {
     ctx.clearRect(0, 0, W, H);
@@ -453,19 +504,11 @@
     }
 
     if (state === 'playing' || state === 'over') {
-      // Food — pulsing pip
+      // Food — pulsing pip, drawn in the selected cosmetic skin
       const pulse = 0.5 + 0.5 * Math.sin((ts || 0) * 0.004);
       const fx = cx(food.x) + cellW / 2, fy = cy(food.y) + cellH / 2;
       const fr = (cellW * 0.28) + pulse * cellW * 0.08;
-      ctx.save();
-      ctx.shadowBlur = 18 + pulse * 12;
-      ctx.shadowColor = '#f0f';
-      ctx.fillStyle = '#f0f';
-      ctx.beginPath(); ctx.arc(fx, fy, fr, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 6;
-      ctx.fillStyle = '#fff';
-      ctx.beginPath(); ctx.arc(fx - fr * 0.3, fy - fr * 0.3, fr * 0.28, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
+      drawFood(fx, fy, fr, pulse, ts);
 
       // Snake
       const len = snake.length;
