@@ -170,8 +170,9 @@
       g.fillStyle = '#111'; g.beginPath(); g.arc(cx + r * 0.4, cy - r * 0.3, r * 0.14, 0, 7); g.fill();
     };
   }
-  function cursorSwatch(draw) {
-    return function (g, w, h) { g.fillStyle = '#131a27'; g.fillRect(0, 0, w, h); g.save(); g.translate(w / 2, h / 2); g.scale(Math.min(w, h) / 34, Math.min(w, h) / 34); draw(g); g.restore(); };
+  // rot matches the in-use cursor's NW tilt (game-kit CURSOR_TWEAK) so the swatch previews the real thing
+  function cursorSwatch(draw, rot) {
+    return function (g, w, h) { g.fillStyle = '#131a27'; g.fillRect(0, 0, w, h); g.save(); g.translate(w / 2, h / 2); if (rot) g.rotate(rot); g.scale(Math.min(w, h) / 34, Math.min(w, h) / 34); draw(g); g.restore(); };
   }
   // cursor glyph painters draw in a 34×34 box centered on 0,0 — shared by the swatch AND the
   // kit's live cursor renderer (gamekit reads COSMETICS.cursors[key] to build the cursor image)
@@ -192,10 +193,10 @@
   // ---- Site-wide — cursor skins (desktop only; the kit applies the selected one) ----
   add('', 'cursor', 'classic',   'Classic',       0,   'The trusty arrow, as nature intended.', cursorSwatch(CURSORS.classic));
   add('', 'cursor', 'crosshair', 'Crosshair',     25,  'Pinpoint green crosshair — everything is a target.', cursorSwatch(CURSORS.crosshair));
-  add('', 'cursor', 'paw',       'Paw',           25,  'A soft pink paw pads across your screen.', cursorSwatch(CURSORS.paw));
+  add('', 'cursor', 'paw',       'Paw',           25,  'A soft pink paw pads across your screen.', cursorSwatch(CURSORS.paw, -0.7854));
   add('', 'cursor', 'sword',     'Pixel Sword',   50,  'Point with a tiny hero’s blade.', cursorSwatch(CURSORS.sword));
-  add('', 'cursor', 'comet',     'Neon Comet',    50,  'A glowing comet head with a neon tail.', cursorSwatch(CURSORS.comet));
-  add('', 'cursor', 'rainbow',   'Rainbow Trail', 100, 'Leaves a shimmering rainbow wake as you move.', cursorSwatch(CURSORS.rainbow));
+  add('', 'cursor', 'comet',     'Neon Comet',    50,  'A glowing comet head with a neon tail.', cursorSwatch(CURSORS.comet, -1.5708));
+  add('', 'cursor', 'rainbow',   'Rainbow Trail', 100, 'Leaves a shimmering rainbow wake as you move.', cursorSwatch(CURSORS.rainbow, -1.5708));
 
   // ---- 🐍 Neon Snake — food skins ----
   add('snake', 'food', 'apple',   'Apple',        0,   'The classic neon pip.', orb('#f0f', '#f0f'));

@@ -549,9 +549,9 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 .gamekit-shoppanel .gksp-allgames { font: 700 12px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-accent, #9fe8ff);
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 9px; padding: 8px 12px; cursor: pointer; white-space: nowrap; }
 .gamekit-shoppanel .gksp-allgames:hover { border-color: var(--gkm-accent, #9fe8ff); }
-/* tiles: a compact row — icon left, name + status stacked right */
-.gamekit-shoppanel .gksp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
-.gamekit-shoppanel .gksp-cell { position: relative; display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 9px; cursor: pointer;
+/* tiles: a compact row — icon left, name + status stacked right; auto-fill fits 4–5 across */
+.gamekit-shoppanel .gksp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); gap: 6px; }
+.gamekit-shoppanel .gksp-cell { position: relative; display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-radius: 9px; cursor: pointer;
   background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); }
 .gamekit-shoppanel .gksp-cell:hover { border-color: var(--gkm-accent, #9fe8ff); }
 .gamekit-shoppanel .gksp-cell.gksp-focus { box-shadow: inset 0 0 0 2px var(--gkm-accent, #9fe8ff); }
@@ -573,8 +573,22 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   border: none; cursor: pointer; color: var(--gk-shop-ink, #0a1420); background: var(--gkm-new, #ffd166); box-shadow: 0 0 14px rgba(255, 209, 102, 0.35); }
 .gamekit-shoppanel .gksp-buy:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
 .gamekit-shoppanel .gksp-buy.gksp-buy-equip { color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.08); box-shadow: none; border: 1px solid var(--gkm-accent, #9fe8ff); }
-@media (max-width: 620px) { .gamekit-shoppanel .gksp-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 380px) { .gamekit-shoppanel .gksp-grid { grid-template-columns: 1fr; } }
+@media (max-width: 420px) { .gamekit-shoppanel .gksp-grid { grid-template-columns: repeat(2, 1fr); } }
 
 /* site-wide cursor-trail overlay (Neon Comet / Rainbow Trail skins) */
 .gamekit-cursor-trail { position: fixed; inset: 0; z-index: 999999; pointer-events: none; }
+
+/* themed scrollbars inside every kit overlay — match the box's accent, never the OS default.
+   scrollbar-color inherits, so setting it on the overlay root cascades to all scrollable descendants. */
+.gamekit-shoppanel, .gamekit-menu, .gamekit-challenges, .gamekit-controls, .gamekit-embed, .gkm-picker-modal {
+  scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--gkm-accent, #9fe8ff) 45%, transparent) transparent; }
+.gamekit-shoppanel ::-webkit-scrollbar, .gamekit-menu ::-webkit-scrollbar, .gamekit-challenges ::-webkit-scrollbar,
+.gamekit-controls ::-webkit-scrollbar, .gamekit-embed ::-webkit-scrollbar, .gkm-picker-modal ::-webkit-scrollbar { width: 9px; height: 9px; }
+.gamekit-shoppanel ::-webkit-scrollbar-track, .gamekit-menu ::-webkit-scrollbar-track, .gamekit-challenges ::-webkit-scrollbar-track,
+.gamekit-controls ::-webkit-scrollbar-track, .gamekit-embed ::-webkit-scrollbar-track, .gkm-picker-modal ::-webkit-scrollbar-track { background: transparent; }
+.gamekit-shoppanel ::-webkit-scrollbar-thumb, .gamekit-menu ::-webkit-scrollbar-thumb, .gamekit-challenges ::-webkit-scrollbar-thumb,
+.gamekit-controls ::-webkit-scrollbar-thumb, .gamekit-embed ::-webkit-scrollbar-thumb, .gkm-picker-modal ::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--gkm-accent, #9fe8ff) 42%, transparent); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+.gamekit-shoppanel ::-webkit-scrollbar-thumb:hover, .gamekit-menu ::-webkit-scrollbar-thumb:hover, .gamekit-challenges ::-webkit-scrollbar-thumb:hover,
+.gamekit-controls ::-webkit-scrollbar-thumb:hover, .gamekit-embed ::-webkit-scrollbar-thumb:hover, .gkm-picker-modal ::-webkit-scrollbar-thumb:hover {
+  background: var(--gkm-accent, #9fe8ff); }

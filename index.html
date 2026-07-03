@@ -43,6 +43,12 @@
   * { box-sizing: border-box; }
   html, body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); }
   html { scrollbar-gutter: stable; }
+  /* themed scrollbars everywhere on the catalogue (drawers, modals, the page) — never the OS default */
+  * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, #9fe8ff 40%, transparent) transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--border) 70%, #9fe8ff); border-radius: 99px; border: 2px solid transparent; background-clip: padding-box; }
+  ::-webkit-scrollbar-thumb:hover { background: #9fe8ff; }
   /* an open dialog/drawer owns the scroll — the catalogue behind stays put */
   body:has(dialog[open]), body:has(.drawer.open) { overflow: hidden; }
   dialog, .drawer .dscroll { overscroll-behavior: contain; }
@@ -251,9 +257,11 @@
   .pf-collect-n { color:#e8c069; font-weight:700; font-variant-numeric:tabular-nums; }
   .pf-collect-bar { display:block; height:8px; margin-top:7px; border-radius:99px; background:rgba(255,255,255,0.08); overflow:hidden; }
   .pf-collect-bar i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#ffce5c,#ff9a5c); }
-  /* "Title · see ladder ›" link inside the profile title box */
-  .pf-title-link { background:none; border:none; padding:0; font:inherit; color:inherit; cursor:pointer; letter-spacing:inherit; }
-  .pf-title-link:hover { color:#ffce5c; }
+  /* "Title · see ladder ›" link inside the profile title box — a clear accent link (the faint
+     label colour washed out against high-tier title glows) */
+  .pf-title-link { background:none; border:none; padding:0; font:inherit; letter-spacing:inherit; cursor:pointer;
+    color:#bfe6ff; text-decoration:underline; text-underline-offset:2px; text-decoration-color:rgba(159,232,255,0.45); }
+  .pf-title-link:hover { color:#ffce5c; text-decoration-color:#ffce5c; }
   /* per-card column labels so the value column reads as "best" and the mode column is named */
   .pf-rhead { display:grid; grid-template-columns:1fr auto; gap:12px; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); padding-bottom:5px; margin-bottom:2px; border-bottom:1px solid var(--border); }
   .pf-rhead span:last-child { text-align:right; }
