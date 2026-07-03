@@ -1,8 +1,12 @@
 // Headless tests for Bubble Pop — boots via the shared harness, drives window.__test.
-import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { bootGame, ok, section, summary, runLayoutSuite, ROOT } from '../../test-harness.mjs';
 
 const FILE = 'games/bubbles/index.html';
 const runGame = (opts) => bootGame(FILE, opts);
+const COSMETICS = fs.readFileSync(path.join(ROOT, 'cosmetics.js'), 'utf8');
+const CHALLENGES = fs.readFileSync(path.join(ROOT, 'challenges.js'), 'utf8');
 // bests live in the shared kit store (gamekit_pb), keyed by the capitalized mode label
 const pbScore = (store, mode) => { try { return ((JSON.parse(store['gamekit_pb'] || '{}').bubbles || {})[mode] || {}).score || 0; } catch (e) { return 0; } };
 
@@ -387,6 +391,30 @@ section('Bubble Pop: shot glues to the descended top row, not the fixed ceiling'
   ok(lastY != null && lastY >= topRowY - R, 'shot stopped at the descended top row, not the fixed ceiling (lastY=' + (lastY == null ? 'null' : lastY.toFixed(1)) + ', topRowY=' + topRowY.toFixed(1) + ')');
   const inTopRow = (T6().grid[0] || []).some((ci, c) => ci === 1);
   ok(inTopRow, 'the new bubble glued into the top row (row 0)');
+}
+
+// ---- cosmetics: pop effects + shooter bases ----
+section('cosmetics — pop effects & shooter bases');
+{
+  const runCos = (store) => runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }), ...(store || {}) } });
+  const g = runCos();
+  ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
+  const menu = g.T ? null : null;
+  const m = g.test().menu();
+  ok(m && m.selection()['bubbles.pop'] === 'bubbles.pop.classic' && m.selection()['bubbles.base'] === 'bubbles.base.aqua',
+    'start menu carries POP + SHOOTER grids with the free defaults');
+  // each pop effect + base renders (with live particles) without error
+  const pops = ['classic', 'confetti', 'stars', 'fireworks'], bases = ['aqua', 'candy', 'gold'];
+  for (let i = 0; i < Math.max(pops.length, bases.length); i++) {
+    const pid = 'bubbles.pop.' + pops[i % pops.length], bid = 'bubbles.base.' + bases[i % bases.length];
+    const owned = {}; owned[pid] = { c: 0, t: 0 }; owned[bid] = { c: 0, t: 0 };
+    const g2 = runCos({ gamekit_owned: JSON.stringify(owned), gamekit_cos_sel: JSON.stringify({ 'bubbles.pop': pid, 'bubbles.base': bid }) });
+    g2.test().start();
+    g2.test().popAt(200, 300, 0); // spawn pop particles in this effect
+    g2.test().step(2); g2.test().render();
+    ok(g2.errors.length === 0, pops[i % pops.length] + ' + ' + bases[i % bases.length] + ': renders without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
+  }
+  ok(g.win.gamekit.cosmetics.buy('bubbles.pop.confetti') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy pop effect with trophies (75 left)');
 }
 
 summary();
