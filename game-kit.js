@@ -1987,11 +1987,11 @@
     }
     _menuArrange = arrange;
     if (!_menuArrangeWired) { _menuArrangeWired = true; layout.on(function () { if (_menuArrange) _menuArrange(); }); }
-    arrange();
 
     applyMenuTheme(ov, cfg.theme);
     document.body.appendChild(ov);
     _menuEl = ov; _menuKind = kind;
+    arrange(); // AFTER _menuEl is set — its stale-menu guard would no-op the initial pass otherwise
     if (bdCanvas) {
       _bdFrame = 0;
       _bdResize = function () { paintBackdrop(); };

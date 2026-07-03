@@ -175,9 +175,11 @@
   .gamekit-menu.gkm-split .gkm-hint { margin: 0; text-align: left; }
   .gamekit-menu.gkm-split .gkm-checkrow { text-align: left; }
   /* mid-compact cards: smaller preview, drop the sentence (the hint carries it), keep the chips */
-  .gamekit-menu.gkm-split .gkm-card { grid-template-columns: 56px 1fr; gap: 12px; padding: 8px 12px; }
-  .gamekit-menu.gkm-split .gkm-card-pv { width: 56px; height: 56px; }
-  .gamekit-menu.gkm-split .gkm-card-nm { font-size: 14px; }
+  .gamekit-menu.gkm-split .gkm-cards { gap: 8px; }
+  .gamekit-menu.gkm-split .gkm-card { grid-template-columns: 46px 1fr; gap: 11px; padding: 6px 11px; }
+  .gamekit-menu.gkm-split .gkm-card-pv { width: 46px; height: 46px; }
+  .gamekit-menu.gkm-split .gkm-card-nm { font-size: 13px; }
+  .gamekit-menu.gkm-split .gkm-card-body { gap: 5px; }
   .gamekit-menu.gkm-split .gkm-card-desc { display: none; }
   /* thumbnail grid auto-fits the pane width (more flyers → more columns, not more scrolling) */
   .gamekit-menu.gkm-split .gkm-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); margin: 0; }
