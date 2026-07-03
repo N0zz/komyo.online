@@ -838,10 +838,14 @@
     ctx.restore(); ctx.textAlign='start'; ctx.textBaseline='alphabetic'; }
   // CRT hull skin: a whole-game green-phosphor pass — multiply the frame toward green, then faint
   // scanlines + a green wash. One post-pass (cheap) instead of recolouring every enemy draw.
+  // scanlines + faint green wash. The multiply green (below, in render's post-pass) needs an OPAQUE
+  // backdrop to work — over a transparent canvas it floods every empty pixel solid green.
   function drawCRT(){ ctx.save(); ctx.globalCompositeOperation='multiply'; ctx.fillStyle='#2bff5a'; ctx.fillRect(0,0,W,H);
     ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=0.10; ctx.fillStyle='#000'; for(let y=0;y<H;y+=3) ctx.fillRect(0,y,W,1);
     ctx.globalAlpha=0.05; ctx.fillStyle='#0fff40'; ctx.fillRect(0,0,W,H); ctx.restore(); }
-  function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawNovas(); drawBlasts(); drawGems(); drawPickups(); drawAsteroids(); drawHunters(); drawSentries(); drawKamikazes(); drawBoss(); drawDrones(); drawBullets(); drawShip(); drawUpgrades(); ctx.shadowBlur=0; if(isCRT()) drawCRT(); }
+  function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0;
+    if(isCRT()){ ctx.fillStyle='#020a04'; ctx.fillRect(0,0,W,H); } // opaque near-black so the CRT multiply stays black on empty space
+    drawStars(); drawParticles(); drawNovas(); drawBlasts(); drawGems(); drawPickups(); drawAsteroids(); drawHunters(); drawSentries(); drawKamikazes(); drawBoss(); drawDrones(); drawBullets(); drawShip(); drawUpgrades(); ctx.shadowBlur=0; if(isCRT()) drawCRT(); }
 
   const STEP_MS = 1000/60; let _accT = 0, _lastT = now();
   function loop(){ requestAnimationFrame(loop); try { let _t=now(), _el=_t-_lastT; _lastT=_t; if(window.gamekit&&window.gamekit.isPaused&&window.gamekit.isPaused()){ srPrev=_t; render(); return; } if(_el>250) _el=250; _accT+=_el; let _g=0; while(_accT>=STEP_MS && _g<5){ update(); _accT-=STEP_MS; _g++; } render(); } catch(e){ if(window.console) console.error(e); } }
