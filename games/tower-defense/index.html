@@ -352,8 +352,11 @@
     KIT.fitCanvas(canvas, W, H);
     const portrait = H > W;
     // Reserve top room for the (center-top, possibly 2-row) HUD. Portrait drops the HUD to its
-    // own row under the nav, so it needs more headroom.
-    const topGap = portrait ? 108 : 78;
+    // own row under the nav, so it needs more headroom. Measure the real pill when possible —
+    // a wrapped HUD is taller than any constant (headless offsetHeight is 0/undefined → fallback).
+    let topGap = Math.max(KIT.layout.hudTop(), portrait ? 108 : 78);
+    const hudEl = document.getElementById('top');
+    if (hudEl && hudEl.offsetHeight) topGap = Math.max(topGap, hudEl.offsetTop + hudEl.offsetHeight + 8);
     topReserve = topGap;
     // Toolbar reserve: PORTRAIT → bottom bar (92px); LANDSCAPE → left strip (SIDEBAR px).
     const botGap = portrait ? 92 : 12;
