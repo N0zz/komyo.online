@@ -2,10 +2,14 @@
 // behind the ?v= flag, plus ?speedrun=1) — boots via the shared harness, drives window.__test
 // and the rAF loop (bespoke engine, not on gamekit.loop). (The roguelite variant is a separate
 // game — see games/asteroids-plus/test.mjs.)
-import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { bootGame, ok, section, summary, runLayoutSuite, ROOT } from '../../test-harness.mjs';
 
 // seeded RNG: spawn positions/rock shapes are random — a fixed seed makes runs reproducible
 const runGame = (file, opts = {}) => bootGame('games/asteroids/' + file, { seed: 0xA57E401D, ...opts });
+const COSMETICS = fs.readFileSync(path.join(ROOT, 'cosmetics.js'), 'utf8');
+const CHALLENGES = fs.readFileSync(path.join(ROOT, 'challenges.js'), 'utf8');
 
 // ---------------- Classic / Enhanced smoke tests ----------------
 function smokeClassic(file, { enhanced = false } = {}) {
@@ -136,5 +140,29 @@ runLayoutSuite(
   },
   { size: false } // scaled-world canvas — the scale-model assert above replaces the raw W/H match
 );
+
+// ---------------- cosmetics: ship colours + CRT tint ----------------
+section('cosmetics — ship skins');
+{
+  const runCos = (store) => bootGame('games/asteroids/index.html?v=classic', {
+    seed: 0xA57E401D, preCode: [CHALLENGES, COSMETICS],
+    store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }), ...(store || {}) },
+  });
+  const g = runCos();
+  ok(g.errors.length === 0, 'boots with cosmetics loaded: ' + g.errors[0]);
+  const menu = g.test().menu();
+  ok(menu && menu.selection()['asteroids.ship'] === 'asteroids.ship.cyan', 'start menu carries the SHIP grid, default cyan');
+  // each ship colour (incl. the whole-game CRT tint) renders a run without error
+  for (const key of ['cyan', 'emerald', 'crimson', 'violet', 'crt', 'gold']) {
+    const id = 'asteroids.ship.' + key;
+    const owned = {}; owned[id] = { c: 0, t: 0 };
+    const g2 = runCos({ gamekit_owned: JSON.stringify(owned), gamekit_cos_sel: JSON.stringify({ 'asteroids.ship': id }) });
+    ok(g2.win.gamekit.cosmetics.selected('asteroids.ship') === id, key + ': selection honoured');
+    g2.down('Enter'); g2.down('ArrowUp'); g2.down(' '); g2.step(60);
+    ok(g2.errors.length === 0, key + ': renders a run without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
+  }
+  // buy with trophies: emerald costs 10, balance starts 100
+  ok(g.win.gamekit.cosmetics.buy('asteroids.ship.emerald') === true && g.win.gamekit.cosmetics.balance() === 90, 'buy ship skin with trophies (90 left)');
+}
 
 summary();

@@ -153,6 +153,19 @@
     {level:3,score:1500,cooldown:9,label:'WEAPON III — SPREAD'},
   ];
 
+  // ---- cosmetics: ship colours (+ 'crt' = a whole-game green-phosphor tint). Selection/purchases
+  //      live in the shared kit store; 'cyan' renders exactly as the game always has. ----
+  const SHIP_SKINS = {
+    'asteroids.ship.cyan':    { ship:'#9fe8ff', glow:'rgba(120,200,255,0.9)' },
+    'asteroids.ship.emerald': { ship:'#5fe07a', glow:'rgba(95,224,122,0.9)' },
+    'asteroids.ship.crimson': { ship:'#ff5b5b', glow:'rgba(255,91,91,0.9)' },
+    'asteroids.ship.violet':  { ship:'#b98cff', glow:'rgba(185,140,255,0.9)' },
+    'asteroids.ship.gold':    { ship:'#ffd166', glow:'rgba(255,209,102,0.9)' },
+    'asteroids.ship.crt':     { ship:'#3aff5a', glow:'rgba(58,255,90,0.9)', crt:true },
+  };
+  function shipSkin(){ const id = (KIT && KIT.cosmetics) ? KIT.cosmetics.selected('asteroids.ship') : null; return SHIP_SKINS[id] || SHIP_SKINS['asteroids.ship.cyan']; }
+  function isCRT(){ return !!shipSkin().crt; }
+
   // per-game look for ALL asteroids menus (space cyan + violet glow) — structure/behaviour are the kit's.
   const MENU_THEME = { accent:'#9fe8ff', 'accent-soft':'rgba(159,232,255,0.18)', glow:'0 0 18px rgba(120,200,255,0.45)',
     bg:'radial-gradient(circle at 50% 26%, rgba(18,26,48,0.72), rgba(7,9,16,0.82))', border:'rgba(120,200,255,0.30)',
@@ -214,13 +227,15 @@
         { id:'enh', label:'CLASSIC+', tag:'UPGRADES', preview:pvEnh,
           mech: st => ['Endless','Weapon tiers', goalChip(st)],
           best: st => st.speedrun ? bestTime('classic-enhanced') : bestScore('classic-enhanced') },
-      ]} ],
+      ]},
+      // cosmetics: ship-colour picker (kit-owned select + buy-in-place with challenge trophies)
+      ...(KIT.cosmetics && window.COSMETICS ? [KIT.cosmetics.menuGroup('asteroids.ship', { label: 'SHIP' })] : []) ],
       toggles:[ { id:'speedrun', label:'SPEEDRUN', caption:'— race to '+SR_TARGET_SCORE+' pts against the clock', default: SPEEDRUN } ],
       hint: st => st.speedrun ? ('Speedrun — reach ' + SR_TARGET_SCORE + ' points as fast as you can.')
         : (st.mode==='enh' ? 'Classic+ — endless; score to upgrade your weapon.' : 'Classic — endless; rack up the highest score.'),
       actions:[ {id:'play',label:'PLAY ▶',primary:true} ],
-      onChange: st => KIT.stampUrl(modeParams(st)), // live: the address bar reflects your picks → shareable link
-      onPlay: st => { applyMode(st.mode==='enh'?'enh':'classic', !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
+      onChange: st => { if(st['asteroids.ship'] && KIT.cosmetics) KIT.cosmetics.select('asteroids.ship', st['asteroids.ship']); KIT.stampUrl(modeParams(st)); }, // live: the address bar reflects your picks → shareable link
+      onPlay: st => { if(st['asteroids.ship'] && KIT.cosmetics) KIT.cosmetics.select('asteroids.ship', st['asteroids.ship']); applyMode(st.mode==='enh'?'enh':'classic', !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
     });
     KIT.stampUrl(modeParams({ mode: ENHANCED?'enh':'classic', speedrun: SPEEDRUN })); // reflect the opening selection
   }
@@ -305,15 +320,18 @@
     }
   }
 
-  function drawStars(){ for(const s of stars){ s.tw+=s.ts; const a=s.a*(0.6+0.4*Math.sin(s.tw)); ctx.fillStyle='rgba(200,225,255,'+a+')'; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); } }
-  function drawShip(){ if(state!=='playing'&&state!=='paused') return; if(invuln>0 && Math.floor(invuln/6)%2===0) return;
-    ctx.save(); ctx.translate(ship.x,ship.y); ctx.rotate(ship.angle); ctx.strokeStyle='#9fe8ff'; ctx.lineWidth=2; ctx.shadowColor='rgba(120,200,255,0.9)'; ctx.shadowBlur=12;
+  function drawStars(){ const crt=isCRT(); for(const s of stars){ s.tw+=s.ts; const a=s.a*(0.6+0.4*Math.sin(s.tw)); ctx.fillStyle=crt?('rgba(120,255,140,'+a+')'):('rgba(200,225,255,'+a+')'); ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); } }
+  function drawShip(){ if(state!=='playing'&&state!=='paused') return; if(invuln>0 && Math.floor(invuln/6)%2===0) return; const sk=shipSkin();
+    ctx.save(); ctx.translate(ship.x,ship.y); ctx.rotate(ship.angle); ctx.strokeStyle=sk.ship; ctx.lineWidth=2; ctx.shadowColor=sk.glow; ctx.shadowBlur=12;
     ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(-12,-10); ctx.lineTo(-6,0); ctx.lineTo(-12,10); ctx.closePath(); ctx.stroke(); ctx.restore(); }
-  function drawAsteroids(){ for(const a of asteroids){ ctx.save(); ctx.translate(a.x,a.y); ctx.rotate(a.rot); ctx.strokeStyle='hsl('+a.hue+',60%,70%)'; ctx.lineWidth=2; ctx.shadowColor='hsla('+a.hue+',80%,60%,0.5)'; ctx.shadowBlur=8;
+  function drawAsteroids(){ const crt=isCRT(); for(const a of asteroids){ ctx.save(); ctx.translate(a.x,a.y); ctx.rotate(a.rot);
+    if(crt){ ctx.strokeStyle='hsl(130,80%,68%)'; ctx.shadowColor='hsla(130,90%,55%,0.5)'; } else { ctx.strokeStyle='hsl('+a.hue+',60%,70%)'; ctx.shadowColor='hsla('+a.hue+',80%,60%,0.5)'; } ctx.lineWidth=2; ctx.shadowBlur=8;
     ctx.beginPath(); a.verts.forEach((v,i)=>{ const px=Math.cos(v.ang)*v.d, py=Math.sin(v.ang)*v.d; if(i===0)ctx.moveTo(px,py); else ctx.lineTo(px,py); }); ctx.closePath(); ctx.stroke(); ctx.restore(); } }
-  function drawBullets(){ ctx.shadowColor='rgba(180,230,255,0.9)'; ctx.shadowBlur=8; ctx.fillStyle='#dff3ff'; for(const b of bullets){ ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); } }
-  function drawParticles(){ for(const p of particles){ ctx.fillStyle='rgba('+p.color+','+p.life+')'; ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); ctx.fill(); } }
-  function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawAsteroids(); drawBullets(); drawShip(); ctx.shadowBlur=0; }
+  function drawBullets(){ const crt=isCRT(); ctx.shadowColor=crt?'rgba(120,255,140,0.9)':'rgba(180,230,255,0.9)'; ctx.shadowBlur=8; ctx.fillStyle=crt?'#c8ffd0':'#dff3ff'; for(const b of bullets){ ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill(); } }
+  function drawParticles(){ const crt=isCRT(); for(const p of particles){ ctx.fillStyle=crt?('rgba(90,255,120,'+p.life+')'):('rgba('+p.color+','+p.life+')'); ctx.beginPath(); ctx.arc(p.x,p.y,p.size*p.life,0,Math.PI*2); ctx.fill(); } }
+  // CRT skin: a faint green vignette + horizontal scanlines over the whole playfield (1979 phosphor)
+  function drawCRT(){ ctx.save(); ctx.globalAlpha=0.06; ctx.fillStyle='#0fff40'; ctx.fillRect(0,0,W,H); ctx.globalAlpha=0.10; ctx.fillStyle='#000'; for(let y=0;y<H;y+=3) ctx.fillRect(0,y,W,1); ctx.restore(); }
+  function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawAsteroids(); drawBullets(); drawShip(); ctx.shadowBlur=0; if(isCRT()) drawCRT(); }
   const STEP_MS = 1000/60; let _accT = 0, _lastT = now();
   function loop(){ requestAnimationFrame(loop); try { let _t=now(), _el=_t-_lastT; _lastT=_t; if(window.gamekit&&window.gamekit.isPaused&&window.gamekit.isPaused()){ srPrev=_t; render(); return; } if(_el>250) _el=250; _accT+=_el; let _g=0; while(_accT>=STEP_MS && _g<5){ update(); _accT-=STEP_MS; _g++; } render(); } catch(e){ if(window.console) console.error(e); } }
 
