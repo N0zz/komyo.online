@@ -440,6 +440,8 @@
 .gamekit-share .sbtn:disabled { opacity: 0.55 !important; cursor: default !important; }
 
 /* "rotate your phone" overlay (gamekit.layout.requireOrientation) — for games locked to one orientation */
+/* while the rotate-lock splash is up, the left nav rides above it — quitting must not require rotating */
+body.gk-rotate-lock .gamekit-nav { z-index: 9100; }
 .gamekit-rotate { position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center;
   background: rgba(6, 9, 15, 0.96); color: #eaf2fb; text-align: center; padding: 24px; }
 .gamekit-rotate.show { display: flex; }
