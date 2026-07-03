@@ -204,6 +204,36 @@
   function buildStars(){ stars=[]; const c=Math.floor((W*H)/6000); for(let i=0;i<c;i++) stars.push({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.4+0.2,a:Math.random()*0.6+0.2,tw:Math.random()*Math.PI*2,ts:Math.random()*0.04+0.01}); }
 
   // ---- Upgrade pool ----
+  // per-upgrade menu icons — tiny laser-vector marks in a 24-unit space (scan without reading);
+  // drawn by the kit's shop cells via the icon: painter (picker + drydock share them)
+  const UP_ICONS = (() => {
+    const wrap = draw => (g, w, h) => {
+      g.save();
+      const s = Math.min(w, h) / 24;
+      g.setTransform(s, 0, 0, s, (w - 24 * s) / 2, (h - 24 * s) / 2);
+      g.strokeStyle = '#9fe8ff'; g.fillStyle = '#9fe8ff'; g.lineWidth = 1.9; g.lineCap = 'round'; g.lineJoin = 'round';
+      g.shadowColor = 'rgba(120,200,255,0.55)'; g.shadowBlur = 3;
+      draw(g);
+      g.restore();
+    };
+    const L = (g, ...pts) => { g.beginPath(); g.moveTo(pts[0], pts[1]); for (let i = 2; i < pts.length; i += 2) g.lineTo(pts[i], pts[i + 1]); g.stroke(); };
+    const C = (g, x, y, r, fill) => { g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); if (fill) g.fill(); else g.stroke(); };
+    return {
+      rapid: wrap(g => { L(g, 2, 8, 9, 8); L(g, 5, 12, 14, 12); L(g, 2, 16, 9, 16); L(g, 16, 8, 21, 12, 16, 16); }),
+      spread: wrap(g => { L(g, 3, 12, 11, 12); L(g, 4, 6, 11, 10); L(g, 4, 18, 11, 14); L(g, 14, 12, 21, 12); L(g, 14, 7, 20, 9); L(g, 14, 17, 20, 15); }),
+      heavy: wrap(g => { C(g, 15, 12, 4.5, true); g.lineWidth = 2.6; L(g, 2, 12, 8, 12); }),
+      long: wrap(g => { L(g, 2, 12, 19, 12); L(g, 15, 8, 20, 12, 15, 16); L(g, 5, 8, 5, 16); }),
+      pierce: wrap(g => { C(g, 9, 12, 3.4); C(g, 17, 12, 3.4); g.lineWidth = 1.4; L(g, 1, 12, 23, 12); }),
+      shield: wrap(g => { g.beginPath(); g.moveTo(12, 3); g.lineTo(20, 6); g.lineTo(20, 12); g.quadraticCurveTo(20, 19, 12, 21); g.quadraticCurveTo(4, 19, 4, 12); g.lineTo(4, 6); g.closePath(); g.stroke(); }),
+      hull: wrap(g => { L(g, 12, 2, 20, 7, 20, 17, 12, 22, 4, 17, 4, 7, 12, 2); g.globalAlpha = 0.55; L(g, 12, 8, 16, 10.5, 16, 15.5, 12, 18, 8, 15.5, 8, 10.5, 12, 8); }),
+      thrust: wrap(g => { L(g, 14, 4, 6, 12, 14, 20); L(g, 14, 8, 10, 12, 14, 16); g.lineWidth = 2.4; L(g, 17, 6, 17, 18); }),
+      orbital: wrap(g => { C(g, 12, 12, 7); C(g, 19.5, 7, 1.7, true); }),
+      drone: wrap(g => { L(g, 12, 4, 18, 14, 6, 14, 12, 4); g.globalAlpha = 0.55; g.beginPath(); g.moveTo(4, 19); g.quadraticCurveTo(8, 16.5, 12, 19); g.quadraticCurveTo(16, 21.5, 20, 19); g.stroke(); }),
+      nova: wrap(g => { C(g, 12, 12, 3); g.globalAlpha = 0.8; L(g, 12, 2, 12, 6); L(g, 12, 18, 12, 22); L(g, 2, 12, 6, 12); L(g, 18, 12, 22, 12); L(g, 5, 5, 7.8, 7.8); L(g, 16.2, 16.2, 19, 19); L(g, 19, 5, 16.2, 7.8); L(g, 7.8, 16.2, 5, 19); }),
+      auto: wrap(g => { C(g, 12, 12, 7); C(g, 12, 12, 1.8, true); L(g, 12, 5, 12, 2); L(g, 12, 22, 12, 19); L(g, 5, 12, 2, 12); L(g, 22, 12, 19, 12); }),
+      magnet: wrap(g => { g.beginPath(); g.moveTo(7, 3); g.lineTo(7, 11); g.arc(12, 11, 5, Math.PI, 0, true); g.lineTo(17, 3); g.stroke(); g.lineWidth = 2.4; L(g, 5, 4, 9, 4); L(g, 15, 4, 19, 4); g.globalAlpha = 0.6; g.lineWidth = 1.9; L(g, 9, 21, 12, 17, 15, 21); }),
+    };
+  })();
   const ALL_UPGRADES = [
     { id:'rapid',  name:'Rapid Fire',     desc:'Shoot faster (-cooldown).',        max:3, price:16 },
     { id:'spread', name:'Spread Shot',    desc:'+1 projectile in a wider arc.',    max:2, price:22 },
@@ -568,9 +598,10 @@
     // no backdrop → the kit menu box sits over the frozen playfield (mid-run); shop-style cards ARE the action
     KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:ttl,
       hint: () => 'Choose an upgrade' + (pendingPicks>1 ? (' · '+pendingPicks+' pending') : ''),
-      groups:[ { id:'pick', style:'shop', choices: pickOptions.map(u=>({ id:u.id, label:u.name, desc:u.desc })),
+      groups:[ { id:'pick', style:'shop', cols:3, choices: pickOptions.map(u=>({ id:u.id, label:u.name, desc:u.desc, icon:UP_ICONS[u.id] })),
         sub: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const maxed=lv>=u.max;
           return maxed ? ('RENEW · '+EXPIRE_WAVES+'w') : ((lv>0?('LV '+lv+' → '+(lv+1)):'NEW')+(EXPIRING.has(u.id)?(' · '+EXPIRE_WAVES+'w'):'')); },
+        pickLabel: (c) => 'TAKE ' + c.label + ' ▶',
         onPick: (id) => pickUpgrade(id) } ] });
   }
   function pickUpgrade(id){ if(state!=='levelup') return; applyUpgrade(id); pendingPicks--; if(pendingPicks>0){ openPicker(); } else { state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); } }
@@ -585,14 +616,16 @@
     KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:'DRYDOCK',
       banner: () => '◈ '+credits+' CREDITS',
       hint: () => 'Wave '+wave+' cleared — buy upgrades, then continue.',
-      groups:[ { id:'buy', style:'shop', choices: pool().map(u=>({ id:u.id, label:u.name, desc:u.desc })),
+      groups:[ { id:'buy', style:'shop', choices: pool().map(u=>({ id:u.id, label:u.name, desc:u.desc, icon:UP_ICONS[u.id] })),
         sub: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const exp=EXPIRING.has(u.id); const maxed=lv>=u.max; const renew=maxed&&exp; const cost=shopCost(u);
           const lvl = renew?('RENEW '+EXPIRE_WAVES+'w'):(maxed?'MAX':('LV '+lv+'/'+u.max)+(exp?(' · '+EXPIRE_WAVES+'w'):''));
           return '<span>'+lvl+'</span> · '+((maxed&&!renew)?'<span class="max">—</span>':('<span class="cost">◈ '+cost+'</span>')); },
+        pickLabel: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const renew=lv>=u.max&&EXPIRING.has(u.id); return (lv>=u.max&&!renew) ? 'MAXED' : ('BUY · ◈ '+shopCost(u)); },
         disabled: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const renew=lv>=u.max&&EXPIRING.has(u.id); const buyable=(lv<u.max||renew); return !(buyable && credits>=shopCost(u)); },
         onPick: (id) => buyUpgrade(id) } ],
-      actions:[ {id:'continue',label:'CONTINUE ▶',primary:true}, {id:'menu',label:'QUIT TO MENU',danger:true} ],
-      onAction:(id)=>{ if(id==='continue') closeShop(); else if(id==='menu') quitToMenu(); } }); }
+      // no quit here (decided 2026-07-03): leaving mid-shop = the nav ‹ Menu with its confirm
+      actions:[ {id:'continue',label:'CONTINUE ▶',primary:true} ],
+      onAction:(id)=>{ if(id==='continue') closeShop(); } }); }
   function buyUpgrade(id){ if(state!=='shop') return; const u=ALL_UPGRADES.find(x=>x.id===id); if(!u) return; const lv=up[u.id]||0;
     const renew=lv>=u.max && EXPIRING.has(u.id); if(lv>=u.max && !renew) return;   // maxed permanent → no buy; maxed expiring → renew
     const cost=shopCost(u); if(credits<cost) return; credits-=cost; applyUpgrade(u.id); }
@@ -812,7 +845,7 @@
     },
     spawnPickup(type){ pickups.push({x:ship.x,y:ship.y,type,vx:0,vy:0,life:540}); },
     dropReward(kind){ dropRewards(ship.x,ship.y,kind); }, get gemCount(){ return gems.length; }, get maxPickups(){ return MAX_PICKUPS; },
-    quitToMenu, menu(){ return KIT ? KIT.menu.current() : null; },
+    quitToMenu, openShop, menu(){ return KIT ? KIT.menu.current() : null; },
     start:startGame, clearEnemies(){ asteroids=[]; hunters=[]; sentries=[]; kamikazes=[]; bosses=[]; finalePending=false; },
     addScore(n){ score+=n; credits+=Math.floor(n/10); updateHud(); if(PROGRESSION==='milestones'){ while(score>=milestoneNext){ pendingPicks++; milestoneStep+=350; milestoneNext+=milestoneStep; } if(pendingPicks>0&&state==='playing') openPicker(); } },
     setScore(n){ score=n; updateHud(); },
