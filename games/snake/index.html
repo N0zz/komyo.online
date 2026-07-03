@@ -404,7 +404,7 @@
   function showEnd(newBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER', backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER', backdrop: menuBackdrop, backdropAnimate: true,
       score: score, best: best, newBest: newBest, lines: ['Length ' + (snake ? snake.length : 1) + ' · ' + SPD_LABEL[opts.speed] + ' · ' + SZ_LABEL[opts.size] + ' · ' + (opts.walls === 'wrap' ? 'Wrap' : 'Solid')],
       share: { slug: 'snake', accent: '#7fffb0', icon: '🐍', title: 'Neon Snake', message: () => shareMsg(), params: () => ({ walls: opts.walls, speed: opts.speed, size: opts.size }) },
       record: { slug: 'snake', mode: modeLabel(opts), score: score, stats: { length: snake ? snake.length : 1 } },
