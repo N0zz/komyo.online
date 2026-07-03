@@ -79,21 +79,25 @@
   .gamekit-au-btn { width: 30px; height: 30px; font-size: 12px; }
 }
 
-/* in-page confirm dialog (reset scores) */
-.gamekit-confirm { position: fixed; inset: 0; z-index: 9600; display: flex; align-items: center; justify-content: center; background: rgba(5, 8, 13, 0.66); }
-.gamekit-confirm-box { background: rgba(16, 22, 34, 0.98); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 14px; padding: 20px 22px;
-  max-width: min(340px, calc(100vw - 32px)); text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-  color: #eef2f8; font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; }
+/* in-page confirm dialog (reset scores / leave-run) — themed via the same --gkm-* vars as the menu,
+   so a game's confirm matches its menu; neutral kit palette when no theme is passed */
+.gamekit-confirm { position: fixed; inset: 0; z-index: 9600; display: flex; align-items: center; justify-content: center;
+  background: var(--gkm-overlay, rgba(5, 8, 13, 0.66)); }
+.gamekit-confirm-box { background: var(--gkm-bg, rgba(16, 22, 34, 0.98)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--gkm-radius, 14px); padding: 20px 22px;
+  max-width: min(340px, calc(100vw - 32px)); text-align: center; box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6));
+  color: var(--gkm-text, #eef2f8); font-family: var(--gkm-font, ui-monospace, "SFMono-Regular", Menlo, monospace); }
 .gamekit-confirm-box p { margin: 0 0 16px; font-size: 14px; line-height: 1.5; }
 .gamekit-confirm-btns { display: flex; gap: 10px; justify-content: center; }
-.gamekit-confirm-btns button { font: 600 12px/1 ui-monospace, monospace; letter-spacing: 1px; cursor: pointer; padding: 9px 16px; border-radius: 9px;
-  border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06); color: #eef2f8; }
-.gamekit-confirm-btns button:hover { border-color: #9fe8ff; }
+.gamekit-confirm-btns button { font: 600 12px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; cursor: pointer; padding: 9px 16px; border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06); color: var(--gkm-text, #eef2f8); }
+.gamekit-confirm-btns button:hover { border-color: var(--gkm-accent, #9fe8ff); }
 .gamekit-cf-yes { background: rgba(255, 90, 90, 0.2) !important; border-color: #ff8a8a !important; color: #fff !important; }
 /* hold-to-confirm: a red fill sweeps the button while held (--gk-hold set by the kit) */
 .gamekit-cf-yes.gkm-cf-hold { background-image: linear-gradient(90deg, rgba(255, 90, 90, 0.75), rgba(255, 90, 90, 0.75)) !important;
   background-size: var(--gk-hold, 0%) 100% !important; background-repeat: no-repeat !important; touch-action: none; }
-.gamekit-confirm-btns button.gkm-cf-focus { outline: 2px solid #9fe8ff; outline-offset: 2px; }
+.gamekit-confirm-btns button.gkm-cf-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
+.gamekit-cf-yes.gkm-cf-focus { outline-color: #ff8a8a; } /* destructive button: red focus ring, never the accent */
 .gamekit-sharemenu { width: min(320px, calc(100vw - 32px)); }
 .gamekit-sm-preview { display: block; width: 100%; max-height: 45vh; object-fit: contain; border-radius: 10px; margin: 0 0 14px;
   border: 1px solid rgba(255, 255, 255, 0.14); background: #0a121d; }
@@ -150,26 +154,31 @@
 .gamekit-menu.gkm-wide .gkm-box { width: min(640px, 100%); }
 .gamekit-menu-start .gkm-title { font-size: 30px; letter-spacing: 5px; }
 
-/* landscape phones: two-pane cards menu — title + actions become a left rail, the cards scroll
-   in the right pane. Landscape has spare width, not height; the stacked layout couldn't even show
-   one whole card there. Portrait + desktop keep the stacked layout. */
+/* landscape phones: split menu — the big list (mode cards / thumbnail grid / shop) scrolls on the
+   LEFT, and the title + simple selectors/toggles/hint (moved into .gkm-rail by the kit) + actions
+   stack in a RIGHT rail, so nothing hides below the fold. Portrait + desktop keep the stacked
+   layout (the kit moves the rail content back). */
 @media (orientation: landscape) and (max-height: 560px) {
   .gamekit-menu { padding: 46px 12px 10px; }
-  .gamekit-menu.gkm-wide .gkm-box { width: min(720px, 100%); display: grid;
-    grid-template-columns: minmax(170px, 205px) 1fr; grid-template-rows: auto 1fr;
-    grid-template-areas: "title scroll" "actions scroll"; column-gap: 18px; row-gap: 10px;
-    padding: 16px 18px; text-align: left; }
-  .gamekit-menu.gkm-wide .gkm-title { grid-area: title; margin: 0; font-size: 21px; letter-spacing: 3px; }
-  .gamekit-menu.gkm-wide .gkm-scroll { grid-area: scroll; min-height: 0;
-    border-left: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.12)); padding-left: 16px; }
-  .gamekit-menu.gkm-wide .gkm-actions { grid-area: actions; align-self: end; margin: 0; padding: 0; border-top: none; }
-  .gamekit-menu.gkm-wide .gkm-sec { margin: 0 0 8px; }
+  .gamekit-menu.gkm-split .gkm-box { width: min(740px, 100%); display: grid;
+    grid-template-columns: 1fr minmax(190px, 230px); grid-template-rows: auto 1fr auto;
+    grid-template-areas: "big title" "big rail" "big actions"; column-gap: 16px; row-gap: 10px;
+    padding: 14px 18px; text-align: left; }
+  .gamekit-menu.gkm-split .gkm-title { grid-area: title; margin: 0; font-size: 20px; letter-spacing: 2px; text-align: left; }
+  .gamekit-menu.gkm-split .gkm-scroll { grid-area: big; min-height: 0;
+    border-right: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.12)); padding-right: 14px; }
+  .gamekit-menu.gkm-split .gkm-rail { grid-area: rail; min-height: 0; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 10px; }
+  .gamekit-menu.gkm-split .gkm-actions { grid-area: actions; align-self: end; margin: 0; padding: 0; border-top: none; }
+  .gamekit-menu.gkm-split .gkm-sec { margin: 0 0 8px; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-sec { margin: 0; }
+  .gamekit-menu.gkm-split .gkm-hint { margin: 0; text-align: left; }
+  .gamekit-menu.gkm-split .gkm-checkrow { text-align: left; }
   /* mid-compact cards: smaller preview, drop the sentence (the hint carries it), keep the chips */
-  .gamekit-menu.gkm-wide .gkm-card { grid-template-columns: 56px 1fr; gap: 12px; padding: 8px 12px; }
-  .gamekit-menu.gkm-wide .gkm-card-pv { width: 56px; height: 56px; }
-  .gamekit-menu.gkm-wide .gkm-card-nm { font-size: 14px; }
-  .gamekit-menu.gkm-wide .gkm-card-desc { display: none; }
-  .gamekit-menu.gkm-wide .gkm-hint { margin: 10px 0 0; }
+  .gamekit-menu.gkm-split .gkm-card { grid-template-columns: 56px 1fr; gap: 12px; padding: 8px 12px; }
+  .gamekit-menu.gkm-split .gkm-card-pv { width: 56px; height: 56px; }
+  .gamekit-menu.gkm-split .gkm-card-nm { font-size: 14px; }
+  .gamekit-menu.gkm-split .gkm-card-desc { display: none; }
 }
 
 /* ---- mode cards (style:'cards') — preview left, text column right ---- */

@@ -288,6 +288,7 @@
     ov.innerHTML = '<div class="gamekit-confirm-box"><p>' + msg + '</p><div class="gamekit-confirm-btns">'
       + '<button class="gamekit-cf-no" type="button">Cancel</button>'
       + '<button class="gamekit-cf-yes' + (holdMs ? ' gkm-cf-hold' : '') + '" type="button">' + (yesLabel || 'OK') + '</button></div></div>';
+    applyMenuTheme(ov, opts && opts.theme); // match the game's menu look (falls back to the neutral kit palette)
     document.body.appendChild(ov);
     var no = ov.querySelector ? ov.querySelector('.gamekit-cf-no') : null;
     var yes = ov.querySelector ? ov.querySelector('.gamekit-cf-yes') : null;
@@ -904,7 +905,7 @@
       var rb = document.getElementById('gamekitReset');
       if (rb) rb.addEventListener('click', function () {
         setMore(false);
-        confirmDialog('Reset your saved scores for this game?', function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} }, 'Hold to reset', null, { hold: 3000 });
+        confirmDialog('Reset your saved scores for this game?', function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} }, 'Hold to reset', null, { hold: 3000, theme: opts.theme });
       });
     }
     var eb = document.getElementById('gamekitEmbed');
@@ -992,7 +993,7 @@
       var guarded = function (doLeave) {
         var msg = leaveMsg();
         // confirmDialog opens an overlay (isPaused → game halts under it); cancel resumes automatically
-        if (msg) confirmDialog(msg, doLeave, 'Leave', null);
+        if (msg) confirmDialog(msg, doLeave, 'Leave', null, { theme: opts.theme });
         else doLeave();
       };
       if (menu) menu.addEventListener('click', function () {
@@ -1602,6 +1603,7 @@
   // --gkm-overlay / --gkm-radius / --gkm-font). A game themes them in its own CSS, or passes a
   // `theme` object to menu.show() (short keys → those vars) for per-screen tweaks.
   var _menuEl = null, _menuKey = null, _menuHandle = null, _menuKind = null;
+  var _menuArrange = null, _menuArrangeWired = false; // current menu's split-layout arranger (one shared layout hook)
   var _recRun = 1, _recDone = 0; // record idempotency: run counter (armed by menuHide) vs last run recorded
   var _bdRaf = 0, _bdFrame = 0, _bdResize = null; // per-menu backdrop canvas: rAF id, frame counter, resize listener
   // ---------- build info + update engine (gamekit.updates) ----------
@@ -1690,7 +1692,7 @@
     if (_bdRaf && typeof cancelAnimationFrame === 'function') { try { cancelAnimationFrame(_bdRaf); } catch (e) {} } _bdRaf = 0;
     if (_bdResize && typeof window !== 'undefined' && window.removeEventListener) { try { window.removeEventListener('resize', _bdResize); } catch (e) {} } _bdResize = null;
     if (_menuEl) { try { if (_menuEl.parentNode) _menuEl.parentNode.removeChild(_menuEl); } catch (e) {} _menuEl = null; }
-    _menuHandle = null; _menuKind = null;
+    _menuHandle = null; _menuKind = null; _menuArrange = null;
   }
   // public hide = a game dismissing the menu (a new run starts) → arm the next cfg.record.
   // menuShow's internal rebuild uses menuTeardown directly so a re-shown end menu can't re-record.
@@ -1743,13 +1745,16 @@
     var toggles = cfg.toggles || [];
     var actions = cfg.actions || [];
     var hasCards = false;
+    // big-list groups (cards/grid/shop) drive the landscape-phone split layout: the list pane left,
+    // title + simple selectors/toggles/hint + actions in a right rail (nothing hidden below the fold)
+    var BIG_STYLES = { cards: 1, grid: 1, shop: 1 }, hasBig = false, bigNodes = [];
     var sel = {}, tog = {};
     function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
-    groups.forEach(function (g2) { sel[g2.id] = (g2['default'] != null ? g2['default'] : (g2.choices && g2.choices[0] ? g2.choices[0].id : null)); if (g2.style === 'cards') hasCards = true; });
+    groups.forEach(function (g2) { sel[g2.id] = (g2['default'] != null ? g2['default'] : (g2.choices && g2.choices[0] ? g2.choices[0].id : null)); if (g2.style === 'cards') hasCards = true; if (BIG_STYLES[g2.style]) hasBig = true; });
     toggles.forEach(function (t) { tog[t.id] = !!t['default']; });
     function state() { var o = {}, k; for (k in sel) if (has(sel, k)) o[k] = sel[k]; for (k in tog) if (has(tog, k)) o[k] = tog[k]; return o; }
 
-    var ov = document.createElement('div'); ov.className = 'gamekit-menu gamekit-menu-' + kind + (hasCards ? ' gkm-wide' : '');
+    var ov = document.createElement('div'); ov.className = 'gamekit-menu gamekit-menu-' + kind + (hasCards ? ' gkm-wide' : '') + (hasBig ? ' gkm-split' : '');
     var bdCanvas = (typeof cfg.backdrop === 'function') ? mkEl('canvas', 'gkm-backdrop') : null; // per-game art behind a frosted box
     if (bdCanvas) ov.appendChild(bdCanvas);
     var box = mkEl('div', 'gkm-box'); ov.appendChild(box);
@@ -1774,7 +1779,9 @@
 
     var choiceRefs = [], pickRefs = [], dynamic = [], popupRefs = []; // dynamic[]: per-card updater(state); pickRefs: shop action-cells; popupRefs: map-picker triggers
     groups.forEach(function (g2) {
-      if (g2.label != null) scroll.appendChild(mkEl('div', 'gkm-sec', g2.label));
+      var secEl = null;
+      if (g2.label != null) { secEl = mkEl('div', 'gkm-sec', g2.label); scroll.appendChild(secEl); }
+      if (BIG_STYLES[g2.style] && secEl) bigNodes.push(secEl); // the big list keeps its heading in its pane
       if (g2.style === 'cards') {
         var list = mkEl('div', 'gkm-cards');
         (g2.choices || []).forEach(function (c) {
@@ -1802,7 +1809,7 @@
             desc.textContent = evalVal(c.desc, st) || '';
           });
         });
-        scroll.appendChild(list);
+        scroll.appendChild(list); bigNodes.push(list);
       } else if (g2.style === 'slider') {
         // segmented slider: a track + thumb driven by selection; each stop label IS a focusable choice
         var chs = g2.choices || [], nS = chs.length;
@@ -1845,7 +1852,7 @@
               : (c.sub != null ? evalVal(c.sub, st) : (c.best != null ? ('BEST ' + fmtScore(evalVal(c.best, st))) : ''));
           });
         });
-        scroll.appendChild(gr);
+        scroll.appendChild(gr); bigNodes.push(gr);
       } else if (g2.style === 'popup') {
         // map-picker: a trigger showing the current choice; opens a modal (list + description) to change it
         var chsP = g2.choices || [];
@@ -1903,7 +1910,7 @@
             ref.disabled = dis; if (cell.classList) cell.classList.toggle('gkm-disabled', dis);
           });
         });
-        scroll.appendChild(shopWrap);
+        scroll.appendChild(shopWrap); bigNodes.push(shopWrap);
       } else {
         var row = mkEl('div', 'gkm-row');
         (g2.choices || []).forEach(function (c) {
@@ -1950,6 +1957,32 @@
       });
       box.appendChild(arow);
     }
+
+    // landscape-phone split: move everything that ISN'T a big list (simple selector rows, sliders,
+    // toggles, lines, hint) into a right-hand rail next to the title/actions; moved back on rotate.
+    // Nodes are re-parented (not rebuilt) so listeners, canvas bitmaps and selection state survive.
+    var railEl = null, splitOn = false, stackOrder = null;
+    function arrange() {
+      if (!hasBig || _menuEl !== ov) return;
+      var want = false;
+      try { want = vw() > vh() && vh() <= 560; } catch (e) {} // mirrors the CSS media query
+      if (want === splitOn) return;
+      try {
+        if (!stackOrder) stackOrder = Array.prototype.slice.call(scroll.childNodes || []);
+        if (want) {
+          if (!railEl) railEl = mkEl('div', 'gkm-rail');
+          box.appendChild(railEl); // grid areas place it — DOM position is irrelevant
+          stackOrder.forEach(function (n) { if (bigNodes.indexOf(n) < 0) railEl.appendChild(n); });
+        } else {
+          stackOrder.forEach(function (n) { scroll.appendChild(n); }); // restores the built order
+          if (railEl && railEl.parentNode) railEl.parentNode.removeChild(railEl);
+        }
+        splitOn = want;
+      } catch (e) {}
+    }
+    _menuArrange = arrange;
+    if (!_menuArrangeWired) { _menuArrangeWired = true; layout.on(function () { if (_menuArrange) _menuArrange(); }); }
+    arrange();
 
     applyMenuTheme(ov, cfg.theme);
     document.body.appendChild(ov);
