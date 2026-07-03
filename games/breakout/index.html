@@ -672,7 +672,10 @@
   // RIGHT half to slide right (drag your thumb across the middle to switch). Mouse / pen stay
   // ABSOLUTE (paddle follows the cursor) so desktop aiming is unchanged.
   let holdDir = 0, touchId = null;
-  if (((typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches) || (typeof window !== 'undefined' && 'ontouchstart' in window)) && document.body) document.body.classList.add('bktouch');
+  function markTouch() { if (document.body) document.body.classList.add('bktouch'); }
+  if ((typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches)
+    || (typeof window !== 'undefined' && 'ontouchstart' in window)
+    || (typeof navigator !== 'undefined' && (navigator.maxTouchPoints || 0) > 0)) markTouch();
   function cx(e, r) { return (e.clientX - r.left) * (W / r.width); }
   function sideDir(e, r) { return cx(e, r) < W / 2 ? -1 : 1; }
   canvas.addEventListener('pointermove', e => {
@@ -682,7 +685,7 @@
   });
   canvas.addEventListener('pointerdown', e => {
     const r = canvas.getBoundingClientRect();
-    if (e.pointerType === 'touch') { touchId = e.pointerId; holdDir = sideDir(e, r); }
+    if (e.pointerType === 'touch') { markTouch(); touchId = e.pointerId; holdDir = sideDir(e, r); }
     else paddleTarget = cx(e, r);
     if (state === 'playing') launch();
   });
