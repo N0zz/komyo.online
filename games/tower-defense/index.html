@@ -129,11 +129,17 @@
     .map-btn .desc { font-size:10px; line-height:1.3; } /* keep the blurb, just smaller in landscape */
   }
 
-  /* short screens (landscape phones): slim the HUD pill — inline labels, tiny fonts, top row only
-     a few px tall (the resize() measurement reserves whatever it actually wraps to) */
-  @media (max-height:560px) {
-    #top.gamekit-hud { top:6px; gap:2px 10px; padding:2px 10px; font-size:11px; letter-spacing:.5px; border-radius:8px; }
+  /* small screens (either axis): slim the HUD pill — inline labels, tiny fonts; the resize()
+     measurement reserves whatever it actually wraps to */
+  @media (max-width:560px), (max-height:560px) {
+    #top.gamekit-hud { gap:2px 10px; padding:2px 10px; font-size:11px; letter-spacing:.5px; border-radius:8px; }
     #top .lbl { display:inline; font-size:8px; letter-spacing:1px; margin:0 2px 0 0; }
+  }
+  @media (max-height:560px) { #top.gamekit-hud { top:6px; } }
+  /* portrait keeps the pill on its own row below the nav at EVERY width — the kit only drops it
+     ≤560px, but TD's 8-stat pill is too wide to share the button row on tablets/vertical windows */
+  @media (orientation: portrait) and (min-width: 561px) {
+    #top.gamekit-hud { top:50px; max-width:calc(100vw - 32px); }
   }
 
   #shareRow { --gamekit-accent:#e0b25a; }
