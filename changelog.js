@@ -28,6 +28,8 @@ window.CHANGELOG = [
     'Fix: open menus and panels no longer let the page behind them scroll.',
     'Fix: genre tags on the game tiles are easier to read (better contrast), and the homepage no longer shifts while tiles load on phones.',
     'New: challenge points got 10× bigger — dailies now pay 10, weeklies 50, and every title threshold scaled with them. Your saved points were multiplied too, so nobody lost a thing.',
+    'New: daily challenges are properly shuffled now — a different surprise each day (same one for everyone), instead of marching through an easy week then a brutal week.',
+    'New: challenge targets retuned across every game after a review — Asteroids+ goals dropped from a marathon 50k/150k to 15k/30k, Keep Defender asks for wave 5 or wave 10 (no more duplicate goal), Asteroids gained a harder 8k tier, and Snake/Bubble Pop/Stack/Meadow Flyer targets adjusted. A "good run" now means clearing the harder daily bar.',
     'Fix: Keep Defender\'s score bar sits on its own row in portrait at every screen size (it could slide under the top buttons on tablets), and it\'s a slim strip on phones now.',
     'Improved: on a phone held sideways the homepage header is compact, so the games are visible right away.',
   ] },
