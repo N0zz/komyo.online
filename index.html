@@ -1251,15 +1251,23 @@
     (function () {
       const scrim = document.getElementById('scrim');
       const menu = document.getElementById('menuDrawer'), chal = document.getElementById('chalDrawer');
+      // hiding a drawer that still contains the focused element trips the aria-hidden rule —
+      // blur first, and use inert so nothing inside stays focusable while hidden
+      const hide = d => {
+        if (!d) return;
+        try { if (d.contains && d.contains(document.activeElement) && document.activeElement.blur) document.activeElement.blur(); } catch (e) {}
+        d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); d.inert = true;
+      };
       const close = () => {
-        [menu, chal].forEach(d => { if (d) { d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); } });
+        [menu, chal].forEach(hide);
         if (scrim) scrim.classList.remove('show');
       };
       window.__closeDrawers = close;
+      [menu, chal].forEach(d => { if (d) d.inert = true; }); // both start closed
       const open = el => {
         if (!el) return;
-        [menu, chal].forEach(d => { if (d && d !== el) { d.classList.remove('open'); d.setAttribute('aria-hidden', 'true'); } });
-        el.classList.add('open'); el.setAttribute('aria-hidden', 'false');
+        [menu, chal].forEach(d => { if (d && d !== el) hide(d); });
+        el.inert = false; el.classList.add('open'); el.setAttribute('aria-hidden', 'false');
         if (scrim) scrim.classList.add('show');
         const x = el.querySelector('[data-close]'); if (x && x.focus) x.focus();
       };
