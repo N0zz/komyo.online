@@ -884,7 +884,7 @@
   });
 
   // ---- top nav (game-kit) ----
-  KIT.nav({ slug: 'flappy', music: true, home: '../../', theme: FLAPPY.day, onMenu: () => toMenu(),
+  KIT.nav({ slug: 'flappy', music: true, home: '../../', theme: () => FLAPPY[mode], onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Meadow Flyer — Controls',
