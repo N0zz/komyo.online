@@ -280,6 +280,8 @@
   .pf-tb-pts span { display:block; font-size:8.5px; font-weight:400; letter-spacing:1px; color:var(--faint); margin-top:2px; }
   .pf-tb-mini { font-size:12px; color:var(--muted); white-space:nowrap; }
   .pf-tb-mini b { color:var(--text); font-variant-numeric:tabular-nums; }
+  button.pf-tb-cos { background:none; border:none; padding:0; font:inherit; font-size:12px; cursor:pointer; text-align:right; }
+  button.pf-tb-cos:hover b { color:#ffce5c; }
   .pf-pfx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
   .pf-halo { position:absolute; inset:-8px -18px; z-index:0; border-radius:50%; filter:blur(14px); opacity:0; pointer-events:none; }
   .pf-sh { position:relative; z-index:1; font-family:var(--mono); font-weight:700; letter-spacing:.5px; }
@@ -537,6 +539,18 @@
   .streak:hover { border-color:#ffce5c; background:rgba(255,206,92,0.14); }
   .streak .streak-i { width:15px; height:15px; border-radius:50%; border:1px solid color-mix(in srgb,#ffce5c 60%,transparent); display:inline-flex; align-items:center; justify-content:center; font:700 10px/1 var(--mono); color:color-mix(in srgb,#ffce5c 80%,transparent); }
   .streak:hover .streak-i { color:#0c111c; background:#ffce5c; border-color:#ffce5c; }
+  /* trophies pill + gold COSMETICS pill row, the collection bar and the good-run bonus line */
+  .cpills { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .cpills .streak { align-self:auto; margin:12px 0 2px; }
+  .cshop { display:inline-flex; align-items:center; gap:6px; margin:12px 0 2px; font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:0.5px;
+    color:#0a1420; background:#ffce5c; border:1px solid #ffce5c; border-radius:999px; padding:5px 12px; cursor:pointer;
+    box-shadow:0 0 12px rgba(255,206,92,0.35); }
+  .cshop:hover { filter:brightness(1.08); }
+  .ccollect { display:flex; align-items:center; gap:10px; margin:10px 4px 0; }
+  .ccollect .cbar { flex:1; height:8px; border-radius:99px; background:rgba(255,255,255,0.09); overflow:hidden; }
+  .ccollect .cbar i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#ffce5c,#ff9a5c); }
+  .ccollect .cbar-txt { font-family:var(--mono); font-size:10.5px; font-weight:700; color:var(--faint); white-space:nowrap; }
+  .cbonus { font-size:11.5px; color:var(--muted); margin:8px 4px 0; }
   .csec { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:12px 4px 2px; }
   .cc { margin:6px 0; border:1px solid var(--border); border-radius:12px; padding:12px 13px; background:var(--surface); }
   .cc .top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; }
@@ -727,7 +741,12 @@
     <div class="dresize" title="Drag to resize"></div>
     <div class="dh"><span class="dt">🏆 Challenges</span><button class="dx" data-close aria-label="Close challenges">✕</button></div>
     <div class="dscroll">
-      <button class="streak" id="chalStreak" type="button" title="What do points get you?">🔥 0 points</button>
+      <div class="cpills">
+        <button class="streak" id="chalStreak" type="button" title="What do trophies get you?">🏆 0 trophies</button>
+        <button class="cshop" id="chalShop" type="button" title="Spend trophies on cosmetics" hidden>🎨 COSMETICS · 🏆 0</button>
+      </div>
+      <div class="ccollect" id="chalCollect" hidden><div class="cbar"><i></i></div><span class="cbar-txt"></span></div>
+      <div class="cbonus" id="chalBonus" hidden></div>
       <div class="csec">Today</div>
       <div id="chalToday"></div>
       <div class="csec">This week</div>
@@ -870,7 +889,7 @@
   <dialog id="titlesModal">
     <div class="about titles">
       <div class="cl-head"><h3>🏆 Titles</h3><button type="button" class="dx" id="titlesClose" aria-label="Close">✕</button></div>
-      <p class="tl-sub">Earn challenge points to climb the ladder — your title shows on your profile. More rewards are coming later.</p>
+      <p class="tl-sub">Earn trophies to climb the ladder — your title shows on your profile. Titles read <b>lifetime</b> trophies, so spending on cosmetics never slows you down.</p>
       <div class="tl-list" id="titlesList"></div>
     </div>
   </dialog>
@@ -884,8 +903,8 @@
       <p class="faq-a">There are <b>no accounts</b> — komyo has no logins and no server that keeps your stuff. Your scores, progress, favorites and settings live <b>only in your browser, on this device</b>. The optional exceptions, both only if you accept the cookie banner: Google Analytics, and an anonymous score post to our public Discord when you finish a game (your nickname is attached only if you turn that on in ⚙️ Settings). Decline the banner and nothing about you is collected or sent.</p>
       <div class="faq-q">Are there leaderboards or online rankings?</div>
       <p class="faq-a">No — on purpose. Leaderboards need accounts and a server to store everyone's scores, and we don't keep any of that (see above). You're playing against <b>your own best</b>. Scores you choose to share go straight to our <a href="https://discord.gg/hz2fhpD5sz" target="_blank" rel="noopener">Discord</a>, not a database.</p>
-      <div class="faq-q">What are challenges, points and titles?</div>
-      <p class="faq-a">The 🏆 button opens daily and weekly <b>challenges</b> — small goals like a good run in a particular game. Completing them earns <b>points</b>, and points unlock <b>titles</b> (tap the points pill in the challenges panel to see the ladder). Your title shows on <b>your profile</b>, which also lists your best score and play count for every game. All of it lives on your device, like everything else.</p>
+      <div class="faq-q">What are challenges, trophies and titles?</div>
+      <p class="faq-a">The 🏆 button opens daily and weekly <b>challenges</b> — small goals like a good run in a particular game. Completing them earns <b>trophies</b> (a daily pays 10 🏆, a weekly 50 🏆, and each day your first 3 good runs pay a +2 🏆 bonus). Trophies do two things at once: your <b>lifetime</b> total unlocks <b>titles</b> (tap the trophies pill to see the ladder), and your spendable balance buys <b>cosmetics</b> in the 🎨 store — skins for the games, picked in each game's menu. Spending never slows the title ladder. All of it lives on your device, like everything else.</p>
       <div class="faq-q">Is it really free? Any ads or payments?</div>
       <p class="faq-a">Free forever — no ads, no payments, no subscriptions, no "premium" anything. If you'd like to chip in there's an optional <a href="https://buymeacoffee.com/komyo.online" target="_blank" rel="noopener">Buy me a coffee</a>, but every game is and always will be free.</p>
       <div class="faq-q">Do I need to install anything? Does it work offline?</div>
@@ -934,6 +953,7 @@
   <script src="games.js"></script>
   <script src="changelog.js"></script>
   <script src="challenges.js"></script>
+  <script src="cosmetics.js"></script>
   <script>
     const grid = document.getElementById('grid');
 
@@ -964,21 +984,15 @@
     };
     // slugs that have an ACTIVE game-specific challenge right now (today's daily + this week's weekly
     // picks that target a single game). Generic cross-game goals ("play 2 games") have no slug → never
-    // light up a tile. Mirrors the pick() index math in the Challenges panel.
-    const CH_WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000);
+    // light up a tile. Resolved via the kit's challengePick — the ONE pick math (drawer + in-game panel).
     let chSlugsCache = null, chSlugsDay = -1; // memoized per UTC day (recomputed per tile otherwise)
     function activeChallengeSlugs() {
       const out = new Set(), C = window.CHALLENGES, K = window.gamekit;
-      if (!C || !C.goals || !K || !K.utcDayNumber) return out;
+      if (!C || !C.goals || !K || !K.utcDayNumber || !K.challengePick) return out;
       const day = K.utcDayNumber();
       if (chSlugsCache && chSlugsDay === day) return chSlugsCache;
       const playable = (window.GAMES || []).filter(x => x && x.slug && !x.soon).map(x => x.slug);
-      const at = (list, isWeek) => {
-        if (!list || !list.length) return null;
-        const idx = isWeek ? Math.floor((day - CH_WEEK_ANCHOR) / 7) : day;
-        return { goal: C.goals[list[((idx % list.length) + list.length) % list.length]] || null, idx };
-      };
-      [at(C.daily, false), at(C.weekly, true)].forEach(a => {
+      [K.challengePick('daily'), K.challengePick('weekly')].forEach(a => {
         const g = a && a.goal; if (!g) return;
         if (g.scope === 'random' && C.randomSlug) { const s = C.randomSlug(a.idx, playable); if (s) out.add(s); }
         else if (g.slug) out.add(g.slug);
@@ -1685,8 +1699,9 @@
         h += '</div>';
         if (o.compact) h += '<span class="pf-chev">›</span>';
         else h += '<div class="pf-tb-meta">'
-          + '<span class="pf-tb-pts">🏆 ' + fmt(o.chPts) + ' <span>CHALLENGE PTS</span></span>'
+          + '<span class="pf-tb-pts">🏆 ' + fmt(o.chPts) + ' <span>TROPHIES</span></span>'
           + '<span class="pf-tb-mini" title="Runs that cleared a game’s bar">💪 <b>' + fmt(o.goodRuns) + '</b> good ' + (o.goodRuns === 1 ? 'run' : 'runs') + '</span>'
+          + (o.cos ? '<button type="button" class="pf-tb-mini pf-tb-cos" id="pfCosBtn" title="Cosmetics collection — spend trophies in the store">🎨 <b>' + fmt(o.cos.owned) + '/' + fmt(o.cos.total) + '</b> cosmetics</button>' : '')
           + '<span class="pf-tb-mini">📅 Since <b>' + esc(o.sinceStr || '—') + '</b></span>'
           + '</div>';
         return h + '</div>';
@@ -1695,6 +1710,8 @@
       function wireNameEdit() {
         const nb = document.getElementById('pfNameEdit');
         if (nb) nb.addEventListener('click', () => { if (window.__openNameModal) window.__openNameModal(); });
+        const cb = document.getElementById('pfCosBtn'); // 🎨 collection → the Cosmetics store (mounts inside the open dialog)
+        if (cb) cb.addEventListener('click', () => { if (K && K.shopPanel) K.shopPanel({ onClose: render }); });
       }
       function render() {
         const p = (K && K.profile) ? K.profile() : null;
@@ -1704,7 +1721,8 @@
         // identity (title + name) is the full-width box at the very top — no separate header;
         // shown in both empty + populated states
         const goodRuns = (p && p.goodRuns) ? p.goodRuns : 0;
-        const tb = titleBarHTML({ TT, who, chPts, goodRuns, sinceStr });
+        const cos = (K && K.cosmetics && window.COSMETICS) ? K.cosmetics.progress() : null;
+        const tb = titleBarHTML({ TT, who, chPts, goodRuns, sinceStr, cos });
         // one list, most-played first: every game with plays, each showing its modes' bests
         const ranked = [];
         if (p) GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm, pg }); });
@@ -1776,7 +1794,7 @@
             + (t.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + t.tier + '"></canvas>' : '')
             + '<span class="tl-emoji">' + (t.emoji || '🎖️') + '</span>'
             + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(t.title) + '">' + esc(t.title) + '</span></span>'
-            + '<span class="tl-pts">' + fmt(t.min) + ' pts</span></div>';
+            + '<span class="tl-pts">' + fmt(t.min) + ' 🏆</span></div>';
         });
         tlList.innerHTML = h;
       }
@@ -1938,13 +1956,10 @@
       // goal evaluation = the kit's single evaluator (game-kit chEval); the catalogue only binds its
       // context (genres + playable/titles for scope:'random'). dStr = a past UTC day for the back-fill.
       const evalGoal = (g, dStr) => K.challengeEval ? K.challengeEval(g, { genres: genreOf, day: dStr, playable: PLAYABLE, titles: titleOf }) : null;
-      function pick(list, bucket) {
-        if (!list || !list.length) return null;
-        const day = K.utcDayNumber();
-        const idx = bucket === 'week' ? Math.floor((day - WEEK_ANCHOR) / 7) : day;
-        const id = list[((idx % list.length) + list.length) % list.length];
-        return { id, period: bucket === 'week' ? ('W' + Math.floor((day - WEEK_ANCHOR) / 7)) : K.utcDateStr(), goal: C.goals[id] };
-      }
+      // THE pick = the kit's hashed challengePick — one math for the drawer, the in-game panel,
+      // the tile badges and the award keys. (A local modulo copy here desynced the drawer from
+      // the in-game panel when the shuffled rotation landed — never fork the pick math again.)
+      const pick = bucket => (K.challengePick ? K.challengePick(bucket === 'week' ? 'weekly' : 'daily') : null);
       function card(g, pts) {
         if (!g) return '';
         const e = evalGoal(g);
@@ -1952,7 +1967,7 @@
         const pct = Math.round(e.pct * 100);
         const play = e.slug ? '<a class="cplay" href="games/' + e.slug + '/">▶ Play</a>' : '';
         const meta = e.done ? '<span class="cdone">✓ Done</span>' : ('<span>' + e.val + ' / ' + e.target + '</span>' + play);
-        const badge = pts ? '<span class="cpts">+' + pts + ' pt' + (pts === 1 ? '' : 's') + '</span>' : '';
+        const badge = pts ? '<span class="cpts">+' + pts + ' 🏆</span>' : '';
         return '<div class="cc"><div class="top"><span class="goal">' + e.title + '</span>' + badge + '</div><div class="bar"><i style="width:' + pct + '%' + (e.done ? ';background:#7fe0a0' : '') + '"></i></div><div class="cmeta">' + meta + '</div></div>';
       }
       // friendly cumulative POINTS — daily challenge = 10 pts, weekly = 50 pts (each period#id awarded
@@ -2010,13 +2025,14 @@
       // catalogue wasn't open the day it was finished (the old code only awarded today's, lazily).
       function backfillAndAward() {
         const today = K.utcDayNumber();
-        const len = (C.daily && C.daily.length) || 0;
-        for (let d = today; len && d > today - 8; d--) {
+        for (let d = today; d > today - 8; d--) {
+          const p = K.challengePick ? K.challengePick('daily', d) : null;
+          if (!p || !p.goal) continue;
           const dStr = K.utcDateStr(d * 86400000);
-          const id = C.daily[((d % len) + len) % len], g = id && C.goals[id];
-          if (g) { const e = evalGoal(g, dStr); if (e && e.done) award(dStr + '#' + id, g.points || DAILY_PTS, { id, title: e.title || g.title, kind: 'daily', day: d, date: dStr }); }
+          const e = evalGoal(p.goal, dStr);
+          if (e && e.done) award(dStr + '#' + p.id, p.goal.points || DAILY_PTS, { id: p.id, title: e.title || p.goal.title, kind: 'daily', day: d, date: dStr });
         }
-        const weekly = pick(C.weekly, 'week'); // weekly persists all week → current week is enough
+        const weekly = pick('week'); // weekly persists all week → current week is enough
         if (weekly && weekly.goal) { const we = evalGoal(weekly.goal); if (we && we.done) award(weekly.period + '#' + weekly.id, weekly.goal.points || WEEKLY_PTS, { id: weekly.id, title: we.title || weekly.goal.title, kind: 'weekly', day: today, date: K.utcDateStr() }); }
       }
       // aggregate, consent-gated: which goals get seen (once per tab-session per goal) — the
@@ -2030,15 +2046,38 @@
           if (window.gamekitTrack) window.gamekitTrack('challenge_shown', { id: p.id, kind });
         } catch (e) {}
       }
+      // Cosmetics pill (spendable balance → the store), collection bar + good-run bonus line
+      const shopEl = document.getElementById('chalShop'), collEl = document.getElementById('chalCollect'), bonusEl = document.getElementById('chalBonus');
+      function renderCosmetics() {
+        const cos = K.cosmetics;
+        if (cos && window.COSMETICS && shopEl) {
+          shopEl.hidden = false;
+          shopEl.textContent = '🎨 COSMETICS · 🏆 ' + cos.balance();
+        }
+        if (cos && window.COSMETICS && collEl) {
+          const pr = cos.progress(), pct = Math.round(pr.pct * 100);
+          collEl.hidden = false;
+          const bar = collEl.querySelector('.cbar i'), txt = collEl.querySelector('.cbar-txt');
+          if (bar) bar.style.width = pct + '%';
+          if (txt) txt.textContent = pr.owned + ' / ' + pr.total + ' unlocked · ' + pct + '%';
+        }
+        if (bonusEl && K.goodRunBonus) {
+          const b = K.goodRunBonus();
+          bonusEl.hidden = false;
+          bonusEl.textContent = '⚡ Good-run bonus: ' + b.count + '/' + b.cap + ' today · +' + b.per + ' 🏆 each';
+        }
+      }
+      if (shopEl) shopEl.addEventListener('click', () => { if (K.shopPanel) K.shopPanel({ onClose: render }); });
       function render() {
         if (!C || !todayEl) return;
-        const daily = pick(C.daily, 'day'), weekly = pick(C.weekly, 'week');
+        const daily = pick('day'), weekly = pick('week');
         todayEl.innerHTML = card(daily && daily.goal, DAILY_PTS);
         weekEl.innerHTML = card(weekly && weekly.goal, WEEKLY_PTS);
         trackShown(daily, 'daily'); trackShown(weekly, 'weekly');
         backfillAndAward();
         const n = award();
-        if (streakEl) streakEl.innerHTML = '🔥 ' + n + (n === 1 ? ' point' : ' points') + ' <span class="streak-i">i</span>';
+        if (streakEl) streakEl.innerHTML = '🏆 ' + n + (n === 1 ? ' trophy' : ' trophies') + ' <span class="streak-i">i</span>';
+        renderCosmetics();
         renderHistory();
       }
       window.__renderChallenges = render;
