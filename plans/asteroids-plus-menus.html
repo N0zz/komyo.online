@@ -1,0 +1,267 @@
+<title>Asteroids+ picker &amp; drydock — mocks v2</title>
+<style>
+  :root {
+    --bg:#0b0f17; --text:#eef2f8; --muted:#aab6c8; --accent:#9fe8ff; --gold:#ffd166; --border:rgba(120,200,255,.30);
+    --box:radial-gradient(circle at 50% 26%, rgba(18,26,48,.94), rgba(7,9,16,.97));
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  body { background:var(--bg); color:var(--text); font-family:system-ui,sans-serif; margin:0; padding:32px 20px 60px; }
+  .page { max-width:900px; margin:0 auto; }
+  h1 { font:800 22px/1.3 var(--mono); letter-spacing:1px; color:#cfe8ff; margin:0 0 6px; }
+  .lede { color:var(--muted); font-size:14px; max-width:72ch; margin:0 0 30px; }
+  h2 { font:700 14px var(--mono); letter-spacing:2px; color:var(--accent); margin:44px 0 4px; text-transform:uppercase; }
+  .note { color:var(--muted); font-size:13px; margin:0 0 12px; max-width:78ch; }
+  .note b { color:var(--text); }
+  .frameWrap { overflow-x:auto; padding:4px; display:flex; gap:24px; align-items:flex-start; }
+  .phone { position:relative; flex:0 0 auto; border:2px solid #2a3446; border-radius:18px; background:#05070d; overflow:hidden; font-family:var(--mono); }
+  .land { width:780px; height:390px; }
+  .port { width:390px; height:700px; }
+  .caption { font:600 11px var(--mono); letter-spacing:1px; color:var(--muted); text-transform:uppercase; margin:6px 0 0 6px; }
+  .stars { position:absolute; inset:0;
+    background-image:radial-gradient(1px 1px at 12% 30%, #fff8, transparent),radial-gradient(1px 1px at 40% 70%, #fff6, transparent),
+      radial-gradient(1.5px 1.5px at 66% 20%, #fff7, transparent),radial-gradient(1px 1px at 85% 55%, #fff5, transparent),
+      radial-gradient(1px 1px at 25% 85%, #fff6, transparent); }
+  .chrome { position:absolute; top:8px; left:10px; right:10px; display:flex; justify-content:space-between; z-index:3; }
+  .chip { font:600 11px/1 var(--mono); letter-spacing:1px; color:#fff; background:rgba(8,12,20,.66);
+    border:1px solid rgba(255,255,255,.28); border-radius:8px; padding:7px 10px; }
+  .cluster { display:flex; gap:5px; }
+  .cluster .chip { width:34px; text-align:center; padding:7px 0; }
+  .ovl { position:absolute; inset:0; background:rgba(6,9,16,.55); display:flex; align-items:center; justify-content:center; padding:52px 14px 14px; z-index:2; }
+  .port .ovl { padding:52px 12px 12px; }
+  .box { background:var(--box); border:1px solid var(--border); border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,.6);
+    color:#eaf2fb; overflow:hidden; box-sizing:border-box; }
+  .ttl { font:800 var(--mono); color:#cfe8ff; text-shadow:0 0 18px rgba(120,200,255,.45); letter-spacing:3px; }
+  .banner { font:700 13px var(--mono); color:var(--gold); letter-spacing:1px; }
+  .hint { font:10px/1.5 var(--mono); color:#93a5bd; }
+  .shopcard { position:relative; display:grid; grid-template-columns:24px 1fr; gap:3px 9px; align-items:center; background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.16); border-radius:10px; padding:8px 10px; text-align:left; }
+  .shopcard .ic { grid-row:1 / span 2; width:24px; height:24px; }
+  .shopcard.hot { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+  .shopcard.dim { opacity:.42; }
+  .snm { font:700 11.5px/1.1 var(--mono); letter-spacing:.4px; color:#eaf3ff; }
+  .ssub { font:700 9.5px/1 var(--mono); letter-spacing:.4px; color:#9fb2c9; }
+  .ssub .cost { color:var(--gold); }
+  .ic svg { display:block; width:100%; height:100%; stroke:var(--accent); fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; filter:drop-shadow(0 0 3px rgba(120,200,255,.5)); }
+  .play { background:var(--accent); color:#06121a; border:none; border-radius:10px; font:800 13px var(--mono);
+    letter-spacing:2px; padding:12px; cursor:pointer; box-shadow:0 0 18px rgba(120,200,255,.45); }
+  .danger { background:rgba(255,90,90,.12); color:#ffb4b4; border:1px solid rgba(255,120,120,.5); border-radius:10px;
+    font:700 11px var(--mono); letter-spacing:1px; padding:9px; }
+  .verdict { border-left:3px solid var(--accent); padding:10px 14px; background:rgba(159,232,255,.06); border-radius:0 8px 8px 0;
+    color:var(--muted); font-size:13.5px; max-width:78ch; margin:14px 0 0; }
+  .verdict b { color:var(--text); }
+</style>
+<div class="page">
+  <h1>Asteroids+ — picker &amp; Drydock mocks <span style="color:#7d8aa0">v3</span></h1>
+  <p class="lede">v2 → v3: the <b>interaction workflow is now explicit</b> (v2 left touch users buying blind), and
+    <b>desktop frames</b> were added. Still: per-upgrade laser icons, whole pool on one screen, zero scrolling.</p>
+
+  <h2>The workflow (how you read before you buy)</h2>
+  <p class="note"><b>Mouse (desktop):</b> hovering a card focuses it — nothing to learn, you see descriptions as you sweep;
+    <b>click buys/picks immediately</b> (descriptions are also printed on the cards on desktop, so there's no blind buy).</p>
+  <p class="note"><b>Touch (phone, both orientations):</b> <b>first tap = select</b> — the card highlights and its full
+    description appears in the rail (landscape) / the line under the credits (portrait). <b>Second tap on the same card = buy /
+    take.</b> Tapping a different card just moves the selection. The rail also shows a big <b>BUY ◈ 22</b> / <b>TAKE ▶</b>
+    button for the selected card — same action, thumb-sized. Two-step on touch is deliberate: it kills accidental mid-run
+    buys/picks too (the splash-leak class of bug).</p>
+
+  <h2>1 · Level-up picker — landscape (3-per-row, now with icons)</h2>
+  <div class="frameWrap"><div><div class="phone land"><div class="stars"></div>
+    <div class="chrome"><span class="chip">‹ MENU · KOMYO ›</span><div class="cluster"><span class="chip">⏸</span><span class="chip">🔊</span><span class="chip">🏆</span><span class="chip">☰</span></div></div>
+    <div class="ovl"><div class="box" style="width:min(740px,100%); padding:14px 18px; display:grid; grid-template-columns:1fr 200px; gap:10px 16px;">
+      <div style="border-right:1px solid rgba(120,200,255,.18); padding-right:14px; display:flex; flex-direction:column; justify-content:center;">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:9px;">
+          <div class="shopcard hot" style="display:flex; flex-direction:column; align-items:center; gap:7px; min-height:112px; justify-content:center;">
+            <span class="ic" style="width:34px;height:34px;"><svg viewBox="0 0 24 24"><path d="M2 8h7M5 12h9M2 16h7M16 8l5 4-5 4"/></svg></span>
+            <span class="snm" style="font-size:13px;">Rapid Fire</span><span class="ssub">LV 1 → 2</span>
+          </div>
+          <div class="shopcard" style="display:flex; flex-direction:column; align-items:center; gap:7px; min-height:112px; justify-content:center;">
+            <span class="ic" style="width:34px;height:34px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="19.5" cy="7" r="1.6" fill="#9fe8ff"/><path d="M4.5 17.5a9.5 9.5 0 0 0 15-1" opacity=".5"/></svg></span>
+            <span class="snm" style="font-size:13px;">Orbital Shard</span><span class="ssub">NEW · 6w</span>
+          </div>
+          <div class="shopcard" style="display:flex; flex-direction:column; align-items:center; gap:7px; min-height:112px; justify-content:center;">
+            <span class="ic" style="width:34px;height:34px;"><svg viewBox="0 0 24 24"><path d="M7 3v8a5 5 0 0 0 10 0V3M7 3h4M13 3h4" stroke-width="2.4"/><path d="M9 21l3-4 3 4" opacity=".6"/></svg></span>
+            <span class="snm" style="font-size:13px;">Magnet</span><span class="ssub">LV 2 → 3</span>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:10px; justify-content:center; text-align:left;">
+        <div class="ttl" style="font-size:22px;">LEVEL 7</div>
+        <div class="hint">Choose an upgrade · 2 pending</div>
+        <div class="hint" style="opacity:.75;">▸ <b style="color:#cfe8ff;">Rapid Fire</b> — shoot faster (-cooldown).</div>
+        <button class="play" style="padding:11px;">TAKE RAPID FIRE ▶</button>
+      </div>
+    </div></div>
+  </div><div class="caption">780 × 390 — tap selected Rapid Fire → desc + TAKE appear in the rail; 2nd tap on the card also takes it</div></div></div>
+
+  <h2>2 · Level-up picker — portrait (3 stacked, icons left)</h2>
+  <div class="frameWrap"><div><div class="phone port"><div class="stars"></div>
+    <div class="chrome"><span class="chip">‹ M · K ›</span><div class="cluster"><span class="chip">⏸</span><span class="chip">🔊</span><span class="chip">☰</span></div></div>
+    <div class="ovl"><div class="box" style="width:100%; padding:18px 16px; display:flex; flex-direction:column; gap:10px; text-align:center; align-self:center;">
+      <div class="ttl" style="font-size:24px;">LEVEL 7</div>
+      <div class="hint">Choose an upgrade · 2 pending</div>
+      <div class="shopcard hot" style="grid-template-columns:34px 1fr; padding:12px 13px;">
+        <span class="ic" style="grid-row:1 / span 3; width:34px; height:34px;"><svg viewBox="0 0 24 24"><path d="M2 8h7M5 12h9M2 16h7M16 8l5 4-5 4"/></svg></span>
+        <span class="snm" style="font-size:13.5px;">Rapid Fire</span>
+        <span class="hint" style="font-size:10.5px;">Shoot faster (-cooldown).</span>
+        <span class="ssub" style="font-size:10.5px;">LV 1 → 2</span>
+      </div>
+      <div class="shopcard" style="grid-template-columns:34px 1fr; padding:12px 13px;">
+        <span class="ic" style="grid-row:1 / span 3; width:34px; height:34px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="19.5" cy="7" r="1.6" fill="#9fe8ff"/><path d="M4.5 17.5a9.5 9.5 0 0 0 15-1" opacity=".5"/></svg></span>
+        <span class="snm" style="font-size:13.5px;">Orbital Shard</span>
+        <span class="hint" style="font-size:10.5px;">+1 shard orbiting your ship.</span>
+        <span class="ssub" style="font-size:10.5px;">NEW · 6w</span>
+      </div>
+      <div class="shopcard" style="grid-template-columns:34px 1fr; padding:12px 13px;">
+        <span class="ic" style="grid-row:1 / span 3; width:34px; height:34px;"><svg viewBox="0 0 24 24"><path d="M7 3v8a5 5 0 0 0 10 0V3M7 3h4M13 3h4" stroke-width="2.4"/><path d="M9 21l3-4 3 4" opacity=".6"/></svg></span>
+        <span class="snm" style="font-size:13.5px;">Magnet</span>
+        <span class="hint" style="font-size:10.5px;">Wider XP pickup radius.</span>
+        <span class="ssub" style="font-size:10.5px;">LV 2 → 3</span>
+      </div>
+    </div></div>
+  </div><div class="caption">390 × 700 — portrait keeps the per-card description (room to spare)</div></div></div>
+
+  <h2>3 · Drydock — landscape: full pool, 4 × 3, no scrolling</h2>
+  <p class="note">All 12 shop upgrades visible at once (icon + name + level/cost — the focused card's description reads in the
+    rail). Unaffordable dims. If the pool ever grows past 12, the grid adds a 5th column before it would ever scroll.</p>
+  <div class="frameWrap"><div><div class="phone land"><div class="stars"></div>
+    <div class="chrome"><span class="chip">‹ MENU · KOMYO ›</span><div class="cluster"><span class="chip">⏸</span><span class="chip">🔊</span><span class="chip">🏆</span><span class="chip">☰</span></div></div>
+    <div class="ovl"><div class="box" style="width:min(752px,100%); height:100%; padding:12px 16px; display:grid; grid-template-columns:1fr 188px; gap:10px 14px;">
+      <div style="border-right:1px solid rgba(120,200,255,.18); padding-right:12px; display:grid; grid-template-columns:1fr 1fr 1fr 1fr; grid-auto-rows:1fr; gap:7px; align-content:stretch;">
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><path d="M2 8h7M5 12h9M2 16h7M16 8l5 4-5 4"/></svg></span><span class="snm">Rapid Fire</span><span class="ssub">1/3 · <span class="cost">◈ 29</span></span></div>
+        <div class="shopcard hot"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 12h8M4 6l7 4M4 18l7-4M14 12h7M14 7l6 2M14 17l6-2"/></svg></span><span class="snm">Spread Shot</span><span class="ssub">NEW · <span class="cost">◈ 22</span></span></div>
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="15" cy="12" r="4.5" fill="#9fe8ff"/><path d="M2 12h6" stroke-width="2.6"/></svg></span><span class="snm">Heavy Rounds</span><span class="ssub">2/5 · <span class="cost">◈ 47</span></span></div>
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><path d="M2 12h17M15 8l5 4-5 4M5 8v8" opacity=".9"/></svg></span><span class="snm">Long Shot</span><span class="ssub">NEW · <span class="cost">◈ 13</span></span></div>
+        <div class="shopcard dim"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="3.4"/><circle cx="17" cy="12" r="3.4"/><path d="M1 12h22" stroke-width="1.4"/></svg></span><span class="snm">Piercing</span><span class="ssub">NEW · <span class="cost">◈ 20</span></span></div>
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.6 8-8 9-4.4-1-8-4-8-9V6z"/></svg></span><span class="snm">Shield</span><span class="ssub">1/2 · <span class="cost">◈ 36</span></span></div>
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 2l8 5v10l-8 5-8-5V7z"/><path d="M12 8l4 2.5v5L12 18l-4-2.5v-5z" opacity=".55"/></svg></span><span class="snm">Reinf. Hull</span><span class="ssub">NEW · <span class="cost">◈ 18</span></span></div>
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><path d="M14 4l-8 8 8 8M14 8l-4 4 4 4" opacity=".9"/><path d="M17 6v12" stroke-width="2.4"/></svg></span><span class="snm">Thrusters</span><span class="ssub">1/3 · <span class="cost">◈ 21</span></span></div>
+        <div class="shopcard dim"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="19.5" cy="7" r="1.6" fill="#9fe8ff"/></svg></span><span class="snm">Orbital Shard</span><span class="ssub">NEW · <span class="cost">◈ 26</span></span></div>
+        <div class="shopcard dim"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 4l6 10H6z"/><path d="M4 19c2-2 5-2 8 0 3-2 6-2 8 0" opacity=".55"/></svg></span><span class="snm">Drone</span><span class="ssub">NEW · <span class="cost">◈ 28</span></span></div>
+        <div class="shopcard dim"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2.8 2.8M16.2 16.2L19 19M19 5l-2.8 2.8M7.8 16.2L5 19" opacity=".8"/></svg></span><span class="snm">Nova Pulse</span><span class="ssub">NEW · <span class="cost">◈ 24</span></span></div>
+        <div class="shopcard" style="opacity:.7;"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.8" fill="#9fe8ff"/><path d="M12 5V2M12 22v-3M5 12H2M22 12h-3"/></svg></span><span class="snm">Auto-Fire</span><span class="ssub">MAX · —</span></div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:8px; text-align:left;">
+        <div class="ttl" style="font-size:19px;">DRYDOCK</div>
+        <div class="banner">◈ 23 CREDITS</div>
+        <div class="hint">▸ <b style="color:#cfe8ff;">Spread Shot</b> — +1 projectile in a wider arc.</div>
+        <button class="play" style="background:var(--gold); box-shadow:0 0 14px rgba(255,209,102,.45); padding:10px;">BUY · ◈ 22</button>
+        <div style="flex:1;"></div>
+        <button class="play">CONTINUE ▶</button>
+      </div>
+    </div></div>
+  </div><div class="caption">780 × 390 — 12/12 visible, CONTINUE pinned</div></div></div>
+
+  <h2>4 · Drydock — portrait v2: full pool, 2 × 6, no scrolling</h2>
+  <p class="note">Rejected v1's scrolling list. Now a <b>2-column, 6-row grid</b> — all 12 upgrades on screen with the header and
+    actions pinned. Cards are icon + name + level/cost (icons carry the recognition); the <b>focused card's description shows in
+    the line under the credits</b>, same as landscape. Grows to 2×7 before it would ever scroll.</p>
+  <div class="frameWrap"><div><div class="phone port"><div class="stars"></div>
+    <div class="chrome"><span class="chip">‹ M · K ›</span><div class="cluster"><span class="chip">⏸</span><span class="chip">🔊</span><span class="chip">☰</span></div></div>
+    <div class="ovl"><div class="box" style="width:100%; height:100%; padding:14px 12px; display:flex; flex-direction:column; gap:8px; text-align:center;">
+      <div class="ttl" style="font-size:21px;">DRYDOCK</div>
+      <div class="banner">◈ 23 CREDITS</div>
+      <div class="hint">▸ <b style="color:#cfe8ff;">Spread Shot</b> — +1 projectile in a wider arc.</div>
+      <div style="flex:1; display:grid; grid-template-columns:1fr 1fr; grid-auto-rows:1fr; gap:7px;">
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><path d="M2 8h7M5 12h9M2 16h7M16 8l5 4-5 4"/></svg></span><span class="snm">Rapid Fire</span><span class="ssub">1/3 · <span class="cost">◈ 29</span></span></div>
+        <div class="shopcard hot"><span class="ic"><svg viewBox="0 0 24 24"><path d="M3 12h8M4 6l7 4M4 18l7-4M14 12h7M14 7l6 2M14 17l6-2"/></svg></span><span class="snm">Spread Shot</span><span class="ssub">NEW · <span class="cost">◈ 22</span></span></div>
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="15" cy="12" r="4.5" fill="#9fe8ff"/><path d="M2 12h6" stroke-width="2.6"/></svg></span><span class="snm">Heavy Rounds</span><span class="ssub">2/5 · <span class="cost">◈ 47</span></span></div>
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><path d="M2 12h17M15 8l5 4-5 4M5 8v8" opacity=".9"/></svg></span><span class="snm">Long Shot</span><span class="ssub">NEW · <span class="cost">◈ 13</span></span></div>
+        <div class="shopcard dim"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="3.4"/><circle cx="17" cy="12" r="3.4"/><path d="M1 12h22" stroke-width="1.4"/></svg></span><span class="snm">Piercing</span><span class="ssub">NEW · <span class="cost">◈ 20</span></span></div>
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.6 8-8 9-4.4-1-8-4-8-9V6z"/></svg></span><span class="snm">Shield</span><span class="ssub">1/2 · <span class="cost">◈ 36</span></span></div>
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 2l8 5v10l-8 5-8-5V7z"/><path d="M12 8l4 2.5v5L12 18l-4-2.5v-5z" opacity=".55"/></svg></span><span class="snm">Reinf. Hull</span><span class="ssub">NEW · <span class="cost">◈ 18</span></span></div>
+        <div class="shopcard"><span class="ic"><svg viewBox="0 0 24 24"><path d="M14 4l-8 8 8 8M14 8l-4 4 4 4" opacity=".9"/><path d="M17 6v12" stroke-width="2.4"/></svg></span><span class="snm">Thrusters</span><span class="ssub">1/3 · <span class="cost">◈ 21</span></span></div>
+        <div class="shopcard dim"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="19.5" cy="7" r="1.6" fill="#9fe8ff"/></svg></span><span class="snm">Orbital Shard</span><span class="ssub">NEW · <span class="cost">◈ 26</span></span></div>
+        <div class="shopcard dim"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 4l6 10H6z"/><path d="M4 19c2-2 5-2 8 0 3-2 6-2 8 0" opacity=".55"/></svg></span><span class="snm">Drone</span><span class="ssub">NEW · <span class="cost">◈ 28</span></span></div>
+        <div class="shopcard dim"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4M5 5l2.8 2.8M16.2 16.2L19 19M19 5l-2.8 2.8M7.8 16.2L5 19" opacity=".8"/></svg></span><span class="snm">Nova Pulse</span><span class="ssub">NEW · <span class="cost">◈ 24</span></span></div>
+        <div class="shopcard" style="opacity:.7;"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="1.8" fill="#9fe8ff"/><path d="M12 5V2M12 22v-3M5 12H2M22 12h-3"/></svg></span><span class="snm">Auto-Fire</span><span class="ssub">MAX · —</span></div>
+      </div>
+      <div style="display:flex; gap:7px;">
+        <button class="play" style="flex:1; background:var(--gold); box-shadow:0 0 14px rgba(255,209,102,.45); padding:10px; font-size:11px;">BUY · ◈ 22</button>
+        <button class="play" style="flex:1; padding:10px; font-size:11px;">CONTINUE ▶</button>
+      </div>
+    </div></div>
+  </div><div class="caption">390 × 700 — first tap selects (desc under credits), BUY confirms; 2nd tap on the card also buys</div></div></div>
+
+  <h2>5 · Desktop — picker (3 across, full descriptions on-card)</h2>
+  <p class="note">Desktop has room, so nothing is hidden: 3 equal columns with icon, name, description and level — hover
+    focuses, <b>one click picks</b> (no two-step needed when you can read everything). Shown at 65% scale of a 1280×800 window.</p>
+  <div class="frameWrap"><div><div class="phone" style="width:832px; height:520px;"><div class="stars"></div>
+    <div class="chrome"><span class="chip">‹ MENU · KOMYO ›</span><div class="cluster"><span class="chip">⏸</span><span class="chip">🔊</span><span class="chip">🏆</span><span class="chip">☰</span></div></div>
+    <div class="ovl"><div class="box" style="width:600px; padding:22px 24px; display:flex; flex-direction:column; gap:12px; text-align:center;">
+      <div class="ttl" style="font-size:26px;">LEVEL 7</div>
+      <div class="hint" style="font-size:11px;">Choose an upgrade · 2 pending</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;">
+        <div class="shopcard hot" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 12px;">
+          <span class="ic" style="width:38px;height:38px;"><svg viewBox="0 0 24 24"><path d="M2 8h7M5 12h9M2 16h7M16 8l5 4-5 4"/></svg></span>
+          <span class="snm" style="font-size:14px;">Rapid Fire</span>
+          <span class="hint" style="font-size:11px;">Shoot faster (-cooldown).</span>
+          <span class="ssub" style="font-size:11px;">LV 1 → 2</span>
+        </div>
+        <div class="shopcard" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 12px;">
+          <span class="ic" style="width:38px;height:38px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="19.5" cy="7" r="1.6" fill="#9fe8ff"/><path d="M4.5 17.5a9.5 9.5 0 0 0 15-1" opacity=".5"/></svg></span>
+          <span class="snm" style="font-size:14px;">Orbital Shard</span>
+          <span class="hint" style="font-size:11px;">+1 shard orbiting your ship.</span>
+          <span class="ssub" style="font-size:11px;">NEW · 6w</span>
+        </div>
+        <div class="shopcard" style="display:flex; flex-direction:column; align-items:center; gap:8px; padding:16px 12px;">
+          <span class="ic" style="width:38px;height:38px;"><svg viewBox="0 0 24 24"><path d="M7 3v8a5 5 0 0 0 10 0V3M7 3h4M13 3h4" stroke-width="2.4"/><path d="M9 21l3-4 3 4" opacity=".6"/></svg></span>
+          <span class="snm" style="font-size:14px;">Magnet</span>
+          <span class="hint" style="font-size:11px;">Wider XP pickup radius.</span>
+          <span class="ssub" style="font-size:11px;">LV 2 → 3</span>
+        </div>
+      </div>
+    </div></div>
+  </div><div class="caption">~1280 × 800 (scaled) — replaces today's 2+1 orphan layout</div></div></div>
+
+  <h2>6 · Desktop — Drydock (2-col, unchanged shape + icons)</h2>
+  <p class="note">Today's desktop drydock already works — 2 columns, full descriptions per card, hover + click-buys. It only
+    gains the icons (and the whole pool fits a 1280×800 window without scrolling already).</p>
+  <div class="frameWrap"><div><div class="phone" style="width:832px; height:520px;"><div class="stars"></div>
+    <div class="chrome"><span class="chip">‹ MENU · KOMYO ›</span><div class="cluster"><span class="chip">⏸</span><span class="chip">🔊</span><span class="chip">🏆</span><span class="chip">☰</span></div></div>
+    <div class="ovl"><div class="box" style="width:620px; max-height:100%; padding:20px 22px; display:flex; flex-direction:column; gap:10px; text-align:center;">
+      <div class="ttl" style="font-size:24px;">DRYDOCK</div>
+      <div class="banner">◈ 23 CREDITS</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; text-align:left;">
+        <div class="shopcard hot" style="grid-template-columns:26px 1fr; padding:10px 12px;">
+          <span class="ic" style="grid-row:1 / span 3; width:26px; height:26px;"><svg viewBox="0 0 24 24"><path d="M3 12h8M4 6l7 4M4 18l7-4M14 12h7M14 7l6 2M14 17l6-2"/></svg></span>
+          <span class="snm" style="font-size:12.5px;">Spread Shot</span>
+          <span class="hint" style="font-size:10.5px;">+1 projectile in a wider arc.</span>
+          <span class="ssub">NEW · <span class="cost">◈ 22</span></span>
+        </div>
+        <div class="shopcard" style="grid-template-columns:26px 1fr; padding:10px 12px;">
+          <span class="ic" style="grid-row:1 / span 3; width:26px; height:26px;"><svg viewBox="0 0 24 24"><path d="M2 8h7M5 12h9M2 16h7M16 8l5 4-5 4"/></svg></span>
+          <span class="snm" style="font-size:12.5px;">Rapid Fire</span>
+          <span class="hint" style="font-size:10.5px;">Shoot faster (-cooldown).</span>
+          <span class="ssub">LV 1/3 · <span class="cost">◈ 29</span></span>
+        </div>
+        <div class="shopcard" style="grid-template-columns:26px 1fr; padding:10px 12px;">
+          <span class="ic" style="grid-row:1 / span 3; width:26px; height:26px;"><svg viewBox="0 0 24 24"><circle cx="15" cy="12" r="4.5" fill="#9fe8ff"/><path d="M2 12h6" stroke-width="2.6"/></svg></span>
+          <span class="snm" style="font-size:12.5px;">Heavy Rounds</span>
+          <span class="hint" style="font-size:10.5px;">+bullet damage.</span>
+          <span class="ssub">LV 2/5 · <span class="cost">◈ 47</span></span>
+        </div>
+        <div class="shopcard dim" style="grid-template-columns:26px 1fr; padding:10px 12px;">
+          <span class="ic" style="grid-row:1 / span 3; width:26px; height:26px;"><svg viewBox="0 0 24 24"><circle cx="9" cy="12" r="3.4"/><circle cx="17" cy="12" r="3.4"/><path d="M1 12h22" stroke-width="1.4"/></svg></span>
+          <span class="snm" style="font-size:12.5px;">Piercing</span>
+          <span class="hint" style="font-size:10.5px;">Bullets pass through +1 enemy.</span>
+          <span class="ssub">NEW · <span class="cost">◈ 20</span></span>
+        </div>
+      </div>
+      <div class="hint" style="opacity:.6;">…8 more cards (all visible in the real window)…</div>
+      <button class="play">CONTINUE ▶</button>
+    </div></div>
+  </div><div class="caption">~1280 × 800 (scaled, truncated here) — today's layout + icons, no behavior change</div></div></div>
+
+  <h2>Icon key (one per upgrade, reused everywhere)</h2>
+  <p class="note">Rapid = stacked dashes → · Spread = fan of rays · Heavy = fat slug · Long = long arrow · Piercing = line
+    through two rocks · Shield = shield · Hull = double hexagon · Thrusters = chevrons + burn line · Orbital = orbit + shard ·
+    Drone = wingman + signal · Nova = radial burst · Auto-Fire = crosshair · Magnet = horseshoe (level-up only).
+    Same 24×24 stroke style as the ship art; drawn once as tiny canvas/SVG painters in the game, reused by picker + drydock +
+    (later) buff toasts in the HUD.</p>
+
+  <div class="verdict"><b>Implementation shape (APPROVED 2026-07-03, implement in session 8):</b> a kit shop-group option for
+    <b>fixed no-scroll grids</b> (landscape 4-col / portrait 2-col, `1fr` rows so cards compress to fit) + an
+    <b>icon:</b> painter per choice (like cards' `preview:`), + the focused-choice description surfacing in the hint line, +
+    touch two-step select→buy with the rail BUY/TAKE button. <b>No QUIT TO MENU in the shop</b> — leaving happens via the
+    nav ‹ Menu (with its confirm), the shop keeps only CONTINUE. All kit-level — a future cosmetics shop inherits everything.</div>
+</div>

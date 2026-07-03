@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>komyo — Challenge Shop design report</title>
+<style>
+  :root {
+    --bg:#0b0f17; --surface:#161c28; --border:#2a3446; --text:#eef2f8; --muted:#aab6c8; --faint:#7d8aa0;
+    --accent:#9fe8ff; --gold:#ffd166; --good:#7fe0a0;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  }
+  body { background:var(--bg); color:var(--text); font-family:system-ui,sans-serif; margin:0; padding:36px 20px 80px; line-height:1.55; }
+  .page { max-width:940px; margin:0 auto; }
+  h1 { font:800 24px/1.3 var(--mono); letter-spacing:1px; color:#cfe8ff; margin:0 0 4px; }
+  .sub { color:var(--faint); font:12px var(--mono); letter-spacing:2px; text-transform:uppercase; margin-bottom:28px; }
+  h2 { font:700 15px var(--mono); letter-spacing:2px; color:var(--accent); margin:44px 0 10px; text-transform:uppercase; border-bottom:1px solid var(--border); padding-bottom:6px; }
+  h3 { font:700 13px var(--mono); letter-spacing:1px; color:var(--gold); margin:24px 0 6px; }
+  p, li { color:var(--muted); font-size:14px; max-width:80ch; }
+  b { color:var(--text); }
+  code { font:12px var(--mono); background:#131a27; border:1px solid var(--border); border-radius:5px; padding:1px 6px; color:#cfe8ff; }
+  table { border-collapse:collapse; width:100%; margin:10px 0 6px; font-size:13px; }
+  th { font:700 10.5px var(--mono); letter-spacing:1px; text-transform:uppercase; color:var(--faint); text-align:left; padding:7px 10px; border-bottom:1px solid var(--border); }
+  td { padding:7px 10px; border-bottom:1px solid #1c2434; color:var(--muted); vertical-align:top; }
+  td b { color:var(--text); } td .p { color:var(--gold); font:700 12px var(--mono); white-space:nowrap; }
+  .free { color:var(--good); font:700 11px var(--mono); }
+  .tblwrap { overflow-x:auto; }
+  .verdict { border-left:3px solid var(--accent); padding:10px 16px; background:rgba(159,232,255,.06); border-radius:0 8px 8px 0; margin:14px 0; }
+  .warn { border-left-color:var(--gold); background:rgba(255,209,102,.06); }
+  .qbox { border:1px solid var(--border); border-radius:10px; padding:12px 16px; margin:10px 0; background:var(--surface); }
+  .qbox b { color:var(--gold); }
+  /* ---- mock chrome ---- */
+  .mock { background:#05070d; border:2px solid var(--border); border-radius:16px; padding:0; margin:14px 0 4px; overflow:hidden; }
+  .mockpad { padding:18px; }
+  .cap { font:600 10.5px var(--mono); letter-spacing:1px; color:var(--faint); text-transform:uppercase; margin:4px 0 0 6px; }
+  .pill { display:inline-flex; align-items:center; gap:7px; font:700 12px var(--mono); letter-spacing:.5px; color:var(--text);
+    background:rgba(255,255,255,.05); border:1px solid var(--border); border-radius:999px; padding:7px 14px; }
+  .pill.gold { color:var(--gold); border-color:rgba(255,209,102,.5); }
+  .pill.shopp { color:#0a1420; background:var(--gold); border-color:var(--gold); box-shadow:0 0 12px rgba(255,209,102,.4); cursor:pointer; }
+  .bar { height:8px; border-radius:4px; background:rgba(255,255,255,.1); overflow:hidden; }
+  .bar i { display:block; height:100%; border-radius:4px; background:linear-gradient(90deg,#ffd166,#ff9a5c); }
+  .shopcard { position:relative; display:flex; flex-direction:column; gap:4px; background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.14); border-radius:11px; padding:10px 12px; }
+  .shopcard.owned { border-color:rgba(127,224,160,.5); }
+  .shopcard.hot { border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+  .shopcard.dim { opacity:.45; }
+  .snm { font:700 12px var(--mono); letter-spacing:.4px; color:#eaf3ff; }
+  .sprice { font:700 11px var(--mono); color:var(--gold); }
+  .sowned { font:700 10px var(--mono); color:var(--good); letter-spacing:1px; }
+  .sw { width:26px; height:26px; border-radius:7px; margin-bottom:3px; border:1px solid rgba(255,255,255,.2); }
+  .gamehead { display:flex; align-items:baseline; gap:10px; margin:16px 0 8px; }
+  .gamehead .gt { font:700 13px var(--mono); letter-spacing:1px; color:#eaf3ff; }
+  .gamehead .gp { font:600 10px var(--mono); color:var(--faint); }
+  .gamehead .line { flex:1; height:1px; background:var(--border); }
+  .grid4 { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .btn { display:inline-block; font:800 12px var(--mono); letter-spacing:1px; border-radius:9px; padding:10px 18px; border:none; cursor:pointer; }
+  .btn.gold { background:var(--gold); color:#0a1420; box-shadow:0 0 14px rgba(255,209,102,.4); }
+  /* rev-2 highlights: blocks changed after the first review */
+  .rev { background:rgba(255,209,102,.08); outline:1px dashed rgba(255,209,102,.45); border-radius:8px; padding:6px 10px; }
+  li.rev { list-style-position:inside; margin:6px 0; }
+  .revtag { display:inline-block; font:800 9px var(--mono); letter-spacing:1px; color:#0a1420; background:var(--gold);
+    border-radius:4px; padding:2px 6px; vertical-align:2px; margin-left:8px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>komyo — Challenge Shop</h1>
+  <div class="sub">design report · 2026-07-03 · release priority #1 · rev 2</div>
+  <div class="verdict warn"><b>✨ Rev 2 — what changed after your review</b> (all marked with dashed gold boxes below):
+    currency is the <b>Trophy 🏆</b> everywhere (every ◈ price replaced), shop named <b>"Cosmetics"</b> (never
+    "Shop" — that's merch), trophies/cosmetics pill wording, favorite games sort to the top of the store,
+    good-run trickle <b>approved</b>, bird prices reordered (<b>Raven is #2 after Phoenix</b>), and all five
+    open questions resolved into decisions.</div>
+
+  <h2>0 · Decisions locked in this session</h2>
+  <ul>
+    <li><b>Titles stay automatic</b> — they keep unlocking from <b>lifetime</b> points exactly as today; the shop shows the ladder read-only as the prestige track. Spending never touches your title.</li>
+    <li><b>Two metrics:</b> <b>lifetime points</b> (only ever grows; drives titles) and <b>spendable balance</b> = lifetime − spent. At launch, balance = full lifetime (nothing was ever spent).</li>
+    <li><b>Meadow Flyer birds migrate</b> to challenge points, <b>buy-any-order</b>; in-game banked currency is removed — already-owned birds stay owned, remaining banked points convert <b>1:1</b> into challenge points (a one-time migration like the ×10 one).</li>
+    <li><b>Pricing = bands, not a total pool</b> (catalogue size is unknown): cheap ≈ a daily (<b>🏆 10–25</b>), mid ≈ a few days (<b>🏆 50</b>), premium ≈ a week (<b>🏆 100</b>). Progressive exceptions (top birds, one "crown jewel" per game) may go above — but nothing should demand ~8 weeks of farming; hard ceiling <b>🏆 500</b>.</li>
+    <li class="rev"><b>Naming convention (locked 2026-07-03):</b> the currency is the <b>Trophy 🏆</b> — used everywhere prices, balances and earnings appear (no second symbol). The shop is called <b>"Cosmetics"</b> — never "Shop"/"Store", which stays reserved for future merch in the main ☰ menu. Player-facing copy renames "challenge points" → <b>trophies</b> across the drawer, challenge cards ("+10 🏆"), profile ("🏆 TROPHIES"), and the titles ladder. Asteroids+'s in-run ◈ credits are a different, per-run thing and keep their own symbol.</li>
+    <li class="rev"><b>Good-run trophy trickle — approved, ships with the shop:</b> +2 🏆 per good run, capped at 3/day (max +42/wk). Ties earning to actually playing, softens the casual curve.</li>
+    <li class="rev"><b>Placement answers:</b> Cosmetics lives in the <b>challenges menu only</b> (main ☰ reserved for merch) · selection is per-device, carried by Export/Import · bird price tail approved (tune later) · in-game STYLE groups go in the <b>start menu</b> · the collection bar counts <b>purchasables only</b> (titles have their own ladder).</li>
+  </ul>
+
+  <h2>1 · Economy</h2>
+  <p><b>Earn rates today:</b> daily 10 + weekly 50 → perfect week = <b>120</b>, active ≈ 100, casual ≈ 40–60. One daily = one cheap item; one full week ≈ one premium item. Each game's launch set costs 🏆 200–400 total ≈ 2–4 weeks of active play per game — so "finish your favorite game's set" is quick, "chase 100%" scales with the catalogue (by design, per the bands decision).</p>
+  <h3>Titles thresholds — reviewed, keep as-is (for now)</h3>
+  <p>Ladder timing at active pace (~100/wk lifetime): Peasant 100 ≈ 1 wk · Squire 250 ≈ 2–3 wk · Knight 500 ≈ 5 wk · Sorcerer 1 000 ≈ 2–3 mo · Archmage 2 000 ≈ 5 mo · Oracle 4 000 ≈ 10 mo · Ascendant 6 500 ≈ 16 mo · Emperor 10 000 ≈ 2 yrs. Since titles key off <b>lifetime</b>, shop spending doesn't slow the ladder — the two tracks are fully independent, which is exactly why the pacing still works. The early tiers land satisfyingly fast, the tail is a real long-game. <b>Recommendation: leave thresholds; retune from GA4 once real completion data flows</b> (the existing challenge_done events already measure earn rate).</p>
+  <h3>Earning headroom — APPROVED, ships with the shop<span class="revtag">✨ REV 2</span></h3>
+  <p><b>+2 🏆 per good run, capped at 3/day</b> (max +42/wk; realistically +20–30 for active players). Ties earning to actually playing — cheap to add since goodRuns are already tracked per day. It also raises the title pace slightly (lifetime grows faster); the thresholds review below already absorbs that. Parked streak bonuses could slot here later if more headroom is ever needed.</p>
+  <p class="rev"><b>✨ Where the player sees the cap:</b> (1) the end-of-run menu's existing "✓ Good run" line becomes the receipt — <b>"✓ Good run · +2 🏆 (2/3 today)"</b>, and when maxed <b>"✓ Good run · daily bonus maxed 3/3"</b> — you learn the cap the moment it matters; (2) an always-on line in the challenges panel/drawer under the trophy pills — <b>"⚡ Good-run bonus: 2/3 today · +2 🏆 each"</b> — for planning "is one more run worth it?"; (3) one sentence in the FAQ's challenges entry. No new storage: the counter is <code>min(goodRuns, 3)</code> from the existing daily log.</p>
+
+  <h2>2 · Player simulations — who earns what, and when</h2>
+  <p>Three archetypes, straight multiplication of today's earn rates (titles read <b>lifetime</b>, so spending on cosmetics never delays them):</p>
+  <div class="tblwrap"><table>
+    <tr><th>Player</th><th>Habit</th><th>Earn / week</th><th>Month 1</th><th>Month 3</th><th>Month 6</th><th>Year 1</th></tr>
+    <tr><td><b>🔥 Devotee</b></td><td>every daily + every weekly</td><td class="p">🏆 120</td><td>≈ 520</td><td>≈ 1,560</td><td>≈ 3,120</td><td>≈ 6,240</td></tr>
+    <tr><td><b>🙂 Active</b></td><td>~5 dailies + most weeklies</td><td class="p">🏆 100</td><td>≈ 430</td><td>≈ 1,300</td><td>≈ 2,600</td><td>≈ 5,200</td></tr>
+    <tr><td><b>🌙 Casual</b></td><td>2–3 dailies, weekly sometimes</td><td class="p">🏆 45</td><td>≈ 195</td><td>≈ 585</td><td>≈ 1,170</td><td>≈ 2,340</td></tr>
+  </table></div>
+
+  <h3>What that buys (launch catalogue ≈ 🏆 2,375 / 58 items)</h3>
+  <div class="tblwrap"><table>
+    <tr><th>Milestone</th><th>🔥 Devotee</th><th>🙂 Active</th><th>🌙 Casual</th></tr>
+    <tr><td>First cosmetic (🏆 10)</td><td>day 1</td><td>day 1</td><td>day 1–2</td></tr>
+    <tr><td>A premium item (🏆 100)</td><td>~1 week</td><td>~1 week</td><td>~2 weeks</td></tr>
+    <tr><td>Favorite game's full set (🏆 200–400)</td><td>2–3 weeks</td><td>2–4 weeks</td><td>5–9 weeks</td></tr>
+    <tr><td>All 8 paid birds (🏆 1,160, incl. Phoenix 500)</td><td>~10 weeks</td><td>~12 weeks</td><td>~6 months</td></tr>
+    <tr><td><b>100% collection</b> (launch set)</td><td>~5 months</td><td>~6 months</td><td>~12 months</td></tr>
+  </table></div>
+
+  <h3>Title timeline (lifetime — unaffected by spending)</h3>
+  <div class="tblwrap"><table>
+    <tr><th>Title (lifetime 🏆)</th><th>🔥 Devotee</th><th>🙂 Active</th><th>🌙 Casual</th></tr>
+    <tr><td>🌾 Peasant (100)</td><td>week 1</td><td>week 1</td><td>week 2–3</td></tr>
+    <tr><td>🛡️ Squire (250)</td><td>week 2–3</td><td>week 3</td><td>week 6</td></tr>
+    <tr><td>⚔️ Knight (500)</td><td>week 4–5</td><td>week 5</td><td>~3 months</td></tr>
+    <tr><td>🔮 Sorcerer (1,000)</td><td>~2 months</td><td>~2.5 months</td><td>~5 months</td></tr>
+    <tr><td>🧙 Archmage (2,000)</td><td>~4 months</td><td>~5 months</td><td>~10 months</td></tr>
+    <tr><td>👁️ Oracle (4,000)</td><td>~8 months</td><td>~9 months</td><td>~1.7 years</td></tr>
+    <tr><td>🌟 Ascendant (6,500)</td><td>~13 months</td><td>~15 months</td><td>~2.8 years</td></tr>
+    <tr><td>👑 Emperor (10,000)</td><td>~19 months</td><td>~2 years</td><td>~4+ years</td></tr>
+  </table></div>
+
+  <h3>Week 1, day by day — 🙂 Active player "Ola"</h3>
+  <div class="qbox" style="font-size:13.5px;">
+    <b>Mon</b> — daily done, +10 → buys <b>Cherry</b> (🏆10) for Snake. Balance 0.<br>
+    <b>Tue</b> — +10. Eyeing the Golden Apple. Balance 10.<br>
+    <b>Wed</b> — +10. Two short of the Golden Apple — saves. Balance 20.<br>
+    <b>Thu</b> — +10 → buys <b>Golden Apple</b> (🏆25). Balance 5.<br>
+    <b>Fri</b> — +10. Balance 15.<br>
+    <b>Sat</b> — daily skipped (busy). Balance 15.<br>
+    <b>Sun</b> — daily +10 AND the weekly completes +50 → buys <b>Crosshair cursor</b> (🏆25) + <b>Wood Classic paddle</b> (🏆10). Balance 40, saving toward the 🏆100 Owl.<br>
+    <b>End of week 1:</b> lifetime 100 → <b>🌾 Peasant title pops</b> · 4 cosmetics owned · 40 banked.
+    <em>The cadence the bands were designed for: something small almost every day, a real save-up goal always in sight.</em>
+  </div>
+
+  <div class="verdict warn"><b>Reading the simulation:</b> the launch pool (~🏆2,375) is comfortably in the "Active finishes in ~6 months" zone — and every new game ships another 🏆200–400 set, so the horizon moves with the catalogue (which is the point). The one number worth watching is Casual vs Phoenix (🏆500 ≈ 11 casual weeks): that's the "aspirational exception" working as intended, but if GA4 shows casuals stalling, the fix is the good-run earn trickle (section 1), not price cuts.</div>
+
+  <h2>3 · Where the shop lives (UX)</h2>
+  <p>The challenges drawer's points row becomes a two-pill row + collection bar; the shop itself is a <b>separate modal</b> (like the titles ladder), opened from the gold pill — and the same modal is reachable from the profile's collection bar.</p>
+
+  <div class="mock"><div class="mockpad">
+    <div class="rev" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <span class="pill gold">🏆 1,240 trophies</span>
+      <span class="pill shopp">🎨 COSMETICS · 🏆 320</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; margin-top:12px; max-width:420px;">
+      <div class="bar" style="flex:1;"><i style="width:21%"></i></div>
+      <span style="font:700 11px var(--mono); color:var(--faint); white-space:nowrap;">12 / 58 unlocked · 21%</span>
+    </div>
+  </div></div>
+  <div class="cap">Challenges drawer — trophies pill = lifetime earned (opens the titles ladder, as today) · gold COSMETICS pill shows the spendable balance · collection bar. The same bar + 🎨 pill appear in the profile's meta column.</div>
+
+  <h2>4 · The shop modal (mock)</h2>
+  <p>Kit-modal like the titles ladder. Header: balance + collection bar. Items grouped <b>by game</b> (game icon + per-game progress), each group a grid of kit shop cells — the exact primitive shipped for the Drydock: icon painter, price, owned/affordable/locked states, <b>touch two-step select→buy</b> with a focused-desc line, mouse hover+click. Titles render at the bottom as the read-only prestige ladder.</p>
+  <p class="rev"><b>✨ Rev 2 — group ordering:</b> <b>favorite games sort to the top</b> of the store (same favorites the catalogue pins), then most-played (from profile data), then the rest — your games' cosmetics are always the first thing you see. Site-wide sets (cursors) sit above the game groups.</p>
+
+  <div class="mock"><div class="mockpad" style="max-width:720px;">
+    <div style="display:flex; align-items:baseline; justify-content:space-between; gap:12px;">
+      <span style="font:800 18px var(--mono); letter-spacing:2px; color:#cfe8ff;">🎨 COSMETICS</span>
+      <span style="font:700 13px var(--mono); color:var(--gold);">🏆 320</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:10px; margin:10px 0 4px;">
+      <div class="bar" style="flex:1;"><i style="width:21%"></i></div>
+      <span style="font:700 10.5px var(--mono); color:var(--faint);">12 / 58 · 21%</span>
+    </div>
+    <div style="font:11px var(--mono); color:var(--faint); margin:6px 0 2px;">▸ <b style="color:#cfe8ff;">Golden Apple</b> — Neon Snake's food gleams gold. <span style="color:var(--gold);">🏆 25</span></div>
+
+    <div class="gamehead"><span class="gt">🐍 NEON SNAKE</span><span class="gp">2/6</span><span class="line"></span></div>
+    <div class="grid4">
+      <div class="shopcard owned"><div class="sw" style="background:#ff5b5b;"></div><span class="snm">Apple</span><span class="sowned">✓ DEFAULT</span></div>
+      <div class="shopcard hot"><div class="sw" style="background:linear-gradient(135deg,#ffd166,#ff9a3c);"></div><span class="snm">Golden Apple</span><span class="sprice">🏆 25</span></div>
+      <div class="shopcard"><div class="sw" style="background:linear-gradient(135deg,#b98cff,#7fd0ff);"></div><span class="snm">Gem</span><span class="sprice">🏆 25</span></div>
+      <div class="shopcard dim"><div class="sw" style="background:conic-gradient(#ff5b5b,#ffd166,#7fe0a0,#7fd0ff,#b98cff,#ff5b5b);"></div><span class="snm">Rainbow Orb</span><span class="sprice">🏆 100</span></div>
+    </div>
+
+    <div class="gamehead"><span class="gt">🧱 BRICK BREAKER</span><span class="gp">1/9</span><span class="line"></span></div>
+    <div class="grid4">
+      <div class="shopcard owned"><div class="sw" style="background:linear-gradient(90deg,#ff7ab6,#b98cff);"></div><span class="snm">Synthwave</span><span class="sowned">✓ DEFAULT</span></div>
+      <div class="shopcard"><div class="sw" style="background:#c8894a;"></div><span class="snm">Wood Classic</span><span class="sprice">🏆 10</span></div>
+      <div class="shopcard"><div class="sw" style="background:linear-gradient(90deg,#9fe8ff,#e8fbff);"></div><span class="snm">Neon Ice</span><span class="sprice">🏆 25</span></div>
+      <div class="shopcard dim"><div class="sw" style="background:linear-gradient(90deg,#ff6a3c,#ffd166);"></div><span class="snm">Lava Core</span><span class="sprice">🏆 50</span></div>
+    </div>
+
+    <div class="gamehead"><span class="gt">🎖️ TITLES — prestige ladder (automatic, lifetime points)</span><span class="line"></span></div>
+    <div style="display:flex; flex-direction:column; gap:5px; font:600 12px var(--mono);">
+      <div style="display:flex; justify-content:space-between; color:var(--good);"><span>⚔️ Knight of the Realm — YOURS</span><span>500</span></div>
+      <div style="display:flex; justify-content:space-between; color:var(--text);"><span>🔮 Sorcerer of the Spire — next</span><span style="color:var(--gold);">1,240 / 1,000 ✓ at next visit… 🔒 2,000</span></div>
+      <div style="display:flex; justify-content:space-between; color:var(--faint);"><span>🧙 Archmage of the Arcane</span><span>🔒 2,000 lifetime</span></div>
+    </div>
+
+    <div style="margin-top:14px; display:flex; gap:8px;">
+      <button class="btn gold" style="flex:1;">BUY GOLDEN APPLE · 🏆 25</button>
+    </div>
+  </div></div>
+  <div class="cap">Shop modal — kit shop cells (swatch painters), per-game headers with progress, focused-desc line, gold buy button (two-step on touch). Titles = read-only ladder with lifetime progress.</div>
+
+  <h2>5 · In-game unlocking (no shop round-trips)</h2>
+  <p>Anywhere a cosmetic is <em>selected</em> in a game, it can be <em>bought</em> in place: locked cells in the existing selection UI show the 🏆 price; tap once to select (desc + price show), tap again / hit the gold button to buy — the exact `locked:` + two-step machinery from the Drydock. Flyer's bird grid is the template:</p>
+
+  <div class="mock"><div class="mockpad" style="max-width:560px;">
+    <div style="font:700 10px var(--mono); letter-spacing:2px; color:#cfe8ff; text-align:center; margin-bottom:8px;">— FLYER — <span style="color:var(--gold);">🏆 320</span></div>
+    <div class="grid4" style="grid-template-columns:repeat(5,1fr);">
+      <div class="shopcard owned" style="align-items:center;"><span style="font-size:20px;">🐝</span><span class="snm">Bee</span><span class="sowned">✓</span></div>
+      <div class="shopcard owned" style="align-items:center;"><span style="font-size:20px;">🐦</span><span class="snm">Robin</span><span class="sowned">✓</span></div>
+      <div class="shopcard hot" style="align-items:center;"><span style="font-size:20px;">🦉</span><span class="snm">Owl</span><span class="sprice">🏆 75</span></div>
+      <div class="shopcard dim" style="align-items:center;"><span style="font-size:20px;">🐦‍⬛</span><span class="snm">Raven</span><span class="sprice">🏆 250</span></div>
+      <div class="shopcard dim" style="align-items:center;"><span style="font-size:20px;">🔥</span><span class="snm">Phoenix</span><span class="sprice">🏆 500</span></div>
+    </div>
+    <div style="font:11px var(--mono); color:var(--faint); margin:8px 0;">▸ <b style="color:#cfe8ff;">Owl</b> — silent night hunter with slow, heavy flaps. <span style="color:var(--gold);">🏆 75</span></div>
+    <button class="btn gold" style="width:100%;">UNLOCK OWL · 🏆 75</button>
+  </div></div>
+  <div class="cap">Meadow Flyer's bird grid after migration — same grid, prices in challenge points, buy-in-place. Games without a selector today (most) gain a small "STYLE" grid group in their start menu using this same pattern.</div>
+
+  <h2>6 · Launch catalogue — every live game (draft prices)</h2>
+  <p>Defaults are free and pre-owned (count toward collection %). One "crown jewel" per game sits at 🏆 100; the birds keep a progressive tail. <b>Launch total ≈ 🏆 2,375 across 58 items</b> — but per the bands decision, the number that matters is per-item: nothing above a week except the flagged exceptions.</p>
+
+  <div class="tblwrap"><table>
+    <tr><th>Where</th><th>Set</th><th>Items (price 🏆)</th><th>Rules</th></tr>
+    <tr><td><b>Site-wide</b></td><td>Cursor skins <em>(desktop only)</em></td><td>Classic <span class="free">FREE</span> · Crosshair 25 · Paw 25 · Pixel Sword 50 · Neon Comet 50 · Rainbow Trail 100</td><td>buy any</td></tr>
+    <tr><td><b>🐍 Neon Snake</b></td><td>Food skins</td><td>Apple <span class="free">FREE</span> · Cherry 10 · Golden Apple 25 · Gem 25 · Star Fruit 50 · Rainbow Orb 100</td><td>buy any</td></tr>
+    <tr><td><b>🧱 Brick Breaker</b></td><td>Paddle skins</td><td>Synthwave <span class="free">FREE</span> · Wood Classic 10 · Neon Ice 25 · Lava Core 50 · Chrome 100</td><td rowspan="2">buy any (user-specified)</td></tr>
+    <tr><td></td><td>Ball skins</td><td>Neon <span class="free">FREE</span> · 8-Ball 25 · Comet 50 · Disco 50 · Plasma 100</td></tr>
+    <tr><td><b>🏰 Keep Defender</b></td><td>Castle skins</td><td>Stone Keep <span class="free">FREE</span> · Oak Fort 25 · Sandcastle 50 · Ice Keep 50 · Obsidian Citadel 100</td><td>buy any</td></tr>
+    <tr><td><b>🫧 Bubble Pop</b></td><td>Pop effects</td><td>Classic <span class="free">FREE</span> · Confetti 25 · Stars 50 · Fireworks 100</td><td rowspan="2">buy any</td></tr>
+    <tr><td></td><td>Shooter bases</td><td>Aqua <span class="free">FREE</span> · Candy 25 · Royal Gold 50</td></tr>
+    <tr><td><b>🎯 Range</b></td><td>Target skins</td><td>Rings <span class="free">FREE</span> · Neon Donut 25 · Fruit 50 · Alien Blob 50 · Gold Star 100</td><td rowspan="2">buy any</td></tr>
+    <tr><td></td><td>Hit markers</td><td>Classic <span class="free">FREE</span> · Spark 25 · Boom 50</td></tr>
+    <tr><td><b>🗼 Stack</b></td><td>Block palettes</td><td>Pastel <span class="free">FREE</span> · Synthwave 25 · Forest 25 · Candy 50 · Gilded Mono 100</td><td>buy any</td></tr>
+    <tr><td><b>🛸 Asteroids</b></td><td>Ship colors</td><td>Cyan <span class="free">FREE</span> · Emerald 10 · Crimson 25 · Violet 25 · Gold 100 · CRT Green <em>(whole-game retro tint)</em> 50</td><td>buy any</td></tr>
+    <tr><td><b>☄️ Asteroids+</b></td><td>Hull colors</td><td>Violet <span class="free">FREE</span> · Teal 25 · Blood Red 50 · Gold 100</td><td rowspan="2">buy any</td></tr>
+    <tr><td></td><td>Engine trails</td><td>Ion <span class="free">FREE</span> · Ember 50 · Rainbow 100</td></tr>
+    <tr><td class="rev"><b>🐤 Meadow Flyer</b> ✨</td><td>Birds <em>(migrated)</em></td><td>Bee <span class="free">FREE</span> · Robin 10 · Bluebird 25 · Parrot 50 · Owl 75 · Bielik 100 · Raróg 150 <em>(exception)</em> · <b>Raven 250</b> <em>(exception — #2 after Phoenix)</em> · Phoenix 500 <em>(exception — the aspirational one)</em></td><td>buy any · owned birds stay · banked pts convert 1:1</td></tr>
+    <tr><td><b>🎖️ Titles</b></td><td>Prestige ladder</td><td>Peasant 100 → Emperor 10,000 <b>lifetime</b> (unchanged)</td><td>automatic — read-only in the shop</td></tr>
+  </table></div>
+
+  <h2>7 · Data &amp; implementation shape</h2>
+  <ul>
+    <li><b><code>cosmetics.js</code></b> — new shared registry, loaded like <code>challenges.js</code> (both catalogue AND games; added to every SW SHELL in lockstep). Per item: <code>{ id: 'snake.food.gold', game, set, name, desc, price, painter }</code> — the painter is a tiny canvas swatch (same idiom as the shop icons), so the modal previews without loading game code. <b>Version field from day one.</b></li>
+    <li><b>Storage:</b> <code>gamekit_owned</code> = <code>{ itemId: { c: cost, t: day } }</code>. Spendable = lifetime(<code>gamekit_done</code>) − Σ owned costs — derived, never stored, so it can't drift. Defaults are implicit (never stored). Kept by Export/Import; per-game reset does NOT touch it (site-level purchase); Reset-all wipes it with everything else.</li>
+    <li><b>Kit API:</b> <code>gamekit.cosmetics</code> → <code>lifetime()</code>, <code>balance()</code>, <code>owned(id)</code>, <code>buy(id)</code> (validates balance, idempotent), <code>selected(set)</code>/<code>select(set, id)</code> (per-set choice, stored as <code>gamekit_cos_sel</code>), <code>progress(game?)</code> → <code>{owned, total, pct}</code>. Buying fires a GA4 <code>shop_buy {id}</code> (consent-gated) so prices can be tuned from data.</li>
+    <li><b>Shop modal</b> = kit-owned (<code>gamekit.shopPanel()</code>), reusing the gkm shop-cell machinery (locked/price/two-step/focdesc). Opened from the challenges drawer pill + profile bar.</li>
+    <li><b>In-game:</b> each game adds a STYLE grid group (or extends an existing selector like Flyer's) with locked+price cells; buying in place calls <code>cosmetics.buy</code>. Games apply the selected cosmetic in their render (a small <code>COS = KIT.cosmetics.selected('snake.food')</code> read).</li>
+    <li><b>Flappy migration:</b> one-time — birds owned under the old ladder → written into <code>gamekit_owned</code> at cost 0; remaining banked points added to lifetime via a synthetic <code>gamekit_done</code> entry (<code>{'flappy-migrate': N}</code> — keeps spendable = lifetime − spent consistent); old keys removed; flagged like <code>gamekit_pts_x10</code>.</li>
+    <li class="rev"><b>✨ Trophy rename pass:</b> player-facing "points"/"pts" → <b>trophies / 🏆</b> everywhere — drawer pills, challenge card "+10 🏆" badges, profile "🏆 TROPHIES" meta, titles-ladder "pts" labels, FAQ + changelog wording. Internal storage keys (<code>gamekit_done</code> etc.) keep their names — this is copy only.</li>
+    <li><b>Phases:</b> P1 kit (cosmetics.js + API + shop modal + drawer/profile bars + trophy rename + good-run trickle) with 2 games' sets (snake + breakout) → P2 flappy migration + asteroids×2 + KD → P3 the rest + cursors. Tests: buy/balance/idempotency, migration, registry-integrity (unique ids, every set has a free default), progress math, trickle cap.</li>
+  </ul>
+
+  <h2>8 · Extra ideas (mine — take or leave)</h2>
+  <ul>
+    <li><b>Collector milestones:</b> at 25 / 50 / 100% collection, the profile gets a small collector badge next to the title (pure client-side, rides the collection bar). Makes the % chase itself rewarding.</li>
+    <li><b>Deed-locked exclusives (later):</b> 1–2 items per game that money can't buy — unlocked by a feat ("score 500 in Neon Snake"), shown in the shop with the deed as the price. A second chase axis that keeps skilled players hunting. Cheap to add on top of the same registry (<code>deed:</code> instead of <code>price:</code>).</li>
+    <li><b>Live preview before buying:</b> selecting a locked item temporarily applies it in the menu preview/backdrop (never in a recorded run). The two-step select state makes this nearly free.</li>
+    <li><b>NOT recommending:</b> daily deals/discount rotations (FOMO mechanics clash with the no-predatory-patterns stance the challenges system already commits to) and any real-money anything, obviously.</li>
+  </ul>
+
+  <h2>9 · Questions — ALL RESOLVED<span class="revtag">✨ REV 2</span></h2>
+  <div class="qbox rev"><b>Q1 — entry points:</b> ✅ challenges menu (+ profile bar) ONLY. The main ☰ "shop" slot stays reserved for future merch — never mix them.</div>
+  <div class="qbox rev"><b>Q2 — selection scope:</b> ✅ per-device, carried by Export/Import (like everything else).</div>
+  <div class="qbox rev"><b>Q3 — bird prices:</b> ✅ progressive tail approved (Raven moved to #2: …Raróg 150 → Raven 250 → Phoenix 500); tune later from data.</div>
+  <div class="qbox rev"><b>Q4 — STYLE group placement:</b> ✅ start menu — cosmetics you can see sell the chase.</div>
+  <div class="qbox rev"><b>Q5 — collection %:</b> ✅ counts purchasables only; titles stay their own ladder.</div>
+
+  <h2>10 · Challenge targets &amp; good-run bars — current state, for your playtest<span class="revtag">✨ NEW</span></h2>
+  <p>Every target translated into concrete play (scoring rules read from each game's code), with an eyeball
+    verdict against the bar <b>"a casual player clears a daily in one or two tries (~3–8 min)"</b>. This matters
+    doubly now: the good-run bars gate the <b>+2 🏆 trickle</b>, so a mis-set bar distorts the economy, not just a
+    challenge. Nothing changed yet — this is the review sheet for your testing.</p>
+
+  <h3>Daily single-game goals (22-day rotation)</h3>
+  <div class="tblwrap"><table>
+    <tr><th>Goal</th><th>Targets (easy day / hard day — two separate goals per game in the 22-day rotation)</th><th>In play terms</th><th>Effort</th><th>Eyeball</th></tr>
+    <tr><td>🐍 Snake</td><td>100 / 250</td><td>10 / 25 apples (+10 each, no mode multipliers)</td><td>~1 min / 3–4 min</td><td><b>OK</b> / <b>OK</b></td></tr>
+    <tr><td>🫧 Bubble Pop</td><td>1,000 / 3,000</td><td>~20–25 good shots (pop = group×10×level, drops ×15) / needs level 2–3 multipliers</td><td>3–4 min / 8–12 min</td><td><b>OK</b> / <b>borderline HARD</b></td></tr>
+    <tr><td>🧱 Brick Breaker</td><td>500 / 1,500</td><td>50 / 150 bricks (10×level each; a full level-1 board = 180 bricks = 1,800)</td><td>1–2 min / 3–5 min</td><td><b>OK-easy</b> / <b>OK</b></td></tr>
+    <tr><td>🗼 Stack</td><td>12 / 25</td><td>~10 / ~20 placements (+1 each, perfects bonus) — <b>Zen mode trivializes both</b></td><td>30–45 s / 1.5–2 min</td><td><b>TOO EASY</b> / <b>OK</b></td></tr>
+    <tr><td>🐤 Meadow Flyer</td><td>8 / 20</td><td>~5 / ~12 pipes (+1 each; collectibles add 2–5 in ~half the gaps)</td><td>~20 s / 45–60 s</td><td><b>OK-easy</b> / <b>OK</b></td></tr>
+    <tr><td>🎯 Range</td><td>250 / 600</td><td>~15 hits with small combos / ~20+ with sustained combo (hit = 10×combo tier) — <b>easy in 60 s mode, targets don't pin duration</b></td><td>one 30 s round / a good round</td><td><b>OK-easy</b> / <b>OK*</b></td></tr>
+    <tr><td>🏰 Keep Defender</td><td>wave 5 / 700</td><td>cumulative medium score ≈ 600 after wave 5 + drops → <b>both targets ≈ the same run</b> (first boss)</td><td>5–8 min (same run)</td><td><b>OK</b> / <b>OK but REDUNDANT pair</b></td></tr>
+    <tr><td>🛸 Asteroids</td><td>4,000</td><td>wave 1 (4 rocks = 2,080) + most of wave 2 — only ONE goal (every other game has two)</td><td>3–5 min</td><td><b>OK</b></td></tr>
+    <tr><td>☄️ Asteroids+</td><td>50,000 / 150,000</td><td>survive to <b>wave 11–12</b> / wave ~17–18 (cumulative ≈ 11.5k @w5, 40k @w10)</td><td><b>15–20 min / 30+ min</b></td><td><b>TOO HARD</b> / <b>FAR TOO HARD</b></td></tr>
+  </table></div>
+
+  <h3>Cross-game, random &amp; weekly goals</h3>
+  <div class="tblwrap"><table>
+    <tr><th>Goal</th><th>Target</th><th>Eyeball</th></tr>
+    <tr><td>play2 / play3 / genres2 (daily)</td><td>2–3 games / 2 genres today</td><td><b>OK</b> — pure variety nudges, minutes of play</td></tr>
+    <tr><td>good3 (daily)</td><td>3 good runs today</td><td><b>OK</b> — assuming sane bars (see below); with asteroids+'s current bar it's effectively "not via that game"</td></tr>
+    <tr><td>rand-daily / rand-weekly</td><td>play the pick</td><td><b>OK</b> — cycles all 9 games in 9 days/weeks</td></tr>
+    <tr><td>wk-distinct5 / wk-play12 / wk-genres3 / wk-good10</td><td>5 games · 12 plays · 3 genres · 10 good runs per week</td><td><b>OK</b> — "more work, not harder" holds (~2 plays/day covers all)</td></tr>
+  </table></div>
+
+  <h3>Good-run bars (gate goodRuns challenges AND the new 🏆 trickle)</h3>
+  <div class="tblwrap"><table>
+    <tr><th>Game</th><th>Bar</th><th>In play terms</th><th>Eyeball</th></tr>
+    <tr><td>snake 100 · bubbles 1,000 · breakout 500 · flappy 8 · aim 250</td><td>= the lower daily target</td><td>1–4 min of decent play</td><td><b>OK</b> — consistent "cleared the easy daily" definition</td></tr>
+    <tr><td>stacker</td><td>12</td><td>~10 placements, ~40 s (Zen: trivial)</td><td><b>TOO EASY</b> — free trickle trophies</td></tr>
+    <tr><td>tower-defense</td><td>300</td><td>≈ clearing wave 3–4 on medium (below its own daily targets)</td><td><b>OK-easy</b></td></tr>
+    <tr><td>asteroids</td><td>2,000</td><td>≈ clear wave 1</td><td><b>OK</b></td></tr>
+    <tr><td>asteroids-plus</td><td>50,000</td><td>≈ wave 11–12 ≈ <b>15–20 min</b></td><td><b>FAR TOO HARD</b> — a "good run" costs 5× any other game's; kills the trickle there</td></tr>
+  </table></div>
+
+  <h3>Structural findings (beyond individual numbers)</h3>
+  <ul>
+    <li><b>Hard-cluster in the rotation:</b> the 22-day daily list is ordered easy-half → hard-half, so days ~14–22 are a straight run of tier-2 goals. Suggest interleaving when targets get retuned.</li>
+    <li><b>Mode-agnostic targets leak:</b> any mode counts — Stack's Zen trivializes its goals, Range's 60 s mode halves the 600 difficulty. Either accept (casual-friendly) or pin modes/durations per goal.</li>
+    <li><b>KD pair is redundant:</b> wave-5 and score-700 are the same run on medium (and 700 arrives by ~wave 4 on Hard's ×2 multiplier). One of them should become a genuinely different ask.</li>
+    <li><b>Asteroids has one goal, everyone else two</b> — add a second tier (e.g. 8,000) for rotation symmetry.</li>
+    <li><b>Candidate retunes to test</b> (not applied): asteroids-plus 50k/150k → <b>12,000 / 40,000</b> (≈ wave 5 boss / wave 10 — matches other games' effort); stacker bar+goal 12 → <b>15</b>; bubbles 3,000 → <b>2,500</b>.</li>
+  </ul>
+
+  <h3>Your playtest checklist</h3>
+  <div class="qbox">
+    ① Each game's LOWER target in 1–2 casual tries — which ones failed? ·
+    ② Stack via Zen — how silly does 12 feel? ·
+    ③ Range: 600 at 30 s vs 60 s — is the mode leak acceptable? ·
+    ④ Asteroids+: time an honest run to 12k and to 50k — does 12k feel like the other games' dailies? ·
+    ⑤ KD medium: note the score when wave 5 falls — confirm the ~600–700 redundancy. ·
+    ⑥ Bubble Pop: is 3,000 reachable in two focused tries?
+  </div>
+</div>
+</body>
+</html>
