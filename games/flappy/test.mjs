@@ -1,9 +1,15 @@
 // Headless tests for Meadow Flyer (games/flappy/index.html).
 // Boots via the shared harness, drives window.__test.
-import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { bootGame, ok, section, summary, runLayoutSuite, ROOT } from '../../test-harness.mjs';
 
 const FILE = 'games/flappy/index.html';
-const runGame = (store) => bootGame(FILE, { store });
+const runGame = (store, opts) => bootGame(FILE, { store, ...(opts || {}) });
+const COSMETICS = fs.readFileSync(path.join(ROOT, 'cosmetics.js'), 'utf8');
+const CHALLENGES = fs.readFileSync(path.join(ROOT, 'challenges.js'), 'utf8');
+// boot with the cosmetics registry loaded (birds live in the shared kit store now)
+const runCos = (store) => runGame({ gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', ...(store || {}) }, { preCode: [CHALLENGES, COSMETICS] });
 // best now lives in the shared kit store (gamekit_pb) under flappy's single '' mode
 const pbScore = (store, mode) => { try { return ((JSON.parse(store['gamekit_pb'] || '{}').flappy || {})[mode || ''] || {}).score || 0; } catch (e) { return 0; } };
 
@@ -260,42 +266,35 @@ section('Best from shared store');
   ok(T().best === 20, '__test.best reflects the seeded shared best');
 }
 
-// (r) cash: passing a pipe banks cash; persists in flappy_cash
-section('Cash banking');
+// (r) the banked-cash economy is GONE — passing a pipe scores but never writes flappy_cash
+// (birds are challenge-trophy cosmetics now; the kit migrated old cash once)
+section('No cash banking (cosmetics economy)');
 {
   g = runGame();
-  T().setCash(0);
   T().start();
-  const startCash = T().cash;
   T().seed(7);
   const cgapY = 800 * 0.38, cTarget = cgapY + 92;
   T().spawnGapAt(cgapY);
   for (let i = 0; i < 60; i++) { if (T().bird.y > cTarget + 20) T().flap(); T().step(1); }
   let cg = 0;
   while (T().score < 1 && T().state === 'playing' && cg++ < 800) { if (T().bird.y > cTarget + 20) T().flap(); T().step(1); }
-  if (T().score >= 1) {
-    ok(T().cash > startCash, 'cash increased after passing a pipe (was ' + startCash + ', now ' + T().cash + ')');
-    ok(parseInt(g.store['flappy_cash'] || '0', 10) === T().cash, 'cash persisted to flappy_cash');
-  } else {
-    ok(true, 'cash banking skipped (no pipe passed)');
-  }
+  ok(g.store['flappy_cash'] === undefined, 'passing pipes writes no flappy_cash (economy removed)');
 }
 
-// (s) collectibles: collecting one adds score + cash
+// (s) collectibles: collecting one adds score (no cash side-effect anymore)
 section('Collectibles');
 {
   g = runGame();
-  T().setCash(0);
   T().start();
   T().obstacles.length = 0; T().collectibles.length = 0; // drop pre-filled pipes + their treats
-  const s0 = T().score, c0 = T().cash;
+  const s0 = T().score;
   // Drop a coin right on the bird so the overlap fires next step.
   T().spawnCollectibleAt(T().bird.x, T().bird.y, 3);
   ok(T().collectibles.length === 1, 'collectible spawned');
   T().step(1);
   ok(T().score === s0 + 3, 'collecting adds the coin value to score (got ' + T().score + ')');
-  ok(T().cash === c0 + 3, 'collecting adds the coin value to cash (got ' + T().cash + ')');
   ok(T().collectibles.length === 0, 'collectible removed after pickup');
+  ok(g.store['flappy_cash'] === undefined, 'collecting writes no flappy_cash');
 }
 
 // (t) progressive difficulty: gap shrinks with score, clamped at GAP_MIN (0.5× default)
@@ -339,23 +338,52 @@ section('Speed creep');
   ok(Math.abs(T().currentSpeed() - 2.8) < 0.001, 'night speed reaches 2.8 at full creep (got ' + T().currentSpeed() + ')');
 }
 
-// (u) bird unlocks: locked until enough cash, selecting an unlocked bird sticks
-section('Bird unlocks');
+// (u) bird unlocks: challenge-trophy cosmetics — locked until owned, owning lets it be selected
+section('Bird unlocks (cosmetics)');
 {
-  g = runGame();
-  T().setCash(0);
+  g = runCos();
   const birds = T().birds;
-  ok(birds.length >= 3, 'multiple bird types exist (got ' + birds.length + ')');
-  ok(birds[0].cost === 0 && birds[0].unlocked, 'first bird is free + unlocked');
-  const paid = birds.find(b => b.cost > 0);
-  ok(paid && !paid.unlocked, 'a costed bird is locked with zero cash');
+  ok(birds.length === 9, 'nine bird types exist (got ' + birds.length + ')');
+  ok(birds[0].price === 0 && birds[0].unlocked, 'first bird is free + unlocked');
+  const paid = birds.find(b => b.price > 0);
+  ok(paid && !paid.unlocked, 'a priced bird is locked before purchase');
   ok(T().selectBird(paid.id) === false, 'cannot select a locked bird');
   ok(T().selectedBird === 'bee', 'selection stays on the default bird when locked');
-  T().setCash(paid.cost);
-  ok(T().birds.find(b => b.id === paid.id).unlocked, 'bird unlocks once cash >= cost');
+  T().ownBird(paid.id); // headless: grant ownership directly (real flow buys with trophies)
+  ok(T().birds.find(b => b.id === paid.id).unlocked, 'bird unlocks once owned');
   ok(T().selectBird(paid.id) === true, 'can select after unlocking');
   ok(T().selectedBird === paid.id, 'selected bird now in use (got ' + T().selectedBird + ')');
-  ok(g.store['flappy_bird'] === paid.id, 'selection persisted to flappy_bird');
+  const sel = JSON.parse(g.store['gamekit_cos_sel'] || '{}');
+  ok(sel['flappy.bird'] === 'flappy.bird.' + paid.id, 'selection persisted to the kit cosmetics store');
+}
+
+// (u2) migration: old banked cash → trophies 1:1; old-threshold birds stay owned at cost 0
+section('Cash → trophy migration');
+{
+  // 320 cash unlocks bee/robin/bluebird/parrot/owl (old thresholds 0/50/100/200/300), bird = owl
+  g = runGame({ flappy_cash: '320', flappy_bird: 'owl', gamekit_pts_x10: '1' }, { preCode: [CHALLENGES, COSMETICS] });
+  ok(g.store['flappy_cash'] === undefined && g.store['flappy_bird'] === undefined, 'old flappy keys removed by migration');
+  ok(g.store['gamekit_flappy_migrated'] === '1', 'migration flagged (runs once)');
+  const owned = JSON.parse(g.store['gamekit_owned'] || '{}');
+  ok(owned['flappy.bird.owl'] && owned['flappy.bird.owl'].c === 0, 'owned birds carry over at cost 0 (owl)');
+  ok(!owned['flappy.bird.bielik'], 'birds above the banked total stay locked');
+  ok(T().trophies === 320, 'banked cash became spendable trophies (got ' + T().trophies + ')');
+  ok(T().selectedBird === 'owl', 'selected bird carried over');
+  // and the FLYER grid opens on the owned bird (flappy's own grid keys choices by bird id)
+  const menu = T().menu();
+  ok(menu && menu.selection()['bird'] === 'owl', 'menu FLYER grid opens on the owned bird');
+}
+
+// (u3) every bird model renders headless without throwing (menu preview + in-game)
+section('Bird skins render');
+{
+  for (const id of ['bee', 'robin', 'bluebird', 'parrot', 'owl', 'bielik', 'rarog', 'raven', 'phoenix']) {
+    const owned = {}; owned['flappy.bird.' + id] = { c: 0, t: 0 };
+    const g2 = runGame({ gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_owned: JSON.stringify(owned), gamekit_cos_sel: JSON.stringify({ 'flappy.bird': 'flappy.bird.' + id }) }, { preCode: [CHALLENGES, COSMETICS] });
+    ok(g2.test().selectedBird === id, id + ': selection honoured');
+    g2.test().start(); g2.step(5);
+    ok(g2.errors.length === 0, id + ': renders without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
+  }
 }
 
 // (v) layout fits the screen across portrait / landscape / desktop viewports

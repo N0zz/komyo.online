@@ -93,36 +93,40 @@
   function saveBest(v) { if (KIT) KIT.saveBest('flappy', '', { score: v }); }
   let best = getBest();
 
-  // ---- Cash + bird unlocks ----
-  // Score is treated as cash the player banks across runs; cash unlocks more birds.
-  const CASH_KEY = 'flappy_cash';
-  function getCash() { return parseInt(localStorage.getItem(CASH_KEY) || '0', 10); }
-  function addCash(n) { localStorage.setItem(CASH_KEY, getCash() + n); }
-
-  // Each bird: colours + a per-id canvas model (drawBirdModel — also the menu icon), locked until
-  // enough TOTAL banked cash. `emoji` is only for share TEXT (icons come from the model).
+  // ---- Bird unlocks — challenge-trophy cosmetics (set 'flappy.bird' in the shared kit store).
+  // The old banked-cash ladder is gone: the kit migrated it once (cash → trophies 1:1, already-
+  // unlocked birds kept at cost 0). Prices/ownership/selection all live in gamekit.cosmetics.
+  // Each bird: colours + a per-id canvas model (drawBirdModel — also the menu icon). `emoji` is
+  // only for share TEXT (icons come from the model).
   const BIRDS = [
-    { id: 'bee',     emoji: '🐝', body: '#f9e040', wing: '#f0c828', cost: 0 },
-    { id: 'robin',   emoji: '🐦', body: '#a86a48', wing: '#7a4e34', cost: 50 },
-    { id: 'bluebird',emoji: '🕊️', body: '#5fa8e8', wing: '#3f86c8', cost: 100 },
-    { id: 'parrot',  emoji: '🦜', body: '#5fd07a', wing: '#3aa858', cost: 200 },
-    { id: 'owl',     emoji: '🦉', body: '#b08a5a', wing: '#8a6a40', cost: 300 },
-    { id: 'bielik',  emoji: '🦅', name: 'Bielik', body: '#a8875c', wing: '#7a6038', cost: 500 },
-    { id: 'rarog',   emoji: '🔥', name: 'Raróg', body: '#c8232e', wing: '#8a1a22', cost: 700 },
-    { id: 'raven',   emoji: '🐦‍⬛', body: '#17181d', wing: '#0c0d11', cost: 850 },
-    { id: 'phoenix', emoji: '🔥', body: '#ff8a3a', wing: '#e85a1a', cost: 1000 },
+    { id: 'bee',     emoji: '🐝', body: '#f9e040', wing: '#f0c828' },
+    { id: 'robin',   emoji: '🐦', body: '#a86a48', wing: '#7a4e34' },
+    { id: 'bluebird',emoji: '🕊️', body: '#5fa8e8', wing: '#3f86c8' },
+    { id: 'parrot',  emoji: '🦜', body: '#5fd07a', wing: '#3aa858' },
+    { id: 'owl',     emoji: '🦉', body: '#b08a5a', wing: '#8a6a40' },
+    { id: 'bielik',  emoji: '🦅', name: 'Bielik', body: '#a8875c', wing: '#7a6038' },
+    { id: 'rarog',   emoji: '🔥', name: 'Raróg', body: '#c8232e', wing: '#8a1a22' },
+    { id: 'raven',   emoji: '🐦‍⬛', body: '#17181d', wing: '#0c0d11' },
+    { id: 'phoenix', emoji: '🔥', body: '#ff8a3a', wing: '#e85a1a' },
   ];
-  const SEL_KEY = 'flappy_bird';
-  function birdUnlocked(b) { return getCash() >= b.cost; }
+  const COS_SET = 'flappy.bird';
+  const cosId = id => COS_SET + '.' + id;
+  const hasCos = () => !!(KIT && KIT.cosmetics && window.COSMETICS);
+  function birdItem(b) { return hasCos() ? KIT.cosmetics.item(cosId(b.id)) : null; }
+  function birdPrice(b) { const it = birdItem(b); return it ? +it.price : 0; }
+  function birdUnlocked(b) { return hasCos() ? KIT.cosmetics.owned(cosId(b.id)) : b.id === 'bee'; }
+  function trophies() { return hasCos() ? KIT.cosmetics.balance() : 0; }
   function getSelectedBird() {
-    const id = localStorage.getItem(SEL_KEY) || 'bee';
+    const sel = hasCos() ? KIT.cosmetics.selected(COS_SET) : null;
+    const id = sel ? sel.slice(COS_SET.length + 1) : 'bee';
     const b = BIRDS.find(x => x.id === id) || BIRDS[0];
     return birdUnlocked(b) ? b : BIRDS[0];
   }
   function selectBird(id) {
     const b = BIRDS.find(x => x.id === id);
-    if (b && birdUnlocked(b)) { localStorage.setItem(SEL_KEY, id); return true; }
-    return false;
+    if (!b || !birdUnlocked(b)) return false;
+    if (hasCos()) KIT.cosmetics.select(COS_SET, cosId(id));
+    return true;
   }
   let selectedBird = getSelectedBird();
 
@@ -279,11 +283,20 @@
             drawBirdModel(g, b, 2);
             g.restore();
           },
-          locked: () => !birdUnlocked(b), cost: b.cost, sub: b.cost === 0 ? 'Free' : 'Unlocked',
+          desc: (birdItem(b) || {}).desc || '', price: birdPrice(b),
+          locked: () => !birdUnlocked(b),
+          lockedLabel: () => '🏆 ' + birdPrice(b),
+          afford: () => trophies() >= birdPrice(b),
+          sub: birdPrice(b) === 0 ? 'Free' : '✓ Owned',
+          buy: hasCos() ? (() => {
+            const ok = KIT.cosmetics.buy(cosId(b.id));
+            if (ok) { KIT.cosmetics.select(COS_SET, cosId(b.id)); try { SND.play('levelup'); } catch (e) {} }
+            return ok;
+          }) : undefined,
         })) },
       ],
       actions: [{ id: 'play', label: 'Fly!', primary: true }],
-      hint: () => 'Best ' + getBest() + ' · 💰 ' + getCash() + ' · tap / click / Space to flap.',
+      hint: () => 'Best ' + getBest() + ' · 🏆 ' + trophies() + ' · tap / click / Space to flap.',
       onChange: st => {
         mode = st.tod === 'night' ? 'night' : 'day'; saveMode(mode);
         if (st.bird && st.bird !== selectedBird.id) { selectBird(st.bird); selectedBird = getSelectedBird(); }
@@ -396,7 +409,6 @@
     if (!c || c.taken) return;
     c.taken = true;
     score += c.val;
-    addCash(c.val);
     updateHud();
     SND.play('score');
     spawnPass(c.x, c.y);
@@ -449,7 +461,6 @@
       if (!o.passed && o.x + OBS_W < bird.x - BIRD_R) {
         o.passed = true;
         score++;
-        addCash(1);
         updateHud();
         SND.play('score');
         spawnPass(bird.x + 20, bird.y);
@@ -926,9 +937,9 @@
     get GAP_MIN() { return GAP_MIN; },
     get GRAVITY() { return GRAVITY; },
     get OBS_INTERVAL() { return OBS_INTERVAL; },
-    get cash() { return getCash(); },
+    get trophies() { return trophies(); },
     get collectibles() { return collectibles; },
-    get birds() { return BIRDS.map(b => ({ id: b.id, cost: b.cost, unlocked: birdUnlocked(b) })); },
+    get birds() { return BIRDS.map(b => ({ id: b.id, price: birdPrice(b), unlocked: birdUnlocked(b) })); },
     get selectedBird() { return getSelectedBird().id; },
     currentGap() { return currentGap(); },
     currentSpeed() { return currentSpeed(); },
@@ -941,7 +952,8 @@
     seed: seedRng,
     spawnGapAt(y) { pendingGapY = y; },
     setBest(v) { saveBest(v); best = v; },
-    setCash(v) { localStorage.setItem(CASH_KEY, String(v)); },
+    // own a bird directly (headless helper — the real flow buys with trophies via the menu grid)
+    ownBird(id) { if (hasCos()) { const o = JSON.parse(localStorage.getItem('gamekit_owned') || '{}'); o[cosId(id)] = { c: 0, t: 0 }; localStorage.setItem('gamekit_owned', JSON.stringify(o)); } },
     selectBird(id) { const r = selectBird(id); selectedBird = getSelectedBird(); return r; },
     // Drop a collectible directly in front of the bird for headless collect tests.
     spawnCollectibleAt(x, y, val) { collectibles.push({ x: x, y: y, r: 14, emoji: '🪙', val: val || 2, taken: false }); },
