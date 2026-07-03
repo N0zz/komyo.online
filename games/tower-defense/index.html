@@ -552,6 +552,16 @@
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
   }
   function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
+  // ⏸ pause = the same kit pause menu every other game shows (the kit overlay freezes the loop)
+  let pausedMenu = false;
+  function showPauseMenu() {
+    pausedMenu = true;
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED',
+      lines: ['Wave ' + wave + ' · Score ' + score + ' · ' + gold + 'g'],
+      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+      onAction: id => { pausedMenu = false; if (id === 'resume') KIT.menu.hide(); else if (id === 'menu') toMenu(); },
+      onEsc: () => { pausedMenu = false; KIT.menu.hide(); } });
+  }
 
   // Per-map × per-difficulty records: { score, wave }. Score is the primary metric; keeping records
   // separate per difficulty keeps them fair (a Hard run never competes against an Easy one).
@@ -1616,6 +1626,7 @@
   const spdBtn = $('speedBtn');
   if (spdBtn) spdBtn.addEventListener('click', () => { gameSpeed = gameSpeed === 1 ? 2 : 1; refreshToolbar(); });
   KIT.nav({ slug: 'tower-defense', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (pausedMenu) { pausedMenu = false; KIT.menu.hide(); } else if (state === 'build' || state === 'wave') showPauseMenu(); },
     confirmLeave: () => (state === 'build' || state === 'wave') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Keep Defender — Controls',
       mouse: [ ['Pick a tower', 'Select to build'], ['Click grass', 'Place tower'], ['Click a tower', 'Upgrade / sell / targeting'] ],
