@@ -279,8 +279,6 @@
   const MODE_HINT = { arcade:'Pop groups of 3+; clear the board to advance.', endless:'Rows push in forever — survive and score.', zen:'Relax and pop. No fail, no descent.' };
   const modeParams = st => (st.timed && st.mode !== 'zen') ? { mode: st.mode, timed: '1' } : { mode: st.mode };
   function shareMsg(){ return KIT.shareText({ score: score, game:'Bubble Pop', emoji:'🫧', mode: mode.charAt(0).toUpperCase()+mode.slice(1)+(timeDescent&&mode!=='zen'?' (timed)':''), extra:['level '+level] }); }
-  // apply the menu's pop/base cosmetic selections to the shared store (buy-in-place already did)
-  function cosPick(st){ if(!KIT || !KIT.cosmetics) return; if(st['bubbles.pop']) KIT.cosmetics.select('bubbles.pop', st['bubbles.pop']); if(st['bubbles.base']) KIT.cosmetics.select('bubbles.base', st['bubbles.base']); }
   function showStartMenu(){
     state = 'ready'; if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if(!KIT) return;
@@ -289,17 +287,12 @@
         { id:'arcade',  label:'ARCADE',  preview:pvArcade,  mech:['Clear to advance','Grid descends'], best:()=>bestFor('arcade') },
         { id:'endless', label:'ENDLESS', preview:pvEndless, mech:['Endless','Rows push in'],           best:()=>bestFor('endless') },
         { id:'zen',     label:'ZEN',     preview:pvZen,     mech:['No fail','No descent'],              best:()=>bestFor('zen') },
-      ]},
-      // cosmetics: pop-effect + shooter-base pickers (kit-owned select + buy-in-place)
-      ...(KIT.cosmetics && window.COSMETICS ? [
-        KIT.cosmetics.menuGroup('bubbles.pop', { label:'POP EFFECT' }),
-        KIT.cosmetics.menuGroup('bubbles.base', { label:'SHOOTER' }),
-      ] : [])],
+      ]}],
       toggles:[{ id:'timed', label:'Time-based descent', caption:'— drops on a clock, not per shot', default: timeDescent, disabled: st => st.mode === 'zen' }],
       hint: st => (MODE_HINT[st.mode] || '') + (st.timed && st.mode !== 'zen' ? ' · timed' : ''),
       actions:[{ id:'play', label:'PLAY ▶', primary:true }],
-      onChange: st => { cosPick(st); KIT.stampUrl(modeParams(st)); },
-      onPlay: st => { cosPick(st); KIT.stampUrl(modeParams(st)); startMode(st.mode, st.timed); },
+      onChange: st => { KIT.stampUrl(modeParams(st)); },
+      onPlay: st => { KIT.stampUrl(modeParams(st)); startMode(st.mode, st.timed); },
     });
     KIT.stampUrl(modeParams({ mode: mode, timed: timeDescent }));
   }

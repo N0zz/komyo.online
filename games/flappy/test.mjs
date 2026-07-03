@@ -368,10 +368,8 @@ section('Cash → trophy migration');
   ok(owned['flappy.bird.owl'] && owned['flappy.bird.owl'].c === 0, 'owned birds carry over at cost 0 (owl)');
   ok(!owned['flappy.bird.bielik'], 'birds above the banked total stay locked');
   ok(T().trophies === 320, 'banked cash became spendable trophies (got ' + T().trophies + ')');
-  ok(T().selectedBird === 'owl', 'selected bird carried over');
-  // and the FLYER grid opens on the owned bird (flappy's own grid keys choices by bird id)
-  const menu = T().menu();
-  ok(menu && menu.selection()['bird'] === 'owl', 'menu FLYER grid opens on the owned bird');
+  ok(T().selectedBird === 'owl', 'selected bird carried over (picked via the 🎨 modal now)');
+  ok(g.win.gamekit.cosmetics.selected('flappy.bird') === 'flappy.bird.owl', 'migration selection persisted in the cosmetics store');
 }
 
 // (u3) every bird model renders headless without throwing (menu preview + in-game)

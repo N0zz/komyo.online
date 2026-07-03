@@ -272,40 +272,18 @@
       lines: ['Guide the flyer through the flower meadow.'],
       groups: [
         { id: 'tod', label: 'TIME OF DAY', default: mode, choices: [ { id: 'day', label: '☀️ Day' }, { id: 'night', label: '🌙 Night' } ] },
-        { id: 'bird', label: 'FLYER', style: 'grid', default: selectedBird.id, choices: BIRDS.map(b => ({
-          id: b.id, label: b.name || cap(b.id), pvW: 44, pvH: 40,
-          // the icon IS the in-game model (drawBirdModel), so they can never mismatch
-          preview: g => {
-            g.save();
-            g.translate(22, b.id === 'phoenix' ? 25 : 21); g.scale(0.8, 0.8);
-            if (b.id === 'phoenix') { g.shadowColor = 'rgba(255,140,40,0.85)'; g.shadowBlur = 14; }
-            else if (b.id === 'raven') { g.shadowColor = 'rgba(170,200,255,0.55)'; g.shadowBlur = 8; }
-            drawBirdModel(g, b, 2);
-            g.restore();
-          },
-          desc: (birdItem(b) || {}).desc || '', price: birdPrice(b),
-          locked: () => !birdUnlocked(b),
-          lockedLabel: () => '🏆 ' + birdPrice(b),
-          afford: () => trophies() >= birdPrice(b),
-          sub: birdPrice(b) === 0 ? 'Free' : '✓ Owned',
-          buy: hasCos() ? (() => {
-            const ok = KIT.cosmetics.buy(cosId(b.id));
-            if (ok) { KIT.cosmetics.select(COS_SET, cosId(b.id)); try { SND.play('levelup'); } catch (e) {} }
-            return ok;
-          }) : undefined,
-        })) },
       ],
       actions: [{ id: 'play', label: 'Fly!', primary: true }],
-      hint: () => 'Best ' + getBest() + ' · 🏆 ' + trophies() + ' · tap / click / Space to flap.',
+      hint: () => 'Best ' + getBest() + ' · pick your flyer in 🎨 · tap / click / Space to flap.',
       onChange: st => {
         mode = st.tod === 'night' ? 'night' : 'day'; saveMode(mode);
-        if (st.bird && st.bird !== selectedBird.id) { selectBird(st.bird); selectedBird = getSelectedBird(); }
+        selectedBird = getSelectedBird(); // the 🎨 modal may have changed the bird
         if (flappyHandle) setVars(flappyHandle.el, FLAPPY[mode]);
         KIT.stampUrl({ bird: selectedBird.id, mode: mode });
       },
       onPlay: st => {
         mode = st.tod === 'night' ? 'night' : 'day'; saveMode(mode);
-        if (st.bird) { selectBird(st.bird); selectedBird = getSelectedBird(); }
+        selectedBird = getSelectedBird();
         KIT.stampUrl({ bird: selectedBird.id, mode: mode }); startGame();
       },
     });

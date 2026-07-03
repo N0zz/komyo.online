@@ -714,6 +714,23 @@
       _curTrail = t;
     } catch (e) { stopCursorTrail(); }
   }
+  // per-cursor orientation: paw/comet/rainbow are tilted to point NW like the classic arrow, with the
+  // hotspot moved to that visual "tip"; classic/crosshair/sword keep their own geometry.
+  var CURSOR_TWEAK = {
+    comet:   { rot: -1.5708, hot: [10, 10] },  // streak head → NW, tail trails SE
+    rainbow: { rot: -1.5708, hot: [10, 10] },
+    paw:     { rot: -0.7854, hot: [12, 12] },   // leaned ~45° NW
+  };
+  // a managed <style> forces the custom cursor onto ALL elements — a plain html.style.cursor loses
+  // to any element's own `cursor:pointer` (that was the "reverts on hover over buttons" bug).
+  var _curStyleEl = null;
+  function setCursorRule(css) {
+    try {
+      if (typeof document === 'undefined' || !document.head) return;
+      if (!_curStyleEl) { _curStyleEl = document.createElement('style'); _curStyleEl.id = 'gamekit-cursor'; document.head.appendChild(_curStyleEl); }
+      _curStyleEl.textContent = css || '';
+    } catch (e) {}
+  }
   function applyCursor() {
     try {
       if (typeof document === 'undefined' || !document.documentElement || !document.documentElement.style) return;
@@ -722,13 +739,18 @@
       var key = fine ? cursorKey() : 'classic';
       var C = cosReg(), painter = C && C.cursors && C.cursors[key];
       if (key === 'classic' || !painter || typeof document.createElement !== 'function') {
-        document.documentElement.style.cursor = ''; stopCursorTrail(); return;
+        document.documentElement.style.cursor = ''; setCursorRule(''); stopCursorTrail(); return;
       }
       var cv = document.createElement('canvas'); cv.width = 32; cv.height = 32;
       var g = cv.getContext && cv.getContext('2d');
-      if (!g || !cv.toDataURL) { document.documentElement.style.cursor = ''; stopCursorTrail(); return; }
-      g.save(); g.translate(16, 16); g.scale(0.9, 0.9); painter(g); g.restore();
-      document.documentElement.style.cursor = 'url(' + cv.toDataURL('image/png') + ') 16 16, auto';
+      if (!g || !cv.toDataURL) { document.documentElement.style.cursor = ''; setCursorRule(''); stopCursorTrail(); return; }
+      var tw = CURSOR_TWEAK[key] || { rot: 0, hot: [16, 16] };
+      g.save(); g.translate(16, 16); if (tw.rot) g.rotate(tw.rot); g.scale(0.9, 0.9); painter(g); g.restore();
+      var val = 'url(' + cv.toDataURL('image/png') + ') ' + tw.hot[0] + ' ' + tw.hot[1] + ', auto';
+      document.documentElement.style.cursor = val;
+      // override element-level cursors (buttons/links) so the skin never flips back on hover;
+      // text fields keep their I-beam so typing still reads right
+      setCursorRule('html, html * { cursor: ' + val + ' !important; } input, textarea, [contenteditable] { cursor: text !important; }');
       if (key === 'comet' || key === 'rainbow') startCursorTrail(key); else stopCursorTrail();
     } catch (e) {}
   }

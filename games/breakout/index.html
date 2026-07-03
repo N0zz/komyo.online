@@ -284,17 +284,12 @@
         { id: 'classic', label: 'Classic', mech: ['Levels', 'Clear to advance'], best: () => loadBest('classic'), preview: (g, w, h) => pvBrick(g, w, h, 3) },
         { id: 'endless', label: 'Endless', mech: ['Rows drop in', 'Score chase'], best: () => loadBest('endless'), preview: (g, w, h) => pvBrick(g, w, h, 4) },
         { id: 'survival', label: 'Survival', mech: ['Wall descends', 'Beat it back'], best: () => loadBest('survival'), preview: (g, w, h) => pvBrick(g, w, h, 5) },
-      ] },
-      // cosmetics: paddle + ball pickers (kit-owned select + buy-in-place with challenge trophies)
-      ...(KIT.cosmetics && window.COSMETICS ? [
-        KIT.cosmetics.menuGroup('breakout.paddle', { label: 'PADDLE' }),
-        KIT.cosmetics.menuGroup('breakout.ball', { label: 'BALL' }),
-      ] : [])],
+      ] }],
       toggles: [{ id: 'speed2x', label: '2× speed', caption: 'faster ball & paddle', default: loadSpeedPref() }],
       actions: [{ id: 'play', label: 'INSERT COIN', primary: true }],
       hint: st => MODE_DESCS[st.mode] || '',
-      onChange: st => { gameMode = st.mode; setSpeed(st.speed2x); if (KIT.cosmetics) { if (st['breakout.paddle']) KIT.cosmetics.select('breakout.paddle', st['breakout.paddle']); if (st['breakout.ball']) KIT.cosmetics.select('breakout.ball', st['breakout.ball']); } KIT.stampUrl(modeParams(st)); },
-      onPlay: st => { gameMode = st.mode; setSpeed(st.speed2x); if (KIT.cosmetics) { if (st['breakout.paddle']) KIT.cosmetics.select('breakout.paddle', st['breakout.paddle']); if (st['breakout.ball']) KIT.cosmetics.select('breakout.ball', st['breakout.ball']); } KIT.stampUrl(modeParams(st)); startMode(st.mode); },
+      onChange: st => { gameMode = st.mode; setSpeed(st.speed2x); KIT.stampUrl(modeParams(st)); },
+      onPlay: st => { gameMode = st.mode; setSpeed(st.speed2x); KIT.stampUrl(modeParams(st)); startMode(st.mode); },
     });
     KIT.stampUrl(modeParams({ mode: gameMode, speed2x: speedMult === 2 }));
   }

@@ -279,8 +279,7 @@ section('cosmetics — block palettes');
   const runCos = (store) => runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }), ...(store || {}) } });
   const g = runCos();
   ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
-  const m = g.test().menu();
-  ok(m && m.selection()['stacker.palette'] === 'stacker.palette.pastel', 'start menu carries the BLOCKS grid, default pastel');
+  ok(g.win.gamekit.cosmetics.selected('stacker.palette') === 'stacker.palette.pastel', 'cosmetics palette defaults to pastel in-game (picked via the 🎨 modal)');
   // each palette stacks + renders a few blocks without error
   for (const key of ['pastel', 'synthwave', 'forest', 'candy', 'gilded']) {
     const id = 'stacker.palette.' + key;

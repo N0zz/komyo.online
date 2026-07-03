@@ -313,13 +313,11 @@
           { id: 'zen',     label: 'Zen',         mech: ['Slow', 'Forgiving'],     best: () => getBest('zen'),     preview: (g, w, h, st) => pvMode(g, w, h, 'zen', st) },
         ] },
         { id: 'theme', label: 'THEME', default: theme, choices: [ { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' } ] },
-        // cosmetics: block-palette picker (kit-owned select + buy-in-place with challenge trophies)
-        ...(KIT.cosmetics && window.COSMETICS ? [KIT.cosmetics.menuGroup('stacker.palette', { label: 'BLOCKS' })] : []),
       ],
       actions: [{ id: 'play', label: 'Play', primary: true }],
       hint: () => 'Tap / click / Space to drop the block.',
-      onChange: st => { selectedMode = st.mode; if (st.theme !== theme) selectTheme(st.theme); if (st['stacker.palette'] && KIT.cosmetics) KIT.cosmetics.select('stacker.palette', st['stacker.palette']); KIT.stampUrl(menuParams(st)); },
-      onPlay: st => { selectTheme(st.theme); if (st['stacker.palette'] && KIT.cosmetics) KIT.cosmetics.select('stacker.palette', st['stacker.palette']); KIT.stampUrl(menuParams(st)); startGameMode(st.mode); },
+      onChange: st => { selectedMode = st.mode; if (st.theme !== theme) selectTheme(st.theme); KIT.stampUrl(menuParams(st)); },
+      onPlay: st => { selectTheme(st.theme); KIT.stampUrl(menuParams(st)); startGameMode(st.mode); },
     });
     KIT.stampUrl(menuParams({ mode: selectedMode, theme: theme }));
   }

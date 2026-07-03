@@ -584,11 +584,10 @@ section('cosmetics — hull & trail skins');
   });
   const g = runCos();
   ok(g.errors.length === 0, 'boots with cosmetics loaded: ' + g.errors[0]);
-  const menu = g.test().menu();
-  ok(menu && menu.selection()['asteroids-plus.hull'] === 'asteroids-plus.hull.violet' && menu.selection()['asteroids-plus.trail'] === 'asteroids-plus.trail.ion',
-    'start menu carries HULL + TRAIL grids with the free defaults');
+  ok(g.win.gamekit.cosmetics.selected('asteroids-plus.hull') === 'asteroids-plus.hull.violet' && g.win.gamekit.cosmetics.selected('asteroids-plus.trail') === 'asteroids-plus.trail.ion',
+    'cosmetics hull+trail default in-game (picked via the 🎨 modal)');
   // each hull + trail combo renders (thrusting) without error
-  const hulls = ['violet', 'teal', 'blood', 'gold'], trails = ['ion', 'ember', 'rainbow'];
+  const hulls = ['violet', 'teal', 'blood', 'crt', 'gold'], trails = ['ion', 'ember', 'rainbow'];
   for (let i = 0; i < Math.max(hulls.length, trails.length); i++) {
     const hid = 'asteroids-plus.hull.' + hulls[i % hulls.length], tid = 'asteroids-plus.trail.' + trails[i % trails.length];
     const owned = {}; owned[hid] = { c: 0, t: 0 }; owned[tid] = { c: 0, t: 0 };

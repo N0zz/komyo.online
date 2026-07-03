@@ -411,9 +411,8 @@ section('cosmetics — target & hit-marker skins');
   const runCos = (store) => runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }), ...(store || {}) } });
   const g = runCos();
   ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
-  const m = g.test().menu();
-  ok(m && m.selection()['aim-trainer.target'] === 'aim-trainer.target.rings' && m.selection()['aim-trainer.marker'] === 'aim-trainer.marker.classic',
-    'start menu carries TARGET + HIT MARKER grids with the free defaults');
+  ok(g.win.gamekit.cosmetics.selected('aim-trainer.target') === 'aim-trainer.target.rings' && g.win.gamekit.cosmetics.selected('aim-trainer.marker') === 'aim-trainer.marker.classic',
+    'cosmetics target+marker default in-game (picked via the 🎨 modal)');
   // each target + marker combo renders (with a live target + a hit marker) without error
   const targs = ['rings', 'donut', 'fruit', 'alien', 'goldstar'], marks = ['classic', 'spark', 'boom'];
   for (let i = 0; i < Math.max(targs.length, marks.length); i++) {

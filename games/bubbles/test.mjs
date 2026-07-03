@@ -399,10 +399,8 @@ section('cosmetics — pop effects & shooter bases');
   const runCos = (store) => runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }), ...(store || {}) } });
   const g = runCos();
   ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
-  const menu = g.T ? null : null;
-  const m = g.test().menu();
-  ok(m && m.selection()['bubbles.pop'] === 'bubbles.pop.classic' && m.selection()['bubbles.base'] === 'bubbles.base.aqua',
-    'start menu carries POP + SHOOTER grids with the free defaults');
+  ok(g.win.gamekit.cosmetics.selected('bubbles.pop') === 'bubbles.pop.classic' && g.win.gamekit.cosmetics.selected('bubbles.base') === 'bubbles.base.aqua',
+    'cosmetics pop+base default in-game (picked via the 🎨 modal)');
   // each pop effect + base renders (with live particles) without error
   const pops = ['classic', 'confetti', 'stars', 'fireworks'], bases = ['aqua', 'candy', 'gold'];
   for (let i = 0; i < Math.max(pops.length, bases.length); i++) {
