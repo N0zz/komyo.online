@@ -295,6 +295,8 @@
       : KIT.shareText({ score: score, game: 'Range', emoji: '🎯', mode: sessionSeconds + 's Timed', extra: [acc + '% accuracy', mv] });
   }
   let rangeLastMode = null;
+  // apply the menu's target/marker cosmetic selections to the shared store (buy-in-place already did)
+  function cosPick(st) { if (!KIT || !KIT.cosmetics) return; if (st['aim-trainer.target']) KIT.cosmetics.select('aim-trainer.target', st['aim-trainer.target']); if (st['aim-trainer.marker']) KIT.cosmetics.select('aim-trainer.marker', st['aim-trainer.marker']); }
   function showStartMenu(m) {
     m = m || selectedMode || 'timed'; selectedMode = m; rangeLastMode = m;
     state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
@@ -312,17 +314,24 @@
             preview: (g, w, h) => pvRange(g, w, h, 'reaction') },
         ] },
         { id: 'amount', label: m === 'sprint' ? 'TARGETS' : 'DURATION', default: m === 'sprint' ? String(SPRINT_TARGET) : String(sessionSeconds), choices: amounts },
+        // cosmetics: target + hit-marker pickers (kit-owned select + buy-in-place with trophies)
+        ...(KIT.cosmetics && window.COSMETICS ? [
+          KIT.cosmetics.menuGroup('aim-trainer.target', { label: 'TARGET' }),
+          KIT.cosmetics.menuGroup('aim-trainer.marker', { label: 'HIT MARKER' }),
+        ] : []),
       ],
       toggles: [{ id: 'moving', label: 'Moving targets', caption: 'they drift once you warm up', default: movingTargets }],
       actions: [{ id: 'play', label: 'READY UP', primary: true }],
       hint: st => st.mode === 'sprint' ? 'Hit the target count as fast as you can.' : 'Score as many hits as you can before time runs out.',
       onChange: st => {
+        cosPick(st);
         movingTargets = !!st.moving; saveMoving(movingTargets);
         if (st.mode !== rangeLastMode) { rangeLastMode = st.mode; if (st.mode === 'sprint') SPRINT_TARGET = 100; else sessionSeconds = DEFAULT_SESSION; showStartMenu(st.mode); return; }
         if (st.mode === 'sprint') SPRINT_TARGET = Number(st.amount) || 100; else sessionSeconds = Number(st.amount) || DEFAULT_SESSION;
         KIT.stampUrl(rangeParams());
       },
       onPlay: st => {
+        cosPick(st);
         mode = st.mode; movingTargets = !!st.moving; saveMoving(movingTargets);
         if (st.mode === 'sprint') SPRINT_TARGET = Number(st.amount) || 100; else sessionSeconds = Number(st.amount) || DEFAULT_SESSION;
         KIT.stampUrl(rangeParams()); startGame();
@@ -460,42 +469,59 @@
     ctx.beginPath(); ctx.moveTo(0, H - 6); ctx.lineTo(W, H - 6); ctx.stroke();
   }
 
+  // ---- cosmetics: target + hit-marker skins (challenge-trophy sets). Purely visual — the hitbox is
+  //      always the circle of radius t.r, so hit detection is identical for every skin. ----
+  function targetStyle() { return (KIT && KIT.cosmetics) ? KIT.cosmetics.selected('aim-trainer.target') : 'aim-trainer.target.rings'; }
+  function markerStyle() { return (KIT && KIT.cosmetics) ? KIT.cosmetics.selected('aim-trainer.marker') : 'aim-trainer.marker.classic'; }
   function drawTarget(t) {
     const { x, y, r, life } = t;
-    const s = life;
     ctx.save();
     ctx.translate(x, y);
-    ctx.scale(s, s);
-
-    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
-    ctx.fillStyle = '#1a2030';
-    ctx.fill();
-    ctx.strokeStyle = '#ff7a3c';
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ff7a3c99';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2);
-    ctx.strokeStyle = '#ff7a3c';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-
-    ctx.beginPath(); ctx.arc(0, 0, r * 0.12, 0, Math.PI * 2);
-    ctx.fillStyle = '#ff7a3c';
-    ctx.fill();
-
-    ctx.strokeStyle = '#ff7a3c88';
-    ctx.lineWidth = 1;
-    const tk = r * 0.15;
-    [[r + tk, 0], [-(r + tk), 0], [0, r + tk], [0, -(r + tk)]].forEach(([ex, ey]) => {
-      ctx.beginPath(); ctx.moveTo(ex * 0.7, ey * 0.7); ctx.lineTo(ex, ey); ctx.stroke();
-    });
-
+    ctx.scale(life, life);
+    const style = targetStyle();
+    if (style === 'aim-trainer.target.donut') {
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = '#ff7ab6'; ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.4, 0, Math.PI * 2); ctx.fillStyle = '#2a1420'; ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(-r * 0.25, -r * 0.35, r * 0.4, 2.2, 4.0); ctx.stroke();
+    } else if (style === 'aim-trainer.target.fruit') {
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = '#3aa858'; ctx.fill();          // rind
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.82, 0, Math.PI * 2); ctx.fillStyle = '#eafbe6'; ctx.fill();    // pith
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.68, 0, Math.PI * 2); ctx.fillStyle = '#ff5b6b'; ctx.fill();    // flesh
+      ctx.fillStyle = '#2a1420'; for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2; ctx.beginPath(); ctx.ellipse(Math.cos(a) * r * 0.4, Math.sin(a) * r * 0.4, r * 0.06, r * 0.1, a, 0, Math.PI * 2); ctx.fill(); }
+    } else if (style === 'aim-trainer.target.alien') {
+      ctx.fillStyle = '#7fe07a'; ctx.strokeStyle = '#3aa858'; ctx.lineWidth = 2;
+      ctx.beginPath(); for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2, rr = r * (0.86 + 0.14 * Math.sin(i * 2.3 + (frame || 0) * 0.05)); ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#0e2a14'; ctx.beginPath(); ctx.arc(-r * 0.28, -r * 0.1, r * 0.16, 0, Math.PI * 2); ctx.arc(r * 0.28, -r * 0.1, r * 0.16, 0, Math.PI * 2); ctx.fill();
+    } else if (style === 'aim-trainer.target.goldstar') {
+      ctx.shadowColor = '#ffd166'; ctx.shadowBlur = r * 0.4; ctx.fillStyle = '#ffd166';
+      ctx.beginPath(); for (let i = 0; i < 10; i++) { const rr = i % 2 ? r * 0.45 : r, a = -1.57 + i * 0.6283; ctx[i ? 'lineTo' : 'moveTo'](Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill();
+      ctx.shadowBlur = 0; ctx.fillStyle = '#fff6cc'; ctx.beginPath(); ctx.arc(0, 0, r * 0.16, 0, Math.PI * 2); ctx.fill();
+    } else { // rings — the regulation target, exactly as before
+      ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fillStyle = '#1a2030'; ctx.fill();
+      ctx.strokeStyle = '#ff7a3c'; ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.65, 0, Math.PI * 2); ctx.strokeStyle = '#ff7a3c99'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.35, 0, Math.PI * 2); ctx.strokeStyle = '#ff7a3c'; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.12, 0, Math.PI * 2); ctx.fillStyle = '#ff7a3c'; ctx.fill();
+      ctx.strokeStyle = '#ff7a3c88'; ctx.lineWidth = 1;
+      const tk = r * 0.15;
+      [[r + tk, 0], [-(r + tk), 0], [0, r + tk], [0, -(r + tk)]].forEach(([ex, ey]) => { ctx.beginPath(); ctx.moveTo(ex * 0.7, ey * 0.7); ctx.lineTo(ex, ey); ctx.stroke(); });
+    }
     ctx.restore();
+  }
+  // one hit marker at (m.x,m.y), fading with m.life — shape from the selected marker cosmetic
+  function drawHitMarker(m) {
+    const style = markerStyle();
+    if (style === 'aim-trainer.marker.spark') {
+      ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2; const g = 4, len = 11;
+      for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2; ctx.beginPath(); ctx.moveTo(m.x + Math.cos(a) * g, m.y + Math.sin(a) * g); ctx.lineTo(m.x + Math.cos(a) * (g + len), m.y + Math.sin(a) * (g + len)); ctx.stroke(); }
+    } else if (style === 'aim-trainer.marker.boom') {
+      ctx.fillStyle = '#ffd166'; ctx.strokeStyle = '#ff4b2a'; ctx.lineWidth = 2;
+      ctx.beginPath(); for (let i = 0; i < 12; i++) { const rr = i % 2 ? 5 : 13, a = i / 12 * Math.PI * 2; ctx[i ? 'lineTo' : 'moveTo'](m.x + Math.cos(a) * rr, m.y + Math.sin(a) * rr); } ctx.closePath(); ctx.fill(); ctx.stroke();
+    } else { // classic — the crisp X
+      ctx.strokeStyle = '#ff7a3c'; ctx.lineWidth = 2; const s = 8;
+      ctx.beginPath(); ctx.moveTo(m.x - s, m.y - s); ctx.lineTo(m.x + s, m.y + s); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(m.x + s, m.y - s); ctx.lineTo(m.x - s, m.y + s); ctx.stroke();
+    }
   }
 
   function drawCrosshair(x, y) {
@@ -532,11 +558,7 @@
 
     for (const m of hitMarkers) {
       ctx.globalAlpha = Math.max(0, m.life);
-      ctx.strokeStyle = '#ff7a3c';
-      ctx.lineWidth = 2;
-      const s = 8;
-      ctx.beginPath(); ctx.moveTo(m.x - s, m.y - s); ctx.lineTo(m.x + s, m.y + s); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(m.x + s, m.y - s); ctx.lineTo(m.x - s, m.y + s); ctx.stroke();
+      drawHitMarker(m);
     }
     ctx.globalAlpha = 1;
 
@@ -663,6 +685,7 @@
     },
     shootAt(x, y) { shoot(x, y); },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+    render() { render(); }, // headless: exercise the draw path (target + hit-marker skins)
     setSeed(s) { _rng = seededRng(s); },
   };
 
