@@ -51,7 +51,14 @@ by lifetime points, full-width profile box with escalating shine tier 0→8, use
    shipped and code-verified (session 9): P0/P1 bugfixes, framework hardening (kit absorption +
    CLAUDE.md refresh + shared harness + dt-loop), Discord three-tier consent, cleanup, playtest
    polish rounds, asteroids+ shop rework. **The skill gate (#3) is cleared.** Plan file = archive.
-1. **Translations / i18n — analysis + estimate (~2 days).** Non-English kids struggle with English game
+1. **Per-game cosmetics shop** *(promoted to #1, 2026-07-03)* — spend challenge points on
+   cosmetics: site-wide cursor skins, Asteroids ship colors, Brick Breaker ball skins, Keep Defender
+   castle skins, Range target skins, Neon Snake food colors… Client-only (pure cosmetics on-device),
+   built on the kit shop primitive (icons + no-scroll grids + two-step buy already shipped 2026-07-03).
+   Makes points matter inside every game, not just on the profile — pairs with the ×10 economy.
+   **Open decision first:** migrate Meadow Flyer's birds from its own banked-points currency onto
+   this global one (one economy, but it changes flappy's earn-to-unlock loop).
+2. **Translations / i18n — analysis + estimate (~2 days).** Non-English kids struggle with English game
    descriptions + UI, so multi-language support is a real reach lever. **Scope it before building:** target
    languages (a first few — PL + big EU/global?), architecture for a **no-build static site** (per-language
    JSON dictionaries loaded client-side + a kit `t(key)` helper + `navigator.language` detect + a language
@@ -59,30 +66,23 @@ by lifetime points, full-width profile box with escalating shine tier 0→8, use
    `games.js`, in-game menu labels + hints inlined in each game, challenges, FAQ / About / privacy). Also:
    kid-friendly wording, SEO (`hreflang` + translated `<title>`/meta/OG per language), a GA4 language read,
    RTL if we ever add Arabic/Hebrew. **Output:** decision on languages + a concrete implementation plan +
-   **effort estimate** → routes #2 vs #6.
-2. **Translations / i18n — implement IF the spike says it's easy.** If the extraction + `t()` layer turns
-   out small, ship it here; **if it's a big surface, it drops to Later (#6).**
-3. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an
-   on-framework MVP in a 20–30 min session (spec under Catalogue / kit). Big accelerator for #4.
-   **Gated on plan sessions 3/5/6** (dt-loop, shared test harness, kit absorption + CLAUDE.md refresh) —
-   built earlier it would faithfully reproduce the review's bug classes.
-4. **Build games** — toward the content bar; each via the dev-process gate (design+mock → POC → MVP →
+   **effort estimate** → routes #3 vs Later.
+3. **Translations / i18n — implement IF the spike says it's easy.** If the extraction + `t()` layer turns
+   out small, ship it here; **if it's a big surface, it drops to Later (#7).**
+4. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an
+   on-framework MVP in a 20–30 min session (spec under Catalogue / kit). Big accelerator for #5.
+   **Gate cleared 2026-07-03** (dt-loop, shared test harness, kit absorption + CLAUDE.md refresh all
+   verified in session 9).
+5. **Build games** — toward the content bar; each via the dev-process gate (design+mock → POC → MVP →
    iterate). **Bias low-tuning genres** (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower
    defense, roguelite shooters — they ate many tuning cycles). See `komyo-avoid-balance-heavy-genres`.
    Fold in the review's flagship-vs-breadth take: slot **one original-mechanic, shareable game** into
    the queue alongside the genre remakes (see the `komyo-market-expansion-discussion` note).
-5. **Per-game cosmetics shop** *(moved from Integrations 2026-07-03)* — spend challenge points on
-   cosmetics: site-wide cursor skins, Asteroids ship colors, Brick Breaker ball skins, Keep Defender
-   castle skins, Range target skins, Neon Snake food colors… Client-only (pure cosmetics on-device),
-   built on the kit shop primitive (icons + no-scroll grids + two-step buy already shipped 2026-07-03).
-   Makes points matter inside every game, not just on the profile — pairs with the ×10 economy.
-   **Open decision first:** migrate Meadow Flyer's birds from its own banked-points currency onto
-   this global one (one economy, but it changes flappy's earn-to-unlock loop).
 6. **Staged rollout — friends / family** *(already slowly happening, ongoing)* → let them share further.
 
 ### Later
 
-6. **Translations / i18n — implement (if the spike said it's *not* easy).** Wire the `t()` layer into the
+7. **Translations / i18n — implement (if the spike said it's *not* easy).** Wire the `t()` layer into the
    kit, extract + translate strings, language picker + persistence, `hreflang`/meta per language. The big-
    surface branch of #1/#2 — sequence once the spike sets the language list + plan.
 - **Infra:** staging env (`staging.komyo.online`) **+ consider a Cloudflare CDN in front of GH Pages**
