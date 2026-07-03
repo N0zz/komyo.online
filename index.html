@@ -42,6 +42,10 @@
   }
   * { box-sizing: border-box; }
   html, body { margin:0; min-height:100%; background:var(--bg); color:var(--text); font-family:var(--sans); }
+  html { scrollbar-gutter: stable; }
+  /* an open dialog/drawer owns the scroll — the catalogue behind stays put */
+  body:has(dialog[open]), body:has(.drawer.open) { overflow: hidden; }
+  dialog, .drawer .dscroll { overscroll-behavior: contain; }
   body { padding: 44px 22px 56px; line-height:1.5; }
   .wrap { max-width: 1080px; margin: 0 auto; }
 
@@ -60,7 +64,8 @@
     .sub { margin-top: 4px; font-size: 10px; letter-spacing: 2px; }
   }
 
-  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 20px; }
+  /* min-height reserves room before games.js renders the tiles — kills the mobile footer-jump CLS */
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 20px; min-height: 70vh; align-content: start; }
   .section-head { grid-column: 1 / -1; display:flex; align-items:center; gap:14px; margin: 12px 2px 0; }
   .section-head:first-child { margin-top: 0; }
   .section-head h2 { margin:0; display:inline-flex; align-items:baseline; gap:8px; font-family:var(--mono); font-size: 13px; letter-spacing: 3px; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
@@ -115,7 +120,8 @@
   .meta h2 { margin:0; font-size: 19px; font-weight: 700; letter-spacing:0.3px; color:var(--text); }
   .tags { display:flex; flex-wrap:wrap; gap:5px; }
   .tag { font-family:var(--mono); font-size: 10px; letter-spacing: 1.5px; padding: 3px 9px; border-radius: 6px;
-         color: var(--tc, var(--accent)); background: rgba(0,0,0,0.28); border:1px solid color-mix(in srgb, var(--tc, var(--accent)) 50%, transparent); white-space:nowrap; }
+         /* text lightened toward white so every accent hue clears 4.5:1 on the dark tile (a11y) */
+         color: color-mix(in srgb, var(--tc, var(--accent)) 60%, #fff); background: rgba(0,0,0,0.28); border:1px solid color-mix(in srgb, var(--tc, var(--accent)) 50%, transparent); white-space:nowrap; }
   .meta p { margin: 0; font-size: 13.5px; line-height: 1.55; color: var(--muted); }
   .play { margin-top: auto; font-family:var(--mono); font-size: 12px; letter-spacing: 1.5px; color: var(--accent); font-weight:700; }
 
@@ -647,7 +653,7 @@
       </div>
     </header>
 
-    <div class="grid" id="grid"></div>
+    <main><div class="grid" id="grid"></div></main>
 
     <footer>
       <div class="share">
