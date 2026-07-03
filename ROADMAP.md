@@ -74,7 +74,14 @@ by lifetime points, full-width profile box with escalating shine tier 0→8, use
    defense, roguelite shooters — they ate many tuning cycles). See `komyo-avoid-balance-heavy-genres`.
    Fold in the review's flagship-vs-breadth take: slot **one original-mechanic, shareable game** into
    the queue alongside the genre remakes (see the `komyo-market-expansion-discussion` note).
-5. **Staged rollout — friends / family** *(already slowly happening, ongoing)* → let them share further.
+5. **Per-game cosmetics shop** *(moved from Integrations 2026-07-03)* — spend challenge points on
+   cosmetics: site-wide cursor skins, Asteroids ship colors, Brick Breaker ball skins, Keep Defender
+   castle skins, Range target skins, Neon Snake food colors… Client-only (pure cosmetics on-device),
+   built on the kit shop primitive (icons + no-scroll grids + two-step buy already shipped 2026-07-03).
+   Makes points matter inside every game, not just on the profile — pairs with the ×10 economy.
+   **Open decision first:** migrate Meadow Flyer's birds from its own banked-points currency onto
+   this global one (one economy, but it changes flappy's earn-to-unlock loop).
+6. **Staged rollout — friends / family** *(already slowly happening, ongoing)* → let them share further.
 
 ### Later
 
@@ -415,13 +422,7 @@ Filter for all of these: **does it keep the no-server / no-ads / no-accounts ide
   - **Titles** — unlock cosmetic titles at point thresholds, shown on the profile page (cheap, client-only).
   - **Collectibles shop** — buy **mascot skins** with points; the mascot is the logo + shows on score cards,
     so a skin is visible and worth chasing (client-only if purchases live on-device).
-  - **Per-game cosmetics shop** *(added 2026-07-03)* — spend challenge points (or another global currency)
-    on in-game cosmetics: custom cursor skins (site-wide), ship color in Asteroids, ball skins in Brick
-    Breaker, castle skins in Keep Defender, target skins in Range, food color in Neon Snake, etc. Cheap
-    per-item (client-only, pure cosmetics), and it makes points matter inside every game, not just on the
-    profile. **Open decision:** migrate Meadow Flyer's birds from its own in-game currency (banked points)
-    onto this global challenge/points currency — one economy instead of two, but it changes flappy's own
-    earn-to-unlock loop; decide before the shop ships.
+  - **Per-game cosmetics shop** — PROMOTED to Path to launch #5 (2026-07-03); spec lives there now.
   - **Discord roles/titles** — spend points for a Discord role — a real status carrot. Needs a Discord bot +
     OAuth (link account → grant role), i.e. a small backend.
   - **The hard part = anti-cheat.** Points on-device are trivially forged (export → bump → import), so any
