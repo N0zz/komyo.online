@@ -88,15 +88,22 @@
   function TH() { return THEMES[theme]; }
   function applyTheme() { document.body.style.background = TH().bodyBg; }
 
-  // ---- Palette: pastel hues cycling per layer ----
-  function blockColor(layer) {
-    const t = TH();
-    return `hsl(${HUES[layer % HUES.length]}, ${t.blockS}%, ${t.blockL}%)`;
-  }
-  function blockStroke(layer) {
-    const t = TH();
-    return `hsl(${HUES[layer % HUES.length]}, ${t.strokeS}%, ${t.strokeL}%)`;
-  }
+  // ---- Palette: pastel hues cycling per layer (default), OR a fixed cosmetic palette ----
+  // Cosmetic palettes are challenge-trophy skins; 'pastel' keeps the original theme-adapting hues.
+  const BLOCK_PALETTES = {
+    'stacker.palette.synthwave': ['#ff5cc8', '#b94dff', '#4d5bff', '#00e6ff'],
+    'stacker.palette.forest':    ['#7fb069', '#5a8a4a', '#a87848', '#3a5a30'],
+    'stacker.palette.candy':     ['#ff9ad1', '#7fe0d0', '#ffe08a', '#b0a0ff'],
+    'stacker.palette.gilded':    ['#16181e', '#ffd166', '#22242e', '#e8b93a'],
+  };
+  function paletteId() { return (KIT && KIT.cosmetics) ? KIT.cosmetics.selected('stacker.palette') : 'stacker.palette.pastel'; }
+  function darken(hex, f) { const n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255, k = 1 - f;
+    return 'rgb(' + Math.round(r * k) + ',' + Math.round(g * k) + ',' + Math.round(b * k) + ')'; }
+  // layer fill/stroke — a fixed palette when one is selected, else the pastel theme-adapting hue.
+  function layerFill(layer, t) { const pal = BLOCK_PALETTES[paletteId()]; return pal ? pal[layer % pal.length] : `hsl(${HUES[layer % HUES.length]}, ${t.blockS}%, ${t.blockL}%)`; }
+  function layerStroke(layer, t) { const pal = BLOCK_PALETTES[paletteId()]; return pal ? darken(pal[layer % pal.length], 0.34) : `hsl(${HUES[layer % HUES.length]}, ${t.strokeS}%, ${t.strokeL}%)`; }
+  function blockColor(layer) { return layerFill(layer, TH()); }
+  function blockStroke(layer) { return layerStroke(layer, TH()); }
 
   // ---- State ----
   let state = 'ready'; // ready | playing | over
@@ -262,8 +269,8 @@
   // menu art reads the theme from the menu STATE the kit passes in (so Light/Dark updates instantly),
   // not the global `theme` (which onChange updates only after the kit has already repainted)
   function skyTheme(st) { return THEMES[(st && st.theme) || theme]; }
-  function blkC(layer, t) { return `hsl(${HUES[layer % HUES.length]}, ${t.blockS}%, ${t.blockL}%)`; }
-  function blkS(layer, t) { return `hsl(${HUES[layer % HUES.length]}, ${t.strokeS}%, ${t.strokeL}%)`; }
+  function blkC(layer, t) { return layerFill(layer, t); }
+  function blkS(layer, t) { return layerStroke(layer, t); }
   // draw a real Stack tower bottom-up: each block sits within the one below and NARROWS on an
   // imperfect drop (the overhang is sliced off), flush-alternating left/right → a zig-zag taper.
   // `shrinks[i]` = px lost at layer i (0 = a perfect drop that keeps the width).
@@ -306,11 +313,13 @@
           { id: 'zen',     label: 'Zen',         mech: ['Slow', 'Forgiving'],     best: () => getBest('zen'),     preview: (g, w, h, st) => pvMode(g, w, h, 'zen', st) },
         ] },
         { id: 'theme', label: 'THEME', default: theme, choices: [ { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' } ] },
+        // cosmetics: block-palette picker (kit-owned select + buy-in-place with challenge trophies)
+        ...(KIT.cosmetics && window.COSMETICS ? [KIT.cosmetics.menuGroup('stacker.palette', { label: 'BLOCKS' })] : []),
       ],
       actions: [{ id: 'play', label: 'Play', primary: true }],
       hint: () => 'Tap / click / Space to drop the block.',
-      onChange: st => { selectedMode = st.mode; if (st.theme !== theme) selectTheme(st.theme); KIT.stampUrl(menuParams(st)); },
-      onPlay: st => { selectTheme(st.theme); KIT.stampUrl(menuParams(st)); startGameMode(st.mode); },
+      onChange: st => { selectedMode = st.mode; if (st.theme !== theme) selectTheme(st.theme); if (st['stacker.palette'] && KIT.cosmetics) KIT.cosmetics.select('stacker.palette', st['stacker.palette']); KIT.stampUrl(menuParams(st)); },
+      onPlay: st => { selectTheme(st.theme); if (st['stacker.palette'] && KIT.cosmetics) KIT.cosmetics.select('stacker.palette', st['stacker.palette']); KIT.stampUrl(menuParams(st)); startGameMode(st.mode); },
     });
     KIT.stampUrl(menuParams({ mode: selectedMode, theme: theme }));
   }
@@ -537,6 +546,7 @@
     get timeLeft() { return timeLeft; },
     start() { startGame(); },
     startMode(m) { startGameMode(m); },
+    render() { render(); }, // headless: exercise the draw path (block palettes)
     drop() { drop(); },
     setMover(x) { if (mover) mover.x = x; },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
