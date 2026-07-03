@@ -129,6 +129,13 @@
     .map-btn .desc { font-size:10px; line-height:1.3; } /* keep the blurb, just smaller in landscape */
   }
 
+  /* short screens (landscape phones): slim the HUD pill — inline labels, tiny fonts, top row only
+     a few px tall (the resize() measurement reserves whatever it actually wraps to) */
+  @media (max-height:560px) {
+    #top.gamekit-hud { top:6px; gap:2px 10px; padding:2px 10px; font-size:11px; letter-spacing:.5px; border-radius:8px; }
+    #top .lbl { display:inline; font-size:8px; letter-spacing:1px; margin:0 2px 0 0; }
+  }
+
   #shareRow { --gamekit-accent:#e0b25a; }
   #waveAnnounce { position:fixed; top:62px; left:50%; transform:translateX(-50%); z-index:7; pointer-events:none;
     font-size:22px; font-weight:bold; color:var(--gold); text-shadow:0 2px 4px rgba(0,0,0,0.7);
@@ -356,7 +363,8 @@
     // a wrapped HUD is taller than any constant (headless offsetHeight is 0/undefined → fallback).
     let topGap = Math.max(KIT.layout.hudTop(), portrait ? 108 : 78);
     const hudEl = document.getElementById('top');
-    if (hudEl && hudEl.offsetHeight) topGap = Math.max(topGap, hudEl.offsetTop + hudEl.offsetHeight + 8);
+    // +22 keeps the map-legend line (drawn at oy-4, ~12px tall) clear of the pill too
+    if (hudEl && hudEl.offsetHeight) topGap = Math.max(topGap, hudEl.offsetTop + hudEl.offsetHeight + 22);
     topReserve = topGap;
     // Toolbar reserve: PORTRAIT → bottom bar (92px); LANDSCAPE → left strip (SIDEBAR px).
     const botGap = portrait ? 92 : 12;
