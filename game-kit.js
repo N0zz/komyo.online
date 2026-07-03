@@ -548,10 +548,10 @@
   // knobs, loaded by the catalogue AND every game, and part of the new-game wiring checklist.
   function chGoodRun(slug) { var C = chGoals(); return (slug && C && C.goodRun && C.goodRun[slug]) || 0; }
 
-  // ---------- good-run trophy trickle: +2 🏆 per good run, capped at 3/day ----------
+  // ---------- good-run trophy trickle: +5 🏆 per good run, capped at 3/day ----------
   // Earned trophies live as one per-day entry in gamekit_done ('gr#YYYY-MM-DD') so lifetime,
   // titles and the spendable cosmetics balance all pick them up with zero extra storage.
-  var GR_PER = 2, GR_CAP = 3;
+  var GR_PER = 5, GR_CAP = 3;
   function chDoneMap() { try { return JSON.parse(lsGet('gamekit_done') || 'null') || {}; } catch (e) { return {}; } }
   function grCount(dStr) { return Math.floor(((chDoneMap()['gr#' + (dStr || utcDateStr())]) | 0) / GR_PER); }
   function grAward() {
@@ -1192,7 +1192,7 @@
       if (st.lastDay !== today) { st.days = (st.days || 0) + 1; st.lastDay = today; }
       if (par && rec.score >= par) st.goodRuns = (st.goodRuns || 0) + 1;
       lsSet('gamekit_stats', JSON.stringify(st));
-      // good-run trophy trickle (+2 🏆, capped 3/day) — the end menu reads _grAwarded for its receipt
+      // good-run trophy trickle (+5 🏆, capped 3/day) — the end menu reads _grAwarded for its receipt
       _grAwarded = (par && rec.score >= par) ? grAward() : false;
       pruneOldLogs();
     } catch (e) {}
@@ -2473,7 +2473,7 @@
     });
 
     // "✓ Good run" cue + trickle receipt: if this result cleared the game's bar, say what it paid —
-    // "+2 🏆 (2/3 today)" while the daily bonus lasts, "daily bonus maxed 3/3" after. The player
+    // "+5 🏆 (2/3 today)" while the daily bonus lasts, "daily bonus maxed 3/3" after. The player
     // learns the cap the moment it matters. Generic, so every game's end menu gets it.
     if (cfg.record && cfg.record.slug) {
       var _par = chGoodRun(cfg.record.slug);
