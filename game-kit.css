@@ -150,6 +150,28 @@
 .gamekit-menu.gkm-wide .gkm-box { width: min(640px, 100%); }
 .gamekit-menu-start .gkm-title { font-size: 30px; letter-spacing: 5px; }
 
+/* landscape phones: two-pane cards menu — title + actions become a left rail, the cards scroll
+   in the right pane. Landscape has spare width, not height; the stacked layout couldn't even show
+   one whole card there. Portrait + desktop keep the stacked layout. */
+@media (orientation: landscape) and (max-height: 560px) {
+  .gamekit-menu { padding: 46px 12px 10px; }
+  .gamekit-menu.gkm-wide .gkm-box { width: min(720px, 100%); display: grid;
+    grid-template-columns: minmax(170px, 205px) 1fr; grid-template-rows: auto 1fr;
+    grid-template-areas: "title scroll" "actions scroll"; column-gap: 18px; row-gap: 10px;
+    padding: 16px 18px; text-align: left; }
+  .gamekit-menu.gkm-wide .gkm-title { grid-area: title; margin: 0; font-size: 21px; letter-spacing: 3px; }
+  .gamekit-menu.gkm-wide .gkm-scroll { grid-area: scroll; min-height: 0;
+    border-left: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.12)); padding-left: 16px; }
+  .gamekit-menu.gkm-wide .gkm-actions { grid-area: actions; align-self: end; margin: 0; padding: 0; border-top: none; }
+  .gamekit-menu.gkm-wide .gkm-sec { margin: 0 0 8px; }
+  /* mid-compact cards: smaller preview, drop the sentence (the hint carries it), keep the chips */
+  .gamekit-menu.gkm-wide .gkm-card { grid-template-columns: 56px 1fr; gap: 12px; padding: 8px 12px; }
+  .gamekit-menu.gkm-wide .gkm-card-pv { width: 56px; height: 56px; }
+  .gamekit-menu.gkm-wide .gkm-card-nm { font-size: 14px; }
+  .gamekit-menu.gkm-wide .gkm-card-desc { display: none; }
+  .gamekit-menu.gkm-wide .gkm-hint { margin: 10px 0 0; }
+}
+
 /* ---- mode cards (style:'cards') — preview left, text column right ---- */
 .gamekit-menu .gkm-cards { display: flex; flex-direction: column; gap: 10px; text-align: left; }
 .gamekit-menu .gkm-card { display: grid; grid-template-columns: 92px 1fr; gap: 15px; align-items: center; cursor: pointer;

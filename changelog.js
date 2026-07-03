@@ -16,6 +16,9 @@ window.CHANGELOG = [
     'Fix: Brick Breaker\'s ◀ ▶ touch hints show up reliably on touch screens (some devices never got them).',
     'Fix: the Menu and Komyo buttons in games no longer start a "drag" instead of a click.',
     'Improved: the ☰ version label fits on one line again, and the profile\'s little (i) is gone — tap your points in the Challenges panel to browse the titles ladder.',
+    'New: game menus on a phone held sideways got a full rework — the game name and Play button sit in a side rail and the mode cards finally fit on screen (they used to need scrolling to see even one).',
+    'Fix: Keep Defender\'s score bar sits on its own row in portrait at every screen size (it could slide under the top buttons on tablets), and it\'s a slim strip on phones now.',
+    'Improved: on a phone held sideways the homepage header is compact, so the games are visible right away.',
   ] },
   { date: '2026-07-02', title: 'Titles & better sharing 👑', items: [
     'New: Meadow Flyer\'s flyers are real characters now, and there are nine — bee, robin, bluebird, parrot, plus new raven, owl, Bielik (the white-tailed eagle) and Raróg (the fiery falcon of Slavic legend), topped by a phoenix made of fire with a glowing ember trail. Menu icons show the actual birds (no more yellow icon on a blue bird), and unlocks are a real ladder up to 1,000 banked points.',
