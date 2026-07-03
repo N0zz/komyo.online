@@ -396,6 +396,8 @@
   function quitToMenu(){ if(!SPEEDRUN && KIT && (state==='playing'||state==='paused'||state==='levelup'||state==='shop')){ KIT.saveBest('asteroids-plus', progLabel(PROGRESSION, false), { score: score, stats: { wave: wave } }); } SND.stopMusic(); if(KIT) KIT.menu.hide(); showStartMenu(); }
   // unified start menu (mode picker) — kit-rendered, themed, one screen. Play applies the mode + starts
   // in-place (no reload); the address bar reflects the picks so refresh/share reopen the same mode.
+  // apply the menu's hull/trail selections to the shared cosmetics store (buy-in-place already did)
+  function cosPick(st){ if(!KIT || !KIT.cosmetics) return; if(st['asteroids-plus.hull']) KIT.cosmetics.select('asteroids-plus.hull', st['asteroids-plus.hull']); if(st['asteroids-plus.trail']) KIT.cosmetics.select('asteroids-plus.trail', st['asteroids-plus.trail']); }
   function showStartMenu(){
     state='menu'; SND.startMusic(); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); } overlay.classList.add('hidden');
     if(!KIT) return;
@@ -415,13 +417,19 @@
         { id:'shop', label:'WAVE SHOP', tag:'CREDITS', preview:pvShop,
           mech: st => ['Earn credits','Buy between waves', goalChip(st)],
           best: st => st.speedrun ? bestTime('shop') : bestScore('shop') },
-      ]} ],
+      ]},
+      // cosmetics: permanent hull + engine-trail skins (challenge trophies — SEPARATE from the
+      // per-run ◈ credits/Drydock). kit menuGroup = select + buy-in-place.
+      ...(KIT.cosmetics && window.COSMETICS ? [
+        KIT.cosmetics.menuGroup('asteroids-plus.hull', { label:'HULL' }),
+        KIT.cosmetics.menuGroup('asteroids-plus.trail', { label:'ENGINE TRAIL' }),
+      ] : []) ],
       toggles:[ { id:'speedrun', label:'SPEEDRUN', caption:'— clear wave '+SR_TARGET_WAVE+' (first boss) against the clock', default: SPEEDRUN } ],
       hint: st => st.speedrun ? ('Speedrun — clear wave '+SR_TARGET_WAVE+' as fast as you can.')
         : ({ levelup:'Level-up — collect gems, level up, choose upgrades.', milestones:'Milestones — cross score thresholds to pick upgrades.', shop:'Wave shop — earn credits and spend them between waves.' }[st.mode] || 'Pick how you power up.'),
       actions:[ {id:'play',label:'PLAY ▶',primary:true} ],
-      onChange: st => KIT.stampUrl(modeParams(st)),
-      onPlay: st => { applyProgression(st.mode, !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
+      onChange: st => { cosPick(st); KIT.stampUrl(modeParams(st)); },
+      onPlay: st => { cosPick(st); applyProgression(st.mode, !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
     });
     KIT.stampUrl(modeParams({ mode: PROGRESSION, speedrun: SPEEDRUN }));
   }
@@ -658,7 +666,7 @@
       if(sp>max){ ship.vx=ship.vx/sp*max; ship.vy=ship.vy/sp*max; }
       ship.x+=ship.vx; ship.y+=ship.vy; wrap(ship);
       if(thrusting && Math.random()<0.8){ const bx=ship.x-Math.cos(ship.angle)*ship.r, by=ship.y-Math.sin(ship.angle)*ship.r;
-        particles.push({x:bx,y:by,vx:-Math.cos(ship.angle)*(Math.random()*2+1)+(Math.random()-0.5),vy:-Math.sin(ship.angle)*(Math.random()*2+1)+(Math.random()-0.5),life:1,decay:0.06,color:'255,180,90',size:Math.random()*2+1}); }
+        particles.push({x:bx,y:by,vx:-Math.cos(ship.angle)*(Math.random()*2+1)+(Math.random()-0.5),vy:-Math.sin(ship.angle)*(Math.random()*2+1)+(Math.random()-0.5),life:1,decay:0.06,color:trailParticleColor(),size:Math.random()*2+1}); }
       if(shootCd>0) shootCd--;
       if(ship.frenzy>0) ship.frenzy--;
       if((keys[' ']||ship.auto) && shootCd===0){ shoot(); shootCd = ship.frenzy>0 ? Math.max(6,Math.round(ship.fireCd*0.7)) : ship.fireCd; }
@@ -772,14 +780,31 @@
 
   // ---- Render ----
   function drawStars(){ for(const s of stars){ s.tw+=s.ts; const a=s.a*(0.6+0.4*Math.sin(s.tw)); ctx.fillStyle='rgba(200,225,255,'+a+')'; ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); } }
+  // ---- cosmetics: hull colour + engine-trail colour (challenge-trophy sets). Free defaults match
+  //      their store swatches — the signature violet hull and a blue ion trail. ----
+  const HULL_SKINS = {
+    'asteroids-plus.hull.violet': { stroke:'#d9c2ff', glow:'185,140,255' },
+    'asteroids-plus.hull.teal':   { stroke:'#7ff0dc', glow:'46,232,200' },
+    'asteroids-plus.hull.blood':  { stroke:'#ff8a94', glow:'224,48,74' },
+    'asteroids-plus.hull.gold':   { stroke:'#ffe08a', glow:'255,209,102' },
+  };
+  function hullSkin(){ const id=(KIT&&KIT.cosmetics)?KIT.cosmetics.selected('asteroids-plus.hull'):null; return HULL_SKINS[id]||HULL_SKINS['asteroids-plus.hull.violet']; }
+  const TRAIL_RAINBOW = ['255,91,91','255,209,102','127,224,160','127,208,255','185,140,255'];
+  function trailParticleColor(){
+    const id=(KIT&&KIT.cosmetics)?KIT.cosmetics.selected('asteroids-plus.trail'):null;
+    if(id==='asteroids-plus.trail.ember') return Math.random()<0.5?'255,90,42':'255,209,102';
+    if(id==='asteroids-plus.trail.rainbow') return TRAIL_RAINBOW[(Math.random()*TRAIL_RAINBOW.length)|0];
+    return '90,170,255'; // ion (default)
+  }
+
   function poly(x,y,rot,verts,stroke,glow){ ctx.save(); ctx.translate(x,y); ctx.rotate(rot); ctx.strokeStyle=stroke; ctx.lineWidth=2; ctx.shadowColor=glow; ctx.shadowBlur=8;
     ctx.beginPath(); verts.forEach((v,i)=>{ const px=Math.cos(v.ang)*v.d, py=Math.sin(v.ang)*v.d; if(i===0)ctx.moveTo(px,py); else ctx.lineTo(px,py); }); ctx.closePath(); ctx.stroke(); ctx.restore(); }
   function drawShip(){ if(state==='menu'||state==='dead'||state==='won') return; if(invuln>0 && Math.floor(invuln/6)%2===0) return;
     // hero ship is WHITE (distinct from every enemy: blue asteroids, pink hunters, green sentries,
     // red kamikazes, orange bosses) and its glow + fill intensify with the wave so it stays readable in a crowd.
-    const wf=Math.min(1,(wave-1)/20);
-    ctx.save(); ctx.translate(ship.x,ship.y); ctx.rotate(ship.angle); ctx.strokeStyle='#ffffff'; ctx.lineWidth=2+wf; ctx.shadowColor='rgba(255,255,255,0.95)'; ctx.shadowBlur=12+wf*16;
-    ctx.fillStyle='rgba(255,255,255,'+(0.14+wf*0.34)+')';
+    const wf=Math.min(1,(wave-1)/20), sk=hullSkin();
+    ctx.save(); ctx.translate(ship.x,ship.y); ctx.rotate(ship.angle); ctx.strokeStyle=sk.stroke; ctx.lineWidth=2+wf; ctx.shadowColor='rgba('+sk.glow+',0.95)'; ctx.shadowBlur=12+wf*16;
+    ctx.fillStyle='rgba('+sk.glow+','+(0.14+wf*0.34)+')';
     ctx.beginPath(); ctx.moveTo(16,0); ctx.lineTo(-12,-10); ctx.lineTo(-6,0); ctx.lineTo(-12,10); ctx.closePath(); ctx.fill(); ctx.stroke();
     if(ship.shield>0){ ctx.strokeStyle='rgba(180,230,255,'+(0.3+0.18*ship.shield)+')'; ctx.shadowColor='rgba(180,230,255,0.9)'; ctx.shadowBlur=10; ctx.beginPath(); ctx.arc(0,0,ship.r+8,0,Math.PI*2); ctx.stroke(); }
     ctx.restore();

@@ -1,7 +1,11 @@
 // Headless tests for Asteroids+ — boots via the shared harness, drives window.__test.
-import { bootGame, ok, section, summary, VIEWPORTS } from '../../test-harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { bootGame, ok, section, summary, VIEWPORTS, ROOT } from '../../test-harness.mjs';
 
 const runGame = (file, opts = {}) => bootGame('games/asteroids-plus/' + file, { seed: 0x1234abcd, ...opts });
+const COSMETICS = fs.readFileSync(path.join(ROOT, 'cosmetics.js'), 'utf8');
+const CHALLENGES = fs.readFileSync(path.join(ROOT, 'challenges.js'), 'utf8');
 
 // bests now live in the shared kit store (gamekit_pb): normal keeps score, speedrun keeps time (per progression)
 const pbG = (store) => { try { return JSON.parse(store['gamekit_pb'] || '{}')['asteroids-plus'] || {}; } catch (e) { return {}; } };
@@ -570,5 +574,29 @@ function testLayoutFits(file) {
   }
 }
 testLayoutFits('index.html?prog=levelup');
+
+// ---------------- cosmetics: hull + engine-trail skins ----------------
+section('cosmetics — hull & trail skins');
+{
+  const runCos = (store) => runGame('index.html', {
+    preCode: [CHALLENGES, COSMETICS],
+    store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }), ...(store || {}) },
+  });
+  const g = runCos();
+  ok(g.errors.length === 0, 'boots with cosmetics loaded: ' + g.errors[0]);
+  const menu = g.test().menu();
+  ok(menu && menu.selection()['asteroids-plus.hull'] === 'asteroids-plus.hull.violet' && menu.selection()['asteroids-plus.trail'] === 'asteroids-plus.trail.ion',
+    'start menu carries HULL + TRAIL grids with the free defaults');
+  // each hull + trail combo renders (thrusting) without error
+  const hulls = ['violet', 'teal', 'blood', 'gold'], trails = ['ion', 'ember', 'rainbow'];
+  for (let i = 0; i < Math.max(hulls.length, trails.length); i++) {
+    const hid = 'asteroids-plus.hull.' + hulls[i % hulls.length], tid = 'asteroids-plus.trail.' + trails[i % trails.length];
+    const owned = {}; owned[hid] = { c: 0, t: 0 }; owned[tid] = { c: 0, t: 0 };
+    const g2 = runCos({ gamekit_owned: JSON.stringify(owned), gamekit_cos_sel: JSON.stringify({ 'asteroids-plus.hull': hid, 'asteroids-plus.trail': tid }) });
+    g2.down('Enter'); g2.down('ArrowUp'); g2.step(60); // thrust so trail particles spawn
+    ok(g2.errors.length === 0, hulls[i % hulls.length] + ' + ' + trails[i % trails.length] + ': renders without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
+  }
+  ok(g.win.gamekit.cosmetics.buy('asteroids-plus.hull.teal') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy hull skin with trophies (75 left)');
+}
 
 summary();
