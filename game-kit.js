@@ -1520,6 +1520,9 @@
         document.body.appendChild(el);
       }
       if (el && el.classList) el.classList.toggle('show', !ok);
+      // keep the left nav (‹ Menu · Komyo ›) clickable ABOVE the splash so the player can leave
+      // without rotating; the right cluster stays under it (its panels would open behind the splash)
+      try { if (document.body.classList) document.body.classList.toggle('gk-rotate-lock', !ok); } catch (e) {}
       return ok;
     },
     // test hook: set mocked dims (guarded — innerWidth is read-only in real browsers) + relayout now.
