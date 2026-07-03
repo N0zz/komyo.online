@@ -51,12 +51,23 @@
   h1 { margin:0; font-family:var(--mono); font-size: clamp(40px, 9vw, 72px); letter-spacing: 14px; font-weight: 800;
        background: linear-gradient(90deg,#9fe8ff,#e0b25a,#c79bff); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .sub { margin-top: 12px; color:var(--muted); letter-spacing: 3px; font-size: 13px; font-family:var(--mono); text-transform:uppercase; }
+  /* landscape phones: compact hero so the game tiles are visible without scrolling */
+  @media (orientation: landscape) and (max-height: 560px) {
+    body { padding-top: 14px; }
+    header { margin: 6px 0 16px; }
+    .mascot { width: 34px; }
+    h1 { font-size: 26px; letter-spacing: 6px; }
+    .sub { margin-top: 4px; font-size: 10px; letter-spacing: 2px; }
+  }
 
   .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 20px; }
   .section-head { grid-column: 1 / -1; display:flex; align-items:center; gap:14px; margin: 12px 2px 0; }
   .section-head:first-child { margin-top: 0; }
   .section-head h2 { margin:0; display:inline-flex; align-items:baseline; gap:8px; font-family:var(--mono); font-size: 13px; letter-spacing: 3px; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
   .section-head .line { flex:1; height:1px; background:var(--border); }
+  .load-more { grid-column: 1 / -1; margin: 6px auto; padding: 10px 26px; font: 600 13px var(--mono); letter-spacing: 1px;
+    color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
+  .load-more:hover { border-color: #9fe8ff; }
   .section-head .count { font-family:var(--mono); font-size: 11px; color:var(--faint); }
   .tile {
     position: relative;
@@ -1082,8 +1093,10 @@
       } catch (e) {}
     }
 
+    let moreObs = null;
     function render() {
       syncURL();
+      if (moreObs) { try { moreObs.disconnect(); } catch (e) {} moreObs = null; }
       grid.innerHTML = '';
       const f = favs();
       const all = (window.GAMES || []).filter(passes);
@@ -1105,13 +1118,36 @@
         const c = document.getElementById('clearNr'); if (c) c.addEventListener('click', clearFilters);
         return;
       }
+      // render in pages of 100 tiles — future-proofing: with a big catalogue one shot would jank
+      // first paint. The rest streams in when the sentinel scrolls near (or on click without IO).
+      const PAGE = 100;
+      const queue = [];
       sections.forEach(sec => {
         const head = document.createElement('div');
         head.className = 'section-head';
         head.innerHTML = '<span class="line"></span><h2>' + sec.label + '<span class="count">' + sec.list.length + '</span></h2><span class="line"></span>';
-        grid.appendChild(head);
-        sec.list.forEach(g => grid.appendChild(tileEl(g, f)));
+        queue.push(head);
+        sec.list.forEach(g => queue.push(g));
       });
+      (function chunk() {
+        let tiles = 0;
+        while (queue.length && tiles < PAGE) {
+          const it = queue.shift();
+          if (it.slug) { grid.appendChild(tileEl(it, f)); tiles++; } else grid.appendChild(it);
+        }
+        if (!queue.length) return;
+        const more = document.createElement('button');
+        more.type = 'button'; more.className = 'load-more';
+        more.textContent = 'Show ' + queue.filter(x => x.slug).length + ' more…';
+        more.addEventListener('click', () => { more.remove(); chunk(); });
+        grid.appendChild(more);
+        if (typeof IntersectionObserver === 'function') {
+          moreObs = new IntersectionObserver(es => {
+            if (es.some(e => e.isIntersecting)) { moreObs.disconnect(); moreObs = null; more.click(); }
+          }, { rootMargin: '600px' });
+          moreObs.observe(more);
+        }
+      })();
     }
 
     function fcountUpdate() {
