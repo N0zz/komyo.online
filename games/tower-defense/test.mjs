@@ -3,12 +3,14 @@
 // reflow fix (towers + enemies must track the grid when the canvas is re-sized).
 import fs from 'node:fs';
 import path from 'node:path';
-import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
+import { bootGame, ok, section, summary, runLayoutSuite, ROOT } from '../../test-harness.mjs';
 
 const DIR = path.dirname(new URL(import.meta.url).pathname); // for raw-html regex checks only
 const FILE = 'games/tower-defense/index.html';
 const SEED = 0x7D5EED; // fixed seed → every run() sees identical Math.random() outcomes
 const runGame = (opts = {}) => bootGame(FILE, { seed: SEED, ...opts });
+const COSMETICS = fs.readFileSync(path.join(ROOT, 'cosmetics.js'), 'utf8');
+const CHALLENGES = fs.readFileSync(path.join(ROOT, 'challenges.js'), 'utf8');
 
 function freeCell(T) {
   for (let c = 0; c < T.cols; c++) for (let r = 0; r < T.rows; r++) if (!T.roadAt(c, r)) return { c, r };
@@ -365,6 +367,26 @@ function run() {
       ok(topMost >= L2.topReserve, tag + 'board content clears the top HUD (top=' + topMost.toFixed(1) + ' >= reserve=' + L2.topReserve + ')');
     }
   );
+
+  // ---- cosmetics: castle skins ----
+  section('cosmetics — castle skins');
+  {
+    const runCos = (store) => runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }), ...(store || {}) } });
+    const g = runCos();
+    ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
+    const menu = g.test().menu();
+    ok(menu && menu.selection()['tower-defense.castle'] === 'tower-defense.castle.stone', 'start menu carries the CASTLE grid, default stone');
+    // each castle skin renders (start-menu keep preview + in-game keep) without error
+    for (const key of ['stone', 'oak', 'sand', 'ice', 'obsidian']) {
+      const id = 'tower-defense.castle.' + key;
+      const owned = {}; owned[id] = { c: 0, t: 0 };
+      const g2 = runCos({ gamekit_owned: JSON.stringify(owned), gamekit_cos_sel: JSON.stringify({ 'tower-defense.castle': id }) });
+      ok(g2.win.gamekit.cosmetics.selected('tower-defense.castle') === id, key + ': selection honoured');
+      g2.test().start(); g2.test().step(2); g2.test().render();
+      ok(g2.errors.length === 0, key + ': renders the keep without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
+    }
+    ok(g.win.gamekit.cosmetics.buy('tower-defense.castle.oak') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy castle skin with trophies (75 left)');
+  }
 
   summary();
 }

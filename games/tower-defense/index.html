@@ -496,9 +496,10 @@
   const MENU_THEME = { accent: '#e0b25a', glow: '0 0 18px rgba(224,178,90,0.45)', bg: 'rgba(33,24,16,0.72)',
     border: 'rgba(224,178,90,0.32)', overlay: 'rgba(20,14,8,0.62)', title: '#f0c87a', 'on-accent': '#1c1207', 'accent-soft': 'rgba(224,178,90,0.18)' };
   function menuKeep(g, x, y, s) {
-    const hw = s * .34, hh = s * .32; g.fillStyle = '#78788a'; g.fillRect(x - hw, y - hh, hw * 2, hh * 2);
+    const sk = castleSkin();
+    const hw = s * .34, hh = s * .32; g.fillStyle = sk.body; g.fillRect(x - hw, y - hh, hw * 2, hh * 2);
     g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(x + hw * .3, y - hh, hw * .7, hh * 2);
-    g.fillStyle = '#8a8a9c'; const bw = s * .13, bh = s * .15, gap = s * .15; for (let i = -1; i <= 1; i++) g.fillRect(x + i * gap - bw / 2, y - hh - bh, bw, bh);
+    g.fillStyle = sk.batt; const bw = s * .13, bh = s * .15, gap = s * .15; for (let i = -1; i <= 1; i++) g.fillRect(x + i * gap - bw / 2, y - hh - bh, bw, bh);
     g.fillStyle = '#cc3333'; g.beginPath(); g.moveTo(x, y - hh - bh - s * .26); g.lineTo(x + s * .16, y - hh - bh - s * .17); g.lineTo(x, y - hh - bh - s * .08); g.fill();
     g.strokeStyle = '#4a3220'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - hh - bh); g.lineTo(x, y - hh - bh - s * .28); g.stroke();
   }
@@ -526,11 +527,13 @@
         { id: 'map', label: 'MAP', style: 'popup', pickerTitle: 'CHOOSE A MAP', default: String(mapIndex),
           choices: MAPS.map((m, i) => ({ id: String(i), label: m.name, desc: m.desc, best: st => getMapBest(i, st.diff).score, pvW: 210, pvH: 110, preview: (g, w, h) => menuMapRender(g, w, h, m) })) },
         { id: 'diff', label: 'DIFFICULTY', style: 'slider', default: diffLevel, choices: [ { id: 'easy', label: 'Easy' }, { id: 'medium', label: 'Medium' }, { id: 'hard', label: 'Hard' } ] },
+        // cosmetics: castle-skin picker (kit-owned select + buy-in-place with challenge trophies)
+        ...(KIT.cosmetics && window.COSMETICS ? [KIT.cosmetics.menuGroup('tower-defense.castle', { label: 'CASTLE' })] : []),
       ],
       actions: [{ id: 'play', label: 'Defend', primary: true }],
       hint: () => 'Build towers on grass · tap a tower to upgrade, sell or set targeting.',
-      onChange: st => { const mi = parseInt(st.map, 10) || 0; if (mi !== mapIndex) { applyMap(mi); loadBest(); } setDiff(st.diff); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); },
-      onPlay: st => { const mi = parseInt(st.map, 10) || 0; applyMap(mi); loadBest(); setDiff(st.diff); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); startGame(); },
+      onChange: st => { const mi = parseInt(st.map, 10) || 0; if (mi !== mapIndex) { applyMap(mi); loadBest(); } setDiff(st.diff); if (st['tower-defense.castle'] && KIT.cosmetics) KIT.cosmetics.select('tower-defense.castle', st['tower-defense.castle']); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); },
+      onPlay: st => { const mi = parseInt(st.map, 10) || 0; applyMap(mi); loadBest(); setDiff(st.diff); if (st['tower-defense.castle'] && KIT.cosmetics) KIT.cosmetics.select('tower-defense.castle', st['tower-defense.castle']); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); startGame(); },
     });
     KIT.stampUrl({ map: mapIndex, diff: diffLevel });
   }
@@ -1266,23 +1269,34 @@
     }
   }
 
+  // ---- cosmetics: castle skins (challenge-trophy set 'tower-defense.castle'). Stone renders
+  //      exactly as today; the flag + wall shading stay across all skins. ----
+  const CASTLE_SKINS = {
+    'tower-defense.castle.stone':    { body: '#78788a', batt: '#8a8a9c', gate: '#3a2a17' },
+    'tower-defense.castle.oak':      { body: '#a87848', batt: '#8a5e34', gate: '#4a2e18' },
+    'tower-defense.castle.sand':     { body: '#e8cc8a', batt: '#d8b968', gate: '#8a6a3a' },
+    'tower-defense.castle.ice':      { body: '#cfeaff', batt: '#a8d4f0', gate: '#5a7a9a' },
+    'tower-defense.castle.obsidian': { body: '#2a2c38', batt: '#3a3d4e', gate: '#0e0f16' },
+  };
+  function castleSkin() { const id = (KIT && KIT.cosmetics) ? KIT.cosmetics.selected('tower-defense.castle') : null; return CASTLE_SKINS[id] || CASTLE_SKINS['tower-defense.castle.stone']; }
+
   // Castle / keep at end
   function drawKeep(x, y, s) {
-    const hw = s * 0.38, hh = s * 0.36;
+    const hw = s * 0.38, hh = s * 0.36, sk = castleSkin();
     // main body
-    ctx.fillStyle = '#78788a';
+    ctx.fillStyle = sk.body;
     ctx.fillRect(x - hw, y - hh, hw * 2, hh * 2);
     // wall shading
     ctx.fillStyle = 'rgba(0,0,0,0.15)';
     ctx.fillRect(x + hw * 0.3, y - hh, hw * 0.7, hh * 2);
     // battlements
-    ctx.fillStyle = '#8a8a9c';
+    ctx.fillStyle = sk.batt;
     const bw = s * 0.14, bh = s * 0.16, gap = s * 0.16;
     for (let i = -1; i <= 1; i++) {
       ctx.fillRect(x + i * gap - bw / 2, y - hh - bh, bw, bh);
     }
     // gate arch
-    ctx.fillStyle = '#3a2a17';
+    ctx.fillStyle = sk.gate;
     ctx.beginPath();
     ctx.arc(x, y + hh * 0.15, s * 0.12, Math.PI, 0, false);
     ctx.rect(x - s * 0.12, y + hh * 0.15, s * 0.24, s * 0.25);
@@ -1645,6 +1659,7 @@
     get enemies() { return enemies.length; },
     get towers() { return towers.length; },
     start: startGame,
+    render() { render(); }, // headless: exercise the draw path (e.g. castle-skin rendering)
     startWave,
     place: placeTower,
     selectBuild(t) { selBuild = t; },
