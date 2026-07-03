@@ -539,31 +539,42 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 .gamekit-shoppanel .gksp-gline { flex: 1; height: 1px; background: var(--gkm-border, rgba(255, 255, 255, 0.14)); }
 .gamekit-shoppanel .gksp-set { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #8294ac; margin: 8px 0 6px; }
 .gamekit-shoppanel .gksp-note { text-transform: none; letter-spacing: 0.4px; color: #6b7a90; }
-.gamekit-shoppanel .gksp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.gamekit-shoppanel .gksp-cell { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: 11px; cursor: pointer;
+/* controls row: search + game filter (full store) or "All games →" (scoped) */
+.gamekit-shoppanel .gksp-ctrls { display: flex; gap: 8px; margin: 10px 0 2px; }
+.gamekit-shoppanel .gksp-search { flex: 1; min-width: 0; font: 12px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-text, #eaf2fb);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 9px; padding: 8px 11px; }
+.gamekit-shoppanel .gksp-search::placeholder { color: #6b7a90; }
+.gamekit-shoppanel .gksp-filter { font: 12px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-text, #eaf2fb);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 9px; padding: 8px 10px; max-width: 42%; }
+.gamekit-shoppanel .gksp-allgames { font: 700 12px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-accent, #9fe8ff);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 9px; padding: 8px 12px; cursor: pointer; white-space: nowrap; }
+.gamekit-shoppanel .gksp-allgames:hover { border-color: var(--gkm-accent, #9fe8ff); }
+/* tiles: a compact row — icon left, name + status stacked right */
+.gamekit-shoppanel .gksp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.gamekit-shoppanel .gksp-cell { position: relative; display: flex; align-items: center; gap: 9px; padding: 7px 9px; border-radius: 9px; cursor: pointer;
   background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); }
 .gamekit-shoppanel .gksp-cell:hover { border-color: var(--gkm-accent, #9fe8ff); }
 .gamekit-shoppanel .gksp-cell.gksp-focus { box-shadow: inset 0 0 0 2px var(--gkm-accent, #9fe8ff); }
 .gamekit-shoppanel .gksp-cell.gksp-owned { border-color: rgba(127, 224, 160, 0.5); }
-.gamekit-shoppanel .gksp-cell.gksp-sel { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-shoppanel .gksp-cell.gksp-sel { border-color: var(--gkm-accent, #9fe8ff); box-shadow: inset 0 0 0 1px var(--gkm-accent, #9fe8ff); }
 .gamekit-shoppanel .gksp-cell.gksp-dim { opacity: 0.5; }
-.gamekit-shoppanel .gksp-sw { width: 30px; height: 26px; border-radius: 7px; border: 1px solid rgba(255, 255, 255, 0.18); }
-.gamekit-shoppanel .gksp-nm { font-size: 11.5px; font-weight: 700; letter-spacing: 0.4px; color: #eaf3ff; }
-.gamekit-shoppanel .gksp-sub { font-size: 10px; font-weight: 700; letter-spacing: 0.6px; color: #7fe0a0; }
-.gamekit-shoppanel .gksp-buy { font: 800 12.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; border-radius: 10px; padding: 12px 16px;
+.gamekit-shoppanel .gksp-sw { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.18); }
+.gamekit-shoppanel .gksp-txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.gamekit-shoppanel .gksp-nm { font-size: 12px; font-weight: 700; letter-spacing: 0.3px; color: #eaf3ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gamekit-shoppanel .gksp-sub { font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; color: #93a5bd; }
+.gamekit-shoppanel .gksp-sub .gksp-on { color: var(--gkm-accent, #9fe8ff); }
+.gamekit-shoppanel .gksp-empty { color: #8294ac; font-size: 12.5px; padding: 18px 4px; text-align: center; }
+.gamekit-shoppanel .gksp-titleline { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 2px;
+  font-size: 11px; color: #93a5bd; }
+.gamekit-shoppanel .gksp-titlebtn { font: 700 11px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-title, #eaf3ff);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 8px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+.gamekit-shoppanel .gksp-titlebtn:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-shoppanel .gksp-buy { margin-top: 10px; font: 800 12.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; border-radius: 10px; padding: 12px 16px;
   border: none; cursor: pointer; color: var(--gk-shop-ink, #0a1420); background: var(--gkm-new, #ffd166); box-shadow: 0 0 14px rgba(255, 209, 102, 0.35); }
 .gamekit-shoppanel .gksp-buy:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
-.gamekit-shoppanel .gksp-tl { display: flex; flex-direction: column; gap: 5px; font-size: 11.5px; font-weight: 600; }
-.gamekit-shoppanel .gksp-tlrow { display: flex; justify-content: space-between; gap: 10px; color: #6b7a90; }
-.gamekit-shoppanel .gksp-tlrow.got { color: #9fb2c9; }
-.gamekit-shoppanel .gksp-tlrow.cur { color: var(--gkm-new, #7fe0a0); }
-.gamekit-shoppanel .gksp-tlmin { white-space: nowrap; font-variant-numeric: tabular-nums; }
-.gamekit-shoppanel .gksp-tlnote { margin-top: 10px; font-size: 10.5px; color: #6b7a90; line-height: 1.5; }
+.gamekit-shoppanel .gksp-buy.gksp-buy-equip { color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.08); box-shadow: none; border: 1px solid var(--gkm-accent, #9fe8ff); }
 @media (max-width: 620px) { .gamekit-shoppanel .gksp-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (min-width: 621px) and (max-width: 760px) { .gamekit-shoppanel .gksp-grid { grid-template-columns: repeat(3, 1fr); } }
-
-/* locked-but-unaffordable cosmetics cell in a game's STYLE grid */
-.gamekit-menu .gkm-gcell.gkm-noafford { opacity: 0.38; }
+@media (max-width: 380px) { .gamekit-shoppanel .gksp-grid { grid-template-columns: 1fr; } }
 
 /* site-wide cursor-trail overlay (Neon Comet / Rainbow Trail skins) */
 .gamekit-cursor-trail { position: fixed; inset: 0; z-index: 999999; pointer-events: none; }

@@ -283,8 +283,10 @@
   button.pf-tb-cos { background:none; border:none; padding:0; font:inherit; font-size:12px; cursor:pointer; text-align:right; }
   button.pf-tb-cos:hover b { color:#ffce5c; }
   .pf-pfx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
-  .pf-halo { position:absolute; inset:-8px -18px; z-index:0; border-radius:50%; filter:blur(14px); opacity:0; pointer-events:none; }
-  .pf-sh { position:relative; z-index:1; font-family:var(--mono); font-weight:700; letter-spacing:.5px; }
+  /* soft glow behind the title — a blurred rounded block so it covers a wrapped 2-line title
+     (an ellipse only lit the middle line); the per-glyph text-shadow/drop-shadow handles the rest */
+  .pf-halo { position:absolute; inset:-6px -14px; z-index:0; border-radius:14px; filter:blur(15px); opacity:0; pointer-events:none; }
+  .pf-sh { position:relative; z-index:1; display:inline-block; max-width:100%; font-family:var(--mono); font-weight:700; letter-spacing:.5px; }
   .pf-t0 .pf-sh { color:#78828f; }
   .pf-t1 .pf-sh { color:#c3ccd8; }
   .pf-t2 .pf-sh { color:#d0954f; text-shadow:0 0 7px rgba(208,149,79,.4); }
@@ -295,13 +297,13 @@
   .pf-t6 .pf-sh { background-image:linear-gradient(100deg,#6fe0cf,#9fe8ff 40%,#fff 50%,#9fe8ff 60%,#6fe0cf); background-size:250% 100%; filter:drop-shadow(0 0 10px rgba(159,232,255,.65)); animation:pftSweep 3.4s linear infinite; }
   .pf-t7 .pf-sh { background-image:linear-gradient(90deg,#ff8ad1,#b98cff,#9fe8ff,#7fffc4,#ff8ad1); background-size:300% 100%; animation:pftHolo 5s linear infinite,pftPulse 2.4s ease-in-out infinite; }
   .pf-t8 .pf-sh { background-image:linear-gradient(90deg,#ffd76a,#fff3c0,#ff9ad1,#9fe8ff,#ffd76a); background-size:300% 100%; animation:pftHolo 4s linear infinite,pftPulseGold 2s ease-in-out infinite; }
-  .pf-t3 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(211,222,237,.28),transparent 70%); }
-  .pf-t4 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(160,110,255,.4),transparent 70%); animation:pftBreathe 3.4s ease-in-out infinite; }
-  .pf-t5 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(159,180,255,.42),transparent 70%); animation:pftBreathe 3.2s ease-in-out infinite; }
-  .pf-t6 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(159,232,255,.48),transparent 70%); animation:pftBreathe 3s ease-in-out infinite; }
-  .pf-t7 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(185,140,255,.5),transparent 70%); animation:pftBreathe 2.6s ease-in-out infinite; }
-  .pf-t8 .pf-halo { opacity:1; background:radial-gradient(ellipse,rgba(255,215,106,.55),transparent 68%); animation:pftBreathe 2.2s ease-in-out infinite; }
-  .pf-gl::after { content:attr(data-text); position:absolute; left:0; top:0; white-space:pre; z-index:2; pointer-events:none; background-image:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%); background-size:220% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; animation:pftGlint 3.8s ease-in-out infinite; }
+  .pf-t3 .pf-halo { opacity:1; background:rgba(211,222,237,.22); }
+  .pf-t4 .pf-halo { opacity:1; background:rgba(160,110,255,.32); animation:pftBreathe 3.4s ease-in-out infinite; }
+  .pf-t5 .pf-halo { opacity:1; background:rgba(159,180,255,.34); animation:pftBreathe 3.2s ease-in-out infinite; }
+  .pf-t6 .pf-halo { opacity:1; background:rgba(159,232,255,.38); animation:pftBreathe 3s ease-in-out infinite; }
+  .pf-t7 .pf-halo { opacity:1; background:rgba(185,140,255,.4); animation:pftBreathe 2.6s ease-in-out infinite; }
+  .pf-t8 .pf-halo { opacity:1; background:rgba(255,215,106,.42); animation:pftBreathe 2.2s ease-in-out infinite; }
+  .pf-gl::after { content:attr(data-text); position:absolute; inset:0; width:100%; white-space:normal; z-index:2; pointer-events:none; background-image:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%); background-size:220% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; animation:pftGlint 3.8s ease-in-out infinite; }
   .pf-t0 .pf-gl::after, .pf-t1 .pf-gl::after, .pf-t2 .pf-gl::after { display:none; } /* rare shine starts at Knight */
   .pf-t3 .pf-gl::after { background-image:linear-gradient(115deg,transparent 45%,#fff 50%,transparent 55%); animation-duration:3.1s; }
   .pf-t6 .pf-gl::after { animation-duration:3.2s; }
@@ -539,13 +541,13 @@
   .streak:hover { border-color:#ffce5c; background:rgba(255,206,92,0.14); }
   .streak .streak-i { width:15px; height:15px; border-radius:50%; border:1px solid color-mix(in srgb,#ffce5c 60%,transparent); display:inline-flex; align-items:center; justify-content:center; font:700 10px/1 var(--mono); color:color-mix(in srgb,#ffce5c 80%,transparent); }
   .streak:hover .streak-i { color:#0c111c; background:#ffce5c; border-color:#ffce5c; }
-  /* trophies pill + gold COSMETICS pill row, the collection bar and the good-run bonus line */
-  .cpills { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
-  .cpills .streak { align-self:auto; margin:12px 0 2px; }
-  .cshop { display:inline-flex; align-items:center; gap:6px; margin:12px 0 2px; font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:0.5px;
-    color:#0a1420; background:#ffce5c; border:1px solid #ffce5c; border-radius:999px; padding:5px 12px; cursor:pointer;
-    box-shadow:0 0 12px rgba(255,206,92,0.35); }
-  .cshop:hover { filter:brightness(1.08); }
+  /* two matched pills (trophies wallet + Cosmetics), centered; the collection bar + bonus line below */
+  .cpills { display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; }
+  /* both pills share the muted-gold look; the trophy pill shows your SPENDABLE balance */
+  .cpills .streak, .cshop { align-self:auto; margin:12px 0 2px; display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:0.5px; cursor:pointer;
+    color:#e8c069; background:rgba(255,206,92,0.10); border:1px solid rgba(255,206,92,0.34); border-radius:999px; padding:6px 13px; }
+  .cpills .streak:hover, .cshop:hover { border-color:#ffce5c; background:rgba(255,206,92,0.16); color:#ffce5c; }
   .ccollect { display:flex; align-items:center; gap:10px; margin:10px 4px 0; }
   .ccollect .cbar { flex:1; height:8px; border-radius:99px; background:rgba(255,255,255,0.09); overflow:hidden; }
   .ccollect .cbar i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#ffce5c,#ff9a5c); }
@@ -1685,10 +1687,10 @@
       function titleBarHTML(o) {
         const TT = o.TT, who = o.who;
         let h = '<div class="pf-titlebar' + (o.compact ? ' pf-compact' : '') + ' pf-t' + TT.tier + '">'
-          + (!o.compact && TT.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + TT.tier + '"></canvas>' : '')
+          + (TT.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + TT.tier + '"></canvas>' : '')
           + '<span class="pf-tb-emoji">' + (TT.emoji || '🎖️') + '</span>'
           + '<div class="pf-tb-main">'
-          + '<span class="pf-tb-label">Title</span>'
+          + '<span class="pf-tb-label">' + (o.compact ? 'Title' : '<button type="button" class="pf-title-link" id="pfTitleOpen">Title · see ladder ›</button>') + '</span>'
           + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(TT.title) + '">' + esc(TT.title) + '</span></span>';
         h += o.compact
           ? '<span class="pf-tb-name"><span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span></span>'
@@ -1699,9 +1701,8 @@
         h += '</div>';
         if (o.compact) h += '<span class="pf-chev">›</span>';
         else h += '<div class="pf-tb-meta">'
-          + '<span class="pf-tb-pts">🏆 ' + fmt(o.chPts) + ' <span>TROPHIES</span></span>'
+          + '<span class="pf-tb-pts">🏆 ' + fmt(o.chPts) + ' <span>TROPHIES EARNED</span></span>'
           + '<span class="pf-tb-mini" title="Runs that cleared a game’s bar">💪 <b>' + fmt(o.goodRuns) + '</b> good ' + (o.goodRuns === 1 ? 'run' : 'runs') + '</span>'
-          + (o.cos ? '<button type="button" class="pf-tb-mini pf-tb-cos" id="pfCosBtn" title="Cosmetics collection — spend trophies in the store">🎨 <b>' + fmt(o.cos.owned) + '/' + fmt(o.cos.total) + '</b> cosmetics</button>' : '')
           + '<span class="pf-tb-mini">📅 Since <b>' + esc(o.sinceStr || '—') + '</b></span>'
           + '</div>';
         return h + '</div>';
@@ -1710,8 +1711,12 @@
       function wireNameEdit() {
         const nb = document.getElementById('pfNameEdit');
         if (nb) nb.addEventListener('click', () => { if (window.__openNameModal) window.__openNameModal(); });
-        const cb = document.getElementById('pfCosBtn'); // 🎨 collection → the Cosmetics store (mounts inside the open dialog)
-        if (cb) cb.addEventListener('click', () => { if (K && K.shopPanel) K.shopPanel({ onClose: render }); });
+        // 🎨 collection bar → the Cosmetics store (mounts inside the open profile dialog)
+        const cb = document.getElementById('pfCollect');
+        if (cb) cb.addEventListener('click', () => { if (K && K.shopPanel) K.shopPanel({ onTitles: () => window.__openTitlesLadder && window.__openTitlesLadder(), onClose: render }); });
+        // the title box opens the titles ladder (titles live in the profile + ☰ menu)
+        const to = document.getElementById('pfTitleOpen');
+        if (to) to.addEventListener('click', () => { if (window.__openTitlesLadder) window.__openTitlesLadder(); });
       }
       function render() {
         const p = (K && K.profile) ? K.profile() : null;
@@ -1723,12 +1728,16 @@
         const goodRuns = (p && p.goodRuns) ? p.goodRuns : 0;
         const cos = (K && K.cosmetics && window.COSMETICS) ? K.cosmetics.progress() : null;
         const tb = titleBarHTML({ TT, who, chPts, goodRuns, sinceStr, cos });
+        // collection progress bar — a real bar (not just a number), tappable → the Cosmetics store
+        const collectBar = cos ? ('<button type="button" class="pf-collect" id="pfCollect" title="Open the Cosmetics store">'
+          + '<span class="pf-collect-top"><span>🎨 Collection</span><span class="pf-collect-n">' + fmt(cos.owned) + ' / ' + fmt(cos.total) + ' · ' + Math.round(cos.pct * 100) + '%</span></span>'
+          + '<span class="pf-collect-bar"><i style="width:' + Math.round(cos.pct * 100) + '%"></i></span></button>') : '';
         // one list, most-played first: every game with plays, each showing its modes' bests
         const ranked = [];
         if (p) GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm, pg }); });
         ranked.sort((a, b) => b.pg.plays - a.pg.plays || b.pg.best - a.pg.best);
         if (!ranked.length) {
-          body.innerHTML = '<div class="pf-scroll">' + tb + '<p class="pf-empty">No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.</p></div>';
+          body.innerHTML = '<div class="pf-scroll">' + tb + collectBar + '<p class="pf-empty">No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.</p></div>';
           shareData = null; startTitleFx(); wireNameEdit(); return;
         }
         const favGameMeta = meta(p.favGame.slug), accent = (favGameMeta && favGameMeta.accent) || '#9fe8ff';
@@ -1736,7 +1745,7 @@
         const chips = [['Game', p.gamesPlayed], ['Mode', p.modesPlayed], ['Play', p.plays], ['Day', p.daysPlayed]];
         let html = '<div class="pf-scroll">' + tb + '<div class="pf-stats">';
         chips.forEach(s => { const lbl = s[1] === 1 ? s[0] : s[0] + 's'; html += '<div class="pf-stat"><b>' + esc(fmt(s[1])) + '</b><span>' + esc(lbl) + '</span></div>'; });
-        html += '</div>';
+        html += '</div>' + collectBar;
         // Your games — total plays in the header (its unit shown once), then each mode's best;
         // a per-mode "×N" appears only when that mode was played more than once (no ×1 noise).
         const rows = [];
@@ -1844,7 +1853,7 @@
         const CFG = { 3: { n: 9, cols: ['#d3deed', '#fff'], sz: [.7, 1.8], v: .13, glow: 5 }, 4: { n: 12, cols: ['#b98cff', '#c9b3ff'], sz: [.7, 2], v: .16, glow: 5 }, 5: { n: 15, cols: ['#b98cff', '#9fe8ff'], sz: [.7, 2.2], v: .18, glow: 6 }, 6: { n: 18, cols: ['#9fe8ff', '#7fe8d0', '#fff'], sz: [.7, 2.4], v: .22, glow: 7 }, 7: { n: 24, cols: ['#ff8ad1', '#b98cff', '#9fe8ff', '#7fffc4'], sz: [.8, 2.6], v: .26, glow: 8 }, 8: { n: 32, cols: ['#ffd76a', '#fff3c0', '#fff', '#ff9ad1'], sz: [.9, 3], v: .32, glow: 10 } };
         const dpr = Math.min(window.devicePixelRatio || 1, 2), rnd = (a, b) => a + Math.random() * (b - a);
         const fields = [];
-        const cvs = document.querySelectorAll ? document.querySelectorAll('#profileBody .pf-pfx, #titlesList .pf-pfx') : [];
+        const cvs = document.querySelectorAll ? document.querySelectorAll('#profileBody .pf-pfx, #titlesList .pf-pfx, #profileBtn .pf-pfx') : [];
         cvs.forEach(cv => {
           const cfg = CFG[+cv.getAttribute('data-tier')];
           const ctx = cv.getContext && cv.getContext('2d');
@@ -1878,6 +1887,7 @@
         _pfRaf = raf(frame);
       }
       window.__renderProfile = render; // exposed for tests
+      window.__startTitleFx = startTitleFx; // so the ☰ hamburger card's title particles can (re)start too
       if (btn) btn.addEventListener('click', () => { render(); modal.showModal(); lock(true); });
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
       modal.addEventListener('close', () => { lock(false); stopTitleFx(); });
@@ -1946,7 +1956,10 @@
     (function () {
       const K = window.gamekit, C = window.CHALLENGES;
       const todayEl = document.getElementById('chalToday'), weekEl = document.getElementById('chalWeek'), streakEl = document.getElementById('chalStreak');
-      if (streakEl) streakEl.addEventListener('click', () => { if (window.__openTitlesLadder) window.__openTitlesLadder(); });
+      // both drawer pills open the Cosmetics store (titles live in the profile + ☰ menu, not here);
+      // the store itself carries a "See titles" button (onTitles) for reaching the ladder.
+      const openShop = () => { if (K.shopPanel) K.shopPanel({ onTitles: () => window.__openTitlesLadder && window.__openTitlesLadder(), onClose: render }); };
+      if (streakEl) streakEl.addEventListener('click', openShop);
       if (!K || !todayEl) return;
       const genreOf = {}, titleOf = {};
       (window.GAMES || []).forEach(g => { if (g && g.slug) { genreOf[g.slug] = (tagsOf(g)[0]) || ''; titleOf[g.slug] = g.title || g.slug; } });
@@ -2048,11 +2061,12 @@
       }
       // Cosmetics pill (spendable balance → the store), collection bar + good-run bonus line
       const shopEl = document.getElementById('chalShop'), collEl = document.getElementById('chalCollect'), bonusEl = document.getElementById('chalBonus');
+      if (shopEl) shopEl.addEventListener('click', openShop);
       function renderCosmetics() {
         const cos = K.cosmetics;
         if (cos && window.COSMETICS && shopEl) {
           shopEl.hidden = false;
-          shopEl.textContent = '🎨 COSMETICS · 🏆 ' + cos.balance();
+          shopEl.textContent = '🎨 Cosmetics';
         }
         if (cos && window.COSMETICS && collEl) {
           const pr = cos.progress(), pct = Math.round(pr.pct * 100);
@@ -2067,7 +2081,6 @@
           bonusEl.textContent = '⚡ Good-run bonus: ' + b.count + '/' + b.cap + ' today · +' + b.per + ' 🏆 each';
         }
       }
-      if (shopEl) shopEl.addEventListener('click', () => { if (K.shopPanel) K.shopPanel({ onClose: render }); });
       function render() {
         if (!C || !todayEl) return;
         const daily = pick('day'), weekly = pick('week');
@@ -2075,8 +2088,10 @@
         weekEl.innerHTML = card(weekly && weekly.goal, WEEKLY_PTS);
         trackShown(daily, 'daily'); trackShown(weekly, 'weekly');
         backfillAndAward();
-        const n = award();
-        if (streakEl) streakEl.innerHTML = '🏆 ' + n + (n === 1 ? ' trophy' : ' trophies') + ' <span class="streak-i">i</span>';
+        award(); // keep lifetime up to date (drives titles elsewhere); the drawer shows SPENDABLE
+        // the drawer's trophy figure is your spendable balance (your wallet) — lifetime + titles
+        // live in the profile / ☰ menu, so there's only one number to reason about here
+        if (streakEl) { const bal = (K.cosmetics && window.COSMETICS) ? K.cosmetics.balance() : award(); streakEl.textContent = '🏆 ' + bal + (bal === 1 ? ' trophy' : ' trophies'); }
         renderCosmetics();
         renderHistory();
       }
@@ -2173,7 +2188,7 @@
       const form = document.getElementById('nameForm'), input = document.getElementById('nameInput'), skip = document.getElementById('nameSkip');
       const cur = () => (window.gamekit && window.gamekit.player) ? window.gamekit.player() : 'anonymous';
       const card = document.getElementById('profileBtn');
-      const paint = () => { if (card && window.__titleBar) { try { card.innerHTML = window.__titleBar(); } catch (e) {} } };
+      const paint = () => { if (card && window.__titleBar) { try { card.innerHTML = window.__titleBar(); if (window.__startTitleFx) window.__startTitleFx(); } catch (e) {} } };
       window.__renderIdCard = paint;
       paint();
       const mb = document.getElementById('menuBtn');
