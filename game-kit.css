@@ -184,6 +184,10 @@
   .gamekit-menu.gkm-split .gkm-card-nm { font-size: 13px; }
   .gamekit-menu.gkm-split .gkm-card-body { gap: 5px; }
   .gamekit-menu.gkm-split .gkm-card-desc { display: none; }
+  /* shop grids fill the pane with NO scrolling: 4-across (3-across for cols:3), rows share height */
+  .gamekit-menu.gkm-split .gkm-shop { grid-template-columns: repeat(4, 1fr); grid-auto-rows: 1fr; margin: 0; height: 100%; align-content: stretch; }
+  .gamekit-menu.gkm-split .gkm-shop-c3 { grid-template-columns: repeat(3, 1fr); }
+  .gamekit-menu.gkm-split .gkm-shop-c3 .gkm-shop-desc { display: none; } /* rail focdesc carries it */
   /* thumbnail grid auto-fits the pane width (more flyers → more columns, not more scrolling) */
   .gamekit-menu.gkm-split .gkm-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); margin: 0; }
   .gamekit-menu.gkm-split .gkm-gcell { padding: 7px 4px 6px; }
@@ -300,7 +304,25 @@
 .gamekit-menu .gkm-shop-sub { margin-top: auto; font: 700 11.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: .5px;
   color: var(--gkm-accent, #9fe8ff); font-variant-numeric: tabular-nums; }
 .gamekit-menu .gkm-shop-sub .cost { color: var(--gkm-new, #ffd166); } .gamekit-menu .gkm-shop-sub .max { color: #6b7a90; }
-@media (max-width: 560px) { .gamekit-menu .gkm-shop { grid-template-columns: 1fr; } }
+/* optional per-choice icon (canvas painter) — quick scan without reading */
+.gamekit-menu .gkm-shopcard.gkm-has-ic { display: grid; grid-template-columns: 26px 1fr; gap: 4px 10px; align-items: center; }
+.gamekit-menu .gkm-shop-ic { grid-row: 1 / span 3; width: 26px; height: 26px; display: block; }
+/* cols:3 — the exactly-3 picker shape: 3 across (desktop + landscape), stacked in portrait */
+.gamekit-menu .gkm-shop-c3 { grid-template-columns: repeat(3, 1fr); }
+.gamekit-menu .gkm-shop-c3 .gkm-shopcard.gkm-has-ic { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 7px; padding: 14px 10px; }
+.gamekit-menu .gkm-shop-c3 .gkm-shop-ic { width: 34px; height: 34px; }
+/* focused-choice desc line + BUY/TAKE button — small screens only (desktop cards show their desc) */
+.gamekit-menu .gkm-focdesc { display: none; margin: 2px 0 4px; min-height: 1.4em; font: 11px/1.4 var(--gkm-font, ui-monospace, monospace); color: #93a5bd; }
+.gamekit-menu .gkm-focdesc b { color: var(--gkm-title, #eaf3ff); font-weight: 700; }
+.gamekit-menu .gkm-buybtn { display: none; color: var(--gkm-on-accent, #06121a); background: var(--gkm-new, #ffd166); border-color: var(--gkm-new, #ffd166); font-weight: 800; }
+.gamekit-menu .gkm-buybtn:disabled { opacity: .5; cursor: default; }
+@media (max-width: 560px), (max-height: 560px) {
+  .gamekit-menu .gkm-shopcard { padding: 8px 10px; }
+  .gamekit-menu .gkm-shop:not(.gkm-shop-c3) .gkm-shop-desc { display: none; } /* the focdesc line carries it */
+  .gamekit-menu .gkm-focdesc { display: block; }
+  .gamekit-menu .gkm-buybtn { display: block; }
+}
+@media (max-width: 560px) { .gamekit-menu .gkm-shop { grid-template-columns: 1fr 1fr; } .gamekit-menu .gkm-shop-c3 { grid-template-columns: 1fr; } }
 
 /* ---- map-picker (style:'popup') — Keep Defender ---- */
 .gamekit-menu .gkm-picker { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer;
