@@ -9,7 +9,7 @@ window.CHANGELOG = [
     'New: pick your skin right in each game\'s menu — buy a locked one on the spot with trophies. Neon Snake food (Cherry, Golden Apple, Gem, Star Fruit, Rainbow Orb), Brick Breaker paddles & balls (Wood, Neon Ice, Lava, Chrome · 8-Ball, Comet, Disco, Plasma), Keep Defender castles (Oak, Sandcastle, Ice, Obsidian), Bubble Pop pop-effects & shooters, Range targets & hit markers, Stack block palettes, Asteroids ship colours (plus a whole-game CRT Green retro mode), and Asteroids+ hulls & engine trails.',
     'New: Meadow Flyer\'s birds joined the cosmetics — buy any bird in any order with trophies. Your old banked coins converted straight into trophies (1:1) and every bird you\'d already unlocked stays yours.',
     'New: desktop cursor skins for the whole site — Crosshair, Paw, Pixel Sword, Neon Comet and a Rainbow Trail (the last two leave a little wake as you move).',
-    'New: good runs now pay a small bonus — your first 3 good runs each day give +2 trophies each. The end-of-run screen shows the bonus as you earn it.',
+    'New: good runs now pay a bonus — your first 3 good runs each day give +5 trophies each. The end-of-run screen shows the bonus as you earn it.',
     'New: your profile shows how much of the collection you\'ve unlocked, and the Challenges panel shows your collection bar + today\'s good-run bonus.',
   ] },
   { date: '2026-07-03', title: 'Offline everywhere & title reveals ✨', items: [

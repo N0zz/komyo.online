@@ -672,9 +672,9 @@ function testCosmetics() {
     ok(F.goodRunBonus().count === 0, 'a below-bar run earns no trickle');
     for (let i = 0; i < 5; i++) F.recordResult('snake', { score: 9999 });
     const done = JSON.parse(g.store.gamekit_done || '{}');
-    ok(done['gr#' + F.utcDateStr()] === 6, 'trickle caps at 3 good runs/day (+6 🏆, got ' + done['gr#' + F.utcDateStr()] + ')');
-    ok(F.goodRunBonus().count === 3 && F.goodRunBonus().cap === 3 && F.goodRunBonus().per === 2, 'goodRunBonus() reports 3/3 · +2');
-    ok(F.cosmetics.balance() === 6, 'trickle trophies are spendable (balance 6)');
+    ok(done['gr#' + F.utcDateStr()] === 15, 'trickle caps at 3 good runs/day (+5 each = 15 🏆, got ' + done['gr#' + F.utcDateStr()] + ')');
+    ok(F.goodRunBonus().count === 3 && F.goodRunBonus().cap === 3 && F.goodRunBonus().per === 5, 'goodRunBonus() reports 3/3 · +5');
+    ok(F.cosmetics.balance() === 15, 'trickle trophies are spendable (balance 15)');
   }
 
   // C2) end-menu good-run line is the trickle RECEIPT
@@ -685,7 +685,7 @@ function testCosmetics() {
     const findByCls = (el, cls, out = []) => { if (!el) return out; if (String(el.className || '').includes(cls)) out.push(el); (el.children || []).forEach(c => findByCls(c, cls, out)); return out; };
     const h = F.menu.show({ kind: 'end', score: 9999, record: { slug: 'snake', mode: '', score: 9999 }, actions: [{ id: 'again', label: 'AGAIN', primary: true }] });
     let line = findByCls(h.el, 'gkm-goodrun')[0];
-    ok(line && String(line.innerHTML).includes('+2 🏆 (1/3 today)'), 'end menu shows the +2 🏆 receipt (got "' + (line && line.innerHTML) + '")');
+    ok(line && String(line.innerHTML).includes('+5 🏆 (1/3 today)'), 'end menu shows the +5 🏆 receipt (got "' + (line && line.innerHTML) + '")');
     F.menu.hide();
     for (let i = 0; i < 3; i++) { F.menu.show({ kind: 'end', score: 9999, record: { slug: 'snake', mode: '', score: 9999 }, actions: [{ id: 'again', label: 'A', primary: true }] }); F.menu.hide(); }
     const h2 = F.menu.show({ kind: 'end', score: 9999, record: { slug: 'snake', mode: '', score: 9999 }, actions: [{ id: 'again', label: 'A', primary: true }] });
