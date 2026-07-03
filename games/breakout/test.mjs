@@ -327,7 +327,7 @@ runLayoutSuite(
     gl.T().step(1); // one frame so the paddle re-centers/clamps to the new width (as it does live)
     const L = gl.T().layout;
     // bricks clear the top HUD pill (this is the "score box overlap" class of bug)
-    ok(L.brickTop >= L.topMargin, v.name + ': top bricks clear the HUD (brickTop ' + L.brickTop + ' >= topMargin ' + L.topMargin + ')');
+    ok(L.brickTop >= L.topReserve, v.name + ': top bricks clear the HUD (brickTop ' + L.brickTop + ' >= topReserve ' + L.topReserve + ')');
     ok(L.brickLeft >= 0 && L.brickRight <= L.W, v.name + ': bricks within width (' + Math.round(L.brickLeft) + '..' + Math.round(L.brickRight) + ' in 0..' + L.W + ')');
     ok(L.brickBottom < L.paddleY, v.name + ': bricks sit above the paddle (' + Math.round(L.brickBottom) + ' < ' + L.paddleY + ')');
     ok(L.paddleLeft >= 0 && L.paddleRight <= L.W, v.name + ': paddle within width (' + Math.round(L.paddleLeft) + '..' + Math.round(L.paddleRight) + ')');
