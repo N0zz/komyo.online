@@ -781,7 +781,7 @@
       const pw = widePaddle > 0 ? paddleW * 1.6 : paddleW;
       let bt = brickOffY, bb = brickOffY, bl = W, br = 0;
       for (const b of bricks) { const r = brickRect(b); bt = Math.min(bt, r.y); bb = Math.max(bb, r.y + r.h); bl = Math.min(bl, r.x); br = Math.max(br, r.x + r.w); }
-      return { W, H, topMargin, brickOffY, brickTop: bt, brickBottom: bb,
+      return { W, H, topReserve: topMargin, brickOffY, brickTop: bt, brickBottom: bb,
         brickLeft: bricks.length ? bl : W / 2, brickRight: bricks.length ? br : W / 2,
         paddleY: paddleY(), paddleLeft: paddleX - pw / 2, paddleRight: paddleX + pw / 2 };
     },

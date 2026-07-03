@@ -312,7 +312,6 @@
   @keyframes pftBreathe { 0%,100%{ transform:scale(.92); opacity:.7; } 50%{ transform:scale(1.08); opacity:1; } }
   @keyframes pftGlint { 0%{ background-position:180% 0; } 42%,100%{ background-position:-90% 0; } }
   /* titles ladder modal — every rank prerendered with its tier shine, points only */
-  /* titles-ladder (i): must be findable — accent-tinted, 20px visual, ~34px hitbox via ::after */
   /* clickable display name (rename) with an instant tooltip */
   .pf-name-btn { position:relative; background:none; border:none; padding:0; cursor:pointer; color:inherit; font:inherit; display:inline-flex; align-items:center; text-align:left; }
   .pf-name-btn:hover .pf-sh, .pf-name-btn:focus-visible .pf-sh { text-decoration:underline dotted; text-underline-offset:3px; }
@@ -1666,8 +1665,9 @@
         return { who, chPts, TT };
       }
       // the identity box (title + name, both shined to the tier). Full (profile): particles for
-      // tiers 3+, clickable name (rename), (i) → titles ladder, meta column (pts / good runs /
-      // since). Compact (drawer card): just emoji + title + name + chevron.
+      // tiers 3+, clickable name (rename), meta column (pts / good runs / since). Compact
+      // (drawer card): just emoji + title + name + chevron. Titles ladder opens from the
+      // challenges drawer's points pill.
       function titleBarHTML(o) {
         const TT = o.TT, who = o.who;
         let h = '<div class="pf-titlebar' + (o.compact ? ' pf-compact' : '') + ' pf-t' + TT.tier + '">'
