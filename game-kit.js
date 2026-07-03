@@ -9,6 +9,19 @@
   // ---------- persistence helpers ----------
   function lsGet(k) { try { return (typeof localStorage !== 'undefined') ? localStorage.getItem(k) : null; } catch (e) { return null; } }
   function lsSet(k, v) { try { if (typeof localStorage !== 'undefined') localStorage.setItem(k, v); } catch (e) {} }
+  // one-time ×10 challenge-points rescale (2026-07-03): daily 1→10 / weekly 5→50 and every title
+  // threshold ×10 — stored lifetime points + frozen history records scale with them so nobody
+  // loses progress. An old Export imported later lacks the flag → it re-migrates correctly.
+  (function () {
+    try {
+      if (lsGet('gamekit_pts_x10') === '1') return;
+      var d = JSON.parse(lsGet('gamekit_done') || 'null');
+      if (d && typeof d === 'object') { for (var k in d) if (Object.prototype.hasOwnProperty.call(d, k)) d[k] = (d[k] | 0) * 10; lsSet('gamekit_done', JSON.stringify(d)); }
+      var h = JSON.parse(lsGet('gamekit_history') || 'null');
+      if (Array.isArray(h)) { for (var i = 0; i < h.length; i++) if (h[i] && h[i].pts != null) h[i].pts = (h[i].pts | 0) * 10; lsSet('gamekit_history', JSON.stringify(h)); }
+      lsSet('gamekit_pts_x10', '1');
+    } catch (e) {}
+  })();
   function clamp01(v, d) { v = parseFloat(v); return (typeof v === 'number' && isFinite(v)) ? Math.max(0, Math.min(1, v)) : d; }
 
   // ---------- canvas helpers ----------

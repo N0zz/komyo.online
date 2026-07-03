@@ -261,7 +261,8 @@ When the change is visual/interactive, offer the user this local URL to verify b
 
 - **GA4** (`G-S4JQPYNDNM`) is **consent-gated**: `analytics.js` loads gtag only after the cookie
   banner's *Accept* (stored in `localStorage.gamekit_consent`, shared across the origin so per-game
-  pages track too). Footer says **"no ads · no payments · plays offline."**
+  pages track too). Footer tag: **"built for fun · free forever · no ads · no accounts · kid-safe ·
+  every game works offline"** (the key-strengths one-liner — keep it in sync with reality).
 - **OG/Twitter** meta + `og-image.png` (1200×675, a 16:9 page screenshot). Regenerate it on
   rebrands and bump `?v=` so scrapers refetch; re-scrape via the FB Sharing Debugger.
 - **Newsletter:** Kit. The inline Subscribe modal POSTs to Kit form **9615603**; sending domain
