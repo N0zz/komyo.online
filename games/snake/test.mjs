@@ -405,6 +405,21 @@ section('Neon Snake: board move handle stays clamped');
   L = T().layout;
   ok(L.arenaBottom <= L.H - L.rBottom + 0.5, 'down: arena clears the bottom strip (' + L.arenaBottom + ' <= ' + (L.H - L.rBottom) + ')');
   ok(T().boardShiftY < 99999, 'down: shift is clamped, not unbounded (' + T().boardShiftY + ')');
+
+  // landscape: the shift axis flips to horizontal (spare space is left/right there)
+  g.resize(780, 390);
+  T().step(1);
+  const shiftYBefore = T().boardShiftY;
+  T().nudgeBoard(-9999);
+  L = T().layout;
+  ok(L.arenaLeft >= 0, 'landscape left: arena left edge stays on-screen (' + L.arenaLeft + ' >= 0)');
+  ok(T().boardShiftX > -9999, 'landscape left: X shift is clamped, not unbounded (' + T().boardShiftX + ')');
+  T().nudgeBoard(99999);
+  L = T().layout;
+  ok(L.arenaRight <= L.W - L.rSide + 0.5, 'landscape right: arena clears the side strip (' + L.arenaRight + ' <= ' + (L.W - L.rSide) + ')');
+  ok(T().boardShiftX < 99999, 'landscape right: X shift is clamped, not unbounded (' + T().boardShiftX + ')');
+  ok(T().boardShiftY === shiftYBefore, 'landscape nudges leave the portrait Y shift untouched (' + T().boardShiftY + ')');
+  ok(L.arenaTop >= L.topReserve - 0.5, 'landscape: arena still clears HUD reserve (' + L.arenaTop + ' >= ' + L.topReserve + ')');
 }
 
 summary();

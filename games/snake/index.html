@@ -169,7 +169,8 @@
   let COLS, ROWS;
   let W, H, cellW, cellH, offX, offY;
   let dpadReserve = 0; // space kept clear for the on-screen D-pad (touch) so it never overlaps the arena
-  let boardShiftY = 0; // touch players can slide the arena up/down (persisted); clamped each layout
+  let boardShiftY = 0; // touch players can slide the arena along the spare axis (persisted); clamped each layout
+  let boardShiftX = 0; // landscape shift (spare space is horizontal there); portrait uses boardShiftY
   let dpadEl = null, dpadHidden = false, dpadOrient = null; // declared early so resize() can lay it out safely
 
   // ---- Per-mode best scores ----
@@ -204,13 +205,22 @@
     cellH = Math.floor(avH / ROWS);
     const cell = Math.min(cellW, cellH);
     cellW = cellH = cell;
-    offX = Math.floor((avW - COLS * cell) / 2); // arena hugs the left; D-pad sits in the right strip (landscape)
-    // vertical position = centered, plus the player's saved up/down shift, clamped so the arena always
-    // clears the HUD on top and the D-pad reserve on the bottom (write the clamp back so it can't run past).
+    // The player's saved shift slides the arena along the SPARE axis: vertical in portrait,
+    // horizontal in landscape. Centered plus the shift, clamped so the arena always clears the
+    // HUD/D-pad reserves (write the clamp back so it can't run past).
+    const baseOffX = Math.floor((avW - COLS * cell) / 2); // D-pad sits in the right strip (landscape)
     const baseOffY = hud + PAD_T + Math.floor((avH - ROWS * cell) / 2);
-    const minOffY = hud + PAD_T, maxOffY = Math.max(minOffY, H - rBottom - PAD_B - ROWS * cell);
-    offY = Math.max(minOffY, Math.min(maxOffY, baseOffY + boardShiftY));
-    boardShiftY = offY - baseOffY;
+    if (landscape) {
+      const minOffX = 0, maxOffX = Math.max(minOffX, W - rSide - COLS * cell);
+      offX = Math.max(minOffX, Math.min(maxOffX, baseOffX + boardShiftX));
+      boardShiftX = offX - baseOffX;
+      offY = baseOffY;
+    } else {
+      offX = baseOffX;
+      const minOffY = hud + PAD_T, maxOffY = Math.max(minOffY, H - rBottom - PAD_B - ROWS * cell);
+      offY = Math.max(minOffY, Math.min(maxOffY, baseOffY + boardShiftY));
+      boardShiftY = offY - baseOffY;
+    }
     layoutDpad();
     placeGrip();
   }
@@ -551,34 +561,46 @@
   const isTouch = (typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches) || (typeof window !== 'undefined' && 'ontouchstart' in window);
   let dpadBtns = null, hideZoneEl = null, showBtnEl = null, gripEl = null;
   const DPAD_POS_KEY = 'snake_dpad_pos', DPAD_HIDE_KEY = 'snake_dpad_hidden', DPAD_RESERVE = 200;
-  const BOARD_SHIFT_KEY = 'snake_board_shift';
+  const BOARD_SHIFT_KEY = 'snake_board_shift', BOARD_SHIFT_X_KEY = 'snake_board_shift_x';
   try { dpadHidden = localStorage.getItem(DPAD_HIDE_KEY) === '1'; } catch (_) {}
   try { boardShiftY = parseInt(localStorage.getItem(BOARD_SHIFT_KEY) || '0', 10) || 0; } catch (_) {}
+  try { boardShiftX = parseInt(localStorage.getItem(BOARD_SHIFT_X_KEY) || '0', 10) || 0; } catch (_) {}
 
-  // ---- Board move handle (touch): slide the arena up/down so it clears the player's thumb ----
+  // ---- Board move handle (touch): slide the arena along the spare axis so it clears the player's thumb ----
   function placeGrip() {
     if (!gripEl) return;
     gripEl.style.left = (offX + 4) + 'px';
     gripEl.style.top = (offY + 4) + 'px';
+    const landscape = W > H;
+    gripEl.textContent = landscape ? '↔' : '↕';
+    const label = landscape ? 'Drag to move the board left or right' : 'Drag to move the board up or down';
+    gripEl.title = label;
+    gripEl.setAttribute('aria-label', label);
   }
   function buildGrip() {
     if (gripEl || typeof document === 'undefined' || !document.body || !document.createElement) return;
-    gripEl = document.createElement('div'); gripEl.id = 'boardGrip'; gripEl.textContent = '↕';
-    gripEl.title = 'Drag to move the board up or down';
-    gripEl.setAttribute('aria-label', 'Drag to move the board up or down');
+    gripEl = document.createElement('div'); gripEl.id = 'boardGrip';
     document.body.appendChild(gripEl);
-    let drag = false, startY = 0, startShift = 0;
+    let drag = false, axisX = false, start = 0, startShift = 0;
     gripEl.addEventListener('pointerdown', (e) => {
-      drag = true; startY = e.clientY; startShift = boardShiftY;
+      drag = true; axisX = W > H;
+      start = axisX ? e.clientX : e.clientY;
+      startShift = axisX ? boardShiftX : boardShiftY;
       try { gripEl.setPointerCapture(e.pointerId); } catch (_) {}
       if (e.preventDefault) e.preventDefault();
     });
     gripEl.addEventListener('pointermove', (e) => {
-      if (!drag) return; boardShiftY = startShift + (e.clientY - startY); resize(); // resize clamps + repositions
+      if (!drag) return;
+      if (axisX) boardShiftX = startShift + (e.clientX - start);
+      else boardShiftY = startShift + (e.clientY - start);
+      resize(); // resize clamps + repositions
     });
     const end = () => {
       if (!drag) return; drag = false;
-      try { localStorage.setItem(BOARD_SHIFT_KEY, String(Math.round(boardShiftY))); } catch (_) {}
+      try {
+        localStorage.setItem(BOARD_SHIFT_KEY, String(Math.round(boardShiftY)));
+        localStorage.setItem(BOARD_SHIFT_X_KEY, String(Math.round(boardShiftX)));
+      } catch (_) {}
     };
     gripEl.addEventListener('pointerup', end); gripEl.addEventListener('pointercancel', end);
     placeGrip();
@@ -705,7 +727,12 @@
     },
     get speed() { return opts.speed; },
     get boardShiftY() { return boardShiftY; },
-    nudgeBoard(dy) { boardShiftY += dy; resize(); return boardShiftY; },   // slide the arena up/down (clamped in resize)
+    get boardShiftX() { return boardShiftX; },
+    // slide the arena along the active spare axis (X in landscape, Y in portrait; clamped in resize)
+    nudgeBoard(d) {
+      if (W > H) { boardShiftX += d; resize(); return boardShiftX; }
+      boardShiftY += d; resize(); return boardShiftY;
+    },
     get interval() { return getInterval(); },
     menu() { return KIT ? KIT.menu.current() : null; },
     comboBest(o) { return comboBest(o || opts); },
@@ -730,7 +757,7 @@
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
     controls: { title: 'Neon Snake — Controls',
       keyboard: [ ['Arrows · WASD', 'Turn'], ['Esc', 'Pause'] ],
-      touch: [ ['Swipe', 'Turn'], ['On-screen D-pad', 'Turn'], ['Drag ↕ handle', 'Slide the board'] ] } });
+      touch: [ ['Swipe', 'Turn'], ['On-screen D-pad', 'Turn'], ['Drag ↕/↔ handle', 'Slide the board'] ] } });
   KIT.music.play('neon');   // menu + in-game bed (reuses the loop throughout)
 
   loadOpts();
