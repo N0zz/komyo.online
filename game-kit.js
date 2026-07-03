@@ -1592,10 +1592,16 @@
       el.innerHTML = '<div class="gamekit-tap-inner"><div class="gamekit-tap-play">▶</div><div>TAP TO PLAY</div><small></small></div>';
       try { var lab = el.querySelector('small'); if (lab) lab.textContent = (typeof document.title === 'string' && document.title) ? document.title : 'Komyo'; } catch (e) {}
       var gone = false;
-      var dismiss = function () { if (gone) return; gone = true; el.className = 'gamekit-tap gk-hide'; var rm = function () { try { if (el.parentNode) el.parentNode.removeChild(el); } catch (e) {} }; if (typeof setTimeout === 'function') setTimeout(rm, 320); else rm(); };
-      el.addEventListener('pointerdown', dismiss);
+      // the dismissing gesture must not leak underneath (it would instantly press a menu card/button):
+      // dismiss on CLICK — the overlay is still on top for the whole pointerdown→up gesture, so it eats
+      // it — and swallow the key event in capture phase before any game/menu handler sees it
+      var dismiss = function (e) {
+        if (e) { try { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); else if (e.stopPropagation) e.stopPropagation(); } catch (x) {} }
+        if (gone) return; gone = true;
+        el.className = 'gamekit-tap gk-hide'; var rm = function () { try { if (el.parentNode) el.parentNode.removeChild(el); } catch (e2) {} }; if (typeof setTimeout === 'function') setTimeout(rm, 320); else rm();
+      };
       el.addEventListener('click', dismiss);
-      try { document.addEventListener('keydown', dismiss, { once: true }); } catch (e) { try { document.addEventListener('keydown', dismiss, true); } catch (_) {} }
+      try { document.addEventListener('keydown', dismiss, { once: true, capture: true }); } catch (e) { try { document.addEventListener('keydown', dismiss, true); } catch (_) {} }
       document.body.appendChild(el);
     } catch (e) {}
   }
