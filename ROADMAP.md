@@ -123,12 +123,19 @@ design knobs (`@game-design-knobs.md`).
 titles, icons and genre tags here match the catalogue. This table is the build queue: effort + notes
 per game. Roughly easiest → hardest within each group.
 
+**▶ Next build order (2026-07-03):** **2048 → Dusk Runner → Minesweeper → Sudoku → a small kids batch**
+(Balloon Pop / Glow Says / Critter Match). Rationale: all low-tuning + high-recognition = fast to build,
+zero teaching cost, and organically searchable ("2048", "sudoku", "minesweeper", "dino game"); the kids
+batch widens the no-ads/kid-safe lane. This batch is all remakes — per `komyo-market-expansion-discussion`,
+slot **one original-mechanic, shareable game** in after 2048/Dusk Runner (don't block on it).
+
 ### Single player
 
 | Game | Effort | Build notes |
 | --- | --- | --- |
 | **2048** 🔢 `PUZZLE`+`LOGIC` | trivial–low | classic slide-and-merge grid (swipe/arrows); well-known rules = zero teaching cost; undo?, board-size variants 3×3/5×5 |
 | **Dusk Runner** 🦖 `ARCADE`+`REFLEX` | low | Chrome offline-dino style — mono line-art, ground runner, jump/duck, obstacle spawner, speed ramp, day→night palette shift |
+| **Minesweeper** 💣 `LOGIC`+`PUZZLE` | low–med | classic grid — reveal / flag / chord; **first-click-safe** board gen (never lose on tile 1) + flood-fill reveal; difficulty = size + mine density; no balance tuning |
 | **Pump Stop** ⛽ `SKILL` (+`STRATEGY` manager) | trivial–low (solo) · med (manager) | Solo: hold to pump, **stop at the target** with momentum/overrun, scored by closeness. **Tolerance is tight (~1%):** $20 off by 20¢ = fine, by 50¢ = too far under. **Manager expansion (idea, discuss later):** run **4 pumps** — cars arrive with a paid limit, stop each near its limit. Over = free-gas penalty (costs the station); tiny-under = fine; a car left under-served/unattended → patience runs out → it **blocks the pump**; **all 4 blocked = game over**. Attention is the scarce resource → triage is the game. **Open decisions:** (a) cars **auto-fill and you only tap _stop_** vs you actively **_pump_** each; (b) **one active pump at a time** vs **all at once**; (c) tolerance band (~1%? scales with difficulty?). Tension: a tight ~1% band is hard to hit while juggling 4 pumps — (a)/(b) set how forgiving it must be. |
 | **Keyfall** ⌨️ `TYPING`+`SKILL` | low–med | falling words — type each before it lands; speed ramp, combos, WPM. Opens a wider WORD/TYPING lane (more later: anagram, spelling, Wordle-style guesser) |
 | **Word Hunt** 🔍 `WORD`+`PUZZLE` | low–med | letter-grid word search — drag to circle, timer, themed packs; word-placement generator |
@@ -162,7 +169,7 @@ Not yet tiles (lane/genre ideas, added 2026-07-03 — a game gets a tile once it
 - **More endless-racing lane** (beyond Pocket Rally) — e.g. an outrun-style pseudo-3D highway
   runner (curves + hills, canvas raster trick), a motorbike lane-splitter (near-miss scoring), or
   top-down drift/rally sprint. Pick 1–2 that feel most distinct from Pocket Rally.
-- **More puzzle/riddle lane** (beyond Sudoku/Floodgate/Blink) — nonogram/picross, minesweeper,
+- **More puzzle/riddle lane** (beyond Sudoku/Minesweeper/Floodgate/Blink) — nonogram/picross,
   sokoban, sliding-15, tents-and-trees / logic-riddle packs, daily riddle ("one brain-teaser a
   day" pairs with challenges/streaks). All solvable-by-construction per the design knobs.
 
