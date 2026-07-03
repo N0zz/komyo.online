@@ -356,6 +356,17 @@ section('per-combo best via best(opts)');
   ok(T().comboBest(combo) === sc, 'best(combo) reflects the recorded score (' + sc + ' vs ' + T().comboBest(combo) + ')');
 }
 
+section('Neon Snake: Enhanced teaser card is locked');
+{
+  const g = runGame();
+  const m = g.T().menu();
+  const before = m.selection().walls;
+  m.select('walls', 'enhanced');
+  ok(m.selection().walls === before, 'locked Enhanced (SOON) card cannot be selected');
+  m.select('walls', 'wrap');
+  ok(m.selection().walls === 'wrap', 'real mode cards still selectable next to the locked one');
+}
+
 section('Neon Snake: layout fits the screen (arena on-screen, no HUD overlap)');
 runLayoutSuite(
   () => { const gl = runGame(); gl.T().start(); return gl; },
