@@ -351,6 +351,12 @@
   .tl-pts { margin-left:auto; flex:0 0 auto; font-family:var(--mono); font-size:12px; color:var(--faint); font-variant-numeric:tabular-nums; white-space:nowrap; }
   .tl-cur { border-color:#9fe8ff; }
   .tl-cur .tl-pts { color:var(--text); }
+  /* unlocked ranks are tap-to-equip; the worn one is highlighted, locked ones dimmed */
+  .tl-unlocked { cursor:pointer; }
+  .tl-unlocked:hover { border-color:#9fe8ff; }
+  .tl-unlocked:not(.tl-cur):hover .tl-pts { color:#9fe8ff; }
+  .tl-locked { opacity:0.62; }
+  .tl-worn { color:#7fe0a0; font-weight:700; }
   @media (prefers-reduced-motion: reduce) { .pf-sh, .pf-halo, .pf-gl::after { animation:none !important; } .pf-halo { opacity:.8; } }
   /* Discord Activity: games open in an in-page iframe (mobile Discord blocks top-frame navigation) */
   .act-frame { position:fixed; inset:0; z-index:300; background:var(--bg,#0a0e14); display:flex; flex-direction:column; }
@@ -910,7 +916,7 @@
   <dialog id="titlesModal">
     <div class="about titles">
       <div class="cl-head"><h3>🏆 Titles</h3><button type="button" class="dx" id="titlesClose" aria-label="Close">✕</button></div>
-      <p class="tl-sub">Earn trophies to climb the ladder — your title shows on your profile. Titles read <b>lifetime</b> trophies, so spending on cosmetics never slows you down.</p>
+      <p class="tl-sub">Earn trophies to climb the ladder — a new title is worn automatically, but tap any <b>unlocked</b> rank to wear it instead. Titles read <b>lifetime</b> trophies, so spending on cosmetics never slows you down.</p>
       <div class="tl-list" id="titlesList"></div>
     </div>
   </dialog>
@@ -1690,14 +1696,28 @@
           } catch (e) { resolve(null); }
         });
       }
-      // lifetime challenge points → earned title (points never reset); shared by the profile box
-      // AND the drawer identity card
+      // lifetime challenge points → EARNED title (highest passed). The WORN title can be any
+      // unlocked one the player picks (gamekit_title_sel); earning a new higher tier auto-switches
+      // to it (gamekit_title_adopted tracks the highest auto-claimed tier), and you can switch back.
+      const TSEL = 'gamekit_title_sel', TADOPT = 'gamekit_title_adopted';
+      function titleFor(pts) { return (window.CHALLENGES && window.CHALLENGES.titleFor) ? window.CHALLENGES.titleFor(pts) : { tier: 0, emoji: '🎖️', title: '' }; }
+      function titleByTier(tier) { const list = (window.CHALLENGES && window.CHALLENGES.titles) || []; for (let i = 0; i < list.length; i++) if (list[i].tier === tier) return list[i]; return list[0] || { tier: 0, emoji: '🎖️', title: '' }; }
+      // pick which title is WORN: read the saved selection, but auto-adopt any newly-earned higher tier
+      function wornTier(earnedTier) {
+        let sel = earnedTier, adopted = -1;
+        try { const s = localStorage.getItem(TSEL); if (s != null && s !== '') sel = parseInt(s, 10); } catch (e) {}
+        try { const a = localStorage.getItem(TADOPT); if (a != null && a !== '') adopted = parseInt(a, 10); } catch (e) {}
+        if (!isFinite(sel)) sel = earnedTier;
+        if (earnedTier > adopted) { sel = earnedTier; try { localStorage.setItem(TSEL, String(sel)); localStorage.setItem(TADOPT, String(earnedTier)); } catch (e) {} } // new higher title → auto-switch
+        return Math.max(0, Math.min(earnedTier, sel));
+      }
+      function setWornTier(tier) { try { localStorage.setItem(TSEL, String(tier)); } catch (e) {} }
       function titleData() {
         const who = (K && K.player) ? K.player() : 'anonymous';
         let chPts = 0;
         try { const d = JSON.parse(localStorage.getItem('gamekit_done') || '{}'); for (const k in d) chPts += (d[k] | 0); } catch (e) {}
-        const TT = (window.CHALLENGES && window.CHALLENGES.titleFor) ? window.CHALLENGES.titleFor(chPts) : { tier: 0, emoji: '🎖️', title: '' };
-        return { who, chPts, TT };
+        const earned = titleFor(chPts), TT = titleByTier(wornTier(earned.tier));
+        return { who, chPts, TT, earnedTier: earned.tier };
       }
       // the identity box (title + name, both shined to the tier). Full (profile): particles for
       // tiers 3+, clickable name (rename), meta column (pts / good runs / since). Compact
@@ -1818,22 +1838,38 @@
       // titles ladder modal — every rank prerendered with its tier shine (same classes as the
       // profile title box), current one highlighted; points only, no time estimates
       const tlModal = document.getElementById('titlesModal'), tlList = document.getElementById('titlesList'), tlClose = document.getElementById('titlesClose');
-      function renderTitles(curTier) {
+      // ladder: unlocked ranks are tap-to-equip (wear a previous title if you like it more); the worn
+      // one shows "✓ Worn", locked ones stay locked. `wornT` = worn tier, `earnedT` = highest unlocked.
+      function renderTitles() {
         if (!tlList || !window.CHALLENGES || !window.CHALLENGES.titles) return;
+        const d = titleData(), wornT = d.TT.tier, earnedT = d.earnedTier;
         let h = '';
         window.CHALLENGES.titles.forEach(t => {
-          h += '<div class="tl-row pf-t' + t.tier + (t.tier === curTier ? ' tl-cur' : '') + '">'
+          const unlocked = t.tier <= earnedT, worn = t.tier === wornT;
+          h += '<div class="tl-row pf-t' + t.tier + (worn ? ' tl-cur' : '') + (unlocked ? ' tl-unlocked' : ' tl-locked') + '"'
+            + (unlocked ? ' role="button" tabindex="0" data-tier="' + t.tier + '"' : '') + '>'
             + (t.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + t.tier + '"></canvas>' : '')
             + '<span class="tl-emoji">' + (t.emoji || '🎖️') + '</span>'
             + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(t.title) + '">' + esc(t.title) + '</span></span>'
-            + '<span class="tl-pts">' + fmt(t.min) + ' 🏆</span></div>';
+            + '<span class="tl-pts">' + (worn ? '<b class="tl-worn">✓ Worn</b>' : (unlocked ? 'Wear' : fmt(t.min) + ' 🏆')) + '</span></div>';
         });
         tlList.innerHTML = h;
       }
+      // equip an unlocked title from the ladder → re-render the ladder + the profile + the ☰ id card
+      if (tlList) tlList.addEventListener('click', e => {
+        const row = e.target && e.target.closest ? e.target.closest('.tl-row.tl-unlocked') : null;
+        if (!row) return;
+        const t = parseInt(row.getAttribute('data-tier'), 10);
+        if (!isFinite(t)) return;
+        setWornTier(t); renderTitles(); startTitleFx();
+        try { if (window.__renderProfile) window.__renderProfile(); } catch (e2) {}
+        try { if (window.__renderIdCard) window.__renderIdCard(); } catch (e2) {}
+        if (window.gamekitTrack) window.gamekitTrack('title_wear', { tier: t });
+      });
       // challenges drawer's points pill opens the ladder — points → titles is the payoff
       window.__openTitlesLadder = () => {
         if (!tlModal || !tlModal.showModal) return;
-        renderTitles(titleData().TT.tier); tlModal.showModal(); startTitleFx();
+        renderTitles(); tlModal.showModal(); startTitleFx();
         if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'titles' });
       };
       if (tlClose) tlClose.addEventListener('click', () => tlModal.close());
@@ -1844,7 +1880,7 @@
       const TSEEN = 'gamekit_title_seen';
       const seenTier = () => { try { return parseInt(localStorage.getItem(TSEEN) || '0', 10) || 0; } catch (e) { return 0; } };
       function syncTitleNotify() {
-        const cur = titleData().TT.tier;
+        const cur = titleData().earnedTier; // the dot tracks the highest EARNED title, not the worn one
         if (cur < seenTier()) { try { localStorage.setItem(TSEEN, String(cur)); } catch (e) {} } // import/reset lowered the tier — resync silently
         const fresh = cur > seenTier();
         const mb = document.getElementById('menuBtn');
@@ -1855,7 +1891,7 @@
         const mb = document.getElementById('menuBtn');
         if (mb) mb.addEventListener('click', () => {
           if (!syncTitleNotify()) return;
-          try { localStorage.setItem(TSEEN, String(titleData().TT.tier)); } catch (e) {}
+          try { localStorage.setItem(TSEEN, String(titleData().earnedTier)); } catch (e) {}
           syncTitleNotify();
           const card = document.getElementById('profileBtn');
           if (card && card.classList) {
