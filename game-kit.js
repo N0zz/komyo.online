@@ -555,6 +555,25 @@
     var t = chToday();
     return !!((t.daily && t.daily.goal && t.daily.goal.slug === slug) || (t.weekly && t.weekly.goal && t.weekly.goal.slug === slug));
   }
+  // like chActiveSlug, but false once every matching goal is already done — a completed challenge
+  // must not keep nudging (drives the in-game 🏆 glow, re-synced after each recorded run)
+  function chActiveUndone(slug) {
+    if (!slug) return false;
+    var t = chToday(), arr = [t.daily, t.weekly];
+    for (var i = 0; i < arr.length; i++) {
+      var e = arr[i];
+      if (e && e.goal && e.goal.slug === slug) {
+        var r = null; try { r = chEval(e.goal, {}); } catch (x) {}
+        if (!r || !r.done) return true;
+      }
+    }
+    return false;
+  }
+  var _chNotifyEl = null, _chNotifySlug = '', _chNotifySeen = false;
+  function syncChNotify() {
+    if (!_chNotifyEl || !_chNotifyEl.classList) return;
+    _chNotifyEl.classList.toggle('gkm-notify', !_chNotifySeen && chActiveUndone(_chNotifySlug));
+  }
   function chWeekAgg() {
     var day = utcDayNumber(), start = CH_WEEK_ANCHOR + Math.floor((day - CH_WEEK_ANCHOR) / 7) * 7, seen = {}, slugs = [], totalScore = 0, count = 0, goodRuns = 0, d;
     for (d = start; d <= day; d++) {
@@ -711,6 +730,7 @@
     } catch (e) {}
     // aggregate, consent-gated: which games/modes actually get played to completion
     try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('game_play', { slug: slug, mode: rec.mode || '(default)' }); } catch (e) {}
+    try { syncChNotify(); } catch (e) {} // this run may have just completed the active challenge
     return rec;
   }
   function lastResult(slug) { try { return JSON.parse(lsGet('gamekit_result_' + slug) || 'null'); } catch (e) { return null; } }
@@ -856,7 +876,7 @@
     var verEl = document.getElementById('gamekitMoreVer'), upBtn = document.getElementById('gamekitUpdate');
     function renderMoreVer() {
       var b = buildInfo(), st = _upState;
-      if (verEl) verEl.textContent = b.when ? 'v ' + b.sha + '\n' + b.when : 'v ' + b.label; // sha + date stacked — one line overflows the panel
+      if (verEl) verEl.textContent = b.label; // sha · date time — same one-line format as the footer stamp
       if (upBtn) {
         var busy = st.status === 'refreshing' || st.status === 'checking';
         upBtn.textContent = st.status === 'refreshing' ? '⟳ Updating…'
@@ -896,8 +916,9 @@
     if (opts.challenges) {
       var chb = document.getElementById('gamekitChallenges');
       if (chb) {
-        if (chActiveSlug(opts.challenges) && chb.classList) chb.classList.add('gkm-notify'); // glow: this game has an active challenge
-        chb.addEventListener('click', function () { if (chb.classList) chb.classList.remove('gkm-notify'); challengesPanel({ slug: opts.challenges, genres: opts.genres, theme: opts.theme }); });
+        _chNotifyEl = chb; _chNotifySlug = opts.challenges;
+        syncChNotify(); // glow: this game has an active, not-yet-completed challenge
+        chb.addEventListener('click', function () { _chNotifySeen = true; if (chb.classList) chb.classList.remove('gkm-notify'); challengesPanel({ slug: opts.challenges, genres: opts.genres, theme: opts.theme }); });
       }
     }
     if (opts.controls) { var ctlb = document.getElementById('gamekitControls'); if (ctlb) ctlb.addEventListener('click', function () { controlsModal(opts.controls, opts.theme); }); }
@@ -954,7 +975,7 @@
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'gamekit-nav';
       wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">&#x2039; Menu</button>'
-        + '<a class="gamekit-back" id="gamekitHome" href="' + (opts.home || '../../') + '"><span class="gamekit-home-label">Komyo </span>&#x203A;</a>';
+        + '<a class="gamekit-back" id="gamekitHome" draggable="false" href="' + (opts.home || '../../') + '"><span class="gamekit-home-label">Komyo </span>&#x203A;</a>';
       document.body.appendChild(wrap);
       _navEl = wrap;
       var menu = document.getElementById('gamekitMenu');
@@ -1623,18 +1644,31 @@
   function upApply() {
     if (_upApplying || _swReloaded) return;
     _upApplying = true; _upState.status = 'refreshing'; upEmit();
-    var cap = setTimeout(doReload, 8000); // never leave the spinner hanging
+    var cap = setTimeout(doReload, 4000); // absolute cap: a plain refresh beats an endless spinner
+    var finish = function () { clearTimeout(cap); doReload(); };
     upCheck().then(function (st) {
-      if (!st.available || _upState.controlled) { clearTimeout(cap); doReload(); return; } // latest, or the new worker already controls → plain refresh serves it
-      // a new build exists: pull every scope's SW (root + all games precache fresh); our scope's new
-      // worker takes control (skipWaiting+claim) → the pwa() controllerchange handler reloads us
+      if (!st.available || _upState.controlled) { finish(); return; } // latest, or the new worker already controls → plain refresh serves it
       try {
-        if (typeof navigator !== 'undefined' && navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
-          navigator.serviceWorker.getRegistrations().then(function (regs) {
-            for (var i = 0; i < regs.length; i++) { try { regs[i].update(); } catch (e) {} }
-          }).catch(function () { clearTimeout(cap); doReload(); });
-        } else { clearTimeout(cap); doReload(); }
-      } catch (e) { clearTimeout(cap); doReload(); }
+        var sw = (typeof navigator !== 'undefined') ? navigator.serviceWorker : null;
+        if (!sw || !sw.getRegistration) { finish(); return; }
+        // every scope refreshes in the background (each game's SW precaches the new shell for its own
+        // pages) — but the reload waits ONLY on this page's own scope, so it can't stall on the rest
+        if (sw.getRegistrations) sw.getRegistrations().then(function (regs) {
+          for (var i = 0; i < regs.length; i++) { try { regs[i].update(); } catch (e) {} }
+        }).catch(function () {});
+        sw.getRegistration().then(function (reg) {
+          if (!reg) { finish(); return; }
+          reg.update().then(function (r) {
+            var w = (r && (r.installing || r.waiting)) || reg.installing || reg.waiting;
+            // no new worker (edge cache still serving the old sw.js) → refresh now; the fetch handler
+            // has been back-filling the current cache, so a plain reload typically shows the new build
+            if (!w) { finish(); return; }
+            // new worker found: activated (skipWaiting+claim) → controllerchange also reloads us;
+            // redundant (install failed) → give up and refresh
+            try { w.addEventListener('statechange', function () { if (w.state === 'activated' || w.state === 'redundant') finish(); }); } catch (e) { finish(); }
+          }).catch(finish);
+        }).catch(finish);
+      } catch (e) { finish(); }
     });
   }
   var updates = {
