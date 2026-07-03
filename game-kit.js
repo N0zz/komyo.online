@@ -1794,11 +1794,12 @@
           var mech = mkEl('div', 'gkm-card-mech');
           var body = mkEl('div', 'gkm-card-body'); body.appendChild(head); body.appendChild(desc); body.appendChild(mech);
           card.appendChild(pv); card.appendChild(body);
-          var ref = { el: card, kind: 'choice', grp: g2.id, choice: c.id };
+          var ref = { el: card, kind: 'choice', grp: g2.id, choice: c.id, locked: false };
           card.addEventListener('click', function () { selectChoice(ref); setFocusEl(card); });
           card.addEventListener('mouseenter', function () { setFocusEl(card); });
           choiceRefs.push(ref); list.appendChild(card);
           dynamic.push(function (st) {
+            var lk = !!evalVal(c.locked, st); ref.locked = lk; if (card.classList) card.classList.toggle('gkm-locked', lk);
             drawPreview(pv, c.preview, st);
             best.innerHTML = (c.best != null) ? ('<span class="l">BEST</span>' + fmtScore(evalVal(c.best, st))) : '';
             var chips = (typeof c.mech === 'function') ? c.mech(st) : (c.mech || []);
