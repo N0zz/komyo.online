@@ -27,6 +27,7 @@ window.CHANGELOG = [
     'New: on touch screens, shop and level-up cards use tap-to-select, tap-again-to-buy — read what an upgrade does before committing, and no more accidental picks. A big BUY/TAKE button appears for the selected card.',
     'Fix: open menus and panels no longer let the page behind them scroll.',
     'Fix: genre tags on the game tiles are easier to read (better contrast), and the homepage no longer shifts while tiles load on phones.',
+    'New: challenge points got 10× bigger — dailies now pay 10, weeklies 50, and every title threshold scaled with them. Your saved points were multiplied too, so nobody lost a thing.',
     'Fix: Keep Defender\'s score bar sits on its own row in portrait at every screen size (it could slide under the top buttons on tablets), and it\'s a slim strip on phones now.',
     'Improved: on a phone held sideways the homepage header is compact, so the games are visible right away.',
   ] },

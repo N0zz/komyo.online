@@ -99,6 +99,19 @@ function testCatalogue() {
     }
   }
 
+  // ×10 points migration: old-scale stores rescale exactly once at boot
+  {
+    const gm = bootGame('index.html', { preCode: [games, challenges], store: {
+      gamekit_done: JSON.stringify({ x: 5, y: 1 }),
+      gamekit_history: JSON.stringify([{ id: 'x', pts: 5, day: 1 }]),
+    } });
+    const d = JSON.parse(gm.store.gamekit_done);
+    ok(d.x === 50 && d.y === 10, '×10 migration rescales stored points (got ' + d.x + '/' + d.y + ')');
+    ok(gm.store.gamekit_pts_x10 === '1', '×10 migration flag set (won\'t re-run)');
+    const h = JSON.parse(gm.store.gamekit_history);
+    ok(h[0] && h[0].pts === 50, '×10 migration rescales frozen history points');
+  }
+
   // ---- 🎲 random game: button pool + deterministic challenge pick ----
   {
     const C = g.win.CHALLENGES;
@@ -170,18 +183,18 @@ function testCatalogue() {
     const C = g.win.CHALLENGES;
     if (C && typeof C.titleFor === 'function') {
       ok(C.titleFor(0).title === 'Goblin of the Gutter' && C.titleFor(0).tier === 0, 'titleFor(0) → Goblin (tier 0)');
-      ok(C.titleFor(9).tier === 0 && C.titleFor(10).tier === 1, 'crossing 10 pts promotes Goblin → Peasant');
-      ok(C.titleFor(250).title === 'Archmage of the Arcane', 'titleFor(250) → Archmage (highest ≤ 250)');
+      ok(C.titleFor(99).tier === 0 && C.titleFor(100).tier === 1, 'crossing 100 pts promotes Goblin → Peasant');
+      ok(C.titleFor(2500).title === 'Archmage of the Arcane', 'titleFor(2500) → Archmage (highest ≤ 2500)');
       ok(C.titleFor(1e9).title === 'Emperor of Eternity', 'huge points → Emperor (top title)');
     }
     if (typeof g.win.__renderProfile === 'function') {
       for (const k of Object.keys(g.store)) if (k.indexOf('gamekit_') === 0) delete g.store[k];
       g.store['gamekit_pb'] = JSON.stringify({ snake: { 'Classic': { score: 50, time: 0, plays: 3, stats: {} } } });
-      g.store['gamekit_done'] = JSON.stringify({ a: 5, b: 5, c: 5, d: 5, e: 5, f: 5, gg: 5, h: 5, i: 5, j: 5 }); // 50 pts → Knight (tier 3)
+      g.store['gamekit_done'] = JSON.stringify({ a: 50, b: 50, c: 50, d: 50, e: 50, f: 50, gg: 50, h: 50, i: 50, j: 50 }); // 500 pts → Knight (tier 3)
       g.win.__renderProfile();
       const bh = g.getEl('profileBody').innerHTML || '';
       ok(bh.includes('Knight of the Realm') && bh.includes('pf-t3'), 'profile shows the earned title (Knight, tier 3) at 50 pts');
-      ok(bh.includes('🏆 50 <span>'), 'title box surfaces the challenge-points total (🏆 50)');
+      ok(bh.includes('🏆 500 <span>'), 'title box surfaces the challenge-points total (🏆 500)');
       ok(bh.includes('pf-pfx'), 'a premium tier (3+) gets a particle canvas');
       ok(bh.includes('pf-tb-name') && bh.includes('pf-t3'), 'title + username share one full-width box, shined to the tier');
       ok(bh.includes('pf-name-btn') && bh.includes('Click to change your name'), 'profile name is a rename button with an instant tooltip');
