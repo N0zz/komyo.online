@@ -158,7 +158,7 @@ window.GAMES = [
     accent: "#7fffb0",
     tags: ["CLASSIC", "ARCADE"],
     added: "2026-06-26",
-    updated: "2026-07-01",
+    updated: "2026-07-03",
   },
 
   // ---- coming soon: new ideas ----
