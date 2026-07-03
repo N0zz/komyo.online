@@ -296,9 +296,6 @@
   @keyframes pftGlint { 0%{ background-position:180% 0; } 42%,100%{ background-position:-90% 0; } }
   /* titles ladder modal — every rank prerendered with its tier shine, points only */
   /* titles-ladder (i): must be findable — accent-tinted, 20px visual, ~34px hitbox via ::after */
-  .pf-tb-info { position:relative; width:20px; height:20px; border-radius:50%; border:1px solid rgba(159,232,255,0.65); background:rgba(159,232,255,0.12); color:#9fe8ff; font:700 11px/1 var(--mono); cursor:pointer; padding:0; display:inline-flex; align-items:center; justify-content:center; }
-  .pf-tb-info::after { content:""; position:absolute; inset:-7px; border-radius:50%; }
-  .pf-tb-info:hover { background:#9fe8ff; color:#0c111c; }
   /* clickable display name (rename) with an instant tooltip */
   .pf-name-btn { position:relative; background:none; border:none; padding:0; cursor:pointer; color:inherit; font:inherit; display:inline-flex; align-items:center; text-align:left; }
   .pf-name-btn:hover .pf-sh, .pf-name-btn:focus-visible .pf-sh { text-decoration:underline dotted; text-underline-offset:3px; }
@@ -490,6 +487,20 @@
   /* drawer identity card: the compact title box IS the profile button */
   .idcard { display:block; width:100%; background:none; border:none; padding:0; margin:2px 0 8px; cursor:pointer; text-align:left; font:inherit; color:inherit; }
   .idcard .pf-titlebar { margin-bottom:0; transition:border-color .15s ease; }
+  /* title-unlock: dot on ☰ until the drawer is opened, then a one-shot reveal shine on the card */
+  .tb-btn.tb-notify { position:relative; animation:tbNotify 1.9s ease-in-out infinite; }
+  .tb-btn.tb-notify::after { content:""; position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:50%;
+    background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
+  @keyframes tbNotify { 0%,100% { border-color:var(--border); } 50% { border-color:#ffd166; } }
+  .idcard.pf-reveal { position:relative; animation:idReveal 1.4s cubic-bezier(.2,1.2,.4,1); }
+  .idcard.pf-reveal .pf-titlebar { border-color:#ffd166; }
+  .idcard.pf-reveal::after { content:"★ NEW TITLE"; position:absolute; top:-9px; right:10px; z-index:2; padding:3px 8px; border-radius:999px;
+    background:#ffd166; color:#1a1405; font:800 10px/1 var(--mono, monospace); letter-spacing:1px;
+    box-shadow:0 0 12px rgba(255,209,102,0.8); animation:idChip 2.4s ease forwards; }
+  @keyframes idReveal { 0% { transform:scale(.94); filter:brightness(1.7) drop-shadow(0 0 18px rgba(255,209,102,.9)); }
+    45% { transform:scale(1.03); } 100% { transform:scale(1); filter:none; } }
+  @keyframes idChip { 0% { opacity:0; transform:translateY(4px); } 12%,80% { opacity:1; transform:translateY(0); } 100% { opacity:0; } }
+  @media (prefers-reduced-motion: reduce){ .tb-btn.tb-notify, .idcard.pf-reveal { animation:none; } .idcard.pf-reveal::after { animation:none; } }
   .idcard:hover .pf-titlebar, .idcard:focus-visible .pf-titlebar { border-color:#9fe8ff; }
   .idcard:hover .pf-chev { color:#9fe8ff; transform:translateX(2px); }
   .pf-compact { padding:11px 12px; gap:10px; }
@@ -1611,7 +1622,7 @@
           + (!o.compact && TT.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + TT.tier + '"></canvas>' : '')
           + '<span class="pf-tb-emoji">' + (TT.emoji || '🎖️') + '</span>'
           + '<div class="pf-tb-main">'
-          + '<span class="pf-tb-label">Title' + (o.compact ? '' : '<button type="button" class="pf-tb-info" id="pfTitlesInfo" aria-label="See all titles" title="All titles">i</button>') + '</span>'
+          + '<span class="pf-tb-label">Title</span>'
           + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(TT.title) + '">' + esc(TT.title) + '</span></span>';
         h += o.compact
           ? '<span class="pf-tb-name"><span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span></span>'
@@ -1648,7 +1659,7 @@
         ranked.sort((a, b) => b.pg.plays - a.pg.plays || b.pg.best - a.pg.best);
         if (!ranked.length) {
           body.innerHTML = '<div class="pf-scroll">' + tb + '<p class="pf-empty">No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.</p></div>';
-          shareData = null; startTitleFx(); wireTitlesInfo(TT.tier); wireNameEdit(); return;
+          shareData = null; startTitleFx(); wireNameEdit(); return;
         }
         const favGameMeta = meta(p.favGame.slug), accent = (favGameMeta && favGameMeta.accent) || '#9fe8ff';
         // stat labels pluralize with their count ("1 Day", not "1 Days")
@@ -1684,7 +1695,6 @@
         html += '<div class="pf-share"><button type="button" id="pfShare">📷 Share my profile</button></div>';
         body.innerHTML = html;
         startTitleFx();
-        wireTitlesInfo(TT.tier);
         wireNameEdit();
         shareData = { player: who, accent: accent, stats: [{ label: 'Games', value: p.gamesPlayed }, { label: 'Modes', value: p.modesPlayed }, { label: 'Plays', value: p.plays }, { label: 'Days', value: p.daysPlayed }], rows: rows };
         const sh = document.getElementById('pfShare');
@@ -1718,14 +1728,7 @@
         });
         tlList.innerHTML = h;
       }
-      function wireTitlesInfo(tier) {
-        const ti = document.getElementById('pfTitlesInfo');
-        if (ti && tlModal && tlModal.showModal) ti.addEventListener('click', () => {
-          renderTitles(tier); tlModal.showModal(); startTitleFx();
-          if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'titles' });
-        });
-      }
-      // challenges drawer's points pill opens the same ladder — points → titles is the payoff
+      // challenges drawer's points pill opens the ladder — points → titles is the payoff
       window.__openTitlesLadder = () => {
         if (!tlModal || !tlModal.showModal) return;
         renderTitles(titleData().TT.tier); tlModal.showModal(); startTitleFx();
@@ -1734,6 +1737,33 @@
       if (tlClose) tlClose.addEventListener('click', () => tlModal.close());
       if (tlModal) tlModal.addEventListener('click', e => { if (e.target === tlModal) tlModal.close(); });
       if (tlModal) tlModal.addEventListener('close', () => { tlList.innerHTML = ''; startTitleFx(); });   // drop the ladder fields, keep the profile-box one running
+      // title-unlock moment: crossing a titles-ladder tier since the last-seen one lights a dot on ☰;
+      // the next drawer open plays a one-shot reveal shine on the identity card, then it's "seen"
+      const TSEEN = 'gamekit_title_seen';
+      const seenTier = () => { try { return parseInt(localStorage.getItem(TSEEN) || '0', 10) || 0; } catch (e) { return 0; } };
+      function syncTitleNotify() {
+        const cur = titleData().TT.tier;
+        if (cur < seenTier()) { try { localStorage.setItem(TSEEN, String(cur)); } catch (e) {} } // import/reset lowered the tier — resync silently
+        const fresh = cur > seenTier();
+        const mb = document.getElementById('menuBtn');
+        if (mb && mb.classList) mb.classList.toggle('tb-notify', fresh);
+        return fresh;
+      }
+      (function () {
+        const mb = document.getElementById('menuBtn');
+        if (mb) mb.addEventListener('click', () => {
+          if (!syncTitleNotify()) return;
+          try { localStorage.setItem(TSEEN, String(titleData().TT.tier)); } catch (e) {}
+          syncTitleNotify();
+          const card = document.getElementById('profileBtn');
+          if (card && card.classList) {
+            card.classList.remove('pf-reveal'); void card.offsetWidth; card.classList.add('pf-reveal');
+            setTimeout(() => { try { card.classList.remove('pf-reveal'); } catch (e) {} }, 2600);
+          }
+        });
+        syncTitleNotify();
+      })();
+      window.__syncTitleNotify = syncTitleNotify;
       // earned-title particle fields (premium tiers) — ONE engine driving EVERY `.pf-pfx` canvas in
       // the profile body + titles ladder, so a new title-shine surface only has to include the canvas.
       // Canvases with no size yet (modal not open / closed) are retried each frame and skipped.

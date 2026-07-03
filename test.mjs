@@ -176,10 +176,22 @@ function testCatalogue() {
       ok(bh.includes('pf-pfx'), 'a premium tier (3+) gets a particle canvas');
       ok(bh.includes('pf-tb-name') && bh.includes('pf-t3'), 'title + username share one full-width box, shined to the tier');
       ok(bh.includes('pf-name-btn') && bh.includes('Click to change your name'), 'profile name is a rename button with an instant tooltip');
-      ok(bh.includes('pf-tb-info'), 'titles-ladder (i) button present in the full box');
+      ok(!bh.includes('pf-tb-info'), 'no (i) button in the title box (ladder opens from the challenges points pill)');
       const card = g.getEl('profileBtn').innerHTML || '';
       ok(card.includes('pf-titlebar') && card.includes('pf-compact') && !card.includes('pf-tb-meta'),
         'drawer identity card reuses the title box (compact: no meta / no (i))');
+      // title-unlock notify: tier 3 earned + nothing seen yet → dot on ☰; opening the drawer
+      // reveals the card and marks the tier seen (dot clears, stays clear on later opens)
+      if (typeof g.win.__syncTitleNotify === 'function') {
+        delete g.store['gamekit_title_seen'];
+        g.win.__syncTitleNotify();
+        const mb = g.getEl('menuBtn');
+        ok(mb.classList.contains('tb-notify'), 'unseen title tier lights the ☰ notify dot');
+        mb.fire('click');
+        ok(!mb.classList.contains('tb-notify'), 'opening the drawer clears the title notify dot');
+        ok(g.store['gamekit_title_seen'] === '3', 'last-seen tier persisted after the reveal');
+        ok(g.getEl('profileBtn').classList.contains('pf-reveal'), 'drawer open plays the reveal shine on the identity card');
+      }
     }
   }
 }
