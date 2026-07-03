@@ -151,6 +151,13 @@ per game. Roughly easiest → hardest within each group.
 | **Icy Tower** 🧗 `PLATFORMER`+`ARCADE` | high | momentum + variable jump + wall-bounce + combos + rising floor |
 | **Pulse Dash** 🔺 `RHYTHM`+`REFLEX` | high | obstacles authored to a beat + generate/sync a track |
 
+Not a new tile — a mode (added 2026-07-03, teased in the menu as "Enhanced · SOON"):
+
+- **Neon Snake — Enhanced mode** — buffed-up snake with random pickups dropping on the board,
+  each granting a timed/instant effect: walls off for X seconds (wrap through edges), 2× speed
+  burst, snake length −50%, score multiplier window, maybe a ghost-mode (pass through yourself)…
+  Tune drop rarity so runs stay skill-first; the locked menu card ships already.
+
 Not yet tiles (ideas, added 2026-07-03):
 
 - **2048** 🔢 `PUZZLE`+`LOGIC` — trivial–low; the classic slide-and-merge grid (swipe/arrows, undo?,
