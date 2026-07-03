@@ -1786,6 +1786,13 @@
     }
     var bannerEl = (typeof cfg.banner === 'function') ? mkEl('div', 'gkm-banner') : null; // live line under the title (e.g. credit counter)
     if (bannerEl) scroll.appendChild(bannerEl);
+    // shop menus: on small screens the cells hide their description — this line carries the FOCUSED
+    // choice's desc instead (rail in split landscape, under the banner in portrait), so touch players
+    // read before they buy (first tap selects, second tap / the BUY button confirms)
+    var hasShop = groups.some(function (g2) { return g2.style === 'shop'; });
+    var focdescEl = hasShop ? mkEl('p', 'gkm-focdesc') : null;
+    if (focdescEl) scroll.appendChild(focdescEl);
+    var buyBtn = null;
 
     var choiceRefs = [], pickRefs = [], dynamic = [], popupRefs = []; // dynamic[]: per-card updater(state); pickRefs: shop action-cells; popupRefs: map-picker triggers
     groups.forEach(function (g2) {
@@ -1901,20 +1908,31 @@
       } else if (g2.style === 'shop') {
         // action grid: each cell BUYS/PICKS on click or Enter (it doesn't hold a selection). sub()/disabled()
         // are per-item + re-run on every refresh, so after onPick the costs/affordability/banner update live.
-        var shopWrap = mkEl('div', 'gkm-shop');
+        // opts: icon (painter, like cards' preview), cols:3 (fixed 3-across picker shape),
+        // pickLabel (choice→label for the small-screen BUY/TAKE button).
+        var shopWrap = mkEl('div', 'gkm-shop' + (g2.cols === 3 ? ' gkm-shop-c3' : ''));
         (g2.choices || []).forEach(function (c) {
-          var cell = mkEl('div', 'gkm-shopcard');
+          var cell = mkEl('div', 'gkm-shopcard' + (c.icon ? ' gkm-has-ic' : ''));
+          var icc = null;
+          if (c.icon) { icc = mkEl('canvas', 'gkm-shop-ic'); try { icc.width = 48; icc.height = 48; } catch (e) {} cell.appendChild(icc); }
           var nm = mkEl('div', 'gkm-shop-nm', c.label + (c.tag ? ' <span class="gkm-tag">' + c.tag + '</span>' : ''));
           var dsc = mkEl('div', 'gkm-shop-desc');
           var sub = mkEl('div', 'gkm-shop-sub');
           cell.appendChild(nm); cell.appendChild(dsc); cell.appendChild(sub);
-          var ref = { el: cell, kind: 'pick', grp: g2.id, choice: c.id, disabled: false, pick: null };
+          var ref = { el: cell, kind: 'pick', grp: g2.id, choice: c.id, c: c, g2: g2, disabled: false, pick: null };
           var fire = function () { if (ref.disabled) return; if (typeof g2.onPick === 'function') { try { g2.onPick(c.id, handle); } catch (e) {} } if (_menuEl === ov) refresh(); };
           ref.pick = fire;
-          cell.addEventListener('click', function () { setFocusEl(cell); fire(); });
+          // touch two-step: a tap on a cell that wasn't focused BEFORE the tap only selects it (its
+          // desc becomes readable) — the second tap, or the BUY button, buys. Mouse hover already
+          // focuses pre-click, so a mouse click still buys in one go. preFocused is captured on
+          // pointerdown because touch fires an emulated mouseenter right before click.
+          var preFocused = false, viaTouch = false;
+          cell.addEventListener('pointerdown', function (e) { preFocused = (focusables[fi] === ref); viaTouch = !!(e && e.pointerType === 'touch'); });
+          cell.addEventListener('click', function () { setFocusEl(cell); if (viaTouch && !preFocused) return; fire(); });
           cell.addEventListener('mouseenter', function () { setFocusEl(cell); });
           pickRefs.push(ref); shopWrap.appendChild(cell);
           dynamic.push(function (st) {
+            if (icc) drawPreview(icc, c.icon, st);
             dsc.textContent = evalItem(c.desc, c, st) || '';
             sub.innerHTML = (g2.sub != null) ? (evalItem(g2.sub, c, st) || '') : '';
             var dis = g2.disabled ? !!evalItem(g2.disabled, c, st) : false;
@@ -1956,8 +1974,15 @@
     var hintEl = cfg.hint ? mkEl('p', 'gkm-hint') : null; if (hintEl) scroll.appendChild(hintEl);
     var shareHost = cfg.share ? mkEl('div', 'gkm-share-host') : null; if (shareHost) scroll.appendChild(shareHost);
     var actionRefs = [];
-    if (actions.length) {
+    if (actions.length || hasShop) {
       var arow = mkEl('div', 'gkm-actions');
+      if (hasShop) {
+        // small-screen BUY/TAKE for the focused shop cell (hidden on desktop — hover+click buys there)
+        buyBtn = mkEl('button', 'gkm-action gkm-buybtn');
+        try { buyBtn.type = 'button'; } catch (e) {}
+        buyBtn.addEventListener('click', function () { var f = focusables[fi]; if (f && f.kind === 'pick' && !f.disabled) f.pick(); });
+        arow.appendChild(buyBtn);
+      }
       actions.forEach(function (a) {
         var b = mkEl('button', 'gkm-action' + (a.primary ? ' primary' : '') + (a.danger ? ' danger' : ''), a.label);
         try { b.type = 'button'; } catch (e) {}
@@ -2014,7 +2039,22 @@
 
     var focusables = choiceRefs.concat(pickRefs).concat(toggleRefs).concat(popupRefs).concat(actionRefs);
     var fi = 0;
-    function setFocus(i) { if (!focusables.length) return; fi = (i % focusables.length + focusables.length) % focusables.length; for (var k = 0; k < focusables.length; k++) { if (focusables[k].el.classList) focusables[k].el.classList.toggle('gkm-focus', k === fi); } }
+    function setFocus(i) { if (!focusables.length) return; fi = (i % focusables.length + focusables.length) % focusables.length; for (var k = 0; k < focusables.length; k++) { if (focusables[k].el.classList) focusables[k].el.classList.toggle('gkm-focus', k === fi); } syncShopFocus(); }
+    // reflect the focused shop cell into the desc line + the BUY/TAKE button (small screens)
+    function syncShopFocus() {
+      if (!focdescEl && !buyBtn) return;
+      var f = focusables[fi], isPick = !!(f && f.kind === 'pick'), st = state();
+      if (focdescEl) {
+        var d = isPick ? (evalItem(f.c.desc, f.c, st) || '') : '';
+        focdescEl.innerHTML = isPick && d ? ('&#9656; <b>' + f.c.label + '</b> — ' + d) : '';
+      }
+      if (buyBtn) {
+        var lbl = isPick ? (f.g2.pickLabel != null ? (evalItem(f.g2.pickLabel, f.c, st) || '') : ('PICK · ' + f.c.label)) : '';
+        buyBtn.textContent = lbl;
+        buyBtn.disabled = !isPick || !!f.disabled;
+        if (buyBtn.style) buyBtn.style.visibility = isPick && lbl ? '' : 'hidden';
+      }
+    }
     function setFocusEl(el) { for (var k = 0; k < focusables.length; k++) if (focusables[k].el === el) { setFocus(k); return; } }
     function paintChoices() { for (var k = 0; k < choiceRefs.length; k++) { var r = choiceRefs[k]; if (r.el.classList) r.el.classList.toggle('gkm-on', sel[r.grp] === r.choice); } }
     function paintToggles() {
@@ -2028,7 +2068,7 @@
     function renderDynamic() { var st = state(); for (var k = 0; k < dynamic.length; k++) try { dynamic[k](st); } catch (e) {} }
     function renderHint() { if (hintEl) { try { hintEl.textContent = cfg.hint(state()); } catch (e) {} } }
     function renderBanner() { if (bannerEl) { try { bannerEl.innerHTML = cfg.banner(state()); } catch (e) {} } }
-    function refresh() { paintChoices(); paintToggles(); renderDynamic(); renderHint(); renderBanner(); paintBackdrop(); }
+    function refresh() { paintChoices(); paintToggles(); renderDynamic(); renderHint(); renderBanner(); syncShopFocus(); paintBackdrop(); }
     function changed() { refresh(); if (typeof cfg.onChange === 'function') { try { cfg.onChange(state()); } catch (e) {} } }
     function selectChoice(ref) { if (ref.locked) return; sel[ref.grp] = ref.choice; changed(); }
     function toggleOne(ref) { if (ref.disabled) return; tog[ref.id] = !tog[ref.id]; changed(); }
