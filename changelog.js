@@ -4,6 +4,19 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-03', title: 'Offline everywhere & title reveals ✨', items: [
+    'New: visit the homepage once and EVERY game saves itself for offline — play the whole catalogue on a plane or with no signal, even games you\'ve never opened.',
+    'Fix: the "Update now" buttons (Settings and the in-game ☰ menu) no longer hang on "Updating…" — updating now finishes with a quick automatic reload.',
+    'New: earning a new title lights a little gold dot on the ☰ menu — open it and your new title is revealed with a shine.',
+    'New: in Neon Snake on a phone held sideways, the board handle now slides the arena left–right (up–down stays for portrait).',
+    'Fix: the in-game 🏆 button only glows while that game\'s challenge is still unfinished — completing it turns the glow off.',
+    'Fix: Bubble Pop\'s shooter glow now matches the color of the bubble you\'re about to shoot (it was always green and lied to you).',
+    'Fix: Keep Defender sideways on a phone — the map no longer starts tucked under the score bar.',
+    'Fix: Asteroids+ score/health bar is a slim strip on phones now, in both orientations, instead of covering the top of the action.',
+    'Fix: Brick Breaker\'s ◀ ▶ touch hints show up reliably on touch screens (some devices never got them).',
+    'Fix: the Menu and Komyo buttons in games no longer start a "drag" instead of a click.',
+    'Improved: the ☰ version label fits on one line again, and the profile\'s little (i) is gone — tap your points in the Challenges panel to browse the titles ladder.',
+  ] },
   { date: '2026-07-02', title: 'Titles & better sharing 👑', items: [
     'New: Meadow Flyer\'s flyers are real characters now, and there are nine — bee, robin, bluebird, parrot, plus new raven, owl, Bielik (the white-tailed eagle) and Raróg (the fiery falcon of Slavic legend), topped by a phoenix made of fire with a glowing ember trail. Menu icons show the actual birds (no more yellow icon on a blue bird), and unlocks are a real ladder up to 1,000 banked points.',
     'New: every game has a ☰ menu (top right) showing your game version and an Update button — greyed "Up to date" when you\'re current, lit up when a new version is ready (a little dot on ☰ too). Updates never interrupt your play anymore. Embed and Reset scores moved in there as well.',
