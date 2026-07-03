@@ -1,8 +1,12 @@
 // Headless tests for Stack — boots via the shared harness, drives window.__test.
-import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { bootGame, ok, section, summary, runLayoutSuite, ROOT } from '../../test-harness.mjs';
 
 const FILE = 'games/stacker/index.html';
 const runGame = (opts) => bootGame(FILE, { w: 640, h: 900, ...opts });
+const COSMETICS = fs.readFileSync(path.join(ROOT, 'cosmetics.js'), 'utf8');
+const CHALLENGES = fs.readFileSync(path.join(ROOT, 'challenges.js'), 'utf8');
 // bests live in the shared kit store (gamekit_pb), keyed by the human mode label
 const pbScore = (store, mode) => { try { return ((JSON.parse(store['gamekit_pb'] || '{}').stacker || {})[mode] || {}).score || 0; } catch (e) { return 0; } };
 const pbHas = (store, mode) => { try { return !!(JSON.parse(store['gamekit_pb'] || '{}').stacker || {})[mode]; } catch (e) { return false; } };
@@ -268,5 +272,27 @@ runLayoutSuite(
       tag + 'stack centered on W/2 (baseCenterX=' + L.baseCenterX.toFixed(1) + ' W/2=' + (L.W / 2) + ')');
   }
 );
+
+// ---- cosmetics: block palettes ----
+section('cosmetics — block palettes');
+{
+  const runCos = (store) => runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }), ...(store || {}) } });
+  const g = runCos();
+  ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
+  const m = g.test().menu();
+  ok(m && m.selection()['stacker.palette'] === 'stacker.palette.pastel', 'start menu carries the BLOCKS grid, default pastel');
+  // each palette stacks + renders a few blocks without error
+  for (const key of ['pastel', 'synthwave', 'forest', 'candy', 'gilded']) {
+    const id = 'stacker.palette.' + key;
+    const owned = {}; owned[id] = { c: 0, t: 0 };
+    const g2 = runCos({ gamekit_owned: JSON.stringify(owned), gamekit_cos_sel: JSON.stringify({ 'stacker.palette': id }) });
+    ok(g2.win.gamekit.cosmetics.selected('stacker.palette') === id, key + ': selection honoured');
+    g2.test().start();
+    for (let i = 0; i < 4; i++) { g2.test().dropPerfect(); g2.test().step(3); }
+    g2.test().render();
+    ok(g2.errors.length === 0, key + ': stacks + renders without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
+  }
+  ok(g.win.gamekit.cosmetics.buy('stacker.palette.synthwave') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy palette with trophies (75 left)');
+}
 
 summary();
