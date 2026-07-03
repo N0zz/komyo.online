@@ -1711,9 +1711,22 @@
           x.fillStyle = '#8aa0ba'; x.font = '600 19px ui-monospace, monospace'; x.fillText(String(stats[i].label).toUpperCase(), sx, 286);
           sx += Math.max(x.measureText(v).width, 140) + 56;
         }
-        x.strokeStyle = 'rgba(255,255,255,0.09)'; x.lineWidth = 1; x.beginPath(); x.moveTo(92, 314); x.lineTo(W - 92, 314); x.stroke();
-        var rows = opts.rows || [], y = 358;
-        for (var r2 = 0; r2 < rows.length && r2 < 6; r2++) {
+        var yDiv = 314;
+        // cosmetics collection bar (matches the profile page) — drawn when progress is supplied
+        if (opts.collection && opts.collection.total) {
+          var col = opts.collection, cx0 = 92, cw = W - 184, cy0 = 306, bh = 13;
+          x.textAlign = 'left'; x.fillStyle = '#8aa0ba'; x.font = '600 19px ui-monospace, monospace'; x.fillText('🎨 COLLECTION', cx0, cy0);
+          x.textAlign = 'right'; x.fillStyle = accent; x.fillText(col.owned + ' / ' + col.total + ' · ' + Math.round((col.pct || 0) * 100) + '%', W - 92, cy0); x.textAlign = 'left';
+          var by = cy0 + 12;
+          x.fillStyle = 'rgba(255,255,255,0.09)'; rr(cx0, by, cw, bh, 6); x.fill();
+          var fillW = Math.max(bh, cw * (col.pct || 0));
+          var lg = x.createLinearGradient(cx0, 0, cx0 + cw, 0); lg.addColorStop(0, '#ffd166'); lg.addColorStop(1, '#ff9a5c');
+          x.fillStyle = lg; rr(cx0, by, fillW, bh, 6); x.fill();
+          yDiv = by + bh + 22;
+        }
+        x.strokeStyle = 'rgba(255,255,255,0.09)'; x.lineWidth = 1; x.beginPath(); x.moveTo(92, yDiv); x.lineTo(W - 92, yDiv); x.stroke();
+        var rows = opts.rows || [], y = yDiv + 44, maxRows = opts.collection ? 5 : 6;
+        for (var r2 = 0; r2 < rows.length && r2 < maxRows; r2++) {
           var row = rows[r2];
           x.fillStyle = row.accent || '#cdd9e8'; x.beginPath(); x.arc(104, y - 10, 7, 0, 7); x.fill();
           x.textAlign = 'left'; x.fillStyle = '#dfe8f4'; x.font = '600 30px system-ui, sans-serif'; x.fillText(String(row.name), 126, y);
