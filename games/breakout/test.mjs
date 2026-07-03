@@ -1,8 +1,12 @@
 // Headless tests for Brick Breaker — boots via the shared harness, drives window.__test.
-import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { bootGame, ok, section, summary, runLayoutSuite, ROOT } from '../../test-harness.mjs';
 
 const FILE = 'games/breakout/index.html';
 const runGame = (opts) => bootGame(FILE, opts);
+const COSMETICS = fs.readFileSync(path.join(ROOT, 'cosmetics.js'), 'utf8');
+const CHALLENGES = fs.readFileSync(path.join(ROOT, 'challenges.js'), 'utf8');
 // bests live in the shared kit store (gamekit_pb), keyed by the capitalized mode label
 const pbScore = (store, mode) => { try { return ((JSON.parse(store['gamekit_pb'] || '{}').breakout || {})[mode] || {}).score || 0; } catch (e) { return 0; } };
 
@@ -334,5 +338,28 @@ runLayoutSuite(
     ok(L.paddleY > 0 && L.paddleY < L.H, v.name + ': paddle within height (paddleY ' + L.paddleY + ' in 0..' + L.H + ')');
   }
 );
+
+// ---- cosmetics: paddle + ball skins ----
+section('cosmetics — paddle & ball skins');
+{
+  const g = runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }) } });
+  ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
+  const menu = g.T().menu();
+  ok(menu && menu.selection()['breakout.paddle'] === 'breakout.paddle.synthwave' && menu.selection()['breakout.ball'] === 'breakout.ball.neon',
+    'start menu carries PADDLE + BALL grids with the free defaults');
+  // every skin combo renders without throwing
+  const paddles = ['synthwave', 'wood', 'ice', 'lava', 'chrome'], ballsS = ['neon', 'eight', 'comet', 'disco', 'plasma'];
+  for (let i = 0; i < Math.max(paddles.length, ballsS.length); i++) {
+    const pid = 'breakout.paddle.' + paddles[i % paddles.length], bid = 'breakout.ball.' + ballsS[i % ballsS.length];
+    const owned = {}; owned[pid] = { c: 0, t: 0 }; owned[bid] = { c: 0, t: 0 };
+    const g2 = runGame({ preCode: [CHALLENGES, COSMETICS], store: {
+      gamekit_pts_x10: '1', gamekit_flappy_migrated: '1',
+      gamekit_owned: JSON.stringify(owned),
+      gamekit_cos_sel: JSON.stringify({ 'breakout.paddle': pid, 'breakout.ball': bid }),
+    } });
+    g2.T().start(); g2.step(5);
+    ok(g2.errors.length === 0, paddles[i % paddles.length] + ' + ' + ballsS[i % ballsS.length] + ': renders without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
+  }
+}
 
 summary();
