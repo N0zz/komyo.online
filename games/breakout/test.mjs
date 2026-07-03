@@ -304,6 +304,21 @@ section('Breakout: 2× speed pref restored at boot from storage');
   ok(gp.T().speedMult === 2, 'speedMult restored to 2 from stored pref (got ' + gp.T().speedMult + ')');
 }
 
+// ---- Touch hint arrows (#bkpad via body.bktouch) ----
+section('Breakout: touch hint arrows (body.bktouch)');
+{
+  // desktop-like sandbox: no coarse pointer / ontouchstart / maxTouchPoints → no hint
+  const gt = runGame();
+  ok(!gt.doc.body.classList.contains('bktouch'), 'no bktouch class without any touch signal');
+  // late fallback: a real touch pointerdown must bring the arrows up even when the
+  // load-time sniff saw no touch (DevTools emulation toggled after load, hybrids)
+  gt.el('game').fire('pointerdown', { pointerType: 'touch', pointerId: 1, clientX: 10, clientY: 10 });
+  ok(gt.doc.body.classList.contains('bktouch'), 'first touch pointerdown adds bktouch (late fallback)');
+  // load-time sniff: maxTouchPoints alone is enough
+  const gm = runGame({ preCode: 'navigator.maxTouchPoints = 5;' });
+  ok(gm.doc.body.classList.contains('bktouch'), 'bktouch added at load when navigator.maxTouchPoints > 0');
+}
+
 // ---- Layout: everything on-screen + no overlap with the HUD, in portrait / landscape / desktop ----
 section('Breakout: layout fits the screen (no off-screen / score-box overlap)');
 runLayoutSuite(
