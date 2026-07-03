@@ -11,6 +11,8 @@ window.CHANGELOG = [
     'New: desktop cursor skins for the whole site — Crosshair, Paw, Pixel Sword, Neon Comet and a Rainbow Trail (the last two leave a little wake as you move).',
     'New: good runs now pay a small bonus — your first 3 good runs each day give +2 trophies each. The end-of-run screen shows the bonus as you earn it.',
     'New: your profile shows how much of the collection you\'ve unlocked, and the Challenges panel shows your collection bar + today\'s good-run bonus.',
+  ] },
+  { date: '2026-07-03', title: 'Offline everywhere & title reveals ✨', items: [
     'New: visit the homepage once and EVERY game saves itself for offline — play the whole catalogue on a plane or with no signal, even games you\'ve never opened.',
     'Fix: the "Update now" buttons (Settings and the in-game ☰ menu) no longer hang on "Updating…" — updating now finishes with a quick automatic reload.',
     'New: earning a new title lights a little gold dot on the ☰ menu — open it and your new title is revealed with a shine.',

@@ -285,15 +285,17 @@ When the change is visual/interactive, offer the user this local URL to verify b
   (chibi fox-girl inline SVG — swap for real art later).
 - **Changelog:** the `window.CHANGELOG` array in **`changelog.js`** (newest first, loaded as a
   `<script src>` and cached in the SW shell) drives the 🗒️ Changelog modal (opened from the ☰ menu;
-  date-grouped releases split by `<hr>`, lazy-loaded, searchable incl. by date) **and** the Discord
-  changelog post. Each entry is one **release per date**:
-  `{ date: 'YYYY-MM-DD', title: '…', items: ['New: …', 'Fix: …', 'Added …'] }`. **After shipping any
-  player-facing change, add a bullet** — to today's release if one already exists, otherwise prepend a
-  new dated release. Keep bullets plain-language and about what a *player* notices (a new game, a bug
-  they'd hit, a mode/feature) — **never** internal/kit/test/build/refactor work. Write it for players,
-  not as a commit log. **Discord:** a push that edits `changelog.js` triggers `.github/workflows/
-  discord-changelog.yml` → `post-changelog.mjs`, which posts **only the entries added in that push**
-  (diff vs the push base), so Discord mirrors this file exactly. Non-changelog pushes post nothing.
+  releases split by `<hr>`, lazy-loaded, searchable incl. by date) **and** the Discord changelog post.
+  Each entry is one **release per topic/push**:
+  `{ date: 'YYYY-MM-DD', title: '…', items: ['New: …', 'Fix: …', 'Added …'] }`. **One entry per push** —
+  when you ship a batch of player-facing changes, **prepend a new entry** for it (multiple entries may
+  share a date; that's fine and expected). Do NOT retro-edit an already-shipped entry to tack on new
+  bullets — the Discord poster diffs against the push base, so editing an old entry mis-posts it; a
+  fresh entry posts cleanly. Keep bullets plain-language and about what a *player* notices (a new game,
+  a bug they'd hit, a mode/feature) — **never** internal/kit/test/build/refactor work. Write it for
+  players, not as a commit log. **Discord:** a push that edits `changelog.js` triggers `.github/
+  workflows/discord-changelog.yml` → `post-changelog.mjs`, which posts **only the entries added in that
+  push** (diff vs the push base), so Discord mirrors this file exactly. Non-changelog pushes post nothing.
 - Monetization is optional only: **Buy Me a Coffee** (footer) + GitHub Sponsors (README badge
   only — the footer Sponsor link was removed; footer = coffee + a GitHub-icon repo link).
 
