@@ -548,6 +548,205 @@
   // knobs, loaded by the catalogue AND every game, and part of the new-game wiring checklist.
   function chGoodRun(slug) { var C = chGoals(); return (slug && C && C.goodRun && C.goodRun[slug]) || 0; }
 
+  // ---------- good-run trophy trickle: +2 🏆 per good run, capped at 3/day ----------
+  // Earned trophies live as one per-day entry in gamekit_done ('gr#YYYY-MM-DD') so lifetime,
+  // titles and the spendable cosmetics balance all pick them up with zero extra storage.
+  var GR_PER = 2, GR_CAP = 3;
+  function chDoneMap() { try { return JSON.parse(lsGet('gamekit_done') || 'null') || {}; } catch (e) { return {}; } }
+  function grCount(dStr) { return Math.floor(((chDoneMap()['gr#' + (dStr || utcDateStr())]) | 0) / GR_PER); }
+  function grAward() {
+    try {
+      var d = chDoneMap(), k = 'gr#' + utcDateStr(), cur = d[k] | 0;
+      if (cur >= GR_PER * GR_CAP) return false;
+      d[k] = cur + GR_PER;
+      lsSet('gamekit_done', JSON.stringify(d));
+      return true;
+    } catch (e) { return false; }
+  }
+  function goodRunBonus() { return { count: grCount(), cap: GR_CAP, per: GR_PER }; }
+  var _grAwarded = false; // did the LAST recorded result earn the trickle? (end-menu receipt)
+
+  // ---------- cosmetics (registry data in cosmetics.js; the kit owns storage + the economy) ----------
+  // Two metrics: LIFETIME trophies = Σ gamekit_done (only ever grows; titles read this) and the
+  // SPENDABLE balance = lifetime − Σ owned costs — derived, never stored, so it can't drift.
+  // gamekit_owned = { itemId: { c: cost, t: utcDay } }; free defaults are implicit (never stored).
+  // Per-set selection lives in gamekit_cos_sel = { setId: itemId } (per-device, rides Export/Import).
+  function cosReg() { return (typeof window !== 'undefined' && window.COSMETICS) ? window.COSMETICS : null; }
+  function cosItems() { var C = cosReg(); return (C && C.items) || []; }
+  function cosItem(id) { var a = cosItems(); for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return null; }
+  function cosOwnedMap() { try { return JSON.parse(lsGet('gamekit_owned') || 'null') || {}; } catch (e) { return {}; } }
+  function cosLifetime() { var d = chDoneMap(), t = 0; for (var k in d) if (Object.prototype.hasOwnProperty.call(d, k)) t += (d[k] | 0); return t; }
+  function cosSpent() { var o = cosOwnedMap(), t = 0; for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) t += ((o[k] && o[k].c) | 0); return t; }
+  function cosBalance() { return Math.max(0, cosLifetime() - cosSpent()); }
+  function cosOwned(id) {
+    var item = cosItem(id); if (!item) return false;
+    if (!(+item.price)) return true; // free default = pre-owned
+    return !!cosOwnedMap()[id];
+  }
+  function cosBuy(id) {
+    var item = cosItem(id); if (!item) return false;
+    if (cosOwned(id)) return true; // idempotent — a double-tap can't double-charge
+    var price = +item.price || 0;
+    if (cosBalance() < price) return false;
+    var o = cosOwnedMap(); o[id] = { c: price, t: utcDayNumber() };
+    lsSet('gamekit_owned', JSON.stringify(o));
+    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('shop_buy', { id: id }); } catch (e) {}
+    return true;
+  }
+  function cosSelMap() { try { return JSON.parse(lsGet('gamekit_cos_sel') || 'null') || {}; } catch (e) { return {}; } }
+  function cosDefault(setId) { var a = cosItems(); for (var i = 0; i < a.length; i++) if (a[i].set === setId && !(+a[i].price)) return a[i].id; return null; }
+  function cosSelected(setId) {
+    var id = cosSelMap()[setId], item = id && cosItem(id);
+    if (item && item.set === setId && cosOwned(id)) return id;
+    return cosDefault(setId);
+  }
+  function cosSelect(setId, id) {
+    var item = cosItem(id);
+    if (!item || item.set !== setId || !cosOwned(id)) return false;
+    var m = cosSelMap(); m[setId] = id; lsSet('gamekit_cos_sel', JSON.stringify(m));
+    if (setId === 'site.cursor') applyCursor();
+    return true;
+  }
+  function cosProgress(game) {
+    var a = cosItems(), total = 0, own = 0;
+    for (var i = 0; i < a.length; i++) {
+      if (game != null && a[i].game !== game) continue;
+      total++; if (cosOwned(a[i].id)) own++;
+    }
+    return { owned: own, total: total, pct: total ? own / total : 0 };
+  }
+  // menu-group factory: the ONE wiring for a game's start-menu STYLE grid (select + buy-in-place).
+  // Games do: groups: [..., KIT.cosmetics.menuGroup('snake.food', { label: 'FOOD' })] and in
+  // onChange/onPlay: KIT.cosmetics.select('snake.food', st['snake.food']). opts.preview(g,w,h,item)
+  // overrides the registry painter (e.g. flappy draws its real bird models).
+  function cosMenuGroup(setId, opts) {
+    opts = opts || {};
+    var C = cosReg(), setMeta = (C && C.sets && C.sets[setId]) || {};
+    var list = cosItems().filter(function (it) { return it.set === setId; });
+    return {
+      id: opts.id || setId,
+      label: opts.label != null ? opts.label : (setMeta.label || 'STYLE'),
+      style: 'grid',
+      'default': cosSelected(setId),
+      choices: list.map(function (it) {
+        return {
+          id: it.id, label: it.name, pvW: opts.pvW || 46, pvH: opts.pvH || 40,
+          preview: opts.preview ? function (g, w, h, st) { opts.preview(g, w, h, it, st); } : (it.painter || undefined),
+          desc: it.desc, price: it.price,
+          locked: function () { return !cosOwned(it.id); },
+          lockedLabel: function () { return '🏆 ' + fmtScore(+it.price || 0); },
+          sub: it.price ? '✓ Owned' : (opts.freeLabel || 'Free'),
+          afford: function () { return cosBalance() >= (+it.price || 0); },
+          buy: function () {
+            var okB = cosBuy(it.id);
+            if (okB) { cosSelect(setId, it.id); try { sound.play('levelup'); } catch (e) {} }
+            return okB;
+          },
+        };
+      }),
+    };
+  }
+  // one-time Meadow Flyer migration: banked in-game cash → trophies (1:1), already-unlocked birds
+  // (old cash thresholds) → owned at cost 0, old keys removed. Flagged like gamekit_pts_x10 — an
+  // old Export imported later lacks the flag (but has flappy_cash) → it re-migrates correctly.
+  (function () {
+    try {
+      if (lsGet('gamekit_flappy_migrated') === '1') return;
+      var raw = lsGet('flappy_cash');
+      if (raw == null) { lsSet('gamekit_flappy_migrated', '1'); return; }
+      var cash = parseInt(raw, 10) || 0;
+      var OLD_COST = { bee: 0, robin: 50, bluebird: 100, parrot: 200, owl: 300, bielik: 500, rarog: 700, raven: 850, phoenix: 1000 };
+      var o = cosOwnedMap();
+      for (var b in OLD_COST) {
+        if (!Object.prototype.hasOwnProperty.call(OLD_COST, b)) continue;
+        if (OLD_COST[b] > 0 && cash >= OLD_COST[b]) o['flappy.bird.' + b] = { c: 0, t: utcDayNumber() }; // stays owned, costs nothing
+      }
+      lsSet('gamekit_owned', JSON.stringify(o));
+      if (cash > 0) { var d = chDoneMap(); d['flappy-migrate'] = (d['flappy-migrate'] | 0) + cash; lsSet('gamekit_done', JSON.stringify(d)); }
+      var selBird = lsGet('flappy_bird');
+      if (selBird && OLD_COST[selBird] != null && cash >= OLD_COST[selBird]) { var m = cosSelMap(); m['flappy.bird'] = 'flappy.bird.' + selBird; lsSet('gamekit_cos_sel', JSON.stringify(m)); }
+      try { if (typeof localStorage !== 'undefined') { localStorage.removeItem('flappy_cash'); localStorage.removeItem('flappy_bird'); } } catch (e) {}
+      lsSet('gamekit_flappy_migrated', '1');
+    } catch (e) {}
+  })();
+  // ---- site-wide cursor skin (desktop / fine pointers only) ----
+  var _curTrail = null; // { canvas, ctx, ps, raf, kind }
+  function cursorKey() { var id = cosSelected('site.cursor'); return id ? id.split('.').pop() : 'classic'; }
+  function stopCursorTrail() {
+    if (!_curTrail) return;
+    try { if (_curTrail.raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(_curTrail.raf); } catch (e) {}
+    try { if (_curTrail.canvas && _curTrail.canvas.parentNode) _curTrail.canvas.parentNode.removeChild(_curTrail.canvas); } catch (e) {}
+    _curTrail = null;
+  }
+  function startCursorTrail(kind) {
+    if (typeof document === 'undefined' || !document.body || typeof requestAnimationFrame !== 'function') return;
+    if (_curTrail && _curTrail.kind === kind) return;
+    stopCursorTrail();
+    try {
+      var cv = document.createElement('canvas'); cv.className = 'gamekit-cursor-trail';
+      document.body.appendChild(cv);
+      var ctx = cv.getContext('2d'); if (!ctx) { stopCursorTrail(); return; }
+      var t = { canvas: cv, ctx: ctx, ps: [], raf: 0, kind: kind, hue: 0, idle: 0 };
+      var COLS = ['#ff5b5b', '#ffd166', '#7fe0a0', '#7fd0ff', '#b98cff'];
+      document.addEventListener('pointermove', function (e) {
+        if (!_curTrail || _curTrail !== t || !e) return;
+        t.hue = (t.hue + 1) % COLS.length;
+        t.ps.push({ x: e.clientX, y: e.clientY, life: 1, r: kind === 'comet' ? 4 : 3, c: kind === 'comet' ? '#9fe8ff' : COLS[t.hue] });
+        if (t.ps.length > 40) t.ps.shift();
+      }, { passive: true });
+      var frame = function () {
+        if (!_curTrail || _curTrail !== t) return;
+        try {
+          var w = (typeof window !== 'undefined' && window.innerWidth) || 0, h = (typeof window !== 'undefined' && window.innerHeight) || 0;
+          if (cv.width !== w) cv.width = w; if (cv.height !== h) cv.height = h;
+          ctx.clearRect(0, 0, w, h);
+          for (var i = t.ps.length - 1; i >= 0; i--) {
+            var p = t.ps[i]; p.life -= 0.045;
+            if (p.life <= 0) { t.ps.splice(i, 1); continue; }
+            ctx.globalAlpha = p.life * 0.65; ctx.fillStyle = p.c;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, 6.29); ctx.fill();
+          }
+          ctx.globalAlpha = 1;
+        } catch (e) {}
+        t.raf = requestAnimationFrame(frame);
+      };
+      t.raf = requestAnimationFrame(frame);
+      _curTrail = t;
+    } catch (e) { stopCursorTrail(); }
+  }
+  function applyCursor() {
+    try {
+      if (typeof document === 'undefined' || !document.documentElement || !document.documentElement.style) return;
+      var fine = false;
+      try { fine = !!(typeof matchMedia === 'function' && matchMedia('(pointer: fine)').matches); } catch (e) {}
+      var key = fine ? cursorKey() : 'classic';
+      var C = cosReg(), painter = C && C.cursors && C.cursors[key];
+      if (key === 'classic' || !painter || typeof document.createElement !== 'function') {
+        document.documentElement.style.cursor = ''; stopCursorTrail(); return;
+      }
+      var cv = document.createElement('canvas'); cv.width = 32; cv.height = 32;
+      var g = cv.getContext && cv.getContext('2d');
+      if (!g || !cv.toDataURL) { document.documentElement.style.cursor = ''; stopCursorTrail(); return; }
+      g.save(); g.translate(16, 16); g.scale(0.9, 0.9); painter(g); g.restore();
+      document.documentElement.style.cursor = 'url(' + cv.toDataURL('image/png') + ') 16 16, auto';
+      if (key === 'comet' || key === 'rainbow') startCursorTrail(key); else stopCursorTrail();
+    } catch (e) {}
+  }
+  // apply once the DOM exists (the kit loads in <head>, before <body>)
+  (function () {
+    try {
+      if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+      if (document.body) applyCursor();
+      else document.addEventListener('DOMContentLoaded', function () { applyCursor(); });
+    } catch (e) {}
+  })();
+  var cosmetics = {
+    lifetime: cosLifetime, spent: cosSpent, balance: cosBalance,
+    owned: cosOwned, buy: cosBuy, selected: cosSelected, select: cosSelect,
+    progress: cosProgress, items: cosItems, item: cosItem, menuGroup: cosMenuGroup,
+    goodRunBonus: goodRunBonus,
+  };
+
   // ---------- challenges (shared source: the catalogue panel + the in-game 🏆 button read this) ----------
   // Reads window.CHALLENGES (loaded via challenges.js) + the kit's own per-day activity/best storage.
   var CH_WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000); // a Monday — matches the catalogue
@@ -558,20 +757,29 @@
     n = (n ^ 61) ^ (n >>> 16); n = (n + (n << 3)) | 0; n = n ^ (n >>> 4);
     n = Math.imul(n, 0x27d4eb2d); n = n ^ (n >>> 15); return n >>> 0;
   }
-  function chPick(list, isWeek) {
+  // THE pick — hashed, same-for-everyone; EXPORTED (gamekit.challengePick) so the catalogue's
+  // drawer / backfill / tile badges use the exact same math as the in-game panel (a modulo copy
+  // in index.html once drifted from this after the shuffle landed — never fork it again).
+  // kind: 'daily'|'weekly'; day: UTC day number (defaults to today; weekly resolves its week).
+  function chPickAt(kind, day) {
+    var C = chGoals(); if (!C || !C.goals) return null;
+    var isWeek = kind === 'weekly';
+    var list = isWeek ? C.weekly : C.daily;
     if (!list || !list.length) return null;
-    var day = utcDayNumber(), idx = isWeek ? Math.floor((day - CH_WEEK_ANCHOR) / 7) : day;
-    var n = list.length;
-    if (n < 2) return list[0];
-    var i = chHash(idx) % n;
-    if (i === chHash(idx - 1) % n) i = (i + 1) % n; // never the same goal two periods in a row
-    return list[i];
+    var d = (day == null) ? utcDayNumber() : day;
+    var idx = isWeek ? Math.floor((d - CH_WEEK_ANCHOR) / 7) : d;
+    var n = list.length, i = 0;
+    if (n >= 2) {
+      i = chHash(idx) % n;
+      if (i === chHash(idx - 1) % n) i = (i + 1) % n; // never the same goal two periods in a row
+    }
+    var id = list[i];
+    return { id: id, goal: C.goals[id] || null, idx: idx, period: isWeek ? ('W' + idx) : utcDateStr(d * 86400000) };
   }
-  // today's daily + this week's weekly pick (same math as the catalogue)
+  // today's daily + this week's weekly pick
   function chToday() {
-    var C = chGoals(); if (!C || !C.goals) return { daily: null, weekly: null };
-    var d = chPick(C.daily, false), w = chPick(C.weekly, true);
-    return { daily: d ? { id: d, goal: C.goals[d] } : null, weekly: w ? { id: w, goal: C.goals[w] } : null };
+    var d = chPickAt('daily'), w = chPickAt('weekly');
+    return { daily: (d && d.goal) ? d : null, weekly: (w && w.goal) ? w : null };
   }
   // does THIS game have an active game-specific challenge right now? (drives the badge + the notify glow)
   function chActiveSlug(slug) {
@@ -666,19 +874,195 @@
     }
     var body = chGoals() ? (card(t.daily, 'Today') + card(t.weekly, 'This week'))
       : '<div class="gkch-empty">Challenges aren’t loaded here.</div>';
+    // trophies pill (lifetime) + Cosmetics pill (spendable balance → the store) + the always-on
+    // good-run bonus line, so "is one more run worth it?" has an answer before playing
+    var grb = goodRunBonus();
+    var pills = '<div class="gkch-pills"><span class="gkch-pill">🏆 ' + fmtScore(cosLifetime()) + ' trophies</span>'
+      + (cosItems().length ? '<button class="gkch-pill gkch-shop" id="gkchShop" type="button">🎨 COSMETICS · 🏆 ' + fmtScore(cosBalance()) + '</button>' : '')
+      + '</div>'
+      + '<div class="gkch-bonus">⚡ Good-run bonus: ' + grb.count + '/' + grb.cap + ' today · +' + grb.per + ' 🏆 each</div>';
     var ov = document.createElement('div'); ov.className = 'gamekit-challenges';
     ov.innerHTML = '<div class="gkch-box"><button class="gkch-x" type="button" aria-label="Close">&#x2715;</button>'
-      + '<h3>🏆 Challenges</h3>' + body
+      + '<h3>🏆 Challenges</h3>' + pills + body
       + '<p class="gkch-note">Any mode counts — your best today is what matters. Full list &amp; history on the home page.</p></div>';
     if (opts.theme) applyMenuTheme(ov, opts.theme);
     document.body.appendChild(ov);
     _modalOpen++;
+    var shopBtn = ov.querySelector ? ov.querySelector('#gkchShop') : null;
+    if (shopBtn) shopBtn.addEventListener('click', function () { shopPanel({ theme: opts.theme }); });
     var done = false;
     function close() { if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} }
     function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
     var x = ov.querySelector ? ov.querySelector('.gkch-x') : null; if (x) x.addEventListener('click', close);
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
+  }
+
+  // ---------- Cosmetics store modal (kit-owned; opened from the challenges drawer/panel + profile) ----------
+  // Header = spendable balance + overall collection bar; items grouped BY GAME (site-wide sets
+  // first, then favorite games, then most-played, then the rest); cells reuse the shop-cell
+  // interaction (touch two-step select→buy, mouse hover+click, focused-desc line, gold buy
+  // button). Owned cells EQUIP on click. The titles ladder renders read-only at the bottom.
+  function shopPanel(opts) {
+    opts = opts || {};
+    if (typeof document === 'undefined' || !document.body || !document.createElement) return;
+    var items = cosItems();
+    if (!items.length) return; // cosmetics.js not loaded here
+    var C = cosReg(), gamesMeta = (C && C.games) || {}, setsMeta = (C && C.sets) || {};
+    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('feature_open', { feature: 'cosmetics' }); } catch (e) {}
+    // ---- game ordering: site-wide first, then favorites (catalogue stars), most-played, registry order ----
+    var order = [], seen = {};
+    items.forEach(function (it) { if (!seen[it.game]) { seen[it.game] = 1; order.push(it.game); } });
+    var favs = [];
+    try { favs = JSON.parse(lsGet('arcade_favs') || '[]') || []; } catch (e) {}
+    var plays = {};
+    try { var pb = pbLoad(); for (var s in pb) { if (!Object.prototype.hasOwnProperty.call(pb, s)) continue; var n = 0; for (var m in pb[s]) if (Object.prototype.hasOwnProperty.call(pb[s], m)) n += (pb[s][m].plays || 0); plays[s] = n; } } catch (e) {}
+    var baseIdx = {}; order.forEach(function (g, i) { baseIdx[g] = i; });
+    order.sort(function (a, b) {
+      if ((a === '') !== (b === '')) return a === '' ? -1 : 1;               // site-wide first
+      var fa = favs.indexOf(a) >= 0 ? 1 : 0, fb = favs.indexOf(b) >= 0 ? 1 : 0;
+      if (fa !== fb) return fb - fa;                                          // favorites next
+      var pa = plays[a] || 0, pbn = plays[b] || 0;
+      if (pa !== pbn) return pbn - pa;                                        // then most-played
+      return baseIdx[a] - baseIdx[b];
+    });
+    var ov = document.createElement('div'); ov.className = 'gamekit-shoppanel';
+    var box = mkEl('div', 'gksp-box'); ov.appendChild(box);
+    if (opts.theme) applyMenuTheme(ov, opts.theme);
+    var xb = mkEl('button', 'gksp-x', '&#x2715;'); try { xb.type = 'button'; xb.setAttribute('aria-label', 'Close'); } catch (e) {}
+    box.appendChild(xb);
+    var head = mkEl('div', 'gksp-head');
+    head.appendChild(mkEl('span', 'gksp-title', '🎨 Cosmetics'));
+    var balEl = mkEl('span', 'gksp-bal'); head.appendChild(balEl);
+    box.appendChild(head);
+    var barWrap = mkEl('div', 'gksp-barrow');
+    var bar = mkEl('div', 'gksp-bar'); var barFill = mkEl('i'); bar.appendChild(barFill);
+    var barTxt = mkEl('span', 'gksp-bartxt');
+    barWrap.appendChild(bar); barWrap.appendChild(barTxt);
+    box.appendChild(barWrap);
+    var focdesc = mkEl('div', 'gksp-focdesc'); box.appendChild(focdesc);
+    var scroll = mkEl('div', 'gksp-scroll'); box.appendChild(scroll);
+    var buyBtn = mkEl('button', 'gksp-buy'); try { buyBtn.type = 'button'; } catch (e) {}
+    box.appendChild(buyBtn);
+    var cells = [], focused = -1, gameProgEls = [];
+    function fmtT(n) { return fmtScore(n | 0); }
+    function syncHeader() {
+      balEl.textContent = '🏆 ' + fmtT(cosBalance());
+      var pr = cosProgress();
+      var pct = Math.round(pr.pct * 100);
+      try { barFill.style.width = pct + '%'; } catch (e) {}
+      barTxt.textContent = pr.owned + ' / ' + pr.total + ' unlocked · ' + pct + '%';
+      gameProgEls.forEach(function (fn) { try { fn(); } catch (e) {} });
+    }
+    function syncFocus() {
+      var f = cells[focused] || null;
+      cells.forEach(function (c2, i) { if (c2.el.classList) c2.el.classList.toggle('gksp-focus', i === focused); });
+      if (!f) { focdesc.innerHTML = ''; buyBtn.textContent = ''; buyBtn.disabled = true; try { buyBtn.style.visibility = 'hidden'; } catch (e) {} return; }
+      var it = f.item, ownedNow = cosOwned(it.id);
+      focdesc.innerHTML = '&#9656; <b>' + it.name + '</b> — ' + (it.desc || '') +
+        (ownedNow ? '' : ' <span class="gksp-price">🏆 ' + fmtT(it.price) + '</span>');
+      var isSel = cosSelected(it.set) === it.id;
+      buyBtn.textContent = ownedNow ? (isSel ? '✓ EQUIPPED · ' + it.name : 'EQUIP ' + it.name) : ('BUY ' + it.name + ' · 🏆 ' + fmtT(it.price));
+      buyBtn.disabled = ownedNow ? isSel : cosBalance() < (+it.price || 0);
+      try { buyBtn.style.visibility = ''; } catch (e) {}
+    }
+    function syncCells() {
+      cells.forEach(function (c2) {
+        var it = c2.item, ownedNow = cosOwned(it.id), isSel = cosSelected(it.set) === it.id;
+        if (c2.el.classList) {
+          c2.el.classList.toggle('gksp-owned', ownedNow);
+          c2.el.classList.toggle('gksp-sel', isSel);
+          c2.el.classList.toggle('gksp-dim', !ownedNow && cosBalance() < (+it.price || 0));
+        }
+        c2.sub.innerHTML = ownedNow
+          ? (isSel ? '✓ ON' : (+it.price ? '✓ OWNED' : '✓ DEFAULT'))
+          : '<span class="gksp-price">🏆 ' + fmtT(it.price) + '</span>';
+      });
+      syncHeader(); syncFocus();
+    }
+    function act(idx) { // buy a locked cell / equip an owned one
+      var f = cells[idx]; if (!f) return;
+      var it = f.item;
+      if (cosOwned(it.id)) { cosSelect(it.set, it.id); syncCells(); return; }
+      if (cosBuy(it.id)) { cosSelect(it.set, it.id); try { sound.play('levelup'); } catch (e) {} syncCells(); }
+    }
+    order.forEach(function (game) {
+      var meta = gamesMeta[game] || { title: game || 'Site-wide', icon: '🎮' };
+      var gh = mkEl('div', 'gksp-game');
+      var gt = mkEl('span', 'gksp-gt', (meta.icon ? meta.icon + ' ' : '') + (meta.title || game).toUpperCase());
+      var gp = mkEl('span', 'gksp-gp');
+      gh.appendChild(gt); gh.appendChild(gp); gh.appendChild(mkEl('span', 'gksp-gline'));
+      if (meta.accent && gh.style && gh.style.setProperty) { try { gh.style.setProperty('--acc', meta.accent); } catch (e) {} }
+      scroll.appendChild(gh);
+      gameProgEls.push(function () { var p = cosProgress(game); gp.textContent = p.owned + '/' + p.total; });
+      var gameSets = [], seenSet = {};
+      items.forEach(function (it) { if (it.game === game && !seenSet[it.set]) { seenSet[it.set] = 1; gameSets.push(it.set); } });
+      gameSets.forEach(function (setId) {
+        var sm = setsMeta[setId] || {};
+        if (gameSets.length > 1 || sm.note) scroll.appendChild(mkEl('div', 'gksp-set', (sm.label || setId) + (sm.note ? ' <span class="gksp-note">· ' + sm.note + '</span>' : '')));
+        var grid = mkEl('div', 'gksp-grid');
+        items.forEach(function (it) {
+          if (it.set !== setId) return;
+          var cell = mkEl('div', 'gksp-cell');
+          var cv = mkEl('canvas', 'gksp-sw'); try { cv.width = 44; cv.height = 36; } catch (e) {}
+          if (it.painter) { try { drawPreview(cv, function (g, w, h) { it.painter(g, w, h); }); } catch (e) {} }
+          var nm = mkEl('div', 'gksp-nm', it.name), sub = mkEl('div', 'gksp-sub');
+          cell.appendChild(cv); cell.appendChild(nm); cell.appendChild(sub);
+          var idx = cells.length;
+          cells.push({ el: cell, sub: sub, item: it });
+          var preFocused = false, viaTouch = false;
+          cell.addEventListener('pointerdown', function (e) { preFocused = (focused === idx); viaTouch = !!(e && e.pointerType === 'touch'); });
+          cell.addEventListener('click', function () {
+            var was = focused === idx; focused = idx; syncFocus();
+            if (viaTouch && !preFocused && !was) return; // first touch = read; second buys/equips
+            act(idx);
+          });
+          cell.addEventListener('mouseenter', function () { focused = idx; syncFocus(); });
+          grid.appendChild(cell);
+        });
+        scroll.appendChild(grid);
+      });
+    });
+    // ---- titles — the read-only prestige ladder (automatic, lifetime trophies) ----
+    var CH = chGoals();
+    if (CH && CH.titles && CH.titles.length) {
+      var lt = cosLifetime();
+      var th = mkEl('div', 'gksp-game gksp-titles-head');
+      th.appendChild(mkEl('span', 'gksp-gt', '🎖️ TITLES — automatic, lifetime 🏆'));
+      th.appendChild(mkEl('span', 'gksp-gline'));
+      scroll.appendChild(th);
+      var cur = (typeof CH.titleFor === 'function') ? CH.titleFor(lt) : null;
+      var tl = mkEl('div', 'gksp-tl');
+      CH.titles.forEach(function (t) {
+        var got = lt >= t.min, isCur = cur && cur.tier === t.tier;
+        var row = mkEl('div', 'gksp-tlrow' + (got ? ' got' : '') + (isCur ? ' cur' : ''));
+        row.appendChild(mkEl('span', 'gksp-tlname', (t.emoji || '🎖️') + ' ' + t.title + (isCur ? ' — YOURS' : '')));
+        row.appendChild(mkEl('span', 'gksp-tlmin', got ? fmtT(t.min) + ' 🏆' : '🔒 ' + fmtT(t.min) + ' 🏆'));
+        tl.appendChild(row);
+      });
+      scroll.appendChild(tl);
+      scroll.appendChild(mkEl('div', 'gksp-tlnote', '🏆 ' + fmtT(lt) + ' lifetime — titles never spend down; buying cosmetics uses your balance only.'));
+    }
+    // mount inside an open <dialog> when there is one (the profile modal's top layer would
+    // otherwise cover a body-level overlay) — same trick as the share menu
+    var host = document.body;
+    try { var dlg = document.querySelector && document.querySelector('dialog[open]'); if (dlg) host = dlg; } catch (e) {}
+    host.appendChild(ov);
+    _modalOpen++;
+    var done = false;
+    function close() {
+      if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1);
+      try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
+      try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+      if (typeof opts.onClose === 'function') { try { opts.onClose(); } catch (e) {} }
+    }
+    function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
+    xb.addEventListener('click', close);
+    ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
+    buyBtn.addEventListener('click', function () { if (focused >= 0) act(focused); });
+    if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
+    syncCells();
+    return { el: ov, close: close, buy: function (id) { var i = -1; cells.forEach(function (c2, k) { if (c2.item.id === id) i = k; }); if (i >= 0) { focused = i; act(i); } } };
   }
 
   function pruneOldLogs() {
@@ -750,6 +1134,8 @@
       if (st.lastDay !== today) { st.days = (st.days || 0) + 1; st.lastDay = today; }
       if (par && rec.score >= par) st.goodRuns = (st.goodRuns || 0) + 1;
       lsSet('gamekit_stats', JSON.stringify(st));
+      // good-run trophy trickle (+2 🏆, capped 3/day) — the end menu reads _grAwarded for its receipt
+      _grAwarded = (par && rec.score >= par) ? grAward() : false;
       pruneOldLogs();
     } catch (e) {}
     // aggregate, consent-gated: which games/modes actually get played to completion
@@ -1787,6 +2173,10 @@
     toggles.forEach(function (t) { tog[t.id] = !!t['default']; });
     function state() { var o = {}, k; for (k in sel) if (has(sel, k)) o[k] = sel[k]; for (k in tog) if (has(tog, k)) o[k] = tog[k]; return o; }
 
+    // record BEFORE building the DOM — the "✓ Good run" line below is the trickle RECEIPT, so the
+    // award (recordResult → grAward) must land first. Idempotent per run (menuHide arms the next).
+    if (cfg.record && _recDone !== _recRun) { _recDone = _recRun; try { recordResult(cfg.record.slug || (cfg.share && cfg.share.slug), cfg.record); } catch (e) {} }
+
     var ov = document.createElement('div'); ov.className = 'gamekit-menu gamekit-menu-' + kind + (hasCards ? ' gkm-wide' : '') + (hasBig ? ' gkm-split' : '');
     var bdCanvas = (typeof cfg.backdrop === 'function') ? mkEl('canvas', 'gkm-backdrop') : null; // per-game art behind a frosted box
     if (bdCanvas) ov.appendChild(bdCanvas);
@@ -1812,7 +2202,7 @@
     // shop menus: on small screens the cells hide their description — this line carries the FOCUSED
     // choice's desc instead (rail in split landscape, under the banner in portrait), so touch players
     // read before they buy (first tap selects, second tap / the BUY button confirms)
-    var hasShop = groups.some(function (g2) { return g2.style === 'shop'; });
+    var hasShop = groups.some(function (g2) { return g2.style === 'shop' || (g2.style === 'grid' && (g2.choices || []).some(function (c) { return typeof c.buy === 'function'; })); });
     var focdescEl = hasShop ? mkEl('p', 'gkm-focdesc') : null;
     if (focdescEl) scroll.appendChild(focdescEl);
     var buyBtn = null;
@@ -1875,20 +2265,37 @@
         dynamic.push(function () { var idx = 0; for (var i = 0; i < chs.length; i++) if (chs[i].id === sel[g2.id]) { idx = i; break; } var p = (nS > 1 ? idx / (nS - 1) : 0) * 100; th.style.left = p + '%'; fl.style.width = p + '%'; });
         scroll.appendChild(sw);
       } else if (g2.style === 'grid') {
-        // thumbnail grid: cells with a preview + name + sub-label; supports locked/cost cells (unselectable)
+        // thumbnail grid: cells with a preview + name + sub-label; supports locked/cost cells.
+        // A locked cell with a `buy(id)` fn is BUYABLE in place (cosmetics): same two-step touch
+        // machinery as shop cells (first tap focuses so the desc/price can be read, second tap /
+        // the gold button buys; mouse hover+click buys in one go). A successful buy selects it.
         var gr = mkEl('div', 'gkm-grid');
         (g2.choices || []).forEach(function (c) {
           var cell = mkEl('div', 'gkm-gcell');
           var cv = mkEl('canvas', 'gkm-gcv'); try { cv.width = c.pvW || 46; cv.height = c.pvH || 40; } catch (e) {}
           var nm = mkEl('div', 'gkm-gnm', c.label), sub = mkEl('div', 'gkm-gsub');
           cell.appendChild(cv); cell.appendChild(nm); cell.appendChild(sub);
-          var ref = { el: cell, kind: 'choice', grp: g2.id, choice: c.id, locked: false };
-          cell.addEventListener('click', function () { selectChoice(ref); setFocusEl(cell); });
+          var ref = { el: cell, kind: 'choice', grp: g2.id, choice: c.id, locked: false, c: c, buyFn: null };
+          if (typeof c.buy === 'function') ref.buyFn = function () {
+            if (!ref.locked) return;
+            var okB = false; try { okB = !!c.buy(c.id, handle); } catch (e) {}
+            if (okB) { sel[g2.id] = c.id; changed(); }
+          };
+          var preFocused = false, viaTouch = false;
+          cell.addEventListener('pointerdown', function (e) { preFocused = (focusables[fi] === ref); viaTouch = !!(e && e.pointerType === 'touch'); });
+          cell.addEventListener('click', function () {
+            setFocusEl(cell);
+            if (!ref.locked) { selectChoice(ref); return; }
+            if (!ref.buyFn) return;
+            if (viaTouch && !preFocused) return; // first tap = read the desc; second tap buys
+            ref.buyFn();
+          });
           cell.addEventListener('mouseenter', function () { setFocusEl(cell); });
           choiceRefs.push(ref); gr.appendChild(cell);
           dynamic.push(function (st) {
             drawPreview(cv, c.preview, st);
             var lk = !!evalVal(c.locked, st); ref.locked = lk; if (cell.classList) cell.classList.toggle('gkm-locked', lk);
+            if (c.afford != null && cell.classList) cell.classList.toggle('gkm-noafford', lk && !evalVal(c.afford, st));
             sub.innerHTML = lk ? (c.lockedLabel != null ? evalVal(c.lockedLabel, st) : ('🔒 ' + (evalVal(c.cost, st) || '')))
               : (c.sub != null ? evalVal(c.sub, st) : (c.best != null ? ('BEST ' + fmtScore(evalVal(c.best, st))) : ''));
           });
@@ -1990,9 +2397,19 @@
       toggleRefs.push(ref);
     });
 
-    // "✓ Good run" cue: if this end-screen result cleared the game's good-run bar, celebrate it (and
-    // hint that it counts toward the cross-game challenge) — generic, so every game's end menu gets it.
-    if (cfg.record && cfg.record.slug) { var _par = chGoodRun(cfg.record.slug); if (_par && (+cfg.record.score || 0) >= _par) scroll.appendChild(mkEl('p', 'gkm-goodrun', '✓ Good run — counts toward today’s challenge')); }
+    // "✓ Good run" cue + trickle receipt: if this result cleared the game's bar, say what it paid —
+    // "+2 🏆 (2/3 today)" while the daily bonus lasts, "daily bonus maxed 3/3" after. The player
+    // learns the cap the moment it matters. Generic, so every game's end menu gets it.
+    if (cfg.record && cfg.record.slug) {
+      var _par = chGoodRun(cfg.record.slug);
+      if (_par && (+cfg.record.score || 0) >= _par) {
+        var _grb = goodRunBonus();
+        scroll.appendChild(mkEl('p', 'gkm-goodrun',
+          _grAwarded ? ('✓ Good run · +' + _grb.per + ' 🏆 (' + _grb.count + '/' + _grb.cap + ' today)')
+            : (_grb.count >= _grb.cap ? ('✓ Good run · daily 🏆 bonus maxed ' + _grb.cap + '/' + _grb.cap)
+              : '✓ Good run — counts toward today’s challenge')));
+      }
+    }
     (cfg.lines || []).forEach(function (ln) { scroll.appendChild(mkEl('p', 'gkm-line', ln)); });
     var hintEl = cfg.hint ? mkEl('p', 'gkm-hint') : null; if (hintEl) scroll.appendChild(hintEl);
     var shareHost = cfg.share ? mkEl('div', 'gkm-share-host') : null; if (shareHost) scroll.appendChild(shareHost);
@@ -2003,7 +2420,11 @@
         // small-screen BUY/TAKE for the focused shop cell (hidden on desktop — hover+click buys there)
         buyBtn = mkEl('button', 'gkm-action gkm-buybtn');
         try { buyBtn.type = 'button'; } catch (e) {}
-        buyBtn.addEventListener('click', function () { var f = focusables[fi]; if (f && f.kind === 'pick' && !f.disabled) f.pick(); });
+        buyBtn.addEventListener('click', function () {
+          var f = focusables[fi];
+          if (f && f.kind === 'pick' && !f.disabled) f.pick();
+          else if (f && f.kind === 'choice' && f.locked && f.buyFn) f.buyFn();
+        });
         arow.appendChild(buyBtn);
       }
       actions.forEach(function (a) {
@@ -2057,7 +2478,6 @@
         _bdRaf = requestAnimationFrame(bdLoop);
       }
     }
-    if (cfg.record && _recDone !== _recRun) { _recDone = _recRun; try { recordResult(cfg.record.slug || (cfg.share && cfg.share.slug), cfg.record); } catch (e) {} }
     if (shareHost) { try { shareRow(shareHost, cfg.share); } catch (e) {} }
 
     var focusables = choiceRefs.concat(pickRefs).concat(toggleRefs).concat(popupRefs).concat(actionRefs);
@@ -2067,15 +2487,18 @@
     function syncShopFocus() {
       if (!focdescEl && !buyBtn) return;
       var f = focusables[fi], isPick = !!(f && f.kind === 'pick'), st = state();
+      var isBuy = !!(f && f.kind === 'choice' && f.locked && f.buyFn); // buyable locked grid cell (cosmetics)
       if (focdescEl) {
-        var d = isPick ? (evalItem(f.c.desc, f.c, st) || '') : '';
-        focdescEl.innerHTML = isPick && d ? ('&#9656; <b>' + f.c.label + '</b> — ' + d) : '';
+        var d = isPick ? (evalItem(f.c.desc, f.c, st) || '')
+          : isBuy ? ((evalVal(f.c.desc, st) || '') + (f.c.price ? ' <span class="gkm-price">🏆 ' + fmtScore(f.c.price) + '</span>' : '')) : '';
+        focdescEl.innerHTML = (isPick || isBuy) && d ? ('&#9656; <b>' + f.c.label + '</b> — ' + d) : '';
       }
       if (buyBtn) {
-        var lbl = isPick ? (f.g2.pickLabel != null ? (evalItem(f.g2.pickLabel, f.c, st) || '') : ('PICK · ' + f.c.label)) : '';
+        var lbl = isPick ? (f.g2.pickLabel != null ? (evalItem(f.g2.pickLabel, f.c, st) || '') : ('PICK · ' + f.c.label))
+          : isBuy ? ('UNLOCK ' + f.c.label + (f.c.price ? ' · 🏆 ' + fmtScore(f.c.price) : '')) : '';
         buyBtn.textContent = lbl;
-        buyBtn.disabled = !isPick || !!f.disabled;
-        if (buyBtn.style) buyBtn.style.visibility = isPick && lbl ? '' : 'hidden';
+        buyBtn.disabled = isPick ? !!f.disabled : isBuy ? (f.c.afford != null && !evalVal(f.c.afford, st)) : true;
+        if (buyBtn.style) buyBtn.style.visibility = (isPick || isBuy) && lbl ? '' : 'hidden';
       }
     }
     function setFocusEl(el) { for (var k = 0; k < focusables.length; k++) if (focusables[k].el === el) { setFocus(k); return; } }
@@ -2104,7 +2527,7 @@
       var cm = a.confirm ? (typeof a.confirm === 'function' ? a.confirm() : a.confirm) : null;
       if (cm) confirmDialog(cm, go, a.confirmYes || 'Leave', null); else go();
     }
-    function activate(ref) { if (!ref) return; if (ref.kind === 'choice') selectChoice(ref); else if (ref.kind === 'pick') { if (!ref.disabled) ref.pick(); } else if (ref.kind === 'toggle') toggleOne(ref); else if (ref.kind === 'popup') ref.open(); else fireAction(ref.action); }
+    function activate(ref) { if (!ref) return; if (ref.kind === 'choice') { if (ref.locked && ref.buyFn) ref.buyFn(); else selectChoice(ref); } else if (ref.kind === 'pick') { if (!ref.disabled) ref.pick(); } else if (ref.kind === 'toggle') toggleOne(ref); else if (ref.kind === 'popup') ref.open(); else fireAction(ref.action); }
     function stop(ev) { if (ev.preventDefault) ev.preventDefault(); if (ev.stopPropagation) ev.stopPropagation(); }
 
     refresh();
@@ -2137,7 +2560,7 @@
   }
   var menu = { show: menuShow, hide: menuHide, current: function () { return _menuHandle; } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, versionTag: versionTag, updates: updates, buildInfo: buildInfo };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

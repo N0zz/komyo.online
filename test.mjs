@@ -62,8 +62,9 @@ function testCatalogue() {
   {
     const K = g.win.gamekit, C = g.win.CHALLENGES;
     if (K && C && C.daily && C.daily.length) {
-      const day = K.utcDayNumber(), dStr = K.utcDateStr(), len = C.daily.length;
-      const id = C.daily[((day % len) + len) % len], goal = C.goals[id];
+      const day = K.utcDayNumber(), dStr = K.utcDateStr();
+      // today's goal via the kit's hashed challengePick — the ONE pick math (drawer + panel + badges)
+      const p = K.challengePick('daily'), id = p && p.id, goal = p && p.goal;
       if (goal && goal.scope === 'cross') {
         const slugs = GAMES.filter(x => !x.soon).slice(0, 5).map(x => x.slug);
         g.store['gamekit_played_' + dStr] = JSON.stringify({ slugs, totalScore: 1e9, count: 99, goodRuns: 99 });
@@ -593,6 +594,171 @@ function testChallenges() {
   for (const id of (C.weekly || [])) ok(!!goals[id], 'weekly rotation id "' + id + '" is a defined goal');
 }
 
+// ---------------- cosmetics (registry + trophies economy + store) ----------------
+function testCosmetics() {
+  section('cosmetics (registry + trophies economy + store)');
+  const cosmetics = fs.readFileSync(path.join(DIR, 'cosmetics.js'), 'utf8');
+  const challenges = fs.readFileSync(path.join(DIR, 'challenges.js'), 'utf8');
+
+  // A) registry integrity — unique ids, one free default per set, band prices, meta coverage
+  {
+    const sb = { window: {}, console }; sb.globalThis = sb;
+    let err = null;
+    try { vm.runInContext(cosmetics, vm.createContext(sb), { filename: 'cosmetics.js' }); } catch (e) { err = e.message; }
+    ok(err === null, 'cosmetics.js loads: ' + err);
+    const R = sb.window.COSMETICS || {};
+    ok(R.version === 1, 'registry carries a version field (day one)');
+    const items = R.items || [];
+    ok(items.length >= 60, 'launch catalogue present (' + items.length + ' items)');
+    const seen = new Set(), dups = [], bad = [], sets = {};
+    const BANDS = new Set([0, 10, 25, 50, 75, 100, 150, 250, 500]); // 150/250/500 = flagged flappy exceptions
+    for (const it of items) {
+      if (seen.has(it.id)) dups.push(it.id); seen.add(it.id);
+      if (!it.name || !it.desc || typeof it.painter !== 'function') bad.push(it.id + ' (name/desc/painter)');
+      if (!BANDS.has(+it.price)) bad.push(it.id + ' (price ' + it.price + ' outside bands)');
+      if (+it.price > 100 && it.set !== 'flappy.bird') bad.push(it.id + ' (only the bird tail may exceed 🏆100)');
+      if (+it.price > 500) bad.push(it.id + ' (above the 🏆500 hard ceiling)');
+      if (!R.games || !(it.game in R.games)) bad.push(it.id + ' (no games meta for "' + it.game + '")');
+      if (!R.sets || !R.sets[it.set]) bad.push(it.id + ' (no sets meta for "' + it.set + '")');
+      (sets[it.set] ||= []).push(it);
+    }
+    ok(dups.length === 0, 'item ids unique' + (dups.length ? ' (dups: ' + dups.join(', ') + ')' : ''));
+    ok(bad.length === 0, 'items well-formed + priced in bands' + (bad.length ? ': ' + bad.join('; ') : ''));
+    const noDefault = Object.keys(sets).filter(s => sets[s].filter(i => !(+i.price)).length !== 1);
+    ok(noDefault.length === 0, 'every set has exactly ONE free default' + (noDefault.length ? ': ' + noDefault.join(', ') : ''));
+  }
+
+  // A2) head ↔ SW-shell lockstep: every game ships cosmetics.js in BOTH or NEITHER
+  {
+    const gamesDirs = fs.readdirSync(path.join(DIR, 'games')).filter(d => fs.existsSync(path.join(DIR, 'games', d, 'sw.js')));
+    const off = [];
+    for (const d of gamesDirs) {
+      const html = fs.readFileSync(path.join(DIR, 'games', d, 'index.html'), 'utf8');
+      const sw = fs.readFileSync(path.join(DIR, 'games', d, 'sw.js'), 'utf8');
+      if (html.includes('cosmetics.js') !== sw.includes('cosmetics.js')) off.push(d);
+    }
+    ok(off.length === 0, 'cosmetics.js in <head> ⇄ SW SHELL lockstep' + (off.length ? ': ' + off.join(', ') : ''));
+  }
+
+  // B) economy: lifetime/balance derivation, buy validation + idempotency, select, progress
+  {
+    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 100 }), gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
+    g.run(KIT, 'game-kit.js'); g.run(cosmetics, 'cosmetics.js');
+    const cos = g.sandbox.gamekit.cosmetics;
+    ok(cos.lifetime() === 100 && cos.balance() === 100, 'lifetime = Σ gamekit_done; balance starts = lifetime (got ' + cos.lifetime() + '/' + cos.balance() + ')');
+    ok(cos.owned('snake.food.apple') === true, 'free default is pre-owned');
+    ok(cos.owned('snake.food.golden') === false, 'paid item starts locked');
+    ok(cos.buy('flappy.bird.phoenix') === false && cos.balance() === 100, 'cannot buy above balance (no charge)');
+    ok(cos.buy('snake.food.golden') === true && cos.balance() === 75, 'buy deducts the price (75 left)');
+    ok(cos.buy('snake.food.golden') === true && cos.balance() === 75, 're-buy is idempotent (no double charge)');
+    const owned = JSON.parse(g.store.gamekit_owned);
+    ok(owned['snake.food.golden'] && owned['snake.food.golden'].c === 25, 'purchase stored as { c: cost }');
+    ok(cos.selected('snake.food') === 'snake.food.apple', 'selection defaults to the free item');
+    ok(cos.select('snake.food', 'snake.food.star') === false, 'cannot select an unowned item');
+    ok(cos.select('snake.food', 'snake.food.golden') === true && cos.selected('snake.food') === 'snake.food.golden', 'select an owned item persists');
+    const pr = cos.progress('snake');
+    ok(pr.owned === 2 && pr.total === 6, 'progress(game) counts defaults + purchases (got ' + pr.owned + '/' + pr.total + ')');
+    const all = cos.progress();
+    ok(all.total >= 60 && all.owned >= 14, 'progress() spans the whole catalogue incl. free defaults (got ' + all.owned + '/' + all.total + ')');
+  }
+
+  // C) good-run trophy trickle: +2 each, capped 3/day, lands in gamekit_done (= spendable)
+  {
+    const g = makeSandbox({ store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
+    g.run(KIT, 'game-kit.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
+    const F = g.sandbox.gamekit;
+    F.recordResult('snake', { score: 10 }); // below the bar (300) → no bonus
+    ok(F.goodRunBonus().count === 0, 'a below-bar run earns no trickle');
+    for (let i = 0; i < 5; i++) F.recordResult('snake', { score: 9999 });
+    const done = JSON.parse(g.store.gamekit_done || '{}');
+    ok(done['gr#' + F.utcDateStr()] === 6, 'trickle caps at 3 good runs/day (+6 🏆, got ' + done['gr#' + F.utcDateStr()] + ')');
+    ok(F.goodRunBonus().count === 3 && F.goodRunBonus().cap === 3 && F.goodRunBonus().per === 2, 'goodRunBonus() reports 3/3 · +2');
+    ok(F.cosmetics.balance() === 6, 'trickle trophies are spendable (balance 6)');
+  }
+
+  // C2) end-menu good-run line is the trickle RECEIPT
+  {
+    const g = makeSandbox({ store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
+    g.run(KIT, 'game-kit.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
+    const F = g.sandbox.gamekit;
+    const findByCls = (el, cls, out = []) => { if (!el) return out; if (String(el.className || '').includes(cls)) out.push(el); (el.children || []).forEach(c => findByCls(c, cls, out)); return out; };
+    const h = F.menu.show({ kind: 'end', score: 9999, record: { slug: 'snake', mode: '', score: 9999 }, actions: [{ id: 'again', label: 'AGAIN', primary: true }] });
+    let line = findByCls(h.el, 'gkm-goodrun')[0];
+    ok(line && String(line.innerHTML).includes('+2 🏆 (1/3 today)'), 'end menu shows the +2 🏆 receipt (got "' + (line && line.innerHTML) + '")');
+    F.menu.hide();
+    for (let i = 0; i < 3; i++) { F.menu.show({ kind: 'end', score: 9999, record: { slug: 'snake', mode: '', score: 9999 }, actions: [{ id: 'again', label: 'A', primary: true }] }); F.menu.hide(); }
+    const h2 = F.menu.show({ kind: 'end', score: 9999, record: { slug: 'snake', mode: '', score: 9999 }, actions: [{ id: 'again', label: 'A', primary: true }] });
+    line = findByCls(h2.el, 'gkm-goodrun')[0];
+    ok(line && String(line.innerHTML).includes('maxed 3/3'), 'past the cap the receipt says the daily bonus is maxed (got "' + (line && line.innerHTML) + '")');
+  }
+
+  // D) Meadow Flyer migration: banked cash → trophies 1:1, unlocked birds stay owned at cost 0
+  {
+    const g = makeSandbox({ store: { flappy_cash: '320', flappy_bird: 'owl', gamekit_pts_x10: '1' } });
+    g.run(KIT, 'game-kit.js'); g.run(cosmetics, 'cosmetics.js');
+    const F = g.sandbox.gamekit;
+    const owned = JSON.parse(g.store.gamekit_owned || '{}');
+    ok(owned['flappy.bird.robin'] && owned['flappy.bird.owl'] && owned['flappy.bird.owl'].c === 0, 'old-threshold birds owned at cost 0');
+    ok(!owned['flappy.bird.bielik'], 'birds above the old banked total stay locked');
+    const done = JSON.parse(g.store.gamekit_done || '{}');
+    ok(done['flappy-migrate'] === 320, 'banked cash converts 1:1 into trophies');
+    ok(g.store.flappy_cash === undefined && g.store.flappy_bird === undefined, 'old flappy keys removed');
+    ok(g.store.gamekit_flappy_migrated === '1', 'migration flagged (runs once)');
+    ok(F.cosmetics.balance() === 320, 'migrated trophies are fully spendable (owned birds cost nothing)');
+    ok(F.cosmetics.selected('flappy.bird') === 'flappy.bird.owl', 'selected bird carries over');
+  }
+
+  // E) the Cosmetics store modal: builds headless, buys + equips, updates balance
+  {
+    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 50 }), gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
+    g.run(KIT, 'game-kit.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
+    const F = g.sandbox.gamekit;
+    let err = null, h = null;
+    try { h = F.shopPanel(); } catch (e) { err = e.message; }
+    ok(err === null && h && h.el, 'shopPanel builds headless: ' + err);
+    if (h) {
+      h.buy('snake.food.golden');
+      ok(F.cosmetics.owned('snake.food.golden') && F.cosmetics.balance() === 25, 'store buy deducts + owns (balance 25)');
+      ok(F.cosmetics.selected('snake.food') === 'snake.food.golden', 'store buy equips the item');
+      h.buy('snake.food.rainbow'); // 100 — can't afford
+      ok(!F.cosmetics.owned('snake.food.rainbow') && F.cosmetics.balance() === 25, 'store refuses an unaffordable buy');
+      let cerr = null; try { h.close(); } catch (e) { cerr = e.message; }
+      ok(cerr === null, 'shopPanel closes cleanly: ' + cerr);
+      ok(F.isPaused() === false, 'closing the store releases the modal pause');
+    }
+  }
+
+  // F) hashed challengePick export: deterministic, defined goal, never yesterday's pick
+  {
+    const g = makeSandbox({});
+    g.run(KIT, 'game-kit.js'); g.run(challenges, 'challenges.js');
+    const F = g.sandbox.gamekit;
+    const p1 = F.challengePick('daily'), p1b = F.challengePick('daily'), p0 = F.challengePick('daily', F.utcDayNumber() - 1);
+    ok(p1 && p1.goal && p1.id === p1b.id, 'challengePick(daily) is deterministic + resolves a goal');
+    ok(p0 && p0.id !== p1.id, 'never the same daily two days in a row (' + p0.id + ' vs ' + p1.id + ')');
+    const w = F.challengePick('weekly');
+    ok(w && w.goal && /^W\d+/.test(w.period), 'challengePick(weekly) resolves with a week period key');
+  }
+
+  // G) menu-group wiring: defaults to the free item, locked until bought, buy unlocks + selects
+  {
+    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 40 }), gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
+    g.run(KIT, 'game-kit.js'); g.run(cosmetics, 'cosmetics.js');
+    const F = g.sandbox.gamekit;
+    const grp = F.cosmetics.menuGroup('snake.food');
+    ok(grp && grp.style === 'grid' && grp.choices.length === 6, 'menuGroup builds a 6-cell grid');
+    const h = F.menu.show({ kind: 'start', groups: [grp], actions: [{ id: 'play', label: 'GO', primary: true }] });
+    ok(h.selection()['snake.food'] === 'snake.food.apple', 'menu defaults to the free item');
+    h.select('snake.food', 'snake.food.golden');
+    ok(h.selection()['snake.food'] === 'snake.food.apple', 'a locked cell cannot be selected');
+    const golden = grp.choices.find(c => c.id === 'snake.food.golden');
+    ok(golden.buy() === true, 'grid buy() purchases with trophies');
+    ok(F.cosmetics.owned('snake.food.golden') && F.cosmetics.selected('snake.food') === 'snake.food.golden', 'buying equips the skin');
+    ok(F.cosmetics.balance() === 15, 'balance after the buy (15)');
+    F.menu.hide();
+  }
+}
+
 // ---------------- service workers (sw-core + per-scope) ----------------
 function testServiceWorkers() {
   section('service workers (sw-core + per-scope)');
@@ -629,5 +795,6 @@ testLiveGames();
 await testKit();
 testKitChrome();
 testChallenges();
+testCosmetics();
 testServiceWorkers();
 summary();
