@@ -1087,8 +1087,9 @@
             cell.appendChild(cv); cell.appendChild(txt);
             var idx = cells.length;
             cells.push({ el: cell, sub: sub, item: it });
+            // click-only selection (no hover-focus): moving the mouse toward the BUY button used to
+            // pass over other tiles and retarget it — the selection now stays on the clicked item
             cell.addEventListener('click', function () { clickCell(idx); });
-            cell.addEventListener('mouseenter', function () { focused = idx; syncFocus(); });
             grid.appendChild(cell);
           });
           scroll.appendChild(grid);
