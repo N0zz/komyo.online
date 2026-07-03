@@ -47,84 +47,65 @@ challenges, tv-controller.
 
 ## 🚀 Path to launch (ordered)
 
-Reprioritised **2026-07-01** (cosmetics shop shipped 2026-07-03, see Done). Foundations are done (kit menu,
-audio, profile/best-store, challenges, cosmetics/trophies, GA4, PWA, share, Discord auto-post). We're close —
-the real gates are **game count** + the **two external items** (mascot, privacy). The staged friends/family
-rollout is already trickling.
+Reprioritised **2026-07-03** (cosmetics shop shipped, see Done). Foundations are done (kit menu, audio,
+profile/best-store, challenges, cosmetics/trophies, GA4, PWA, share, Discord auto-post). The real levers now
+are **reach** (i18n) and **game count**. **Not gating launch:** the **real mascot** is dropped to Later —
+the placeholder chibi art ships fine and gets swapped whenever real art lands; the **privacy policy** is in
+review and treated as **non-blocking** (no longer a hard gate).
 
-**External gates (not on my clock):** the **real mascot** and the **privacy policy** are owned by others —
-sequence around them.
+*Recently done:* review fix sessions (all 10, code-verified 2026-07-03 — skill gate cleared) · challenge-points
+**titles** (Goblin→Emperor, escalating shine) · the **cosmetics shop / trophies** system.
 
-### Next ~2 days
+### Ordered path
 
-Reordered **2026-07-02**. (Recently done: **Minor batch** — `game_start` GA4 event + kit **"Tap to play"**
-audio splash + nav-fit guard, 2026-07-01. **Challenge-points titles** — 9 titles ("X of Y", Goblin→Emperor)
-by lifetime points, full-width profile box with escalating shine tier 0→8, username shares the shine,
-`CHALLENGES.titles`/`titleFor()`, 🏆 CHALLENGE PTS, client-only cosmetic, 2026-07-01.)
-
-0. **Review fix sessions — ✅ DONE (2026-07-03).** All 10 sessions from `~/komyo-sessions-plan.md`
-   shipped and code-verified (session 9): P0/P1 bugfixes, framework hardening (kit absorption +
-   CLAUDE.md refresh + shared harness + dt-loop), Discord three-tier consent, cleanup, playtest
-   polish rounds, asteroids+ shop rework. **The skill gate (#3) is cleared.** Plan file = archive.
-1. **Translations / i18n — analysis + estimate (~2 days).** Non-English kids struggle with English game
-   descriptions + UI, so multi-language support is a real reach lever. **Scope it before building:** target
-   languages (a first few — PL + big EU/global?), architecture for a **no-build static site** (per-language
-   JSON dictionaries loaded client-side + a kit `t(key)` helper + `navigator.language` detect + a language
-   picker, choice persisted), and the true cost = **string extraction** (catalogue UI, per-game blurbs in
-   `games.js`, in-game menu labels + hints inlined in each game, challenges, FAQ / About / privacy). Also:
-   kid-friendly wording, SEO (`hreflang` + translated `<title>`/meta/OG per language), a GA4 language read,
-   RTL if we ever add Arabic/Hebrew. **Output:** decision on languages + a concrete implementation plan +
-   **effort estimate** → routes #2 vs Later.
-2. **Translations / i18n — implement IF the spike says it's easy.** If the extraction + `t()` layer turns
-   out small, ship it here; **if it's a big surface, it drops to Later (#6).**
+1. **Translations / i18n.** The biggest reach lever (non-English kids struggle with English UI). **Spike
+   first (~2 days):** target languages (PL + big EU/global?), a **no-build** architecture (per-language JSON
+   dictionaries + a kit `t(key)` helper + `navigator.language` detect + a persisted picker), and the true
+   cost = **string extraction** (catalogue UI, per-game blurbs in `games.js`, in-game menu labels + hints,
+   challenges, FAQ/About/privacy) + SEO (`hreflang` + translated `<title>`/meta/OG) + GA4 language read + RTL
+   if we ever add Arabic/Hebrew. Then **implement** — ship the small version now; if it's a big surface it
+   stretches but stays on the path (it's the reach lever, not a nice-to-have).
+2. **Invite more people** — widen the staged friends/family circle (already trickling) → let them share
+   further. Real usage before the skill/game push tells us what to build.
 3. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an
-   on-framework MVP in a 20–30 min session (spec under Catalogue / kit). Big accelerator for #4.
-   **Gate cleared 2026-07-03** (dt-loop, shared test harness, kit absorption + CLAUDE.md refresh all
-   verified in session 9).
-4. **Build games** — toward the content bar; each via the dev-process gate (design+mock → POC → MVP →
+   on-framework MVP in a 20–30 min session (spec under Catalogue / kit). The accelerator for #4.
+   **Gate cleared 2026-07-03** (dt-loop, shared harness, kit absorption + CLAUDE.md refresh verified).
+4. **Build more games** — toward the content bar; each via the dev-process gate (design+mock → POC → MVP →
    iterate). **Bias low-tuning genres** (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower
    defense, roguelite shooters — they ate many tuning cycles). See `komyo-avoid-balance-heavy-genres`.
-   Fold in the review's flagship-vs-breadth take: slot **one original-mechanic, shareable game** into
-   the queue alongside the genre remakes (see the `komyo-market-expansion-discussion` note).
-5. **Staged rollout — friends / family** *(already slowly happening, ongoing)* → let them share further.
+   Slot in **one original-mechanic, shareable game** alongside the remakes (see `komyo-market-expansion-discussion`).
+5. **LAUNCH + marketing campaigns** — prep the materials (promo video / montage + Discord preview cuts,
+   per-game OG/Twitter cards, story-format share card), then publish everywhere: portals (itch.io, free-to-play
+   indexes), news, forums, subreddits, Discord servers, socials. Paid ads considered later.
 
-### Later
+### Ongoing (post-launch)
 
-6. **Translations / i18n — implement (if the spike said it's *not* easy).** Wire the `t()` layer into the
-   kit, extract + translate strings, language picker + persistence, `hreflang`/meta per language. The big-
-   surface branch of #1/#2 — sequence once the spike sets the language list + plan.
+Rolling, no fixed order: **ship new games** · **fix bugs** · **manage & grow the community** · **keep
+marketing** (experiments — QR stickers, merch, plushie) · and, in free time, **consider new features /
+integrations** (see below). Plus **target tuning** (retune daily/weekly challenge targets from real GA4
+completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
+
+### Later (non-gating)
+
+- **Real mascot** *(external — owned by others)* — when it lands: swap the placeholder chibi everywhere +
+  **mascot art refresh** of `buildScoreCard`/`buildProfileCard` around it, + a **mascot attire shop** (spend
+  trophies on logo / score-card / profile mascot cosmetics). Placeholder art ships fine until then.
+  Shine/PNG/share spec the shipped cards reuse: on-screen can animate (glints/particles); the **shared** card
+  must be a **static PNG** (animation can't survive an image), so bake the glow/gradient/halo into the still
+  (particles won't serialize into the DOM-snapshot + Safari taints → drawn-card fallback; gradient + glow
+  reach the bar). **Sharing = image-first, text only as fallback** — native Web Share / Discord webhook /
+  download-copy take the image; **X / Reddit intents are link+text only** (can't attach a local PNG), so better
+  previews there need pre-generated per-game/score **OG images** (server-side → parked).
+- **Privacy policy** *(in review — non-blocking)* — counsel is reviewing; ship-with-what-we-have (GA4 +
+  Discord auto-post + EU visitors are all consent-gated already). Fold in edits when the review returns.
+- **Discord Activity polish** — fix the proxied-feedback "network error" + verify webhook/GA4 in-Activity
+  (bonus lane, not the main audience — see bug backlog).
 - **Infra:** staging env (`staging.komyo.online`) **+ consider a Cloudflare CDN in front of GH Pages**
   (bandwidth headroom past ~100 GB/mo + the escape hatch we discussed). Staging must isolate side effects:
   `noindex` + robots disallow, **no prod GA4**, **no prod Discord webhook**, **no real Kit signups**. DNS:
   `staging` CNAME → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
-- **Score card — mascot art refresh** *(gated on the real mascot; the shine + double-paste fix shipped
-  2026-07-02 — see Done)* — refresh `buildScoreCard`/`buildProfileCard` art around the mascot.
-  Shine/PNG/share spec the shipped card reuses: on-screen card can animate (glints/particles, like the titles); the **shared** card must be a
-  **static PNG** (animation can't survive an image; a GIF/MP4 is too heavy + unsupported by share targets),
-  so bake the glow/gradient/halo into the still (particles won't serialize into the DOM-snapshot + Safari
-  taints → drawn-card fallback; that's fine — gradient + glow reach the bar). **Sharing = image-first, text
-  only as fallback:** image works on native Web Share (files), the Discord webhook, and download/copy;
-  **X / Reddit / Twitter "intent" URLs are link+text only** (you can't attach a locally-generated PNG to an
-  intent) → those fall back to text + link, and better previews there need pre-generated per-game/score **OG
-  images** (server-side → parked).
-- **Mascot attire shop** *(deferred — gated on the real mascot)* — spend challenge points on mascot
-  cosmetics (logo / score card / profile). Design when the mascot lands. (Discord roles / real anti-cheat
-  stay parked — backend-gated; see Integrations → challenge-points.)
-- **Privacy policy signed off** *(external gate — counsel; hard blocker for a broad public launch —
-  GA4 + Discord auto-post + EU visitors)*.
-- **Marketing materials** — plan + prepare: promo video / montage (full + Discord preview cuts), per-game
-  OG/Twitter cards, story-format share card.
-- **LAUNCH** — publish everywhere: portals (itch.io, free-to-play indexes), news, forums, subreddits,
-  Discord servers, socials. Consider paid ads later.
-
-### Post-launch
-
-- **Target tuning** — retune daily/weekly challenge targets from real GA4 completion data; confirm UTC
-  daily reset.
-- **Discord Activity polish** — fix the proxied-feedback "network error" + verify webhook/GA4 in-Activity
-  (bonus lane, not main audience — see bug backlog).
-- Watch requests/feedback, add games in free time. **TV + gamepad + a11y**. Marketing experiments (QR
-  stickers, merch, plushie).
+- **New features / integrations** — free-time only, post-launch (see Integrations below): the deeper
+  challenge/anti-cheat/Discord-role ideas stay parked until there's a backend + real demand.
 
 ### Dropped (not doing)
 
