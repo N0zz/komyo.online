@@ -1,8 +1,12 @@
 // Headless tests for Range (aim-trainer) — boots via the shared harness, drives window.__test.
-import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { bootGame, ok, section, summary, runLayoutSuite, ROOT } from '../../test-harness.mjs';
 
 const FILE = 'games/aim-trainer/index.html';
 const runGame = (opts) => bootGame(FILE, opts);
+const COSMETICS = fs.readFileSync(path.join(ROOT, 'cosmetics.js'), 'utf8');
+const CHALLENGES = fs.readFileSync(path.join(ROOT, 'challenges.js'), 'utf8');
 // bests now live in the shared kit store (gamekit_pb): Timed keeps score, Sprint keeps time (per amount)
 const pbG = (store) => { try { return JSON.parse(store['gamekit_pb'] || '{}')['aim-trainer'] || {}; } catch (e) { return {}; } };
 const pbScore = (store, mode) => (pbG(store)[mode] || {}).score || 0;
@@ -400,5 +404,38 @@ runLayoutSuite(
     }
   }
 );
+
+// ---- cosmetics: target + hit-marker skins (visual only; hitbox unchanged) ----
+section('cosmetics — target & hit-marker skins');
+{
+  const runCos = (store) => runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }), ...(store || {}) } });
+  const g = runCos();
+  ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
+  const m = g.test().menu();
+  ok(m && m.selection()['aim-trainer.target'] === 'aim-trainer.target.rings' && m.selection()['aim-trainer.marker'] === 'aim-trainer.marker.classic',
+    'start menu carries TARGET + HIT MARKER grids with the free defaults');
+  // each target + marker combo renders (with a live target + a hit marker) without error
+  const targs = ['rings', 'donut', 'fruit', 'alien', 'goldstar'], marks = ['classic', 'spark', 'boom'];
+  for (let i = 0; i < Math.max(targs.length, marks.length); i++) {
+    const tid = 'aim-trainer.target.' + targs[i % targs.length], mid = 'aim-trainer.marker.' + marks[i % marks.length];
+    const owned = {}; owned[tid] = { c: 0, t: 0 }; owned[mid] = { c: 0, t: 0 };
+    const g2 = runCos({ gamekit_owned: JSON.stringify(owned), gamekit_cos_sel: JSON.stringify({ 'aim-trainer.target': tid, 'aim-trainer.marker': mid }) });
+    g2.test().start(); g2.test().step(3);
+    const tg = g2.test().targets[0];
+    if (tg) g2.test().shootAt(tg.x, tg.y); // hit → spawns a marker in this skin
+    g2.test().render();
+    ok(g2.errors.length === 0, targs[i % targs.length] + ' + ' + marks[i % marks.length] + ': renders without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
+  }
+  // hit detection is identical for a skinned target — a shot at the target centre still scores
+  {
+    const owned = { 'aim-trainer.target.goldstar': { c: 0, t: 0 } };
+    const g3 = runCos({ gamekit_owned: JSON.stringify(owned), gamekit_cos_sel: JSON.stringify({ 'aim-trainer.target': 'aim-trainer.target.goldstar' }) });
+    g3.test().start(); g3.test().step(3);
+    const h0 = g3.test().hits, tg = g3.test().targets[0];
+    if (tg) g3.test().shootAt(tg.x, tg.y);
+    ok(g3.test().hits === h0 + 1, 'a skinned target still registers a centre hit (hits ' + h0 + ' -> ' + g3.test().hits + ')');
+  }
+  ok(g.win.gamekit.cosmetics.buy('aim-trainer.target.donut') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy target skin with trophies (75 left)');
+}
 
 summary();
