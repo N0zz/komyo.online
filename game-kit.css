@@ -5,6 +5,7 @@
   color: #fff; text-decoration: none; background: rgba(8, 12, 20, 0.66); border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 8px; padding: 7px 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  -webkit-user-drag: none; user-select: none; -webkit-user-select: none; touch-action: manipulation;
   transition: border-color .12s, color .12s, background .12s; }
 .gamekit-back:hover { border-color: #9fe8ff; color: #fff; background: rgba(8, 12, 20, 0.85); }
 /* The left nav collapses to just "›" ONLY when it would actually overlap the right sound/pause
@@ -31,9 +32,9 @@
 .gamekit-au-pausebtn { font-size: 13px; color: #9fe8ff; }
 /* ☰ menu panel: version/update status + refresh + embed + reset */
 .gamekit-au-morebtn { font-size: 15px; }
-.gamekit-more-panel { min-width: 208px; gap: 8px; }
+.gamekit-more-panel { min-width: 224px; gap: 8px; }
 .gamekit-more-ver { font: 500 11px/1.5 ui-monospace, "SFMono-Regular", Menlo, monospace; color: #cfe3f5;
-  white-space: pre-line; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
+  white-space: nowrap; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
 .gamekit-more-item { font: 600 12px/1 system-ui, sans-serif; letter-spacing: .5px; text-align: left; color: #fff; cursor: pointer;
   background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 10px 12px; }
 .gamekit-more-item:hover { border-color: #9fe8ff; }
