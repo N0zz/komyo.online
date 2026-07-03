@@ -2134,19 +2134,25 @@
       } catch (e) {}
     })();
 
-    // Idle-preload every live game's shell so they're all playable offline after one online visit.
-    // Each fetch flows through the service worker (stale-while-revalidate), which caches it. Runs one
-    // at a time on idle so it never competes with the page; skipped if offline or no SW.
+    // Idle-register every live game's service worker so each game's FULL shell (HTML + icons +
+    // manifest + shared head files) precaches up front — all games playable offline after one online
+    // catalogue visit, and Settings "Update now" reaches every scope via getRegistrations() (an
+    // unregistered scope would be invisible to it). Runs one at a time on idle, after the page settles;
+    // re-running register() on later visits doubles as an update check per scope.
     (function () {
       try {
         if (!('serviceWorker' in navigator) || navigator.onLine === false) return;
-        var urls = (window.GAMES || []).filter(function (g) { return g && g.slug && !g.soon; })
-          .map(function (g) { return 'games/' + g.slug + '/'; });
+        var slugs = (window.GAMES || []).filter(function (g) { return g && g.slug && !g.soon; }).map(function (g) { return g.slug; });
         var i = 0, idle = window.requestIdleCallback || function (fn) { return setTimeout(fn, 400); };
-        (function next() {
-          if (i >= urls.length) return;
-          fetch(urls[i++], { credentials: 'same-origin' }).catch(function () {}).then(function () { idle(next); });
-        })();
+        var next = function () {
+          if (i >= slugs.length) return;
+          var s = slugs[i++];
+          try {
+            navigator.serviceWorker.register('games/' + s + '/sw.js', { scope: 'games/' + s + '/' })
+              .catch(function () {}).then(function () { idle(next); });
+          } catch (e) { idle(next); }
+        };
+        setTimeout(function () { idle(next); }, 2500);
       } catch (e) {}
     })();
 
