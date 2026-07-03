@@ -1698,6 +1698,7 @@
   // menuShow's internal rebuild uses menuTeardown directly so a re-shown end menu can't re-record.
   function menuHide() { _recRun++; menuTeardown(); }
   function applyMenuTheme(el, theme) {
+    if (typeof theme === 'function') { try { theme = theme(); } catch (e) { theme = null; } } // dynamic themes (e.g. flappy day/night) resolve at open time
     if (!el || !el.style || !theme) return;
     for (var k in theme) {
       if (!Object.prototype.hasOwnProperty.call(theme, k)) continue;
