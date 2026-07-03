@@ -165,10 +165,13 @@
     grid-template-areas: "big title" "big rail" "big actions"; column-gap: 16px; row-gap: 10px;
     padding: 14px 18px; text-align: left; }
   .gamekit-menu.gkm-split .gkm-title { grid-area: title; margin: 0; font-size: 20px; letter-spacing: 2px; text-align: left; }
-  .gamekit-menu.gkm-split .gkm-scroll { grid-area: big; min-height: 0;
+  .gamekit-menu.gkm-split .gkm-scroll { grid-area: big; min-height: 0; overflow-x: hidden;
     border-right: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.12)); padding-right: 14px; }
-  .gamekit-menu.gkm-split .gkm-rail { grid-area: rail; min-height: 0; overflow-y: auto;
+  /* overflow-y:auto silently flips overflow-x from visible→auto, so a vertical scrollbar (or any
+     1px graze) spawned a horizontal one — clamp x and let children shrink instead */
+  .gamekit-menu.gkm-split .gkm-rail { grid-area: rail; min-height: 0; overflow-y: auto; overflow-x: hidden;
     display: flex; flex-direction: column; gap: 10px; }
+  .gamekit-menu.gkm-split .gkm-rail > * { min-width: 0; max-width: 100%; flex-shrink: 0; }
   .gamekit-menu.gkm-split .gkm-actions { grid-area: actions; align-self: end; margin: 0; padding: 0; border-top: none; }
   .gamekit-menu.gkm-split .gkm-sec { margin: 0 0 8px; }
   .gamekit-menu.gkm-split .gkm-rail .gkm-sec { margin: 0; }
