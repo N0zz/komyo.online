@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>{{TITLE}}</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="{{ACCENT}}">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="{{TITLE}}">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The sw.js SHELL must list these same six files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0a12; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  /* Position / background / font all come from the shared .gamekit-hud (center-top pill).
+     Only add per-game value colors here. */
+  #hud .val { color: {{ACCENT}}; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat"><span class="lbl">TIME</span><span class="val" id="timeEl">30</span></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = '{{SLUG}}';
+
+  // ==================================================================================
+  // <!-- SND.define -->  SFX via the shared engine (headless no-op / muted-safe).
+  // Never reuse a kit-owned stinger name (levelup, lose, victory, newbest, gameover).
+  const SND = window.gamekit.sound;
+  SND.define({
+    collect: (c) => c.voice({ f: 660, slideTo: 990, dur: 0.09, type: 'triangle', gain: 0.12 }),
+  });
+  // <!-- /SND.define -->
+  // ==================================================================================
+
+  // ==================================================================================
+  // <!-- MECHANIC: state + update() + render() -->
+  // Placeholder mechanic: move a square (arrows / WASD / pointer) into the target dot to
+  // score; a 30-second timer ends the run. Replace this whole region with the real game —
+  // keep update() drivable by __test.step(n) and all drawing in CSS px.
+  const TIME_LIMIT = 30;      // seconds per run
+  const PLAYER_SIZE = 34;     // px
+  const TARGET_R = 16;        // px
+  const MOVE_SPEED = 6;       // px per fixed step
+
+  let W = 0, H = 0, topMargin = 48;   // topMargin = HUD headroom (kept >= KIT.layout.hudTop())
+  let state = 'ready';                // ready | playing | paused | over
+  let score = 0, best = 0;
+  let timeLeft = TIME_LIMIT, timeTick = 0;
+  const player = { x: 0, y: 0 };
+  const target = { x: 0, y: 0 };
+  const keys = {};
+  let pointerTo = null;               // {x,y} while a pointer is held
+
+  const MODE_LABEL = 'Classic';       // single mode — best store / record label
+  function loadBest() { return KIT ? KIT.bestScore(SLUG, MODE_LABEL) : 0; }
+  function saveBest() { if (KIT) KIT.saveBest(SLUG, MODE_LABEL, { score: score }); }
+
+  function spawnTarget() {
+    const pad = TARGET_R + 8;
+    target.x = pad + Math.random() * (W - pad * 2);
+    target.y = topMargin + pad + Math.random() * (H - topMargin - pad * 2);
+  }
+
+  function reset() {
+    score = 0; timeLeft = TIME_LIMIT; timeTick = 0;
+    best = loadBest();
+    player.x = W / 2; player.y = (topMargin + H) / 2;
+    pointerTo = null;
+    spawnTarget();
+    updateHud();
+  }
+
+  function update() {
+    if (state !== 'playing') return;
+    // movement — held keys, then pointer target
+    let dx = 0, dy = 0;
+    if (keys['ArrowLeft'] || keys['a']) dx -= 1;
+    if (keys['ArrowRight'] || keys['d']) dx += 1;
+    if (keys['ArrowUp'] || keys['w']) dy -= 1;
+    if (keys['ArrowDown'] || keys['s']) dy += 1;
+    if (dx || dy) { const m = Math.hypot(dx, dy) || 1; player.x += (dx / m) * MOVE_SPEED; player.y += (dy / m) * MOVE_SPEED; }
+    else if (pointerTo) {
+      const ax = pointerTo.x - player.x, ay = pointerTo.y - player.y, d = Math.hypot(ax, ay);
+      if (d > MOVE_SPEED) { player.x += (ax / d) * MOVE_SPEED; player.y += (ay / d) * MOVE_SPEED; }
+      else { player.x = pointerTo.x; player.y = pointerTo.y; }
+    }
+    // clamp inside the playfield (below the HUD)
+    player.x = Math.max(PLAYER_SIZE / 2, Math.min(W - PLAYER_SIZE / 2, player.x));
+    player.y = Math.max(topMargin + PLAYER_SIZE / 2, Math.min(H - PLAYER_SIZE / 2, player.y));
+
+    // collect the target
+    if (Math.hypot(player.x - target.x, player.y - target.y) < PLAYER_SIZE / 2 + TARGET_R) {
+      score += 10; SND.play('collect'); spawnTarget(); updateHud();
+    }
+
+    // countdown (update() runs at a fixed 60/s via KIT.loop)
+    if (++timeTick >= 60) { timeTick = 0; timeLeft = Math.max(0, timeLeft - 1); updateHud(); if (timeLeft <= 0) { gameOver(); return; } }
+  }
+
+  function render() {
+    ctx.fillStyle = '#0a0a12';
+    ctx.fillRect(0, 0, W, H);
+    // target dot
+    ctx.fillStyle = '{{ACCENT}}';
+    ctx.beginPath(); ctx.arc(target.x, target.y, TARGET_R, 0, Math.PI * 2); ctx.fill();
+    // player square
+    ctx.fillStyle = '#ffffff';
+    KIT.roundRect(ctx, player.x - PLAYER_SIZE / 2, player.y - PLAYER_SIZE / 2, PLAYER_SIZE, PLAYER_SIZE, 6);
+    ctx.fill();
+  }
+  // <!-- /MECHANIC -->
+  // ==================================================================================
+
+  function updateHud() {
+    document.getElementById('scoreEl').textContent = score;
+    document.getElementById('bestEl').textContent = best;
+    document.getElementById('timeEl').textContent = Math.ceil(timeLeft);
+  }
+
+  function startGame() {
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    reset();
+  }
+
+  function gameOver() {
+    state = 'over';
+    const prevBest = loadBest();
+    saveBest();                       // single end-of-run save
+    const isBest = score > prevBest && score > 0;   // computed BEFORE showing the end menu
+    best = loadBest();
+    showEnd(isBest);
+  }
+
+  // ==================================================================================
+  // <!-- MENU: start/pause/end via gamekit.menu -->
+  const MENU_THEME = { accent: '{{ACCENT}}', title: '{{ACCENT}}' };
+
+  function showStartMenu() {
+    state = 'ready';
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: '{{TITLE}}'.toUpperCase(),
+      actions: [{ id: 'play', label: 'Play', primary: true }],
+      hint: () => 'Move into the dot to score. 30 seconds on the clock.',
+      onPlay: () => startGame(),
+    });
+  }
+
+  function shareMsg() { return KIT.shareText({ score: score, game: '{{TITLE}}', emoji: '{{ICON}}', mode: MODE_LABEL }); }
+
+  function showEnd(isBest) {
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER',
+      record: { slug: SLUG, mode: MODE_LABEL, score: score },
+      score: score, best: best, newBest: isBest,
+      share: { slug: SLUG, accent: '{{ACCENT}}', icon: '{{ICON}}', title: '{{TITLE}}', message: () => shareMsg() },
+      actions: [ { id: 'again', label: 'Play Again', primary: true }, { id: 'menu', label: 'Menu' } ],
+      onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
+  }
+
+  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED', lines: ['Score ' + score],
+      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
+  }
+  function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
+  function toMenu() { saveBest(); if (KIT) KIT.menu.hide(); showStartMenu(); }
+  // <!-- /MENU -->
+  // ==================================================================================
+
+  // ---- Resize (retina-sharp backing store; all drawing stays in CSS px) ----
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    topMargin = KIT.layout.hudTop();   // the ONE HUD headroom number (92 narrow / 48 otherwise)
+    // keep the player inside the new bounds after a rotate/resize
+    player.x = Math.max(PLAYER_SIZE / 2, Math.min(W - PLAYER_SIZE / 2, player.x || W / 2));
+    player.y = Math.max(topMargin + PLAYER_SIZE / 2, Math.min(H - PLAYER_SIZE / 2, player.y || (topMargin + H) / 2));
+  }
+  window.gamekit.layout.on(resize);   // resize + orientationchange + visualViewport, coalesced
+
+  // ---- Input ----
+  function toCanvas(e, r) { return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) }; }
+  canvas.addEventListener('pointerdown', e => { const r = canvas.getBoundingClientRect(); pointerTo = toCanvas(e, r); });
+  canvas.addEventListener('pointermove', e => { if (pointerTo) { const r = canvas.getBoundingClientRect(); pointerTo = toCanvas(e, r); } });
+  const relPointer = () => { pointerTo = null; };
+  canvas.addEventListener('pointerup', relPointer);
+  canvas.addEventListener('pointercancel', relPointer);
+  window.addEventListener('keydown', e => {
+    if (state === 'playing' && e.key === 'Escape') { e.preventDefault(); pauseGame(); }
+    keys[e.key] = true;
+  });
+  window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+  // ==================================================================================
+  // <!-- CONTROLS: nav controls config -->
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
+    controls: { title: '{{TITLE}} — Controls',
+      mouse: [ ['Move', 'Guide the square'] ],
+      keyboard: [ ['Arrows · WASD', 'Move'], ['Esc', 'Pause'] ],
+      touch: [ ['Drag', 'Move the square'] ] } });
+  KIT.music.play('{{THEME_KEY}}');
+  // <!-- /CONTROLS -->
+  // ==================================================================================
+
+  // ==================================================================================
+  // <!-- __TEST hook + layout getter (must expose topReserve) -->
+  window.__test = {
+    get state() { return state; },
+    get score() { return score; },
+    get best() { return best; },
+    get timeLeft() { return timeLeft; },
+    // JS-computed layout snapshot in canvas px — drives the headless layout-fit test.
+    // topReserve MUST be >= KIT.layout.hudTop() (the "score box doesn't sit under the nav" check).
+    get layout() {
+      return { W, H, topReserve: topMargin,
+        playerLeft: player.x - PLAYER_SIZE / 2, playerRight: player.x + PLAYER_SIZE / 2,
+        playerTop: player.y - PLAYER_SIZE / 2, playerBottom: player.y + PLAYER_SIZE / 2,
+        target: { x: target.x, y: target.y, r: TARGET_R } };
+    },
+    start() { startGame(); },
+    setPlayer(x, y) { player.x = x; player.y = y; },
+    setTarget(x, y) { target.x = x; target.y = y; },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    best_(m) { return loadBest(m); },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+  };
+  // <!-- /__TEST -->
+  // ==================================================================================
+
+  resize();
+  updateHud();
+  KIT.loop(update, render);   // THE main loop — fixed-timestep, kit-pause built in
+  showStartMenu();
+})();
+  window.gamekit.pwa();       // SW registration + update policy — AFTER the IIFE closes
+</script>
+</body>
+</html>

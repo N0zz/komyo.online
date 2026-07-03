@@ -1,0 +1,39 @@
+{
+  "skill_name": "komyo-new-game",
+  "notes": "Concept-only prompts (play/look/feel, no framework jargon), spanning low-tuning genres the repo favors. Assertions are objective, checkable structural contracts — 'fun' is NOT auto-graded (human playtest owns that). Run with the skill vs a no-skill baseline per skill-creator; each run builds in an isolated worktree so parallel games don't collide.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "timing-bar-skillcheck",
+      "prompt": "I want a fast little game where a marker sweeps left-and-right across a bar and you tap to stop it inside a target zone. Nail it and the zone shrinks and it speeds up; miss and you lose a life. Neon arcade look, one-thumb on phone. Add it to the arcade.",
+      "expected_output": "A new games/<slug>/ (e.g. 'timing' or 'stopbar') with a working sweep-and-tap mechanic, start/pause/end menus, difficulty ramp (zone shrink + speed up), a lives system, HUD score/best, registered in games.js + challenges goodRun bar, all suites green.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "memory-sequence",
+      "prompt": "Can you make a Simon-style memory game? Four colored pads light up in a sequence, the player repeats it, each round adds one more step. Calm, friendly, cute — good for kids. Put it on komyo.",
+      "expected_output": "A new games/<slug>/ (e.g. 'echo' or 'sequence') with a grow-by-one sequence, playback vs input phases, distinct pad SFX, round/best HUD, start/pause/end menus, registered + goodRun bar, suites green.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "catcher-dodger",
+      "prompt": "A game where you slide a basket along the bottom to catch falling fruit for points but dodge the occasional bomb. Sunny cartoon vibe, speeds up over time, three lives. Add it as a new game.",
+      "expected_output": "A new games/<slug>/ (e.g. 'catch' or 'harvest') with a basket you move (pointer + keys + touch), falling good/bad items, scoring + lives, difficulty ramp, start/pause/end menus, registered + goodRun bar, suites green.",
+      "files": []
+    }
+  ],
+  "shared_assertions": [
+    "The game folder games/<slug>/ exists with index.html, test.mjs, sw.js, manifest.json, favicon.svg.",
+    "The game boots headless: bootGame() returns bootErr === null and __test is present.",
+    "node games/<slug>/test.mjs passes, including the runLayoutSuite (portrait/landscape/desktop, topReserve >= hudTop()).",
+    "node test.mjs (full catalogue suite) still passes — registration did not break the catalogue.",
+    "slug is byte-identical across the folder name, games.js entry, sw.js SCOPE, and the challenges.js goodRun key.",
+    "The end menu uses a record: block; the game never calls gamekit.recordResult directly.",
+    "A CHALLENGES.goodRun bar was added for the slug.",
+    "Exactly one attribute-less <script> exists, last before </body>; gamekit.pwa() is called after the IIFE.",
+    "__test.layout exposes topReserve; the game uses gamekit.loop (not a hand-rolled rAF/accumulator).",
+    "SND.define does not reuse a kit stinger name (levelup/lose/victory/newbest/gameover)."
+  ]
+}
