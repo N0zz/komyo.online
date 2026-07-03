@@ -33,8 +33,11 @@ export function makeSeededMath(seed) {
 }
 
 export function makeCtx2d(el) {
+  // gradients must return a stub with addColorStop — game code chains it unconditionally
+  const gradient = { addColorStop: () => {} };
+  const GRADS = new Set(['createLinearGradient', 'createRadialGradient', 'createConicGradient', 'createPattern']);
   return new Proxy({}, {
-    get: (_, p) => (p === 'canvas' ? (el || { width: 1280, height: 800 }) : () => {}),
+    get: (_, p) => (p === 'canvas' ? (el || { width: 1280, height: 800 }) : GRADS.has(p) ? (() => gradient) : () => {}),
     set: () => true,
   });
 }
