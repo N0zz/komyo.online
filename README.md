@@ -24,6 +24,10 @@ external assets — and gets a tile on the home page plus a top-left **‹ Menu*
 nav. Every game follows the same flow: **menu (pick a mode) → play → scoreboard (with share
 buttons)**. The home page groups tiles into **Single player** and **Multiplayer** sections.
 
+Cross-game, all on-device (no accounts, no server): **daily/weekly challenges** earn **trophies 🏆**,
+which unlock **titles** and buy **cosmetics** (per-game skins + site-wide cursors) in the 🎨 store — plus
+per-game best scores, a profile card, and optional consent-gated GA4 + a public Discord score post.
+
 ## Games
 
 | Game | Folder | About |
@@ -73,9 +77,9 @@ screen (its own icon, opens fullscreen, plays offline). Handy if you only want o
 ## Testing
 
 ```bash
-node test.mjs                  # catalogue wiring + Keep Defender logic + boots every live game
+node test.mjs                  # catalogue wiring + Keep Defender logic + kit + cosmetics + boots every live game
 node games/<slug>/test.mjs     # any single game's own suite (e.g. games/snake/test.mjs)
-node games/asteroids/test.mjs  # the asteroids launcher's suite
+node games/asteroids/test.mjs  # a single game's suite (Classic + Classic-Enhanced behind ?v=)
 ```
 
 Dependency-free headless harnesses (mock the DOM/canvas, drive each game via a
@@ -84,15 +88,16 @@ Dependency-free headless harnesses (mock the DOM/canvas, drive each game via a
 ## Layout
 
 ```text
-index.html        catalogue (tiles from games.js) + PWA install + share + feedback + newsletter
-games.js          catalogue manifest
-analytics.js      consent-gated GA4 loader
-game-kit.js      shared game shell (sound+mute, nav, share row, PWA auto-update)
-game-kit.css     shared shell styles
-favicon.svg       Komyo Games icon
+index.html        catalogue (tiles from games.js) + drawers/modals (profile, settings, challenges, shop) + PWA/share/feedback/newsletter
+games.js          catalogue manifest         challenges.js  daily/weekly goals + goodRun bars + titles
+cosmetics.js      cosmetics registry (skins + cursors)   changelog.js  player-facing releases
+analytics.js      consent-gated GA4 loader   version.js    build stamp (sha/date)
+game-kit.js      shared game shell (nav, menus, sound+music, loop, layout, challenges, cosmetics, best store, share, PWA)
+game-kit.css     shared shell styles         sw-core.js   shared service-worker engine (each sw.js imports it)
+favicon.svg       Komyo Games icon           plans/       public design docs/mocks
 manifest.json     PWA manifest      sw.js   service worker (offline)
 CNAME             custom domain (komyo.online)   .nojekyll   serve files as-is on GitHub Pages
-test.mjs          catalogue + Keep Defender harness
+test.mjs          catalogue + Keep Defender + kit + cosmetics harness   test-harness.mjs  the shared headless harness
 games/<slug>/     each game, standalone (index.html + test.mjs + manifest/sw/icons)
 ```
 
