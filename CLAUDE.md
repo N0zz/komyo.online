@@ -16,6 +16,8 @@ Game design knobs we honor (per-genre, distilled from external playbooks): @game
 index.html      catalogue (renders tiles from games.js) + drawers/modals (profile, settings, challenges…)
 games.js        catalogue manifest — window.GAMES = [{slug,title,blurb,icon,accent,tag,soon?,added?,updated?,mp?,players?,badges?}]
 challenges.js   window.CHALLENGES — daily/weekly goals + per-game goodRun bars + the titles ladder
+cosmetics.js    window.COSMETICS — the cosmetics registry (skins per game + site-wide cursors, painters,
+                prices in 🏆 trophies); loaded like challenges.js (catalogue AND games, in every SW SHELL)
 changelog.js    window.CHANGELOG — player-facing releases (drives the 🗒️ modal + the Discord post)
 analytics.js    GA4 loader, consent-gated (see "Analytics")
 version.js      build stamp {sha, built} — 'dev' locally, stamped by the Pages deploy workflow
@@ -89,7 +91,8 @@ silently, not loudly.
 ## Shared kit (`game-kit.js` + `game-kit.css` + `sw-core.js`)
 
 **The `<head>` unit is atomic** (NOT `defer`, so `window.gamekit` exists before the inline script),
-in this order: `analytics.js` · `game-kit.css` · `version.js` · `game-kit.js` · `challenges.js`.
+in this order: `analytics.js` · `game-kit.css` · `version.js` · `game-kit.js` · `challenges.js` ·
+`cosmetics.js`.
 The game's `sw.js` SHELL must list the SAME shared files in lockstep — a missing one silently kills
 that feature offline. Games alias the API once: `const KIT = window.gamekit;`.
 
@@ -138,10 +141,25 @@ that feature offline. Games alias the API once: `const KIT = window.gamekit;`.
   label the profile shows ("Classic", "Marsh · Hard"). `gamekit.recordResult` exists internally —
   games use the end menu's `record:`, never call it.
 - **Challenges (kit-owned logic, data in `challenges.js`):** `gamekit.challengeEval` (the ONE
-  evaluator — the catalogue routes through it), `gamekit.activeChallenge(slug)` (drives the 🏆
-  glow), `gamekit.challengesPanel(opts)` (the in-game 🏆 modal). `window.CHALLENGES` carries
-  goals + daily/weekly rotations, **`goodRun` per-game bars (every live game needs one or it
-  silently never earns good runs)**, the `titles` ladder, `randomSlug`.
+  evaluator — the catalogue routes through it), `gamekit.challengePick(kind[,day])` (the ONE hashed
+  same-for-everyone daily/weekly pick — drawer, in-game panel and tile badges all route through it,
+  never re-derive it), `gamekit.activeChallenge(slug)` (drives the 🏆 glow),
+  `gamekit.challengesPanel(opts)` (the in-game 🏆 modal). `window.CHALLENGES` carries goals +
+  daily/weekly rotations, **`goodRun` per-game bars (every live game needs one or it silently never
+  earns good runs)**, the `titles` ladder, `randomSlug`.
+- **Cosmetics / trophies (kit-owned, data in `cosmetics.js`):** challenge points are **trophies 🏆**
+  everywhere player-facing. TWO metrics: **lifetime** (Σ `gamekit_done`, drives titles) and the
+  **spendable balance** (lifetime − Σ owned costs, derived not stored). `gamekit.cosmetics` →
+  `lifetime()/balance()/owned(id)/buy(id)/selected(set)/select(set,id)/progress(game?)`; buying/selecting
+  live in `gamekit_owned` + `gamekit_cos_sel` (per-device, in Export/Import). `gamekit.shopPanel(opts)`
+  is the store modal (opts: `game` = scope to one game + site-wide cursors; `allGames`, `onTitles`,
+  `theme`); the **top-bar 🎨 button** (added by `nav()` when the registry is loaded) opens it scoped to
+  the current game. Games apply the selected skin in their own render (`const id =
+  KIT.cosmetics.selected('<game>.<set>')`) — do NOT add per-game STYLE grids to the start menu (the 🎨
+  modal owns selection/buying). **Good-run trophy trickle:** +5 🏆 per good run, capped 3/day
+  (`gamekit.goodRunBonus()` → `{count,cap,per}`; one `gr#YYYY-MM-DD` entry in `gamekit_done`); the end
+  menu's "✓ Good run" line is the receipt. **Titles are worn, not just earned:** the ladder's unlocked
+  ranks are tap-to-equip (`gamekit_title_sel`); a new higher tier auto-switches (`gamekit_title_adopted`).
 - `gamekit.shareRow(el, { slug, title, message })` — Native/X/Reddit/Copy; `message` is a fn → a
   standalone sentence (no url), evaluated at click time. `gamekit.scoreCard/profileCard/shareCard`
   render + share the neon card images; the Discord auto-post is consent-tiered
@@ -196,6 +214,10 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
    `<head>`).
 5. Add the game's **`CHALLENGES.goodRun` bar** (and, when it goes live, goal entries) in
    `challenges.js` — without the bar it never earns good runs.
+5b. **Cosmetics (optional but expected):** add the game's sets/items to `cosmetics.js`
+   (`<slug>.<set>.<key>`, free default at price 0, prices in the 🏆 bands), load `cosmetics.js` in the
+   `<head>` + `sw.js` SHELL (see the atomic head order), and read the selected skin in the game's render
+   (`KIT.cosmetics.selected('<slug>.<set>')`). The 🎨 button + store modal are automatic (kit-owned).
 6. Add an entry to `games.js` (`soon: true` = greyed "coming soon" tile). Set **`added: "YYYY-MM-DD"`**
    on a new game (drives the auto **NEW** badge for 7 days). **Whenever you ship a notable update to a
    game (new mode/feature — not every bugfix), bump that game's `updated: "YYYY-MM-DD"`** (drives the
