@@ -151,6 +151,18 @@ per game. Roughly easiest → hardest within each group.
 | **Icy Tower** 🧗 `PLATFORMER`+`ARCADE` | high | momentum + variable jump + wall-bounce + combos + rising floor |
 | **Pulse Dash** 🔺 `RHYTHM`+`REFLEX` | high | obstacles authored to a beat + generate/sync a track |
 
+Not yet tiles (ideas, added 2026-07-03):
+
+- **2048** 🔢 `PUZZLE`+`LOGIC` — trivial–low; the classic slide-and-merge grid (swipe/arrows, undo?,
+  board-size variants 3×3/5×5). Well-known rules = zero teaching cost; strong fit for the
+  low-tuning bias.
+- **More endless-racing lane** (beyond Pocket Rally) — e.g. an outrun-style pseudo-3D highway
+  runner (curves + hills, canvas raster trick), a motorbike lane-splitter (near-miss scoring), or
+  top-down drift/rally sprint. Pick 1–2 that feel most distinct from Pocket Rally.
+- **More puzzle/riddle lane** (beyond Sudoku/Floodgate/Blink) — nonogram/picross, minesweeper,
+  sokoban, sliding-15, tents-and-trees / logic-riddle packs, daily riddle ("one brain-teaser a
+  day" pairs with challenges/streaks). All solvable-by-construction per the design knobs.
+
 ### Kids-first (ages 6–10)
 
 Built *for* young kids: one-tap / big-target controls, no reading required, gentle/no fail-state,
