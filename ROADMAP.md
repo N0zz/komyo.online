@@ -47,13 +47,10 @@ audio splash + nav-fit guard, 2026-07-01. **Challenge-points titles** — 9 titl
 by lifetime points, full-width profile box with escalating shine tier 0→8, username shares the shine,
 `CHALLENGES.titles`/`titleFor()`, 🏆 CHALLENGE PTS, client-only cosmetic, 2026-07-01.)
 
-0. **Review fix sessions — `~/komyo-sessions-plan.md`** (added 2026-07-02). The full-repo review
-   (`~/komyo-review-2026-07.md`) produced 9 batched work sessions: P0/P1 bugfixes (asteroids+ reset
-   wipes Classic's bests, dead goodRuns challenges, 5 games frame-rate-dependent on 120 Hz, Discord
-   auto-post consent gate), framework hardening (kit absorption + CLAUDE.md refresh + shared test
-   harness), cleanup, and a final verification pass. Kickoff per session: *"get
-   ~/komyo-sessions-plan.md, start session N"*. **Sessions 3/5/6 gate #2 (the skill)**; sessions
-   1/2/7 gate a wider rollout; the rest are anytime.
+0. **Review fix sessions — ✅ DONE (2026-07-03).** All 10 sessions from `~/komyo-sessions-plan.md`
+   shipped and code-verified (session 9): P0/P1 bugfixes, framework hardening (kit absorption +
+   CLAUDE.md refresh + shared harness + dt-loop), Discord three-tier consent, cleanup, playtest
+   polish rounds, asteroids+ shop rework. **The skill gate (#3) is cleared.** Plan file = archive.
 1. **Translations / i18n — analysis + estimate (~2 days).** Non-English kids struggle with English game
    descriptions + UI, so multi-language support is a real reach lever. **Scope it before building:** target
    languages (a first few — PL + big EU/global?), architecture for a **no-build static site** (per-language
