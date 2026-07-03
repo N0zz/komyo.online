@@ -1793,7 +1793,7 @@
         body.innerHTML = html;
         startTitleFx();
         wireNameEdit();
-        shareData = { player: who, accent: accent, stats: [{ label: 'Games', value: p.gamesPlayed }, { label: 'Modes', value: p.modesPlayed }, { label: 'Plays', value: p.plays }, { label: 'Days', value: p.daysPlayed }], rows: rows };
+        shareData = { player: who, accent: accent, stats: [{ label: 'Games', value: p.gamesPlayed }, { label: 'Modes', value: p.modesPlayed }, { label: 'Plays', value: p.plays }, { label: 'Days', value: p.daysPlayed }], rows: rows, collection: cos };
         const sh = document.getElementById('pfShare');
         if (sh) sh.addEventListener('click', () => {
           if (sh.disabled) return;
