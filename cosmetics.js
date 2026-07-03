@@ -160,7 +160,7 @@
   }
   function bird(body, wing, glow) {
     return function (g, w, h) {
-      g.fillStyle = '#dff2fc'; g.fillRect(0, 0, w, h);
+      g.fillStyle = '#0e1622'; g.fillRect(0, 0, w, h);
       var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.26;
       if (glow) { g.shadowColor = glow; g.shadowBlur = r; }
       g.fillStyle = body; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
@@ -262,6 +262,7 @@
   add('asteroids-plus', 'hull', 'violet', 'Violet',    0,   'The roguelite’s signature hull.', ship('#b98cff'));
   add('asteroids-plus', 'hull', 'teal',   'Teal',      25,  'Cool-headed under fire.', ship('#2ee8c8'));
   add('asteroids-plus', 'hull', 'blood',  'Blood Red', 50,  'For pilots who never brake.', ship('#e0304a'));
+  add('asteroids-plus', 'hull', 'crt',    'CRT Green', 50,  'The whole run in green phosphor, like 1979.', ship('#3aff5a', '#041008'));
   add('asteroids-plus', 'hull', 'gold',   'Gold',      100, 'Won, not bought. Well… bought.', ship('#ffd166'));
   add('asteroids-plus', 'trail', 'ion',     'Ion',     0,   'A steady blue ion stream.', trail(['#4d9aff', '#9fe8ff']));
   add('asteroids-plus', 'trail', 'ember',   'Ember',   50,  'Sparks and embers in your wake.', trail(['#ff5a2a', '#ffd166']));

@@ -442,8 +442,7 @@ section('cosmetics — food skins');
   // FOOD group appears in the start menu when the registry is loaded (kit-owned select + buy)
   const g = runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }) } });
   ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
-  const menu = g.T().menu();
-  ok(menu && menu.selection()['snake.food'] === 'snake.food.apple', 'start menu carries the FOOD grid, defaulting to Apple');
+  ok(g.win.gamekit.cosmetics.selected('snake.food') === 'snake.food.apple', 'cosmetics food defaults to Apple in-game (picked via the 🎨 modal)');
   // every skin renders without throwing (owned via store, selected, then a few frames)
   const skins = ['apple', 'cherry', 'golden', 'gem', 'star', 'rainbow'];
   for (const key of skins) {

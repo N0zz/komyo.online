@@ -295,8 +295,6 @@
       : KIT.shareText({ score: score, game: 'Range', emoji: '🎯', mode: sessionSeconds + 's Timed', extra: [acc + '% accuracy', mv] });
   }
   let rangeLastMode = null;
-  // apply the menu's target/marker cosmetic selections to the shared store (buy-in-place already did)
-  function cosPick(st) { if (!KIT || !KIT.cosmetics) return; if (st['aim-trainer.target']) KIT.cosmetics.select('aim-trainer.target', st['aim-trainer.target']); if (st['aim-trainer.marker']) KIT.cosmetics.select('aim-trainer.marker', st['aim-trainer.marker']); }
   function showStartMenu(m) {
     m = m || selectedMode || 'timed'; selectedMode = m; rangeLastMode = m;
     state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
@@ -314,24 +312,17 @@
             preview: (g, w, h) => pvRange(g, w, h, 'reaction') },
         ] },
         { id: 'amount', label: m === 'sprint' ? 'TARGETS' : 'DURATION', default: m === 'sprint' ? String(SPRINT_TARGET) : String(sessionSeconds), choices: amounts },
-        // cosmetics: target + hit-marker pickers (kit-owned select + buy-in-place with trophies)
-        ...(KIT.cosmetics && window.COSMETICS ? [
-          KIT.cosmetics.menuGroup('aim-trainer.target', { label: 'TARGET' }),
-          KIT.cosmetics.menuGroup('aim-trainer.marker', { label: 'HIT MARKER' }),
-        ] : []),
       ],
       toggles: [{ id: 'moving', label: 'Moving targets', caption: 'they drift once you warm up', default: movingTargets }],
       actions: [{ id: 'play', label: 'READY UP', primary: true }],
       hint: st => st.mode === 'sprint' ? 'Hit the target count as fast as you can.' : 'Score as many hits as you can before time runs out.',
       onChange: st => {
-        cosPick(st);
         movingTargets = !!st.moving; saveMoving(movingTargets);
         if (st.mode !== rangeLastMode) { rangeLastMode = st.mode; if (st.mode === 'sprint') SPRINT_TARGET = 100; else sessionSeconds = DEFAULT_SESSION; showStartMenu(st.mode); return; }
         if (st.mode === 'sprint') SPRINT_TARGET = Number(st.amount) || 100; else sessionSeconds = Number(st.amount) || DEFAULT_SESSION;
         KIT.stampUrl(rangeParams());
       },
       onPlay: st => {
-        cosPick(st);
         mode = st.mode; movingTargets = !!st.moving; saveMoving(movingTargets);
         if (st.mode === 'sprint') SPRINT_TARGET = Number(st.amount) || 100; else sessionSeconds = Number(st.amount) || DEFAULT_SESSION;
         KIT.stampUrl(rangeParams()); startGame();

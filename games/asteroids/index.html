@@ -227,15 +227,13 @@
         { id:'enh', label:'CLASSIC+', tag:'UPGRADES', preview:pvEnh,
           mech: st => ['Endless','Weapon tiers', goalChip(st)],
           best: st => st.speedrun ? bestTime('classic-enhanced') : bestScore('classic-enhanced') },
-      ]},
-      // cosmetics: ship-colour picker (kit-owned select + buy-in-place with challenge trophies)
-      ...(KIT.cosmetics && window.COSMETICS ? [KIT.cosmetics.menuGroup('asteroids.ship', { label: 'SHIP' })] : []) ],
+      ]} ],
       toggles:[ { id:'speedrun', label:'SPEEDRUN', caption:'— race to '+SR_TARGET_SCORE+' pts against the clock', default: SPEEDRUN } ],
       hint: st => st.speedrun ? ('Speedrun — reach ' + SR_TARGET_SCORE + ' points as fast as you can.')
         : (st.mode==='enh' ? 'Classic+ — endless; score to upgrade your weapon.' : 'Classic — endless; rack up the highest score.'),
       actions:[ {id:'play',label:'PLAY ▶',primary:true} ],
-      onChange: st => { if(st['asteroids.ship'] && KIT.cosmetics) KIT.cosmetics.select('asteroids.ship', st['asteroids.ship']); KIT.stampUrl(modeParams(st)); }, // live: the address bar reflects your picks → shareable link
-      onPlay: st => { if(st['asteroids.ship'] && KIT.cosmetics) KIT.cosmetics.select('asteroids.ship', st['asteroids.ship']); applyMode(st.mode==='enh'?'enh':'classic', !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
+      onChange: st => { KIT.stampUrl(modeParams(st)); }, // live: the address bar reflects your picks → shareable link
+      onPlay: st => { applyMode(st.mode==='enh'?'enh':'classic', !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
     });
     KIT.stampUrl(modeParams({ mode: ENHANCED?'enh':'classic', speedrun: SPEEDRUN })); // reflect the opening selection
   }

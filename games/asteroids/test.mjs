@@ -150,8 +150,7 @@ section('cosmetics — ship skins');
   });
   const g = runCos();
   ok(g.errors.length === 0, 'boots with cosmetics loaded: ' + g.errors[0]);
-  const menu = g.test().menu();
-  ok(menu && menu.selection()['asteroids.ship'] === 'asteroids.ship.cyan', 'start menu carries the SHIP grid, default cyan');
+  ok(g.win.gamekit.cosmetics.selected('asteroids.ship') === 'asteroids.ship.cyan', 'cosmetics ship defaults to cyan in-game (picked via the 🎨 modal)');
   // each ship colour (incl. the whole-game CRT tint) renders a run without error
   for (const key of ['cyan', 'emerald', 'crimson', 'violet', 'crt', 'gold']) {
     const id = 'asteroids.ship.' + key;

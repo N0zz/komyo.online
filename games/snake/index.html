@@ -388,13 +388,11 @@
         ] },
         { id: 'speed', label: 'SPEED', style: 'slider', default: opts.speed, choices: [ { id: 'slow', label: 'Slow' }, { id: 'normal', label: 'Normal' }, { id: 'fast', label: 'Fast' } ] },
         { id: 'size', label: 'BOARD', default: opts.size, choices: [ { id: 'small', label: 'Small' }, { id: 'medium', label: 'Medium' }, { id: 'large', label: 'Large' } ] },
-        // cosmetics: food-skin picker (kit-owned select + buy-in-place with challenge trophies)
-        ...(KIT.cosmetics && window.COSMETICS ? [KIT.cosmetics.menuGroup('snake.food', { label: 'FOOD' })] : []),
       ],
       actions: [{ id: 'play', label: 'PLAY', primary: true }],
       hint: () => 'Arrows / WASD · swipe · on-screen D-pad on phones.',
-      onChange: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); best = loadBest(); if (bestEl) bestEl.textContent = best; if (st['snake.food'] && KIT.cosmetics) KIT.cosmetics.select('snake.food', st['snake.food']); KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); },
-      onPlay: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); if (st['snake.food'] && KIT.cosmetics) KIT.cosmetics.select('snake.food', st['snake.food']); KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); startGame(); },
+      onChange: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); best = loadBest(); if (bestEl) bestEl.textContent = best; KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); },
+      onPlay: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); startGame(); },
     });
     KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size });
   }

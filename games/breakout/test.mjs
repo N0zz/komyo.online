@@ -344,9 +344,8 @@ section('cosmetics — paddle & ball skins');
 {
   const g = runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }) } });
   ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
-  const menu = g.T().menu();
-  ok(menu && menu.selection()['breakout.paddle'] === 'breakout.paddle.synthwave' && menu.selection()['breakout.ball'] === 'breakout.ball.neon',
-    'start menu carries PADDLE + BALL grids with the free defaults');
+  ok(g.win.gamekit.cosmetics.selected('breakout.paddle') === 'breakout.paddle.synthwave' && g.win.gamekit.cosmetics.selected('breakout.ball') === 'breakout.ball.neon',
+    'cosmetics paddle+ball default in-game (picked via the 🎨 modal)');
   // every skin combo renders without throwing
   const paddles = ['synthwave', 'wood', 'ice', 'lava', 'chrome'], ballsS = ['neon', 'eight', 'comet', 'disco', 'plasma'];
   for (let i = 0; i < Math.max(paddles.length, ballsS.length); i++) {

@@ -374,8 +374,7 @@ function run() {
     const runCos = (store) => runGame({ preCode: [CHALLENGES, COSMETICS], store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1', gamekit_done: JSON.stringify({ a: 100 }), ...(store || {}) } });
     const g = runCos();
     ok(g.bootErr === null, 'boots with cosmetics loaded: ' + g.bootErr);
-    const menu = g.test().menu();
-    ok(menu && menu.selection()['tower-defense.castle'] === 'tower-defense.castle.stone', 'start menu carries the CASTLE grid, default stone');
+    ok(g.win.gamekit.cosmetics.selected('tower-defense.castle') === 'tower-defense.castle.stone', 'cosmetics castle defaults to stone in-game (picked via the 🎨 modal)');
     // each castle skin renders (start-menu keep preview + in-game keep) without error
     for (const key of ['stone', 'oak', 'sand', 'ice', 'obsidian']) {
       const id = 'tower-defense.castle.' + key;

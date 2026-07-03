@@ -527,13 +527,11 @@
         { id: 'map', label: 'MAP', style: 'popup', pickerTitle: 'CHOOSE A MAP', default: String(mapIndex),
           choices: MAPS.map((m, i) => ({ id: String(i), label: m.name, desc: m.desc, best: st => getMapBest(i, st.diff).score, pvW: 210, pvH: 110, preview: (g, w, h) => menuMapRender(g, w, h, m) })) },
         { id: 'diff', label: 'DIFFICULTY', style: 'slider', default: diffLevel, choices: [ { id: 'easy', label: 'Easy' }, { id: 'medium', label: 'Medium' }, { id: 'hard', label: 'Hard' } ] },
-        // cosmetics: castle-skin picker (kit-owned select + buy-in-place with challenge trophies)
-        ...(KIT.cosmetics && window.COSMETICS ? [KIT.cosmetics.menuGroup('tower-defense.castle', { label: 'CASTLE' })] : []),
       ],
       actions: [{ id: 'play', label: 'Defend', primary: true }],
       hint: () => 'Build towers on grass · tap a tower to upgrade, sell or set targeting.',
-      onChange: st => { const mi = parseInt(st.map, 10) || 0; if (mi !== mapIndex) { applyMap(mi); loadBest(); } setDiff(st.diff); if (st['tower-defense.castle'] && KIT.cosmetics) KIT.cosmetics.select('tower-defense.castle', st['tower-defense.castle']); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); },
-      onPlay: st => { const mi = parseInt(st.map, 10) || 0; applyMap(mi); loadBest(); setDiff(st.diff); if (st['tower-defense.castle'] && KIT.cosmetics) KIT.cosmetics.select('tower-defense.castle', st['tower-defense.castle']); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); startGame(); },
+      onChange: st => { const mi = parseInt(st.map, 10) || 0; if (mi !== mapIndex) { applyMap(mi); loadBest(); } setDiff(st.diff); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); },
+      onPlay: st => { const mi = parseInt(st.map, 10) || 0; applyMap(mi); loadBest(); setDiff(st.diff); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); startGame(); },
     });
     KIT.stampUrl({ map: mapIndex, diff: diffLevel });
   }

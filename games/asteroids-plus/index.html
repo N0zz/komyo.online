@@ -396,8 +396,6 @@
   function quitToMenu(){ if(!SPEEDRUN && KIT && (state==='playing'||state==='paused'||state==='levelup'||state==='shop')){ KIT.saveBest('asteroids-plus', progLabel(PROGRESSION, false), { score: score, stats: { wave: wave } }); } SND.stopMusic(); if(KIT) KIT.menu.hide(); showStartMenu(); }
   // unified start menu (mode picker) — kit-rendered, themed, one screen. Play applies the mode + starts
   // in-place (no reload); the address bar reflects the picks so refresh/share reopen the same mode.
-  // apply the menu's hull/trail selections to the shared cosmetics store (buy-in-place already did)
-  function cosPick(st){ if(!KIT || !KIT.cosmetics) return; if(st['asteroids-plus.hull']) KIT.cosmetics.select('asteroids-plus.hull', st['asteroids-plus.hull']); if(st['asteroids-plus.trail']) KIT.cosmetics.select('asteroids-plus.trail', st['asteroids-plus.trail']); }
   function showStartMenu(){
     state='menu'; SND.startMusic(); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); } overlay.classList.add('hidden');
     if(!KIT) return;
@@ -417,19 +415,13 @@
         { id:'shop', label:'WAVE SHOP', tag:'CREDITS', preview:pvShop,
           mech: st => ['Earn credits','Buy between waves', goalChip(st)],
           best: st => st.speedrun ? bestTime('shop') : bestScore('shop') },
-      ]},
-      // cosmetics: permanent hull + engine-trail skins (challenge trophies — SEPARATE from the
-      // per-run ◈ credits/Drydock). kit menuGroup = select + buy-in-place.
-      ...(KIT.cosmetics && window.COSMETICS ? [
-        KIT.cosmetics.menuGroup('asteroids-plus.hull', { label:'HULL' }),
-        KIT.cosmetics.menuGroup('asteroids-plus.trail', { label:'ENGINE TRAIL' }),
-      ] : []) ],
+      ]} ],
       toggles:[ { id:'speedrun', label:'SPEEDRUN', caption:'— clear wave '+SR_TARGET_WAVE+' (first boss) against the clock', default: SPEEDRUN } ],
       hint: st => st.speedrun ? ('Speedrun — clear wave '+SR_TARGET_WAVE+' as fast as you can.')
         : ({ levelup:'Level-up — collect gems, level up, choose upgrades.', milestones:'Milestones — cross score thresholds to pick upgrades.', shop:'Wave shop — earn credits and spend them between waves.' }[st.mode] || 'Pick how you power up.'),
       actions:[ {id:'play',label:'PLAY ▶',primary:true} ],
-      onChange: st => { cosPick(st); KIT.stampUrl(modeParams(st)); },
-      onPlay: st => { cosPick(st); applyProgression(st.mode, !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
+      onChange: st => { KIT.stampUrl(modeParams(st)); },
+      onPlay: st => { applyProgression(st.mode, !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
     });
     KIT.stampUrl(modeParams({ mode: PROGRESSION, speedrun: SPEEDRUN }));
   }
@@ -787,8 +779,10 @@
     'asteroids-plus.hull.teal':   { stroke:'#7ff0dc', glow:'46,232,200' },
     'asteroids-plus.hull.blood':  { stroke:'#ff8a94', glow:'224,48,74' },
     'asteroids-plus.hull.gold':   { stroke:'#ffe08a', glow:'255,209,102' },
+    'asteroids-plus.hull.crt':    { stroke:'#8dff9e', glow:'58,255,90', crt:true }, // whole-game green phosphor
   };
   function hullSkin(){ const id=(KIT&&KIT.cosmetics)?KIT.cosmetics.selected('asteroids-plus.hull'):null; return HULL_SKINS[id]||HULL_SKINS['asteroids-plus.hull.violet']; }
+  function isCRT(){ return !!hullSkin().crt; }
   const TRAIL_RAINBOW = ['255,91,91','255,209,102','127,224,160','127,208,255','185,140,255'];
   function trailParticleColor(){
     const id=(KIT&&KIT.cosmetics)?KIT.cosmetics.selected('asteroids-plus.trail'):null;
@@ -842,7 +836,12 @@
     for(let i=list.length-1;i>=0;i--){ const u=list[i]; ctx.fillStyle=u.expiresIn<=2?'rgba(255,150,120,0.95)':'rgba(180,210,255,0.7)';
       ctx.fillText(UP_NAMES[u.id]+' ×'+u.lv+'  '+u.expiresIn+'w', x, y); y-=14*SCALE; }
     ctx.restore(); ctx.textAlign='start'; ctx.textBaseline='alphabetic'; }
-  function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawNovas(); drawBlasts(); drawGems(); drawPickups(); drawAsteroids(); drawHunters(); drawSentries(); drawKamikazes(); drawBoss(); drawDrones(); drawBullets(); drawShip(); drawUpgrades(); ctx.shadowBlur=0; }
+  // CRT hull skin: a whole-game green-phosphor pass — multiply the frame toward green, then faint
+  // scanlines + a green wash. One post-pass (cheap) instead of recolouring every enemy draw.
+  function drawCRT(){ ctx.save(); ctx.globalCompositeOperation='multiply'; ctx.fillStyle='#2bff5a'; ctx.fillRect(0,0,W,H);
+    ctx.globalCompositeOperation='source-over'; ctx.globalAlpha=0.10; ctx.fillStyle='#000'; for(let y=0;y<H;y+=3) ctx.fillRect(0,y,W,1);
+    ctx.globalAlpha=0.05; ctx.fillStyle='#0fff40'; ctx.fillRect(0,0,W,H); ctx.restore(); }
+  function render(){ ctx.clearRect(0,0,W,H); ctx.shadowBlur=0; drawStars(); drawParticles(); drawNovas(); drawBlasts(); drawGems(); drawPickups(); drawAsteroids(); drawHunters(); drawSentries(); drawKamikazes(); drawBoss(); drawDrones(); drawBullets(); drawShip(); drawUpgrades(); ctx.shadowBlur=0; if(isCRT()) drawCRT(); }
 
   const STEP_MS = 1000/60; let _accT = 0, _lastT = now();
   function loop(){ requestAnimationFrame(loop); try { let _t=now(), _el=_t-_lastT; _lastT=_t; if(window.gamekit&&window.gamekit.isPaused&&window.gamekit.isPaused()){ srPrev=_t; render(); return; } if(_el>250) _el=250; _accT+=_el; let _g=0; while(_accT>=STEP_MS && _g<5){ update(); _accT-=STEP_MS; _g++; } render(); } catch(e){ if(window.console) console.error(e); } }
