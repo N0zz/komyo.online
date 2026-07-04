@@ -114,8 +114,11 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   any path an assert checks).
 - **`CHALLENGES.goodRun` bar exists** for the game.
 - **Atomic `<head>` order** (analytics.js · game-kit.css · version.js · game-kit.js
-  · challenges.js · cosmetics.js) AND the `sw.js` `SHELL` lists the same shared
-  files in lockstep.
+  · challenges.js · cosmetics.js · i18n.js) AND the `sw.js` `SHELL` lists the same
+  shared files in lockstep.
+- **All player-facing strings go through `KIT.t(key, { def: 'English' })`** — no raw
+  English literals in the UI (menus, share, controls, HUD labels). `game.<slug>.*` for
+  game-specific, `game.common.*` for shared. See `references/i18n.md`.
 - **Exactly one attribute-less `<script>`**, last before `</body>` (the test
   harness extracts it); `gamekit.pwa()` is called after the IIFE closes.
 - **Headless-safe** — guard `AudioContext`, `navigator.vibrate`, `matchMedia`; the
@@ -135,10 +138,9 @@ frame-rate-dependent game, a reset that wipes another game). The generated
 - `references/audio.md` — SFX voice recipes + music theme keys.
 - `references/genres.md` — genre → mechanic starter map + the repo's genre bias;
   points to `~/arcade/game-design-knobs.md`.
-- `references/i18n.md` — string handling. **Today: emit English-inline strings**,
-  written so they're trivially keyable later. When the i18n system ships
-  (`~/arcade/plans/i18n-plan.md`) this switches to `KIT.t(...)` — read this file to
-  see the plan.
+- `references/i18n.md` — string handling. **i18n is live: emit `KIT.t(key, {def})` for
+  every player-facing string** (`def:` is the English source, so it works with no
+  `i18n.js` edit). Read at stage 4 (MVP) so strings are keyed as you write them.
 
 ## Templates & scripts
 

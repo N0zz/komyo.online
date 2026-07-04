@@ -186,7 +186,7 @@ Real breakout SHELL (copy verbatim, swap nothing but keep the relative paths):
 // floodgate — installable PWA + offline via the shared sw-core (stale-while-revalidate).
 self.SCOPE = 'floodgate';
 self.VERSION = 'dev'; // stamped with the commit SHA at deploy
-self.SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../analytics.js','../../game-kit.js','../../game-kit.css','../../challenges.js','../../cosmetics.js','../../version.js'];
+self.SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../analytics.js','../../game-kit.js','../../game-kit.css','../../challenges.js','../../cosmetics.js','../../i18n.js','../../version.js'];
 importScripts('../../sw-core.js');
 ```
 

@@ -13,13 +13,14 @@
 <meta name="apple-mobile-web-app-title" content="{{TITLE}}">
 <link rel="apple-touch-icon" href="icon-192.png">
 <!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
-     exist before the inline IIFE runs). The sw.js SHELL must list these same six files. -->
+     exist before the inline IIFE runs). The sw.js SHELL must list these same files. -->
 <script src="../../analytics.js" defer></script>
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; height: 100%; overflow: hidden; background: #0a0a12; color: #fff;
@@ -33,9 +34,9 @@
 <body>
 <canvas id="game"></canvas>
 <div id="hud" class="gamekit-hud">
-  <div class="stat"><span class="lbl">SCORE</span><span class="val" id="scoreEl">0</span></div>
-  <div class="stat"><span class="lbl">BEST</span><span class="val" id="bestEl">0</span></div>
-  <div class="stat"><span class="lbl">TIME</span><span class="val" id="timeEl">30</span></div>
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblTime">TIME</span><span class="val" id="timeEl">30</span></div>
 </div>
 <script>
 (() => {
@@ -162,29 +163,29 @@
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: '{{TITLE}}'.toUpperCase(),
-      actions: [{ id: 'play', label: 'Play', primary: true }],
-      hint: () => 'Move into the dot to score. 30 seconds on the clock.',
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.{{SLUG}}.menuTitle', { def: '{{TITLE}}' }).toUpperCase(),
+      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'Play' }), primary: true }],
+      hint: () => KIT.t('game.{{SLUG}}.startHint', { def: 'Move into the dot to score. 30 seconds on the clock.' }),
       onPlay: () => startGame(),
     });
   }
 
-  function shareMsg() { return KIT.shareText({ score: score, game: '{{TITLE}}', emoji: '{{ICON}}', mode: MODE_LABEL }); }
+  function shareMsg() { return KIT.shareText({ score: score, game: KIT.t('game.{{SLUG}}.title', { def: '{{TITLE}}' }), emoji: '{{ICON}}', mode: MODE_LABEL }); }
 
   function showEnd(isBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER',
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.common.gameOver', { def: 'GAME OVER' }),
       record: { slug: SLUG, mode: MODE_LABEL, score: score },
       score: score, best: best, newBest: isBest,
-      share: { slug: SLUG, accent: '{{ACCENT}}', icon: '{{ICON}}', title: '{{TITLE}}', message: () => shareMsg() },
-      actions: [ { id: 'again', label: 'Play Again', primary: true }, { id: 'menu', label: 'Menu' } ],
+      share: { slug: SLUG, accent: '{{ACCENT}}', icon: '{{ICON}}', title: KIT.t('game.{{SLUG}}.title', { def: '{{TITLE}}' }), message: () => shareMsg() },
+      actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'Play Again' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'Menu' }) } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
   }
 
   function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
-    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED', lines: ['Score ' + score],
-      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }), lines: [KIT.t('game.common.scoreLine', { score: score, def: 'Score {score}' })],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
   }
   function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
@@ -222,10 +223,10 @@
   KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
-    controls: { title: '{{TITLE}} — Controls',
-      mouse: [ ['Move', 'Guide the square'] ],
-      keyboard: [ ['Arrows · WASD', 'Move'], ['Esc', 'Pause'] ],
-      touch: [ ['Drag', 'Move the square'] ] } });
+    controls: { title: KIT.t('game.{{SLUG}}.controlsTitle', { def: '{{TITLE}} — Controls' }),
+      mouse: [ [KIT.t('game.common.move', { def: 'Move' }), KIT.t('game.{{SLUG}}.ctrlGuide', { def: 'Guide the square' })] ],
+      keyboard: [ ['Arrows · WASD', KIT.t('game.common.move', { def: 'Move' })], ['Esc', KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.common.drag', { def: 'Drag' }), KIT.t('game.{{SLUG}}.ctrlDragMove', { def: 'Move the square' })] ] } });
   KIT.music.play('{{THEME_KEY}}');
   // <!-- /CONTROLS -->
   // ==================================================================================
@@ -256,6 +257,9 @@
   // ==================================================================================
 
   resize();
+  // one-time HUD labels via KIT.t (English via def:; a locale that defines the key gets translated)
+  if (KIT) { const L = { lblScore: ['game.common.score', 'SCORE'], lblBest: ['game.common.best', 'BEST'], lblTime: ['game.common.time', 'TIME'] };
+    for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); } }
   updateHud();
   KIT.loop(update, render);   // THE main loop — fixed-timestep, kit-pause built in
   showStartMenu();
