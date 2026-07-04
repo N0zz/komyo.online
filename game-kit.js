@@ -736,7 +736,13 @@
       var el = document.createElement('div'); el.className = 'gamekit-term-cursor'; el.setAttribute('aria-hidden', 'true');
       el.style.background = col; el.style.boxShadow = '0 0 8px ' + col;
       document.body.appendChild(el);
-      var move = function (e) { if (!e) return; el.style.left = e.clientX + 'px'; el.style.top = e.clientY + 'px'; };
+      var move = function (e) {
+        if (!e) return;
+        el.style.left = e.clientX + 'px'; el.style.top = e.clientY + 'px';
+        // over a game canvas (which draws its own cursor / hides the pointer) don't show the block too
+        var over = null; try { over = document.elementFromPoint(e.clientX, e.clientY); } catch (x) {}
+        el.style.display = (over && over.tagName === 'CANVAS') ? 'none' : '';
+      };
       document.addEventListener('pointermove', move, { passive: true });
       _termCur = { el: el, move: move };
     } catch (e) { stopTermCursor(); }
@@ -795,9 +801,10 @@
       } catch (e) {}
       var val = 'url(' + cv.toDataURL('image/png') + ') ' + tw.hot[0] + ' ' + tw.hot[1] + ', auto';
       document.documentElement.style.cursor = val;
-      // override element-level cursors (buttons/links) so the skin never flips back on hover;
-      // text fields keep their I-beam so typing still reads right
-      setCursorRule('html, html * { cursor: ' + val + ' !important; } input, textarea, [contenteditable] { cursor: text !important; }');
+      // override element-level cursors (buttons/links) so the skin never flips back on hover; text fields
+      // keep their I-beam. EXCLUDE <canvas> so a game that hides the pointer (aim-trainer's #game{cursor:none})
+      // still wins — a plain canvas with no rule inherits the skin, so those keep it.
+      setCursorRule('html, html *:not(canvas) { cursor: ' + val + ' !important; } input, textarea, [contenteditable] { cursor: text !important; }');
       if (key === 'comet' || key === 'rainbow') startCursorTrail(key); else stopCursorTrail();
     } catch (e) {}
   }
