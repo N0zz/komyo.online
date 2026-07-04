@@ -730,34 +730,34 @@
 
   <aside class="drawer left" id="menuDrawer" aria-hidden="true" aria-label="Menu">
     <div class="dresize" title="Drag to resize"></div>
-    <div class="dh"><span class="dt">☰ Komyo Games</span><button class="dx" data-close aria-label="Close menu">✕</button></div>
+    <div class="dh"><span class="dt" data-t="drawer.menuTitle">☰ Komyo Games</span><button class="dx" data-close aria-label="Close menu" data-ta="drawer.closeMenu">✕</button></div>
     <div class="dscroll">
-      <button class="idcard" id="profileBtn" type="button" aria-label="My profile"></button>
+      <button class="idcard" id="profileBtn" type="button" aria-label="My profile" data-ta="drawer.myProfile"></button>
       <div class="dgrp">
-        <div class="dl">Connect</div>
-        <button class="ditem" id="feedback" type="button"><span class="di">💬</span> Feedback</button>
-        <button class="ditem" id="newsletter" type="button"><span class="di">📬</span> Newsletter</button>
+        <div class="dl" data-t="drawer.connect">Connect</div>
+        <button class="ditem" id="feedback" type="button"><span class="di">💬</span> <span data-t="drawer.feedback">Feedback</span></button>
+        <button class="ditem" id="newsletter" type="button"><span class="di">📬</span> <span data-t="drawer.newsletter">Newsletter</span></button>
         <a class="ditem" href="https://discord.gg/hz2fhpD5sz" target="_blank" rel="noopener"><span class="di"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3.2a.074.074 0 0 0-.079.037c-.34.6-.71 1.39-.97 2.01a18.3 18.3 0 0 0-5.02 0 12.6 12.6 0 0 0-.98-2.01.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C1.533 8.02.943 11.58 1.51 15.09a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.371-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.009c.12.099.245.198.372.292a.077.077 0 0 1-.006.127c-.598.349-1.225.645-1.873.892a.076.076 0 0 0-.04.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-4.06-.838-7.59-3.549-10.695a.06.06 0 0 0-.031-.028zM8.02 12.95c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg></span> Discord</a>
-        <button class="ditem" id="embedBtn" type="button"><span class="di">🔗</span> Embed a game</button>
+        <button class="ditem" id="embedBtn" type="button"><span class="di">🔗</span> <span data-t="drawer.embed">Embed a game</span></button>
       </div>
       <div class="dgrp">
-        <div class="dl">About</div>
-        <button class="ditem" id="aboutBtn" type="button"><span class="di"><img src="favicon.svg" alt="" class="di-img"></span> About Komyo Games</button>
-        <button class="ditem" id="faqBtn" type="button"><span class="di">❓</span> FAQ</button>
-        <button class="ditem" id="changelogBtn" type="button"><span class="di">🗒️</span> Changelog</button>
-        <button class="ditem" id="legalBtn" type="button"><span class="di">⚖️</span> Legal</button>
+        <div class="dl" data-t="drawer.about">About</div>
+        <button class="ditem" id="aboutBtn" type="button"><span class="di"><img src="favicon.svg" alt="" class="di-img"></span> <span data-t="drawer.aboutKomyo">About Komyo Games</span></button>
+        <button class="ditem" id="faqBtn" type="button"><span class="di">❓</span> <span data-t="drawer.faq">FAQ</span></button>
+        <button class="ditem" id="changelogBtn" type="button"><span class="di">🗒️</span> <span data-t="drawer.changelog">Changelog</span></button>
+        <button class="ditem" id="legalBtn" type="button"><span class="di">⚖️</span> <span data-t="drawer.legal">Legal</span></button>
       </div>
       <div class="dgrp">
-        <div class="dl">Settings</div>
-        <button class="ditem" id="settingsBtn" type="button"><span class="di">⚙️</span> Settings</button>
+        <div class="dl" data-t="drawer.settingsGroup">Settings</div>
+        <button class="ditem" id="settingsBtn" type="button"><span class="di">⚙️</span> <span data-t="drawer.settings">Settings</span></button>
       </div>
       <div class="dgrp">
-        <div class="dl">Support</div>
-        <a class="ditem coffee" href="https://buymeacoffee.com/komyo.online" target="_blank" rel="noopener"><span class="di">☕</span> Buy me a coffee</a>
-        <button class="ditem" id="merchBtn" type="button"><span class="di">🛍️</span> Merch / Store <span class="mock">SOON</span></button>
+        <div class="dl" data-t="drawer.support">Support</div>
+        <a class="ditem coffee" href="https://buymeacoffee.com/komyo.online" target="_blank" rel="noopener"><span class="di">☕</span> <span data-t="drawer.coffee">Buy me a coffee</span></a>
+        <button class="ditem" id="merchBtn" type="button"><span class="di">🛍️</span> <span data-t="drawer.merch">Merch / Store</span> <span class="mock">SOON</span></button>
       </div>
       <div class="dgrp dbottom">
-        <div class="dl">Share</div>
+        <div class="dl" data-t="cat.share">Share</div>
         <div class="share dshare">
           <a class="sbtn" id="dShareNative" href="#" style="display:none" aria-label="Share…" title="Share…"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></a>
           <a class="sbtn" id="dShareX" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
@@ -772,7 +772,7 @@
 
   <aside class="drawer right" id="chalDrawer" aria-hidden="true" aria-label="Challenges">
     <div class="dresize" title="Drag to resize"></div>
-    <div class="dh"><span class="dt">🏆 Challenges</span><button class="dx" data-close aria-label="Close challenges">✕</button></div>
+    <div class="dh"><span class="dt" data-t="drawer.challenges">🏆 Challenges</span><button class="dx" data-close aria-label="Close challenges" data-ta="drawer.closeChal">✕</button></div>
     <div class="dscroll">
       <div class="cpills">
         <button class="streak" id="chalStreak" type="button" title="What do trophies get you?">🏆 0 trophies</button>
@@ -780,134 +780,134 @@
       </div>
       <div class="ccollect" id="chalCollect" hidden><div class="cbar"><i></i></div><span class="cbar-txt"></span></div>
       <div class="cbonus" id="chalBonus" hidden></div>
-      <div class="csec">Today</div>
+      <div class="csec" data-t="challenges.today">Today</div>
       <div id="chalToday"></div>
-      <div class="csec">This week</div>
+      <div class="csec" data-t="challenges.thisWeek">This week</div>
       <div id="chalWeek"></div>
-      <div class="csec">History</div>
+      <div class="csec" data-t="drawer.history">History</div>
       <div id="chalHistory" class="chist-list"></div>
-      <div id="chalEmpty" class="chist-empty" hidden>Complete a challenge and it'll show up here.</div>
-      <button id="chalMore" class="chist-more" type="button" hidden>Load more</button>
-      <div class="cmock">Saved on this device — no accounts, no leaderboards. Just for fun.</div>
+      <div id="chalEmpty" class="chist-empty" hidden data-t="drawer.chalEmpty">Complete a challenge and it'll show up here.</div>
+      <button id="chalMore" class="chist-more" type="button" hidden data-t="drawer.loadMore">Load more</button>
+      <div class="cmock" data-t="drawer.cmock">Saved on this device — no accounts, no leaderboards. Just for fun.</div>
     </div>
   </aside>
 
   <dialog id="fbModal">
     <form class="fb-form" id="fbForm">
-      <h3>💬 Send feedback</h3>
-      <p class="fb-intro">Found a bug or have an idea? Tell me — no account needed.</p>
+      <h3 data-t="fb.title">💬 Send feedback</h3>
+      <p class="fb-intro" data-t="fb.intro">Found a bug or have an idea? Tell me — no account needed.</p>
       <input type="hidden" name="access_key" value="e12aa151-b0f2-4d04-8320-9f2ebaedc51b">
       <input type="hidden" name="subject" value="Komyo Games feedback">
       <input type="hidden" name="from_name" value="Komyo Games">
       <input type="hidden" name="page" id="fbPage" value="">
       <input type="checkbox" name="botcheck" style="display:none !important" tabindex="-1" autocomplete="off" aria-hidden="true">
       <div>
-        <label for="fbName">Name</label>
+        <label for="fbName" data-t="fb.name">Name</label>
         <input id="fbName" type="text" name="name" required>
       </div>
       <div>
-        <label for="fbEmail">Email <span style="text-transform:none;color:var(--faint)">(optional)</span></label>
+        <label for="fbEmail" data-th="fb.emailLabel">Email <span style="text-transform:none;color:var(--faint)">(optional)</span></label>
         <input id="fbEmail" type="email" name="email">
       </div>
       <div>
-        <label for="fbMsg">Message</label>
-        <textarea id="fbMsg" name="message" required placeholder="What worked? What broke? What would you change?"></textarea>
+        <label for="fbMsg" data-t="fb.message">Message</label>
+        <textarea id="fbMsg" name="message" required placeholder="What worked? What broke? What would you change?" data-tp="fb.msgPh"></textarea>
       </div>
       <div class="fb-status" id="fbStatus" role="status" aria-live="polite"></div>
       <div class="fb-actions">
-        <button type="button" class="fb-cancel" id="fbCancel">Cancel</button>
-        <button type="submit" class="fb-submit" id="fbSubmit">Send ▸</button>
+        <button type="button" class="fb-cancel" id="fbCancel" data-t="fb.cancel">Cancel</button>
+        <button type="submit" class="fb-submit" id="fbSubmit" data-t="fb.send">Send ▸</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="nlModal">
     <form class="fb-form" id="nlForm">
-      <h3>📬 Subscribe</h3>
-      <p class="fb-intro">Get an email when a new game ships or something gets fixed. No spam, unsubscribe anytime.</p>
+      <h3 data-t="nl.title">📬 Subscribe</h3>
+      <p class="fb-intro" data-t="nl.intro">Get an email when a new game ships or something gets fixed. No spam, unsubscribe anytime.</p>
       <input type="text" id="nlHp" name="nl_hp" style="display:none !important" tabindex="-1" autocomplete="off" aria-hidden="true">
       <div>
-        <label for="nlEmail">Email</label>
-        <input id="nlEmail" type="email" name="email_address" required placeholder="you@example.com">
+        <label for="nlEmail" data-t="nl.email">Email</label>
+        <input id="nlEmail" type="email" name="email_address" required placeholder="you@example.com" data-tp="nl.emailPh">
       </div>
       <div class="fb-status" id="nlStatus" role="status" aria-live="polite"></div>
       <div class="fb-actions">
-        <button type="button" class="fb-cancel" id="nlCancel">Cancel</button>
-        <button type="submit" class="fb-submit" id="nlSubmit">Subscribe ▸</button>
+        <button type="button" class="fb-cancel" id="nlCancel" data-t="nl.cancel">Cancel</button>
+        <button type="submit" class="fb-submit" id="nlSubmit" data-t="nl.subscribe">Subscribe ▸</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="clModal">
     <div class="cl">
-      <div class="cl-head"><h3>🗒️ Changelog</h3><button type="button" class="dx" id="clClose" aria-label="Close">✕</button></div>
-      <input id="clSearch" class="cl-search" type="search" placeholder="Search changes…" aria-label="Search changelog" autocomplete="off">
+      <div class="cl-head"><h3 data-t="cl.title">🗒️ Changelog</h3><button type="button" class="dx" id="clClose" aria-label="Close" data-ta="cat.close">✕</button></div>
+      <input id="clSearch" class="cl-search" type="search" placeholder="Search changes…" data-tp="cl.searchPh" aria-label="Search changelog" data-ta="cl.searchAria" autocomplete="off">
       <div class="cl-list" id="clList"></div>
     </div>
   </dialog>
 
   <dialog id="nameModal">
     <form class="fb-form" id="nameForm">
-      <h3>👋 Welcome to Komyo Games</h3>
-      <p class="fb-intro">Pick a display name (optional) — it shows when you post a score to our Discord. Leave it blank for a <b>random nickname</b> (like “Sneaky Otter”).</p>
+      <h3 data-t="name.title">👋 Welcome to Komyo Games</h3>
+      <p class="fb-intro" data-th="name.intro">Pick a display name (optional) — it shows when you post a score to our Discord. Leave it blank for a <b>random nickname</b> (like “Sneaky Otter”).</p>
       <div>
-        <label for="nameInput">Display name</label>
-        <input id="nameInput" type="text" maxlength="24" placeholder="e.g. FoxFan99" autocomplete="off">
+        <label for="nameInput" data-t="name.label">Display name</label>
+        <input id="nameInput" type="text" maxlength="24" placeholder="e.g. FoxFan99" data-tp="name.ph" autocomplete="off">
       </div>
       <div class="fb-actions">
-        <button type="button" class="fb-cancel" id="nameSkip">Skip</button>
-        <button type="submit" class="fb-submit" id="nameSave">Save ▸</button>
+        <button type="button" class="fb-cancel" id="nameSkip" data-t="name.skip">Skip</button>
+        <button type="submit" class="fb-submit" id="nameSave" data-t="name.save">Save ▸</button>
       </div>
     </form>
   </dialog>
 
   <dialog id="aboutModal">
     <div class="about">
-      <div class="cl-head"><h3>🦊 About Komyo Games</h3><button type="button" class="dx" id="aboutClose" aria-label="Close">✕</button></div>
-      <p>Komyo Games is a little catalogue of small, self-contained browser games — made purely for fun.</p>
+      <div class="cl-head"><h3 data-t="about.title">🦊 About Komyo Games</h3><button type="button" class="dx" id="aboutClose" aria-label="Close" data-ta="cat.close">✕</button></div>
+      <p data-t="about.p1">Komyo Games is a little catalogue of small, self-contained browser games — made purely for fun.</p>
       <ul class="about-list">
-        <li><b>Free forever.</b> No ads, no payments, no subscriptions — ever.</li>
-        <li><b>Plays anywhere.</b> Runs in any modern browser on any device — phone, tablet or desktop. Visit once and every game works offline; add it to your home screen for an app-like icon.</li>
-        <li><b>Source-available.</b> Each game is a single self-contained page — free to read and tinker with for non-commercial use. The only analytics is Google Analytics, and only if you accept the cookie banner; decline and nothing is tracked. <a href="https://github.com/N0zz/komyo.online" target="_blank" rel="noopener">Browse the code on GitHub</a>.</li>
-        <li><b>Yours to keep.</b> Your scores and progress stay on your device — nothing to sign up for.</li>
+        <li data-th="about.li1"><b>Free forever.</b> No ads, no payments, no subscriptions — ever.</li>
+        <li data-th="about.li2"><b>Plays anywhere.</b> Runs in any modern browser on any device — phone, tablet or desktop. Visit once and every game works offline; add it to your home screen for an app-like icon.</li>
+        <li data-th="about.li3"><b>Source-available.</b> Each game is a single self-contained page — free to read and tinker with for non-commercial use. The only analytics is Google Analytics, and only if you accept the cookie banner; decline and nothing is tracked. <a href="https://github.com/N0zz/komyo.online" target="_blank" rel="noopener">Browse the code on GitHub</a>.</li>
+        <li data-th="about.li4"><b>Yours to keep.</b> Your scores and progress stay on your device — nothing to sign up for.</li>
       </ul>
-      <p class="about-foot">Made for fun. If you enjoy it, share it with a friend 💛</p>
+      <p class="about-foot" data-t="about.foot">Made for fun. If you enjoy it, share it with a friend 💛</p>
     </div>
   </dialog>
 
   <dialog id="settingsModal">
     <div class="about">
       <div class="cl-head"><h3>⚙️ Settings</h3><button type="button" class="dx" id="settingsClose" aria-label="Close">✕</button></div>
-      <p class="set-note">Applies to every game · saved on this device</p>
+      <p class="set-note" data-t="settings.note">Applies to every game · saved on this device</p>
       <div class="setrow">
-        <span class="setlbl"><span class="di">🔊</span> Sound effects</span>
+        <span class="setlbl"><span class="di">🔊</span> <span data-t="settings.sfx">Sound effects</span></span>
         <button class="settoggle" id="setSfxToggle" type="button" role="switch" aria-checked="true">On</button>
-        <input class="setvol" id="setSfxVol" type="range" min="0" max="100" aria-label="Sound effects volume">
+        <input class="setvol" id="setSfxVol" type="range" min="0" max="100" aria-label="Sound effects volume" data-ta="sound.sfxVol">
       </div>
       <div class="setrow">
-        <span class="setlbl"><span class="di">🎵</span> Music</span>
+        <span class="setlbl"><span class="di">🎵</span> <span data-t="settings.music">Music</span></span>
         <button class="settoggle" id="setMusToggle" type="button" role="switch" aria-checked="true">On</button>
-        <input class="setvol" id="setMusVol" type="range" min="0" max="100" aria-label="Music volume">
+        <input class="setvol" id="setMusVol" type="range" min="0" max="100" aria-label="Music volume" data-ta="sound.musVol">
       </div>
       <div class="setrow">
-        <span class="setlbl"><span class="di">📣</span><span>Nickname in Discord posts
-          <small class="sethint">Anonymous unless on · only with cookie consent</small></span></span>
+        <span class="setlbl"><span class="di">📣</span><span><span data-t="settings.discordName">Nickname in Discord posts</span>
+          <small class="sethint" data-t="settings.discordHint">Anonymous unless on · only with cookie consent</small></span></span>
         <button class="settoggle" id="setDiscordName" type="button" role="switch" aria-checked="false">Off</button>
       </div>
       <div class="setrow">
-        <span class="setlbl"><span class="di">⇄</span><span>Your data
-          <small class="sethint">Move scores &amp; progress to another device — nothing is sent to a server</small></span></span>
-        <button class="drefresh" id="dataBtn" type="button">Export / Import</button>
+        <span class="setlbl"><span class="di">⇄</span><span><span data-t="settings.yourData">Your data</span>
+          <small class="sethint" data-t="settings.yourDataHint">Move scores &amp; progress to another device — nothing is sent to a server</small></span></span>
+        <button class="drefresh" id="dataBtn" type="button" data-t="settings.exportImport">Export / Import</button>
       </div>
       <div class="setrow">
-        <span class="setlbl"><span class="di">↺</span><span>Reset all data
-          <small class="sethint">Clears every game's scores &amp; progress · keeps your name, sound &amp; consent</small></span></span>
-        <button class="drefresh setdanger" id="resetAll" type="button">Reset</button>
+        <span class="setlbl"><span class="di">↺</span><span><span data-t="settings.resetAll">Reset all data</span>
+          <small class="sethint" data-t="settings.resetHint">Clears every game's scores &amp; progress · keeps your name, sound &amp; consent</small></span></span>
+        <button class="drefresh setdanger" id="resetAll" type="button" data-t="settings.reset">Reset</button>
       </div>
       <div class="setrow">
-        <span class="setlbl"><span class="di">🧩</span><span>Version
+        <span class="setlbl"><span class="di">🧩</span><span><span data-t="settings.version">Version</span>
           <small class="sethint setverv" id="setVersion"></small></span></span>
-        <button class="drefresh" id="setUpdate" type="button" title="Fetch the newest version of the site and every game">✓ Up to date</button>
+        <button class="drefresh" id="setUpdate" type="button" title="Fetch the newest version of the site and every game" data-tt="settings.updateTitle" data-t="update.upToDate">✓ Up to date</button>
       </div>
     </div>
   </dialog>
@@ -921,65 +921,65 @@
 
   <dialog id="titlesModal">
     <div class="about titles">
-      <div class="cl-head"><h3>🏆 Titles</h3><button type="button" class="dx" id="titlesClose" aria-label="Close">✕</button></div>
-      <p class="tl-sub">Earn trophies to climb the ladder — a new title is worn automatically, but tap any <b>unlocked</b> rank to wear it instead. Titles read <b>lifetime</b> trophies, so spending on cosmetics never slows you down.</p>
+      <div class="cl-head"><h3 data-t="titles.title">🏆 Titles</h3><button type="button" class="dx" id="titlesClose" aria-label="Close" data-ta="cat.close">✕</button></div>
+      <p class="tl-sub" data-th="titles.sub">Earn trophies to climb the ladder — a new title is worn automatically, but tap any <b>unlocked</b> rank to wear it instead. Titles read <b>lifetime</b> trophies, so spending on cosmetics never slows you down.</p>
       <div class="tl-list" id="titlesList"></div>
     </div>
   </dialog>
 
   <dialog id="faqModal">
     <div class="about faq">
-      <div class="cl-head"><h3>❓ FAQ</h3><button type="button" class="dx" id="faqClose" aria-label="Close">✕</button></div>
-      <div class="faq-q">What makes komyo different from other game sites?</div>
-      <p class="faq-a">Most free-game sites run on ads, trackers, pop-ups and "sign up to save your score." komyo doesn't: <b>no ads, no accounts, no pop-ups, nothing about you on a server.</b> Every game is one clean, self-contained page that loads fast and even works offline. It won't have the <i>most</i> games on the internet — it's a small, hand-picked set, each one actually polished — but it'll always be the calm, no-strings way to just play. Made for fun, not for funnels.</p>
-      <div class="faq-q">Do I need an account? Where's my data stored?</div>
-      <p class="faq-a">There are <b>no accounts</b> — komyo has no logins and no server that keeps your stuff. Your scores, progress, favorites and settings live <b>only in your browser, on this device</b>. The optional exceptions, both only if you accept the cookie banner: Google Analytics, and an anonymous score post to our public Discord when you finish a game (your nickname is attached only if you turn that on in ⚙️ Settings). Decline the banner and nothing about you is collected or sent.</p>
-      <div class="faq-q">Are there leaderboards or online rankings?</div>
-      <p class="faq-a">No — on purpose. Leaderboards need accounts and a server to store everyone's scores, and we don't keep any of that (see above). You're playing against <b>your own best</b>. Scores you choose to share go straight to our <a href="https://discord.gg/hz2fhpD5sz" target="_blank" rel="noopener">Discord</a>, not a database.</p>
-      <div class="faq-q">What are challenges, trophies and titles?</div>
-      <p class="faq-a">The 🏆 button opens daily and weekly <b>challenges</b> — small goals like a good run in a particular game. Completing them earns <b>trophies</b> (a daily pays 10 🏆, a weekly 50 🏆, and each day your first 3 good runs pay a +5 🏆 bonus). Trophies do two things at once: your <b>lifetime</b> total unlocks <b>titles</b> (tap the trophies pill to see the ladder), and your spendable balance buys <b>cosmetics</b> in the 🎨 store — skins for the games, picked in each game's menu. Spending never slows the title ladder. All of it lives on your device, like everything else.</p>
-      <div class="faq-q">Is it really free? Any ads or payments?</div>
-      <p class="faq-a">Free forever — no ads, no payments, no subscriptions, no "premium" anything. If you'd like to chip in there's an optional <a href="https://buymeacoffee.com/komyo.online" target="_blank" rel="noopener">Buy me a coffee</a>, but every game is and always will be free.</p>
-      <div class="faq-q">Do I need to install anything? Does it work offline?</div>
-      <p class="faq-a">No install needed — it runs in any modern browser. You can optionally "Add to Home Screen" for an app-like icon. And after one online visit to the homepage, <b>every game works offline</b> — the whole catalogue quietly saves itself for later, so it keeps working on a plane or with no signal.</p>
-      <div class="faq-q">Is it safe for kids?</div>
-      <p class="faq-a">Yes — no ads, no chat, no payments, no sign-ups, and nothing about your child is stored on a server. Just games.</p>
-      <div class="faq-q">How do I keep my progress or move it to another device?</div>
-      <p class="faq-a">Your progress is saved in this browser, on this device — so clearing your browser data clears it. Use <b>Export / Import</b> in ⚙️ Settings to back it up or carry it between phone and desktop. There's no cloud sync, because (see above) there are no accounts.</p>
+      <div class="cl-head"><h3 data-t="faq.title">❓ FAQ</h3><button type="button" class="dx" id="faqClose" aria-label="Close" data-ta="cat.close">✕</button></div>
+      <div class="faq-q" data-t="faq.q1">What makes komyo different from other game sites?</div>
+      <p class="faq-a" data-th="faq.a1">Most free-game sites run on ads, trackers, pop-ups and "sign up to save your score." komyo doesn't: <b>no ads, no accounts, no pop-ups, nothing about you on a server.</b> Every game is one clean, self-contained page that loads fast and even works offline. It won't have the <i>most</i> games on the internet — it's a small, hand-picked set, each one actually polished — but it'll always be the calm, no-strings way to just play. Made for fun, not for funnels.</p>
+      <div class="faq-q" data-t="faq.q2">Do I need an account? Where's my data stored?</div>
+      <p class="faq-a" data-th="faq.a2">There are <b>no accounts</b> — komyo has no logins and no server that keeps your stuff. Your scores, progress, favorites and settings live <b>only in your browser, on this device</b>. The optional exceptions, both only if you accept the cookie banner: Google Analytics, and an anonymous score post to our public Discord when you finish a game (your nickname is attached only if you turn that on in ⚙️ Settings). Decline the banner and nothing about you is collected or sent.</p>
+      <div class="faq-q" data-t="faq.q3">Are there leaderboards or online rankings?</div>
+      <p class="faq-a" data-th="faq.a3">No — on purpose. Leaderboards need accounts and a server to store everyone's scores, and we don't keep any of that (see above). You're playing against <b>your own best</b>. Scores you choose to share go straight to our <a href="https://discord.gg/hz2fhpD5sz" target="_blank" rel="noopener">Discord</a>, not a database.</p>
+      <div class="faq-q" data-t="faq.q4">What are challenges, trophies and titles?</div>
+      <p class="faq-a" data-th="faq.a4">The 🏆 button opens daily and weekly <b>challenges</b> — small goals like a good run in a particular game. Completing them earns <b>trophies</b> (a daily pays 10 🏆, a weekly 50 🏆, and each day your first 3 good runs pay a +5 🏆 bonus). Trophies do two things at once: your <b>lifetime</b> total unlocks <b>titles</b> (tap the trophies pill to see the ladder), and your spendable balance buys <b>cosmetics</b> in the 🎨 store — skins for the games, picked in each game's menu. Spending never slows the title ladder. All of it lives on your device, like everything else.</p>
+      <div class="faq-q" data-t="faq.q5">Is it really free? Any ads or payments?</div>
+      <p class="faq-a" data-th="faq.a5">Free forever — no ads, no payments, no subscriptions, no "premium" anything. If you'd like to chip in there's an optional <a href="https://buymeacoffee.com/komyo.online" target="_blank" rel="noopener">Buy me a coffee</a>, but every game is and always will be free.</p>
+      <div class="faq-q" data-t="faq.q6">Do I need to install anything? Does it work offline?</div>
+      <p class="faq-a" data-th="faq.a6">No install needed — it runs in any modern browser. You can optionally "Add to Home Screen" for an app-like icon. And after one online visit to the homepage, <b>every game works offline</b> — the whole catalogue quietly saves itself for later, so it keeps working on a plane or with no signal.</p>
+      <div class="faq-q" data-t="faq.q7">Is it safe for kids?</div>
+      <p class="faq-a" data-th="faq.a7">Yes — no ads, no chat, no payments, no sign-ups, and nothing about your child is stored on a server. Just games.</p>
+      <div class="faq-q" data-t="faq.q8">How do I keep my progress or move it to another device?</div>
+      <p class="faq-a" data-th="faq.a8">Your progress is saved in this browser, on this device — so clearing your browser data clears it. Use <b>Export / Import</b> in ⚙️ Settings to back it up or carry it between phone and desktop. There's no cloud sync, because (see above) there are no accounts.</p>
     </div>
   </dialog>
 
   <dialog id="legalModal">
     <div class="about">
-      <div class="cl-head"><h3>⚖️ Legal</h3><button type="button" class="dx" id="legalClose" aria-label="Close">✕</button></div>
-      <div class="faq-q">License</div>
-      <p class="faq-a">Komyo Games is <b>source-available</b> under <b>PolyForm Noncommercial 1.0.0</b> — free to read, use and tinker with for any <b>non-commercial</b> purpose; commercial use isn't permitted. <a href="https://github.com/N0zz/komyo.online/blob/main/LICENSE" target="_blank" rel="noopener">Read the full license</a>.</p>
-      <div class="faq-q">Privacy</div>
-      <p class="faq-a">No accounts and no server storing your data — your game data stays on your device. The only third-party tracking is Google Analytics, loaded only if you accept cookies. <a href="privacy.html" target="_blank" rel="noopener">Read the full privacy policy</a>.</p>
-      <div class="faq-q">Terms</div>
-      <p class="faq-a">Free to play, no accounts, provided as-is for fun. Play fair and keep any display name you share respectful. <a href="tos.html" target="_blank" rel="noopener">Read the full terms of service</a>.</p>
+      <div class="cl-head"><h3 data-t="legal.title">⚖️ Legal</h3><button type="button" class="dx" id="legalClose" aria-label="Close" data-ta="cat.close">✕</button></div>
+      <div class="faq-q" data-t="legal.qLicense">License</div>
+      <p class="faq-a" data-th="legal.aLicense">Komyo Games is <b>source-available</b> under <b>PolyForm Noncommercial 1.0.0</b> — free to read, use and tinker with for any <b>non-commercial</b> purpose; commercial use isn't permitted. <a href="https://github.com/N0zz/komyo.online/blob/main/LICENSE" target="_blank" rel="noopener">Read the full license</a>.</p>
+      <div class="faq-q" data-t="legal.qPrivacy">Privacy</div>
+      <p class="faq-a" data-th="legal.aPrivacy">No accounts and no server storing your data — your game data stays on your device. The only third-party tracking is Google Analytics, loaded only if you accept cookies. <a href="privacy.html" target="_blank" rel="noopener">Read the full privacy policy</a>.</p>
+      <div class="faq-q" data-t="legal.qTerms">Terms</div>
+      <p class="faq-a" data-th="legal.aTerms">Free to play, no accounts, provided as-is for fun. Play fair and keep any display name you share respectful. <a href="tos.html" target="_blank" rel="noopener">Read the full terms of service</a>.</p>
     </div>
   </dialog>
 
   <dialog id="dataModal">
     <div class="about">
-      <div class="cl-head"><h3>⇄ Export &amp; import data</h3><button type="button" class="dx" id="dataClose" aria-label="Close">✕</button></div>
-      <p class="faq-a">Your scores, progress and settings live only in this browser. Copy this code to back them up or move them to another device, then paste it there and import. <b>Importing replaces</b> this device's data.</p>
-      <div class="faq-q">Export</div>
-      <textarea id="dataExport" class="data-ta" readonly rows="4" aria-label="Your backup code"></textarea>
-      <div class="data-btns"><button class="data-btn" id="dataCopy" type="button">Copy</button><button class="data-btn" id="dataDownload" type="button">Download</button></div>
-      <div class="faq-q">Import</div>
-      <textarea id="dataImport" class="data-ta" rows="4" placeholder="Paste a backup code here…" aria-label="Paste backup code"></textarea>
-      <div class="data-btns"><button class="data-btn primary" id="dataImportBtn" type="button">Import &amp; reload</button></div>
+      <div class="cl-head"><h3 data-t="data.title">⇄ Export &amp; import data</h3><button type="button" class="dx" id="dataClose" aria-label="Close" data-ta="cat.close">✕</button></div>
+      <p class="faq-a" data-th="data.intro">Your scores, progress and settings live only in this browser. Copy this code to back them up or move them to another device, then paste it there and import. <b>Importing replaces</b> this device's data.</p>
+      <div class="faq-q" data-t="data.export">Export</div>
+      <textarea id="dataExport" class="data-ta" readonly rows="4" aria-label="Your backup code" data-ta="data.exportAria"></textarea>
+      <div class="data-btns"><button class="data-btn" id="dataCopy" type="button" data-t="data.copy">Copy</button><button class="data-btn" id="dataDownload" type="button" data-t="data.download">Download</button></div>
+      <div class="faq-q" data-t="data.import">Import</div>
+      <textarea id="dataImport" class="data-ta" rows="4" placeholder="Paste a backup code here…" data-tp="data.importPh" aria-label="Paste backup code" data-ta="data.importAria"></textarea>
+      <div class="data-btns"><button class="data-btn primary" id="dataImportBtn" type="button" data-t="data.importBtn">Import &amp; reload</button></div>
       <div class="data-msg" id="dataMsg"></div>
     </div>
   </dialog>
 
   <div id="cookieBanner" class="cookie-banner" hidden>
-    <span>We use Google Analytics to see which games are most played — no ads, no data selling. <a href="privacy.html">Privacy policy</a>.</span>
+    <span data-th="cookie.text">We use Google Analytics to see which games are most played — no ads, no data selling. <a href="privacy.html">Privacy policy</a>.</span>
     <div class="cb-actions">
-      <button id="cbDecline" class="cb-btn" type="button">Decline</button>
-      <button id="cbAccept" class="cb-btn cb-accept" type="button">Accept</button>
+      <button id="cbDecline" class="cb-btn" type="button" data-t="cookie.decline">Decline</button>
+      <button id="cbAccept" class="cb-btn cb-accept" type="button" data-t="cookie.accept">Accept</button>
     </div>
   </div>
 
