@@ -2219,7 +2219,7 @@
         award(); // keep lifetime up to date (drives titles elsewhere); the drawer shows SPENDABLE
         // the drawer's trophy figure is your spendable balance (your wallet) — lifetime + titles
         // live in the profile / ☰ menu, so there's only one number to reason about here
-        if (streakEl) { const bal = (K.cosmetics && window.COSMETICS) ? K.cosmetics.balance() : award(); streakEl.textContent = '🏆 ' + window.gamekit.t('cat.trophies', { count: bal }); }
+        if (streakEl) { const life = (K.cosmetics && window.COSMETICS && K.cosmetics.lifetime) ? K.cosmetics.lifetime() : award(); streakEl.textContent = window.gamekit.t('chal.lifetime', { count: life, def: '🏆 ' + life + ' total' }); }
         renderCosmetics();
         renderHistory();
       }
