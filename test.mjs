@@ -640,12 +640,13 @@ function testCosmetics() {
     const items = R.items || [];
     ok(items.length >= 60, 'launch catalogue present (' + items.length + ' items)');
     const seen = new Set(), dups = [], bad = [], sets = {};
-    const BANDS = new Set([0, 10, 25, 50, 75, 100, 150, 250, 500]); // 150/250/500 = flagged flappy exceptions
+    const BANDS = new Set([0, 10, 25, 50, 75, 100, 150, 250, 500]); // 150/250/500 = flagged exceptions (flappy bird tail, site CRT unlock)
+    const OVER100_OK = new Set(['flappy.bird', 'site.fx']); // sets allowed to exceed 🏆100
     for (const it of items) {
       if (seen.has(it.id)) dups.push(it.id); seen.add(it.id);
       if (!it.name || !it.desc || typeof it.painter !== 'function') bad.push(it.id + ' (name/desc/painter)');
       if (!BANDS.has(+it.price)) bad.push(it.id + ' (price ' + it.price + ' outside bands)');
-      if (+it.price > 100 && it.set !== 'flappy.bird') bad.push(it.id + ' (only the bird tail may exceed 🏆100)');
+      if (+it.price > 100 && !OVER100_OK.has(it.set)) bad.push(it.id + ' (only the bird tail + site CRT may exceed 🏆100)');
       if (+it.price > 500) bad.push(it.id + ' (above the 🏆500 hard ceiling)');
       if (!R.games || !(it.game in R.games)) bad.push(it.id + ' (no games meta for "' + it.game + '")');
       if (!R.sets || !R.sets[it.set]) bad.push(it.id + ' (no sets meta for "' + it.set + '")');

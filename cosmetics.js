@@ -198,6 +198,17 @@
   add('', 'cursor', 'comet',     'Neon Comet',    50,  'A glowing comet head with a neon tail.', cursorSwatch(CURSORS.comet, -1.5708));
   add('', 'cursor', 'rainbow',   'Rainbow Trail', 100, 'Leaves a shimmering rainbow wake as you move.', cursorSwatch(CURSORS.rainbow, -1.5708));
 
+  // ---- Site-wide — CRT display mode (ONE unlock; on/off + colour are free preferences after that) ----
+  add('', 'fx', 'off', 'Standard', 0, 'No screen filter — the plain look.', function (g, w, h) {
+    g.fillStyle = '#0e1420'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(255,255,255,0.28)'; g.lineWidth = 1.5; g.strokeRect(w * 0.22, h * 0.3, w * 0.56, h * 0.4);
+  });
+  add('', 'fx', 'crt', 'CRT Mode', 500, 'Retro phosphor glow over the whole site — tap ▾ to pick a colour.', function (g, w, h) {
+    g.fillStyle = '#00160a'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#39ff9b'; for (var y = 2; y < h; y += 3) { g.globalAlpha = 0.85; g.fillRect(3, y, w - 6, 1); }
+    g.globalAlpha = 1;
+  });
+
   // ---- 🐍 Neon Snake — food skins ----
   add('snake', 'food', 'apple',   'Apple',        0,   'The classic neon pip.', orb('#f0f', '#f0f'));
   add('snake', 'food', 'cherry',  'Cherry',       10,  'A juicy pair on one stem.', cherry);
@@ -288,6 +299,7 @@
     // set labels for the store modal + in-game groups
     sets: {
       'site.cursor':          { label: 'Cursor skins', note: 'desktop only' },
+      'site.fx':              { label: 'Display mode', note: 'site-wide' },
       'snake.food':           { label: 'Food skins' },
       'breakout.paddle':      { label: 'Paddle skins' },
       'breakout.ball':        { label: 'Ball skins' },

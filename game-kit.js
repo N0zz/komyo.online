@@ -422,9 +422,9 @@
     };
     var ov = document.createElement('div'); ov.className = 'gamekit-controls';
     ov.innerHTML = '<div class="gkctl-box"><button class="gkctl-x" type="button" aria-label="' + t('menu.close') + '">&#x2715;</button>'
-      + '<h3>' + (cfg.title || t('controls.title')) + '</h3>'
+      + '<div class="gkctl-scroll"><h3>' + (cfg.title || t('controls.title')) + '</h3>'
       + sec('⌨️ ' + t('controls.keyboard'), cfg.keyboard) + sec('🖱️ ' + t('controls.mouse'), cfg.mouse) + sec('👆 ' + t('controls.touch'), cfg.touch)
-      + (cfg.note ? '<p class="gkctl-note">' + cfg.note + '</p>' : '') + '</div>';
+      + (cfg.note ? '<p class="gkctl-note">' + cfg.note + '</p>' : '') + '</div></div>';
     if (theme) applyMenuTheme(ov, theme);
     document.body.appendChild(ov);
     _modalOpen++; // counts as an open overlay → isPaused() halts the game underneath
@@ -605,6 +605,7 @@
     if (!item || item.set !== setId || !cosOwned(id)) return false;
     var m = cosSelMap(); m[setId] = id; lsSet('gamekit_cos_sel', JSON.stringify(m));
     if (setId === 'site.cursor') applyCursor();
+    if (setId === 'site.fx') applyCrt(); // selecting the CRT item = enable it; 'off' = disable (shop toggles it)
     return true;
   }
   function cosProgress(game) {
@@ -769,6 +770,70 @@
     goodRunBonus: goodRunBonus,
   };
 
+  // ---------- CRT display mode (site-wide, unlockable via the 'site.fx.crt' cosmetic) ----------
+  // ONE unlock; on/off + colour are per-device preferences after that. Applied globally from the kit
+  // (loads on every page), so a single toggle recolours the whole site — catalogue, games, modals.
+  var CRT_COLORS = ['green', 'amber', 'cyan', 'mono'];
+  function crtOwned() { try { return cosOwned('site.fx.crt'); } catch (e) { return false; } }
+  // on/off IS the cosmetic selection: selecting 'site.fx.crt' enables it, 'site.fx.off' disables — so
+  // the shop's normal buy→equip flow toggles CRT, and buying it turns it on (green) with no extra step.
+  function crtIsOn() { try { return cosSelected('site.fx') === 'site.fx.crt'; } catch (e) { return false; } }
+  function crtColor() { var c; try { c = lsGet('gamekit_crt_color'); } catch (e) {} return CRT_COLORS.indexOf(c) >= 0 ? c : 'green'; }
+  function applyCrt() {
+    try {
+      if (typeof document === 'undefined' || !document.documentElement) return;
+      var on = crtOwned() && crtIsOn();
+      var root = document.documentElement;
+      if (root.classList) root.classList.toggle('gk-crt', on);
+      if (on) root.setAttribute('data-crt-color', crtColor()); else root.removeAttribute('data-crt-color');
+      if (on && document.body && !document.getElementById('gamekitCrtOverlay') && document.createElement) {
+        var ov = document.createElement('div'); ov.id = 'gamekitCrtOverlay'; ov.className = 'gamekit-crt-overlay';
+        ov.setAttribute('aria-hidden', 'true'); document.body.appendChild(ov);
+      }
+    } catch (e) {}
+  }
+  function crtSet(on) {
+    if (on) { if (!crtOwned()) return; cosSelect('site.fx', 'site.fx.crt'); }
+    else cosSelect('site.fx', 'site.fx.off'); // free default — always selectable
+    applyCrt();
+  }
+  function crtSetColor(c) { if (CRT_COLORS.indexOf(c) < 0 || !crtOwned()) return; try { lsSet('gamekit_crt_color', c); } catch (e) {} cosSelect('site.fx', 'site.fx.crt'); applyCrt(); }
+  // live, NON-persisting preview: cycles the colours while hovering/selecting the CRT item (even before
+  // buying). previewStop() restores the real persisted state.
+  var _crtPvTimer = null, _crtPvIdx = 0;
+  function crtEnsureOverlay() { try { if (document.body && !document.getElementById('gamekitCrtOverlay') && document.createElement) { var o = document.createElement('div'); o.id = 'gamekitCrtOverlay'; o.className = 'gamekit-crt-overlay'; o.setAttribute('aria-hidden', 'true'); document.body.appendChild(o); } } catch (e) {} }
+  function crtPreviewStart() {
+    try {
+      if (typeof document === 'undefined' || !document.documentElement || _crtPvTimer || typeof setInterval !== 'function') return;
+      crtEnsureOverlay();
+      var root = document.documentElement; _crtPvIdx = 0;
+      var tick = function () { if (root.classList) root.classList.add('gk-crt'); root.setAttribute('data-crt-color', CRT_COLORS[_crtPvIdx % CRT_COLORS.length]); _crtPvIdx++; };
+      tick(); _crtPvTimer = setInterval(tick, 850);
+    } catch (e) {}
+  }
+  function crtPreviewColor(c) { // preview a SPECIFIC colour (or 'off') statically — for hovering a dropdown option
+    try {
+      if (typeof document === 'undefined' || !document.documentElement) return;
+      if (_crtPvTimer) { clearInterval(_crtPvTimer); _crtPvTimer = null; }
+      var root = document.documentElement;
+      if (c === 'off') { if (root.classList) root.classList.remove('gk-crt'); root.removeAttribute('data-crt-color'); return; }
+      if (CRT_COLORS.indexOf(c) < 0) return;
+      crtEnsureOverlay(); if (root.classList) root.classList.add('gk-crt'); root.setAttribute('data-crt-color', c);
+    } catch (e) {}
+  }
+  function crtPreviewStop() { try { if (_crtPvTimer) { clearInterval(_crtPvTimer); _crtPvTimer = null; } } catch (e) {} applyCrt(); }
+  var crt = {
+    colors: function () { return CRT_COLORS.slice(); }, available: crtOwned,
+    enabled: function () { return crtOwned() && crtIsOn(); }, on: crtIsOn, color: crtColor,
+    set: crtSet, setColor: crtSetColor, apply: applyCrt, previewStart: crtPreviewStart, previewColor: crtPreviewColor, previewStop: crtPreviewStop,
+  };
+  (function () {
+    try {
+      if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+      if (document.body) applyCrt(); else document.addEventListener('DOMContentLoaded', function () { applyCrt(); });
+    } catch (e) {}
+  })();
+
   // ---------- challenges (shared source: the catalogue panel + the in-game 🏆 button read this) ----------
   // Reads window.CHALLENGES (loaded via challenges.js) + the kit's own per-day activity/best storage.
   var CH_WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000); // a Monday — matches the catalogue
@@ -905,8 +970,8 @@
       + '<div class="gkch-bonus">' + t('grb.line', { count: grb.count, cap: grb.cap, per: grb.per }) + '</div>';
     var ov = document.createElement('div'); ov.className = 'gamekit-challenges';
     ov.innerHTML = '<div class="gkch-box"><button class="gkch-x" type="button" aria-label="' + t('menu.close') + '">&#x2715;</button>'
-      + '<h3>🏆 ' + t('challenges.title') + '</h3>' + pills + body
-      + '<p class="gkch-note">' + t('challenges.note') + '</p></div>';
+      + '<div class="gkch-scroll"><h3>🏆 ' + t('challenges.title') + '</h3>' + pills + body
+      + '<p class="gkch-note">' + t('challenges.note') + '</p></div></div>';
     if (opts.theme) applyMenuTheme(ov, opts.theme);
     document.body.appendChild(ov);
     _modalOpen++;
@@ -988,6 +1053,14 @@
     var bar = mkEl('div', 'gksp-bar'); var barFill = mkEl('i'); bar.appendChild(barFill);
     var barTxt = mkEl('span', 'gksp-bartxt');
     barWrap.appendChild(bar); barWrap.appendChild(barTxt);
+    // compact progress donut — shown only in short-height landscape (CSS), where the linear bar is hidden
+    var ringWrap = mkEl('div', 'gksp-ringwrap');
+    var ring = mkEl('div', 'gksp-ring');
+    var ringLabel = mkEl('div', 'gksp-ringlabel');
+    var ringPct = mkEl('b'), ringSub = mkEl('span');
+    ringLabel.appendChild(ringPct); ringLabel.appendChild(ringSub);
+    ringWrap.appendChild(ring); ringWrap.appendChild(ringLabel);
+    barWrap.appendChild(ringWrap);
     box.appendChild(barWrap);
     var focdesc = mkEl('div', 'gksp-focdesc'); box.appendChild(focdesc);
     var scroll = mkEl('div', 'gksp-scroll'); box.appendChild(scroll);
@@ -1052,6 +1125,8 @@
       var pct = Math.round(pr.pct * 100);
       try { barFill.style.width = pct + '%'; } catch (e) {}
       barTxt.textContent = t('shop.progress', { owned: pr.owned, total: pr.total, pct: pct });
+      try { ring.style.setProperty('--pct', pct); } catch (e) {}
+      ringPct.textContent = pct + '%'; ringSub.textContent = pr.owned + '/' + pr.total;
       gameProgEls.forEach(function (fn) { try { fn(); } catch (e) {} });
     }
     // focused item → the desc line + the BUY/EQUIP button. Buying NEVER happens on a plain cell click
@@ -1084,6 +1159,7 @@
     }
     // buy the focused unowned item (via the BUY button), OR equip a focused owned one
     function confirmFocused() {
+      try { crt.previewStop(); } catch (e) {} // buying/equipping ends any live CRT preview → real state applies
       var f = cells[focused]; if (!f) return;
       var it = f.item;
       if (cosOwned(it.id)) { cosSelect(it.set, it.id); syncCells(); return; }
@@ -1091,9 +1167,39 @@
     }
     // click a cell: OWNED → equip immediately (no spend); UNOWNED → just select (BUY button confirms)
     function clickCell(idx) {
+      try { crt.previewStop(); } catch (e) {} // switching selection ends a CRT preview (the CRT cell restarts its own)
       focused = idx; syncFocus();
       var f = cells[idx]; if (!f) return;
       if (cosOwned(f.item.id)) confirmFocused();
+    }
+    // themed CRT colour DROPDOWN (opened by the ▾ on the CRT cell) — anchored under the caret, not a modal.
+    // hovering an option live-previews that colour; leaving restores the real state.
+    var _crtDD = null;
+    function closeCrtDD() { if (_crtDD) { try { if (_crtDD.parentNode) _crtDD.parentNode.removeChild(_crtDD); } catch (e) {} _crtDD = null; try { document.removeEventListener('click', crtDDoutside, true); } catch (e) {} crt.previewStop(); } }
+    function crtDDoutside(e) { if (_crtDD && (!e || !_crtDD.contains(e.target))) closeCrtDD(); }
+    function openCrtColorMenu(anchor) {
+      closeCrtDD();
+      var seq = ['off'].concat(crt.colors());
+      var LBL = { off: t('crt.off', { def: 'Off' }), green: t('crt.green', { def: 'Green' }), amber: t('crt.amber', { def: 'Amber' }), cyan: t('crt.cyan', { def: 'Cyan' }), mono: t('crt.mono', { def: 'Mono' }) };
+      var cur = crt.enabled() ? crt.color() : 'off';
+      var dd = mkEl('div', 'gksp-crt-dd'); _crtDD = dd;
+      seq.forEach(function (id) {
+        var o = mkEl('button', 'gksp-crt-opt' + (id === cur ? ' on' : ''), LBL[id] || id); try { o.type = 'button'; } catch (e) {}
+        if (id !== 'off') o.insertBefore(mkEl('span', 'gksp-crt-dot', ''), o.firstChild), o.firstChild.setAttribute('data-c', id);
+        o.addEventListener('mouseenter', function () { crt.previewColor(id); });
+        o.addEventListener('click', function (e) { if (e && e.stopPropagation) e.stopPropagation(); if (id === 'off') crt.set(false); else crt.setColor(id); closeCrtDD(); syncCells(); });
+        dd.appendChild(o);
+      });
+      dd.addEventListener('mouseleave', function () { crt.previewStop(); }); // back to real state when the mouse leaves the list
+      if (opts.theme) applyMenuTheme(dd, opts.theme);
+      // anchor: fixed under the caret (the scroll area would clip an absolute popover)
+      try {
+        var r = anchor && anchor.getBoundingClientRect && anchor.getBoundingClientRect();
+        dd.style.position = 'fixed'; dd.style.zIndex = '9500';
+        if (r) { dd.style.top = (r.bottom + 6) + 'px'; dd.style.right = Math.max(8, (typeof window !== 'undefined' ? window.innerWidth : 0) - r.right) + 'px'; }
+      } catch (e) {}
+      (document.body || document.documentElement).appendChild(dd);
+      setTimeout(function () { try { document.addEventListener('click', crtDDoutside, true); } catch (e) {} }, 0);
     }
     // (re)build the grid from the current search + game filter
     function rebuild() {
@@ -1132,8 +1238,11 @@
           var grid = mkEl('div', 'gksp-grid');
           setItems.forEach(function (it) {
             var cell = mkEl('div', 'gksp-cell');
-            var cv = mkEl('canvas', 'gksp-sw'); try { cv.width = 40; cv.height = 40; } catch (e) {}
-            if (it.painter) { try { drawPreview(cv, function (g, w, h) { it.painter(g, w, h); }); } catch (e) {} }
+            var isCrt = it.id === 'site.fx.crt';
+            // CRT swatch = an animated colour-cycling tile (the whole icon changes colour); others = a painted canvas
+            var cv;
+            if (isCrt) { cv = mkEl('div', 'gksp-sw gk-crt-sw'); }
+            else { cv = mkEl('canvas', 'gksp-sw'); try { cv.width = 40; cv.height = 40; } catch (e) {} if (it.painter) { try { drawPreview(cv, function (g, w, h) { it.painter(g, w, h); }); } catch (e) {} } }
             var txt = mkEl('div', 'gksp-txt');
             var nm = mkEl('div', 'gksp-nm', cosName(it)), sub = mkEl('div', 'gksp-sub');
             txt.appendChild(nm); txt.appendChild(sub);
@@ -1143,6 +1252,18 @@
             // click-only selection (no hover-focus): moving the mouse toward the BUY button used to
             // pass over other tiles and retarget it — the selection now stays on the clicked item
             cell.addEventListener('click', function () { clickCell(idx); });
+            // the CRT item: a ▾ caret opens the colour dropdown, and hovering/selecting it (even unbought)
+            // previews the effect (cycling colours) until you leave
+            if (isCrt) {
+              cell.classList.add('gksp-crt-cell');
+              var caret = mkEl('button', 'gksp-crt-caret', '▾'); try { caret.type = 'button'; caret.setAttribute('aria-label', t('crt.pickColor', { def: 'Pick colour' })); } catch (e) {}
+              caret.addEventListener('click', function (e) { if (e && e.stopPropagation) e.stopPropagation(); if (crtOwned()) openCrtColorMenu(caret); else clickCell(idx); });
+              cell.appendChild(caret);
+              var crtPv = function () { if (!crt.enabled()) crt.previewStart(); };
+              cell.addEventListener('mouseenter', crtPv);
+              cell.addEventListener('mouseleave', function () { crt.previewStop(); });
+              cell.addEventListener('click', crtPv); // touch: selecting it previews too
+            }
             grid.appendChild(cell);
           });
           scroll.appendChild(grid);
@@ -1160,6 +1281,7 @@
     var done = false;
     function close() {
       if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1);
+      try { crt.previewStop(); } catch (e) {} // leaving the shop restores the real CRT state
       try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
       try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
       if (typeof opts.onClose === 'function') { try { opts.onClose(); } catch (e) {} }
@@ -1365,6 +1487,7 @@
     var more = '<div class="gamekit-more-ver" id="gamekitMoreVer"></div>'
       + '<button class="gamekit-more-item" id="gamekitUpdate" type="button">' + t('update.upToDate') + '</button>'
       + '<button class="gamekit-more-item" id="gamekitEmbed" type="button" title="' + t('kit.embedTitle') + '">&#x29C9; ' + t('embed.titleThis') + '</button>'
+      + '<div class="gamekit-more-crt"><button class="gamekit-more-item" id="gamekitCrt" type="button"></button><div class="gamekit-more-sub" id="gamekitCrtOpts" hidden></div></div>'
       + (opts.reset ? '<button class="gamekit-more-item gamekit-more-danger" id="gamekitReset" type="button" title="' + t('kit.resetTitle') + '">' + t('kit.reset') + '</button>' : '');
     wrap.innerHTML = '<button class="gamekit-au-btn gamekit-au-pausebtn" id="gamekitPause" type="button" aria-pressed="false" aria-label="' + t('pause.pause') + '" title="' + t('pause.pause') + '">⏸</button>'
       + '<button class="gamekit-au-btn" id="gamekitAudioBtn" type="button" aria-label="' + t('sound.settings') + '" title="' + t('sound.settings') + '">🔊</button>'
@@ -1445,6 +1568,40 @@
       var m = ((typeof location !== 'undefined' && location.pathname) ? location.pathname : '').match(/games\/([^\/?#]+)/);
       embedModal({ slug: m ? m[1] : '', title: (typeof document !== 'undefined' ? document.title : '') });
     });
+    var crtBtn = document.getElementById('gamekitCrt'), crtOpts = document.getElementById('gamekitCrtOpts');
+    if (crtBtn && crtOpts) {
+      // always visible: owned → a themed dropdown (Off + colours); locked → grayed, opens the shop to unlock.
+      // the leading icon animates through the colours to hint what's available.
+      var CRT_LBL = { off: t('crt.off', { def: 'Off' }), green: t('crt.green', { def: 'Green' }), amber: t('crt.amber', { def: 'Amber' }), cyan: t('crt.cyan', { def: 'Cyan' }), mono: t('crt.mono', { def: 'Mono' }) };
+      var CRT_SEQ = ['off'].concat(crt.colors());
+      var crtCur = function () { return crt.enabled() ? crt.color() : 'off'; };
+      var syncCrtBtn = function () {
+        if (!crtOwned()) {
+          crtBtn.classList.add('gamekit-more-locked');
+          crtBtn.innerHTML = '<span class="gk-crt-ico"></span> ' + t('crt.label', { def: 'CRT mode' }) + ' <span class="gamekit-more-lock">🔒</span>';
+          crtOpts.hidden = true; return;
+        }
+        crtBtn.classList.remove('gamekit-more-locked');
+        crtBtn.innerHTML = '<span class="gk-crt-ico"></span> ' + t('crt.label', { def: 'CRT mode' }) + ': ' + (CRT_LBL[crtCur()] || crtCur()) + ' <span class="gamekit-more-caret">▾</span>';
+      };
+      var buildCrtOpts = function () {
+        crtOpts.innerHTML = '';
+        CRT_SEQ.forEach(function (id) {
+          var o = mkEl('button', 'gamekit-more-subitem' + (id === crtCur() ? ' on' : ''), CRT_LBL[id] || id);
+          try { o.type = 'button'; } catch (e) {}
+          if (id !== 'off') { var dot = mkEl('span', 'gksp-crt-dot', ''); dot.setAttribute('data-c', id); o.insertBefore(dot, o.firstChild); }
+          o.addEventListener('mouseenter', function () { crt.previewColor(id); }); // live preview of this colour
+          o.addEventListener('click', function () { if (id === 'off') crt.set(false); else crt.setColor(id); crtOpts.hidden = true; syncCrtBtn(); });
+          crtOpts.appendChild(o);
+        });
+      };
+      crtOpts.addEventListener('mouseleave', function () { crt.previewStop(); }); // leaving the list → real state
+      syncCrtBtn();
+      crtBtn.addEventListener('click', function () {
+        if (!crtOwned()) { setMore(false); shopPanel({ theme: opts.theme }); return; }
+        if (crtOpts.hidden) { buildCrtOpts(); crtOpts.hidden = false; } else { crtOpts.hidden = true; crt.previewStop(); }
+      });
+    }
     if (opts.challenges) {
       var chb = document.getElementById('gamekitChallenges');
       if (chb) {
@@ -2709,6 +2866,12 @@
 
   // ---- i18n ------------------------------------------------------------
   var I18N_SUPPORTED = { en: 1, pl: 1, es: 1, pt: 1, fr: 1, it: 1 };
+  // a language is "ready" once its dictionary is populated (en is the built-in reference via def:
+  // fallbacks). es/pt/fr/it ship as empty {} until translated → shown as "soon" and not selectable.
+  function langReady(code) {
+    if (code === 'en') return true;
+    try { var d = (window.KOMYO_I18N || {})[code]; return !!d && Object.keys(d).length > 0; } catch (e) { return false; }
+  }
   var I18N_LANGS = [
     { code: 'en', label: 'English' }, { code: 'pl', label: 'Polski' },
     { code: 'es', label: 'Español' }, { code: 'pt', label: 'Português' },
@@ -2733,13 +2896,13 @@
     return I18N_SUPPORTED[two] ? two : (I18N_SUPPORTED[c] ? c : 'en');
   }
   function detectLang() {
+    var res = null;
     var q = null;
     try { q = new URLSearchParams(location.search).get('lang'); } catch (e) {}
-    if (q && I18N_SUPPORTED[normLang(q)]) return normLang(q);
-    try { var s = localStorage.getItem('gamekit_lang'); if (s && I18N_SUPPORTED[s]) return s; } catch (e) {}
-    var nav = 'en';
-    try { nav = (navigator.languages && navigator.languages[0]) || navigator.language || 'en'; } catch (e) {}
-    return normLang(nav);
+    if (q && I18N_SUPPORTED[normLang(q)]) res = normLang(q);
+    if (!res) { try { var s = localStorage.getItem('gamekit_lang'); if (s && I18N_SUPPORTED[s]) res = s; } catch (e) {} }
+    if (!res) { var nav = 'en'; try { nav = (navigator.languages && navigator.languages[0]) || navigator.language || 'en'; } catch (e) {} res = normLang(nav); }
+    return langReady(res) ? res : 'en'; // never activate a not-yet-translated ("soon") locale
   }
   function lang() { if (!_lang) _lang = detectLang(); return _lang; }
   function setLang(code) {
@@ -2797,10 +2960,14 @@
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body) return;
     var cur = lang();
+    var soonTxt = t('lang.soon', { def: 'soon' });
     var cells = I18N_LANGS.map(function (l) {
-      return '<button class="gklang-cell' + (l.code === cur ? ' selected' : '') + '" type="button" data-code="' + l.code + '">'
+      var ready = langReady(l.code);
+      return '<button class="gklang-cell' + (l.code === cur ? ' selected' : '') + (ready ? '' : ' soon') + '" type="button" data-code="' + l.code + '"'
+        + (ready ? '' : ' disabled aria-disabled="true"') + '>'
         + '<span class="gklang-flag" aria-hidden="true">' + flagSvg(l.code) + '</span>'
-        + '<span class="gklang-name">' + l.label + '</span></button>';
+        + '<span class="gklang-name">' + l.label + '</span>'
+        + (ready ? '' : '<span class="gklang-soon">' + soonTxt + '</span>') + '</button>';
     }).join('');
     var ov = document.createElement('div'); ov.className = 'gamekit-langmenu';
     ov.innerHTML = '<div class="gklang-box"><button class="gklang-x" type="button" aria-label="Close">✕</button>'
@@ -2817,6 +2984,7 @@
     }
     function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
     if (ov.querySelectorAll) Array.prototype.forEach.call(ov.querySelectorAll('.gklang-cell'), function (cell) {
+      if (!langReady(cell.getAttribute('data-code'))) return; // "soon" languages aren't selectable yet
       cell.addEventListener('click', function () { setLang(cell.getAttribute('data-code')); try { location.reload(); } catch (e) {} });
     });
     var xb = ov.querySelector ? ov.querySelector('.gklang-x') : null; if (xb) xb.addEventListener('click', close);
@@ -2824,7 +2992,7 @@
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
   }
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

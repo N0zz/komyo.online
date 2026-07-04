@@ -1245,6 +1245,7 @@ window.KOMYO_I18N = {
     'legal.tos.back': '‹ Powrót do gier',
     'legal.tos.footer': 'Komyo Games — stworzone dla zabawy. Bez reklam · bez płatności · działa offline.',
     'lang.header': 'Język',
+    'lang.soon': 'wkrótce',
     'cat.cozy': '▤ Wygodnie',
     'cat.install': '📱 Zainstaluj',
     'cat.installed': '✓ Zainstalowano',
