@@ -1204,7 +1204,7 @@
     // (re)build the grid from the current search + game filter
     function rebuild() {
       var q = (search.value || '').trim().toLowerCase();
-      var filterG = (gameSel && gameSel.value && gameSel.value !== '__all') ? gameSel.value : null;
+      var filterG = (gameSel && gameSel.value != null && gameSel.value !== '__all') ? gameSel.value : null; // '' = Site-wide (falsy but a real filter)
       scroll.innerHTML = ''; cells = []; focused = -1; gameProgEls = [];
       var any = false;
       shown.forEach(function (game) {
