@@ -4,6 +4,11 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-04', title: 'More polish 🧽', items: [
+    'Fix: updating from the home page now truly updates every game — open any game afterwards and it\'s already on the latest version, with no per-game Update needed.',
+    'Fix: on a phone, the Filter, Random and Compact buttons now sit neatly on one row instead of spilling onto another line.',
+    'Fix: the Collection store held sideways (landscape) no longer leaves a gap under the title or clips the "See titles" button off the bottom.',
+  ] },
   { date: '2026-07-04', title: 'Play in your language 🌍', items: [
     'New: komyo now speaks Polish! The whole site — every game, every menu and screen — is translated. Pick your language from ⚙️ Settings on the home page, or the ☰ menu inside any game. English stays the default, and more languages are on the way.',
   ] },
