@@ -7,6 +7,13 @@ window.KOMYO_I18N = {
     'cat.goodRuns': { one: '{count} good run', other: '{count} good runs' },
     'cat.plays': { one: '{count} play', other: '{count} plays' },
     'cat.showMore': 'Show {n} more…',
+    // profile stat-chip + word plurals (catalogue profile panel)
+    'profile.statGames': { one: 'Game', other: 'Games' },
+    'profile.statModes': { one: 'Mode', other: 'Modes' },
+    'profile.statPlays': { one: 'Play', other: 'Plays' },
+    'profile.statDays': { one: 'Day', other: 'Days' },
+    'profile.goodRunsWord': { one: 'good run', other: 'good runs' },
+    'profile.playsWord': { one: 'play', other: 'plays' },
 
     // --- nav / chrome bar ---
     'nav.menu': '‹ Menu',
