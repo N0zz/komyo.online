@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make the entire komyo site (catalogue + shared kit + 9 games + legal pages) translatable, with a live language picker, and ship it in 5 languages: **English, Polish, Spanish (neutral), Portuguese (pt-BR), French**.
+**Goal:** Make the entire komyo site (catalogue + shared kit + 9 games + legal pages) translatable, with a live language picker, and ship it in 6 languages: **English, Polish, Spanish (neutral), Portuguese (pt-BR), French, Italian**.
 
 **Architecture:** Add a central `gamekit.t(key, params)` translation function + plural engine + language state to `game-kit.js` (the one file loaded everywhere). Message data lives in a single new `i18n.js` (`window.KOMYO_I18N = { en, pl, es, pt, fr }`), loaded in the atomic `<head>` and every `sw.js` SHELL in lockstep, exactly like `challenges.js`/`cosmetics.js`. UI strings are keyed into `i18n.js`; registry data (games.js/cosmetics.js/challenges.js) keeps its English in place and is translated by id via a `def:` fallback, minimizing churn. No build step — client-side language selection via `?lang=` + `navigator.language` + a persisted picker.
 
@@ -21,6 +21,43 @@
   - **Task 26 must additionally update the skill** (its `assets/*.tmpl`, `references/i18n.md`, and Contract Checklist) so all *future* generated games emit keyed strings. Add that to Task 26's scope.
 
 - **Regardless of order:** the skill ships with a `references/i18n.md` stub from day one documenting this switch, so the intent is discoverable before i18n lands.
+
+## Session breakdown (incremental execution)
+
+This plan is split into independent sessions. **The English fallback** (`t()` →
+translation → `en` → `def` → key) means a half-migrated site is a fully working
+English site — so **every session ends tests-green and shippable**, and sessions
+after S1 can run in any order.
+
+- **S1 · Engine + picker** *(prerequisite; Tasks 1–3).* `i18n.js` + `gamekit.t`/
+  `lang`/`setLang`/`onLang` + `Intl.PluralRules` + the language picker (catalogue
+  header + in-game ☰ menu) + `navigator.language` detect + `?lang=` + persisted
+  `gamekit_lang`. Ships with **zero visible change** (English via fallback).
+  (The `komyo-new-game` skill flip to `t()`-native is deferred to **S9** — per the
+  user, don't touch the skill until full i18n works end-to-end.)
+- **S2 · Kit strings** *(Tasks 4–6).* `game-kit.js` labels/aria/interpolated/plural
+  strings + canvas card text. Defines the shared plural keys reused later.
+- **S3 · Registry data** *(Tasks 7–10).* `games.js` titles/blurbs, `challenges.js`
+  goals/titles, `cosmetics.js` names/descs — translate-by-id with `def:` fallback +
+  the unified game-name key set.
+- **S4 · Catalogue** *(Tasks 11–13).* `index.html` — splittable into 4a static text +
+  attributes (`data-t` pass), 4b JS-built strings + plurals, 4c `<head>` meta +
+  hreflang + sitemap.
+- **S5 · Games** *(Phase 5, Tasks 14–22).* One task per game — do one or a few games
+  per session; re-scan `games/*` for the live set (incl. any skill-generated games).
+- **S6 · Legal pages.** `privacy.html` + `tos.html` (small standalone chunk).
+- **S7 · Translate.** Populate `pl/es/pt/fr/it` — per language or per area, whenever the
+  keys exist; purely additive (never breaks the site).
+- **S8 · QA + ship.** Rendering QA across languages × orientations + `changelog.js` + docs.
+- **S9 · Flip the game-creation skill to `t()`-native** *(FINAL — only after full i18n
+  works end-to-end, per the user).* Update `komyo-new-game` templates + references +
+  Contract Checklist to emit `KIT.t('game.<slug>.*')`, add `i18n.js` to the generated
+  `<head>` + `sw.js` SHELL, and have `scaffold.mjs` append keys. Deliberately last —
+  don't touch the skill until i18n is fully working.
+
+Ordering notes (soft, thanks to the fallback): shared keys (plurals, game names) are
+defined in S2/S3 and reused by S4 — do those first or define the shared keys early;
+a key must exist (extraction) before it can be translated (S7).
 
 ## Global Constraints
 
@@ -66,7 +103,7 @@ Copied verbatim from `CLAUDE.md` — every task implicitly includes these:
 
 ## Phase 0 — Decisions locked (no task; reference)
 
-- **Languages:** `en` (base), `pl`, `es` (neutral, one file for Spain+LatAm), `pt` (pt-BR — Brazil), `fr` (neutral).
+- **Languages:** `en` (base), `pl`, `es` (neutral, one file for Spain+LatAm), `pt` (pt-BR — Brazil), `fr` (neutral), `it` (Italian).
 - **Lang code normalization:** map `pt-*` → `pt`, `es-*` → `es`, `fr-*` → `fr`, `pl-*` → `pl`, else first 2 chars; anything not in the supported set → `en`.
 - **Selection order:** `?lang=` query param → `localStorage.gamekit_lang` → `navigator.language` (normalized) → `en`.
 - **SEO approach (no-build):** single URL per page + `?lang=xx`; JS injects translated `<title>`/meta on load; `<link rel="alternate" hreflang>` for each language; sitemap lists `?lang=` variants. Full path-based/pre-rendered SEO is out of scope (would need a build step) — revisit post-launch if organic traffic warrants it.

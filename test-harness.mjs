@@ -10,6 +10,7 @@ import path from 'node:path';
 
 export const ROOT = path.dirname(new URL(import.meta.url).pathname);
 export const KIT = fs.readFileSync(path.join(ROOT, 'game-kit.js'), 'utf8');
+export const I18N = fs.readFileSync(path.join(ROOT, 'i18n.js'), 'utf8');
 
 // ---- reporter (shared pass/fail counters + exit-code summary) ----
 let pass = 0, fail = 0;
@@ -157,7 +158,7 @@ export function bootGame(file, opts = {}) {
   const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
   const code = extractInline(html, file);
   const g = makeSandbox({ ...opts, search });
-  if (opts.kit !== false) g.run(KIT, 'game-kit.js');
+  if (opts.kit !== false) { g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); }
   for (const pre of [].concat(opts.preCode || [])) g.run(pre, 'pre.js');
   g.run(code, file);
   return g;

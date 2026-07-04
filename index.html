@@ -151,6 +151,11 @@
   .ibtn { position:relative; font-family:var(--mono); font-size:12px; letter-spacing:2px; cursor:pointer; padding:9px 16px; border-radius:10px;
     color:var(--text); background:var(--surface-2); border:1px solid var(--border); text-decoration:none; display:inline-flex; align-items:center; }
   .ibtn:hover { border-color:#9fe8ff; color:#fff; }
+  /* language trigger in the top-left toolbar: a big current-flag icon, aligned to the Install button */
+  .float-btns-l .gamekit-langbtn.ibtn { padding:5px 9px; }
+  .float-btns-l .gamekit-langbtn { box-shadow:0 4px 14px rgba(0,0,0,0.42); }
+  .float-btns-l .gamekit-langbtn .gk-langflag { width:35px; }
+  #langMountSet .gamekit-langbtn.drefresh { padding:8px 12px; }
   .tip { position:relative; display:inline-flex; }
   /* desktop-only hover hint (mobile has no hover → the tap action + modals carry the info) */
   @media (hover:hover) and (pointer:fine) {
@@ -637,6 +642,7 @@
         <span style="opacity:.8">Want just one game? Each game installs on its own too — open it and use Add to Home Screen / Install.</span><br>
         <span style="opacity:.8">Already installed? Open it from your home screen, or the “Open in app” icon in the address bar.</span></span>
     </span>
+    <span id="langMount"></span>
   </div>
   <div class="float-btns-r">
     <button class="tb-btn tb-chal" id="chalBtn" aria-label="Open challenges" aria-haspopup="dialog"><span class="trophy">🏆</span> <span class="tb-lbl">CHALLENGES</span></button>
@@ -981,6 +987,7 @@
   <script src="changelog.js"></script>
   <script src="challenges.js"></script>
   <script src="cosmetics.js"></script>
+  <script src="i18n.js"></script>
   <script>
     const grid = document.getElementById('grid');
 
@@ -1385,6 +1392,14 @@
       }
       wire({ x: 'shareX', fb: 'shareFb', reddit: 'shareReddit', copy: 'shareCopy', native: 'shareNative' });
       wire({ x: 'dShareX', fb: 'dShareFb', reddit: 'dShareReddit', copy: 'dShareCopy', native: 'dShareNative' });
+    })();
+
+    // ---- Language picker (header) — kit-built flag trigger → themed grid ----
+    (function () {
+      const K = window.gamekit;
+      if (!K || !K.langButton) return;
+      const head = document.getElementById('langMount');
+      if (head) { const b = K.langButton({ className: 'ibtn' }); if (b) head.appendChild(b); }
     })();
 
     // ---- Install / open ----

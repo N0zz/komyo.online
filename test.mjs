@@ -560,6 +560,34 @@ function testKitChrome() {
   ok(!js.includes('if (!interacted)') && !js.includes('showUpdateButton'), 'new build never auto-reloads the visible page — it lights the ☰ badge (no launch fast-path reload)');
 }
 
+function testI18n() {
+  section('i18n engine');
+  const h = bootGame('games/breakout/index.html', {});
+  const K = h.win.gamekit;
+  // seed a tiny catalogue
+  h.win.KOMYO_I18N = {
+    en: { hi: 'Hello', bye: 'Bye {name}', apples: { one: '{count} apple', other: '{count} apples' } },
+    pl: { hi: 'Cześć', apples: { one: '{count} jabłko', few: '{count} jabłka', many: '{count} jabłek', other: '{count} jabłka' } },
+    es: {}, pt: {}, fr: {}
+  };
+  K.setLang('en');
+  ok(K.t('hi') === 'Hello', 'basic lookup');
+  ok(K.t('bye', { name: 'Fox' }) === 'Bye Fox', 'interpolation');
+  ok(K.t('apples', { count: 1 }) === '1 apple', 'plural one (en)');
+  ok(K.t('apples', { count: 3 }) === '3 apples', 'plural other (en)');
+  ok(K.t('missing', { def: 'D' }) === 'D', 'def fallback');
+  ok(K.t('nope') === 'nope', 'key fallback');
+  K.setLang('pl');
+  ok(K.t('hi') === 'Cześć', 'pl lookup');
+  ok(K.t('bye', { name: 'Fox' }) === 'Bye Fox', 'pl falls back to en for missing key');
+  ok(K.t('apples', { count: 5 }) === '5 jabłek', 'pl plural many');
+  ok(K.t('apples', { count: 2 }) === '2 jabłka', 'pl plural few');
+  ok(K.lang() === 'pl', 'lang() reflects setLang');
+  ok(typeof K.langs === 'function' && K.langs().length === 6, 'langs() lists 6');
+  ok(K.langs()[0].code === 'en', 'en first');
+  K.setLang('en');
+}
+
 function testChallenges() {
   section('challenges.js (coverage vs games.js)');
   const games = fs.readFileSync(path.join(DIR, 'games.js'), 'utf8');
@@ -795,6 +823,7 @@ testTD();
 testLiveGames();
 await testKit();
 testKitChrome();
+testI18n();
 testChallenges();
 testCosmetics();
 testServiceWorkers();

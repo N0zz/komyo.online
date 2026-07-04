@@ -1376,6 +1376,17 @@
         confirmDialog('Reset your saved scores for this game?', function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} }, 'Hold to reset', null, { hold: 3000, theme: opts.theme });
       });
     }
+    // ☰ language row: a full-width item (split globe/flag glyph + "Language") opening the themed
+    // grid; closing the ☰ panel first keeps it from lingering behind the overlay.
+    if (morePanel) {
+      var langBtn = langButton({ label: 'Language', className: 'gamekit-more-item gamekit-more-lang', theme: opts.theme });
+      if (langBtn) {
+        langBtn.addEventListener('click', function () { setMore(false); }, true);
+        var resetRow = opts.reset ? document.getElementById('gamekitReset') : null;
+        if (resetRow && morePanel.insertBefore) morePanel.insertBefore(langBtn, resetRow);
+        else if (morePanel.appendChild) morePanel.appendChild(langBtn);
+      }
+    }
     var eb = document.getElementById('gamekitEmbed');
     if (eb) eb.addEventListener('click', function () {
       setMore(false);
@@ -2635,7 +2646,124 @@
   }
   var menu = { show: menuShow, hide: menuHide, current: function () { return _menuHandle; } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo };
+  // ---- i18n ------------------------------------------------------------
+  var I18N_SUPPORTED = { en: 1, pl: 1, es: 1, pt: 1, fr: 1, it: 1 };
+  var I18N_LANGS = [
+    { code: 'en', label: 'English' }, { code: 'pl', label: 'Polski' },
+    { code: 'es', label: 'Español' }, { code: 'pt', label: 'Português' },
+    { code: 'fr', label: 'Français' }, { code: 'it', label: 'Italiano' }
+  ];
+  // inline-SVG flags (viewBox 30×20) — render everywhere incl. Windows, no external assets.
+  // en = clip-path Union Jack; pt = full official Brazilian flag (all ids namespaced brz* to stay collision-safe).
+  var I18N_FLAG_SVG = {
+    en: '<svg viewBox="0 0 50 30"><clipPath id="gkuj"><path d="M25,15h25v15zv15h-25zh-25v-15zv-15h25z"/></clipPath><path d="M0,0v30h50v-30z" fill="#012169"/><path d="M0,0 50,30M50,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 50,30M50,0 0,30" clip-path="url(#gkuj)" stroke="#C8102E" stroke-width="4"/><path d="M-1 11h22v-12h8v12h22v8h-22v12h-8v-12h-22z" fill="#C8102E" stroke="#FFF" stroke-width="2"/></svg>',
+    pl: '<svg viewBox="0 0 30 20"><rect width="30" height="20" fill="#fff"/><rect y="10" width="30" height="10" fill="#dc143c"/></svg>',
+    es: '<svg viewBox="0 0 30 20"><rect width="30" height="20" fill="#AA151B"/><rect y="5" width="30" height="10" fill="#F1BF00"/></svg>',
+    pt: '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="-2100 -1470 4200 2940"><defs><g id="brzG"><clipPath id="brzg"><path d="m-31.5 0v-70h63v70zm31.5-47v12h31.5v-12z"/></clipPath><use clip-path="url(#brzg)" xlink:href="#brzO"/><path d="M5-35H31.5V-25H5z"/><path d="m21.5-35h10v35h-10z"/></g><g id="brzR"><use xlink:href="#brzP"/><path d="m28 0c0-10 0-32-15-32h-19c22 0 22 22 22 32"/></g><g id="brzs" fill="#fff"><g id="brzc"><path id="brzt" transform="rotate(18,0,-1)" d="m0-1v1h0.5"/><use transform="scale(-1,1)" xlink:href="#brzt"/></g><use transform="rotate(72)" xlink:href="#brzc"/><use transform="rotate(-72)" xlink:href="#brzc"/><use transform="rotate(144)" xlink:href="#brzc"/><use transform="rotate(216)" xlink:href="#brzc"/></g><g id="brza"><use transform="scale(31.5)" xlink:href="#brzs"/></g><g id="brzb"><use transform="scale(26.25)" xlink:href="#brzs"/></g><g id="brzf"><use transform="scale(21)" xlink:href="#brzs"/></g><g id="brzh"><use transform="scale(15)" xlink:href="#brzs"/></g><g id="brzi"><use transform="scale(10.5)" xlink:href="#brzs"/></g><path id="brzD" d="m-31.5 0h33a30 30 0 0 0 30-30v-10a30 30 0 0 0-30-30h-33zm13-13h19a19 19 0 0 0 19-19v-6a19 19 0 0 0-19-19h-19z" fill-rule="evenodd"/><path id="brzE" transform="translate(-31.5)" d="m0 0h63v-13h-51v-18h40v-12h-40v-14h48v-13h-60z"/><path id="brze" d="m-26.25 0h52.5v-12h-40.5v-16h33v-12h-33v-11h39.25v-12h-51.25z"/><path id="brzM" d="m-31.5 0h12v-48l14 48h11l14-48v48h12v-70h-17.5l-14 48-14-48h-17.5z"/><path id="brzO" d="m0 0a31.5 35 0 0 0 0-70 31.5 35 0 0 0 0 70m0-13a18.5 22 0 0 0 0-44 18.5 22 0 0 0 0 44" fill-rule="evenodd"/><path id="brzP" d="m-31.5 0h13v-26h28a22 22 0 0 0 0-44h-40zm13-39h27a9 9 0 0 0 0-18h-27z" fill-rule="evenodd"/><path id="brzS" d="m-15.75-22c0 7 6.75 10.5 16.75 10.5s14.74-3.25 14.75-7.75c0-14.25-46.75-5.25-46.5-30.25 0.25-21.5 24.75-20.5 33.75-20.5s26 4 25.75 21.25h-15.25c0-7.5-7-10.25-15-10.25-7.75 0-13.25 1.25-13.25 8.5-0.25 11.75 46.25 4 46.25 28.75 0 18.25-18 21.75-31.5 21.75-11.5 0-31.55-4.5-31.5-22z"/></defs><clipPath id="brzB"><circle r="735"/></clipPath><path d="m-2100-1470h4200v2940h-4200z" fill="#009440"/><path d="M -1743,0 0,1113 1743,0 0,-1113 Z" fill="#ffcb00"/><circle r="735" fill="#302681"/><path d="m-2205 1470a1785 1785 0 0 1 3570 0h-105a1680 1680 0 1 0-3360 0z" clip-path="url(#brzB)" fill="#fff"/><g transform="translate(-420,1470)" fill="#009440"><use transform="rotate(-7)" y="-1697.5" xlink:href="#brzO"/><use transform="rotate(-4)" y="-1697.5" xlink:href="#brzR"/><use transform="rotate(-1)" y="-1697.5" xlink:href="#brzD"/><use transform="rotate(2)" y="-1697.5" xlink:href="#brzE"/><use transform="rotate(5)" y="-1697.5" xlink:href="#brzM"/><use transform="rotate(9.75)" y="-1697.5" xlink:href="#brze"/><use transform="rotate(14.5)" y="-1697.5" xlink:href="#brzP"/><use transform="rotate(17.5)" y="-1697.5" xlink:href="#brzR"/><use transform="rotate(20.5)" y="-1697.5" xlink:href="#brzO"/><use transform="rotate(23.5)" y="-1697.5" xlink:href="#brzG"/><use transform="rotate(26.5)" y="-1697.5" xlink:href="#brzR"/><use transform="rotate(29.5)" y="-1697.5" xlink:href="#brzE"/><use transform="rotate(32.5)" y="-1697.5" xlink:href="#brzS"/><use transform="rotate(35.5)" y="-1697.5" xlink:href="#brzS"/><use transform="rotate(38.5)" y="-1697.5" xlink:href="#brzO"/></g><use x="-600" y="-132" xlink:href="#brza"/><use x="-535" y="177" xlink:href="#brza"/><use x="-625" y="243" xlink:href="#brzb"/><use x="-463" y="132" xlink:href="#brzh"/><use x="-382" y="250" xlink:href="#brzb"/><use x="-404" y="323" xlink:href="#brzf"/><use x="228" y="-228" xlink:href="#brza"/><use x="515" y="258" xlink:href="#brza"/><use x="617" y="265" xlink:href="#brzf"/><use x="545" y="323" xlink:href="#brzb"/><use x="368" y="477" xlink:href="#brzb"/><use x="367" y="551" xlink:href="#brzf"/><use x="441" y="419" xlink:href="#brzf"/><use x="500" y="382" xlink:href="#brzb"/><use x="365" y="405" xlink:href="#brzf"/><use x="-280" y="30" xlink:href="#brzb"/><use x="200" y="-37" xlink:href="#brzf"/><use y="330" xlink:href="#brza"/><use x="85" y="184" xlink:href="#brzb"/><use y="118" xlink:href="#brzb"/><use x="-74" y="184" xlink:href="#brzf"/><use x="-37" y="235" xlink:href="#brzh"/><use x="220" y="495" xlink:href="#brzb"/><use x="283" y="430" xlink:href="#brzf"/><use x="162" y="412" xlink:href="#brzf"/><use x="-295" y="390" xlink:href="#brza"/><use y="575" xlink:href="#brzi"/></svg>',
+    fr: '<svg viewBox="0 0 30 20"><rect width="30" height="20" fill="#fff"/><rect width="10" height="20" fill="#0055A4"/><rect x="20" width="10" height="20" fill="#EF4135"/></svg>',
+    it: '<svg viewBox="0 0 30 20"><rect width="30" height="20" fill="#fff"/><rect width="10" height="20" fill="#009246"/><rect x="20" width="10" height="20" fill="#CE2B37"/></svg>'
+  };
+  function flagSvg(code) { return I18N_FLAG_SVG[code] || ''; }
+  var _lang = null, _langSubs = [];
+  function normLang(c) {
+    c = String(c || '').toLowerCase();
+    if (c.indexOf('pt') === 0) return 'pt';
+    var two = c.slice(0, 2);
+    return I18N_SUPPORTED[two] ? two : (I18N_SUPPORTED[c] ? c : 'en');
+  }
+  function detectLang() {
+    var q = null;
+    try { q = new URLSearchParams(location.search).get('lang'); } catch (e) {}
+    if (q && I18N_SUPPORTED[normLang(q)]) return normLang(q);
+    try { var s = localStorage.getItem('gamekit_lang'); if (s && I18N_SUPPORTED[s]) return s; } catch (e) {}
+    var nav = 'en';
+    try { nav = (navigator.languages && navigator.languages[0]) || navigator.language || 'en'; } catch (e) {}
+    return normLang(nav);
+  }
+  function lang() { if (!_lang) _lang = detectLang(); return _lang; }
+  function setLang(code) {
+    code = I18N_SUPPORTED[code] ? code : 'en';
+    _lang = code;
+    try { localStorage.setItem('gamekit_lang', code); } catch (e) {}
+    try { document.documentElement.lang = code; } catch (e) {}
+    _langSubs.forEach(function (fn) { try { fn(code); } catch (e) {} });
+  }
+  function onLang(fn) { _langSubs.push(fn); return function () { var i = _langSubs.indexOf(fn); if (i >= 0) _langSubs.splice(i, 1); }; }
+  function pluralCat(l, n) {
+    try { return new Intl.PluralRules(l).select(n); } catch (e) { return n === 1 ? 'one' : 'other'; }
+  }
+  function interp(s, params) {
+    if (!params) return s;
+    return String(s).replace(/\{(\w+)\}/g, function (m, k) { return params[k] != null ? params[k] : m; });
+  }
+  function t(key, params) {
+    var all = window.KOMYO_I18N || {};
+    var en = all.en || {};
+    var dict = all[lang()] || en;
+    var entry = (key in dict) ? dict[key] : (key in en ? en[key] : undefined);
+    if (entry == null) return (params && params.def != null) ? interp(params.def, params) : key;
+    if (typeof entry === 'object') {
+      var n = (params && params.count != null) ? params.count : 0;
+      var cat = pluralCat(lang(), n);
+      entry = entry[cat] != null ? entry[cat]
+            : (entry.other != null ? entry.other
+            : (en[key] && en[key].other != null ? en[key].other : key));
+    }
+    return interp(entry, params);
+  }
+  // the current language's flag (inline SVG — renders everywhere, incl. Windows).
+  function langGlyphHTML(code) {
+    return '<span class="gk-langflag" aria-hidden="true">' + flagSvg(code) + '</span>';
+  }
+  // langButton(opts) → a trigger element (icon-only, or icon + opts.label) that opens langMenu.
+  // opts.className appended for context fit; opts.theme / opts.onClose forwarded to langMenu.
+  function langButton(opts) {
+    opts = opts || {};
+    if (typeof document === 'undefined' || !document.createElement) return null;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'gamekit-langbtn' + (opts.className ? ' ' + opts.className : '');
+    b.setAttribute('aria-label', opts.label || 'Language');
+    b.title = opts.label || 'Language';
+    b.innerHTML = langGlyphHTML(lang()) + (opts.label ? '<span class="gk-lang-lbl">' + opts.label + '</span>' : '');
+    b.addEventListener('click', function () { langMenu(opts); });
+    return b;
+  }
+  // langMenu(opts) → a themed overlay grid: big flags + small language names, current one highlighted.
+  // Picking → setLang + reload. Esc/backdrop/✕ close (fires opts.onClose so a caller can reopen its own
+  // dialog it had to close first — mirrors the catalogue confirm-from-Settings pattern).
+  function langMenu(opts) {
+    opts = opts || {};
+    if (typeof document === 'undefined' || !document.body) return;
+    var cur = lang();
+    var cells = I18N_LANGS.map(function (l) {
+      return '<button class="gklang-cell' + (l.code === cur ? ' selected' : '') + '" type="button" data-code="' + l.code + '">'
+        + '<span class="gklang-flag" aria-hidden="true">' + flagSvg(l.code) + '</span>'
+        + '<span class="gklang-name">' + l.label + '</span></button>';
+    }).join('');
+    var ov = document.createElement('div'); ov.className = 'gamekit-langmenu';
+    ov.innerHTML = '<div class="gklang-box"><button class="gklang-x" type="button" aria-label="Close">✕</button>'
+      + '<h3>🌐 Language</h3><div class="gklang-grid">' + cells + '</div></div>';
+    if (opts.theme) applyMenuTheme(ov, opts.theme);
+    document.body.appendChild(ov);
+    _modalOpen++;
+    var done = false;
+    function close() {
+      if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1);
+      try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
+      try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+      if (typeof opts.onClose === 'function') { try { opts.onClose(); } catch (e) {} }
+    }
+    function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
+    if (ov.querySelectorAll) Array.prototype.forEach.call(ov.querySelectorAll('.gklang-cell'), function (cell) {
+      cell.addEventListener('click', function () { setLang(cell.getAttribute('data-code')); try { location.reload(); } catch (e) {} });
+    });
+    var xb = ov.querySelector ? ov.querySelector('.gklang-x') : null; if (xb) xb.addEventListener('click', close);
+    ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
+    if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
+  }
+
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
