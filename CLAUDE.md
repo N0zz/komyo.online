@@ -85,6 +85,9 @@ silently, not loudly.
 - **SFX:** `SND.define({…})` must never reuse a kit-owned stinger name (`levelup`, `lose`, …) —
   the kit plays those itself, so an override self-recurses into silence.
 - **Game-over restart accepts tap AND key;** touch aim maps to canvas coords, not client coords.
+- **If a game renders its OWN mouse cursor** (e.g. aim-trainer's crosshair), set `cursor:none` on that
+  element **and** `data-gk-hide-cursor` on it — the kit's site cursor skins (incl. the blinking terminal
+  follower) then hide there instead of doubling up over the game's cursor.
 - **Each game is its own installable PWA:** `manifest.json` + `sw.js` (sets `SCOPE`/`VERSION`/
   `SHELL`, imports `../../sw-core.js`) + `icon-192/512.png` (distinct color-emoji icon) +
   apple/theme meta in `<head>`.
