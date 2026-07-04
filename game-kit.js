@@ -715,6 +715,32 @@
       _curTrail = t;
     } catch (e) { stopCursorTrail(); }
   }
+  // terminal cursor: a blinking phosphor block that FOLLOWS the pointer (OS cursor images can't blink),
+  // colour = green normally, or the CRT colour while CRT mode is on. Desktop only (fine pointer).
+  var _termCur = null;
+  function termColor() {
+    try { var r = document.documentElement; if (r.classList && r.classList.contains('gk-crt')) return { green: '#33ff88', amber: '#ffb454', cyan: '#5cc8ff', mono: '#eef2f8' }[r.getAttribute('data-crt-color') || 'green']; } catch (e) {}
+    return '#33ff88';
+  }
+  function stopTermCursor() {
+    if (!_termCur) return;
+    try { document.removeEventListener('pointermove', _termCur.move); } catch (e) {}
+    try { if (_termCur.el && _termCur.el.parentNode) _termCur.el.parentNode.removeChild(_termCur.el); } catch (e) {}
+    _termCur = null;
+  }
+  function startTermCursor() {
+    if (typeof document === 'undefined' || !document.body) return;
+    var col = termColor();
+    if (_termCur) { try { _termCur.el.style.background = col; _termCur.el.style.boxShadow = '0 0 8px ' + col; } catch (e) {} return; }
+    try {
+      var el = document.createElement('div'); el.className = 'gamekit-term-cursor'; el.setAttribute('aria-hidden', 'true');
+      el.style.background = col; el.style.boxShadow = '0 0 8px ' + col;
+      document.body.appendChild(el);
+      var move = function (e) { if (!e) return; el.style.left = e.clientX + 'px'; el.style.top = e.clientY + 'px'; };
+      document.addEventListener('pointermove', move, { passive: true });
+      _termCur = { el: el, move: move };
+    } catch (e) { stopTermCursor(); }
+  }
   // per-cursor orientation: paw/comet/rainbow are tilted to point NW like the classic arrow, with the
   // hotspot moved to that visual "tip"; classic/crosshair/sword keep their own geometry.
   var CURSOR_TWEAK = {
@@ -738,6 +764,13 @@
       var fine = false;
       try { fine = !!(typeof matchMedia === 'function' && matchMedia('(pointer: fine)').matches); } catch (e) {}
       var key = fine ? cursorKey() : 'classic';
+      if (key === 'terminal') { // blinking-block follower replaces the OS cursor
+        stopCursorTrail(); startTermCursor();
+        document.documentElement.style.cursor = 'none';
+        setCursorRule('html, html * { cursor: none !important; }');
+        return;
+      }
+      stopTermCursor();
       var C = cosReg(), painter = C && C.cursors && C.cursors[key];
       if (key === 'classic' || !painter || typeof document.createElement !== 'function') {
         document.documentElement.style.cursor = ''; setCursorRule(''); stopCursorTrail(); return;

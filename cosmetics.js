@@ -183,6 +183,8 @@
     sword: function (g) { g.save(); g.rotate(-0.785); g.fillStyle = '#cfe0f0'; g.fillRect(-1.7, -12, 3.4, 15); g.fillStyle = '#8a97ad'; g.beginPath(); g.moveTo(-1.7, -12); g.lineTo(0, -15); g.lineTo(1.7, -12); g.closePath(); g.fill(); g.fillStyle = '#c8894a'; g.fillRect(-5.5, 3, 11, 3); g.fillRect(-1.7, 6, 3.4, 6); g.restore(); },
     comet: function (g) { var lg = g.createLinearGradient(-12, 12, 8, -8); lg.addColorStop(0, 'rgba(159,232,255,0)'); lg.addColorStop(1, '#9fe8ff'); g.strokeStyle = lg; g.lineWidth = 4; g.beginPath(); g.moveTo(-12, 12); g.lineTo(6, -6); g.stroke(); g.fillStyle = '#e8fbff'; g.shadowColor = '#9fe8ff'; g.shadowBlur = 8; g.beginPath(); g.arc(7, -7, 4, 0, 7); g.fill(); g.shadowBlur = 0; },
     rainbow: function (g) { var cols = ['#ff5b5b', '#ffd166', '#7fe0a0', '#7fd0ff', '#b98cff']; for (var i = 0; i < cols.length; i++) { g.strokeStyle = cols[i]; g.lineWidth = 2.2; g.beginPath(); g.moveTo(-12 + i * 1.4, 12 - i * 1.4); g.lineTo(5 + i * 0.4, -5 - i * 0.4); g.stroke(); } g.fillStyle = '#fff'; g.beginPath(); g.arc(7, -7, 3.4, 0, 7); g.fill(); },
+    // terminal: a phosphor block (the live cursor is a blinking follower — see gamekit startTermCursor)
+    terminal: function (g) { g.fillStyle = '#33ff88'; g.shadowColor = '#33ff88'; g.shadowBlur = 5; g.fillRect(-4, -9, 8, 17); g.shadowBlur = 0; },
   };
 
   var items = [];
@@ -197,6 +199,7 @@
   add('', 'cursor', 'sword',     'Pixel Sword',   50,  'Point with a tiny hero’s blade.', cursorSwatch(CURSORS.sword));
   add('', 'cursor', 'comet',     'Neon Comet',    50,  'A glowing comet head with a neon tail.', cursorSwatch(CURSORS.comet, -1.5708));
   add('', 'cursor', 'rainbow',   'Rainbow Trail', 100, 'Leaves a shimmering rainbow wake as you move.', cursorSwatch(CURSORS.rainbow, -1.5708));
+  add('', 'cursor', 'terminal',  'Terminal',      75,  'A blinking block cursor, like an old terminal prompt. Glows in your CRT colour when CRT mode is on.', cursorSwatch(CURSORS.terminal));
 
   // ---- Site-wide — CRT display mode (ONE unlock; on/off + colour are free preferences after that) ----
   add('', 'fx', 'off', 'Standard', 0, 'No screen filter — the plain look.', function (g, w, h) {
