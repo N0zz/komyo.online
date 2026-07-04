@@ -748,17 +748,14 @@
       var tw = CURSOR_TWEAK[key] || { rot: 0, hot: [16, 16] };
       g.save(); g.translate(16, 16); if (tw.rot) g.rotate(tw.rot); g.scale(0.9, 0.9); painter(g); g.restore();
       // CSS filter can't reach the OS cursor, so tint the cursor PNG itself to match an active CRT colour.
-      // 'color' recolours (keeps the glyph's shading; white → grayscale for mono) but also paints the
-      // transparent area, so a 'destination-in' pass re-masks it back to the glyph shape. Reads the live
-      // root state so it follows the CRT preview too.
+      // 'source-atop' paints the colour ONLY over the glyph's opaque pixels (transparency preserved, no
+      // square) → a flat phosphor silhouette. Reads the live root state so it follows the CRT preview too.
       try {
         var croot = document.documentElement;
         if (croot.classList && croot.classList.contains('gk-crt')) {
-          var ctint = { green: '#33ff88', amber: '#ffb454', cyan: '#5cc8ff', mono: '#ffffff' }[croot.getAttribute('data-crt-color') || 'green'];
+          var ctint = { green: '#33ff88', amber: '#ffb454', cyan: '#5cc8ff', mono: '#eef2f8' }[croot.getAttribute('data-crt-color') || 'green'];
           if (ctint) {
-            g.globalCompositeOperation = 'color'; g.fillStyle = ctint; g.fillRect(0, 0, cv.width, cv.height);
-            g.globalCompositeOperation = 'destination-in';
-            g.save(); g.translate(16, 16); if (tw.rot) g.rotate(tw.rot); g.scale(0.9, 0.9); painter(g); g.restore();
+            g.globalCompositeOperation = 'source-atop'; g.fillStyle = ctint; g.fillRect(0, 0, cv.width, cv.height);
             g.globalCompositeOperation = 'source-over';
           }
         }
