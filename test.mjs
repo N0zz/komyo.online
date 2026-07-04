@@ -588,6 +588,49 @@ function testI18n() {
   K.setLang('en');
 }
 
+function testI18nCoverage() {
+  section('i18n coverage (every locale: empty or complete)');
+  const evalData = (code, fname) => { const sb = { window: {}, console, Math, Date, JSON }; sb.globalThis = sb; try { vm.runInContext(code, vm.createContext(sb), { filename: fname }); } catch (e) { return { __err: e.message }; } return sb.window; };
+  const dict = evalData(I18N, 'i18n.js').KOMYO_I18N || {};
+  ok(dict.en && dict.pl, 'i18n.js parses with en + pl blocks');
+  const GAMES = evalData(fs.readFileSync(path.join(DIR, 'games.js'), 'utf8'), 'games.js').GAMES || [];
+  const COS = evalData(fs.readFileSync(path.join(DIR, 'cosmetics.js'), 'utf8'), 'cosmetics.js').COSMETICS || {};
+
+  // 1) collect the LITERAL i18n keys referenced in code (data-t* attrs + t('…')/T('…') calls).
+  // Concatenated/dynamic keys (t('pre'+x)) are skipped — they can't be verified statically.
+  const files = ['index.html', 'tos.html', 'privacy.html', 'game-kit.js'];
+  fs.readdirSync(path.join(DIR, 'games')).forEach(s => { const p = 'games/' + s + '/index.html'; if (fs.existsSync(path.join(DIR, p))) files.push(p); });
+  const KEY_RE = /^[a-z][\w-]*(?:\.[\w-]+)+$/;   // namespaced key like game.x.y / shop.buy
+  const used = new Set();
+  const add = k => { if (KEY_RE.test(k)) used.add(k); };
+  for (const f of files) {
+    const src = fs.readFileSync(path.join(DIR, f), 'utf8'); let m;
+    const attr = /\bdata-t[hpa]?="([^"]+)"/g; while ((m = attr.exec(src))) add(m[1]);
+    const call = /(?:[^\w$]|^)[tT]\(\s*'([^']+)'\s*[,)]/g; while ((m = call.exec(src))) add(m[1]);
+  }
+  // 2) data-driven keys that are dynamic in code but MUST be translated (games + cosmetics)
+  GAMES.forEach(g => { if (g && g.slug) { add('game.' + g.slug + '.title'); add('game.' + g.slug + '.blurb'); } });
+  (COS.items || []).forEach(it => { if (it && it.id) { add('cos.' + it.id + '.name'); add('cos.' + it.id + '.desc'); } });
+  Object.keys(COS.sets || {}).forEach(sid => add('cos.set.' + sid));
+
+  // 3) pl (the reference locale) must contain EVERY referenced key — else PL users silently see English
+  const plMiss = [...used].filter(k => !(k in (dict.pl || {}))).sort();
+  ok(plMiss.length === 0, 'pl has every referenced key' + (plMiss.length ? ` — MISSING ${plMiss.length}: ${plMiss.slice(0, 25).join(', ')}` : ''));
+
+  // 4) each other locale is EMPTY (not started) or a COMPLETE superset of pl — no half-translated locale
+  const plKeys = Object.keys(dict.pl || {});
+  for (const L of ['es', 'pt', 'fr', 'it']) {
+    const d = dict[L] || {}, n = Object.keys(d).length;
+    if (n === 0) { ok(true, `${L}: not started (empty) — ok`); continue; }
+    const miss = plKeys.filter(k => !(k in d)).sort();
+    ok(miss.length === 0, `${L}: complete (matches pl)` + (miss.length ? ` — MISSING ${miss.length}: ${miss.slice(0, 25).join(', ')}` : ''));
+  }
+  // 5) plural keys must exist in en too — def: can't express plural forms
+  const plural = v => v && typeof v === 'object';
+  const enPluralMiss = [...used].filter(k => plural((dict.pl || {})[k]) && !plural((dict.en || {})[k])).sort();
+  ok(enPluralMiss.length === 0, 'plural keys exist in en (def can\'t pluralize)' + (enPluralMiss.length ? ` — MISSING: ${enPluralMiss.join(', ')}` : ''));
+}
+
 function testChallenges() {
   section('challenges.js (coverage vs games.js)');
   const games = fs.readFileSync(path.join(DIR, 'games.js'), 'utf8');
@@ -825,6 +868,7 @@ testLiveGames();
 await testKit();
 testKitChrome();
 testI18n();
+testI18nCoverage();
 testChallenges();
 testCosmetics();
 testServiceWorkers();

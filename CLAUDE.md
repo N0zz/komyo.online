@@ -246,6 +246,11 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
   `{ bootGame, ok, section, summary, runLayoutSuite }` and keep only game-specific asserts.
 - `node test.mjs` — top-level: catalogue + Keep Defender + boots every live game + a **game-kit**
   test section. `node games/<slug>/test.mjs` — each game's own suite (incl. asteroids).
+- **i18n coverage is enforced** (an `test.mjs` section): the `pl` locale must contain EVERY referenced
+  key (literal `t()`/`data-t` keys + each game's `game.<slug>.title`/`.blurb` + all `cos.*` name/desc),
+  and every other locale must be **empty or a complete superset of `pl`** (no half-translated locale);
+  plural keys must exist in `en`. So adding a player-facing string without its Polish translation FAILS
+  the suite — that's how "shipped English-only by accident" is caught. `en` is exempt (the `def:` source).
 - `bootGame(file, opts)` preloads the real `game-kit.js` automatically (mirrors the `<head>` load
   order), accepts `{w, h, store, seed, search, preCode}`, and returns the drive handle
   (`T()`/`test()`, `resize(w,h)` via `gamekit.layout.__emit`, `key/down/up`, `step(n)` for

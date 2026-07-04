@@ -119,6 +119,9 @@ frame-rate-dependent game, a reset that wipes another game). The generated
 - **All player-facing strings go through `KIT.t(key, { def: 'English' })`** — no raw
   English literals in the UI (menus, share, controls, HUD labels). `game.<slug>.*` for
   game-specific, `game.common.*` for shared. See `references/i18n.md`.
+- **Polish keys added to `i18n.js`** — the i18n-coverage test in `node test.mjs` REQUIRES
+  `pl` to have every `game.<slug>.*` key (title/blurb + all UI strings) + `cos.*` for any
+  skins. English works via `def:`, but PL is enforced. `es/pt/fr/it` stay empty.
 - **Exactly one attribute-less `<script>`**, last before `</body>` (the test
   harness extracts it); `gamekit.pwa()` is called after the IIFE closes.
 - **Headless-safe** — guard `AudioContext`, `navigator.vibrate`, `matchMedia`; the
