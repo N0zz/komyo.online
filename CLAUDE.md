@@ -10,6 +10,11 @@ Game design knobs we honor (per-genre, distilled from external playbooks): @game
 **https://komyo.online** (GitHub Pages, repo `N0zz/komyo.online`, cloned at `~/arcade`).
 `index.html` is the catalogue; each game is one folder under `games/`. No build step.
 
+**Planning & tracking lives in the repo — update it, don't invent new trackers or memory files.**
+`ROADMAP.md` (repo root) is the living roadmap (Done / Path to launch / near-term / games queue /
+marketing). `plans/*-plan.md` are the per-initiative execution plans with `- [ ]` step checkboxes
+(e.g. `plans/i18n-plan.md`). When the user gives a roadmap/plan update, fold it into these files.
+
 ## Layout
 
 ```text
