@@ -1723,6 +1723,8 @@
       const TSEL = 'gamekit_title_sel', TADOPT = 'gamekit_title_adopted';
       function titleFor(pts) { return (window.CHALLENGES && window.CHALLENGES.titleFor) ? window.CHALLENGES.titleFor(pts) : { tier: 0, emoji: '🎖️', title: '' }; }
       function titleByTier(tier) { const list = (window.CHALLENGES && window.CHALLENGES.titles) || []; for (let i = 0; i < list.length; i++) if (list[i].tier === tier) return list[i]; return list[0] || { tier: 0, emoji: '🎖️', title: '' }; }
+      // rank name → gamekit.t with the challenges.js English as the def fallback (byte-identical until S7)
+      const rankTitle = r => (window.gamekit && window.gamekit.t) ? window.gamekit.t('title.t' + ((r && r.tier) | 0), { def: (r && r.title) || '' }) : ((r && r.title) || '');
       // pick which title is WORN: read the saved selection, but auto-adopt any newly-earned higher tier
       function wornTier(earnedTier) {
         let sel = earnedTier, adopted = -1;
@@ -1751,7 +1753,7 @@
           + '<span class="pf-tb-emoji">' + (TT.emoji || '🎖️') + '</span>'
           + '<div class="pf-tb-main">'
           + '<span class="pf-tb-label">' + (o.compact ? 'Title' : '<button type="button" class="pf-title-link" id="pfTitleOpen">Title · see ladder ›</button>') + '</span>'
-          + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(TT.title) + '">' + esc(TT.title) + '</span></span>';
+          + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(rankTitle(TT)) + '">' + esc(rankTitle(TT)) + '</span></span>';
         h += o.compact
           ? '<span class="pf-tb-name"><span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span></span>'
           : '<span class="pf-tb-name"><button type="button" class="pf-name-btn" id="pfNameEdit" aria-label="Change your display name">'
@@ -1871,7 +1873,7 @@
             + (unlocked ? ' role="button" tabindex="0" data-tier="' + t.tier + '"' : '') + '>'
             + (t.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + t.tier + '"></canvas>' : '')
             + '<span class="tl-emoji">' + (t.emoji || '🎖️') + '</span>'
-            + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(t.title) + '">' + esc(t.title) + '</span></span>'
+            + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(rankTitle(t)) + '">' + esc(rankTitle(t)) + '</span></span>'
             + '<span class="tl-pts">' + (worn ? '<b class="tl-worn">✓ Worn</b>' : (unlocked ? 'Wear' : fmt(t.min) + ' 🏆')) + '</span></div>';
         });
         tlList.innerHTML = h;
@@ -2048,14 +2050,14 @@
       const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
       // goal evaluation = the kit's single evaluator (game-kit chEval); the catalogue only binds its
       // context (genres + playable/titles for scope:'random'). dStr = a past UTC day for the back-fill.
-      const evalGoal = (g, dStr) => K.challengeEval ? K.challengeEval(g, { genres: genreOf, day: dStr, playable: PLAYABLE, titles: titleOf }) : null;
+      const evalGoal = (g, dStr, id) => K.challengeEval ? K.challengeEval(g, { genres: genreOf, day: dStr, playable: PLAYABLE, titles: titleOf, id: id }) : null;
       // THE pick = the kit's hashed challengePick — one math for the drawer, the in-game panel,
       // the tile badges and the award keys. (A local modulo copy here desynced the drawer from
       // the in-game panel when the shuffled rotation landed — never fork the pick math again.)
       const pick = bucket => (K.challengePick ? K.challengePick(bucket === 'week' ? 'weekly' : 'daily') : null);
-      function card(g, pts) {
+      function card(g, pts, id) {
         if (!g) return '';
-        const e = evalGoal(g);
+        const e = evalGoal(g, undefined, id);
         if (!e) return '';
         const pct = Math.round(e.pct * 100);
         const play = e.slug ? '<a class="cplay" href="games/' + e.slug + '/">▶ Play</a>' : '';
@@ -2164,8 +2166,8 @@
       function render() {
         if (!C || !todayEl) return;
         const daily = pick('day'), weekly = pick('week');
-        todayEl.innerHTML = card(daily && daily.goal, DAILY_PTS);
-        weekEl.innerHTML = card(weekly && weekly.goal, WEEKLY_PTS);
+        todayEl.innerHTML = card(daily && daily.goal, DAILY_PTS, daily && daily.id);
+        weekEl.innerHTML = card(weekly && weekly.goal, WEEKLY_PTS, weekly && weekly.id);
         trackShown(daily, 'daily'); trackShown(weekly, 'weekly');
         backfillAndAward();
         award(); // keep lifetime up to date (drives titles elsewhere); the drawer shows SPENDABLE

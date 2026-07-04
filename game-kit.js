@@ -873,7 +873,7 @@
       if (best) val = goal.metric === 'score' ? (best.score || 0) : goal.metric === 'time' ? (best.time || 0) : ((best.stats && best.stats[goal.metric]) || 0);
     }
     var target = goal.target || 0;
-    return { val: val, target: target, done: val >= target, pct: target ? Math.max(0, Math.min(1, val / target)) : 0, title: goal.title, slug: goal.slug };
+    return { val: val, target: target, done: val >= target, pct: target ? Math.max(0, Math.min(1, val / target)) : 0, title: opts.id ? t('challenge.goal.' + opts.id, { def: goal.title }) : goal.title, slug: goal.slug };
   }
   // in-game challenges board (🏆 top-bar button → modal): today's daily + this week's weekly, progress
   // from kit storage, with the goal that targets `opts.slug` (this game) highlighted. Modal (freezes game).
@@ -883,14 +883,14 @@
     var slug = opts.slug, genreOf = opts.genres || null, ct = chToday();
     function card(entry, kindLabel) {
       if (!entry || !entry.goal) return '<div class="gkch-empty">' + t('challenges.noneKind', { kind: kindLabel.toLowerCase() }) + '</div>';
-      var g = entry.goal, e = chEval(g, { genres: genreOf }), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
+      var g = entry.goal, e = chEval(g, { genres: genreOf, id: entry.id }), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
       var prog = e ? (e.done ? t('challenges.done') : (fmtScore(e.val) + ' / ' + fmtScore(e.target))) : '';
       // "good runs" goal: spell out the bar — the current game's exact bar in-game, generic on the catalogue
       var hint = '';
       if (g.metric === 'goodRuns') hint = '<div class="gkch-hint">' + (chGoodRun(slug) ? t('challenges.goodRunHere', { n: fmtScore(chGoodRun(slug)) }) : t('challenges.goodRunGeneric')) + '</div>';
       return '<div class="gkch-card' + (mine ? ' mine' : '') + (e && e.done ? ' done' : '') + '">'
         + '<div class="gkch-k">' + kindLabel + (mine ? ' · <b>' + t('challenges.thisGame') + '</b>' : '') + '</div>'
-        + '<div class="gkch-t">' + g.title + '</div>'
+        + '<div class="gkch-t">' + ((e && e.title) || g.title) + '</div>'
         + '<div class="gkch-bar"><span style="width:' + pct + '%"></span></div>'
         + '<div class="gkch-p">' + prog + '</div>' + hint + '</div>';
     }
