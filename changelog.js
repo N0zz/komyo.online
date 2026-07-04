@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-04', title: 'Play in your language 🌍', items: [
+    'New: komyo now speaks Polish! The whole site — every game, every menu and screen — is translated. Pick your language from ⚙️ Settings on the home page, or the ☰ menu inside any game. English stays the default, and more languages are on the way.',
+  ] },
   { date: '2026-07-04', title: 'CRT mode 🖥️', items: [
     'New: unlock CRT display mode in the 🎨 Collection — a retro phosphor glow over the whole site (games, menus, everything). Turn it on from the store or the ☰ menu and pick a colour: green, amber, cyan or mono. Hover a colour to preview it live before you choose.',
     'Change: the CHALLENGE tile badge is now gold to match your trophies; the NEW badge is green.',
