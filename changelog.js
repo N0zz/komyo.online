@@ -4,6 +4,16 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-04', title: 'Fixes big and small 🛠️', items: [
+    'Fix: in Brick Breaker\'s Endless mode, the falling bricks can now actually get you — if a row reaches your paddle line the run ends, instead of bricks sliding harmlessly off the bottom.',
+    'Fix: the Asteroids+ upgrade picker no longer shows its heading twice.',
+    'New: updates are fully in your hands — a new version never reloads the page on its own; it just lights the ☰ menu dot until you press Update. Updating from the homepage now refreshes every game too, not only the ones you\'ve opened.',
+    'Fix: the trophies & Collection pills inside a game\'s 🏆 panel now match the ones on the homepage.',
+    'Fix: the Collection store now lays out properly on a phone held sideways — the items get the room instead of the search and progress bars.',
+    'Fix: game badges (NEW, POPULAR…) no longer overlap the icon in the compact tile view — they show as small shiny dots there.',
+    'New: you can link straight to the Collection store or the Titles ladder (komyo.online/?m=cosmetics · ?m=titles).',
+    'Fix: Meadow Flyer\'s menu spacing — a little more room between the Day/Night buttons and the text below.',
+  ] },
   { date: '2026-07-03', title: 'The Cosmetics shop is open 🎨', items: [
     'New: spend your challenge trophies in the 🎨 Cosmetics store — skins for every game. Open it from the 🏆 Challenges panel (the gold COSMETICS pill) or your profile. Your points are now called trophies: your lifetime total still climbs the titles ladder, and your spendable balance buys cosmetics. Spending never slows your title.',
     'New: pick your skin right in each game\'s menu — buy a locked one on the spot with trophies. Neon Snake food (Cherry, Golden Apple, Gem, Star Fruit, Rainbow Orb), Brick Breaker paddles & balls (Wood, Neon Ice, Lava, Chrome · 8-Ball, Comet, Disco, Plasma), Keep Defender castles (Oak, Sandcastle, Ice, Obsidian), Bubble Pop pop-effects & shooters, Range targets & hit markers, Stack block palettes, Asteroids ship colours (plus a whole-game CRT Green retro mode), and Asteroids+ hulls & engine trails.',
