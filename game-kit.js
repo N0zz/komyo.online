@@ -739,9 +739,10 @@
       var move = function (e) {
         if (!e) return;
         el.style.left = e.clientX + 'px'; el.style.top = e.clientY + 'px';
-        // over a game canvas (which draws its own cursor / hides the pointer) don't show the block too
+        // hide the block ONLY over an element that renders its own cursor (marked data-gk-hide-cursor,
+        // e.g. aim-trainer's canvas) — everywhere else it stays visible so you can reach the top-bar menu
         var over = null; try { over = document.elementFromPoint(e.clientX, e.clientY); } catch (x) {}
-        el.style.display = (over && over.tagName === 'CANVAS') ? 'none' : '';
+        el.style.display = (over && over.closest && over.closest('[data-gk-hide-cursor]')) ? 'none' : '';
       };
       document.addEventListener('pointermove', move, { passive: true });
       _termCur = { el: el, move: move };
@@ -802,9 +803,9 @@
       var val = 'url(' + cv.toDataURL('image/png') + ') ' + tw.hot[0] + ' ' + tw.hot[1] + ', auto';
       document.documentElement.style.cursor = val;
       // override element-level cursors (buttons/links) so the skin never flips back on hover; text fields
-      // keep their I-beam. EXCLUDE <canvas> so a game that hides the pointer (aim-trainer's #game{cursor:none})
-      // still wins — a plain canvas with no rule inherits the skin, so those keep it.
-      setCursorRule('html, html *:not(canvas) { cursor: ' + val + ' !important; } input, textarea, [contenteditable] { cursor: text !important; }');
+      // keep their I-beam. EXCLUDE elements that render their own cursor (data-gk-hide-cursor, e.g.
+      // aim-trainer's canvas) so their own cursor:none wins; every other surface keeps the skin.
+      setCursorRule('html, html *:not([data-gk-hide-cursor]) { cursor: ' + val + ' !important; } input, textarea, [contenteditable] { cursor: text !important; }');
       if (key === 'comet' || key === 'rainbow') startCursorTrail(key); else stopCursorTrail();
     } catch (e) {}
   }
