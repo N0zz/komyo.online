@@ -669,33 +669,33 @@
         </svg>
         <h1>Komyo Games</h1>
       </div>
-      <div class="sub">a catalogue of self-contained browser games</div>
+      <div class="sub" data-t="cat.sub">a catalogue of self-contained browser games</div>
       <div class="controls">
-        <div class="searchbox">🔍 <input id="search" type="search" placeholder="Search…" aria-label="Search games" autocomplete="off"><button class="search-help" type="button" aria-label="Search tips">?<span class="search-tip">Search by <b>game name</b>, <b>genre</b>, or a <b>label</b> — try “arcade”, “puzzle”, “challenge”, or a title like “snake”.</span></button></div>
+        <div class="searchbox">🔍 <input id="search" type="search" placeholder="Search…" data-tp="cat.searchPh" aria-label="Search games" data-ta="cat.searchAria" autocomplete="off"><button class="search-help" type="button" aria-label="Search tips" data-ta="cat.searchTipsAria">?<span class="search-tip" data-th="cat.searchTip">Search by <b>game name</b>, <b>genre</b>, or a <b>label</b> — try “arcade”, “puzzle”, “challenge”, or a title like “snake”.</span></button></div>
         <div class="filter-wrap">
-          <button class="ibtn filter-btn" id="filterBtn" aria-haspopup="true" aria-expanded="false">⚙ Filter ▾<span class="fcount" id="fcount" hidden></span></button>
+          <button class="ibtn filter-btn" id="filterBtn" aria-haspopup="true" aria-expanded="false">⚙ <span data-t="cat.filter">Filter</span> ▾<span class="fcount" id="fcount" hidden></span></button>
           <div class="filter-pop" id="filterPop">
-            <div class="fh">Type</div>
+            <div class="fh" data-t="cat.fhType">Type</div>
             <div class="seg" id="typeSeg">
-              <button type="button" data-type="all" class="on">All</button>
-              <button type="button" data-type="single">Single</button>
-              <button type="button" data-type="mp">Multi</button>
+              <button type="button" data-type="all" class="on" data-t="cat.typeAll">All</button>
+              <button type="button" data-type="single" data-t="cat.typeSingle">Single</button>
+              <button type="button" data-type="mp" data-t="cat.typeMulti">Multi</button>
             </div>
-            <div class="fh">Highlights</div>
+            <div class="fh" data-t="cat.fhHighlights">Highlights</div>
             <div id="badgeList" class="chips">
               <button type="button" class="chip" data-badge="new" aria-pressed="false" style="--c:#ffd24d"><span class="dot"></span>NEW</button>
               <button type="button" class="chip" data-badge="updated" aria-pressed="false" style="--c:#4db6ff"><span class="dot"></span>UPDATED</button>
               <button type="button" class="chip" data-badge="challenge" aria-pressed="false" style="--c:#46e0a0"><span class="dot"></span>CHALLENGE</button>
               <button type="button" class="chip" data-badge="pick" aria-pressed="false" style="--c:#b98cff"><span class="dot"></span>POPULAR</button>
             </div>
-            <div class="fh">Genre</div>
+            <div class="fh" data-t="cat.fhGenre">Genre</div>
             <div id="genreList"></div>
-            <label class="fchk"><input type="checkbox" id="showSoon" checked> Show coming soon</label>
-            <a href="#" class="filter-clear" id="filterClear">Clear filters</a>
+            <label class="fchk"><input type="checkbox" id="showSoon" checked> <span data-t="cat.showSoon">Show coming soon</span></label>
+            <a href="#" class="filter-clear" id="filterClear" data-t="cat.clearFilters">Clear filters</a>
           </div>
         </div>
-        <button class="ibtn" id="randomBtn" type="button" title="Play a random game (prefers ones you haven't tried)">🎲 Random</button>
-        <button class="ibtn" id="densityBtn" type="button" aria-pressed="false" title="Switch between cozy and compact tiles">▦ Compact</button>
+        <button class="ibtn" id="randomBtn" type="button" title="Play a random game (prefers ones you haven't tried)" data-tt="cat.randomTitle" data-t="cat.random">🎲 Random</button>
+        <button class="ibtn" id="densityBtn" type="button" aria-pressed="false" title="Switch between cozy and compact tiles" data-tt="cat.compactTitle" data-t="cat.compact">▦ Compact</button>
       </div>
     </header>
 
@@ -703,7 +703,7 @@
 
     <footer>
       <div class="share">
-        <span class="lbl">Share</span>
+        <span class="lbl" data-t="cat.share">Share</span>
         <a class="sbtn" id="shareNative" href="#" style="display:none" aria-label="Share…" title="Share…">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></a>
         <a class="sbtn" id="shareX" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X">
@@ -715,9 +715,9 @@
         <button class="sbtn" id="shareCopy" type="button" aria-label="Copy link" title="Copy link">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button>
       </div>
-      <div class="foot-tag">built for fun · free forever · no ads · no accounts · kid-safe · every game works offline</div>
+      <div class="foot-tag" data-t="cat.footTag">built for fun · free forever · no ads · no accounts · kid-safe · every game works offline</div>
       <div class="foot-links">
-        <a class="coffee" href="https://buymeacoffee.com/komyo.online">☕ Buy me a coffee</a>
+        <a class="coffee" href="https://buymeacoffee.com/komyo.online" data-t="cat.coffee">☕ Buy me a coffee</a>
         <a class="ghlink" href="https://github.com/N0zz/komyo.online" target="_blank" rel="noopener" aria-label="Komyo Games on GitHub" title="View source on GitHub">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.39 1.24-3.23-.12-.31-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.87.12 3.18.77.84 1.24 1.92 1.24 3.23 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5z"/></svg>
           GitHub</a>
@@ -1406,6 +1406,21 @@
       if (!K || !K.langButton) return;
       const head = document.getElementById('langMount');
       if (head) { const b = K.langButton({ className: 'ibtn' }); if (b) head.appendChild(b); }
+    })();
+
+    // ---- i18n static-text pass: translate tagged static HTML by key, using the element's own
+    // English content as the def fallback (so English stays in the markup; translations override
+    // per key at S7). data-t → textContent (leaf nodes only), data-th → innerHTML (nodes with
+    // markup), data-ta/data-tt/data-tp → aria-label/title/placeholder. Runs once at load.
+    (function () {
+      const K = window.gamekit; if (!K || !K.t) return;
+      const tt = (k, def) => K.t(k, { def: def });
+      const q = sel => document.querySelectorAll(sel);
+      q('[data-t]').forEach(el => { el.textContent = tt(el.getAttribute('data-t'), el.textContent); });
+      q('[data-th]').forEach(el => { el.innerHTML = tt(el.getAttribute('data-th'), el.innerHTML); });
+      q('[data-ta]').forEach(el => el.setAttribute('aria-label', tt(el.getAttribute('data-ta'), el.getAttribute('aria-label') || '')));
+      q('[data-tt]').forEach(el => el.setAttribute('title', tt(el.getAttribute('data-tt'), el.getAttribute('title') || '')));
+      q('[data-tp]').forEach(el => el.setAttribute('placeholder', tt(el.getAttribute('data-tp'), el.getAttribute('placeholder') || '')));
     })();
 
     // ---- Install / open ----
