@@ -71,7 +71,7 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="topHud"><div id="hud"><div class="label">SCORE</div><div id="score">0</div><div id="weapon">WEAPON I</div></div><div id="lives"></div><div id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div><div id="modeTag">Classic</div></div>
+<div id="topHud"><div id="hud"><div class="label" id="scoreLabel">SCORE</div><div id="score">0</div><div id="weapon">WEAPON I</div></div><div id="lives"></div><div id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div><div id="modeTag">Classic</div></div>
 <div id="flash"></div>
 
 <!-- menus (start / pause / end) are rendered by gamekit.menu; #overlay is kept only as a hidden anchor -->
@@ -103,7 +103,7 @@
     ENHANCED = (v === 'enh'); SPEEDRUN = !!speedrun;
     KEY = ENHANCED ? 'classic-enhanced' : 'classic'; BEST_KEY = 'asteroids_best_' + KEY; SCORE_KEY = 'asteroids_score_' + KEY;
     if (weaponEl) weaponEl.style.display = ENHANCED ? '' : 'none';
-    if (timerEl) { timerEl.style.display = SPEEDRUN ? 'block' : 'none'; if (SPEEDRUN && timerGoal) timerGoal.textContent = 'GOAL: ' + SR_TARGET_SCORE + ' PTS'; }
+    if (timerEl) { timerEl.style.display = SPEEDRUN ? 'block' : 'none'; if (SPEEDRUN && timerGoal) timerGoal.textContent = KIT.t('game.asteroids.timerGoal', { pts: SR_TARGET_SCORE, def: 'GOAL: ' + SR_TARGET_SCORE + ' PTS' }); }
     if (modeTagEl) modeTagEl.textContent = keyLabel(KEY, SPEEDRUN);
   }
 
@@ -127,6 +127,7 @@
     startMusic(){ if(KIT) KIT.music.play('space'); },
     stopMusic(){ /* music persists across menu/pause — one continuous menu + in-game bed */ },
   };
+  { const el=document.getElementById('scoreLabel'); if(el && KIT) el.textContent=KIT.t('game.asteroids.scoreLabel', { def: 'SCORE' }); }
 
   let W,H;
   function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S); buildStars(); }
@@ -149,9 +150,9 @@
   let shootCooldown=0, invuln=0, weaponLevel=1, flashTimer=0;
 
   const WEAPONS=[
-    {level:1,score:0,cooldown:12,label:'WEAPON I'},
-    {level:2,score:500,cooldown:11,label:'WEAPON II — TWIN'},
-    {level:3,score:1500,cooldown:9,label:'WEAPON III — SPREAD'},
+    {level:1,score:0,cooldown:12,label:KIT.t('game.asteroids.weapon1', { def: 'WEAPON I' })},
+    {level:2,score:500,cooldown:11,label:KIT.t('game.asteroids.weapon2', { def: 'WEAPON II — TWIN' })},
+    {level:3,score:1500,cooldown:9,label:KIT.t('game.asteroids.weapon3', { def: 'WEAPON III — SPREAD' })},
   ];
 
   // ---- cosmetics: ship colours (+ 'crt' = a whole-game green-phosphor tint). Selection/purchases
@@ -176,14 +177,14 @@
     srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT){ KIT.showMenuButton(true); KIT.showPauseButton(true); } }
   function pauseGame(){ state='paused'; if(!ENHANCED) SND.stopMusic();
     if(!KIT) return;
-    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:'PAUSED',
-      lines:[ 'Score ' + score + (ENHANCED ? (' · Wave ' + level) : '') ],
-      actions:[ {id:'resume',label:'RESUME (ESC)',primary:true}, {id:'menu',label:'QUIT TO MENU',danger:true} ],
+    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines:[ KIT.t('game.common.scoreLine', { score: score, def: 'Score ' + score }) + (ENHANCED ? KIT.t('game.asteroids.waveSuffix', { level: level, def: ' · Wave ' + level }) : '') ],
+      actions:[ {id:'resume',label:KIT.t('game.common.resume', { def: 'RESUME (ESC)' }),primary:true}, {id:'menu',label:KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }),danger:true} ],
       onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') toMenu(); }, onEsc: resumeGame });
   }
   function resumeGame(){ state='playing'; srPrev=now(); if(!ENHANCED) SND.startMusic(); if(KIT) KIT.menu.hide(); }
   function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14}; invuln=120; }
-  function updateHud(){ scoreEl.textContent=score; livesEl.textContent='▲ '.repeat(Math.max(0,lives)).trim(); weaponEl.textContent=WEAPONS[weaponLevel-1].label; }
+  function updateHud(){ scoreEl.textContent=score; livesEl.textContent=KIT.t('game.asteroids.lifeIcon', { def: '▲ ' }).repeat(Math.max(0,lives)).trim(); weaponEl.textContent=WEAPONS[weaponLevel-1].label; }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=90; }
   // quit a run back to the start menu, in-place (no reload). Save the score best first (non-speedrun).
   function toMenu(){ if(!SPEEDRUN && (state==='playing'||state==='paused')) saveBestScore(score); SND.stopMusic(); if(KIT) KIT.menu.hide(); showStartMenu(); }
@@ -218,21 +219,21 @@
     genMenuRocks();
     const bestScore = k => { const v = KIT ? KIT.bestScore('asteroids', keyLabel(k, false)) : 0; return v > 0 ? v : '—'; };
     const bestTime  = k => { const t = KIT ? KIT.best('asteroids', keyLabel(k, true)).time : 0; return t > 0 ? fmtTime(t) : '—'; };
-    const goalChip  = st => st.speedrun ? { label:'Goal '+SR_TARGET_SCORE, hot:true } : null;
+    const goalChip  = st => st.speedrun ? { label:KIT.t('game.asteroids.goalChip', { pts: SR_TARGET_SCORE, def: 'Goal '+SR_TARGET_SCORE }), hot:true } : null;
     const modeParams = st => { const v = st.mode==='enh' ? 'enh' : 'classic'; return st.speedrun ? { v, speedrun:'1' } : { v }; };
-    KIT.menu.show({ kind:'start', theme:MENU_THEME, title:'ASTEROIDS', backdrop:menuBackdrop, backdropAnimate:true,
-      groups:[ { id:'mode', label:'MODE', style:'cards', default: ENHANCED ? 'enh' : 'classic', choices:[
-        { id:'classic', label:'CLASSIC', preview:pvClassic,
-          mech: st => ['Endless','One weapon','Screen wraps', goalChip(st)],
+    KIT.menu.show({ kind:'start', theme:MENU_THEME, title:KIT.t('game.asteroids.title', { def: 'ASTEROIDS' }), backdrop:menuBackdrop, backdropAnimate:true,
+      groups:[ { id:'mode', label:KIT.t('game.common.modeLabel', { def: 'MODE' }), style:'cards', default: ENHANCED ? 'enh' : 'classic', choices:[
+        { id:'classic', label:KIT.t('game.asteroids.classicCard', { def: 'CLASSIC' }), preview:pvClassic,
+          mech: st => [KIT.t('game.asteroids.mechEndless', { def: 'Endless' }),KIT.t('game.asteroids.mechOneWeapon', { def: 'One weapon' }),KIT.t('game.asteroids.mechScreenWraps', { def: 'Screen wraps' }), goalChip(st)],
           best: st => st.speedrun ? bestTime('classic') : bestScore('classic') },
-        { id:'enh', label:'CLASSIC+', tag:'UPGRADES', preview:pvEnh,
-          mech: st => ['Endless','Weapon tiers', goalChip(st)],
+        { id:'enh', label:KIT.t('game.asteroids.classicPlusCard', { def: 'CLASSIC+' }), tag:KIT.t('game.asteroids.upgradesTag', { def: 'UPGRADES' }), preview:pvEnh,
+          mech: st => [KIT.t('game.asteroids.mechEndless', { def: 'Endless' }),KIT.t('game.asteroids.mechWeaponTiers', { def: 'Weapon tiers' }), goalChip(st)],
           best: st => st.speedrun ? bestTime('classic-enhanced') : bestScore('classic-enhanced') },
       ]} ],
-      toggles:[ { id:'speedrun', label:'SPEEDRUN', caption:'— race to '+SR_TARGET_SCORE+' pts against the clock', default: SPEEDRUN } ],
-      hint: st => st.speedrun ? ('Speedrun — reach ' + SR_TARGET_SCORE + ' points as fast as you can.')
-        : (st.mode==='enh' ? 'Classic+ — endless; score to upgrade your weapon.' : 'Classic — endless; rack up the highest score.'),
-      actions:[ {id:'play',label:'PLAY ▶',primary:true} ],
+      toggles:[ { id:'speedrun', label:KIT.t('game.asteroids.speedrunToggle', { def: 'SPEEDRUN' }), caption:KIT.t('game.asteroids.speedrunCaption', { pts: SR_TARGET_SCORE, def: '— race to '+SR_TARGET_SCORE+' pts against the clock' }), default: SPEEDRUN } ],
+      hint: st => st.speedrun ? KIT.t('game.asteroids.hintSpeedrun', { pts: SR_TARGET_SCORE, def: 'Speedrun — reach ' + SR_TARGET_SCORE + ' points as fast as you can.' })
+        : (st.mode==='enh' ? KIT.t('game.asteroids.hintEnh', { def: 'Classic+ — endless; score to upgrade your weapon.' }) : KIT.t('game.asteroids.hintClassic', { def: 'Classic — endless; rack up the highest score.' })),
+      actions:[ {id:'play',label:KIT.t('game.asteroids.play', { def: 'PLAY ▶' }),primary:true} ],
       onChange: st => { KIT.stampUrl(modeParams(st)); }, // live: the address bar reflects your picks → shareable link
       onPlay: st => { applyMode(st.mode==='enh'?'enh':'classic', !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
     });
@@ -241,9 +242,9 @@
   // In Speedrun the RESULT is the time, not score/level — so the share + Discord post lead with the clear time.
   function shareMsg(finalScore) {
     if (SPEEDRUN) return srDone
-      ? KIT.shareText({ verb: 'I cleared', score: fmtTime(srElapsed), unit: '', game: 'Asteroids', emoji: '🛸', mode: 'Speedrun', extra: ['reached ' + SR_TARGET_SCORE + ' pts'] })
-      : KIT.shareText({ verb: 'I reached', score: score, unit: 'pts', game: 'Asteroids', emoji: '🛸', mode: 'Speedrun', extra: ['run failed at ' + fmtTime(srElapsed)] });
-    return KIT.shareText({ score: finalScore, game: 'Asteroids', emoji: '🛸', mode: ENHANCED ? 'Classic+' : 'Classic', extra: ['level ' + level] });
+      ? KIT.shareText({ verb: KIT.t('game.asteroids.verbCleared', { def: 'I cleared' }), score: fmtTime(srElapsed), unit: '', game: KIT.t('game.asteroids.gameName', { def: 'Asteroids' }), emoji: '🛸', mode: KIT.t('game.asteroids.modeSpeedrun', { def: 'Speedrun' }), extra: [KIT.t('game.asteroids.reachedPts', { pts: SR_TARGET_SCORE, def: 'reached ' + SR_TARGET_SCORE + ' pts' })] })
+      : KIT.shareText({ verb: KIT.t('game.asteroids.verbReached', { def: 'I reached' }), score: score, unit: 'pts', game: KIT.t('game.asteroids.gameName', { def: 'Asteroids' }), emoji: '🛸', mode: KIT.t('game.asteroids.modeSpeedrun', { def: 'Speedrun' }), extra: [KIT.t('game.asteroids.runFailedAt', { time: fmtTime(srElapsed), def: 'run failed at ' + fmtTime(srElapsed) })] });
+    return KIT.shareText({ score: finalScore, game: KIT.t('game.asteroids.gameName', { def: 'Asteroids' }), emoji: '🛸', mode: ENHANCED ? KIT.t('game.asteroids.modeClassicPlus', { def: 'Classic+' }) : KIT.t('game.asteroids.modeClassic', { def: 'Classic' }), extra: [KIT.t('game.asteroids.levelExtra', { level: level, def: 'level ' + level })] });
   }
   // end screen (game over + speedrun complete) — kit-rendered; reuses recordResult + the shared share row.
   function showEnd(win){
@@ -251,17 +252,17 @@
     const record = { mode: keyLabel(KEY, SPEEDRUN), score: score, time: (SPEEDRUN && win) ? srElapsed : 0, stats: { wave: level } };
     let title, scoreText, best=null, newBest=false, lines=[];
     if (SPEEDRUN) {
-      if (win) { newBest = saveBest(srElapsed); title='COMPLETE'; scoreText=fmtTime(srElapsed); best=fmtTime((KIT ? KIT.best('asteroids', keyLabel(KEY, true)).time : 0) || srElapsed); lines=[SR_TARGET_SCORE + ' points reached']; }
-      else { title='GAME OVER'; scoreText=String(score); lines=['Speedrun — run failed at ' + fmtTime(srElapsed)]; }
-    } else { newBest = saveBestScore(score); title='GAME OVER'; scoreText=String(score); best=(KIT ? KIT.bestScore('asteroids', keyLabel(KEY, false)) : 0); lines=['Reached wave ' + level]; }
+      if (win) { newBest = saveBest(srElapsed); title=KIT.t('game.asteroids.complete', { def: 'COMPLETE' }); scoreText=fmtTime(srElapsed); best=fmtTime((KIT ? KIT.best('asteroids', keyLabel(KEY, true)).time : 0) || srElapsed); lines=[KIT.t('game.asteroids.pointsReached', { pts: SR_TARGET_SCORE, def: SR_TARGET_SCORE + ' points reached' })]; }
+      else { title=KIT.t('game.asteroids.gameOver', { def: 'GAME OVER' }); scoreText=String(score); lines=[KIT.t('game.asteroids.srFailedLine', { time: fmtTime(srElapsed), def: 'Speedrun — run failed at ' + fmtTime(srElapsed) })]; }
+    } else { newBest = saveBestScore(score); title=KIT.t('game.asteroids.gameOver', { def: 'GAME OVER' }); scoreText=String(score); best=(KIT ? KIT.bestScore('asteroids', keyLabel(KEY, false)) : 0); lines=[KIT.t('game.asteroids.reachedWave', { level: level, def: 'Reached wave ' + level })]; }
     if(!KIT) return;
     KIT.menu.show({ kind:'end', theme:MENU_THEME, title, backdrop:menuBackdrop, backdropAnimate:true, score:score, scoreText, best, newBest, lines,
-      share:{ slug:'asteroids', accent: '#9fe8ff', icon: '🛸', title:'Asteroids', message: ()=>shareMsg(score), params: ()=> (SPEEDRUN ? { v: ENHANCED?'enh':'classic', speedrun:'1' } : { v: ENHANCED?'enh':'classic' }) },
+      share:{ slug:'asteroids', accent: '#9fe8ff', icon: '🛸', title:KIT.t('game.asteroids.gameName', { def: 'Asteroids' }), message: ()=>shareMsg(score), params: ()=> (SPEEDRUN ? { v: ENHANCED?'enh':'classic', speedrun:'1' } : { v: ENHANCED?'enh':'classic' }) },
       record,
-      actions:[ {id:'again',label:'PLAY AGAIN',primary:true}, {id:'menu',label:'MENU'} ],
+      actions:[ {id:'again',label:KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }),primary:true}, {id:'menu',label:KIT.t('game.common.menu', { def: 'MENU' })} ],
       onAction:(id)=>{ if(id==='again') startGame(); else if(id==='menu') toMenu(); } });
   }
-  function checkWeaponUpgrade(){ if(!ENHANCED) return; const nx=WEAPONS[weaponLevel]; if(nx && score>=nx.score){ weaponLevel=nx.level; flash('WEAPON UPGRADED'); updateHud(); } }
+  function checkWeaponUpgrade(){ if(!ENHANCED) return; const nx=WEAPONS[weaponLevel]; if(nx && score>=nx.score){ weaponLevel=nx.level; flash(KIT.t('game.asteroids.weaponUpgraded', { def: 'WEAPON UPGRADED' })); updateHud(); } }
 
   function makeAsteroid(x,y,size){ const r=size===3?56:size===2?34:18; const verts=[]; const n=9+Math.floor(Math.random()*4);
     for(let i=0;i<n;i++){ const ang=(i/n)*Math.PI*2; verts.push({ang,d:r*(0.65+Math.random()*0.5)}); }
@@ -346,9 +347,9 @@
     const wrap=document.createElement('div'); wrap.id='tcontrols';
     const zone=document.createElement('div'); zone.className='tc-zone';
     const joy=document.createElement('div'); joy.className='tc-joy'; const knob=document.createElement('div'); knob.className='tc-knob'; joy.appendChild(knob);
-    fireBtn=document.createElement('button'); fireBtn.className='tc-fire'; fireBtn.textContent='FIRE';
+    fireBtn=document.createElement('button'); fireBtn.className='tc-fire'; fireBtn.textContent=KIT.t('game.asteroids.fire', { def: 'FIRE' });
     wrap.appendChild(zone); wrap.appendChild(joy); wrap.appendChild(fireBtn);
-    if(HAS_PAUSE){ const pb=document.createElement('button'); pb.className='tc-pause'; pb.textContent='II'; pb.addEventListener('click',()=>{ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); }); wrap.appendChild(pb); }
+    if(HAS_PAUSE){ const pb=document.createElement('button'); pb.className='tc-pause'; pb.textContent=KIT.t('game.asteroids.pauseIcon', { def: 'II' }); pb.addEventListener('click',()=>{ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); }); wrap.appendChild(pb); }
     document.body.appendChild(wrap);
     const R=58; let ox=0, oy=0;
     function getT(e){ for(const x of e.changedTouches) if(x.identifier===joyId) return x; return null; }
@@ -369,10 +370,10 @@
   // to the start menu in-place.
   if (KIT) { KIT.nav({ slug: 'asteroids', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); },
-    confirmLeave: () => (state==='playing' || state==='paused') ? "Leave this run? You'll lose your progress." : false,
-    controls: { title: 'Asteroids — Controls',
-      keyboard: [ ['← →  ·  A D','Rotate'], ['↑  ·  W','Thrust'], ['Space','Shoot'], ['Esc','Pause'] ],
-      touch: [ ['Drag the left half','Steer & thrust'], ['FIRE button','Shoot'] ] } }); KIT.pwa(); KIT.showMenuButton(false); }
+    confirmLeave: () => (state==='playing' || state==='paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.asteroids.controlsTitle', { def: 'Asteroids — Controls' }),
+      keyboard: [ [KIT.t('game.asteroids.keysRotate', { def: '← →  ·  A D' }),KIT.t('game.asteroids.rotate', { def: 'Rotate' })], [KIT.t('game.asteroids.keysThrust', { def: '↑  ·  W' }),KIT.t('game.asteroids.thrust', { def: 'Thrust' })], [KIT.t('game.asteroids.keySpace', { def: 'Space' }),KIT.t('game.asteroids.shoot', { def: 'Shoot' })], [KIT.t('game.common.esc', { def: 'Esc' }),KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.asteroids.touchDrag', { def: 'Drag the left half' }),KIT.t('game.asteroids.steerThrust', { def: 'Steer & thrust' })], [KIT.t('game.asteroids.fireButton', { def: 'FIRE button' }),KIT.t('game.asteroids.shoot', { def: 'Shoot' })] ] } }); KIT.pwa(); KIT.showMenuButton(false); }
 
   // ---- test hook: state getters + a layout snapshot for the headless harness (inert in normal play) ----
   window.__test = {

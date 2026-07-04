@@ -41,11 +41,11 @@
 <canvas id="game"></canvas>
 <div id="bkpad" aria-hidden="true"><span>◀</span><span>▶</span></div>
 <div id="hud" class="gamekit-hud">
-  <div class="stat"><span class="lbl">SCORE</span><span class="val" id="scoreEl">0</span></div>
-  <div class="stat"><span class="lbl">BEST</span><span class="val" id="bestEl">0</span></div>
-  <div class="stat"><span class="lbl">LIVES</span><span class="hrt" id="livesEl">♥♥♥</span></div>
-  <div class="stat"><span class="lbl">LEVEL</span><span class="val" id="levelEl">1</span></div>
-  <div class="stat" style="opacity:.75"><span class="lbl">MODE</span><span class="val" id="modeEl">CLASSIC</span></div>
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblLives">LIVES</span><span class="hrt" id="livesEl">♥♥♥</span></div>
+  <div class="stat"><span class="lbl" id="lblLevel">LEVEL</span><span class="val" id="levelEl">1</span></div>
+  <div class="stat" style="opacity:.75"><span class="lbl" id="lblMode">MODE</span><span class="val" id="modeEl">CLASSIC</span></div>
 </div>
 <script>
 (() => {
@@ -97,6 +97,9 @@
   function saveSpeedPref(on) { try { localStorage.setItem(SPEED_KEY, on ? '1' : '0'); } catch(_){} }
 
   const modeLabel = m => { m = m || gameMode; return m.charAt(0).toUpperCase() + m.slice(1); };
+  // Display-only: translate a mode label at render time. NEVER feed this to saveBest/bestScore/
+  // record.mode — those stay on the English modeLabel (the storage key).
+  const modeDisplay = m => KIT ? KIT.t('game.breakout.mode' + modeLabel(m), { def: modeLabel(m) }) : modeLabel(m);
   function loadBest(mode) { return KIT ? KIT.bestScore('breakout', modeLabel(mode)) : 0; }
   function saveBest() { if (KIT) KIT.saveBest('breakout', modeLabel(gameMode), { score: score }); }
 
@@ -280,34 +283,34 @@
   function showStartMenu() {
     state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'BRICK BREAKER', backdrop: menuBackdrop,
-      groups: [{ id: 'mode', label: 'MODE', style: 'cards', default: gameMode, choices: [
-        { id: 'classic', label: 'Classic', mech: ['Levels', 'Clear to advance'], best: () => loadBest('classic'), preview: (g, w, h) => pvBrick(g, w, h, 3) },
-        { id: 'endless', label: 'Endless', mech: ['Rows drop in', 'Score chase'], best: () => loadBest('endless'), preview: (g, w, h) => pvBrick(g, w, h, 4) },
-        { id: 'survival', label: 'Survival', mech: ['Wall descends', 'Beat it back'], best: () => loadBest('survival'), preview: (g, w, h) => pvBrick(g, w, h, 5) },
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.breakout.menuTitle', { def: 'BRICK BREAKER' }), backdrop: menuBackdrop,
+      groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: gameMode, choices: [
+        { id: 'classic', label: modeDisplay('classic'), mech: [KIT.t('game.breakout.mechLevels', { def: 'Levels' }), KIT.t('game.breakout.mechClearAdvance', { def: 'Clear to advance' })], best: () => loadBest('classic'), preview: (g, w, h) => pvBrick(g, w, h, 3) },
+        { id: 'endless', label: modeDisplay('endless'), mech: [KIT.t('game.breakout.mechRowsDrop', { def: 'Rows drop in' }), KIT.t('game.breakout.mechScoreChase', { def: 'Score chase' })], best: () => loadBest('endless'), preview: (g, w, h) => pvBrick(g, w, h, 4) },
+        { id: 'survival', label: modeDisplay('survival'), mech: [KIT.t('game.breakout.mechWallDescends', { def: 'Wall descends' }), KIT.t('game.breakout.mechBeatBack', { def: 'Beat it back' })], best: () => loadBest('survival'), preview: (g, w, h) => pvBrick(g, w, h, 5) },
       ] }],
-      toggles: [{ id: 'speed2x', label: '2× speed', caption: 'faster ball & paddle', default: loadSpeedPref() }],
-      actions: [{ id: 'play', label: 'INSERT COIN', primary: true }],
-      hint: st => MODE_DESCS[st.mode] || '',
+      toggles: [{ id: 'speed2x', label: KIT.t('game.breakout.speed2x', { def: '2× speed' }), caption: KIT.t('game.breakout.speed2xCaption', { def: 'faster ball & paddle' }), default: loadSpeedPref() }],
+      actions: [{ id: 'play', label: KIT.t('game.breakout.insertCoin', { def: 'INSERT COIN' }), primary: true }],
+      hint: st => { const d = MODE_DESCS[st.mode]; return d ? KIT.t('game.breakout.desc' + modeLabel(st.mode), { def: d }) : ''; },
       onChange: st => { gameMode = st.mode; setSpeed(st.speed2x); KIT.stampUrl(modeParams(st)); },
       onPlay: st => { gameMode = st.mode; setSpeed(st.speed2x); KIT.stampUrl(modeParams(st)); startMode(st.mode); },
     });
     KIT.stampUrl(modeParams({ mode: gameMode, speed2x: speedMult === 2 }));
   }
-  function shareMsg() { return KIT.shareText({ score: score, game: 'Brick Breaker', emoji: '🧱', mode: gameMode.charAt(0).toUpperCase() + gameMode.slice(1), extra: ['level ' + level] }); }
+  function shareMsg() { return KIT.shareText({ score: score, game: KIT.t('game.breakout.title', { def: 'Brick Breaker' }), emoji: '🧱', mode: gameMode.charAt(0).toUpperCase() + gameMode.slice(1), extra: ['level ' + level] }); }
   function showEnd() {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER', backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.breakout.gameOver', { def: 'GAME OVER' }), backdrop: menuBackdrop,
       record: { slug: 'breakout', mode: modeLabel(gameMode), score: score },
-      score: score, best: best, newBest: score >= best && score > 0, lines: [gameMode.toUpperCase() + ' · level ' + level],
-      share: { slug: 'breakout', accent: '#ff5cc8', icon: '🧱', title: 'Brick Breaker', message: () => shareMsg(), params: () => modeParams({ mode: gameMode, speed2x: speedMult === 2 }) },
-      actions: [ { id: 'again', label: 'PLAY AGAIN', primary: true }, { id: 'menu', label: 'MENU' } ],
+      score: score, best: best, newBest: score >= best && score > 0, lines: [KIT.t('game.breakout.endLine', { mode: gameMode.toUpperCase(), level: level, def: gameMode.toUpperCase() + ' · level ' + level })],
+      share: { slug: 'breakout', accent: '#ff5cc8', icon: '🧱', title: KIT.t('game.breakout.title', { def: 'Brick Breaker' }), message: () => shareMsg(), params: () => modeParams({ mode: gameMode, speed2x: speedMult === 2 }) },
+      actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
       onAction: id => { if (id === 'again') startMode(gameMode); else if (id === 'menu') toMenu(); } });
   }
   function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
-    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED', lines: ['Score ' + score + ' · level ' + level],
-      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }), lines: [KIT.t('game.breakout.pauseLine', { score: score, level: level, def: 'Score ' + score + ' · level ' + level })],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
   }
   function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
@@ -318,7 +321,18 @@
     document.getElementById('bestEl').textContent = best;
     document.getElementById('livesEl').textContent = '♥'.repeat(Math.max(0, lives));
     document.getElementById('levelEl').textContent = level;
-    document.getElementById('modeEl').textContent = modeLabel(gameMode) + (speedMult === 2 ? ' · 2×' : '');
+    document.getElementById('modeEl').textContent = modeDisplay(gameMode) + (speedMult === 2 ? ' · 2×' : '');
+  }
+
+  // Static HUD labels (set once from i18n; def keeps them byte-identical until translations land).
+  function i18nHudLabels() {
+    if (!KIT) return;
+    const set = (id, key, def) => { const e = document.getElementById(id); if (e) e.textContent = KIT.t(key, { def }); };
+    set('lblScore', 'game.breakout.hudScore', 'SCORE');
+    set('lblBest', 'game.common.best', 'BEST');
+    set('lblLives', 'game.breakout.hudLives', 'LIVES');
+    set('lblLevel', 'game.breakout.hudLevel', 'LEVEL');
+    set('lblMode', 'game.common.modeLabel', 'MODE');
   }
 
   // ---- Collision ----
@@ -740,11 +754,11 @@
   { const ps = KIT && KIT.param && KIT.param('speed2x'); if (ps === '1') { speedMult = 2; saveSpeedPref(true); } else speedMult = loadSpeedPref() ? 2 : 1; }
   KIT.nav({ slug: 'breakout', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
-    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
-    controls: { title: 'Brick Breaker — Controls',
-      mouse: [ ['Move', 'Slide paddle'], ['Click', 'Launch'] ],
-      keyboard: [ ['← →', 'Move paddle'], ['Space · Enter', 'Launch'], ['Esc', 'Pause'] ],
-      touch: [ ['Hold L / R side', 'Slide paddle'], ['Tap', 'Launch'] ] } });
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.breakout.controlsTitle', { def: 'Brick Breaker — Controls' }),
+      mouse: [ [KIT.t('game.breakout.ctrlMove', { def: 'Move' }), KIT.t('game.breakout.ctrlSlidePaddle', { def: 'Slide paddle' })], [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.breakout.ctrlLaunch', { def: 'Launch' })] ],
+      keyboard: [ ['← →', KIT.t('game.breakout.ctrlMovePaddle', { def: 'Move paddle' })], [KIT.t('game.common.spaceEnter', { def: 'Space · Enter' }), KIT.t('game.breakout.ctrlLaunch', { def: 'Launch' })], [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.breakout.ctrlHoldSide', { def: 'Hold L / R side' }), KIT.t('game.breakout.ctrlSlidePaddle', { def: 'Slide paddle' })], [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.breakout.ctrlLaunch', { def: 'Launch' })] ] } });
   KIT.music.play('synthwave');
 
   // ---- Key hold polling ----
@@ -834,6 +848,7 @@
   };
 
   resize();
+  i18nHudLabels();
   updateHud();
   loop2();
   showStartMenu(); // open the shared start menu (mode/speed preselected from ?mode= / ?speed2x=)

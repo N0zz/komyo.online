@@ -220,6 +220,31 @@
     SND.play(name);
   }
 
+  // ---- i18n display helpers — translate ONLY at display sites. Map names + difficulty labels
+  //      double as storage keys (saveBest/bestScore/record.mode), so those raw values stay
+  //      English; these helpers are used for what the player reads, never for storage. ----
+  function mapName(i) { return KIT.t('game.tower-defense.map.' + MAPS[i].name.toLowerCase() + '.name', { def: MAPS[i].name }); }
+  function mapDesc(i) { return KIT.t('game.tower-defense.map.' + MAPS[i].name.toLowerCase() + '.desc', { def: MAPS[i].desc }); }
+  function diffLabel(key) { const d = DIFFICULTY[key] || DIFFICULTY.medium; return KIT.t('game.tower-defense.diff.' + key, { def: d.label }); }
+  function mapModeDisplay(i, diff) { return mapName(i) + ' · ' + diffLabel(diff || diffLevel); }
+  function towerName(type) { return KIT.t('game.tower-defense.tower.' + type + '.name', { def: TOWERS[type].name }); }
+  function towerSpecial(type) { return KIT.t('game.tower-defense.tower.' + type + '.special', { def: TOWERS[type].special }); }
+  function targetLabel(mode) { return KIT.t('game.tower-defense.target.' + mode, { def: TARGET_LABEL[mode] }); }
+  // Localize the static HUD pill labels (GOLD/KEEP/… ) in DOM order; only the values are JS-driven.
+  function initHudLabels() {
+    const labels = [
+      KIT.t('game.tower-defense.hud.gold', { def: 'GOLD' }),
+      KIT.t('game.tower-defense.hud.keep', { def: 'KEEP' }),
+      KIT.t('game.tower-defense.hud.wave', { def: 'WAVE' }),
+      KIT.t('game.tower-defense.hud.score', { def: 'SCORE' }),
+      KIT.t('game.tower-defense.hud.remain', { def: 'REMAIN' }),
+      KIT.t('game.common.best', { def: 'BEST' }),
+      KIT.t('game.tower-defense.hud.threat', { def: 'THREAT' }),
+      KIT.t('game.common.modeLabel', { def: 'MODE' }),
+    ];
+    document.querySelectorAll('#top .lbl').forEach((el, i) => { if (labels[i] != null) el.textContent = labels[i]; });
+  }
+
   // ---- Difficulty levels (FIRST-PASS playtesting knobs — easy to find & dial) ----
   // hpBase/hpGrow drive GEOMETRIC per-enemy HP scaling (waveHpK); the economy fields starve
   // income (lower start gold, lower interest + cap, smaller bounties via rewardMul).
@@ -316,11 +341,11 @@
     const host = $('mapPicker'); if (!host) return;
     host.innerHTML = MAPS.map((m, i) => {
       const b = getMapBest(i);
-      const best = b.wave > 0 ? ('Best wave <b>' + b.wave + '</b>') : 'Best wave <b>—</b>';
+      const best = b.wave > 0 ? KIT.t('game.tower-defense.bestWave', { wave: b.wave, def: 'Best wave <b>' + b.wave + '</b>' }) : KIT.t('game.tower-defense.bestWaveNone', { def: 'Best wave <b>—</b>' });
       return '<button class="map-btn' + (i === mapIndex ? ' active' : '') + '" data-map="' + i + '">' +
         '<span class="nm"><span class="sw" style="background:' + m.theme.road + '"></span>' +
-        m.name + '<span class="tick">✓</span></span>' +
-        '<span class="desc">' + m.desc + '</span>' +
+        mapName(i) + '<span class="tick">✓</span></span>' +
+        '<span class="desc">' + mapDesc(i) + '</span>' +
         '<span class="bw">' + best + '</span></button>';
     }).join('');
     document.querySelectorAll('.map-btn').forEach(b => b.addEventListener('click', () => applyMap(Number(b.dataset.map))));
@@ -522,15 +547,15 @@
   function showStartMenu() {
     state = 'menu'; if (KIT) { KIT.showMenuButton(false); KIT.music.play('castle'); } // stately menu bed
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'KEEP DEFENDER',
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.tower-defense.title', { def: 'KEEP DEFENDER' }),
       backdrop: (g, w, h, st) => menuMapRender(g, w, h, MAPS[parseInt((st && st.map) || mapIndex, 10) || 0]),
       groups: [
-        { id: 'map', label: 'MAP', style: 'popup', pickerTitle: 'CHOOSE A MAP', default: String(mapIndex),
-          choices: MAPS.map((m, i) => ({ id: String(i), label: m.name, desc: m.desc, best: st => getMapBest(i, st.diff).score, pvW: 210, pvH: 110, preview: (g, w, h) => menuMapRender(g, w, h, m) })) },
-        { id: 'diff', label: 'DIFFICULTY', style: 'slider', default: diffLevel, choices: [ { id: 'easy', label: 'Easy' }, { id: 'medium', label: 'Medium' }, { id: 'hard', label: 'Hard' } ] },
+        { id: 'map', label: KIT.t('game.tower-defense.mapLabel', { def: 'MAP' }), style: 'popup', pickerTitle: KIT.t('game.tower-defense.chooseMap', { def: 'CHOOSE A MAP' }), default: String(mapIndex),
+          choices: MAPS.map((m, i) => ({ id: String(i), label: mapName(i), desc: mapDesc(i), best: st => getMapBest(i, st.diff).score, pvW: 210, pvH: 110, preview: (g, w, h) => menuMapRender(g, w, h, m) })) },
+        { id: 'diff', label: KIT.t('game.tower-defense.diffLabel', { def: 'DIFFICULTY' }), style: 'slider', default: diffLevel, choices: [ { id: 'easy', label: diffLabel('easy') }, { id: 'medium', label: diffLabel('medium') }, { id: 'hard', label: diffLabel('hard') } ] },
       ],
-      actions: [{ id: 'play', label: 'Defend', primary: true }],
-      hint: () => 'Build towers on grass · tap a tower to upgrade, sell or set targeting.',
+      actions: [{ id: 'play', label: KIT.t('game.tower-defense.defend', { def: 'Defend' }), primary: true }],
+      hint: () => KIT.t('game.tower-defense.hint', { def: 'Build towers on grass · tap a tower to upgrade, sell or set targeting.' }),
       onChange: st => { const mi = parseInt(st.map, 10) || 0; if (mi !== mapIndex) { applyMap(mi); loadBest(); } setDiff(st.diff); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); },
       onPlay: st => { const mi = parseInt(st.map, 10) || 0; applyMap(mi); loadBest(); setDiff(st.diff); KIT.stampUrl({ map: mapIndex, diff: diffLevel }); startGame(); },
     });
@@ -539,12 +564,12 @@
   function showEnd() {
     if (KIT) KIT.showMenuButton(false);
     if (!KIT) return;
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'THE KEEP HAS FALLEN', backdrop: (g, w, h) => menuMapRender(g, w, h, MAPS[mapIndex]),
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.tower-defense.endTitle', { def: 'THE KEEP HAS FALLEN' }), backdrop: (g, w, h) => menuMapRender(g, w, h, MAPS[mapIndex]),
       record: { slug: 'tower-defense', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, score: score, stats: { wave: wave, difficulty: diffLevel } },
       score: score, best: bestScore, newBest: score >= bestScore && score > 0,
-      lines: ['Waves survived: ' + wave + ' · ' + MAPS[mapIndex].name + ' · ' + DIFF().label],
-      share: { slug: 'tower-defense', accent: '#e0b25a', icon: '🏰', title: 'Keep Defender', message: () => KIT.shareText({ score: score, game: 'Keep Defender', emoji: '🏰', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, extra: ['wave ' + wave] }), params: () => ({ map: mapIndex, diff: diffLevel }) },
-      actions: [ { id: 'again', label: 'Play again', primary: true }, { id: 'menu', label: 'Menu' } ],
+      lines: [KIT.t('game.tower-defense.wavesSurvived', { wave: wave, map: mapName(mapIndex), diff: diffLabel(diffLevel), def: 'Waves survived: ' + wave + ' · ' + MAPS[mapIndex].name + ' · ' + DIFF().label })],
+      share: { slug: 'tower-defense', accent: '#e0b25a', icon: '🏰', title: KIT.t('game.tower-defense.name', { def: 'Keep Defender' }), message: () => KIT.shareText({ score: score, game: KIT.t('game.tower-defense.name', { def: 'Keep Defender' }), emoji: '🏰', mode: mapModeDisplay(mapIndex, diffLevel), extra: [KIT.t('game.tower-defense.shareWave', { wave: wave, def: 'wave ' + wave })] }), params: () => ({ map: mapIndex, diff: diffLevel }) },
+      actions: [ { id: 'again', label: KIT.t('game.tower-defense.playAgain', { def: 'Play again' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'Menu' }) } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
   }
   function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
@@ -552,9 +577,9 @@
   let pausedMenu = false;
   function showPauseMenu() {
     pausedMenu = true;
-    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED',
-      lines: ['Wave ' + wave + ' · Score ' + score + ' · ' + gold + 'g'],
-      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines: [KIT.t('game.tower-defense.pauseLine', { wave: wave, score: score, gold: gold, def: 'Wave ' + wave + ' · Score ' + score + ' · ' + gold + 'g' })],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { pausedMenu = false; if (id === 'resume') KIT.menu.hide(); else if (id === 'menu') toMenu(); },
       onEsc: () => { pausedMenu = false; KIT.menu.hide(); } });
   }
@@ -578,7 +603,7 @@
     $('score').textContent = score;
     $('remain').textContent = enemies.length + spawnQ.length;
     $('best').textContent = bestScore;
-    $('modeLbl').textContent = mapModeLabel(mapIndex, diffLevel);
+    $('modeLbl').textContent = mapModeDisplay(mapIndex, diffLevel);
     const th = $('threat');
     if (th) {
       th.textContent = difficulty.toFixed(1) + '×';
@@ -592,12 +617,12 @@
       b.classList.toggle('sel', selBuild === t);
     });
     const sb = $('startBtn');
-    sb.textContent = state === 'wave' ? 'Wave ' + wave + '...' : 'Start Wave';
+    sb.textContent = state === 'wave' ? KIT.t('game.tower-defense.waveInProgress', { wave: wave, def: 'Wave ' + wave + '...' }) : KIT.t('game.tower-defense.startWave', { def: 'Start Wave' });
     sb.classList.toggle('busy', state === 'wave');
     const spd = $('speedBtn');
     if (spd) { spd.textContent = gameSpeed === 1 ? '⚡1x' : '⚡2x'; spd.classList.toggle('fast', gameSpeed === 2); }
     const ab = $('autoBtn');
-    if (ab) { ab.textContent = 'Auto: ' + (autoWave ? 'On' : 'Off'); ab.classList.toggle('on', autoWave); }
+    if (ab) { ab.textContent = autoWave ? KIT.t('game.tower-defense.autoOn', { def: 'Auto: On' }) : KIT.t('game.tower-defense.autoOff', { def: 'Auto: Off' }); ab.classList.toggle('on', autoWave); }
     refreshUpBtn(); // keep the open tower panel's upgrade button affordability live as gold changes
   }
   function float(x, y, txt, col) { floats.push({ x, y, txt, col: col || '#fff', life: 1 }); }
@@ -607,7 +632,7 @@
   function announceWave(n) {
     const el = $('waveAnnounce');
     if (!el) return;
-    el.textContent = 'WAVE ' + n;
+    el.textContent = KIT.t('game.tower-defense.waveAnnounce', { n: n, def: 'WAVE ' + n });
     el.classList.add('show');
     waveAnnTimer = 120;
   }
@@ -662,7 +687,10 @@
     }
     if (Math.abs(difficulty - before) > 1e-6) {
       const up = difficulty > before;
-      float(W / 2, 90, (up ? '⚔ Threat rising — ' : '🛡 Threat easing — ') + difficulty.toFixed(1) + '×', up ? '#ff8a3a' : '#7fd0a0');
+      const threatTxt = up
+        ? KIT.t('game.tower-defense.threatRising', { v: difficulty.toFixed(1), def: '⚔ Threat rising — ' + difficulty.toFixed(1) + '×' })
+        : KIT.t('game.tower-defense.threatEasing', { v: difficulty.toFixed(1), def: '🛡 Threat easing — ' + difficulty.toFixed(1) + '×' });
+      float(W / 2, 90, threatTxt, up ? '#ff8a3a' : '#7fd0a0');
     }
     updateHud();
   }
@@ -747,20 +775,21 @@
     selTower = t;
     const p = $('panelTower'); if (!p) return;
     p.style.display = 'block';
-    $('ptName').textContent = (TOWERS[t.type].icon || '') + ' ' + TOWERS[t.type].name + '  ·  Lv ' + t.lvl;
+    const lv = KIT.t('game.tower-defense.lv', { n: t.lvl, def: 'Lv ' + t.lvl });
+    $('ptName').textContent = (TOWERS[t.type].icon || '') + ' ' + towerName(t.type) + '  ·  ' + lv;
     const ps = $('ptStats'); if (ps) ps.innerHTML = placedTowerStatsHtml(t);
-    $('upBtn').textContent = t.lvl >= 3 ? 'Maxed' : ('Upgrade ' + upgradeCost(t) + 'g');
-    $('sellBtn').textContent = 'Sell +' + Math.round(t.spent * 0.7) + 'g';
-    const pk = $('ptKills'); if (pk) pk.textContent = 'Kills: ' + t.kills;
+    $('upBtn').textContent = t.lvl >= 3 ? KIT.t('game.tower-defense.maxed', { def: 'Maxed' }) : KIT.t('game.tower-defense.upgradeCost', { g: upgradeCost(t), def: 'Upgrade ' + upgradeCost(t) + 'g' });
+    $('sellBtn').textContent = KIT.t('game.tower-defense.sell', { g: Math.round(t.spent * 0.7), def: 'Sell +' + Math.round(t.spent * 0.7) + 'g' });
+    const pk = $('ptKills'); if (pk) pk.textContent = KIT.t('game.tower-defense.kills', { n: t.kills, def: 'Kills: ' + t.kills });
     const tb = $('targetBtn');
-    if (tb) { tb.style.display = t.kind === 'buff' ? 'none' : ''; tb.textContent = 'Target: ' + TARGET_LABEL[t.targetMode || 'first'] + ' ▸'; }
+    if (tb) { tb.style.display = t.kind === 'buff' ? 'none' : ''; tb.textContent = KIT.t('game.tower-defense.targetBtn', { label: targetLabel(t.targetMode || 'first'), def: 'Target: ' + TARGET_LABEL[t.targetMode || 'first'] + ' ▸' }); }
     refreshUpBtn();
   }
   function cycleTarget(t) {
     if (!t || t.kind === 'buff') return;
     const i = TARGET_MODES.indexOf(t.targetMode || 'first');
     t.targetMode = TARGET_MODES[(i + 1) % TARGET_MODES.length];
-    const tb = $('targetBtn'); if (tb) tb.textContent = 'Target: ' + TARGET_LABEL[t.targetMode] + ' ▸';
+    const tb = $('targetBtn'); if (tb) tb.textContent = KIT.t('game.tower-defense.targetBtn', { label: targetLabel(t.targetMode), def: 'Target: ' + TARGET_LABEL[t.targetMode] + ' ▸' });
   }
   // Grey out (disable) the upgrade button when it's maxed or unaffordable; it "pops in" once you
   // can afford it (refreshToolbar runs on every gold change, e.g. each kill).
@@ -780,25 +809,26 @@
     const dmg = Math.max(c.dmg ? 1 : 0, Math.round(c.dmg * mod));
     const rows = [];
     if (c.kind !== 'buff') {
-      rows.push(['Damage', dmg + (mod !== 1 ? ' (' + (mod > 1 ? '+' : '') + Math.round((mod - 1) * 100) + '% map)' : '')]);
-      rows.push(['Rate', ratePerSec(c.cd) + '/s']);
+      const modTxt = mod !== 1 ? KIT.t('game.tower-defense.stat.mapMod', { pct: (mod > 1 ? '+' : '') + Math.round((mod - 1) * 100), def: ' (' + (mod > 1 ? '+' : '') + Math.round((mod - 1) * 100) + '% map)' }) : '';
+      rows.push([KIT.t('game.tower-defense.stat.damage', { def: 'Damage' }), dmg + modTxt]);
+      rows.push([KIT.t('game.tower-defense.stat.rate', { def: 'Rate' }), ratePerSec(c.cd) + '/s']);
     }
-    rows.push(['Range', c.range.toFixed(1)]);
-    rows.push(['Cost', c.cost + 'g']);
-    rows.push(['Upgrade', Math.round(c.cost * 2.2) + 'g+']);
-    return '<h4>' + c.icon + ' ' + c.name + '</h4>' +
+    rows.push([KIT.t('game.tower-defense.stat.range', { def: 'Range' }), c.range.toFixed(1)]);
+    rows.push([KIT.t('game.tower-defense.stat.cost', { def: 'Cost' }), c.cost + 'g']);
+    rows.push([KIT.t('game.tower-defense.stat.upgrade', { def: 'Upgrade' }), Math.round(c.cost * 2.2) + 'g+']);
+    return '<h4>' + c.icon + ' ' + towerName(type) + '</h4>' +
       rows.map(r => '<div class="row"><span>' + r[0] + '</span><span>' + r[1] + '</span></div>').join('') +
-      '<div class="sp">' + c.special + '</div>';
+      '<div class="sp">' + towerSpecial(type) + '</div>';
   }
   function placedTowerStatsHtml(t) {
     const dmg = t.eDmg ?? t.dmg, rng = (t.eRange ?? t.range), fcd = t.eFireCd ?? t.fireCd;
     const parts = [];
-    if (t.kind !== 'buff') { parts.push('Dmg ' + dmg); parts.push('Rate ' + ratePerSec(fcd) + '/s'); }
-    parts.push('Range ' + rng.toFixed(1));
-    if (t.buffed) parts.push('🎵 buffed');
-    if (t.mapMod && t.mapMod !== 1) parts.push((t.mapMod > 1 ? '↑' : '↓') + ' map');
-    if (t.splash) parts.push('splash');
-    if (t.aura) parts.push('aura buff');
+    if (t.kind !== 'buff') { parts.push(KIT.t('game.tower-defense.stat.dmg', { n: dmg, def: 'Dmg ' + dmg })); parts.push(KIT.t('game.tower-defense.stat.rateVal', { n: ratePerSec(fcd), def: 'Rate ' + ratePerSec(fcd) + '/s' })); }
+    parts.push(KIT.t('game.tower-defense.stat.rangeVal', { n: rng.toFixed(1), def: 'Range ' + rng.toFixed(1) }));
+    if (t.buffed) parts.push(KIT.t('game.tower-defense.buffed', { def: '🎵 buffed' }));
+    if (t.mapMod && t.mapMod !== 1) parts.push(KIT.t('game.tower-defense.mapArrow', { arrow: (t.mapMod > 1 ? '↑' : '↓'), def: (t.mapMod > 1 ? '↑' : '↓') + ' map' }));
+    if (t.splash) parts.push(KIT.t('game.tower-defense.splash', { def: 'splash' }));
+    if (t.aura) parts.push(KIT.t('game.tower-defense.auraBuff', { def: 'aura buff' }));
     return parts.join(' · ');
   }
   const tipEl = () => $('tip');
@@ -919,12 +949,12 @@
   // Each map has one signature collectible/event. All are clickable drops with a payoff;
   // some also have a side effect (bog spawns an extra mud-beast, freeze chills the field).
   const EVENTS = {
-    rally:  { icon: '🚩', col: '#7fb85f', label: 'Rally banner — gold + brief haste' },
-    freeze: { icon: '🧊', col: '#9ee0ff', label: 'Freeze — chills every enemy on screen' },
-    meteor: { icon: '☄️', col: '#ff7a3a', label: 'Meteor — clear it for big gold (scorches enemies)' },
-    oasis:  { icon: '🌴', col: '#4fc0a0', label: 'Oasis — large gold cache' },
-    relic:  { icon: '💎', col: '#c080ff', label: 'Relic — gold + haste' },
-    bog:    { icon: '🐸', col: '#8fbf6f', label: 'Bog bloom — gold, but rouses a mud-beast' },
+    rally:  { icon: '🚩', col: '#7fb85f', label: KIT.t('game.tower-defense.event.rally', { def: 'Rally banner — gold + brief haste' }) },
+    freeze: { icon: '🧊', col: '#9ee0ff', label: KIT.t('game.tower-defense.event.freeze', { def: 'Freeze — chills every enemy on screen' }) },
+    meteor: { icon: '☄️', col: '#ff7a3a', label: KIT.t('game.tower-defense.event.meteor', { def: 'Meteor — clear it for big gold (scorches enemies)' }) },
+    oasis:  { icon: '🌴', col: '#4fc0a0', label: KIT.t('game.tower-defense.event.oasis', { def: 'Oasis — large gold cache' }) },
+    relic:  { icon: '💎', col: '#c080ff', label: KIT.t('game.tower-defense.event.relic', { def: 'Relic — gold + haste' }) },
+    bog:    { icon: '🐸', col: '#8fbf6f', label: KIT.t('game.tower-defense.event.bog', { def: 'Bog bloom — gold, but rouses a mud-beast' }) },
   };
   function spawnBogBeast() {
     const b = ENEMY_DEFS.brute;
@@ -963,7 +993,7 @@
       const ev = EVENTS[d.event];
       if (d.amount > 0) { gold += d.amount; addScore(d.amount / 2); float(d.x, d.y, '+' + d.amount + 'g', '#ffe066'); }
       if (d.event === 'rally' || d.event === 'relic') hasteTicks = Math.max(hasteTicks, 360);
-      if (d.event === 'freeze') { for (const e of enemies) e.slow = Math.max(e.slow, 150); float(d.x, d.y - 14, '❄ FROZEN!', '#9ee0ff'); }
+      if (d.event === 'freeze') { for (const e of enemies) e.slow = Math.max(e.slow, 150); float(d.x, d.y - 14, KIT.t('game.tower-defense.frozen', { def: '❄ FROZEN!' }), '#9ee0ff'); }
       if (d.event === 'meteor') {
         // Rare, devastating: blast spans the whole board (well over 2/3). It KILLS ordinary enemies,
         // but a BOSS only takes a big chunk (half its max HP) — it can't trivialise the boss fight.
@@ -974,12 +1004,12 @@
           else killEnemy(e);
         }
         spawnMeteorBlast(d.x, d.y, R);
-        float(d.x, d.y - 22, '☄️ METEOR STRIKE!', '#ff7a3a');
+        float(d.x, d.y - 22, KIT.t('game.tower-defense.meteorStrike', { def: '☄️ METEOR STRIKE!' }), '#ff7a3a');
       }
-      if (d.event === 'bog') { spawnBogBeast(); float(d.x, d.y - 14, '🐸 mud-beast!', '#8fbf6f'); }
+      if (d.event === 'bog') { spawnBogBeast(); float(d.x, d.y - 14, KIT.t('game.tower-defense.mudBeast', { def: '🐸 mud-beast!' }), '#8fbf6f'); }
       spawnParticles(d.x, d.y, ev.col);
     } else if (d.kind === 'gold') { gold += d.amount; addScore(d.amount / 2); float(d.x, d.y, '+' + d.amount + 'g', '#ffe066'); spawnParticles(d.x, d.y, '#ffe066'); }
-    else { hasteTicks = Math.max(hasteTicks, 480); float(d.x, d.y, '⚡ HASTE!', '#ffe066'); spawnParticles(d.x, d.y, '#ffe066'); }
+    else { hasteTicks = Math.max(hasteTicks, 480); float(d.x, d.y, KIT.t('game.tower-defense.haste', { def: '⚡ HASTE!' }), '#ffe066'); spawnParticles(d.x, d.y, '#ffe066'); }
     drops.splice(drops.indexOf(d), 1);
     updateHud(); refreshToolbar();
     SND.play('sell');
@@ -998,7 +1028,7 @@
         const nb = spawnQ.find(e => e.type === 'boss');
         if (nb && (nb.at - spawnT) <= 80 && (nb.at - spawnT) > 0) {
           bossWarnShown = true;
-          float(W / 2, H / 2 - 60, '⚠ BOSS INCOMING ⚠', '#ff4444');
+          float(W / 2, H / 2 - 60, KIT.t('game.tower-defense.bossIncoming', { def: '⚠ BOSS INCOMING ⚠' }), '#ff4444');
         }
       }
 
@@ -1173,14 +1203,14 @@
       if (victory) bonus = Math.round(base * 0.5);
       gold += base + bonus + interest;
       addScore(wave * 10);
-      float(W / 2, H / 2 - 40, 'Wave ' + wave + ' cleared! +' + (base + bonus) + 'g', '#e0b25a');
-      float(W / 2, H / 2 - 20, 'Interest +' + interest + 'g', '#f0d080');
+      float(W / 2, H / 2 - 40, KIT.t('game.tower-defense.waveCleared', { wave: wave, g: (base + bonus), def: 'Wave ' + wave + ' cleared! +' + (base + bonus) + 'g' }), '#e0b25a');
+      float(W / 2, H / 2 - 20, KIT.t('game.tower-defense.interest', { g: interest, def: 'Interest +' + interest + 'g' }), '#f0d080');
       if (wave >= 10 && !victory) {
         victory = true;
         gold += 200;
         SND.play('win');
-        float(W / 2, H / 2, 'VICTORY! Endless mode...', '#ffe066');
-        float(W / 2, H / 2 + 20, '+200g bonus!', '#e0b25a');
+        float(W / 2, H / 2, KIT.t('game.tower-defense.victory', { def: 'VICTORY! Endless mode...' }), '#ffe066');
+        float(W / 2, H / 2 + 20, KIT.t('game.tower-defense.victoryBonus', { def: '+200g bonus!' }), '#e0b25a');
       }
       updateHud();
       refreshToolbar();
@@ -1515,15 +1545,15 @@
       ctx.fillStyle = 'rgba(231,214,173,0.7)'; ctx.font = '12px Georgia,serif';
       ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
       const sm = surfaceMul();
-      const surf = sm > 1.05 ? 'fast surface' : sm < 0.95 ? 'slow surface' : 'normal surface';
-      ctx.fillText(m.name + ' · ' + surf + ' · ' + EVENTS[m.event].icon, ox, oy - 4);
+      const surf = sm > 1.05 ? KIT.t('game.tower-defense.fastSurface', { def: 'fast surface' }) : sm < 0.95 ? KIT.t('game.tower-defense.slowSurface', { def: 'slow surface' }) : KIT.t('game.tower-defense.normalSurface', { def: 'normal surface' });
+      ctx.fillText(mapName(mapIndex) + ' · ' + surf + ' · ' + EVENTS[m.event].icon, ox, oy - 4);
     }
 
     // haste indicator — top-right of the play area, beside the legend
     if (hasteTicks > 0) {
       ctx.fillStyle = 'rgba(255,224,102,0.85)'; ctx.font = 'bold 14px Georgia,serif';
       ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
-      ctx.fillText('⚡ Haste ' + Math.ceil(hasteTicks / 60) + 's', ox + COLS * ts, oy - 4);
+      ctx.fillText(KIT.t('game.tower-defense.hasteTimer', { n: Math.ceil(hasteTicks / 60), def: '⚡ Haste ' + Math.ceil(hasteTicks / 60) + 's' }), ox + COLS * ts, oy - 4);
     }
 
     // particles
@@ -1585,9 +1615,10 @@
       const el = tipEl();
       if (el) {
         const c = TOWERS[ht.type];
-        el.innerHTML = '<h4>' + c.icon + ' ' + c.name + ' · Lv ' + ht.lvl + '</h4>' +
+        const lv = KIT.t('game.tower-defense.lv', { n: ht.lvl, def: 'Lv ' + ht.lvl });
+        el.innerHTML = '<h4>' + c.icon + ' ' + towerName(ht.type) + ' · ' + lv + '</h4>' +
           '<div class="mod">' + placedTowerStatsHtml(ht) + '</div>' +
-          '<div class="sp">' + c.special + '</div>';
+          '<div class="sp">' + towerSpecial(ht.type) + '</div>';
         el.classList.add('show');
         const cy0 = r.top + ht.y * (r.height / H);
         showTipPos(r.left + ht.x * (r.width / W), cy0);
@@ -1634,16 +1665,16 @@
   if (spdBtn) spdBtn.addEventListener('click', () => { gameSpeed = gameSpeed === 1 ? 2 : 1; refreshToolbar(); });
   KIT.nav({ slug: 'tower-defense', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (pausedMenu) { pausedMenu = false; KIT.menu.hide(); } else if (state === 'build' || state === 'wave') showPauseMenu(); },
-    confirmLeave: () => (state === 'build' || state === 'wave') ? "Leave this run? You'll lose your progress." : false,
-    controls: { title: 'Keep Defender — Controls',
-      mouse: [ ['Pick a tower', 'Select to build'], ['Click grass', 'Place tower'], ['Click a tower', 'Upgrade / sell / targeting'] ],
-      touch: [ ['Tap a tower type', 'Select'], ['Tap grass', 'Place'], ['Tap a placed tower', 'Upgrade / sell / targeting'], ['Tap a drop', 'Collect'] ] } });
+    confirmLeave: () => (state === 'build' || state === 'wave') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.tower-defense.controlsTitle', { def: 'Keep Defender — Controls' }),
+      mouse: [ [KIT.t('game.tower-defense.controls.pickTower', { def: 'Pick a tower' }), KIT.t('game.tower-defense.controls.selectToBuild', { def: 'Select to build' })], [KIT.t('game.tower-defense.controls.clickGrass', { def: 'Click grass' }), KIT.t('game.tower-defense.controls.placeTower', { def: 'Place tower' })], [KIT.t('game.tower-defense.controls.clickTower', { def: 'Click a tower' }), KIT.t('game.tower-defense.controls.towerActions', { def: 'Upgrade / sell / targeting' })] ],
+      touch: [ [KIT.t('game.tower-defense.controls.tapTowerType', { def: 'Tap a tower type' }), KIT.t('game.tower-defense.controls.select', { def: 'Select' })], [KIT.t('game.tower-defense.controls.tapGrass', { def: 'Tap grass' }), KIT.t('game.tower-defense.controls.place', { def: 'Place' })], [KIT.t('game.tower-defense.controls.tapPlacedTower', { def: 'Tap a placed tower' }), KIT.t('game.tower-defense.controls.towerActions', { def: 'Upgrade / sell / targeting' })], [KIT.t('game.tower-defense.controls.tapDrop', { def: 'Tap a drop' }), KIT.t('game.tower-defense.controls.collect', { def: 'Collect' })] ] } });
   KIT.showMenuButton(false); // initial = menu screen → hide the ‹ Menu button
   const autoBtn = $('autoBtn');
   if (autoBtn) autoBtn.addEventListener('click', () => {
     autoWave = !autoWave;
     if (autoWave && autoDelay <= 0) autoDelay = 150; // give a beat before the first auto-launch
-    autoBtn.textContent = 'Auto: ' + (autoWave ? 'On' : 'Off');
+    autoBtn.textContent = autoWave ? KIT.t('game.tower-defense.autoOn', { def: 'Auto: On' }) : KIT.t('game.tower-defense.autoOff', { def: 'Auto: Off' });
     autoBtn.classList.toggle('on', autoWave);
   });
 
@@ -1743,6 +1774,14 @@
     towerInfo(i) { const t = towers[i]; return t ? placedTowerStatsHtml(t) : null; },
   };
 
+  // Localize the static build-toolbar button labels (name + short tag) once at boot.
+  const TOWER_TAG = { archer: 'fast · single', cannon: 'slow · splash', frost: 'slows nearby', mage: 'arc · magic', bard: 'buffs nearby' };
+  document.querySelectorAll('.tbtn[data-t]').forEach(b => {
+    const type = b.dataset.t;
+    const nEl = b.querySelector('.n'); if (nEl) nEl.textContent = towerName(type);
+    const dEl = b.querySelector('.d'); if (dEl && TOWER_TAG[type]) dEl.textContent = KIT.t('game.tower-defense.tower.' + type + '.tag', { def: TOWER_TAG[type] });
+  });
+  initHudLabels();
   resize(); loadBest(); applyMap(mapIndex); loadDiff(); setDiff(diffLevel); updateHud();
   KIT.loop(step, render, { mult: () => gameSpeed });
   // deep-link ?map= / ?diff= → preselect before opening the menu

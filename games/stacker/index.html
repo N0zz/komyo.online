@@ -131,12 +131,14 @@
   function getBest(m) { return KIT ? KIT.bestScore('stacker', MODE_CFG[m].label) : 0; }
   function saveBest() { if (KIT) KIT.saveBest('stacker', MODE_CFG[mode].label, { score: score }); }
   function currentBest() { return getBest(mode); }
+  // Display-only mode name — MODE_CFG[m].label stays the English storage key; this translates only at display sites.
+  function modeName(m) { return KIT.t('game.stacker.mode.' + m, { def: MODE_CFG[m].label }); }
 
   function updateHud() {
     document.getElementById('score').textContent = score;
     document.getElementById('best').textContent = currentBest();
     document.getElementById('height').textContent = blocks.length > 1 ? blocks.length - 1 : 0;
-    document.getElementById('modeStat').textContent = MODE_CFG[mode].label;
+    document.getElementById('modeStat').textContent = modeName(mode);
     if (mode === 'time') {
       timerStat.style.display = '';
       timerEl.textContent = Math.ceil(timeLeft);
@@ -306,36 +308,36 @@
   function showStartMenu() {
     state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'STACK', backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.stacker.menuTitle', { def: 'STACK' }), backdrop: menuBackdrop,
       groups: [
-        { id: 'mode', label: 'MODE', style: 'cards', default: selectedMode, choices: [
-          { id: 'classic', label: 'Classic',    mech: ['Endless', 'High score'], best: () => getBest('classic'), preview: (g, w, h, st) => pvMode(g, w, h, 'classic', st) },
-          { id: 'time',    label: 'Time Attack', mech: ['60 seconds'],            best: () => getBest('time'),    preview: (g, w, h, st) => pvMode(g, w, h, 'time', st) },
-          { id: 'zen',     label: 'Zen',         mech: ['Slow', 'Forgiving'],     best: () => getBest('zen'),     preview: (g, w, h, st) => pvMode(g, w, h, 'zen', st) },
+        { id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: selectedMode, choices: [
+          { id: 'classic', label: modeName('classic'),    mech: [KIT.t('game.stacker.mech.endless', { def: 'Endless' }), KIT.t('game.stacker.mech.highScore', { def: 'High score' })], best: () => getBest('classic'), preview: (g, w, h, st) => pvMode(g, w, h, 'classic', st) },
+          { id: 'time',    label: modeName('time'), mech: [KIT.t('game.stacker.mech.sixtySeconds', { def: '60 seconds' })],            best: () => getBest('time'),    preview: (g, w, h, st) => pvMode(g, w, h, 'time', st) },
+          { id: 'zen',     label: modeName('zen'),         mech: [KIT.t('game.stacker.mech.slow', { def: 'Slow' }), KIT.t('game.stacker.mech.forgiving', { def: 'Forgiving' })],     best: () => getBest('zen'),     preview: (g, w, h, st) => pvMode(g, w, h, 'zen', st) },
         ] },
-        { id: 'theme', label: 'THEME', default: theme, choices: [ { id: 'light', label: 'Light' }, { id: 'dark', label: 'Dark' } ] },
+        { id: 'theme', label: KIT.t('game.stacker.themeLabel', { def: 'THEME' }), default: theme, choices: [ { id: 'light', label: KIT.t('game.stacker.themeLight', { def: 'Light' }) }, { id: 'dark', label: KIT.t('game.stacker.themeDark', { def: 'Dark' }) } ] },
       ],
-      actions: [{ id: 'play', label: 'Play', primary: true }],
-      hint: () => 'Tap / click / Space to drop the block.',
+      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'Play' }), primary: true }],
+      hint: () => KIT.t('game.stacker.hint', { def: 'Tap / click / Space to drop the block.' }),
       onChange: st => { selectedMode = st.mode; if (st.theme !== theme) selectTheme(st.theme); KIT.stampUrl(menuParams(st)); },
       onPlay: st => { selectTheme(st.theme); KIT.stampUrl(menuParams(st)); startGameMode(st.mode); },
     });
     KIT.stampUrl(menuParams({ mode: selectedMode, theme: theme }));
   }
-  function shareMsg() { return KIT.shareText({ verb: 'I stacked', score: score, unit: 'high', game: 'Stack', emoji: '🧊', mode: MODE_CFG[mode].label }); }
+  function shareMsg() { return KIT.shareText({ verb: KIT.t('game.stacker.verb', { def: 'I stacked' }), score: score, unit: KIT.t('game.stacker.unit', { def: 'high' }), game: KIT.t('game.stacker.title', { def: 'Stack' }), emoji: '🧊', mode: modeName(mode) }); }
   function showEnd(reason, isBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: reason === 'time' ? "TIME'S UP!" : 'OOPS!', backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: reason === 'time' ? KIT.t('game.stacker.endTitleTime', { def: "TIME'S UP!" }) : KIT.t('game.stacker.endTitle', { def: 'OOPS!' }), backdrop: menuBackdrop,
       record: { slug: 'stacker', mode: MODE_CFG[mode].label, score: score },
-      score: score, best: currentBest(), newBest: isBest, lines: [MODE_CFG[mode].label],
-      share: { slug: 'stacker', accent: '#ff9aa2', icon: '🧊', title: 'Stack', message: () => shareMsg(), params: () => menuParams({ mode: mode, theme: theme }) },
-      actions: [ { id: 'again', label: 'Play Again', primary: true }, { id: 'menu', label: 'Menu' } ],
+      score: score, best: currentBest(), newBest: isBest, lines: [modeName(mode)],
+      share: { slug: 'stacker', accent: '#ff9aa2', icon: '🧊', title: KIT.t('game.stacker.title', { def: 'Stack' }), message: () => shareMsg(), params: () => menuParams({ mode: mode, theme: theme }) },
+      actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'Play Again' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'Menu' }) } ],
       onAction: id => { if (id === 'again') startGameMode(mode); else if (id === 'menu') toMenu(); } });
   }
   function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
-    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED', lines: ['Score ' + score],
-      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }), lines: [KIT.t('game.common.scoreLine', { score: score, def: 'Score ' + score })],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
   }
   function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
@@ -395,7 +397,7 @@
     // Combo display
     if (combo >= 2 && comboTimer > 0) {
       comboEl.style.opacity = '1';
-      comboEl.textContent = combo + 'x COMBO!';
+      comboEl.textContent = KIT.t('game.stacker.combo', { n: combo, def: combo + 'x COMBO!' });
     } else {
       comboEl.style.opacity = '0';
     }
@@ -567,11 +569,11 @@
 
   KIT.nav({ slug: 'stacker', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
-    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
-    controls: { title: 'Stack — Controls',
-      mouse: [ ['Click', 'Drop the block'] ],
-      keyboard: [ ['Space  ·  Enter', 'Drop the block'], ['Esc', 'Pause'] ],
-      touch: [ ['Tap', 'Drop the block'] ] } });
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.stacker.controlsTitle', { def: 'Stack — Controls' }),
+      mouse: [ [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.stacker.dropAction', { def: 'Drop the block' })] ],
+      keyboard: [ [KIT.t('game.common.spaceEnter', { def: 'Space  ·  Enter' }), KIT.t('game.stacker.dropAction', { def: 'Drop the block' })], [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.stacker.dropAction', { def: 'Drop the block' })] ] } });
   KIT.music.play('pastel');
 
   resize();
