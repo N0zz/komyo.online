@@ -81,7 +81,8 @@ window.KOMYO_I18N = {
     'challenges.goodRunHere': 'A good run here = {n}+',
     'challenges.goodRunGeneric': 'A good run beats a game’s mark.',
     'challenges.trophies': '{count} trophies',
-    'challenges.cosmeticsBtn': '🎨 Collection · 🏆 {bal} to spend',
+    'challenges.cosmeticsBtn': '🎨 Collection',
+    'chal.lifetime': { one: '🏆 {count} Trophy', other: '🏆 {count} Trophies' },
     'challenges.note': 'Any mode counts — your best today is what matters. Full list &amp; history on the home page.',
     'challenges.playToday': 'Play {game} today',
     'challenges.playWeek': 'Play {game} this week',
@@ -207,7 +208,7 @@ window.KOMYO_I18N = {
     'challenges.goodRunHere': 'Dobra runda tutaj = {n}+',
     'challenges.goodRunGeneric': 'Dobra runda przekracza próg gry.',
     'challenges.trophies': '{count} trofeów',
-    'challenges.cosmeticsBtn': '🎨 Kolekcja · 🏆 {bal} do wydania',
+    'challenges.cosmeticsBtn': '🎨 Kolekcja',
     'challenges.note': 'Każdy tryb się liczy — liczy się twój dzisiejszy najlepszy wynik. Pełna lista i historia na stronie głównej.',
     'challenges.playToday': 'Zagraj w {game} dziś',
     'challenges.playWeek': 'Zagraj w {game} w tym tygodniu',
@@ -1449,7 +1450,7 @@ window.KOMYO_I18N = {
     'changelog.e14.b0': 'Dodano 8 gier: Asteroidy, Obrońca Twierdzy, Bąbelki, Rozbij Cegły, Wieża, Łąkowy Lot, Strzelnica i Neonowy Wąż.',
     'cat.challengesBtn': 'WYZWANIA',
     'cat.openChallenges': 'Otwórz wyzwania',
-    'chal.lifetime': '🏆 {count} łącznie'
+    'chal.lifetime': { one: '🏆 {count} Trofeum', few: '🏆 {count} Trofea', many: '🏆 {count} Trofeów', other: '🏆 {count} Trofea' }
   },
   es: {},
   pt: {},

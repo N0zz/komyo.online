@@ -1059,14 +1059,14 @@
     function syncFocus() {
       var f = cells[focused] || null;
       cells.forEach(function (c2, i) { if (c2.el.classList) c2.el.classList.toggle('gksp-focus', i === focused); });
-      if (!f) { focdesc.innerHTML = ''; buyBtn.textContent = ''; buyBtn.disabled = true; try { buyBtn.style.visibility = 'hidden'; } catch (e) {} return; }
+      if (!f) { focdesc.innerHTML = ''; buyBtn.textContent = ''; buyBtn.disabled = true; try { buyBtn.style.display = 'none'; } catch (e) {} return; }
       var it = f.item, ownedNow = cosOwned(it.id), isSel = cosSelected(it.set) === it.id;
       focdesc.innerHTML = '&#9656; <b>' + cosName(it) + '</b> — ' + cosDesc(it) +
         (ownedNow ? '' : ' <span class="gksp-price">🏆 ' + fmtT(it.price) + '</span>');
       buyBtn.textContent = ownedNow ? (isSel ? t('shop.equipped') : t('shop.equip', { name: cosName(it) })) : t('shop.buy', { name: cosName(it), price: fmtT(it.price) });
       buyBtn.disabled = ownedNow ? isSel : cosBalance() < (+it.price || 0);
       if (buyBtn.classList) buyBtn.classList.toggle('gksp-buy-equip', ownedNow && !isSel);
-      try { buyBtn.style.visibility = ''; } catch (e) {}
+      try { buyBtn.style.display = ''; } catch (e) {}
     }
     function syncCells() {
       cells.forEach(function (c2) {
