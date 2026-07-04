@@ -299,8 +299,8 @@
     var holdMs = (opts && +opts.hold) || 0; // destructive confirms: press-and-HOLD the yes button
     var ov = document.createElement('div'); ov.className = 'gamekit-confirm';
     ov.innerHTML = '<div class="gamekit-confirm-box"><p>' + msg + '</p><div class="gamekit-confirm-btns">'
-      + '<button class="gamekit-cf-no" type="button">Cancel</button>'
-      + '<button class="gamekit-cf-yes' + (holdMs ? ' gkm-cf-hold' : '') + '" type="button">' + (yesLabel || 'OK') + '</button></div></div>';
+      + '<button class="gamekit-cf-no" type="button">' + t('confirm.cancel') + '</button>'
+      + '<button class="gamekit-cf-yes' + (holdMs ? ' gkm-cf-hold' : '') + '" type="button">' + (yesLabel || t('confirm.ok')) + '</button></div></div>';
     applyMenuTheme(ov, opts && opts.theme); // match the game's menu look (falls back to the neutral kit palette)
     document.body.appendChild(ov);
     var no = ov.querySelector ? ov.querySelector('.gamekit-cf-no') : null;
@@ -380,13 +380,13 @@
     var games = opts.games || (opts.slug ? [{ slug: opts.slug, title: opts.title || (typeof document !== 'undefined' && document.title) || opts.slug }] : []);
     if (!games.length) return;
     var ov = document.createElement('div'); ov.className = 'gamekit-embed';
-    var picker = games.length > 1 ? '<select class="gamekit-embed-sel" aria-label="Pick a game">' + games.map(function (g, i) { return '<option value="' + i + '">' + (g.icon ? g.icon + ' ' : '') + (g.title || g.slug) + '</option>'; }).join('') + '</select>' : '';
-    ov.innerHTML = '<div class="gamekit-embed-box"><button class="gamekit-embed-x" type="button" aria-label="Close">✕</button>'
-      + '<h3>Embed ' + (games.length > 1 ? 'a game' : 'this game') + '</h3>'
-      + '<p>Paste this where you want the game on your site or blog — it runs right there, free, no account, no ads.</p>'
+    var picker = games.length > 1 ? '<select class="gamekit-embed-sel" aria-label="' + t('embed.pick') + '">' + games.map(function (g, i) { return '<option value="' + i + '">' + (g.icon ? g.icon + ' ' : '') + (g.title || g.slug) + '</option>'; }).join('') + '</select>' : '';
+    ov.innerHTML = '<div class="gamekit-embed-box"><button class="gamekit-embed-x" type="button" aria-label="' + t('menu.close') + '">✕</button>'
+      + '<h3>' + (games.length > 1 ? t('embed.titleGame') : t('embed.titleThis')) + '</h3>'
+      + '<p>' + t('embed.body') + '</p>'
       + picker
       + '<textarea class="gamekit-embed-code" readonly rows="4"></textarea>'
-      + '<button class="gamekit-embed-copy" type="button">Copy code</button></div>';
+      + '<button class="gamekit-embed-copy" type="button">' + t('embed.copyCode') + '</button></div>';
     document.body.appendChild(ov);
     _modalOpen++; // open overlay → halts the game underneath
     var sel = ov.querySelector ? ov.querySelector('.gamekit-embed-sel') : null;
@@ -402,7 +402,7 @@
     if (copy) copy.addEventListener('click', function () {
       try {
         if (code && code.select) code.select();
-        if (navigator.clipboard) navigator.clipboard.writeText(code ? code.value : '').then(function () { copy.textContent = 'Copied!'; setTimeout(function () { copy.textContent = 'Copy code'; }, 1500); })['catch'](function () {});
+        if (navigator.clipboard) navigator.clipboard.writeText(code ? code.value : '').then(function () { copy.textContent = t('embed.copied'); setTimeout(function () { copy.textContent = t('embed.copyCode'); }, 1500); })['catch'](function () {});
       } catch (e) {}
     });
   }
@@ -421,9 +421,9 @@
       }).join('');
     };
     var ov = document.createElement('div'); ov.className = 'gamekit-controls';
-    ov.innerHTML = '<div class="gkctl-box"><button class="gkctl-x" type="button" aria-label="Close">&#x2715;</button>'
-      + '<h3>' + (cfg.title || 'Controls') + '</h3>'
-      + sec('⌨️ Keyboard', cfg.keyboard) + sec('🖱️ Mouse', cfg.mouse) + sec('👆 Touch', cfg.touch)
+    ov.innerHTML = '<div class="gkctl-box"><button class="gkctl-x" type="button" aria-label="' + t('menu.close') + '">&#x2715;</button>'
+      + '<h3>' + (cfg.title || t('controls.title')) + '</h3>'
+      + sec('⌨️ ' + t('controls.keyboard'), cfg.keyboard) + sec('🖱️ ' + t('controls.mouse'), cfg.mouse) + sec('👆 ' + t('controls.touch'), cfg.touch)
       + (cfg.note ? '<p class="gkctl-note">' + cfg.note + '</p>' : '') + '</div>';
     if (theme) applyMenuTheme(ov, theme);
     document.body.appendChild(ov);
@@ -625,7 +625,7 @@
     var list = cosItems().filter(function (it) { return it.set === setId; });
     return {
       id: opts.id || setId,
-      label: opts.label != null ? opts.label : (setMeta.label || 'STYLE'),
+      label: opts.label != null ? opts.label : (setMeta.label || t('shop.styleGroup')),
       style: 'grid',
       'default': cosSelected(setId),
       choices: list.map(function (it) {
@@ -635,7 +635,7 @@
           desc: it.desc, price: it.price,
           locked: function () { return !cosOwned(it.id); },
           lockedLabel: function () { return '🏆 ' + fmtScore(+it.price || 0); },
-          sub: it.price ? '✓ Owned' : (opts.freeLabel || 'Free'),
+          sub: it.price ? t('shop.owned') : (opts.freeLabel || t('shop.free')),
           afford: function () { return cosBalance() >= (+it.price || 0); },
           buy: function () {
             var okB = cosBuy(it.id);
@@ -863,7 +863,7 @@
       var idx = isWeek ? Math.floor((dn - CH_WEEK_ANCHOR) / 7) : dn;
       var slug = (C && C.randomSlug && opts.playable) ? C.randomSlug(idx, opts.playable) : '';
       var played = !!slug && ((isWeek ? chWeekAgg() : chDayLog(dStr)).slugs.indexOf(slug) >= 0);
-      var title = slug ? ('Play ' + ((opts.titles && opts.titles[slug]) || 'a game') + (isWeek ? ' this week' : ' today')) : goal.title;
+      var title = slug ? t(isWeek ? 'challenges.playWeek' : 'challenges.playToday', { game: (opts.titles && opts.titles[slug]) || t('challenges.aGame') }) : goal.title;
       return { val: played ? 1 : 0, target: 1, done: played, pct: played ? 1 : 0, title: title, slug: slug };
     }
     if (goal.scope === 'cross') {
@@ -880,33 +880,33 @@
   function challengesPanel(opts) {
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body || !document.createElement) return;
-    var slug = opts.slug, genreOf = opts.genres || null, t = chToday();
+    var slug = opts.slug, genreOf = opts.genres || null, ct = chToday();
     function card(entry, kindLabel) {
-      if (!entry || !entry.goal) return '<div class="gkch-empty">No ' + kindLabel.toLowerCase() + ' challenge right now.</div>';
+      if (!entry || !entry.goal) return '<div class="gkch-empty">' + t('challenges.noneKind', { kind: kindLabel.toLowerCase() }) + '</div>';
       var g = entry.goal, e = chEval(g, { genres: genreOf }), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
-      var prog = e ? (e.done ? '✓ Done' : (fmtScore(e.val) + ' / ' + fmtScore(e.target))) : '';
+      var prog = e ? (e.done ? t('challenges.done') : (fmtScore(e.val) + ' / ' + fmtScore(e.target))) : '';
       // "good runs" goal: spell out the bar — the current game's exact bar in-game, generic on the catalogue
       var hint = '';
-      if (g.metric === 'goodRuns') hint = '<div class="gkch-hint">' + (chGoodRun(slug) ? ('A good run here = ' + fmtScore(chGoodRun(slug)) + '+') : 'A good run beats a game’s mark.') + '</div>';
+      if (g.metric === 'goodRuns') hint = '<div class="gkch-hint">' + (chGoodRun(slug) ? t('challenges.goodRunHere', { n: fmtScore(chGoodRun(slug)) }) : t('challenges.goodRunGeneric')) + '</div>';
       return '<div class="gkch-card' + (mine ? ' mine' : '') + (e && e.done ? ' done' : '') + '">'
-        + '<div class="gkch-k">' + kindLabel + (mine ? ' · <b>THIS GAME</b>' : '') + '</div>'
+        + '<div class="gkch-k">' + kindLabel + (mine ? ' · <b>' + t('challenges.thisGame') + '</b>' : '') + '</div>'
         + '<div class="gkch-t">' + g.title + '</div>'
         + '<div class="gkch-bar"><span style="width:' + pct + '%"></span></div>'
         + '<div class="gkch-p">' + prog + '</div>' + hint + '</div>';
     }
-    var body = chGoals() ? (card(t.daily, 'Today') + card(t.weekly, 'This week'))
-      : '<div class="gkch-empty">Challenges aren’t loaded here.</div>';
+    var body = chGoals() ? (card(ct.daily, t('challenges.today')) + card(ct.weekly, t('challenges.thisWeek')))
+      : '<div class="gkch-empty">' + t('challenges.notLoaded') + '</div>';
     // trophies pill (lifetime) + Cosmetics pill (spendable balance → the store) + the always-on
     // good-run bonus line, so "is one more run worth it?" has an answer before playing
     var grb = goodRunBonus();
-    var pills = '<div class="gkch-pills"><span class="gkch-pill">🏆 ' + fmtScore(cosLifetime()) + ' trophies</span>'
-      + (cosItems().length ? '<button class="gkch-pill gkch-shop" id="gkchShop" type="button">🎨 COSMETICS · 🏆 ' + fmtScore(cosBalance()) + '</button>' : '')
+    var pills = '<div class="gkch-pills"><span class="gkch-pill">🏆 ' + t('challenges.trophies', { count: fmtScore(cosLifetime()) }) + '</span>'
+      + (cosItems().length ? '<button class="gkch-pill gkch-shop" id="gkchShop" type="button">' + t('challenges.cosmeticsBtn', { bal: fmtScore(cosBalance()) }) + '</button>' : '')
       + '</div>'
-      + '<div class="gkch-bonus">⚡ Good-run bonus: ' + grb.count + '/' + grb.cap + ' today · +' + grb.per + ' 🏆 each</div>';
+      + '<div class="gkch-bonus">' + t('grb.line', { count: grb.count, cap: grb.cap, per: grb.per }) + '</div>';
     var ov = document.createElement('div'); ov.className = 'gamekit-challenges';
-    ov.innerHTML = '<div class="gkch-box"><button class="gkch-x" type="button" aria-label="Close">&#x2715;</button>'
-      + '<h3>🏆 Challenges</h3>' + pills + body
-      + '<p class="gkch-note">Any mode counts — your best today is what matters. Full list &amp; history on the home page.</p></div>';
+    ov.innerHTML = '<div class="gkch-box"><button class="gkch-x" type="button" aria-label="' + t('menu.close') + '">&#x2715;</button>'
+      + '<h3>🏆 ' + t('challenges.title') + '</h3>' + pills + body
+      + '<p class="gkch-note">' + t('challenges.note') + '</p></div>';
     if (opts.theme) applyMenuTheme(ov, opts.theme);
     document.body.appendChild(ov);
     _modalOpen++;
@@ -958,25 +958,25 @@
     var ov = document.createElement('div'); ov.className = 'gamekit-shoppanel';
     var box = mkEl('div', 'gksp-box'); ov.appendChild(box);
     if (opts.theme) applyMenuTheme(ov, opts.theme);
-    var xb = mkEl('button', 'gksp-x', '&#x2715;'); try { xb.type = 'button'; xb.setAttribute('aria-label', 'Close'); } catch (e) {}
+    var xb = mkEl('button', 'gksp-x', '&#x2715;'); try { xb.type = 'button'; xb.setAttribute('aria-label', t('menu.close')); } catch (e) {}
     box.appendChild(xb);
     var head = mkEl('div', 'gksp-head');
     var scopeMeta = scopeGame != null ? (gamesMeta[scopeGame] || { title: scopeGame }) : null;
-    head.appendChild(mkEl('span', 'gksp-title', '🎨 ' + (scopeMeta ? (scopeMeta.title + ' cosmetics') : 'Cosmetics')));
+    head.appendChild(mkEl('span', 'gksp-title', '🎨 ' + (scopeMeta ? t('shop.titleGame', { game: scopeMeta.title }) : t('shop.title'))));
     var balEl = mkEl('span', 'gksp-bal'); head.appendChild(balEl);
     box.appendChild(head);
     // controls row: search + (full store) a game filter, or (scoped) an "All games →" link
     var ctrls = mkEl('div', 'gksp-ctrls');
-    var search = mkEl('input', 'gksp-search'); try { search.type = 'search'; search.placeholder = '🔍 Search cosmetics…'; search.setAttribute('aria-label', 'Search cosmetics'); } catch (e) {}
+    var search = mkEl('input', 'gksp-search'); try { search.type = 'search'; search.placeholder = t('shop.searchPh'); search.setAttribute('aria-label', t('shop.searchAria')); } catch (e) {}
     ctrls.appendChild(search);
     var gameSel = null, allGamesLink = null;
     if (scopeGame == null) {
-      gameSel = mkEl('select', 'gksp-filter'); try { gameSel.setAttribute('aria-label', 'Filter by game'); } catch (e) {}
-      var optAll = mkEl('option', null, 'All games'); try { optAll.value = '__all'; } catch (e) {} gameSel.appendChild(optAll);
-      shown.forEach(function (g) { var m = gamesMeta[g] || { title: g || 'Site-wide' }; var o = mkEl('option', null, (m.icon ? m.icon + ' ' : '') + (m.title || g || 'Site-wide')); try { o.value = g; } catch (e) {} gameSel.appendChild(o); });
+      gameSel = mkEl('select', 'gksp-filter'); try { gameSel.setAttribute('aria-label', t('shop.filterAria')); } catch (e) {}
+      var optAll = mkEl('option', null, t('shop.allGamesOpt')); try { optAll.value = '__all'; } catch (e) {} gameSel.appendChild(optAll);
+      shown.forEach(function (g) { var m = gamesMeta[g] || { title: g || t('shop.siteWide') }; var o = mkEl('option', null, (m.icon ? m.icon + ' ' : '') + (m.title || g || t('shop.siteWide'))); try { o.value = g; } catch (e) {} gameSel.appendChild(o); });
       ctrls.appendChild(gameSel);
     } else if (typeof opts.allGames === 'function') {
-      allGamesLink = mkEl('button', 'gksp-allgames', 'All games →'); try { allGamesLink.type = 'button'; } catch (e) {}
+      allGamesLink = mkEl('button', 'gksp-allgames', t('shop.allGamesLink')); try { allGamesLink.type = 'button'; } catch (e) {}
       ctrls.appendChild(allGamesLink);
     }
     box.appendChild(ctrls);
@@ -990,8 +990,8 @@
     // titles pointer (no ladder table here) — only when an opener is provided (catalogue)
     if (typeof opts.onTitles === 'function') {
       var tl = mkEl('div', 'gksp-titleline');
-      tl.appendChild(mkEl('span', null, '🏆 Titles unlock automatically as you earn trophies.'));
-      var tb = mkEl('button', 'gksp-titlebtn', 'See titles'); try { tb.type = 'button'; } catch (e) {}
+      tl.appendChild(mkEl('span', null, t('shop.titlesLine')));
+      var tb = mkEl('button', 'gksp-titlebtn', t('shop.seeTitles')); try { tb.type = 'button'; } catch (e) {}
       tb.addEventListener('click', function () { try { opts.onTitles(); } catch (e) {} });
       tl.appendChild(tb); box.appendChild(tl);
     }
@@ -1004,7 +1004,7 @@
       var pr = scopeGame != null ? cosProgress(scopeGame) : cosProgress();
       var pct = Math.round(pr.pct * 100);
       try { barFill.style.width = pct + '%'; } catch (e) {}
-      barTxt.textContent = pr.owned + ' / ' + pr.total + ' unlocked · ' + pct + '%';
+      barTxt.textContent = t('shop.progress', { owned: pr.owned, total: pr.total, pct: pct });
       gameProgEls.forEach(function (fn) { try { fn(); } catch (e) {} });
     }
     // focused item → the desc line + the BUY/EQUIP button. Buying NEVER happens on a plain cell click
@@ -1016,7 +1016,7 @@
       var it = f.item, ownedNow = cosOwned(it.id), isSel = cosSelected(it.set) === it.id;
       focdesc.innerHTML = '&#9656; <b>' + it.name + '</b> — ' + (it.desc || '') +
         (ownedNow ? '' : ' <span class="gksp-price">🏆 ' + fmtT(it.price) + '</span>');
-      buyBtn.textContent = ownedNow ? (isSel ? '✓ EQUIPPED' : 'EQUIP ' + it.name) : ('BUY ' + it.name + ' · 🏆 ' + fmtT(it.price));
+      buyBtn.textContent = ownedNow ? (isSel ? t('shop.equipped') : t('shop.equip', { name: it.name })) : t('shop.buy', { name: it.name, price: fmtT(it.price) });
       buyBtn.disabled = ownedNow ? isSel : cosBalance() < (+it.price || 0);
       if (buyBtn.classList) buyBtn.classList.toggle('gksp-buy-equip', ownedNow && !isSel);
       try { buyBtn.style.visibility = ''; } catch (e) {}
@@ -1030,7 +1030,7 @@
           c2.el.classList.toggle('gksp-dim', !ownedNow && cosBalance() < (+it.price || 0));
         }
         c2.sub.innerHTML = ownedNow
-          ? (isSel ? '<span class="gksp-on">✓ On</span>' : (+it.price ? '✓ Owned' : '✓ Default'))
+          ? (isSel ? '<span class="gksp-on">' + t('shop.on') + '</span>' : (+it.price ? t('shop.owned') : t('shop.default')))
           : '<span class="gksp-price">🏆 ' + fmtT(it.price) + '</span>';
       });
       syncHeader(); syncFocus();
@@ -1056,7 +1056,7 @@
       var any = false;
       shown.forEach(function (game) {
         if (filterG != null && game !== filterG) return;
-        var meta = gamesMeta[game] || { title: game || 'Site-wide', icon: '🎮' };
+        var meta = gamesMeta[game] || { title: game || t('shop.siteWide'), icon: '🎮' };
         var gameSets = [], seenSet = {};
         items.forEach(function (it) { if (it.game === game && !seenSet[it.set]) { seenSet[it.set] = 1; gameSets.push(it.set); } });
         // items matching the search within this game
@@ -1095,7 +1095,7 @@
           scroll.appendChild(grid);
         });
       });
-      if (!any) scroll.appendChild(mkEl('div', 'gksp-empty', 'No cosmetics match “' + (search.value || '') + '”.'));
+      if (!any) scroll.appendChild(mkEl('div', 'gksp-empty', t('shop.noMatch', { q: (search.value || '') })));
       syncCells();
     }
     // mount inside an open <dialog> when there is one (the profile modal's top layer would
@@ -1242,7 +1242,7 @@
     if (_pauseOv) return _pauseOv;
     if (typeof document === 'undefined' || !document.body || !document.createElement) return null;
     var ov = document.createElement('div'); ov.className = 'gamekit-pause';
-    ov.innerHTML = '<div class="gamekit-pause-box"><div class="gamekit-pause-ico">⏸</div><div>Paused</div><button class="gamekit-pause-resume" type="button">Resume</button></div>';
+    ov.innerHTML = '<div class="gamekit-pause-box"><div class="gamekit-pause-ico">⏸</div><div>' + t('pause.paused') + '</div><button class="gamekit-pause-resume" type="button">' + t('pause.resume') + '</button></div>';
     document.body.appendChild(ov);
     ov.addEventListener('click', function (e) {
       var t = e && e.target;
@@ -1253,7 +1253,7 @@
   function syncPauseUI() {
     var ov = _paused ? pauseOverlay() : _pauseOv;
     if (ov && ov.classList) ov.classList.toggle('show', _paused);
-    for (var i = 0; i < _pauseBtns.length; i++) { try { _pauseBtns[i].textContent = _paused ? '▶' : '⏸'; _pauseBtns[i].setAttribute('aria-pressed', _paused ? 'true' : 'false'); _pauseBtns[i].title = _paused ? 'Resume' : 'Pause'; } catch (e) {} }
+    for (var i = 0; i < _pauseBtns.length; i++) { try { _pauseBtns[i].textContent = _paused ? '▶' : '⏸'; _pauseBtns[i].setAttribute('aria-pressed', _paused ? 'true' : 'false'); _pauseBtns[i].title = _paused ? t('pause.resume') : t('pause.pause'); } catch (e) {} }
   }
   function setPaused(p) { _paused = !!p; syncPauseUI(); }
   function togglePause() { setPaused(!_paused); }
@@ -1304,23 +1304,23 @@
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body) return;
     var wrap = document.createElement('div'); wrap.className = 'gamekit-audio';
-    var rows = '<div class="gamekit-au-row"><button class="gamekit-au-toggle" id="gamekitSfxM" type="button" aria-label="Mute sound effects">🔊</button>'
-      + '<input class="gamekit-au-slider" id="gamekitSfxV" type="range" min="0" max="100" aria-label="Sound effects volume"></div>';
-    if (opts.music) rows += '<div class="gamekit-au-row"><button class="gamekit-au-toggle" id="gamekitMusM" type="button" aria-label="Mute music">🎵</button>'
-      + '<input class="gamekit-au-slider" id="gamekitMusV" type="range" min="0" max="100" aria-label="Music volume"></div>';
+    var rows = '<div class="gamekit-au-row"><button class="gamekit-au-toggle" id="gamekitSfxM" type="button" aria-label="' + t('sound.muteSfx') + '">🔊</button>'
+      + '<input class="gamekit-au-slider" id="gamekitSfxV" type="range" min="0" max="100" aria-label="' + t('sound.sfxVol') + '"></div>';
+    if (opts.music) rows += '<div class="gamekit-au-row"><button class="gamekit-au-toggle" id="gamekitMusM" type="button" aria-label="' + t('sound.muteMusic') + '">🎵</button>'
+      + '<input class="gamekit-au-slider" id="gamekitMusV" type="range" min="0" max="100" aria-label="' + t('sound.musVol') + '"></div>';
     // ☰ menu panel: version + update status, force refresh, embed, reset — one home for the
     // rarely-needed actions (keeps the button cluster narrow on phones)
     var more = '<div class="gamekit-more-ver" id="gamekitMoreVer"></div>'
-      + '<button class="gamekit-more-item" id="gamekitUpdate" type="button">✓ Up to date</button>'
-      + '<button class="gamekit-more-item" id="gamekitEmbed" type="button" title="Embed this game on your website or blog">&#x29C9; Embed this game</button>'
-      + (opts.reset ? '<button class="gamekit-more-item gamekit-more-danger" id="gamekitReset" type="button" title="Reset this game’s saved scores">↺ Reset game data</button>' : '');
-    wrap.innerHTML = '<button class="gamekit-au-btn gamekit-au-pausebtn" id="gamekitPause" type="button" aria-pressed="false" aria-label="Pause" title="Pause">⏸</button>'
-      + '<button class="gamekit-au-btn" id="gamekitAudioBtn" type="button" aria-label="Sound settings" title="Sound settings">🔊</button>'
+      + '<button class="gamekit-more-item" id="gamekitUpdate" type="button">' + t('update.upToDate') + '</button>'
+      + '<button class="gamekit-more-item" id="gamekitEmbed" type="button" title="' + t('kit.embedTitle') + '">&#x29C9; ' + t('embed.titleThis') + '</button>'
+      + (opts.reset ? '<button class="gamekit-more-item gamekit-more-danger" id="gamekitReset" type="button" title="' + t('kit.resetTitle') + '">' + t('kit.reset') + '</button>' : '');
+    wrap.innerHTML = '<button class="gamekit-au-btn gamekit-au-pausebtn" id="gamekitPause" type="button" aria-pressed="false" aria-label="' + t('pause.pause') + '" title="' + t('pause.pause') + '">⏸</button>'
+      + '<button class="gamekit-au-btn" id="gamekitAudioBtn" type="button" aria-label="' + t('sound.settings') + '" title="' + t('sound.settings') + '">🔊</button>'
       + '<div class="gamekit-au-panel" id="gamekitAudioPanel">' + rows + '</div>'
-      + (opts.challenges ? '<button class="gamekit-au-btn gamekit-au-chbtn" id="gamekitChallenges" type="button" aria-label="Challenges" title="Today’s challenges">🏆</button>' : '')
-      + (opts.cosmetics ? '<button class="gamekit-au-btn gamekit-au-cosbtn" id="gamekitCosmetics" type="button" aria-label="Cosmetics" title="Cosmetics — skins for this game">🎨</button>' : '')
-      + (opts.controls ? '<button class="gamekit-au-btn gamekit-au-ctlbtn" id="gamekitControls" type="button" aria-label="Controls" title="How to play — controls">🎮</button>' : '')
-      + '<button class="gamekit-au-btn gamekit-au-morebtn" id="gamekitMore" type="button" aria-label="Game menu" title="Game menu">☰</button>'
+      + (opts.challenges ? '<button class="gamekit-au-btn gamekit-au-chbtn" id="gamekitChallenges" type="button" aria-label="' + t('challenges.title') + '" title="' + t('challenges.todayTitle') + '">🏆</button>' : '')
+      + (opts.cosmetics ? '<button class="gamekit-au-btn gamekit-au-cosbtn" id="gamekitCosmetics" type="button" aria-label="' + t('shop.title') + '" title="' + t('shop.cosmeticsTitle') + '">🎨</button>' : '')
+      + (opts.controls ? '<button class="gamekit-au-btn gamekit-au-ctlbtn" id="gamekitControls" type="button" aria-label="' + t('controls.title') + '" title="' + t('controls.navTitle') + '">🎮</button>' : '')
+      + '<button class="gamekit-au-btn gamekit-au-morebtn" id="gamekitMore" type="button" aria-label="' + t('kit.gameMenu') + '" title="' + t('kit.gameMenu') + '">☰</button>'
       + '<div class="gamekit-au-panel gamekit-more-panel" id="gamekitMorePanel">' + more + '</div>';
     document.body.appendChild(wrap);
     _audioEl = wrap;
@@ -1348,11 +1348,11 @@
       if (verEl) verEl.textContent = b.label; // sha · date time — same one-line format as the footer stamp
       if (upBtn) {
         var busy = st.status === 'refreshing' || st.status === 'checking';
-        upBtn.textContent = st.status === 'refreshing' ? '⟳ Updating…'
-          : st.status === 'checking' ? '⟳ Checking…'
-          : st.available ? '🔆 Update now'
-          : st.status === 'offline' ? '⚠ Offline — can’t check'
-          : '✓ Up to date';
+        upBtn.textContent = st.status === 'refreshing' ? t('update.updating')
+          : st.status === 'checking' ? t('update.checking')
+          : st.available ? t('update.updateNow')
+          : st.status === 'offline' ? t('update.offline')
+          : t('update.upToDate');
         upBtn.disabled = busy || !st.available;
       }
       if (moreBtn && moreBtn.classList) moreBtn.classList.toggle('gkm-notify', !!st.available && st.status !== 'refreshing');
@@ -1373,7 +1373,7 @@
       var rb = document.getElementById('gamekitReset');
       if (rb) rb.addEventListener('click', function () {
         setMore(false);
-        confirmDialog('Reset your saved scores for this game?', function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} }, 'Hold to reset', null, { hold: 3000, theme: opts.theme });
+        confirmDialog(t('confirm.reset'), function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} }, t('confirm.holdReset'), null, { hold: 3000, theme: opts.theme });
       });
     }
     // ☰ language row: a full-width item (split globe/flag glyph + "Language") opening the themed
@@ -1463,7 +1463,7 @@
     }
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'gamekit-nav';
-      wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">&#x2039; Menu</button>'
+      wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">' + t('nav.menu') + '</button>'
         + '<a class="gamekit-back" id="gamekitHome" draggable="false" href="' + (opts.home || '../../') + '"><span class="gamekit-home-label">Komyo </span>&#x203A;</a>';
       document.body.appendChild(wrap);
       _navEl = wrap;
@@ -1476,12 +1476,12 @@
       var leaveMsg = function () {
         if (!cl) return false;
         if (typeof cl === 'function') { try { return cl(); } catch (e) { return false; } }
-        return cl === true ? "Leave this run? You'll lose your progress." : cl;
+        return cl === true ? t('confirm.leave') : cl;
       };
       var guarded = function (doLeave) {
         var msg = leaveMsg();
         // confirmDialog opens an overlay (isPaused → game halts under it); cancel resumes automatically
-        if (msg) confirmDialog(msg, doLeave, 'Leave', null, { theme: opts.theme });
+        if (msg) confirmDialog(msg, doLeave, t('nav.leave'), null, { theme: opts.theme });
         else doLeave();
       };
       if (menu) menu.addEventListener('click', function () {
@@ -1527,7 +1527,10 @@
   //   "{verb} {score} {unit} in {game} {emoji} — {mode}, {extra…}"
   function shareText(o) {
     o = o || {};
-    var s = (o.verb || 'I scored') + ' ' + o.score + (o.unit ? ' ' + o.unit : '') + ' in ' + o.game + (o.emoji ? ' ' + o.emoji : '');
+    var s = t('share.line', {
+      verb: o.verb || t('share.verb'), score: o.score,
+      unit: o.unit ? ' ' + o.unit : '', game: o.game, emoji: o.emoji ? ' ' + o.emoji : ''
+    });
     var tail = [o.mode].concat(o.extra || []).filter(function (x) { return x != null && x !== ''; });
     if (tail.length) s += ' — ' + tail.join(', ');
     return s;
@@ -1573,7 +1576,7 @@
         var c = document.createElement('canvas'); c.width = 1200; c.height = 630;
         var x = c.getContext && c.getContext('2d'); if (!x) return resolve(null);
         var W = 1200, H = 630, accent = opts.accent || '#9fe8ff';
-        var who = opts.player || (typeof player === 'function' ? player() : 'anonymous');
+        var who = opts.player || (typeof player === 'function' ? player() : t('card.anonymous'));
         var rr = function (X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
         var lsp = function (v) { try { x.letterSpacing = v; } catch (e) {} };
         var noFx = function () { x.globalAlpha = 1; x.shadowBlur = 0; lsp('0px'); };
@@ -1621,7 +1624,7 @@
         if (opts.sub) { x.fillStyle = '#9fb2c8'; x.font = '600 32px ui-monospace, monospace'; lsp('5px'); x.fillText(String(opts.sub).toUpperCase(), 290, 192); lsp('0px'); }
         // label + gradient score (TIME strings are wider → a step smaller)
         var isTime = (opts.label || '') === 'TIME';
-        x.fillStyle = '#67788f'; x.font = '600 30px ui-monospace, monospace'; lsp('9px'); x.fillText(isTime ? 'TIME' : 'SCORE', 88, 268); lsp('0px');
+        x.fillStyle = '#67788f'; x.font = '600 30px ui-monospace, monospace'; lsp('9px'); x.fillText(isTime ? t('card.time') : t('card.score'), 88, 268); lsp('0px');
         var scoreText = String(opts.scoreText != null ? opts.scoreText : (opts.score || 0));
         var fs = isTime ? 157 : 192, sy = 265;
         var sg = x.createLinearGradient(0, sy, 0, sy + fs);
@@ -1638,7 +1641,8 @@
         x.textAlign = 'right';
         x.fillStyle = '#dfe9f5'; x.font = '700 40px ui-monospace, monospace'; x.fillText('www.komyo.online', W - 82, H - 60);
         x.fillStyle = '#67788f'; x.font = '600 27px ui-monospace, monospace'; lsp('7.5px');
-        var cy = H - 132; x.fillText('PLAY ON', W - 82, cy); var pw = x.measureText('PLAY ON').width; lsp('0px');
+        var playOn = t('card.playOn');
+        var cy = H - 132; x.fillText(playOn, W - 82, cy); var pw = x.measureText(playOn).width; lsp('0px');
         x.fillStyle = accent; x.beginPath(); var tx = W - 82 - pw - 30, ty = cy - 10;
         x.moveTo(tx, ty - 15); x.lineTo(tx, ty + 15); x.lineTo(tx + 24, ty); x.closePath(); x.fill();
         x.textAlign = 'left';
@@ -1702,7 +1706,7 @@
         var c = document.createElement('canvas'); c.width = 1200; c.height = 630;
         var x = c.getContext && c.getContext('2d'); if (!x) return resolve(null);
         var W = 1200, H = 630, accent = opts.accent || '#9fe8ff';
-        var who = opts.player || (typeof player === 'function' ? player() : 'anonymous');
+        var who = opts.player || (typeof player === 'function' ? player() : t('card.anonymous'));
         var rr = function (X, Y, w, h, r) { x.beginPath(); x.moveTo(X + r, Y); x.arcTo(X + w, Y, X + w, Y + h, r); x.arcTo(X + w, Y + h, X, Y + h, r); x.arcTo(X, Y + h, X, Y, r); x.arcTo(X, Y, X + w, Y, r); x.closePath(); };
         var g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#0a0f17'); g.addColorStop(1, '#121a28'); x.fillStyle = g; x.fillRect(0, 0, W, H);
         try { var rg = x.createRadialGradient(W - 200, 150, 40, W - 200, 150, 620); rg.addColorStop(0, accent); rg.addColorStop(1, 'rgba(0,0,0,0)'); x.globalAlpha = 0.14; x.fillStyle = rg; x.fillRect(0, 0, W, H); x.globalAlpha = 1; } catch (e) {}
@@ -1726,7 +1730,7 @@
         // cosmetics collection bar (matches the profile page) — drawn when progress is supplied
         if (opts.collection && opts.collection.total) {
           var col = opts.collection, cx0 = 92, cw = W - 184, cy0 = 306, bh = 13;
-          x.textAlign = 'left'; x.fillStyle = '#8aa0ba'; x.font = '600 19px ui-monospace, monospace'; x.fillText('🎨 COLLECTION', cx0, cy0);
+          x.textAlign = 'left'; x.fillStyle = '#8aa0ba'; x.font = '600 19px ui-monospace, monospace'; x.fillText(t('card.collection'), cx0, cy0);
           x.textAlign = 'right'; x.fillStyle = accent; x.fillText(col.owned + ' / ' + col.total + ' · ' + Math.round((col.pct || 0) * 100) + '%', W - 92, cy0); x.textAlign = 'left';
           var by = cy0 + 12;
           x.fillStyle = 'rgba(255,255,255,0.09)'; rr(cx0, by, cw, bh, 6); x.fill();
@@ -1795,10 +1799,10 @@
     ov.innerHTML = '<div class="gamekit-confirm-box gamekit-sharemenu">'
       + (url ? '<img class="gamekit-sm-preview" alt="" src="' + url + '">' : '')
       + '<div class="gamekit-sm-btns">'
-      + (canNative ? '<button class="gamekit-sm-share" type="button">📤 Share…</button>' : '')
-      + (canCopy ? '<button class="gamekit-sm-copy" type="button">📋 Copy image</button>' : '')
-      + '<button class="gamekit-sm-dl" type="button">💾 Download</button>'
-      + '<button class="gamekit-sm-x" type="button">Close</button>'
+      + (canNative ? '<button class="gamekit-sm-share" type="button">' + t('card.shareBtn') + '</button>' : '')
+      + (canCopy ? '<button class="gamekit-sm-copy" type="button">' + t('card.copyImage') + '</button>' : '')
+      + '<button class="gamekit-sm-dl" type="button">' + t('card.download') + '</button>'
+      + '<button class="gamekit-sm-x" type="button">' + t('menu.close') + '</button>'
       + '</div></div>';
     // mount inside an open <dialog> when there is one (e.g. the profile modal) — the top layer
     // renders above any z-index, so a body-level overlay would be invisible behind it
@@ -1823,7 +1827,7 @@
       try {
         // promise-valued ClipboardItem keeps the write inside the user gesture (Safari requires it)
         navigator.clipboard.write([new ClipboardItem({ 'image/png': toPng(blob) })]).then(function () {
-          bCopy.textContent = '✓ Copied!';
+          bCopy.textContent = t('card.copied');
           if (typeof setTimeout === 'function') setTimeout(close, 900); else close();
         }, function () { downloadBlob(blob, name); close(); });
       } catch (e) { downloadBlob(blob, name); close(); }
@@ -1853,11 +1857,11 @@
     var getMsg = (typeof o.message === 'function') ? o.message : function () { return o.message || ''; };
     if (el.classList) el.classList.add('gamekit-share');
     el.innerHTML =
-      '<a class="sbtn" data-act="native" href="#" style="display:none" aria-label="Share" title="Share">' + SVG.native + '</a>' +
-      '<a class="sbtn" data-act="x" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X">' + SVG.x + '</a>' +
-      '<a class="sbtn" data-act="reddit" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit">' + SVG.reddit + '</a>' +
-      '<button class="sbtn" data-act="copy" type="button" aria-label="Copy" title="Copy">' + SVG.copy + '</button>' +
-      '<button class="sbtn" data-act="card" type="button" aria-label="Score card image" title="Score card image">' + SVG.card + '</button>';
+      '<a class="sbtn" data-act="native" href="#" style="display:none" aria-label="' + t('share.share') + '" title="' + t('share.share') + '">' + SVG.native + '</a>' +
+      '<a class="sbtn" data-act="x" target="_blank" rel="noopener" aria-label="' + t('share.onX') + '" title="' + t('share.onX') + '">' + SVG.x + '</a>' +
+      '<a class="sbtn" data-act="reddit" target="_blank" rel="noopener" aria-label="' + t('share.onReddit') + '" title="' + t('share.onReddit') + '">' + SVG.reddit + '</a>' +
+      '<button class="sbtn" data-act="copy" type="button" aria-label="' + t('share.copy') + '" title="' + t('share.copy') + '">' + SVG.copy + '</button>' +
+      '<button class="sbtn" data-act="card" type="button" aria-label="' + t('share.cardImage') + '" title="' + t('share.cardImage') + '">' + SVG.card + '</button>';
     var q = function (sel) { try { return el.querySelector ? el.querySelector(sel) : null; } catch (e) { return null; } };
     var x = q('[data-act="x"]'), reddit = q('[data-act="reddit"]'), copy = q('[data-act="copy"]'), native = q('[data-act="native"]'), cardBtn = q('[data-act="card"]');
     var refresh = function () { var u = shareUrls(getUrl(), getMsg()); if (x) x.href = u.x; if (reddit) reddit.href = u.reddit; };
@@ -1869,7 +1873,7 @@
       try {
         if (navigator.clipboard) navigator.clipboard.writeText(u.copy).then(function () {
           if (copy.classList) copy.classList.add('ok');
-          var prev = copy.title; copy.title = 'Copied!';
+          var prev = copy.title; copy.title = t('share.copied');
           setTimeout(function () { if (copy.classList) copy.classList.remove('ok'); copy.title = prev; }, 1500);
         }).catch(function () {});
       } catch (e) {}
@@ -2011,7 +2015,7 @@
       var el = document.getElementById('gamekitRotate');
       if (!ok && !el && document.createElement) {
         el = document.createElement('div'); el.id = 'gamekitRotate'; el.className = 'gamekit-rotate';
-        el.innerHTML = '<div class="gamekit-rotate-box"><div class="gamekit-rotate-ico">↻</div><div>Rotate your phone to play</div></div>';
+        el.innerHTML = '<div class="gamekit-rotate-box"><div class="gamekit-rotate-ico">↻</div><div>' + t('kit.rotate') + '</div></div>';
         document.body.appendChild(el);
       }
       if (el && el.classList) el.classList.toggle('show', !ok);
@@ -2084,7 +2088,7 @@
       if (document.querySelector && document.querySelector('.gamekit-tap')) return;
       _tapShown = true;
       var el = document.createElement('div'); el.className = 'gamekit-tap';
-      el.innerHTML = '<div class="gamekit-tap-inner"><div class="gamekit-tap-play">▶</div><div>TAP TO PLAY</div><small></small></div>';
+      el.innerHTML = '<div class="gamekit-tap-inner"><div class="gamekit-tap-play">▶</div><div>' + t('kit.tapToPlay') + '</div><small></small></div>';
       try { var lab = el.querySelector('small'); if (lab) lab.textContent = (typeof document.title === 'string' && document.title) ? document.title : 'Komyo'; } catch (e) {}
       var gone = false;
       // the dismissing gesture must not leak underneath (it would instantly press a menu card/button):
@@ -2281,7 +2285,7 @@
     var scroll = mkEl('div', 'gkm-scroll'); box.appendChild(scroll); // content scrolls; title + actions stay pinned
     if (cfg.score != null) {
       scroll.appendChild(mkEl('div', 'gkm-score', cfg.scoreText != null ? cfg.scoreText : fmtScore(cfg.score)));
-      if (cfg.best != null) scroll.appendChild(mkEl('p', 'gkm-best', 'Best: ' + fmtScore(cfg.best) + (cfg.newBest ? ' <span class="gkm-new">★ New best!</span>' : '')));
+      if (cfg.best != null) scroll.appendChild(mkEl('p', 'gkm-best', t('menu.best', { score: fmtScore(cfg.best) }) + (cfg.newBest ? ' <span class="gkm-new">' + t('menu.newBest') + '</span>' : '')));
     }
     var bannerEl = (typeof cfg.banner === 'function') ? mkEl('div', 'gkm-banner') : null; // live line under the title (e.g. credit counter)
     if (bannerEl) scroll.appendChild(bannerEl);
@@ -2317,7 +2321,7 @@
           dynamic.push(function (st) {
             var lk = !!evalVal(c.locked, st); ref.locked = lk; if (card.classList) card.classList.toggle('gkm-locked', lk);
             drawPreview(pv, c.preview, st);
-            best.innerHTML = (c.best != null) ? ('<span class="l">BEST</span>' + fmtScore(evalVal(c.best, st))) : '';
+            best.innerHTML = (c.best != null) ? ('<span class="l">' + t('menu.bestLabel') + '</span>' + fmtScore(evalVal(c.best, st))) : '';
             var chips = (typeof c.mech === 'function') ? c.mech(st) : (c.mech || []);
             mech.innerHTML = (chips || []).filter(function (x) { return x != null && x !== ''; }).map(function (x) {
               var s = (typeof x === 'object') ? x : { label: x };
@@ -2383,7 +2387,7 @@
             var lk = !!evalVal(c.locked, st); ref.locked = lk; if (cell.classList) cell.classList.toggle('gkm-locked', lk);
             if (c.afford != null && cell.classList) cell.classList.toggle('gkm-noafford', lk && !evalVal(c.afford, st));
             sub.innerHTML = lk ? (c.lockedLabel != null ? evalVal(c.lockedLabel, st) : ('🔒 ' + (evalVal(c.cost, st) || '')))
-              : (c.sub != null ? evalVal(c.sub, st) : (c.best != null ? ('BEST ' + fmtScore(evalVal(c.best, st))) : ''));
+              : (c.sub != null ? evalVal(c.sub, st) : (c.best != null ? (t('menu.bestLabel') + ' ' + fmtScore(evalVal(c.best, st))) : ''));
           });
         });
         scroll.appendChild(gr); bigNodes.push(gr);
@@ -2394,11 +2398,11 @@
         var trig = mkEl('button', 'gkm-picker'); try { trig.type = 'button'; } catch (e) {}
         var openPicker = function () {
           var mv = mkEl('div', 'gkm-picker-modal'), pn = mkEl('div', 'gkm-picker-panel');
-          var ph = mkEl('div', 'gkm-picker-head'); ph.appendChild(mkEl('h3', null, g2.pickerTitle || 'Choose')); var xb = mkEl('button', 'gkm-picker-x', '×'); try { xb.type = 'button'; } catch (e) {} ph.appendChild(xb);
+          var ph = mkEl('div', 'gkm-picker-head'); ph.appendChild(mkEl('h3', null, g2.pickerTitle || t('menu.choose'))); var xb = mkEl('button', 'gkm-picker-x', '×'); try { xb.type = 'button'; } catch (e) {} ph.appendChild(xb);
           var pb = mkEl('div', 'gkm-picker-body'), plist = mkEl('div', 'gkm-picker-list'), pdesc = mkEl('div', 'gkm-picker-desc');
           var closed = false, onKey;
           var closeP = function () { if (closed) return; closed = true; _modalOpen = Math.max(0, _modalOpen - 1); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (mv.parentNode) mv.parentNode.removeChild(mv); } catch (e) {} };
-          var renderDesc = function (id) { var c = find(id); pdesc.innerHTML = ''; var big = mkEl('canvas'); try { big.width = c.pvW || 210; big.height = c.pvH || 110; } catch (e) {} drawPreview(big, c.preview, state()); pdesc.appendChild(big); pdesc.appendChild(mkEl('h4', null, c.label)); if (c.desc != null) pdesc.appendChild(mkEl('p', null, evalVal(c.desc, state()))); if (c.best != null) pdesc.appendChild(mkEl('div', 'gkm-picker-best', 'BEST ' + fmtScore(evalVal(c.best, state())))); };
+          var renderDesc = function (id) { var c = find(id); pdesc.innerHTML = ''; var big = mkEl('canvas'); try { big.width = c.pvW || 210; big.height = c.pvH || 110; } catch (e) {} drawPreview(big, c.preview, state()); pdesc.appendChild(big); pdesc.appendChild(mkEl('h4', null, c.label)); if (c.desc != null) pdesc.appendChild(mkEl('p', null, evalVal(c.desc, state()))); if (c.best != null) pdesc.appendChild(mkEl('div', 'gkm-picker-best', t('menu.bestLabel') + ' ' + fmtScore(evalVal(c.best, state())))); };
           chsP.forEach(function (c) {
             var it = mkEl('div', 'gkm-picker-item' + (c.id === sel[g2.id] ? ' gkm-on' : ''));
             var cv = mkEl('canvas', 'gkm-picker-cv'); try { cv.width = 34; cv.height = 24; } catch (e) {} drawPreview(cv, c.preview, state());
@@ -2419,7 +2423,7 @@
         trig.addEventListener('click', function () { setFocusEl(trig); openPicker(); });
         trig.addEventListener('mouseenter', function () { setFocusEl(trig); });
         popupRefs.push(pref);
-        dynamic.push(function (st) { var c = find(sel[g2.id]); trig.innerHTML = ''; var cv = mkEl('canvas', 'gkm-picker-cv'); try { cv.width = 40; cv.height = 26; } catch (e) {} drawPreview(cv, c.preview, st); trig.appendChild(cv); trig.appendChild(mkEl('span', 'gkm-picker-nm', c.label)); if (c.sub != null || c.best != null) trig.appendChild(mkEl('span', 'gkm-picker-sub', c.sub != null ? evalVal(c.sub, st) : ('Best ' + fmtScore(evalVal(c.best, st))))); trig.appendChild(mkEl('span', 'gkm-picker-chev', '▾')); });
+        dynamic.push(function (st) { var c = find(sel[g2.id]); trig.innerHTML = ''; var cv = mkEl('canvas', 'gkm-picker-cv'); try { cv.width = 40; cv.height = 26; } catch (e) {} drawPreview(cv, c.preview, st); trig.appendChild(cv); trig.appendChild(mkEl('span', 'gkm-picker-nm', c.label)); if (c.sub != null || c.best != null) trig.appendChild(mkEl('span', 'gkm-picker-sub', c.sub != null ? evalVal(c.sub, st) : (t('menu.bestWord') + ' ' + fmtScore(evalVal(c.best, st))))); trig.appendChild(mkEl('span', 'gkm-picker-chev', '▾')); });
         scroll.appendChild(trig);
       } else if (g2.style === 'shop') {
         // action grid: each cell BUYS/PICKS on click or Enter (it doesn't hold a selection). sub()/disabled()
@@ -2491,9 +2495,9 @@
       if (_par && (+cfg.record.score || 0) >= _par) {
         var _grb = goodRunBonus();
         scroll.appendChild(mkEl('p', 'gkm-goodrun',
-          _grAwarded ? ('✓ Good run · +' + _grb.per + ' 🏆 (' + _grb.count + '/' + _grb.cap + ' today)')
-            : (_grb.count >= _grb.cap ? ('✓ Good run · daily 🏆 bonus maxed ' + _grb.cap + '/' + _grb.cap)
-              : '✓ Good run — counts toward today’s challenge')));
+          _grAwarded ? t('grb.receipt', { per: _grb.per, count: _grb.count, cap: _grb.cap })
+            : (_grb.count >= _grb.cap ? t('grb.maxed', { cap: _grb.cap })
+              : t('grb.counts'))));
       }
     }
     (cfg.lines || []).forEach(function (ln) { scroll.appendChild(mkEl('p', 'gkm-line', ln)); });
@@ -2580,8 +2584,8 @@
         focdescEl.innerHTML = (isPick || isBuy) && d ? ('&#9656; <b>' + f.c.label + '</b> — ' + d) : '';
       }
       if (buyBtn) {
-        var lbl = isPick ? (f.g2.pickLabel != null ? (evalItem(f.g2.pickLabel, f.c, st) || '') : ('PICK · ' + f.c.label))
-          : isBuy ? ('UNLOCK ' + f.c.label + (f.c.price ? ' · 🏆 ' + fmtScore(f.c.price) : '')) : '';
+        var lbl = isPick ? (f.g2.pickLabel != null ? (evalItem(f.g2.pickLabel, f.c, st) || '') : t('menu.pick', { label: f.c.label }))
+          : isBuy ? (t('menu.unlock', { label: f.c.label }) + (f.c.price ? ' · 🏆 ' + fmtScore(f.c.price) : '')) : '';
         buyBtn.textContent = lbl;
         buyBtn.disabled = isPick ? !!f.disabled : isBuy ? (f.c.afford != null && !evalVal(f.c.afford, st)) : true;
         if (buyBtn.style) buyBtn.style.visibility = (isPick || isBuy) && lbl ? '' : 'hidden';
@@ -2611,7 +2615,7 @@
         if (a.id === 'play' && typeof cfg.onPlay === 'function') cfg.onPlay(state()); else if (typeof cfg.onAction === 'function') cfg.onAction(a.id, state());
       };
       var cm = a.confirm ? (typeof a.confirm === 'function' ? a.confirm() : a.confirm) : null;
-      if (cm) confirmDialog(cm, go, a.confirmYes || 'Leave', null); else go();
+      if (cm) confirmDialog(cm, go, a.confirmYes || t('nav.leave'), null); else go();
     }
     function activate(ref) { if (!ref) return; if (ref.kind === 'choice') { if (ref.locked && ref.buyFn) ref.buyFn(); else selectChoice(ref); } else if (ref.kind === 'pick') { if (!ref.disabled) ref.pick(); } else if (ref.kind === 'toggle') toggleOne(ref); else if (ref.kind === 'popup') ref.open(); else fireAction(ref.action); }
     function stop(ev) { if (ev.preventDefault) ev.preventDefault(); if (ev.stopPropagation) ev.stopPropagation(); }

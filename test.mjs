@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import path from 'node:path';
-import { bootGame, makeSandbox, ok, section, summary, KIT, ROOT } from './test-harness.mjs';
+import { bootGame, makeSandbox, ok, section, summary, KIT, I18N, ROOT } from './test-harness.mjs';
 
 const DIR = ROOT;
 
@@ -286,7 +286,7 @@ function testLiveGames() {
 async function testKit() {
   section('game-kit (shared shell)');
   const g = makeSandbox({});
-  g.run(KIT, 'game-kit.js');
+  g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js');
   const store = g.store, doc = g.doc, els = g.elCache;
   ok(g.bootErr === null, 'kit loads: ' + g.bootErr);
   const F = g.sandbox.gamekit;
@@ -399,7 +399,7 @@ async function testKit() {
         register: () => Promise.resolve({ update() {} }),
         getRegistrations: () => Promise.resolve([]),
       };
-      s.run(KIT, 'game-kit.js');
+      s.run(KIT, 'game-kit.js'); s.run(I18N, 'i18n.js');
       return { s, F2: s.sandbox.gamekit, reloads: () => reloads,
         setCtl(url) { s.sandbox.navigator.serviceWorker.controller = url ? { scriptURL: url } : null; },
         fire() { (swL.controllerchange || []).forEach(fn => fn()); } };
@@ -672,7 +672,7 @@ function testCosmetics() {
   // B) economy: lifetime/balance derivation, buy validation + idempotency, select, progress
   {
     const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 100 }), gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
-    g.run(KIT, 'game-kit.js'); g.run(cosmetics, 'cosmetics.js');
+    g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(cosmetics, 'cosmetics.js');
     const cos = g.sandbox.gamekit.cosmetics;
     ok(cos.lifetime() === 100 && cos.balance() === 100, 'lifetime = Σ gamekit_done; balance starts = lifetime (got ' + cos.lifetime() + '/' + cos.balance() + ')');
     ok(cos.owned('snake.food.apple') === true, 'free default is pre-owned');
@@ -694,7 +694,7 @@ function testCosmetics() {
   // C) good-run trophy trickle: +2 each, capped 3/day, lands in gamekit_done (= spendable)
   {
     const g = makeSandbox({ store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
-    g.run(KIT, 'game-kit.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
+    g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
     const F = g.sandbox.gamekit;
     F.recordResult('snake', { score: 10 }); // below the bar (300) → no bonus
     ok(F.goodRunBonus().count === 0, 'a below-bar run earns no trickle');
@@ -708,7 +708,7 @@ function testCosmetics() {
   // C2) end-menu good-run line is the trickle RECEIPT
   {
     const g = makeSandbox({ store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
-    g.run(KIT, 'game-kit.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
+    g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
     const F = g.sandbox.gamekit;
     const findByCls = (el, cls, out = []) => { if (!el) return out; if (String(el.className || '').includes(cls)) out.push(el); (el.children || []).forEach(c => findByCls(c, cls, out)); return out; };
     const h = F.menu.show({ kind: 'end', score: 9999, record: { slug: 'snake', mode: '', score: 9999 }, actions: [{ id: 'again', label: 'AGAIN', primary: true }] });
@@ -724,7 +724,7 @@ function testCosmetics() {
   // D) Meadow Flyer migration: banked cash → trophies 1:1, unlocked birds stay owned at cost 0
   {
     const g = makeSandbox({ store: { flappy_cash: '320', flappy_bird: 'owl', gamekit_pts_x10: '1' } });
-    g.run(KIT, 'game-kit.js'); g.run(cosmetics, 'cosmetics.js');
+    g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(cosmetics, 'cosmetics.js');
     const F = g.sandbox.gamekit;
     const owned = JSON.parse(g.store.gamekit_owned || '{}');
     ok(owned['flappy.bird.robin'] && owned['flappy.bird.owl'] && owned['flappy.bird.owl'].c === 0, 'old-threshold birds owned at cost 0');
@@ -740,7 +740,7 @@ function testCosmetics() {
   // E) the Cosmetics store modal: builds headless, buys + equips, updates balance
   {
     const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 50 }), gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
-    g.run(KIT, 'game-kit.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
+    g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
     const F = g.sandbox.gamekit;
     let err = null, h = null;
     try { h = F.shopPanel(); } catch (e) { err = e.message; }
@@ -760,7 +760,7 @@ function testCosmetics() {
   // F) hashed challengePick export: deterministic, defined goal, never yesterday's pick
   {
     const g = makeSandbox({});
-    g.run(KIT, 'game-kit.js'); g.run(challenges, 'challenges.js');
+    g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(challenges, 'challenges.js');
     const F = g.sandbox.gamekit;
     const p1 = F.challengePick('daily'), p1b = F.challengePick('daily'), p0 = F.challengePick('daily', F.utcDayNumber() - 1);
     ok(p1 && p1.goal && p1.id === p1b.id, 'challengePick(daily) is deterministic + resolves a goal');
@@ -772,7 +772,7 @@ function testCosmetics() {
   // G) menu-group wiring: defaults to the free item, locked until bought, buy unlocks + selects
   {
     const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 40 }), gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
-    g.run(KIT, 'game-kit.js'); g.run(cosmetics, 'cosmetics.js');
+    g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(cosmetics, 'cosmetics.js');
     const F = g.sandbox.gamekit;
     const grp = F.cosmetics.menuGroup('snake.food');
     ok(grp && grp.style === 'grid' && grp.choices.length === 6, 'menuGroup builds a 6-cell grid');
