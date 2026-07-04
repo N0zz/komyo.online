@@ -2442,44 +2442,47 @@
       setSt('ok'); return _upState;
     }).catch(function () { setSt('offline'); return _upState; });
   }
+  // drive ONE scope's SW to the new build: update() → wait for the fresh worker to activate (its
+  // install precaches the new shell into a fresh version-cache, so the next navigation serves NEW).
+  // Resolves immediately when there's nothing new, and is backstopped so one slow scope can't hang.
+  function refreshScope(reg) {
+    return new Promise(function (res) {
+      if (!reg) { res(); return; }
+      var done = false, d = function () { if (!done) { done = true; res(); } };
+      setTimeout(d, 7000); // per-scope backstop
+      try {
+        var p = reg.update();
+        (p && p.then ? p : Promise.resolve()).then(function () {
+          var w = reg.installing || reg.waiting;
+          if (!w) { d(); return; } // no new worker (edge still serving old sw.js) → this scope is as fresh as it gets
+          try { w.addEventListener('statechange', function () { if (w.state === 'activated' || w.state === 'redundant') d(); }); } catch (e) { d(); }
+        }, d);
+      } catch (e) { d(); }
+    });
+  }
   function upApply() {
     if (_upApplying || _swReloaded) return;
     _upApplying = true; _upState.status = 'refreshing'; upEmit();
-    var cap = setTimeout(doReload, 4000); // absolute cap: a plain refresh beats an endless spinner
+    var cap = setTimeout(doReload, 9000); // absolute cap: a plain refresh beats an endless spinner (we now wait on every game scope too)
     var finish = function () { clearTimeout(cap); doReload(); };
     upCheck().then(function (st) {
-      if (!st.available || _upState.controlled) { finish(); return; } // latest, or the new worker already controls → plain refresh serves it
+      if (!st.available) { finish(); return; } // already latest everywhere (same deploy stamps every scope) → plain refresh
       try {
         var sw = (typeof navigator !== 'undefined') ? navigator.serviceWorker : null;
         if (!sw || !sw.getRegistration) { finish(); return; }
-        // from the catalogue, force EVERY game's SW to update — register any scope the idle loop hasn't
-        // reached yet so a fresh install/precache happens for all games, not just the ones visited
-        try {
-          var onGame = (typeof location !== 'undefined' && (location.pathname || '').indexOf('/games/') >= 0);
-          if (!onGame && sw.register && typeof window !== 'undefined' && Array.isArray(window.GAMES)) {
-            window.GAMES.forEach(function (g) {
-              if (!g || !g.slug || g.soon) return;
-              try { sw.register('games/' + g.slug + '/sw.js', { scope: 'games/' + g.slug + '/' }).then(function (r) { try { r.update(); } catch (e) {} }).catch(function () {}); } catch (e) {}
-            });
-          }
-        } catch (e) {}
-        // every scope refreshes in the background (each game's SW precaches the new shell for its own
-        // pages) — but the reload waits ONLY on this page's own scope, so it can't stall on the rest
-        if (sw.getRegistrations) sw.getRegistrations().then(function (regs) {
-          for (var i = 0; i < regs.length; i++) { try { regs[i].update(); } catch (e) {} }
-        }).catch(function () {});
-        sw.getRegistration().then(function (reg) {
-          if (!reg) { finish(); return; }
-          reg.update().then(function (r) {
-            var w = (r && (r.installing || r.waiting)) || reg.installing || reg.waiting;
-            // no new worker (edge cache still serving the old sw.js) → refresh now; the fetch handler
-            // has been back-filling the current cache, so a plain reload typically shows the new build
-            if (!w) { finish(); return; }
-            // new worker found: activated (skipWaiting+claim) → controllerchange also reloads us;
-            // redundant (install failed) → give up and refresh
-            try { w.addEventListener('statechange', function () { if (w.state === 'activated' || w.state === 'redundant') finish(); }); } catch (e) { finish(); }
-          }).catch(finish);
-        }).catch(finish);
+        var onGame = (typeof location !== 'undefined' && (location.pathname || '').indexOf('/games/') >= 0);
+        var jobs = [];
+        // one update anywhere updates EVERYWHERE: from the catalogue, register + refresh every game's
+        // scope (not just the ones visited) so entering any game already shows the new build — no
+        // per-game manual Update tap. We now WAIT on each scope's new worker to activate before reloading.
+        if (!onGame && sw.register && typeof window !== 'undefined' && Array.isArray(window.GAMES)) {
+          window.GAMES.forEach(function (g) {
+            if (!g || !g.slug || g.soon) return;
+            jobs.push(sw.register('games/' + g.slug + '/sw.js', { scope: 'games/' + g.slug + '/' }).then(refreshScope).catch(function () {}));
+          });
+        }
+        jobs.push(sw.getRegistration().then(refreshScope).catch(function () {})); // this page's own scope
+        Promise.all(jobs).then(finish, finish);
       } catch (e) { finish(); }
     });
   }
@@ -2629,7 +2632,7 @@
               var s = (typeof x === 'object') ? x : { label: x };
               return '<span' + (s.hot ? ' class="hot"' : '') + '>' + s.label + '</span>';
             }).join('');
-            desc.textContent = evalVal(c.desc, st) || '';
+            desc.textContent = lk ? '' : (evalVal(c.desc, st) || ''); // locked "SOON" cards: name + tag pill only, no long desc
           });
         });
         scroll.appendChild(list); bigNodes.push(list);
