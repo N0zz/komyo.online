@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-04', title: '¡komyo habla español! 🇪🇸', items: [
+    'New: komyo now speaks Spanish too! The whole site — every game, every menu and screen — is translated. Pick Español from ⚙️ Settings on the home page, or the ☰ menu inside any game. English and Polish are there as well, and more languages are on the way.',
+  ] },
   { date: '2026-07-04', title: 'New game: Forcefield 🛡️', items: [
     'New: Forcefield — a battle station charges its cannon at your planet and marks where it\'ll strike. Sweep your atmosphere dome over the mark and tap to shield the blast — deflect it, or your planet takes the hit. Play against the clock, on 3 shields, or a 1–2-player Double where the station fires both ways at a planet on each side. Easy to Hard, with unlockable planet skins and bolt colours in the Collection.',
   ] },
