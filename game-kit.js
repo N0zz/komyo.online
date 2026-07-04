@@ -747,6 +747,16 @@
       if (!g || !cv.toDataURL) { document.documentElement.style.cursor = ''; setCursorRule(''); stopCursorTrail(); return; }
       var tw = CURSOR_TWEAK[key] || { rot: 0, hot: [16, 16] };
       g.save(); g.translate(16, 16); if (tw.rot) g.rotate(tw.rot); g.scale(0.9, 0.9); painter(g); g.restore();
+      // CSS filter can't reach the OS cursor, so tint the cursor PNG itself to match an active CRT colour
+      // ('color' blend recolours only the drawn pixels; white → grayscale for mono). Reads the live root
+      // state so it also follows the CRT preview.
+      try {
+        var croot = document.documentElement;
+        if (croot.classList && croot.classList.contains('gk-crt')) {
+          var ctint = { green: '#33ff88', amber: '#ffb454', cyan: '#5cc8ff', mono: '#ffffff' }[croot.getAttribute('data-crt-color') || 'green'];
+          if (ctint) { g.globalCompositeOperation = 'color'; g.fillStyle = ctint; g.fillRect(0, 0, cv.width, cv.height); g.globalCompositeOperation = 'source-over'; }
+        }
+      } catch (e) {}
       var val = 'url(' + cv.toDataURL('image/png') + ') ' + tw.hot[0] + ' ' + tw.hot[1] + ', auto';
       document.documentElement.style.cursor = val;
       // override element-level cursors (buttons/links) so the skin never flips back on hover;
@@ -790,6 +800,7 @@
         var ov = document.createElement('div'); ov.id = 'gamekitCrtOverlay'; ov.className = 'gamekit-crt-overlay';
         ov.setAttribute('aria-hidden', 'true'); document.body.appendChild(ov);
       }
+      try { applyCursor(); } catch (e) {} // re-tint the custom cursor to match (or clear) the CRT colour
     } catch (e) {}
   }
   function crtSet(on) {
@@ -807,7 +818,7 @@
       if (typeof document === 'undefined' || !document.documentElement || _crtPvTimer || typeof setInterval !== 'function') return;
       crtEnsureOverlay();
       var root = document.documentElement; _crtPvIdx = 0;
-      var tick = function () { if (root.classList) root.classList.add('gk-crt'); root.setAttribute('data-crt-color', CRT_COLORS[_crtPvIdx % CRT_COLORS.length]); _crtPvIdx++; };
+      var tick = function () { if (root.classList) root.classList.add('gk-crt'); root.setAttribute('data-crt-color', CRT_COLORS[_crtPvIdx % CRT_COLORS.length]); _crtPvIdx++; try { applyCursor(); } catch (e) {} };
       tick(); _crtPvTimer = setInterval(tick, 850);
     } catch (e) {}
   }
@@ -819,6 +830,7 @@
       if (c === 'off') { if (root.classList) root.classList.remove('gk-crt'); root.removeAttribute('data-crt-color'); return; }
       if (CRT_COLORS.indexOf(c) < 0) return;
       crtEnsureOverlay(); if (root.classList) root.classList.add('gk-crt'); root.setAttribute('data-crt-color', c);
+      try { applyCursor(); } catch (e) {}
     } catch (e) {}
   }
   function crtPreviewStop() { try { if (_crtPvTimer) { clearInterval(_crtPvTimer); _crtPvTimer = null; } } catch (e) {} applyCrt(); }
