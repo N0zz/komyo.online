@@ -1029,6 +1029,8 @@ window.KOMYO_I18N = {
     'cos.site.cursor.comet.desc': 'Świecąca głowa komety z neonowym ogonem.',
     'cos.site.cursor.rainbow.name': 'Tęczowy Ślad',
     'cos.site.cursor.rainbow.desc': 'Zostawia mieniący się tęczowy ślad, gdy się poruszasz.',
+    'cos.site.cursor.terminal.name': 'Terminal',
+    'cos.site.cursor.terminal.desc': 'Migający blok kursora, jak w starym terminalu. W trybie CRT świeci Twoim kolorem CRT.',
     'cos.site.fx.off.name': 'Standardowy',
     'cos.site.fx.off.desc': 'Bez filtra — zwykły wygląd.',
     'cos.site.fx.crt.name': 'Tryb CRT',

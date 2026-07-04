@@ -710,6 +710,11 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 
 /* site-wide cursor-trail overlay (Neon Comet / Rainbow Trail skins) */
 .gamekit-cursor-trail { position: fixed; inset: 0; z-index: 999999; pointer-events: none; }
+/* Terminal cursor skin: a blinking phosphor block following the pointer (colour set inline by the kit) */
+.gamekit-term-cursor { position: fixed; left: 0; top: 0; z-index: 2147483600; pointer-events: none; width: 9px; height: 16px;
+  background: #33ff88; box-shadow: 0 0 8px #33ff88; animation: gkTermBlink 1.06s steps(1) infinite; }
+@keyframes gkTermBlink { 0%, 50% { opacity: 1; } 50.01%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .gamekit-term-cursor { animation: none; opacity: 1; } }
 
 /* ---- CRT display mode (site-wide, unlockable — gamekit.crt) ----
    the whole page is monochrome-tinted via a root filter; a fixed overlay adds scanlines + vignette.
