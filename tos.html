@@ -27,13 +27,15 @@
   ul { padding-left:20px; }
   li { margin:5px 0; }
   .note { font-size:13.5px; color:var(--faint); border-left:2px solid var(--border); padding-left:12px; }
-  .back { display:inline-block; margin-top:30px; font-family:ui-monospace,monospace; font-size:13px; letter-spacing:1px; text-decoration:none;
+  .back { position:fixed; top:14px; left:14px; z-index:20; font-family:ui-monospace,monospace; font-size:13px; letter-spacing:1px; text-decoration:none;
     color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:9px 16px; }
   .back:hover { border-color:var(--accent); }
   footer { color:var(--faint); font-size:13px; margin-top:36px; border-top:1px solid var(--border); padding-top:18px; }
   .langpick { position:fixed; top:14px; right:14px; z-index:20; display:flex; align-items:center; gap:6px;
     background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:5px 9px; }
   .langpick:hover { border-color:var(--accent); }
+  /* strip the bare <button>'s UA chrome (the white halo around the flag) — the .langpick box stays */
+  .langpick .gamekit-langbtn { background:none; border:0; padding:0; color:var(--text); appearance:none; -webkit-appearance:none; }
   .langpick > span { font-size:14px; line-height:1; }
   .langpick select { background:transparent; color:var(--text); border:0; outline:none; cursor:pointer;
     font:13px/1 system-ui,-apple-system,sans-serif; padding:2px 2px; }
