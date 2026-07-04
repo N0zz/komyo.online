@@ -899,8 +899,8 @@
     // trophies pill (lifetime) + Cosmetics pill (spendable balance → the store) + the always-on
     // good-run bonus line, so "is one more run worth it?" has an answer before playing
     var grb = goodRunBonus();
-    var pills = '<div class="gkch-pills"><span class="gkch-pill">🏆 ' + t('challenges.trophies', { count: fmtScore(cosLifetime()) }) + '</span>'
-      + (cosItems().length ? '<button class="gkch-pill gkch-shop" id="gkchShop" type="button">' + t('challenges.cosmeticsBtn', { bal: fmtScore(cosBalance()) }) + '</button>' : '')
+    var pills = '<div class="gkch-pills"><span class="gkch-pill">' + t('chal.lifetime', { count: cosLifetime() }) + '</span>'
+      + (cosItems().length ? '<button class="gkch-pill gkch-shop" id="gkchShop" type="button">' + t('challenges.cosmeticsBtn') + '</button>' : '')
       + '</div>'
       + '<div class="gkch-bonus">' + t('grb.line', { count: grb.count, cap: grb.cap, per: grb.per }) + '</div>';
     var ov = document.createElement('div'); ov.className = 'gamekit-challenges';
@@ -1107,7 +1107,13 @@
         var gameSets = [], seenSet = {};
         items.forEach(function (it) { if (it.game === game && !seenSet[it.set]) { seenSet[it.set] = 1; gameSets.push(it.set); } });
         // items matching the search within this game
-        var match = function (it) { return !q || it.name.toLowerCase().indexOf(q) >= 0 || (meta.title || '').toLowerCase().indexOf(q) >= 0 || ((setsMeta[it.set] || {}).label || '').toLowerCase().indexOf(q) >= 0; };
+        // match over BOTH the raw source strings and their translations, so it works in every language
+        var match = function (it) {
+          if (!q) return true;
+          var setLabel = (setsMeta[it.set] || {}).label || '';
+          var hay = (it.name + ' ' + cosName(it) + ' ' + cosDesc(it) + ' ' + (meta.title || '') + ' ' + shopGameTitle(it.game, meta.title) + ' ' + setLabel + ' ' + cosSetLabel(it.set, setLabel)).toLowerCase();
+          return hay.indexOf(q) >= 0;
+        };
         var gameItems = items.filter(function (it) { return it.game === game && match(it); });
         if (!gameItems.length) return;
         any = true;
@@ -1995,10 +2001,9 @@
     //  - different URL → scope hand-over (first visit: the catalogue's root SW briefly controls a game
     //    page until the game's own SW claims it) — same build, not an update, ignore;
     //  - same URL → a genuinely new build of THIS page's worker is live. We NEVER auto-reload the
-    //    visible page for it (the old "launch fast-path" silent reload raced the tap-to-play splash and
-    //    forced a second tap): a new build just lights the ☰ badge / catalogue "Update now" and the
-    //    player applies it when they choose. The only reloads are an explicit Update (_upApplying) and a
-    //    backgrounded tab (invisible, non-disruptive).
+    //    visible page for it: a new build just lights the ☰ badge / catalogue "Update now" and the
+    //    player applies it when they choose. The ONLY reload is an explicit Update (_upApplying) —
+    //    there is no backgrounded-tab auto-reload (updates are fully player-initiated).
     navigator.serviceWorker.addEventListener('controllerchange', function () {
       var ctl = navigator.serviceWorker.controller || null;
       var handover = !prevCtl || !ctl || (ctl.scriptURL !== prevCtl.scriptURL);
@@ -2006,11 +2011,7 @@
       if (_swReloaded) return;
       if (_upApplying) { doReload(); return; }             // the player pressed Update — finish it
       if (handover) return;
-      _upState.available = true; _upState.controlled = true; upEmit(); // new build controls → badge only
-      if (typeof document !== 'undefined' && document.hidden) doReload(); // backgrounded → apply silently
-    });
-    if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('visibilitychange', function () {
-      if (document.hidden && _upState.available && _upState.controlled) doReload(); // backgrounded → apply silently
+      _upState.available = true; _upState.controlled = true; upEmit(); // new build controls → badge only, never auto-reload
     });
     var register = function () {
       try {
@@ -2161,10 +2162,9 @@
   var _recRun = 1, _recDone = 0; // record idempotency: run counter (armed by menuHide) vs last run recorded
   var _bdRaf = 0, _bdFrame = 0, _bdResize = null; // per-menu backdrop canvas: rAF id, frame counter, resize listener
   // ---------- build info + update engine (gamekit.updates) ----------
-  // Policy: updates NEVER interrupt a visible, in-use page. A new build applies silently only when
-  // (a) the page hasn't been touched yet (launch fast-path — fixes the "always one launch behind"
-  // lag) or (b) the tab is backgrounded. Otherwise it's a dot on the ☰ menu; the player refreshes
-  // from there (or from the catalogue's "Refresh site & games") whenever they choose.
+  // Policy: updates NEVER auto-reload. A new build is ALWAYS just a dot on the ☰ menu (and the
+  // catalogue's "Update now"); the player applies it whenever they choose. Applying from the
+  // catalogue force-updates every game scope too, not only visited ones (see upApply).
   var _swReloaded = false;
   function doReload() { if (_swReloaded) return; _swReloaded = true; try { location.reload(); } catch (e) {} }
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
@@ -2207,6 +2207,17 @@
       try {
         var sw = (typeof navigator !== 'undefined') ? navigator.serviceWorker : null;
         if (!sw || !sw.getRegistration) { finish(); return; }
+        // from the catalogue, force EVERY game's SW to update — register any scope the idle loop hasn't
+        // reached yet so a fresh install/precache happens for all games, not just the ones visited
+        try {
+          var onGame = (typeof location !== 'undefined' && (location.pathname || '').indexOf('/games/') >= 0);
+          if (!onGame && sw.register && typeof window !== 'undefined' && Array.isArray(window.GAMES)) {
+            window.GAMES.forEach(function (g) {
+              if (!g || !g.slug || g.soon) return;
+              try { sw.register('games/' + g.slug + '/sw.js', { scope: 'games/' + g.slug + '/' }).then(function (r) { try { r.update(); } catch (e) {} }).catch(function () {}); } catch (e) {}
+            });
+          }
+        } catch (e) {}
         // every scope refreshes in the background (each game's SW precaches the new shell for its own
         // pages) — but the reload waits ONLY on this page's own scope, so it can't stall on the rest
         if (sw.getRegistrations) sw.getRegistrations().then(function (regs) {
