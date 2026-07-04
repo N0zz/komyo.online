@@ -617,7 +617,8 @@
     const ttl = PROGRESSION==='levelup' ? t('game.asteroids-plus.pickerLevel',{level:level,def:'LEVEL '+level}) : t('game.asteroids-plus.chooseUpgrade',{def:'CHOOSE UPGRADE'});
     // no backdrop → the kit menu box sits over the frozen playfield (mid-run); shop-style cards ARE the action
     KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:ttl,
-      hint: () => t('game.asteroids-plus.chooseAnUpgrade',{def:'Choose an upgrade'}) + (pendingPicks>1 ? t('game.asteroids-plus.picksPending',{count:pendingPicks,def:' · '+pendingPicks+' pending'}) : ''),
+      // non-levelup title is already "CHOOSE UPGRADE" — don't repeat it in the hint (they collide word-for-word in some languages)
+      hint: () => { const base = PROGRESSION==='levelup' ? t('game.asteroids-plus.chooseAnUpgrade',{def:'Choose an upgrade'}) : ''; let cnt = pendingPicks>1 ? t('game.asteroids-plus.picksPending',{count:pendingPicks,def:' · '+pendingPicks+' pending'}) : ''; if(!base) cnt = cnt.replace(/^\s*·\s*/,''); return base + cnt; },
       groups:[ { id:'pick', style:'shop', cols:3, choices: pickOptions.map(u=>({ id:u.id, label:upName(u), desc:upDesc(u), icon:UP_ICONS[u.id] })),
         sub: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const maxed=lv>=u.max;
           return maxed ? t('game.asteroids-plus.renewW',{w:EXPIRE_WAVES,def:'RENEW · '+EXPIRE_WAVES+'w'}) : ((lv>0?t('game.asteroids-plus.lvUp',{from:lv,to:lv+1,def:'LV '+lv+' → '+(lv+1)}):t('game.asteroids-plus.new',{def:'NEW'}))+(EXPIRING.has(u.id)?t('game.asteroids-plus.expW',{w:EXPIRE_WAVES,def:' · '+EXPIRE_WAVES+'w'}):'')); },
