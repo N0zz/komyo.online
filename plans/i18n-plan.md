@@ -24,13 +24,14 @@
 
 ## Session breakdown (incremental execution)
 
-> **Current status (2026-07-04):** engine + picker + extraction largely shipped; PL landed and in
-> production. **Remaining tracked work:** (a) **Polish fixes** — QA the live PL strings and repair
-> gaps (e.g. the search bars were fixed to match translated names, not just the English source);
-> (b) **more languages** — populate/finish es/pt/fr/it (S7); (c) **mobile-device QA** across
-> languages × orientations (S8). **S9 DONE (2026-07-04):** the `komyo-new-game` skill is now
-> `t()`-native — templates emit `KIT.t(key,{def})`, i18n.js is in the generated `<head>` + SW SHELL,
-> and generated games ship playable in English via `def:` fallbacks (translate later, no scaffold edit).
+> **Current status (2026-07-04):** Phases 1–5 shipped (engine, picker, kit, registry, catalogue, all
+> games) + legal pages; PL is live in production. **S9 DONE:** the `komyo-new-game` skill is `t()`-native
+> (templates emit `KIT.t(key,{def})`, i18n.js in the generated `<head>`+SW SHELL). **i18n COVERAGE now
+> ENFORCED** by `test.mjs`: `pl` must contain every referenced key, and every other locale must be
+> **empty or a complete superset of `pl`** — so PL is required for anything new (English still works via
+> `def:`). **Remaining:** (a) **Polish fixes** — QA live PL strings; (b) **es/pt/fr/it** — still empty,
+> populate in a full pass (S7 / Phase 6); (c) **mobile-device QA** across languages × orientations (S8 /
+> Phase 7 Task 25); (d) the final "i18n shipped" changelog/README (Task 26) once more languages land.
 
 This plan is split into independent sessions. **The English fallback** (`t()` →
 translation → `en` → `def` → key) means a half-migrated site is a fully working
@@ -134,7 +135,7 @@ Copied verbatim from `CLAUDE.md` — every task implicitly includes these:
 **Interfaces:**
 - Produces: `window.KOMYO_I18N = { en:{}, pl:{}, es:{}, pt:{}, fr:{} }` (empty maps for now; populated in later tasks).
 
-- [ ] **Step 1: Create `i18n.js` with the registry shell**
+- [x] **Step 1: Create `i18n.js` with the registry shell**
 
 ```js
 /* komyo i18n message catalogue. English (en) is the reference.
@@ -148,18 +149,18 @@ window.KOMYO_I18N = {
 };
 ```
 
-- [ ] **Step 2: Add `i18n.js` to the atomic `<head>`** of `index.html`, `privacy.html`, `tos.html`, and all 9 `games/<slug>/index.html`, immediately after the `cosmetics.js` (or `challenges.js` on pages without cosmetics) `<script src>`. Match the existing non-`defer` script style.
+- [x] **Step 2: Add `i18n.js` to the atomic `<head>`** of `index.html`, `privacy.html`, `tos.html`, and all 9 `games/<slug>/index.html`, immediately after the `cosmetics.js` (or `challenges.js` on pages without cosmetics) `<script src>`. Match the existing non-`defer` script style.
 
-- [ ] **Step 3: Add `i18n.js` to every SW SHELL** — root `sw.js` and all 9 `games/<slug>/sw.js`, in the same relative position as `cosmetics.js`/`challenges.js` in each SHELL array. Bump each affected `sw.js` `VERSION`.
+- [x] **Step 3: Add `i18n.js` to every SW SHELL** — root `sw.js` and all 9 `games/<slug>/sw.js`, in the same relative position as `cosmetics.js`/`challenges.js` in each SHELL array. Bump each affected `sw.js` `VERSION`.
 
-- [ ] **Step 4: Preload `i18n.js` in the harness** — in `test-harness.mjs` `bootGame`, load `i18n.js` alongside the existing kit/challenges/cosmetics preloads so `window.KOMYO_I18N` exists in tests.
+- [x] **Step 4: Preload `i18n.js` in the harness** — in `test-harness.mjs` `bootGame`, load `i18n.js` alongside the existing kit/challenges/cosmetics preloads so `window.KOMYO_I18N` exists in tests.
 
-- [ ] **Step 5: Run the full suite**
+- [x] **Step 5: Run the full suite**
 
 Run: `node test.mjs`
 Expected: PASS (no behavior change yet — just files loaded).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add i18n.js index.html privacy.html tos.html games/*/index.html sw.js games/*/sw.js test-harness.mjs
@@ -182,7 +183,7 @@ git commit -m "feat(i18n): add empty i18n.js catalogue, wire into head + SW shel
   - `gamekit.onLang(fn) → unsubscribe` — subscribe to language changes.
   - `gamekit.langs() → [{code,label}]` — supported languages for the picker (`[{code:'en',label:'English'},{code:'pl',label:'Polski'},{code:'es',label:'Español'},{code:'pt',label:'Português'},{code:'fr',label:'Français'}]`).
 
-- [ ] **Step 1: Write the failing tests** (add to `test.mjs` game-kit section)
+- [x] **Step 1: Write the failing tests** (add to `test.mjs` game-kit section)
 
 ```js
 section('i18n engine');
@@ -211,12 +212,12 @@ section('i18n engine');
 }
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `node test.mjs`
 Expected: FAIL (`gamekit.t is not a function`).
 
-- [ ] **Step 3: Implement the engine** — inside the `game-kit.js` IIFE (before the `api` object literal):
+- [x] **Step 3: Implement the engine** — inside the `game-kit.js` IIFE (before the `api` object literal):
 
 ```js
 // ---- i18n ------------------------------------------------------------
@@ -275,18 +276,18 @@ function t(key, params) {
 }
 ```
 
-- [ ] **Step 4: Expose on the `api` object** (near L2638), alongside `cosmetics`, `challengeEval`, etc.:
+- [x] **Step 4: Expose on the `api` object** (near L2638), alongside `cosmetics`, `challengeEval`, etc.:
 
 ```js
 t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); },
 ```
 
-- [ ] **Step 5: Run to verify pass**
+- [x] **Step 5: Run to verify pass**
 
 Run: `node test.mjs`
 Expected: PASS (all i18n-engine asserts green).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add game-kit.js test.mjs
@@ -307,7 +308,7 @@ git commit -m "feat(i18n): add gamekit.t/lang/setLang/onLang engine + Intl.Plura
 - Consumes: `gamekit.langs()`, `gamekit.lang()`, `gamekit.setLang()`.
 - Produces: a `<select>` (or button row) in both places; changing it calls `setLang(code)` then `location.reload()`.
 
-- [ ] **Step 1: Write the failing test** — assert the ☰ menu builds a language control reflecting the active language.
+- [x] **Step 1: Write the failing test** — assert the ☰ menu builds a language control reflecting the active language.
 
 ```js
 section('i18n picker');
@@ -320,20 +321,20 @@ section('i18n picker');
 }
 ```
 
-- [ ] **Step 2: Run to verify it fails / passes engine-only**
+- [x] **Step 2: Run to verify it fails / passes engine-only**
 
 Run: `node test.mjs`
 Expected: PASS on `langs()` (added in Task 2). The picker DOM is verified by local browser eyeball (headless can't assert the select reliably); keep this test to the API surface.
 
-- [ ] **Step 3: Implement the ☰ menu language row** in `game-kit.js` — a `<select>` populated from `gamekit.langs()`, current value `gamekit.lang()`, `onchange` → `gamekit.setLang(v); location.reload();`. Label it with a 🌐 glyph (glyph stays outside the translatable slot). Place it above the "↺ Reset game data" row.
+- [x] **Step 3: Implement the ☰ menu language row** in `game-kit.js` — a `<select>` populated from `gamekit.langs()`, current value `gamekit.lang()`, `onchange` → `gamekit.setLang(v); location.reload();`. Label it with a 🌐 glyph (glyph stays outside the translatable slot). Place it above the "↺ Reset game data" row.
 
-- [ ] **Step 4: Implement the catalogue Settings language selector** in `index.html` Settings modal — same `<select>` pattern, same `onchange`.
+- [x] **Step 4: Implement the catalogue Settings language selector** in `index.html` Settings modal — same `<select>` pattern, same `onchange`.
 
-- [ ] **Step 5: Run suite + local browser check**
+- [x] **Step 5: Run suite + local browser check**
 
 Run: `node test.mjs` (PASS), then `cd ~/arcade && python3 -m http.server 8765` and verify the picker appears + switches (will show untranslated text until Phase 2+; the switch + persistence + reload is what to verify).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add game-kit.js index.html game-kit.css
@@ -350,7 +351,7 @@ git commit -m "feat(i18n): language picker in the kit ☰ menu + catalogue Setti
 
 **Files:** Modify `game-kit.js`, `i18n.js` (`en` section). Test: `test.mjs`.
 
-- [ ] **Step 1:** Add the kit's static strings to `i18n.js` `en` under keys `nav.*`, `menu.*`, `sound.*`, `controls.*`, `share.*`, `shop.*`, `update.*`, `confirm.*`. Example subset:
+- [x] **Step 1:** Add the kit's static strings to `i18n.js` `en` under keys `nav.*`, `menu.*`, `sound.*`, `controls.*`, `share.*`, `shop.*`, `update.*`, `confirm.*`. Example subset:
 
 ```js
 // i18n.js  en:
@@ -367,15 +368,15 @@ git commit -m "feat(i18n): language picker in the kit ☰ menu + catalogue Setti
 // …aria labels: 'aria.pause':'Pause','aria.sound':'Sound settings', etc.
 ```
 
-- [ ] **Step 2:** Replace each literal in `game-kit.js` with `gamekit.t('key')`. Keep emoji glyphs outside the slot where practical (`'🏆 ' + t('challenges.title')`). Move `.toUpperCase()` display transforms to CSS `text-transform:uppercase` on the relevant class, or drop them, so uppercasing is locale-safe.
-- [ ] **Step 3:** Run `node test.mjs` → PASS.
-- [ ] **Step 4:** Commit `feat(i18n): key the kit's static labels, buttons, aria strings`.
+- [x] **Step 2:** Replace each literal in `game-kit.js` with `gamekit.t('key')`. Keep emoji glyphs outside the slot where practical (`'🏆 ' + t('challenges.title')`). Move `.toUpperCase()` display transforms to CSS `text-transform:uppercase` on the relevant class, or drop them, so uppercasing is locale-safe.
+- [x] **Step 3:** Run `node test.mjs` → PASS.
+- [x] **Step 4:** Commit `feat(i18n): key the kit's static labels, buttons, aria strings`.
 
 ### Task 5: Kit interpolated/plural strings + sentence builders
 
 **Files:** Modify `game-kit.js`, `i18n.js` (`en`). Test: `test.mjs`.
 
-- [ ] **Step 1:** Add parameterized + plural keys for the concatenated strings. Examples:
+- [x] **Step 1:** Add parameterized + plural keys for the concatenated strings. Examples:
 
 ```js
 // i18n.js en:
@@ -390,18 +391,18 @@ git commit -m "feat(i18n): language picker in the kit ☰ menu + catalogue Setti
 'share.line': 'I {verb} {score} {unit} in {game}',  // word-order slot for translators
 ```
 
-- [ ] **Step 2:** Rewrite `shareText()` (~L1517), the good-run receipts (~L2483), shop cells (~L1019), progress line (~L1007), `chEval` random-pick title, and the `plural()` helper usages to call `t()` with params. Replace the English `plural(n,w)` helper with `t('cat.<thing>', {count:n})`.
-- [ ] **Step 3:** Add tests asserting `shareText` output for `en` and that a `pl` plural resolves correctly through the kit path. Run `node test.mjs` → PASS.
-- [ ] **Step 4:** Commit `feat(i18n): parameterize kit interpolated + plural strings`.
+- [x] **Step 2:** Rewrite `shareText()` (~L1517), the good-run receipts (~L2483), shop cells (~L1019), progress line (~L1007), `chEval` random-pick title, and the `plural()` helper usages to call `t()` with params. Replace the English `plural(n,w)` helper with `t('cat.<thing>', {count:n})`.
+- [x] **Step 3:** Add tests asserting `shareText` output for `en` and that a `pl` plural resolves correctly through the kit path. Run `node test.mjs` → PASS.
+- [x] **Step 4:** Commit `feat(i18n): parameterize kit interpolated + plural strings`.
 
 ### Task 6: Canvas card text (score/profile/share cards)
 
 **Files:** Modify `game-kit.js` (card renderers ~L1560–1740). Test: local browser (canvas text can't be asserted headlessly).
 
-- [ ] **Step 1:** Replace card `fillText` literals (`SCORE`/`TIME`, `PLAY ON`, `🎨 COLLECTION`, `anonymous`, wordmark stays `KOMYO`/`GAMES`=brand, untranslated) with `t()`.
-- [ ] **Step 2:** Re-check `measureText`/ellipsize logic (the 590px clamp ~L1608) with the longest language (German-length proxy: use a long PL/FR string) so card text doesn't overflow. Adjust font-size-fit or wrap if needed.
-- [ ] **Step 3:** Local browser: generate a score card in each language, eyeball overflow in portrait + landscape.
-- [ ] **Step 4:** Commit `feat(i18n): translate canvas score/profile card text + refit measurement`.
+- [x] **Step 1:** Replace card `fillText` literals (`SCORE`/`TIME`, `PLAY ON`, `🎨 COLLECTION`, `anonymous`, wordmark stays `KOMYO`/`GAMES`=brand, untranslated) with `t()`.
+- [x] **Step 2:** Re-check `measureText`/ellipsize logic (the 590px clamp ~L1608) with the longest language (German-length proxy: use a long PL/FR string) so card text doesn't overflow. Adjust font-size-fit or wrap if needed.
+- [x] **Step 3:** Local browser: generate a score card in each language, eyeball overflow in portrait + landscape.
+- [x] **Step 4:** Commit `feat(i18n): translate canvas score/profile card text + refit measurement`.
 
 ---
 
@@ -411,34 +412,34 @@ git commit -m "feat(i18n): language picker in the kit ☰ menu + catalogue Setti
 
 **Files:** Modify `game-kit.js` or `i18n.js` (define `game.<slug>.title` keys), and the readers in `games.js`/`challenges.js`/`cosmetics.js` render paths. Test: `test.mjs`.
 
-- [ ] **Step 1:** In `i18n.js` `en`, add `game.<slug>.title` for all games, English matching `games.js`. (Single source for the display name; challenges/cosmetics reference the same key instead of re-stating names.)
-- [ ] **Step 2:** Where challenges.js goal titles and cosmetics.js `COSMETICS.games` currently embed a game name, change the render to compose from `t('game.<slug>.title')`.
-- [ ] **Step 3:** Run suite → PASS. Commit `feat(i18n): unify game display names into one keyed set`.
+- [x] **Step 1:** In `i18n.js` `en`, add `game.<slug>.title` for all games, English matching `games.js`. (Single source for the display name; challenges/cosmetics reference the same key instead of re-stating names.)
+- [x] **Step 2:** Where challenges.js goal titles and cosmetics.js `COSMETICS.games` currently embed a game name, change the render to compose from `t('game.<slug>.title')`.
+- [x] **Step 3:** Run suite → PASS. Commit `feat(i18n): unify game display names into one keyed set`.
 
 ### Task 8: games.js titles + blurbs
 
 **Files:** Modify `index.html` (tile render reads title/blurb), `i18n.js` (`en` + later langs). Test: `test.mjs` catalogue section.
 
-- [ ] **Step 1:** Add `game.<slug>.blurb` to `i18n.js` `en` (copy from `games.js`). Titles already added (Task 7).
-- [ ] **Step 2:** In `index.html` `tileEl`, render `t('game.'+g.slug+'.title', {def:g.title})` and `t('game.'+g.slug+'.blurb', {def:g.blurb})`. `games.js` keeps its English as the `def` fallback (no churn to the manifest).
-- [ ] **Step 3:** Non-translatable titles (`2048`, `Sudoku`, `Minesweeper`, `Asteroids`) → set their `en`/all-lang value identical (or omit key so `def` passes English through).
-- [ ] **Step 4:** Run suite → PASS. Local eyeball catalogue. Commit `feat(i18n): key catalogue tile titles + blurbs`.
+- [x] **Step 1:** Add `game.<slug>.blurb` to `i18n.js` `en` (copy from `games.js`). Titles already added (Task 7).
+- [x] **Step 2:** In `index.html` `tileEl`, render `t('game.'+g.slug+'.title', {def:g.title})` and `t('game.'+g.slug+'.blurb', {def:g.blurb})`. `games.js` keeps its English as the `def` fallback (no churn to the manifest).
+- [x] **Step 3:** Non-translatable titles (`2048`, `Sudoku`, `Minesweeper`, `Asteroids`) → set their `en`/all-lang value identical (or omit key so `def` passes English through).
+- [x] **Step 4:** Run suite → PASS. Local eyeball catalogue. Commit `feat(i18n): key catalogue tile titles + blurbs`.
 
 ### Task 9: challenges.js goal titles + title ranks
 
 **Files:** Modify `challenges.js` render consumers in `game-kit.js` (`challengesPanel`, `challengePick`) + `index.html` (challenges drawer), `i18n.js`. Test: `test.mjs`.
 
-- [ ] **Step 1:** Add `challenge.goal.<id>` and `title.<rank>` keys to `i18n.js` `en`. Goal titles with a number+game become templates: `challenge.goal.snakeScore150: 'Score {n} in {game}'` composed with `t('game.snake.title')`. Cross-game count titles use plural: `challenge.goal.play2games: { one:'Play {n} game today', other:'Play {n} different games today' }`.
-- [ ] **Step 2:** Change the challenge/title render paths to `t()`. Keep the `goodRun`/`randomSlug`/id structure untouched (they carry no display text).
-- [ ] **Step 3:** Run suite → PASS. Commit `feat(i18n): key challenge goals + title ranks`.
+- [x] **Step 1:** Add `challenge.goal.<id>` and `title.<rank>` keys to `i18n.js` `en`. Goal titles with a number+game become templates: `challenge.goal.snakeScore150: 'Score {n} in {game}'` composed with `t('game.snake.title')`. Cross-game count titles use plural: `challenge.goal.play2games: { one:'Play {n} game today', other:'Play {n} different games today' }`.
+- [x] **Step 2:** Change the challenge/title render paths to `t()`. Keep the `goodRun`/`randomSlug`/id structure untouched (they carry no display text).
+- [x] **Step 3:** Run suite → PASS. Commit `feat(i18n): key challenge goals + title ranks`.
 
 ### Task 10: cosmetics.js names + descs + set labels
 
 **Files:** Modify the cosmetics render in `game-kit.js` (`shopPanel`), `i18n.js`. Test: `test.mjs`.
 
-- [ ] **Step 1:** Add `cos.<id>.name`, `cos.<id>.desc` (70 each) and `cos.set.<key>` (14) + the `desktop only` note to `i18n.js` `en` (copy from `cosmetics.js`).
-- [ ] **Step 2:** In `shopPanel`, render names/descs/labels via `t('cos.'+id+'.name', {def:item.name})` etc. `cosmetics.js` keeps English as `def`.
-- [ ] **Step 3:** Run suite → PASS. Local eyeball the shop. Commit `feat(i18n): key cosmetic names, descriptions, set labels`.
+- [x] **Step 1:** Add `cos.<id>.name`, `cos.<id>.desc` (70 each) and `cos.set.<key>` (14) + the `desktop only` note to `i18n.js` `en` (copy from `cosmetics.js`).
+- [x] **Step 2:** In `shopPanel`, render names/descs/labels via `t('cos.'+id+'.name', {def:item.name})` etc. `cosmetics.js` keeps English as `def`.
+- [x] **Step 3:** Run suite → PASS. Local eyeball the shop. Commit `feat(i18n): key cosmetic names, descriptions, set labels`.
 
 ---
 
@@ -448,29 +449,29 @@ git commit -m "feat(i18n): language picker in the kit ☰ menu + catalogue Setti
 
 **Files:** Modify `index.html`, `i18n.js`. Test: `test.mjs`.
 
-- [ ] **Step 1:** Add keys for header/filters, footer, drawers, and all modal bodies (FAQ 16, Settings 18, About, Legal, Data, Feedback, Newsletter, Name/Welcome, cookie banner) to `i18n.js` `en`. Namespace: `cat.*`, `faq.q1`/`faq.a1`…, `settings.*`, `about.*`, `data.*`, `feedback.*`, `news.*`, `cookie.*`.
-- [ ] **Step 2:** Two application strategies:
+- [x] **Step 1:** Add keys for header/filters, footer, drawers, and all modal bodies (FAQ 16, Settings 18, About, Legal, Data, Feedback, Newsletter, Name/Welcome, cookie banner) to `i18n.js` `en`. Namespace: `cat.*`, `faq.q1`/`faq.a1`…, `settings.*`, `about.*`, `data.*`, `feedback.*`, `news.*`, `cookie.*`.
+- [x] **Step 2:** Two application strategies:
   - **Static text/attr nodes:** tag them `data-t="key"` (text) / `data-t-aria="key"`, `data-t-title`, `data-t-ph` (attributes) and add a boot pass `document.querySelectorAll('[data-t]').forEach(el => el.textContent = gamekit.t(el.dataset.t))` (+ attr variants). This keeps the HTML readable and avoids hand-wiring 200 nodes.
   - **JS-rendered strings** (profile, titles, challenges cards, form statuses, tiles): replace literals with `gamekit.t()` at the call site.
-- [ ] **Step 3:** Replace the hardcoded `['Jan'…'Dec']` month array (history view ~L2078) with `Intl.DateTimeFormat(gamekit.lang(), {month:'short'})` or a keyed month set.
-- [ ] **Step 4:** Run suite → PASS. Local eyeball every modal in `en`. Commit `feat(i18n): key catalogue static UI + attributes via data-t pass`.
+- [x] **Step 3:** Replace the hardcoded `['Jan'…'Dec']` month array (history view ~L2078) with `Intl.DateTimeFormat(gamekit.lang(), {month:'short'})` or a keyed month set.
+- [x] **Step 4:** Run suite → PASS. Local eyeball every modal in `en`. Commit `feat(i18n): key catalogue static UI + attributes via data-t pass`.
 
 ### Task 12: Catalogue JS-built strings + plurals
 
 **Files:** Modify `index.html`, `i18n.js`. Test: `test.mjs`.
 
-- [ ] **Step 1:** Replace the inline `plural()` (L1637) and inline `+s` copies (stat chips, `plays`/`play`, `trophy`/`trophies`, `'Show N more…'`) with `t('cat.*', {count})` plural keys (reuse the `cat.trophies`/`cat.plays` keys from Task 5). Add `cat.showMore: 'Show {n} more…'`, `cat.noMatch: 'No games match.'`, form statuses (`Sending…`, `Thanks! Feedback sent. ✓`, etc.), profile panel strings, titles ladder (`✓ Worn`, `Wear`), version row states.
-- [ ] **Step 2:** Convert interpolated aria (`'Favorite '+g.title`) to `t('cat.favorite', {game})`.
-- [ ] **Step 3:** Run suite → PASS. Commit `feat(i18n): key catalogue JS strings + plurals`.
+- [x] **Step 1:** Replace the inline `plural()` (L1637) and inline `+s` copies (stat chips, `plays`/`play`, `trophy`/`trophies`, `'Show N more…'`) with `t('cat.*', {count})` plural keys (reuse the `cat.trophies`/`cat.plays` keys from Task 5). Add `cat.showMore: 'Show {n} more…'`, `cat.noMatch: 'No games match.'`, form statuses (`Sending…`, `Thanks! Feedback sent. ✓`, etc.), profile panel strings, titles ladder (`✓ Worn`, `Wear`), version row states.
+- [x] **Step 2:** Convert interpolated aria (`'Favorite '+g.title`) to `t('cat.favorite', {game})`.
+- [x] **Step 3:** Run suite → PASS. Commit `feat(i18n): key catalogue JS strings + plurals`.
 
 ### Task 13: Catalogue `<head>` meta + hreflang + SEO
 
 **Files:** Modify `index.html`, `privacy.html`, `tos.html`, `sitemap.xml`, `llms.txt`, `i18n.js`. Test: local (view-source).
 
-- [ ] **Step 1:** Add `meta.title`/`meta.desc`/`meta.ogTitle`/`meta.ogDesc`/`meta.ogAlt`/`meta.twTitle`/`meta.twDesc` keys per page to `i18n.js` `en`. On boot, set `document.title` + the meta tag contents via `gamekit.t()` for the active language.
-- [ ] **Step 2:** Add `<link rel="alternate" hreflang="x" href="…?lang=x">` for `en/pl/es/pt/fr` + `x-default` to each page `<head>`.
-- [ ] **Step 3:** Add `?lang=` alternates to `sitemap.xml` (or `xhtml:link` hreflang entries) and note languages in `llms.txt`.
-- [ ] **Step 4:** Local view-source check; regenerate `og-image.png?v=` only if the OG image itself gains text (it doesn't — skip). Commit `feat(i18n): translated <title>/meta + hreflang alternates + sitemap`.
+- [x] **Step 1:** Add `meta.title`/`meta.desc`/`meta.ogTitle`/`meta.ogDesc`/`meta.ogAlt`/`meta.twTitle`/`meta.twDesc` keys per page to `i18n.js` `en`. On boot, set `document.title` + the meta tag contents via `gamekit.t()` for the active language.
+- [x] **Step 2:** Add `<link rel="alternate" hreflang="x" href="…?lang=x">` for `en/pl/es/pt/fr` + `x-default` to each page `<head>`.
+- [x] **Step 3:** Add `?lang=` alternates to `sitemap.xml` (or `xhtml:link` hreflang entries) and note languages in `llms.txt`.
+- [x] **Step 4:** Local view-source check; regenerate `og-image.png?v=` only if the OG image itself gains text (it doesn't — skip). Commit `feat(i18n): translated <title>/meta + hreflang alternates + sitemap`.
 
 ---
 
@@ -482,13 +483,13 @@ git commit -m "feat(i18n): language picker in the kit ☰ menu + catalogue Setti
 
 **Files (per game `<slug>`):** Modify `games/<slug>/index.html`, `i18n.js` (`en` — namespace `game.<slug>.*`), `games/<slug>/test.mjs` (if it asserts on any now-keyed string). Test: `node games/<slug>/test.mjs`.
 
-- [ ] **Step 1:** Add the game's inline strings to `i18n.js` `en` under `game.<slug>.*` — menu/mode labels, mode descriptions/hints, HUD labels, share fragments, controls block, and (asteroids-plus) upgrade name+desc registry / custom splash prose, (tower-defense) map/tower/drop/targeting descriptions. Numbers baked in prose become params: `game.td.map.frost.desc: 'Enemies slide {pct}% faster. Frost is potent (+{frost}%).'`.
-- [ ] **Step 2:** Replace inline literals with `KIT.t('game.<slug>.key', {params})`. Convert every `'…' + value + '…'` concatenation (`'Reached wave '+w`, `'Score '+s+' · level '+l`) to a parameterized template. Route game share fragments through the keyed `share.line` slot.
-- [ ] **Step 3:** For canvas `fillText` HUD text (bubbles, stacker, td, asteroids-plus), key the string; verify no overflow with a long language locally.
-- [ ] **Step 4:** Verify `i18n.js` is in this game's `<head>` + `sw.js` SHELL (done in Task 1 — re-confirm). Bump the game's `sw.js` `VERSION`.
-- [ ] **Step 5:** Run `node games/<slug>/test.mjs` → PASS. Update any test asserting a raw English string to assert via `gamekit.t(...)` or the key.
-- [ ] **Step 6:** Local browser eyeball this game (start/pause/end screens, controls) in `en`.
-- [ ] **Step 7:** Commit `feat(i18n): key <slug> strings`.
+- [x] **Step 1:** Add the game's inline strings to `i18n.js` `en` under `game.<slug>.*` — menu/mode labels, mode descriptions/hints, HUD labels, share fragments, controls block, and (asteroids-plus) upgrade name+desc registry / custom splash prose, (tower-defense) map/tower/drop/targeting descriptions. Numbers baked in prose become params: `game.td.map.frost.desc: 'Enemies slide {pct}% faster. Frost is potent (+{frost}%).'`.
+- [x] **Step 2:** Replace inline literals with `KIT.t('game.<slug>.key', {params})`. Convert every `'…' + value + '…'` concatenation (`'Reached wave '+w`, `'Score '+s+' · level '+l`) to a parameterized template. Route game share fragments through the keyed `share.line` slot.
+- [x] **Step 3:** For canvas `fillText` HUD text (bubbles, stacker, td, asteroids-plus), key the string; verify no overflow with a long language locally.
+- [x] **Step 4:** Verify `i18n.js` is in this game's `<head>` + `sw.js` SHELL (done in Task 1 — re-confirm). Bump the game's `sw.js` `VERSION`.
+- [x] **Step 5:** Run `node games/<slug>/test.mjs` → PASS. Update any test asserting a raw English string to assert via `gamekit.t(...)` or the key.
+- [x] **Step 6:** Local browser eyeball this game (start/pause/end screens, controls) in `en`.
+- [x] **Step 7:** Commit `feat(i18n): key <slug> strings`.
 
 *(Repeat Steps 1–7 for each of the 9 games. asteroids-plus and tower-defense are the heaviest — budget the most care there: description registries + numbers-in-prose + custom splash.)*
 
@@ -502,7 +503,7 @@ git commit -m "feat(i18n): language picker in the kit ☰ menu + catalogue Setti
 
 - [ ] **Step 1:** Extract every key from `i18n.js` `en` (including plural objects). For each of `pl/es/pt/fr`, produce translations. Preserve `{param}` tokens exactly (do not translate token names). Keep brand tokens + emoji verbatim.
 - [ ] **Step 2:** Author **plural forms per language**: `pl` needs `{one, few, many, other}`; `es`/`pt`/`fr` need `{one, other}`. Only the plural keys (`cat.trophies`, `cat.goodRuns`, `cat.plays`, `cat.showMore`, `challenge.goal.play*games`, any "N lives/games") need this — a bounded set (~15 keys).
-- [ ] **Step 3:** Sanity test: assert no missing keys vs `en` (a small test that iterates `en` keys and checks each lang has them; missing → falls back to `en`, which is acceptable but flag count).
+- [x] **Step 3:** Sanity test: assert no missing keys vs `en` (a small test that iterates `en` keys and checks each lang has them; missing → falls back to `en`, which is acceptable but flag count).
 
 ```js
 section('i18n coverage');
