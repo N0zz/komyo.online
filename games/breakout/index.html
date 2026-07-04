@@ -385,6 +385,16 @@
           bricks.push({ r: 0, c, hp: 1, maxHp: 1 });
         }
       }
+      // descending bricks reaching the paddle line end the run (mirrors Survival)
+      const py = paddleY();
+      for (const b of bricks) {
+        const { y, h } = brickRect(b);
+        if (y + h >= py) {
+          lives = 0;
+          loseLife();
+          return;
+        }
+      }
     }
 
     // Survival: descend wall

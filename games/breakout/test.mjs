@@ -178,6 +178,22 @@ section('Breakout: startMode(\'endless\')');
   ok(Te().bricks > bricksAtStart, 'endless: new bricks added after ' + bricksAtStart + ' -> ' + Te().bricks);
 }
 
+section('Breakout: endless — bricks reaching paddle causes game over');
+{
+  const ge2 = runGame();
+  const Te2 = ge2.T;
+  Te2().startMode('endless');
+  Te2().launch();
+  // keep the ball bouncing in the safe zone so the run ends from descending bricks, not a lost ball
+  let endSteps = 0;
+  while (Te2().state === 'playing' && endSteps < 60000) {
+    if (endSteps % 50 === 0) Te2().setBall(640, 500, 3, -4);
+    Te2().step(1);
+    endSteps++;
+  }
+  ok(Te2().state === 'over', 'endless: game ends when descending bricks reach the paddle (steps: ' + endSteps + ')');
+}
+
 section('Breakout: startMode(\'survival\') — wall descends');
 {
   const gs = runGame();
