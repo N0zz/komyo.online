@@ -826,6 +826,29 @@
       else document.addEventListener('DOMContentLoaded', function () { applyCursor(); });
     } catch (e) {}
   })();
+
+  // dev FPS meter — opt in with ?fps=1 (never shown to players). Counts real display frames, so it
+  // reflects the GPU cost of effects like the CRT filter; shows current + lowest FPS to catch stutters.
+  (function () {
+    try {
+      if (typeof document === 'undefined' || typeof requestAnimationFrame !== 'function') return;
+      var on = false; try { on = /[?&]fps(=1)?(&|$)/.test(location.search || ''); } catch (e) {}
+      if (!on) return;
+      var el = null, frames = 0, last = 0, lo = 9999;
+      var mount = function () { if (el || !document.body) return; el = document.createElement('div'); el.id = 'gamekitFps'; el.setAttribute('aria-hidden', 'true'); document.body.appendChild(el); };
+      var loop = function (t) {
+        frames++; if (!last) last = t;
+        if (t - last >= 500) {
+          var fps = Math.round(frames * 1000 / (t - last)); if (fps < lo) lo = fps;
+          mount(); if (el) el.textContent = 'FPS ' + fps + ' · min ' + lo;
+          frames = 0; last = t;
+        }
+        requestAnimationFrame(loop);
+      };
+      var go = function () { requestAnimationFrame(loop); };
+      if (document.body) go(); else document.addEventListener('DOMContentLoaded', go);
+    } catch (e) {}
+  })();
   var cosmetics = {
     lifetime: cosLifetime, spent: cosSpent, balance: cosBalance,
     owned: cosOwned, buy: cosBuy, selected: cosSelected, select: cosSelect,
