@@ -575,8 +575,23 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 .gamekit-shoppanel .gksp-search { flex: 1; min-width: 0; font: 12px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-text, #eaf2fb);
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 9px; padding: 8px 11px; }
 .gamekit-shoppanel .gksp-search::placeholder { color: #6b7a90; }
-.gamekit-shoppanel .gksp-filter { font: 12px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-text, #eaf2fb);
-  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 9px; padding: 8px 10px; max-width: 42%; }
+.gamekit-shoppanel .gksp-filter { display: flex; align-items: center; justify-content: space-between; gap: 6px; font: 12px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-text, #eaf2fb);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 9px; padding: 8px 10px; max-width: 42%; cursor: pointer; text-align: left; }
+.gamekit-shoppanel .gksp-filter:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-shoppanel .gksp-filter-lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gamekit-shoppanel .gksp-filter-caret { flex: 0 0 auto; opacity: 0.7; }
+/* themed game-filter overlay (replaces the native <select>) — mirrors the language menu */
+.gamekit-shopfilter-menu { position: fixed; inset: 0; z-index: 9400; display: flex; align-items: center; justify-content: center; padding: 18px;
+  background: var(--gkm-overlay, rgba(5, 8, 13, 0.72)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gamekit-shopfilter-menu .gkspf-box { width: min(320px, 100%); box-sizing: border-box; max-height: 70vh; overflow: auto; display: flex; flex-direction: column; gap: 6px;
+  background: var(--gkm-bg, rgba(16, 22, 34, 0.98)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.18));
+  border-radius: var(--gkm-radius, 16px); padding: 12px; box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6));
+  color: var(--gkm-text, #eef2f8); font-family: var(--gkm-font, ui-monospace, "SFMono-Regular", Menlo, monospace); }
+.gamekit-shopfilter-menu .gkspf-opt { text-align: left; font: 12px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-text, #eaf2fb);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 9px; padding: 10px 12px; cursor: pointer;
+  transition: border-color .12s, background .12s; }
+.gamekit-shopfilter-menu .gkspf-opt:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-shopfilter-menu .gkspf-opt.selected { border-color: var(--gkm-accent, #9fe8ff); background: var(--gkm-accent-soft, rgba(159, 232, 255, 0.16)); }
 .gamekit-shoppanel .gksp-allgames { font: 700 12px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-accent, #9fe8ff);
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 9px; padding: 8px 12px; cursor: pointer; white-space: nowrap; }
 .gamekit-shoppanel .gksp-allgames:hover { border-color: var(--gkm-accent, #9fe8ff); }
@@ -591,7 +606,7 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 .gamekit-shoppanel .gksp-cell.gksp-dim { opacity: 0.5; }
 .gamekit-shoppanel .gksp-sw { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.18); }
 .gamekit-shoppanel .gksp-txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.gamekit-shoppanel .gksp-nm { font-size: 12px; font-weight: 700; letter-spacing: 0.3px; color: #eaf3ff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gamekit-shoppanel .gksp-nm { font-size: 12px; font-weight: 700; letter-spacing: 0.3px; color: #eaf3ff; line-height: 1.15; overflow-wrap: anywhere; word-break: break-word; hyphens: auto; }
 .gamekit-shoppanel .gksp-sub { font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; color: #93a5bd; }
 .gamekit-shoppanel .gksp-sub .gksp-on { color: var(--gkm-accent, #9fe8ff); }
 .gamekit-shoppanel .gksp-empty { color: #8294ac; font-size: 12.5px; padding: 18px 4px; text-align: center; }

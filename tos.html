@@ -28,6 +28,13 @@
     color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:9px 16px; }
   .back:hover { border-color:var(--accent); }
   footer { color:var(--faint); font-size:13px; margin-top:36px; border-top:1px solid var(--border); padding-top:18px; }
+  .langpick { position:fixed; top:14px; right:14px; z-index:20; display:flex; align-items:center; gap:6px;
+    background:var(--surface); border:1px solid var(--border); border-radius:9px; padding:5px 9px; }
+  .langpick:hover { border-color:var(--accent); }
+  .langpick > span { font-size:14px; line-height:1; }
+  .langpick select { background:transparent; color:var(--text); border:0; outline:none; cursor:pointer;
+    font:13px/1 system-ui,-apple-system,sans-serif; padding:2px 2px; }
+  .langpick select option { background:var(--surface); color:var(--text); }
 </style>
 </head>
 <body>
@@ -130,6 +137,24 @@
       each('[data-th]', function (el) { el.innerHTML = t(el.getAttribute('data-th'), el.innerHTML); });
       var ti = document.querySelector('title'); if (ti) ti.textContent = t('legal.tos.metaTitle', ti.textContent);
       var de = document.querySelector('meta[name="description"]'); if (de) de.setAttribute('content', t('legal.tos.metaDesc', de.getAttribute('content') || ''));
+
+      // Language picker — lets visitors switch language without going back to the homepage; the
+      // choice persists site-wide via the shared gamekit_lang key.
+      var LABELS = { en: 'English', pl: 'Polski', es: 'Español', pt: 'Português', fr: 'Français', it: 'Italiano' };
+      var codes = Object.keys(window.KOMYO_I18N || {}).filter(function (c) { return SUP[c]; });
+      if (!codes.length) codes = Object.keys(SUP);
+      var wrap = document.createElement('div'); wrap.className = 'langpick';
+      var glyph = document.createElement('span'); glyph.textContent = '🌐'; wrap.appendChild(glyph);
+      var sel = document.createElement('select'); sel.setAttribute('aria-label', t('legal.lang.label', 'Language'));
+      codes.forEach(function (c) {
+        var o = document.createElement('option'); o.value = c; o.textContent = LABELS[c] || c;
+        if (c === LANG) o.selected = true; sel.appendChild(o);
+      });
+      sel.addEventListener('change', function () {
+        try { localStorage.setItem('gamekit_lang', sel.value); } catch (e) {}
+        location.reload();
+      });
+      wrap.appendChild(sel); document.body.appendChild(wrap);
     })();
   </script>
 </body>

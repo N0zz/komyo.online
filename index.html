@@ -690,10 +690,10 @@
             </div>
             <div class="fh" data-t="cat.fhHighlights">Highlights</div>
             <div id="badgeList" class="chips">
-              <button type="button" class="chip" data-badge="new" aria-pressed="false" style="--c:#ffd24d"><span class="dot"></span>NEW</button>
-              <button type="button" class="chip" data-badge="updated" aria-pressed="false" style="--c:#4db6ff"><span class="dot"></span>UPDATED</button>
-              <button type="button" class="chip" data-badge="challenge" aria-pressed="false" style="--c:#46e0a0"><span class="dot"></span>CHALLENGE</button>
-              <button type="button" class="chip" data-badge="pick" aria-pressed="false" style="--c:#b98cff"><span class="dot"></span>POPULAR</button>
+              <button type="button" class="chip" data-badge="new" aria-pressed="false" style="--c:#ffd24d"><span class="dot"></span><span data-t="badge.new">NEW</span></button>
+              <button type="button" class="chip" data-badge="updated" aria-pressed="false" style="--c:#4db6ff"><span class="dot"></span><span data-t="badge.updated">UPDATED</span></button>
+              <button type="button" class="chip" data-badge="challenge" aria-pressed="false" style="--c:#46e0a0"><span class="dot"></span><span data-t="badge.challenge">CHALLENGE</span></button>
+              <button type="button" class="chip" data-badge="pick" aria-pressed="false" style="--c:#b98cff"><span class="dot"></span><span data-t="badge.pick">POPULAR</span></button>
             </div>
             <div class="fh" data-t="cat.fhGenre">Genre</div>
             <div id="genreList"></div>
@@ -929,7 +929,7 @@
   <dialog id="titlesModal">
     <div class="about titles">
       <div class="cl-head"><h3 data-t="titles.title">🏆 Titles</h3><button type="button" class="dx" id="titlesClose" aria-label="Close" data-ta="cat.close">✕</button></div>
-      <p class="tl-sub" data-th="titles.sub">Earn trophies to climb the ladder — a new title is worn automatically, but tap any <b>unlocked</b> rank to wear it instead. Titles read <b>lifetime</b> trophies, so spending on cosmetics never slows you down.</p>
+      <p class="tl-sub" data-th="titles.sub">Earn trophies to climb the ladder — a new title is worn automatically, but tap any <b>unlocked</b> rank to wear it instead. Titles read <b>lifetime</b> trophies, so spending on your collection never slows you down.</p>
       <div class="tl-list" id="titlesList"></div>
     </div>
   </dialog>
@@ -944,7 +944,7 @@
       <div class="faq-q" data-t="faq.q3">Are there leaderboards or online rankings?</div>
       <p class="faq-a" data-th="faq.a3">No — on purpose. Leaderboards need accounts and a server to store everyone's scores, and we don't keep any of that (see above). You're playing against <b>your own best</b>. Scores you choose to share go straight to our <a href="https://discord.gg/hz2fhpD5sz" target="_blank" rel="noopener">Discord</a>, not a database.</p>
       <div class="faq-q" data-t="faq.q4">What are challenges, trophies and titles?</div>
-      <p class="faq-a" data-th="faq.a4">The 🏆 button opens daily and weekly <b>challenges</b> — small goals like a good run in a particular game. Completing them earns <b>trophies</b> (a daily pays 10 🏆, a weekly 50 🏆, and each day your first 3 good runs pay a +5 🏆 bonus). Trophies do two things at once: your <b>lifetime</b> total unlocks <b>titles</b> (tap the trophies pill to see the ladder), and your spendable balance buys <b>cosmetics</b> in the 🎨 store — skins for the games, picked in each game's menu. Spending never slows the title ladder. All of it lives on your device, like everything else.</p>
+      <p class="faq-a" data-th="faq.a4">The 🏆 button opens daily and weekly <b>challenges</b> — small goals like a good run in a particular game. Completing them earns <b>trophies</b> (a daily pays 10 🏆, a weekly 50 🏆, and each day your first 3 good runs pay a +5 🏆 bonus). Trophies do two things at once: your <b>lifetime</b> total unlocks <b>titles</b> (tap the trophies pill to see the ladder), and your spendable balance buys <b>collection</b> skins in the 🎨 store — skins for the games, picked in each game's menu. Spending never slows the title ladder. All of it lives on your device, like everything else.</p>
       <div class="faq-q" data-t="faq.q5">Is it really free? Any ads or payments?</div>
       <p class="faq-a" data-th="faq.a5">Free forever — no ads, no payments, no subscriptions, no "premium" anything. If you'd like to chip in there's an optional <a href="https://buymeacoffee.com/komyo.online" target="_blank" rel="noopener">Buy me a coffee</a>, but every game is and always will be free.</p>
       <div class="faq-q" data-t="faq.q6">Do I need to install anything? Does it work offline?</div>
@@ -1061,8 +1061,8 @@
     }
     function badgesHtml(g, soon) {
       if (soon) return '';
-      const items = badgeKeys(g).map(k => BADGES[k]).map(b =>
-        '<span class="badge ' + b.cls + '"><b>' + b.label + '</b><i class="spk"></i><i class="spk"></i><i class="spk"></i></span>').join('');
+      const items = badgeKeys(g).map(k =>
+        '<span class="badge ' + BADGES[k].cls + '"><b>' + T('badge.' + k, BADGES[k].label) + '</b><i class="spk"></i><i class="spk"></i><i class="spk"></i></span>').join('');
       return items ? '<span class="badges">' + items + '</span>' : '';
     }
 
@@ -1088,7 +1088,7 @@
         '<div class="meta">' +
           '<div class="row"><h2>' + gameTitle(g) + '</h2></div>' +
           '<div class="tags">' + (tagsOf(g).length ? tagsOf(g) : ['GAME']).map(t =>
-            '<span class="tag" style="--tc:' + tagColorOf(t) + '">' + t + '</span>').join('') + '</div>' +
+            '<span class="tag" style="--tc:' + tagColorOf(t) + '">' + T('tag.' + t.toLowerCase(), t) + '</span>').join('') + '</div>' +
           '<p>' + gameBlurb(g) + '</p>' +
           '<div class="play">' + (soon ? T('cat.comingSoon', 'COMING SOON') : T('cat.play', 'PLAY ▸')) + '</div>' +
         '</div>';
@@ -1243,7 +1243,7 @@
       if (!btn || !pop || !genreList) return;
       const tags = [...new Set((window.GAMES || []).flatMap(tagsOf))].sort();
       genreList.className = 'chips';
-      genreList.innerHTML = tags.map(t => '<button type="button" class="chip" data-genre="' + t + '" aria-pressed="false" style="--c:' + tagColorOf(t) + '"><span class="dot"></span>' + t + '</button>').join('');
+      genreList.innerHTML = tags.map(t => '<button type="button" class="chip" data-genre="' + t + '" aria-pressed="false" style="--c:' + tagColorOf(t) + '"><span class="dot"></span>' + T('tag.' + t.toLowerCase(), t) + '</button>').join('');
       const toggleChip = (b, set) => {
         const v = b.dataset.genre || b.dataset.badge; if (!v) return;
         const on = !set.has(v); if (on) set.add(v); else set.delete(v);
@@ -1466,7 +1466,7 @@
         if (tipWrap) tipWrap.style.display = 'none';
         return;
       }
-      installBtn.textContent = installed ? '✓ Installed' : '📱 Install';
+      installBtn.textContent = installed ? T('cat.installed', '✓ Installed') : T('cat.install', '📱 Install');
     }
     window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installed = false; refresh(); });
     window.addEventListener('appinstalled', () => { installed = true; deferredPrompt = null; tipPop.classList.add('show'); refresh(); });
@@ -1606,10 +1606,14 @@
         filtered.slice(shown, shown + PAGE).forEach((rel, k) => {
           if (shown + k > 0) { const hr = document.createElement('hr'); hr.className = 'cl-sep'; list.appendChild(hr); }
           const b = document.createElement('div'); b.className = 'cl-rel';
+          // per-entry i18n: def = the changelog.js English; keys are stable by ORIGINAL array index
+          // (ei) and bullet index (j) so search-narrowing below can't shift them.
+          const ei = CHANGELOG.indexOf(rel);
+          const title = T('changelog.e' + ei + '.title', rel.title);
           // with a query, narrow to the matching bullets (unless the date/title matched → show all)
-          let items = rel.items;
-          if (curQ && !(rel.date + ' ' + rel.title).toLowerCase().includes(curQ)) { const mi = items.filter(it => it.toLowerCase().includes(curQ)); if (mi.length) items = mi; }
-          b.innerHTML = '<div class="cl-relhead"><span class="cl-date">' + rel.date + '</span> — <span class="cl-title">' + hl(rel.title) + '</span></div>'
+          let items = rel.items.map((it, j) => T('changelog.e' + ei + '.b' + j, it));
+          if (curQ && !(rel.date + ' ' + title).toLowerCase().includes(curQ)) { const mi = items.filter(it => it.toLowerCase().includes(curQ)); if (mi.length) items = mi; }
+          b.innerHTML = '<div class="cl-relhead"><span class="cl-date">' + rel.date + '</span> — <span class="cl-title">' + hl(title) + '</span></div>'
             + '<ul class="cl-items">' + items.map(it => '<li>' + hl(it) + '</li>').join('') + '</ul>';
           list.appendChild(b);
         });
@@ -1618,9 +1622,14 @@
       const fill = () => { let g = 0; do { more(); } while (shown < filtered.length && list.scrollHeight <= list.clientHeight && g++ < 60); };
       const reset = () => {
         curQ = ((search && search.value) || '').trim().toLowerCase();
-        filtered = CHANGELOG.filter(r => !curQ || (r.date + ' ' + r.title + ' ' + r.items.join(' ')).toLowerCase().includes(curQ));
+        filtered = CHANGELOG.filter((r, i) => {
+          if (!curQ) return true;
+          const title = T('changelog.e' + i + '.title', r.title);
+          const items = r.items.map((it, j) => T('changelog.e' + i + '.b' + j, it));
+          return (r.date + ' ' + title + ' ' + items.join(' ')).toLowerCase().includes(curQ);
+        });
         shown = 0; list.innerHTML = '';
-        if (!filtered.length) { const em = document.createElement('div'); em.className = 'cl-empty'; em.textContent = 'No changes match.'; list.appendChild(em); return; }
+        if (!filtered.length) { const em = document.createElement('div'); em.className = 'cl-empty'; em.textContent = T('cl.noMatch', 'No changes match.'); list.appendChild(em); return; }
         fill();
       };
       const lock = v => { try { document.body.style.overflow = v ? 'hidden' : ''; } catch (e) {} };
@@ -1863,12 +1872,12 @@
             // every other mode shows its score. (score modes may also record a run duration we ignore.)
             const isTimeMode = /speedrun|sprint/i.test(m.mode || '');
             const val = (isTimeMode && m.time > 0) ? fmtTime(m.time) : (m.score > 0 ? fmt(m.score) : '—');
-            rowsHtml += '<div class="pf-row"><span class="pr-mode">' + esc(m.mode || 'Best') + x + '</span><span class="pr-val">' + val + '</span></div>';
+            rowsHtml += '<div class="pf-row"><span class="pr-mode">' + esc(m.mode || T('profile.colBest', 'Best')) + x + '</span><span class="pr-val">' + val + '</span></div>';
           });
           html += '<div class="pf-game pf-tinted" style="--acc:' + (gm.accent || '#9fe8ff') + '">'
             + '<div class="pf-gh"><span class="pf-gt">' + (gm.icon || '🎮') + ' ' + esc(gm.title) + '</span>'
             + '<span class="pf-gp"><b>' + fmt(pg.plays) + '</b> ' + window.gamekit.t('profile.playsWord', { count: pg.plays }) + '</span></div>'
-            + '<div class="pf-rows"><div class="pf-rhead"><span>Mode</span><span>Best</span></div>' + rowsHtml + '</div></div>';
+            + '<div class="pf-rows"><div class="pf-rhead"><span>' + T('profile.colMode', 'Mode') + '</span><span>' + T('profile.colBest', 'Best') + '</span></div>' + rowsHtml + '</div></div>';
           rows.push({ name: gm.title, best: fmt(pg.best), mode: (modes[0] && modes[0].mode) || '', accent: gm.accent });
         });
         html += '</div>'; // close .pf-games
@@ -2096,8 +2105,8 @@
         const e = evalGoal(g, undefined, id);
         if (!e) return '';
         const pct = Math.round(e.pct * 100);
-        const play = e.slug ? '<a class="cplay" href="games/' + e.slug + '/">▶ Play</a>' : '';
-        const meta = e.done ? '<span class="cdone">✓ Done</span>' : ('<span>' + e.val + ' / ' + e.target + '</span>' + play);
+        const play = e.slug ? '<a class="cplay" href="games/' + e.slug + '/">' + T('chal.play', '▶ Play') + '</a>' : '';
+        const meta = e.done ? '<span class="cdone">' + T('chal.done', '✓ Done') + '</span>' : ('<span>' + e.val + ' / ' + e.target + '</span>' + play);
         const badge = pts ? '<span class="cpts">+' + pts + ' 🏆</span>' : '';
         return '<div class="cc"><div class="top"><span class="goal">' + e.title + '</span>' + badge + '</div><div class="bar"><i style="width:' + pct + '%' + (e.done ? ';background:#7fe0a0' : '') + '"></i></div><div class="cmeta">' + meta + '</div></div>';
       }
@@ -2184,19 +2193,19 @@
         const cos = K.cosmetics;
         if (cos && window.COSMETICS && shopEl) {
           shopEl.hidden = false;
-          shopEl.textContent = '🎨 Cosmetics';
+          shopEl.textContent = window.gamekit.t('challenges.cosmeticsBtn', { bal: fmt(cos.balance()) });
         }
         if (cos && window.COSMETICS && collEl) {
           const pr = cos.progress(), pct = Math.round(pr.pct * 100);
           collEl.hidden = false;
           const bar = collEl.querySelector('.cbar i'), txt = collEl.querySelector('.cbar-txt');
           if (bar) bar.style.width = pct + '%';
-          if (txt) txt.textContent = pr.owned + ' / ' + pr.total + ' unlocked · ' + pct + '%';
+          if (txt) txt.textContent = window.gamekit.t('chal.collection', { def: '{owned} / {total} unlocked · {pct}%', owned: pr.owned, total: pr.total, pct: pct });
         }
         if (bonusEl && K.goodRunBonus) {
           const b = K.goodRunBonus();
           bonusEl.hidden = false;
-          bonusEl.textContent = '⚡ Good-run bonus: ' + b.count + '/' + b.cap + ' today · +' + b.per + ' 🏆 each';
+          bonusEl.textContent = window.gamekit.t('chal.goodRunBonus', { def: '⚡ Good-run bonus: {count}/{cap} today · +{per} 🏆 each', count: b.count, cap: b.cap, per: b.per });
         }
       }
       function render() {
@@ -2209,7 +2218,7 @@
         award(); // keep lifetime up to date (drives titles elsewhere); the drawer shows SPENDABLE
         // the drawer's trophy figure is your spendable balance (your wallet) — lifetime + titles
         // live in the profile / ☰ menu, so there's only one number to reason about here
-        if (streakEl) { const bal = (K.cosmetics && window.COSMETICS) ? K.cosmetics.balance() : award(); streakEl.textContent = '🏆 ' + bal + (bal === 1 ? ' trophy' : ' trophies'); }
+        if (streakEl) { const bal = (K.cosmetics && window.COSMETICS) ? K.cosmetics.balance() : award(); streakEl.textContent = '🏆 ' + window.gamekit.t('cat.trophies', { count: bal }); }
         renderCosmetics();
         renderHistory();
       }
@@ -2222,8 +2231,8 @@
       const btn = document.getElementById('embedBtn');
       if (!btn || !window.gamekit || !window.gamekit.embedModal) return;
       btn.addEventListener('click', () => {
-        const games = (window.GAMES || []).filter(g => g && !g.soon).map(g => ({ slug: g.slug, title: g.title || g.slug, icon: g.icon }));
-        games.unshift({ slug: '', title: 'Whole arcade (all games)', icon: '🎮' }); // embed the full catalogue, not just one game
+        const games = (window.GAMES || []).filter(g => g && !g.soon).map(g => ({ slug: g.slug, title: T('game.' + g.slug + '.title', g.title || g.slug), icon: g.icon }));
+        games.unshift({ slug: '', title: T('cat.embedAll', 'Whole arcade (all games)'), icon: '🎮' }); // embed the full catalogue, not just one game
         window.gamekit.embedModal({ games });
       });
     })();
@@ -2285,7 +2294,7 @@
       const KEY = 'arcade_density';
       const apply = compact => {
         grid.classList.toggle('compact', compact);
-        btn.textContent = compact ? '▤ Cozy' : '▦ Compact';
+        btn.textContent = compact ? T('cat.cozy', '▤ Cozy') : T('cat.compact', '▦ Compact');
         btn.setAttribute('aria-pressed', compact ? 'true' : 'false');
       };
       let saved = null; try { saved = localStorage.getItem(KEY); } catch (e) {}

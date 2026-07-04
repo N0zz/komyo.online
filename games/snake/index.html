@@ -183,6 +183,8 @@
   // Bests are keyed by the full mode (walls + speed + size) and stored as a map in localStorage.
   // one label per walls·speed·size combo — the single key used for bests (menu + profile) AND the record
   function modeLabel(o) { const c = s => s.charAt(0).toUpperCase() + s.slice(1); const a = [c(o.speed), o.walls === 'wrap' ? 'Wrap' : 'Walls']; if (o.size !== 'medium') a.push(c(o.size)); return a.join(' · '); }
+  // display-only (localized) mode name for the HUD — modeLabel stays the English storage key (saveBest/record.mode)
+  function modeDisplay(o) { const c = s => s.charAt(0).toUpperCase() + s.slice(1); if (!KIT) return modeLabel(o); const a = [KIT.t('game.snake.speed' + c(o.speed), { def: c(o.speed) }), o.walls === 'wrap' ? KIT.t('game.snake.wrapShort', { def: 'Wrap' }) : KIT.t('game.snake.wallsShort', { def: 'Walls' })]; if (o.size !== 'medium') a.push(KIT.t('game.snake.size' + c(o.size), { def: c(o.size) })); return a.join(' · '); }
   function loadBest() { return KIT ? KIT.bestScore('snake', modeLabel(opts)) : 0; }
   function saveBest(v) { if (KIT) KIT.saveBest('snake', modeLabel(opts), { score: v }); }
 
@@ -262,7 +264,7 @@
     if (scoreEl) scoreEl.textContent = score;
     if (bestEl) bestEl.textContent = best;
     if (lenEl) lenEl.textContent = snake.length;
-    if (modeEl) modeEl.textContent = modeLabel(opts);
+    if (modeEl) modeEl.textContent = modeDisplay(opts);
   }
 
   // ---- Particles ----
