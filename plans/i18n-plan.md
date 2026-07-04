@@ -24,14 +24,13 @@
 
 ## Session breakdown (incremental execution)
 
-> **Current status (2026-07-04):** Phases 1–5 shipped (engine, picker, kit, registry, catalogue, all
-> games) + legal pages; PL is live in production. **S9 DONE:** the `komyo-new-game` skill is `t()`-native
-> (templates emit `KIT.t(key,{def})`, i18n.js in the generated `<head>`+SW SHELL). **i18n COVERAGE now
-> ENFORCED** by `test.mjs`: `pl` must contain every referenced key, and every other locale must be
-> **empty or a complete superset of `pl`** — so PL is required for anything new (English still works via
-> `def:`). **Remaining:** (a) **Polish fixes** — QA live PL strings; (b) **es/pt/fr/it** — still empty,
-> populate in a full pass (S7 / Phase 6); (c) **mobile-device QA** across languages × orientations (S8 /
-> Phase 7 Task 25); (d) the final "i18n shipped" changelog/README (Task 26) once more languages land.
+> **Current status (2026-07-04): SYSTEM DONE — now just adding languages.** Phases 1–5 shipped (engine,
+> picker, kit, registry, catalogue, all games) + legal pages. **S9 DONE:** the `komyo-new-game` skill is
+> `t()`-native. **Coverage ENFORCED** by `test.mjs` (every locale empty-or-complete; PL required for anything
+> new). **PL and ES are both LIVE in production** (ES shipped 2026-07-04, announced in the changelog). New
+> games ship with PL+ES from the start (Forcefield did). **Remaining is content, not plumbing:** (a) **pt / fr
+> / it** translations (Phase 6 / S7); (b) a **native QA pass** incl. eyeballing live ES; (c) **mobile-device
+> QA** across languages × orientations (Task 25); (d) a README "languages supported" note (Task 26).
 
 This plan is split into independent sessions. **The English fallback** (`t()` →
 translation → `en` → `def` → key) means a half-migrated site is a fully working
