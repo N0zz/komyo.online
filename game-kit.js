@@ -736,9 +736,18 @@
       var el = document.createElement('div'); el.className = 'gamekit-term-cursor'; el.setAttribute('aria-hidden', 'true');
       el.style.background = col; el.style.boxShadow = '0 0 8px ' + col;
       document.body.appendChild(el);
+      // put the block in the browser TOP LAYER (via the popover API) so it draws above native <dialog>
+      // modals (settings/changelog…), which no z-index can beat.
+      try { if (el.showPopover) { el.setAttribute('popover', 'manual'); el.showPopover(); } } catch (e) {}
+      var lastN = -1;
       var move = function (e) {
         if (!e) return;
         el.style.left = e.clientX + 'px'; el.style.top = e.clientY + 'px';
+        // the top layer is insertion-ordered — when a dialog opens it lands above us, so re-assert once
+        // whenever the open-dialog count changes to jump back on top
+        try {
+          if (el.showPopover) { var n = document.querySelectorAll('dialog[open]').length; if (n !== lastN) { lastN = n; try { el.hidePopover(); } catch (x) {} try { el.showPopover(); } catch (x) {} } }
+        } catch (x) {}
         // hide the block ONLY over an element that renders its own cursor (marked data-gk-hide-cursor,
         // e.g. aim-trainer's canvas) — everywhere else it stays visible so you can reach the top-bar menu
         var over = null; try { over = document.elementFromPoint(e.clientX, e.clientY); } catch (x) {}
