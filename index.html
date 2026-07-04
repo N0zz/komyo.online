@@ -468,6 +468,7 @@
 
   /* ---- control row (Install · Search · Filter) ---- */
   .controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; flex-wrap:wrap; }
+  .controls .ibtn { height:38px; line-height:1; }  /* equal height regardless of emoji/glyph (🎲 vs ⚙/▦) */
   .searchbox { flex:1 1 240px; max-width:420px; display:flex; align-items:center; gap:8px; height:40px; padding:0 13px;
     background:var(--surface-2); border:1px solid var(--border); border-radius:10px; color:var(--faint); }
   .searchbox:focus-within { border-color:#9fe8ff; }
@@ -652,7 +653,7 @@
     <span id="langMount"></span>
   </div>
   <div class="float-btns-r">
-    <button class="tb-btn tb-chal" id="chalBtn" aria-label="Open challenges" aria-haspopup="dialog"><span class="trophy">🏆</span> <span class="tb-lbl">CHALLENGES</span></button>
+    <button class="tb-btn tb-chal" id="chalBtn" aria-label="Open challenges" data-ta="cat.openChallenges" aria-haspopup="dialog"><span class="trophy">🏆</span> <span class="tb-lbl" data-t="cat.challengesBtn">CHALLENGES</span></button>
   </div>
   <div class="wrap">
     <header>
@@ -2193,7 +2194,7 @@
         const cos = K.cosmetics;
         if (cos && window.COSMETICS && shopEl) {
           shopEl.hidden = false;
-          shopEl.textContent = window.gamekit.t('challenges.cosmeticsBtn', { bal: fmt(cos.balance()) });
+          shopEl.textContent = window.gamekit.t('challenges.cosmeticsBtn', { bal: cos.balance() });
         }
         if (cos && window.COSMETICS && collEl) {
           const pr = cos.progress(), pct = Math.round(pr.pct * 100);

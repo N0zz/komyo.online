@@ -1446,7 +1446,9 @@ window.KOMYO_I18N = {
     'changelog.e13.b4': 'Poprawka: Rozbij Cegły działało za szybko na niektórych telefonach — prędkość jest teraz spójna wszędzie.',
     'changelog.e13.b5': 'Poprawka: „Sprint” w Strzelnicy to teraz porządny wyścig do 100 tarcz.',
     'changelog.e14.title': 'Premiera pierwszych gier',
-    'changelog.e14.b0': 'Dodano 8 gier: Asteroidy, Obrońca Twierdzy, Bąbelki, Rozbij Cegły, Wieża, Łąkowy Lot, Strzelnica i Neonowy Wąż.'
+    'changelog.e14.b0': 'Dodano 8 gier: Asteroidy, Obrońca Twierdzy, Bąbelki, Rozbij Cegły, Wieża, Łąkowy Lot, Strzelnica i Neonowy Wąż.',
+    'cat.challengesBtn': 'WYZWANIA',
+    'cat.openChallenges': 'Otwórz wyzwania'
   },
   es: {},
   pt: {},
