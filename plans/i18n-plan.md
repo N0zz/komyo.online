@@ -28,7 +28,9 @@
 > production. **Remaining tracked work:** (a) **Polish fixes** — QA the live PL strings and repair
 > gaps (e.g. the search bars were fixed to match translated names, not just the English source);
 > (b) **more languages** — populate/finish es/pt/fr/it (S7); (c) **mobile-device QA** across
-> languages × orientations (S8); (d) **flip the `komyo-new-game` skill to `t()`-native** (S9, final).
+> languages × orientations (S8). **S9 DONE (2026-07-04):** the `komyo-new-game` skill is now
+> `t()`-native — templates emit `KIT.t(key,{def})`, i18n.js is in the generated `<head>` + SW SHELL,
+> and generated games ship playable in English via `def:` fallbacks (translate later, no scaffold edit).
 
 This plan is split into independent sessions. **The English fallback** (`t()` →
 translation → `en` → `def` → key) means a half-migrated site is a fully working

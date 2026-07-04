@@ -65,8 +65,8 @@ review and treated as **non-blocking** (no longer a hard gate).
    challenges, FAQ/About/privacy) + SEO (`hreflang` + translated `<title>`/meta/OG) + GA4 language read + RTL
    if we ever add Arabic/Hebrew. Then **implement** — ship the small version now; if it's a big surface it
    stretches but stays on the path (it's the reach lever, not a nice-to-have). **Now in execution
-   (see `plans/i18n-plan.md`):** PL mostly landed — remaining = Polish fixes, more-language
-   translations, the create-game-skill i18n flip (S9), and mobile-device QA.
+   (see `plans/i18n-plan.md`):** PL mostly landed; the create-game-skill i18n flip (S9) is DONE.
+   Remaining = Polish fixes, more-language translations (es/pt/fr/it), and mobile-device QA.
 2. **Invite more people** — widen the staged friends/family circle (already trickling) → let them share
    further. Real usage before the skill/game push tells us what to build.
 3. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an

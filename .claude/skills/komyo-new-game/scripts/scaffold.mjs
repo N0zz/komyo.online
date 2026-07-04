@@ -79,4 +79,7 @@ console.log('       { slug: "' + slug + '", title: "' + title + '", icon: "' + i
 console.log('         blurb: "…", tags: ["…"], added: "YYYY-MM-DD" }');
 console.log('\n  5. On go-live (not soon:): add https://komyo.online/games/' + slug + '/ to sitemap.xml AND llms.txt.');
 console.log('\n  6. changelog.js — prepend ONE player-facing entry for the release.');
-console.log('\n  7. Run the suites:  node test.mjs   &&   node games/' + slug + '/test.mjs');
+console.log('\n  7. i18n (optional): the game already plays in English via KIT.t def: fallbacks —');
+console.log('     no i18n.js edit needed. To translate, add game.' + slug + '.* keys to the pl');
+console.log('     (then es/pt/fr/it) blocks in i18n.js. Reuse game.common.* for shared strings.');
+console.log('\n  8. Run the suites:  node test.mjs   &&   node games/' + slug + '/test.mjs');
