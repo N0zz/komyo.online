@@ -1059,6 +1059,12 @@
       return items ? '<span class="badges">' + items + '</span>' : '';
     }
 
+    // registry-data display routes through gamekit.t with the games.js English as the
+    // `def` fallback — byte-identical until translations for these keys land (S7).
+    const T = (k, def) => (window.gamekit && window.gamekit.t) ? window.gamekit.t(k, { def }) : def;
+    const gameTitle = g => T('game.' + g.slug + '.title', g.title);
+    const gameBlurb = g => T('game.' + g.slug + '.blurb', g.blurb);
+
     // catalogue is grouped into sections; favorites pin to the top of their own section.
     function tileEl(g, f) {
       const soon = !!g.soon;
@@ -1073,17 +1079,17 @@
           '<span class="glyph">' + (g.icon || '🎮') + '</span>' +
         '</div>' +
         '<div class="meta">' +
-          '<div class="row"><h2>' + g.title + '</h2></div>' +
+          '<div class="row"><h2>' + gameTitle(g) + '</h2></div>' +
           '<div class="tags">' + (tagsOf(g).length ? tagsOf(g) : ['GAME']).map(t =>
             '<span class="tag" style="--tc:' + tagColorOf(t) + '">' + t + '</span>').join('') + '</div>' +
-          '<p>' + g.blurb + '</p>' +
+          '<p>' + gameBlurb(g) + '</p>' +
           '<div class="play">' + (soon ? 'COMING SOON' : 'PLAY ▸') + '</div>' +
         '</div>';
       if (!soon) {
         const star = document.createElement('button');
         star.className = 'fav' + (f.includes(g.slug) ? ' on' : '');
         star.textContent = '★';
-        star.setAttribute('aria-label', (f.includes(g.slug) ? 'Unfavorite ' : 'Favorite ') + g.title);
+        star.setAttribute('aria-label', (f.includes(g.slug) ? 'Unfavorite ' : 'Favorite ') + gameTitle(g));
         star.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleFav(g.slug); });
         el.appendChild(star);
       }

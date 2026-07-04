@@ -999,6 +999,11 @@
     box.appendChild(buyBtn);
     var cells = [], focused = -1, gameProgEls = [];
     function fmtT(n) { return fmtScore(n | 0); }
+    // registry-data display → t() with the cosmetics.js English as the def fallback (byte-identical until S7)
+    function cosName(it) { return t('cos.' + it.id + '.name', { def: it.name }); }
+    function cosDesc(it) { return t('cos.' + it.id + '.desc', { def: it.desc || '' }); }
+    function cosSetLabel(sid, def) { return t('cos.set.' + sid, { def: def || sid }); }
+    function shopGameTitle(slug, def) { return t('game.' + slug + '.title', { def: def || slug }); }
     function syncHeader() {
       balEl.textContent = '🏆 ' + fmtT(cosBalance());
       var pr = scopeGame != null ? cosProgress(scopeGame) : cosProgress();
@@ -1014,9 +1019,9 @@
       cells.forEach(function (c2, i) { if (c2.el.classList) c2.el.classList.toggle('gksp-focus', i === focused); });
       if (!f) { focdesc.innerHTML = ''; buyBtn.textContent = ''; buyBtn.disabled = true; try { buyBtn.style.visibility = 'hidden'; } catch (e) {} return; }
       var it = f.item, ownedNow = cosOwned(it.id), isSel = cosSelected(it.set) === it.id;
-      focdesc.innerHTML = '&#9656; <b>' + it.name + '</b> — ' + (it.desc || '') +
+      focdesc.innerHTML = '&#9656; <b>' + cosName(it) + '</b> — ' + cosDesc(it) +
         (ownedNow ? '' : ' <span class="gksp-price">🏆 ' + fmtT(it.price) + '</span>');
-      buyBtn.textContent = ownedNow ? (isSel ? t('shop.equipped') : t('shop.equip', { name: it.name })) : t('shop.buy', { name: it.name, price: fmtT(it.price) });
+      buyBtn.textContent = ownedNow ? (isSel ? t('shop.equipped') : t('shop.equip', { name: cosName(it) })) : t('shop.buy', { name: cosName(it), price: fmtT(it.price) });
       buyBtn.disabled = ownedNow ? isSel : cosBalance() < (+it.price || 0);
       if (buyBtn.classList) buyBtn.classList.toggle('gksp-buy-equip', ownedNow && !isSel);
       try { buyBtn.style.visibility = ''; } catch (e) {}
@@ -1065,7 +1070,7 @@
         if (!gameItems.length) return;
         any = true;
         var gh = mkEl('div', 'gksp-game');
-        var gt = mkEl('span', 'gksp-gt', (meta.icon ? meta.icon + ' ' : '') + (meta.title || game).toUpperCase());
+        var gt = mkEl('span', 'gksp-gt', (meta.icon ? meta.icon + ' ' : '') + shopGameTitle(game, meta.title).toUpperCase());
         var gp = mkEl('span', 'gksp-gp');
         gh.appendChild(gt); gh.appendChild(gp); gh.appendChild(mkEl('span', 'gksp-gline'));
         if (meta.accent && gh.style && gh.style.setProperty) { try { gh.style.setProperty('--acc', meta.accent); } catch (e) {} }
@@ -1075,14 +1080,14 @@
           var setItems = gameItems.filter(function (it) { return it.set === setId; });
           if (!setItems.length) return;
           var sm = setsMeta[setId] || {};
-          if (gameSets.length > 1 || sm.note) scroll.appendChild(mkEl('div', 'gksp-set', (sm.label || setId) + (sm.note ? ' <span class="gksp-note">· ' + sm.note + '</span>' : '')));
+          if (gameSets.length > 1 || sm.note) scroll.appendChild(mkEl('div', 'gksp-set', cosSetLabel(setId, sm.label) + (sm.note ? ' <span class="gksp-note">· ' + sm.note + '</span>' : '')));
           var grid = mkEl('div', 'gksp-grid');
           setItems.forEach(function (it) {
             var cell = mkEl('div', 'gksp-cell');
             var cv = mkEl('canvas', 'gksp-sw'); try { cv.width = 40; cv.height = 40; } catch (e) {}
             if (it.painter) { try { drawPreview(cv, function (g, w, h) { it.painter(g, w, h); }); } catch (e) {} }
             var txt = mkEl('div', 'gksp-txt');
-            var nm = mkEl('div', 'gksp-nm', it.name), sub = mkEl('div', 'gksp-sub');
+            var nm = mkEl('div', 'gksp-nm', cosName(it)), sub = mkEl('div', 'gksp-sub');
             txt.appendChild(nm); txt.appendChild(sub);
             cell.appendChild(cv); cell.appendChild(txt);
             var idx = cells.length;
