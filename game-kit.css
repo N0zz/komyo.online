@@ -713,8 +713,8 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 /* Terminal cursor skin: a blinking phosphor block following the pointer (colour set inline by the kit) */
 .gamekit-term-cursor { position: fixed; left: 0; top: 0; z-index: 2147483600; pointer-events: none; width: 9px; height: 16px;
   background: #33ff88; box-shadow: 0 0 8px #33ff88; animation: gkTermBlink 1.15s steps(1) infinite; }
-/* mostly-visible: a short off-flash (~20%) so it reads as a blink but stays usable */
-@keyframes gkTermBlink { 0%, 80% { opacity: 1; } 80.01%, 100% { opacity: 0; } }
+/* always visible: the "blink" is just a short dip to 50% opacity, never fully off */
+@keyframes gkTermBlink { 0%, 80% { opacity: 1; } 80.01%, 100% { opacity: 0.5; } }
 @media (prefers-reduced-motion: reduce) { .gamekit-term-cursor { animation: none; opacity: 1; } }
 
 /* ---- CRT display mode (site-wide, unlockable — gamekit.crt) ----
