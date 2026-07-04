@@ -95,6 +95,8 @@
   function fmtTime(ms){ const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
   // single-source best labels (kit store): normal keeps best SCORE, speedrun keeps best TIME (min)
   function keyLabel(kk, sr){ const base = kk === 'classic-enhanced' ? 'Classic+' : 'Classic'; return sr ? (base + ' Speedrun') : base; }
+  // display-only (localized) mode name for the HUD tag — keyLabel stays the English storage key (saveBest/bestScore)
+  function keyLabelDisplay(kk, sr){ if (!KIT) return keyLabel(kk, sr); const base = kk === 'classic-enhanced' ? KIT.t('game.asteroids.modeClassicPlus', { def: 'Classic+' }) : KIT.t('game.asteroids.modeClassic', { def: 'Classic' }); return sr ? (base + ' ' + KIT.t('game.asteroids.modeSpeedrun', { def: 'Speedrun' })) : base; }
   function saveBest(ms){ return KIT ? KIT.saveBest('asteroids', keyLabel(KEY, true), { time: Math.floor(ms) }).isBest : false; }
   function saveBestScore(v){ return KIT ? KIT.saveBest('asteroids', keyLabel(KEY, false), { score: v }).isBest : false; }
   function readStat(k){ try{ const p=localStorage.getItem(k); return p==null?null:parseInt(p,10); }catch(e){ return null; } }
@@ -104,7 +106,7 @@
     KEY = ENHANCED ? 'classic-enhanced' : 'classic'; BEST_KEY = 'asteroids_best_' + KEY; SCORE_KEY = 'asteroids_score_' + KEY;
     if (weaponEl) weaponEl.style.display = ENHANCED ? '' : 'none';
     if (timerEl) { timerEl.style.display = SPEEDRUN ? 'block' : 'none'; if (SPEEDRUN && timerGoal) timerGoal.textContent = KIT.t('game.asteroids.timerGoal', { pts: SR_TARGET_SCORE, def: 'GOAL: ' + SR_TARGET_SCORE + ' PTS' }); }
-    if (modeTagEl) modeTagEl.textContent = keyLabel(KEY, SPEEDRUN);
+    if (modeTagEl) modeTagEl.textContent = keyLabelDisplay(KEY, SPEEDRUN);
   }
 
 

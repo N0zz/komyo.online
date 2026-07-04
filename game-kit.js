@@ -962,7 +962,7 @@
     box.appendChild(xb);
     var head = mkEl('div', 'gksp-head');
     var scopeMeta = scopeGame != null ? (gamesMeta[scopeGame] || { title: scopeGame }) : null;
-    head.appendChild(mkEl('span', 'gksp-title', '🎨 ' + (scopeMeta ? t('shop.titleGame', { game: scopeMeta.title }) : t('shop.title'))));
+    head.appendChild(mkEl('span', 'gksp-title', '🎨 ' + (scopeMeta ? t('shop.titleGame', { game: (scopeGame ? t('game.' + scopeGame + '.title', { def: scopeMeta.title }) : scopeMeta.title) }) : t('shop.title'))));
     var balEl = mkEl('span', 'gksp-bal'); head.appendChild(balEl);
     box.appendChild(head);
     // controls row: search + (full store) a game filter, or (scoped) an "All games →" link
@@ -971,10 +971,14 @@
     ctrls.appendChild(search);
     var gameSel = null, allGamesLink = null;
     if (scopeGame == null) {
-      gameSel = mkEl('select', 'gksp-filter'); try { gameSel.setAttribute('aria-label', t('shop.filterAria')); } catch (e) {}
-      var optAll = mkEl('option', null, t('shop.allGamesOpt')); try { optAll.value = '__all'; } catch (e) {} gameSel.appendChild(optAll);
-      shown.forEach(function (g) { var m = gamesMeta[g] || { title: g || t('shop.siteWide') }; var o = mkEl('option', null, (m.icon ? m.icon + ' ' : '') + (m.title || g || t('shop.siteWide'))); try { o.value = g; } catch (e) {} gameSel.appendChild(o); });
-      ctrls.appendChild(gameSel);
+      var filterOpts = [{ value: '__all', label: t('shop.allGamesOpt') }];
+      shown.forEach(function (g) {
+        var m = gamesMeta[g] || { title: g || t('shop.siteWide') };
+        var ttl = g ? t('game.' + g + '.title', { def: m.title || g }) : t('shop.siteWide');
+        filterOpts.push({ value: g, label: (m.icon ? m.icon + ' ' : '') + ttl });
+      });
+      gameSel = mkGameFilter(filterOpts);
+      ctrls.appendChild(gameSel.el);
     } else if (typeof opts.allGames === 'function') {
       allGamesLink = mkEl('button', 'gksp-allgames', t('shop.allGamesLink')); try { allGamesLink.type = 'button'; } catch (e) {}
       ctrls.appendChild(allGamesLink);
@@ -1004,6 +1008,44 @@
     function cosDesc(it) { return t('cos.' + it.id + '.desc', { def: it.desc || '' }); }
     function cosSetLabel(sid, def) { return t('cos.set.' + sid, { def: def || sid }); }
     function shopGameTitle(slug, def) { return t('game.' + slug + '.title', { def: def || slug }); }
+    // themed game filter (replaces the native <select> so it matches the kit look): a trigger button
+    // showing the current pick, opening a langMenu-style themed overlay list. Picking sets .value +
+    // rebuilds. `gameSel` stays a plain {value, el} so rebuild() reads .value unchanged.
+    function mkGameFilter(options) {
+      var self = { value: '__all', el: null };
+      var btn = mkEl('button', 'gksp-filter'); try { btn.type = 'button'; btn.setAttribute('aria-haspopup', 'listbox'); btn.setAttribute('aria-label', t('shop.filterAria')); } catch (e) {}
+      function labelFor(v) { for (var i = 0; i < options.length; i++) if (options[i].value === v) return options[i].label; return options[0].label; }
+      function syncLabel() {
+        btn.innerHTML = '';
+        btn.appendChild(mkEl('span', 'gksp-filter-lbl', labelFor(self.value)));
+        btn.appendChild(mkEl('span', 'gksp-filter-caret', '▾'));
+      }
+      function openMenu() {
+        var pov = document.createElement('div'); pov.className = 'gamekit-shopfilter-menu';
+        var pbox = mkEl('div', 'gkspf-box'); pov.appendChild(pbox);
+        options.forEach(function (o) {
+          var it = mkEl('button', 'gkspf-opt' + (o.value === self.value ? ' selected' : ''), o.label); try { it.type = 'button'; } catch (e) {}
+          it.addEventListener('click', function () { self.value = o.value; syncLabel(); pclose(); rebuild(); });
+          pbox.appendChild(it);
+        });
+        if (opts.theme) applyMenuTheme(pov, opts.theme);
+        var phost = document.body; try { var d = document.querySelector && document.querySelector('dialog[open]'); if (d) phost = d; } catch (e) {}
+        phost.appendChild(pov); _modalOpen++;
+        var pdone = false;
+        function pclose() {
+          if (pdone) return; pdone = true; _modalOpen = Math.max(0, _modalOpen - 1);
+          try { document.removeEventListener('keydown', pkey, true); } catch (e) {}
+          try { if (pov.parentNode) pov.parentNode.removeChild(pov); } catch (e) {}
+        }
+        function pkey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); pclose(); } }
+        pov.addEventListener('click', function (e) { if (e && e.target === pov) pclose(); });
+        if (typeof document.addEventListener === 'function') document.addEventListener('keydown', pkey, true);
+      }
+      btn.addEventListener('click', openMenu);
+      syncLabel();
+      self.el = btn;
+      return self;
+    }
     function syncHeader() {
       balEl.textContent = '🏆 ' + fmtT(cosBalance());
       var pr = scopeGame != null ? cosProgress(scopeGame) : cosProgress();
@@ -1116,12 +1158,11 @@
       try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
       if (typeof opts.onClose === 'function') { try { opts.onClose(); } catch (e) {} }
     }
-    function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc') && document.activeElement !== search) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
+    function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc') && document.activeElement !== search && !(document.querySelector && document.querySelector('.gamekit-shopfilter-menu'))) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
     xb.addEventListener('click', close);
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
     buyBtn.addEventListener('click', function () { if (focused >= 0) confirmFocused(); });
     if (search) search.addEventListener('input', rebuild);
-    if (gameSel) gameSel.addEventListener('change', rebuild);
     if (allGamesLink) allGamesLink.addEventListener('click', function () { close(); try { opts.allGames(); } catch (e) {} });
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
     rebuild();
@@ -1384,7 +1425,7 @@
     // ☰ language row: a full-width item (split globe/flag glyph + "Language") opening the themed
     // grid; closing the ☰ panel first keeps it from lingering behind the overlay.
     if (morePanel) {
-      var langBtn = langButton({ label: 'Language', className: 'gamekit-more-item gamekit-more-lang', theme: opts.theme });
+      var langBtn = langButton({ label: t('lang.header', { def: 'Language' }), className: 'gamekit-more-item gamekit-more-lang', theme: opts.theme });
       if (langBtn) {
         langBtn.addEventListener('click', function () { setMore(false); }, true);
         var resetRow = opts.reset ? document.getElementById('gamekitReset') : null;
@@ -2752,7 +2793,7 @@
     }).join('');
     var ov = document.createElement('div'); ov.className = 'gamekit-langmenu';
     ov.innerHTML = '<div class="gklang-box"><button class="gklang-x" type="button" aria-label="Close">✕</button>'
-      + '<h3>🌐 Language</h3><div class="gklang-grid">' + cells + '</div></div>';
+      + '<h3>🌐 ' + t('lang.header', { def: 'Language' }) + '</h3><div class="gklang-grid">' + cells + '</div></div>';
     if (opts.theme) applyMenuTheme(ov, opts.theme);
     document.body.appendChild(ov);
     _modalOpen++;

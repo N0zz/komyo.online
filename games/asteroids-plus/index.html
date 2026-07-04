@@ -186,6 +186,8 @@
   function fmtTime(ms){ const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
   // single-source best labels (kit store): normal keeps best SCORE (+ wave stat), speedrun keeps best TIME (min)
   function progLabel(prog, sr){ const base = { levelup:'Level-up', milestones:'Milestones', shop:'Wave Shop' }[prog] || 'Level-up'; return sr ? (base + ' Speedrun') : base; }
+  // display-only (localized) mode name for the HUD tag — progLabel stays the English storage key (saveBest/record.mode)
+  function progLabelDisplay(prog, sr){ if (!KIT) return progLabel(prog, sr); const base = { levelup:t('game.asteroids-plus.modeLevelup',{def:'Level-up'}), milestones:t('game.asteroids-plus.modeMilestones',{def:'Milestones'}), shop:t('game.asteroids-plus.modeShop',{def:'Wave Shop'}) }[prog] || t('game.asteroids-plus.modeLevelup',{def:'Level-up'}); return sr ? (base + ' ' + t('game.asteroids-plus.modeSpeedrun',{def:'Speedrun'})) : base; }
   function saveBest(ms){ return KIT ? KIT.saveBest('asteroids-plus', progLabel(PROGRESSION, true), { time: Math.floor(ms) }).isBest : false; }
 
   // mode-specific HUD element visibility — called at boot and whenever a run's mode is chosen (no reload)
@@ -194,7 +196,7 @@
     creditsEl.style.display= (PROGRESSION==='shop')    ? 'block' : 'none';
     timerEl.style.display  = SPEEDRUN ? 'block' : 'none';
     if (SPEEDRUN) timerGoal.textContent = t('game.asteroids-plus.hudGoal', { wave: SR_TARGET_WAVE, def: 'GOAL: CLEAR WAVE '+SR_TARGET_WAVE });
-    modeTagEl.textContent = progLabel(PROGRESSION, SPEEDRUN);
+    modeTagEl.textContent = progLabelDisplay(PROGRESSION, SPEEDRUN);
   }
   applyModeHud();
   // static splash + HUD-label prose (set once from the DOM defaults, so it can be localized)
