@@ -151,8 +151,12 @@
   .grid.compact .meta h2 { font-size: 12px; line-height: 1.2; }
   .grid.compact .meta p, .grid.compact .tags, .grid.compact .play, .grid.compact .players { display: none; }
   .grid.compact .fav { width: 24px; height: 24px; font-size: 12px; top: 5px; right: 5px; }
-  .grid.compact .badges { top: 5px; left: 6px; }
-  .grid.compact .badge b { font-size: 9px; letter-spacing: 1px; }
+  /* compact tiles are too small for text labels (they overlapped the icon) — render each badge as a
+     small shiny colored dot instead; the per-type gradient + glow now fill the dot, no text/sparkles */
+  .grid.compact .badges { top: 5px; left: 6px; flex-direction: row; gap: 5px; }
+  .grid.compact .badge b { display: block; width: 9px; height: 9px; border-radius: 50%; font-size: 0; letter-spacing: 0;
+    overflow: hidden; color: transparent; -webkit-background-clip: border-box; background-clip: border-box; }
+  .grid.compact .badge .spk { display: none; }
 
   .help-row { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; }
   .ibtn { position:relative; font-family:var(--mono); font-size:12px; letter-spacing:2px; cursor:pointer; padding:9px 16px; border-radius:10px;
@@ -1127,7 +1131,9 @@
       if (FILTER.type === 'mp' && !g.mp) return false;
       if (FILTER.q) {
         const labels = badgeKeys(g).map(k => (BADGES[k] && BADGES[k].label) || '').join(' ');
-        const hay = ((g.title || '') + ' ' + tagsOf(g).join(' ') + ' ' + (g.blurb || '') + ' ' + labels).toLowerCase();
+        // search over BOTH the raw source strings and their translations, so it works in every language
+        const tagStr = tagsOf(g).map(t => t + ' ' + T('tag.' + t.toLowerCase(), t)).join(' ');
+        const hay = ((g.title || '') + ' ' + gameTitle(g) + ' ' + tagStr + ' ' + (g.blurb || '') + ' ' + gameBlurb(g) + ' ' + labels).toLowerCase();
         if (!hay.includes(FILTER.q)) return false;
       }
       return true;
@@ -1939,11 +1945,12 @@
       window.__openTitlesLadder = () => {
         if (!tlModal || !tlModal.showModal) return;
         renderTitles(); tlModal.showModal(); startTitleFx();
+        setPanelUrl('titles');
         if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'titles' });
       };
       if (tlClose) tlClose.addEventListener('click', () => tlModal.close());
       if (tlModal) tlModal.addEventListener('click', e => { if (e.target === tlModal) tlModal.close(); });
-      if (tlModal) tlModal.addEventListener('close', () => { tlList.innerHTML = ''; startTitleFx(); });   // drop the ladder fields, keep the profile-box one running
+      if (tlModal) tlModal.addEventListener('close', () => { if (openPanel === 'titles') setPanelUrl(null); tlList.innerHTML = ''; startTitleFx(); });   // drop the ladder fields, keep the profile-box one running
       // title-unlock moment: crossing a titles-ladder tier since the last-seen one lights a dot on ☰;
       // the next drawer open plays a one-shot reveal shine on the identity card, then it's "seen"
       const TSEEN = 'gamekit_title_seen';
@@ -2086,7 +2093,8 @@
       const todayEl = document.getElementById('chalToday'), weekEl = document.getElementById('chalWeek'), streakEl = document.getElementById('chalStreak');
       // both drawer pills open the Cosmetics store (titles live in the profile + ☰ menu, not here);
       // the store itself carries a "See titles" button (onTitles) for reaching the ladder.
-      const openShop = () => { if (K.shopPanel) K.shopPanel({ onTitles: () => window.__openTitlesLadder && window.__openTitlesLadder(), onClose: render }); };
+      const openShop = () => { if (!K.shopPanel) return; setPanelUrl('cosmetics'); K.shopPanel({ onTitles: () => window.__openTitlesLadder && window.__openTitlesLadder(), onClose: () => { if (openPanel === 'cosmetics') setPanelUrl(null); render(); } }); };
+      window.__openShop = openShop;
       if (streakEl) streakEl.addEventListener('click', () => window.__openTitlesLadder && window.__openTitlesLadder());
       if (!K || !todayEl) return;
       const genreOf = {}, titleOf = {};
@@ -2345,7 +2353,7 @@
     (function () {
       const MAP = { faq: 'faqBtn', changelog: 'changelogBtn', about: 'aboutBtn', privacy: 'legalBtn', embed: 'embedBtn', data: 'dataBtn', settings: 'settingsBtn', profile: 'profileBtn' };
       const DLG = { faq: 'faqModal', changelog: 'clModal', about: 'aboutModal', privacy: 'legalModal', data: 'dataModal', settings: 'settingsModal', profile: 'profileModal' };
-      const ALIAS = { legal: 'privacy', license: 'privacy' };
+      const ALIAS = { legal: 'privacy', license: 'privacy', shop: 'cosmetics', store: 'cosmetics' };
       // reflect manual opens/closes in the URL (so it's shareable): trigger click → ?m=key; dialog close → drop it
       Object.keys(MAP).forEach(key => {
         const btn = document.getElementById(MAP[key]); if (!btn) return;
@@ -2358,6 +2366,8 @@
       // open the panel named in the (early-captured) ?m= on load
       try {
         let m = DEEPLINK_M; if (!m) return; m = m.toLowerCase(); m = ALIAS[m] || m;
+        if (m === 'titles') { if (window.__openTitlesLadder) window.__openTitlesLadder(); return; }
+        if (m === 'cosmetics') { if (window.__openShop) window.__openShop(); return; }
         const btn = MAP[m] && document.getElementById(MAP[m]);
         if (btn) btn.click();
       } catch (e) {}
