@@ -476,6 +476,15 @@
   /* ---- control row (Install · Search · Filter) ---- */
   .controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; flex-wrap:wrap; }
   .controls .ibtn { height:38px; line-height:1; }  /* equal height regardless of emoji/glyph (🎲 vs ⚙/▦) */
+  /* mobile: search on its own row; Filter · Random · Compact share ONE row (equal thirds, shrunk to fit) */
+  @media (max-width:560px) {
+    .controls { gap:8px; }
+    .controls .searchbox { flex-basis:100%; max-width:none; }
+    .controls .filter-wrap { flex:1 1 0; min-width:0; }
+    .controls .filter-wrap .filter-btn, .controls #randomBtn, .controls #densityBtn {
+      flex:1 1 0; min-width:0; width:100%; padding-left:8px; padding-right:8px;
+      font-size:11px; letter-spacing:.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  }
   .searchbox { flex:1 1 240px; max-width:420px; display:flex; align-items:center; gap:8px; height:40px; padding:0 13px;
     background:var(--surface-2); border:1px solid var(--border); border-radius:10px; color:var(--faint); }
   .searchbox:focus-within { border-color:#9fe8ff; }
