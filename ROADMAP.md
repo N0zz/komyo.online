@@ -45,40 +45,42 @@ challenges, tv-controller.
   pre-interaction PWA silent reload was removed (badge/prompt only). Design doc: `plans/cosmetics-shop.html`.
   *Parked: mascot-attire cosmetics (gated on the real mascot); deed-locked exclusives; collector badges.*
 
+- **i18n system + PL + ES — DONE (2026-07-04).** Full no-build i18n: kit `t()` engine + `Intl.PluralRules`,
+  language picker (home Settings + in-game ☰), `?lang=`/`navigator.language`/persisted pick, `hreflang` +
+  translated meta, and a **coverage test** enforcing every locale is empty-or-complete. **Polish and Spanish
+  are live** across catalogue + kit + every game + legal pages. Remaining is just more languages (pt/fr/it) +
+  QA. See `plans/i18n-plan.md`.
+- **Forcefield — DONE (2026-07-04).** New game (game #10), first pull from the POC branch. Planet
+  shield-defense: a battle station charges + fires at a huge planet; sweep your atmosphere dome over the marked
+  impact and tap to deflect (instant), or it fires on its own at the deadline. Modes: Timed / Shields / Double
+  (station centre, a planet + player each side, 1–2 players); Easy/Med/Hard scale sweep speed + dome width;
+  planet skins + bolt colours in the Collection; 2 daily challenges + good-run bar; PL + ES strings.
+  *Follow-up: retune the 250/500 challenge targets + good-run bar from real scores.*
+
 ## 🚀 Path to launch (ordered)
 
-Reprioritised **2026-07-03** (cosmetics shop shipped, see Done). Foundations are done (kit menu, audio,
-profile/best-store, challenges, cosmetics/trophies, GA4, PWA, share, Discord auto-post). The real levers now
-are **reach** (i18n) and **game count**. **Not gating launch:** the **real mascot** is dropped to Later —
-the placeholder chibi art ships fine and gets swapped whenever real art lands; the **privacy policy** is in
-review and treated as **non-blocking** (no longer a hard gate).
+Reprioritised **2026-07-04**. Foundations are done (kit menu, audio, profile/best-store, challenges,
+cosmetics/trophies, GA4, PWA, share, Discord auto-post). The real levers now are **reach** (more languages)
+and **game count**. **Not gating launch:** the **real mascot** is dropped to Later — the placeholder chibi
+art ships fine and gets swapped whenever real art lands; the **privacy policy** is in review and treated as
+**non-blocking** (no longer a hard gate).
 
-*Recently done:* review fix sessions (all 10, code-verified 2026-07-03 — skill gate cleared) · challenge-points
-**titles** (Goblin→Emperor, escalating shine) · the **cosmetics shop / trophies** system.
+*Recently done:* the **cosmetics shop / titles** system · the **"create a game" skill** (gate cleared, used
+to build Forcefield) · **friends/family circle** invited & trickling · the **i18n system + PL + ES live**.
 
 ### Ordered path
 
-1. **Translations / i18n.** The biggest reach lever (non-English kids struggle with English UI). **Spike
-   first (~2 days):** target languages (PL + big EU/global?), a **no-build** architecture (per-language JSON
-   dictionaries + a kit `t(key)` helper + `navigator.language` detect + a persisted picker), and the true
-   cost = **string extraction** (catalogue UI, per-game blurbs in `games.js`, in-game menu labels + hints,
-   challenges, FAQ/About/privacy) + SEO (`hreflang` + translated `<title>`/meta/OG) + GA4 language read + RTL
-   if we ever add Arabic/Hebrew. Then **implement** — ship the small version now; if it's a big surface it
-   stretches but stays on the path (it's the reach lever, not a nice-to-have). **Now in execution
-   (see `plans/i18n-plan.md`):** PL mostly landed; the create-game-skill i18n flip (S9) is DONE; a
-   **coverage test now enforces translations** (every locale empty-or-complete; PL required for anything
-   new). Remaining = Polish fixes, more-language translations (es/pt/fr/it), and mobile-device QA.
-2. **Invite more people** — widen the staged friends/family circle (already trickling) → let them share
-   further. Real usage before the skill/game push tells us what to build.
-3. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an
-   on-framework MVP in a 20–30 min session (spec under Catalogue / kit). The accelerator for #4.
-   **Gate cleared 2026-07-03** (dt-loop, shared harness, kit absorption + CLAUDE.md refresh verified).
-4. **Build more games** — toward the content bar; each via the dev-process gate (design+mock → POC → MVP →
-   iterate). **Bias low-tuning genres** (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower
-   defense, roguelite shooters — they ate many tuning cycles). See `komyo-avoid-balance-heavy-genres`.
-   Slot in **one original-mechanic, shareable game** alongside the remakes (see `komyo-market-expansion-discussion`).
-   **POC prototypes are saved on a separate branch** — pull them in as build candidates.
-5. **LAUNCH + marketing campaigns** — prep the materials (promo video / montage + Discord preview cuts,
+1. **Translations / i18n — system DONE; adding languages (*in progress*).** The whole i18n machinery shipped
+   (kit `t()` engine + picker, string extraction across catalogue/kit/games/legal, `hreflang`/meta, a
+   **coverage test** that enforces every locale is empty-or-complete). **PL and ES are live.** All that's left
+   is **content: pt / fr / it** translations, a native QA pass, and mobile QA across languages × orientations.
+   See `plans/i18n-plan.md`.
+2. **Build more games — *in progress*.** Toward the content bar; each via the dev-process gate (design+mock →
+   POC → MVP → iterate). **Forcefield shipped** (first pull from the POC branch). **Bias low-tuning genres**
+   (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower defense, roguelite shooters). See
+   `komyo-avoid-balance-heavy-genres`. Slot in **one original-mechanic, shareable game** alongside the remakes
+   (see `komyo-market-expansion-discussion`). More POC prototypes wait on a separate branch. Build order below.
+3. **LAUNCH + marketing campaigns — *todo*.** Prep the materials (promo video / montage + Discord preview cuts,
    per-game OG/Twitter cards, story-format share card), then publish everywhere: portals (itch.io, free-to-play
    indexes), news, forums, subreddits, Discord servers, socials. Paid ads considered later.
 
@@ -176,6 +178,12 @@ Not yet tiles (lane/genre ideas, added 2026-07-03 — a game gets a tile once it
 - **More puzzle/riddle lane** (beyond Sudoku/Minesweeper/Floodgate/Blink) — nonogram/picross,
   sokoban, sliding-15, tents-and-trees / logic-riddle packs, daily riddle ("one brain-teaser a
   day" pairs with challenges/streaks). All solvable-by-construction per the design knobs.
+- **Frog Rush** 🐸 (whack-a-mole variant, added 2026-07-04) — a flock of frogs hops across a
+  grassland/meadow toward something you're protecting in the middle; click/tap each frog to shoo it
+  away before it reaches the centre. Open: **what they're hunting** (e.g. a nest of eggs, a picnic,
+  fireflies, a flower patch) → that's the fail condition (they eat/steal it). One-tap, escalating
+  spawn rate/speed, kid-friendly. Distinct from the tap-only kids Balloon Pop by having a *defend*
+  objective + swarms.
 
 ### Kids-first (ages 6–10)
 
@@ -260,6 +268,17 @@ from day one.
   clause. Revisit `privacy.html` once counsel replies.
 
 ### Catalogue / kit
+
+- **Tips & tricks widget** *(idea, added 2026-07-04)* — there are no loading screens, so surface
+  rotating tips somewhere on the home page (e.g. bottom-right corner), cycling continuously; dismissable
+  and re-openable via a small bubble button. Content: how-to-play nuggets, feature callouts (challenges,
+  Collection, offline install, languages), keyboard shortcuts. Keep it unobtrusive + reduced-motion-safe.
+- **Welcome speech bubble from the mascot** *(idea, added 2026-07-04)* — the header mascot says "welcome"
+  in a random rotation across all supported languages (a little i18n flex). Subtle, not distracting — a
+  brief bubble on load / occasional, reduced-motion-safe. (Pairs with the real-mascot work.)
+- **Move the Collection button to the home page** *(idea, added 2026-07-04)* — consider promoting the 🎨
+  Collection entry out of the Challenges drawer to a top-level home-page control (more discoverable; it's a
+  primary feature, currently a bit buried).
 
 - **`gamekit.menu` framework (v3)** *(decided — launch prio #1, see Path to launch)* — promote the
   asteroids-style mode tiles + option-group rows into a reusable `gamekit.menu`: declarative config →
