@@ -720,7 +720,7 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 /* ---- CRT display mode (site-wide, unlockable — gamekit.crt) ----
    the whole page is monochrome-tinted via a root filter; a fixed overlay adds scanlines + vignette.
    green is the default; amber/cyan/mono are the other unlocked colours. */
-:root.gk-crt { --gk-crt-filter: grayscale(1) brightness(1.06) sepia(0.75) saturate(1.7) hue-rotate(52deg); filter: var(--gk-crt-filter); }
+:root.gk-crt { --gk-crt-filter: grayscale(1) brightness(1.05) sepia(0.85) saturate(2.4) hue-rotate(78deg); filter: var(--gk-crt-filter); }
 :root.gk-crt[data-crt-color="amber"] { --gk-crt-filter: grayscale(1) brightness(1.05) sepia(0.95) saturate(1.8) hue-rotate(-14deg); }
 :root.gk-crt[data-crt-color="cyan"] { --gk-crt-filter: grayscale(1) brightness(1.05) sepia(0.7) saturate(2.1) hue-rotate(142deg); }
 :root.gk-crt[data-crt-color="mono"] { --gk-crt-filter: grayscale(1) brightness(1.08) contrast(1.06); }
