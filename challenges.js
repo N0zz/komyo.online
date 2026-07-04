@@ -30,6 +30,8 @@ window.CHALLENGES = {
     'ast-2':      { slug: 'asteroids',      title: 'Score 8,000 in Asteroids',      metric: 'score', target: 8000 },
     'astp-1':     { slug: 'asteroids-plus', title: 'Score 15,000 in Asteroids+',    metric: 'score', target: 15000 },
     'astp-2':     { slug: 'asteroids-plus', title: 'Score 30,000 in Asteroids+',    metric: 'score', target: 30000 },
+    'forcefield-1':    { slug: 'forcefield',          title: 'Score 250 in Forcefield',       metric: 'score', target: 250 },
+    'forcefield-2':    { slug: 'forcefield',          title: 'Score 500 in Forcefield',       metric: 'score', target: 500 },
     // ---- cross-game / meta (today) ----
     'play2':      { title: 'Play 2 different games today',  scope: 'cross', range: 'day', metric: 'distinctGames',  target: 2 },
     'play3':      { title: 'Play 3 different games today',  scope: 'cross', range: 'day', metric: 'distinctGames',  target: 3 },
@@ -50,7 +52,7 @@ window.CHALLENGES = {
   daily: [
     'snake-1', 'play2', 'bub-1', 'td-wave5', 'fly-1', 'good3', 'aim-1', 'brk-1',
     'play3', 'stk-1', 'astp-1', 'genres2', 'rand-daily', 'snake-2', 'bub-2', 'aim-2',
-    'brk-2', 'fly-2', 'stk-2', 'td-wave10', 'astp-2', 'ast-1', 'ast-2',
+    'brk-2', 'fly-2', 'stk-2', 'td-wave10', 'astp-2', 'ast-1', 'ast-2', 'forcefield-1', 'forcefield-2',
   ],
   weekly: ['wk-distinct5', 'wk-play12', 'rand-weekly', 'wk-genres3', 'wk-good10'],
 };
@@ -64,6 +66,7 @@ window.CHALLENGES = {
 window.CHALLENGES.goodRun = {
   snake: 300, bubbles: 5000, breakout: 1500, stacker: 50, flappy: 50,
   'aim-trainer': 600, 'tower-defense': 2000, asteroids: 8000, 'asteroids-plus': 30000,
+  forcefield: 500,
 };
 
 // Deterministic, same-for-everyone pick for scope:'random' goals — chosen from ALL playable

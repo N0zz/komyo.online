@@ -187,6 +187,30 @@
     terminal: function (g) { g.fillStyle = '#33ff88'; g.shadowColor = '#33ff88'; g.shadowBlur = 5; g.fillRect(-4, -9, 8, 17); g.shadowBlur = 0; },
   };
 
+  // forcefield marker swatch — a glowing needle + triangle head over a faint track
+  function forcefieldMarker(color) {
+    return function (g, w, h) {
+      g.fillStyle = '#0e1420'; g.fillRect(0, 0, w, h);
+      var cx = w / 2, cy = h / 2;
+      g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(w * 0.15, cy - 3, w * 0.7, 6);
+      g.save(); g.shadowBlur = 8; g.shadowColor = color; g.fillStyle = color;
+      g.fillRect(cx - 2, cy - h * 0.28, 4, h * 0.56);
+      g.beginPath(); g.moveTo(cx, cy - h * 0.30); g.lineTo(cx - 7, cy - h * 0.30 - 9); g.lineTo(cx + 7, cy - h * 0.30 - 9); g.closePath(); g.fill();
+      g.restore();
+    };
+  }
+
+  // forcefield planet swatch — a small gradient world
+  function planetSwatch(c0, c1) {
+    return function (g, w, h) {
+      g.fillStyle = '#0a1020'; g.fillRect(0, 0, w, h);
+      var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.34;
+      var grd = g.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.2, cx, cy, r);
+      grd.addColorStop(0, c0); grd.addColorStop(1, c1);
+      g.fillStyle = grd; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
+    };
+  }
+
   var items = [];
   function add(game, set, key, name, price, desc, painter) {
     items.push({ id: (game || 'site') + '.' + set + '.' + key, game: game, set: (game || 'site') + '.' + set, name: name, desc: desc, price: price, painter: painter });
@@ -295,6 +319,15 @@
   add('flappy', 'bird', 'raven',    'Raven',    250, 'Midnight feathers, ancient secrets.', bird('#17181d', '#0c0d11', 'rgba(170,200,255,0.55)'));
   add('flappy', 'bird', 'phoenix',  'Phoenix',  500, 'The aspirational one. Rises from every game over.', bird('#ff8a3a', '#e85a1a', 'rgba(255,140,40,0.85)'));
 
+  // ---- 🛡️ Forcefield — bolt colours + planet skins ----
+  add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean white bolt.', forcefieldMarker('#eafcff'));
+  add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
+  add('forcefield', 'marker', 'lime',    'Lime',    50, 'A zesty green bolt.', forcefieldMarker('#b6ff5c'));
+  add('forcefield', 'planet', 'azure',   'Azure',   0,  'A deep blue ocean world.', planetSwatch('#2f57a0', '#0a1530'));
+  add('forcefield', 'planet', 'verdant', 'Verdant', 25, 'A lush green world.', planetSwatch('#2f8a5a', '#08210f'));
+  add('forcefield', 'planet', 'amber',   'Amber',   50, 'A golden desert world.', planetSwatch('#c39433', '#241706'));
+  add('forcefield', 'planet', 'violet',  'Violet',  75, 'A violet gas giant.', planetSwatch('#7a46b8', '#180a2e'));
+
   window.COSMETICS = {
     version: 1,
     items: items,
@@ -316,6 +349,8 @@
       'asteroids-plus.hull':  { label: 'Hull colours' },
       'asteroids-plus.trail': { label: 'Engine trails' },
       'flappy.bird':          { label: 'Birds' },
+      'forcefield.marker':         { label: 'Bolt colours' },
+      'forcefield.planet':         { label: 'Planet skins' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -325,10 +360,11 @@
       'tower-defense':  { title: 'Keep Defender', icon: '🏰', accent: '#e0b25a' },
       'bubbles':        { title: 'Bubble Pop', icon: '🫧', accent: '#2ee8c8' },
       'aim-trainer':    { title: 'Range', icon: '🎯', accent: '#ff7a3c' },
-      'stacker':        { title: 'Stack', icon: '🧊', accent: '#ff9aa2' },
+      'stacker':        { title: 'Stack', icon: '🗼', accent: '#ff9aa2' },
       'asteroids':      { title: 'Asteroids', icon: '🛸', accent: '#9fe8ff' },
       'asteroids-plus': { title: 'Asteroids+', icon: '☄️', accent: '#b98cff' },
       'flappy':         { title: 'Meadow Flyer', icon: '🐤', accent: '#8fd3a6' },
+      'forcefield':          { title: 'Forcefield', icon: '🛡️', accent: '#38bdf8' },
     },
   };
 })();

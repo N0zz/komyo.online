@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Forcefield</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#38bdf8">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Forcefield">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The sw.js SHELL must list these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #05060f; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #hud .val { color: #38bdf8; text-shadow: 0 0 8px #38bdf8; }
+  #hud .hrt { color: #ff4d6d; text-shadow: 0 0 8px #ff4d6d; letter-spacing: 2px; }
+  /* Double end-screen versus visualisation (rendered into the menu banner) */
+  .forcefield-vs { display: flex; flex-direction: column; gap: 9px; margin: 8px auto 2px; width: min(360px, 88%); }
+  .forcefield-vs-row { display: flex; align-items: center; gap: 9px; opacity: .6; transition: opacity .2s; }
+  .forcefield-vs-row.win { opacity: 1; }
+  .forcefield-vs-name { flex: 0 0 36%; font: 700 13px system-ui, sans-serif; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .forcefield-vs-bar { flex: 1; height: 15px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; }
+  .forcefield-vs-bar i { display: block; height: 100%; border-radius: 99px; min-width: 3px; }
+  .forcefield-vs-score { flex: 0 0 auto; min-width: 46px; text-align: right; font: 800 17px system-ui, sans-serif; font-variant-numeric: tabular-nums; }
+  .forcefield-vs-row.win .forcefield-vs-score { color: #ffe08a; }
+  .forcefield-vs-tag { text-align: center; font: 800 15px system-ui, sans-serif; color: #ffe08a; margin-top: 5px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat" id="statLives"><span class="lbl" id="lblLives">SHIELDS</span><span class="hrt" id="livesEl">♥♥♥</span></div>
+  <div class="stat" id="statTime" style="display:none"><span class="lbl" id="lblTime">TIME</span><span class="val" id="timeEl">60</span></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'forcefield';
+  const T = (k, def, p) => KIT ? KIT.t(k, Object.assign({ def }, p || {})) : def;
+
+  // ---- SFX (own names only — never a kit stinger) ----
+  const SND = window.gamekit.sound;
+  SND.define({
+    deflect: (c) => c.voice({ f: 620, slideTo: 1180, dur: 0.09, type: 'triangle', gain: 0.14, filter: 'lowpass', cutoff: 3400 }),
+    impact:  (c) => { const t = c.now();
+      c.noiseHit({ dur: 0.22, gain: 0.20, filter: 'lowpass', cutoff: 700, cutoffTo: 140 });
+      c.voice({ f: 190, slideTo: 70, dur: 0.30, type: 'sawtooth', gain: 0.13, t: t }); },
+    combo:   (c) => c.play('levelup'),
+    fire:    (c) => c.voice({ f: 340, slideTo: 190, dur: 0.06, type: 'square', gain: 0.05, filter: 'lowpass', cutoff: 1500 }),
+  });
+
+  // ==================================================================================
+  // MECHANIC — PLANET SHIELD. A huge planet fills much of the screen. The battle station locks a spot
+  // on the planet and marks it (✕). Your ATMOSPHERE DOME — a glowing arc floating a bit above the
+  // surface — SWEEPS back and forth around the planet. TAP when the dome is over the mark → the
+  // shot RICOCHETS off the dome (DEFLECT: score). Off-target → the shot passes the dome and hits the
+  // exposed planet (BREACH). Each deflect narrows the dome + speeds the sweep, then a new spot locks.
+  //
+  //   timed  — one planet, 60s clock; a breach burns 2s
+  //   lives  — one planet, 3 shields; a breach costs one (endless)
+  //   double — a BATTLE STATION in the centre fires BOTH ways at a planet on each side (left / right);
+  //            shared 60s clock, each side keeps its OWN score → solo for the highest total, or two
+  //            players race. A breach only resets that side's combo (no shield/time lost — no grief).
+  const LIVES_START = 3;
+  const TIME_LIMIT  = 60;
+  const MISS_PEN    = 2;      // seconds burned on a breach (timed only)
+  const GAP_FRAMES  = 10;     // brief juice pause between the shot resolving and the next round
+  const FX_FRAMES   = 18;     // deflect/breach + shot-streak animation length
+  const PASSES      = 2.5;    // the station's charge (deadline) lasts ~this many dome sweeps over the mark
+  // charge length (frames) sized so the dome gets ~PASSES chances at the mark, regardless of speed
+  function chargeFrames(sp) { return Math.max(70, Math.min(360, Math.round(PASSES / sp))); }
+  // difficulty: sweep speed (pos-fraction per 60Hz step) + dome half-width (pos-fraction = tolerance)
+  const DIFF = {
+    easy:   { speed0: 0.006, speedMax: 0.028, half0: 0.200, halfMin: 0.090, shrink: 0.978, speedup: 1.020 },
+    medium: { speed0: 0.009, speedMax: 0.042, half0: 0.150, halfMin: 0.060, shrink: 0.968, speedup: 1.030 },
+    hard:   { speed0: 0.013, speedMax: 0.060, half0: 0.110, halfMin: 0.042, shrink: 0.958, speedup: 1.042 },
+  };
+  const MODES = ['timed', 'lives', 'double'];
+  const DIFFS = ['easy', 'medium', 'hard'];
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  const hexRgb = h => { h = String(h).replace('#', ''); return [parseInt(h.substr(0, 2), 16), parseInt(h.substr(2, 2), 16), parseInt(h.substr(4, 2), 16)]; };
+  const rgba = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
+
+  let W = 0, H = 0, topMargin = 48;
+  let state = 'ready';
+  let diff = DIFF.medium;
+  let score = 0, best = 0, lives = LIVES_START, hits = 0, timeLeft = TIME_LIMIT;
+  let shakeT = 0, lastShownSec = -1, tick = 0;
+  let lanes = [], ricochets = [];   // ricochets = deflected shots flying off into space
+  const rng = () => Math.random();
+  const isDouble = () => lanes.length > 1;
+  const isClock = () => opts.mode === 'timed' || opts.mode === 'double';
+
+  const opts = loadOpts();
+  function loadOpts() {
+    let o = { mode: 'lives', difficulty: 'medium' };
+    try { const s = JSON.parse(localStorage.getItem('forcefield_pref') || '{}'); if (MODES.indexOf(s.mode) >= 0) o.mode = s.mode; if (DIFFS.indexOf(s.difficulty) >= 0) o.difficulty = s.difficulty; } catch (e) {}
+    return o;
+  }
+  function saveOpts() { try { localStorage.setItem('forcefield_pref', JSON.stringify(opts)); } catch (e) {} }
+
+  function storeLabel(m, d) { return cap(m) + ' · ' + cap(d); }   // language-stable save key
+  function modeName(m) { return T('game.forcefield.mode' + cap(m), cap(m)); }
+  function diffName(d) { return T('game.forcefield.diff' + cap(d), cap(d)); }
+  function dispLabel(m, d) { return modeName(m) + ' · ' + diffName(d); }
+  function loadBest(m, d) { return KIT ? KIT.bestScore(SLUG, storeLabel(m || opts.mode, d || opts.difficulty)) : 0; }
+  function saveBest() { if (KIT) KIT.saveBest(SLUG, storeLabel(opts.mode, opts.difficulty), { score: score }); }
+  function laneName(i) { return i === 0 ? T('game.forcefield.left', 'Left') : T('game.forcefield.right', 'Right'); }
+
+  function makeLane(accent) { return { pos: rng(), dir: rng() < 0.5 ? 1 : -1, speed: diff.speed0, zoneCenter: 0.5, zoneHalf: diff.half0, holdT: 0, fxT: 0, fxKind: '', fxFrac: 0.5, lastPts: 0, lastAcc: 0, streak: 0, score: 0, accent: accent, recent: [], chargeT: 0, charge0: chargeFrames(diff.speed0) }; }
+  // begin a new incoming shot: the station re-targets and starts charging; the dome keeps sweeping
+  function startRound(l) { l.chargeT = 0; l.charge0 = chargeFrames(l.speed); spawnZone(l); }
+  function spawnZone(l) { const m = l.zoneHalf + 0.05; l.zoneCenter = m + rng() * (1 - 2 * m); }
+  function buildLanes() {
+    diff = DIFF[opts.difficulty] || DIFF.medium;
+    lanes = opts.mode === 'double' ? [makeLane('#38bdf8'), makeLane('#ff6ec7')] : [makeLane('#38bdf8')];
+    lanes.forEach(spawnZone);
+  }
+
+  // a deflected shot bounces off the dome and streaks away into the cosmos (main bolt + a few sparks)
+  function spawnRicochet(l) {
+    const P = planetOf(lanes.indexOf(l)), th = thetaOf(P, l.pos);
+    const px = P.pcx + (P.R + P.gap) * Math.cos(th), py = P.pcy + (P.R + P.gap) * Math.sin(th);
+    const col = accentColor() || '#ffd36b';
+    for (let k = 0; k < 4; k++) {
+      const a = th + (k === 0 ? (rng() - 0.5) * 0.5 : (rng() - 0.5) * 1.5), sp = (k === 0 ? 7 : 3.4) + rng() * 3;
+      ricochets.push({ x: px, y: py, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: k === 0 ? 75 : 26, max: k === 0 ? 75 : 26, col: col, main: k === 0 });
+    }
+  }
+
+  function reset() {
+    score = 0; lives = LIVES_START; hits = 0; timeLeft = TIME_LIMIT; shakeT = 0; lastShownSec = -1;
+    ricochets = [];
+    buildLanes();
+    best = loadBest();
+    updateHud();
+  }
+
+  function deflect(l, d) {
+    l.lastAcc = 1 - (d != null ? d : Math.abs(l.pos - l.zoneCenter)) / l.zoneHalf;
+    l.streak++;
+    const mult = 1 + Math.min(4, Math.floor(l.streak / 5));
+    l.lastPts = (10 + Math.round(l.lastAcc * 15)) * mult;
+    l.score += l.lastPts; score += l.lastPts; hits++;
+    l.zoneHalf = Math.max(diff.halfMin, l.zoneHalf * diff.shrink);
+    l.speed = Math.min(diff.speedMax, l.speed * diff.speedup);
+    SND.play('deflect'); if (hits % 10 === 0) SND.play('combo');
+    l.fxKind = 'deflect'; l.fxT = FX_FRAMES; l.fxFrac = l.zoneCenter; l.holdT = GAP_FRAMES;
+    spawnRicochet(l); updateHud();
+  }
+  function breach(l) {
+    l.streak = 0; l.lastPts = 0;
+    SND.play('impact');
+    l.fxKind = 'impact'; l.fxT = FX_FRAMES; l.fxFrac = l.zoneCenter; l.holdT = GAP_FRAMES; shakeT = 13;
+    if (opts.mode === 'timed') { timeLeft = Math.max(0, timeLeft - MISS_PEN); if (timeLeft <= 0) { updateHud(); return endRun(); } }
+    else if (opts.mode === 'lives') { lives--; if (lives <= 0) { updateHud(); return endRun(); } }
+    updateHud();
+  }
+  // resolve the shot for lane l: deflect if the dome covers the mark (with a few frames of grace
+  // for tap latency), otherwise breach. Used both by a TAP and by the station's deadline auto-fire.
+  function fire(l) {
+    let d = Math.abs(l.pos - l.zoneCenter);
+    for (let k = 0; k < l.recent.length; k++) { const dd = Math.abs(l.recent[k] - l.zoneCenter); if (dd < d) d = dd; }
+    if (d <= l.zoneHalf) deflect(l, d); else breach(l);
+  }
+
+  // TAP — raise the shield NOW and resolve instantly (crisp, POC-style). If you never tap, the
+  // station's charge fills and it fires on its own (see update()).
+  function stop(i) {
+    const l = lanes[i];
+    if (state !== 'playing' || !l || l.holdT > 0) return;
+    SND.play('fire');
+    fire(l);
+  }
+
+  function update() {
+    if (state !== 'playing') return;
+    tick++;
+    if (isClock()) {
+      timeLeft -= 1 / 60;
+      if (timeLeft <= 0) { timeLeft = 0; updateHud(); return endRun(); }
+      const sec = Math.ceil(timeLeft);
+      if (sec !== lastShownSec) { lastShownSec = sec; document.getElementById('timeEl').textContent = sec; }
+    }
+    if (shakeT > 0) shakeT--;
+    for (let i = 0; i < lanes.length; i++) {
+      const l = lanes[i];
+      if (l.fxT > 0) l.fxT--;
+      if (l.holdT > 0) { if (--l.holdT === 0 && state === 'playing') startRound(l); continue; }   // brief pause after a shot
+      l.chargeT++;                                           // the station's charge = a deadline
+      l.pos += l.dir * l.speed;                              // the dome always sweeps
+      if (l.pos >= 1) { l.pos = 1; l.dir = -1; }
+      else if (l.pos <= 0) { l.pos = 0; l.dir = 1; }
+      l.recent.push(l.pos); if (l.recent.length > 3) l.recent.shift();
+      if (l.chargeT >= l.charge0) fire(l);                   // deadline reached → the station fires on its own
+    }
+    for (let i = ricochets.length - 1; i >= 0; i--) {
+      const r = ricochets[i]; r.x += r.vx; r.y += r.vy; r.vx *= 1.012; r.vy *= 1.012; r.life--;
+      if (r.life <= 0 || r.x < -40 || r.x > W + 40 || r.y < -40 || r.y > H + 40) ricochets.splice(i, 1);
+    }
+  }
+
+  // ---- geometry: a huge planet; the dome arcs over its rim; pos 0..1 = angle across it ----
+  //   single : planet fills the bottom, battle station fires from the top
+  //   double : battle station centre, a planet bulging from the left (lane 0) and right (lane 1)
+  function planetOf(i) {
+    const gap = Math.min(38, Math.min(W, H) * 0.06);   // atmosphere gap: dome floats this far off the surface
+    if (isDouble()) {
+      const R = H * 0.62, capW = W * 0.24, pcy = H / 2;
+      return i === 0 ? { pcx: capW - R, pcy, R, base: 0, A: 0.5, gap } : { pcx: W - capW + R, pcy, R, base: Math.PI, A: 0.5, gap };
+    }
+    const R = W * 0.62, pcx = W / 2, pcy = H * 0.64 + R;
+    return { pcx, pcy, R, base: -Math.PI / 2, A: 0.58, gap };   // A keeps the swept dome on-screen edge-to-edge
+  }
+  function thetaOf(P, frac) { return P.base - P.A + frac * 2 * P.A; }
+  function rimPt(P, frac, extra) { const th = thetaOf(P, frac), r = P.R + (extra || 0); return [P.pcx + r * Math.cos(th), P.pcy + r * Math.sin(th)]; }
+  function enemyPt() { return isDouble() ? [W / 2, H / 2] : [W / 2, H * 0.14]; }
+
+  function accentColor() {
+    const skin = KIT.cosmetics ? KIT.cosmetics.selected('forcefield.marker') : null;
+    if (skin === 'forcefield.marker.magma') return '#ff8a3d';
+    if (skin === 'forcefield.marker.lime') return '#b6ff5c';
+    return null;
+  }
+  // planet skins (cosmetics: forcefield.planet) — [mid, deep, core, rim-glow]
+  const PLANET_SKINS = {
+    azure:   ['#2f57a0', '#173166', '#0a1530', 'rgba(130,190,255,0.35)'],
+    verdant: ['#2f8a5a', '#1a5636', '#08210f', 'rgba(150,255,190,0.32)'],
+    amber:   ['#c39433', '#7a5a1e', '#241706', 'rgba(255,220,140,0.32)'],
+    violet:  ['#7a46b8', '#4a2680', '#180a2e', 'rgba(210,160,255,0.34)'],
+  };
+  function planetSkin() { const id = KIT.cosmetics ? KIT.cosmetics.selected('forcefield.planet') : null; return PLANET_SKINS[(id || '').split('.').pop()] || PLANET_SKINS.azure; }
+  // fixed "continents" (angle around the planet, distance from centre, radius — all ×R) so texture is stable
+  const CONTINENTS = [
+    { a: -1.95, d: 0.52, r: 0.24 }, { a: -1.30, d: 0.70, r: 0.16 }, { a: -2.45, d: 0.60, r: 0.15 },
+    { a: -0.95, d: 0.55, r: 0.13 }, { a: -1.62, d: 0.30, r: 0.20 }, { a: -2.05, d: 0.82, r: 0.10 },
+  ];
+
+  function drawPlanet(P, hot) {
+    const sk = planetSkin();
+    ctx.save();
+    // body with a lit day side (upper-left) fading to the night limb
+    const g = ctx.createRadialGradient(P.pcx - P.R * 0.34, P.pcy - P.R * 0.5, P.R * 0.12, P.pcx, P.pcy, P.R);
+    g.addColorStop(0, hot ? '#8a3350' : sk[0]); g.addColorStop(0.55, hot ? '#4a1a2e' : sk[1]); g.addColorStop(1, sk[2]);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(P.pcx, P.pcy, P.R, 0, 7); ctx.fill();
+    // surface detail, clipped to the disc
+    ctx.save(); ctx.beginPath(); ctx.arc(P.pcx, P.pcy, P.R, 0, 7); ctx.clip();
+    ctx.globalAlpha = 0.07; ctx.strokeStyle = hot ? '#ffb0c0' : sk[3]; ctx.lineWidth = P.R * 0.016;   // latitude bands
+    for (let k = 0; k < 6; k++) { ctx.beginPath(); ctx.arc(P.pcx, P.pcy, P.R * (0.5 + k * 0.1), 0, 7); ctx.stroke(); }
+    ctx.globalAlpha = hot ? 0.18 : 0.30; ctx.fillStyle = sk[1];                                       // continents
+    for (const c of CONTINENTS) { const bx = P.pcx + P.R * c.d * Math.cos(c.a), by = P.pcy + P.R * c.d * Math.sin(c.a); ctx.beginPath(); ctx.ellipse(bx, by, P.R * c.r, P.R * c.r * 0.68, c.a, 0, 7); ctx.fill(); }
+    ctx.globalAlpha = 1;
+    const tg = ctx.createRadialGradient(P.pcx - P.R * 0.38, P.pcy - P.R * 0.5, P.R * 0.2, P.pcx, P.pcy, P.R * 1.02);  // night limb
+    tg.addColorStop(0, 'rgba(0,0,0,0)'); tg.addColorStop(0.72, 'rgba(0,0,0,0)'); tg.addColorStop(1, 'rgba(3,5,12,0.62)');
+    ctx.fillStyle = tg; ctx.beginPath(); ctx.arc(P.pcx, P.pcy, P.R, 0, 7); ctx.fill();
+    ctx.restore();
+    // ATMOSPHERE — drawn OVER the fill so no bare edge shows: a soft glow straddling the whole rim + a crisp rim line
+    const halo = Math.max(12, P.R * 0.07);
+    const hg = ctx.createRadialGradient(P.pcx, P.pcy, P.R - halo * 0.6, P.pcx, P.pcy, P.R + halo);
+    hg.addColorStop(0, 'rgba(0,0,0,0)'); hg.addColorStop(0.55, hot ? 'rgba(255,140,160,0.40)' : sk[3]); hg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(P.pcx, P.pcy, P.R + halo, 0, 7); ctx.fill();
+    ctx.strokeStyle = hot ? 'rgba(255,150,170,0.9)' : sk[3]; ctx.globalAlpha = 0.95; ctx.lineWidth = Math.max(2, P.R * 0.012); ctx.shadowBlur = 16; ctx.shadowColor = ctx.strokeStyle;
+    ctx.beginPath(); ctx.arc(P.pcx, P.pcy, P.R, 0, 7); ctx.stroke();
+    ctx.restore();
+  }
+  function drawStation(g, x, y, r, charge, hot) {
+    g.save(); g.translate(x, y);
+    const grd = g.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.2, 0, 0, r);
+    grd.addColorStop(0, '#727d8d'); grd.addColorStop(1, '#262c36');
+    g.fillStyle = grd; g.beginPath(); g.arc(0, 0, r, 0, 7); g.fill();
+    g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = Math.max(1, r * 0.06); g.beginPath(); g.moveTo(-r, 0); g.lineTo(r, 0); g.stroke();
+    g.fillStyle = '#1b1f28'; g.beginPath(); g.arc(r * 0.36, -r * 0.36, r * 0.27, 0, 7); g.fill();
+    const gl = hot ? '#ff6b6b' : '#7fe0ff';
+    g.globalAlpha = 0.45 + 0.4 * Math.sin(charge * 0.18); g.fillStyle = gl; g.shadowBlur = 12; g.shadowColor = gl;
+    g.beginPath(); g.arc(r * 0.36, -r * 0.36, r * 0.12, 0, 7); g.fill();
+    g.restore();
+  }
+
+  // the station's charge meter — 5 squares filling up; 5/5 = it fires. Sits near the station.
+  function drawChargeBox(cx, cy, chg) {
+    const n = 5, cell = Math.max(7, Math.min(11, W * 0.022)), gp = 3, pad = 4;
+    const bw = n * cell + (n - 1) * gp + pad * 2, bh = cell + pad * 2, x0 = cx - bw / 2, y0 = cy - bh / 2;
+    const filled = Math.min(n, Math.floor(chg * n + 0.001));
+    ctx.save();
+    ctx.fillStyle = 'rgba(8,12,22,0.72)'; KIT.roundRect(ctx, x0, y0, bw, bh, 4); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,120,120,0.55)'; ctx.lineWidth = 1.5; KIT.roundRect(ctx, x0, y0, bw, bh, 4); ctx.stroke();
+    for (let k = 0; k < n; k++) {
+      const sx = x0 + pad + k * (cell + gp), sy = y0 + pad;
+      if (k < filled) { ctx.fillStyle = '#ff6b6b'; ctx.shadowBlur = 7; ctx.shadowColor = '#ff6b6b'; }
+      else { ctx.fillStyle = 'rgba(255,255,255,0.10)'; ctx.shadowBlur = 0; }
+      KIT.roundRect(ctx, sx, sy, cell, cell, 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // the deflector dome — a soft, fluid plasma field: gradient-faded band (no hard edges), gentle
+  // breathing glow, drifting energy motes. No strokes, no gliding line.
+  function drawDome(P, l, col, bright) {
+    const dh = Math.max(0.03, l.zoneHalf) * 2 * P.A, th = thetaOf(P, l.pos), R = P.R + P.gap;
+    const thick = Math.max(4, P.gap * 0.26), a0 = th - dh, a1 = th + dh, rgb = hexRgb(col);   // thin, condensed
+    ctx.save();
+    ctx.shadowBlur = bright ? 26 : 18; ctx.shadowColor = col;
+    // membrane — alpha fades to 0 at both rims so there's no visible boundary
+    const peak = (bright ? 0.78 : 0.55) + 0.08 * Math.sin(tick * 0.06 + l.pos * 3);   // brighter, gentle breathing
+    const g = ctx.createRadialGradient(P.pcx, P.pcy, R - thick, P.pcx, P.pcy, R + thick);
+    g.addColorStop(0, rgba(rgb, 0)); g.addColorStop(0.5, rgba(rgb, peak)); g.addColorStop(1, rgba(rgb, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(P.pcx, P.pcy, R + thick, a0 - 0.03, a1 + 0.03);
+    ctx.arc(P.pcx, P.pcy, R - thick, a1 + 0.03, a0 - 0.03, true);
+    ctx.closePath(); ctx.fill();
+    // luminous white-hot core (gradient-faded → glows, never a line)
+    const c = ctx.createRadialGradient(P.pcx, P.pcy, R - thick * 0.6, P.pcx, P.pcy, R + thick * 0.6);
+    c.addColorStop(0, rgba(rgb, 0)); c.addColorStop(0.5, rgba([240, 252, 255], bright ? 0.5 : 0.34)); c.addColorStop(1, rgba(rgb, 0));
+    ctx.fillStyle = c;
+    ctx.beginPath();
+    ctx.arc(P.pcx, P.pcy, R + thick * 0.6, a0, a1);
+    ctx.arc(P.pcx, P.pcy, R - thick * 0.6, a1, a0, true);
+    ctx.closePath(); ctx.fill();
+    // drifting energy motes inside the field
+    ctx.shadowBlur = 0; ctx.fillStyle = col;
+    for (let k = 0; k < 6; k++) {
+      const pa = a0 + (((k / 6) + tick * 0.003 * (k % 2 ? 1 : -1)) % 1 + 1) % 1 * (a1 - a0);
+      const pr = R + Math.sin(tick * 0.08 + k * 1.7) * thick * 0.8;
+      ctx.globalAlpha = 0.25 + 0.3 * (0.5 + 0.5 * Math.sin(tick * 0.1 + k * 2));
+      ctx.beginPath(); ctx.arc(P.pcx + pr * Math.cos(pa), P.pcy + pr * Math.sin(pa), 1.2 + (k % 2), 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawLane(i, boltCol) {
+    const l = lanes[i], P = planetOf(i);
+    const hot = (l.fxKind === 'impact' && l.fxT > 0);
+    const shield = l.accent;
+
+    drawPlanet(P, hot);
+
+    // marked impact spot (✕) + a targeting beam that BRIGHTENS as the station charges (telegraph)
+    const [mx, my] = rimPt(P, l.zoneCenter, P.gap * 0.35);
+    const [ex, ey] = enemyPt();
+    const chg = l.charge0 ? Math.min(1, l.chargeT / l.charge0) : 0;
+    ctx.save(); ctx.strokeStyle = rgba([255, 110, 110], 0.12 + 0.6 * chg); ctx.lineWidth = 1 + 3 * chg;
+    ctx.shadowBlur = 10 * chg; ctx.shadowColor = '#ff6b6b';
+    ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(mx, my); ctx.stroke(); ctx.restore();
+    ctx.strokeStyle = hot ? '#ffb0b8' : '#ff5b6b'; ctx.lineWidth = 2.5; const ms = Math.min(11, Math.max(7, P.gap * 0.4)) * (1 + 0.25 * chg);
+    ctx.beginPath(); ctx.moveTo(mx - ms, my - ms); ctx.lineTo(mx + ms, my + ms); ctx.moveTo(mx + ms, my - ms); ctx.lineTo(mx - ms, my + ms); ctx.stroke();
+
+    // the atmosphere dome — a translucent plasma shield membrane
+    const dCol = (l.fxKind === 'deflect' && l.fxT > 0) ? '#b6ff5c' : shield;
+    drawDome(P, l, dCol, l.fxT > 0);
+
+    // shot streak on tap: battle station → dome (deflect, stops at the atmosphere) or surface (breach)
+    if (l.fxT > 0) {
+      const prog = Math.min(1, (1 - l.fxT / FX_FRAMES) * 1.25);
+      const endR = l.fxKind === 'deflect' ? P.gap : 0;
+      const [tgx, tgy] = rimPt(P, l.fxFrac, endR);
+      const hx = ex + (tgx - ex) * prog, hy = ey + (tgy - ey) * prog;
+      ctx.save(); ctx.strokeStyle = boltCol; ctx.lineWidth = Math.max(4, P.gap * 0.2); ctx.lineCap = 'round';
+      ctx.globalAlpha = 0.9; ctx.shadowBlur = 14; ctx.shadowColor = boltCol;
+      ctx.beginPath(); ctx.moveTo(ex + (tgx - ex) * Math.max(0, prog - 0.14), ey + (tgy - ey) * Math.max(0, prog - 0.14)); ctx.lineTo(hx, hy); ctx.stroke(); ctx.restore();
+      if (prog >= 1) {
+        ctx.save(); ctx.globalAlpha = l.fxT / FX_FRAMES;
+        if (l.fxKind === 'deflect') { ctx.strokeStyle = '#b6ff5c'; ctx.lineWidth = 4; ctx.shadowBlur = 22; ctx.shadowColor = '#b6ff5c'; ctx.beginPath(); ctx.arc(tgx, tgy, P.gap * 0.7 * (1.6 - l.fxT / FX_FRAMES), 0, 7); ctx.stroke(); }
+        else { ctx.fillStyle = 'rgba(255,80,90,' + (l.fxT / FX_FRAMES) + ')'; ctx.beginPath(); ctx.arc(tgx, tgy, P.gap * 0.9 * (1.6 - l.fxT / FX_FRAMES), 0, 7); ctx.fill(); }
+        ctx.restore();
+      }
+    }
+
+    // labels: per-side scoreboard (double) + combo / points / breach
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    if (isDouble()) {
+      const total = Math.max(1, score), pct = Math.round((l.score / total) * 100), lx = i === 0 ? W * 0.24 : W * 0.76;
+      ctx.textBaseline = 'top'; ctx.fillStyle = shield; ctx.font = '800 ' + Math.round(Math.min(19, W * 0.03)) + 'px system-ui, sans-serif';
+      ctx.fillText(laneName(i) + ' · ' + l.score, lx, topMargin + 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)'; ctx.font = '700 ' + Math.round(Math.min(12, W * 0.02)) + 'px system-ui, sans-serif'; ctx.fillText('(' + pct + '%)', lx, topMargin + 2 + Math.min(21, W * 0.034));
+      ctx.textBaseline = 'middle';
+    }
+    const labX = isDouble() ? (i === 0 ? W * 0.24 : W * 0.76) : W / 2, labY = my - ms - Math.min(30, P.R * 0.03 + 22);
+    if (l.streak >= 2) { ctx.fillStyle = 'rgba(182,255,92,0.9)'; ctx.font = '700 ' + Math.round(Math.min(30, W * (isDouble() ? 0.038 : 0.05))) + 'px system-ui, sans-serif'; ctx.fillText('x' + l.streak, labX, labY - 26); }
+    if (l.fxT > 0) {
+      ctx.globalAlpha = l.fxT / FX_FRAMES; ctx.font = '800 ' + Math.round(Math.min(30, W * (isDouble() ? 0.038 : 0.046))) + 'px system-ui, sans-serif';
+      if (l.fxKind === 'deflect') { ctx.fillStyle = '#b6ff5c'; ctx.fillText((l.lastAcc > 0.85 ? T('game.forcefield.perfect', 'PERFECT') + ' ' : '') + '+' + l.lastPts, labX, labY); }
+      else { ctx.fillStyle = '#ff4d6d'; ctx.fillText(T('game.forcefield.breach', 'BREACH'), labX, labY); }
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  let stars = null;
+  function initStars(w, h) { stars = []; for (let i = 0; i < 80; i++) stars.push({ x: rng() * w, y: rng() * h, z: 0.3 + rng() * 0.8 }); }
+  function render() {
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#04060e'); bg.addColorStop(1, '#0a0716');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    if (!stars) initStars(W, H);
+    for (let i = 0; i < stars.length; i++) { const s = stars[i]; ctx.globalAlpha = 0.25 + s.z * 0.45; ctx.fillStyle = '#9fe8ff'; ctx.fillRect(s.x, s.y, s.z * 1.6, s.z * 1.6); }
+    ctx.globalAlpha = 1;
+
+    ctx.save();
+    if (shakeT > 0) ctx.translate((rng() - 0.5) * shakeT, (rng() - 0.5) * shakeT);
+    const boltCol = accentColor() || '#ffd36b';
+    for (let i = 0; i < lanes.length; i++) drawLane(i, boltCol);
+    const [ex, ey] = enemyPt(), hot = lanes.some(s => s.fxKind === 'impact' && s.fxT > 0);
+    const sr = Math.min(isDouble() ? 44 : 40, W * (isDouble() ? 0.1 : 0.09));
+    drawStation(ctx, ex, ey, sr, tick, hot);
+    // the station's charge meter(s) — how close the next shot is (empty during the between-round beat)
+    const chgOf = l => (l.holdT > 0 || !l.charge0) ? 0 : Math.min(1, l.chargeT / l.charge0);
+    if (isDouble()) { drawChargeBox(ex - sr - 34, ey, chgOf(lanes[0])); drawChargeBox(ex + sr + 34, ey, chgOf(lanes[1])); }
+    else drawChargeBox(ex, ey + sr + 15, chgOf(lanes[0]));
+    // deflected shots streaking off into space
+    for (let i = 0; i < ricochets.length; i++) {
+      const r = ricochets[i], a = Math.min(1, r.life / r.max * 1.4);
+      ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = r.col; ctx.lineWidth = r.main ? 3 : 2; ctx.lineCap = 'round';
+      ctx.shadowBlur = 10; ctx.shadowColor = r.col;
+      ctx.beginPath(); ctx.moveTo(r.x - r.vx * 2.6, r.y - r.vy * 2.6); ctx.lineTo(r.x, r.y); ctx.stroke(); ctx.restore();
+    }
+
+    const fresh = hits === 0 && lives === LIVES_START && !lanes.some(s => s.fxT > 0);
+    if (fresh) {
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = '600 ' + Math.round(Math.min(19, W * 0.033)) + 'px system-ui, sans-serif';
+      if (isDouble()) ctx.fillText(T('game.forcefield.tapHintDouble', 'Defend both — left: A / ← · right: L / →'), W / 2, H * 0.5);
+      else ctx.fillText(T('game.forcefield.tapHint', 'Sweep to the mark · tap to lock before it fires'), W / 2, H * 0.3);
+    }
+    ctx.restore();
+
+    const breaching = lanes.some(s => s.fxKind === 'impact' && s.fxT > 0);
+    if (breaching) {
+      const a = Math.max.apply(null, lanes.map(s => s.fxKind === 'impact' ? s.fxT : 0));
+      ctx.save(); ctx.globalAlpha = (a / FX_FRAMES) * 0.5;
+      const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.7);
+      vg.addColorStop(0, 'rgba(255,77,109,0)'); vg.addColorStop(1, 'rgba(255,77,109,0.8)');
+      ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H); ctx.restore();
+    }
+  }
+  // /MECHANIC
+  // ==================================================================================
+
+  function updateHud() {
+    document.getElementById('scoreEl').textContent = score;
+    document.getElementById('bestEl').textContent = best;
+    const clock = isClock();
+    document.getElementById('statTime').style.display = clock ? '' : 'none';
+    document.getElementById('statLives').style.display = clock ? 'none' : '';
+    if (clock) document.getElementById('timeEl').textContent = Math.ceil(timeLeft);
+    else document.getElementById('livesEl').textContent = '♥'.repeat(Math.max(0, lives)) + '♡'.repeat(Math.max(0, LIVES_START - lives));
+  }
+  function setHudLabels() {
+    document.getElementById('lblScore').textContent = T('game.common.score', 'SCORE');
+    document.getElementById('lblBest').textContent = T('game.common.best', 'BEST');
+    document.getElementById('lblLives').textContent = T('game.forcefield.hudShields', 'SHIELDS');
+    document.getElementById('lblTime').textContent = T('game.common.time', 'TIME');
+  }
+
+  function startGame() { state = 'playing'; if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); } reset(); }
+  function endRun() {
+    state = 'over';
+    const prevBest = loadBest(); saveBest();
+    const isBest = score > prevBest && score > 0; best = loadBest();
+    showEnd(isBest);
+  }
+
+  // ==================================================================================
+  // MENU
+  const MENU_THEME = { accent: '#38bdf8', title: '#38bdf8' };
+  let mstars = null;
+  function menuBackdrop(g, w, h, st, frame) {
+    frame = frame || 0;
+    const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#04060e'); bg.addColorStop(1, '#0a0716');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    if (!mstars) { mstars = []; for (let i = 0; i < 60; i++) mstars.push({ x: rng() * w, y: rng() * h, z: 0.3 + rng() * 0.7 }); }
+    for (let i = 0; i < mstars.length; i++) { const s = mstars[i]; g.globalAlpha = 0.3 + s.z * 0.5; g.fillStyle = '#9fe8ff'; g.fillRect(s.x, s.y, s.z * 1.7, s.z * 1.7); }
+    g.globalAlpha = 1;
+    // the actual game look: a planet cap low down, a battle station up top, a dome sweeping + a marked ✕
+    const R = w * 0.6, pcx = w / 2, pcy = h * 0.80 + R, A = 0.5, gap = Math.min(28, h * 0.05), sk = PLANET_SKINS.azure;
+    const gd = g.createRadialGradient(pcx - R * 0.25, pcy - R * 0.95, R * 0.2, pcx, pcy, R);
+    gd.addColorStop(0, sk[0]); gd.addColorStop(0.7, sk[1]); gd.addColorStop(1, sk[2]);
+    g.fillStyle = gd; g.beginPath(); g.arc(pcx, pcy, R, 0, 7); g.fill();
+    g.strokeStyle = sk[3]; g.lineWidth = 3; g.beginPath(); g.arc(pcx, pcy, R, -Math.PI / 2 - A - 0.1, -Math.PI / 2 + A + 0.1); g.stroke();
+    const dsx = pcx, dsy = h * 0.2, dsr = Math.min(30, w * 0.07);
+    const dg = g.createRadialGradient(dsx - dsr * 0.3, dsy - dsr * 0.35, dsr * 0.2, dsx, dsy, dsr);
+    dg.addColorStop(0, '#727d8d'); dg.addColorStop(1, '#262c36'); g.fillStyle = dg; g.beginPath(); g.arc(dsx, dsy, dsr, 0, 7); g.fill();
+    g.fillStyle = '#1b1f28'; g.beginPath(); g.arc(dsx + dsr * 0.35, dsy - dsr * 0.35, dsr * 0.28, 0, 7); g.fill();
+    g.fillStyle = '#7fe0ff'; g.globalAlpha = 0.5 + 0.4 * Math.sin(frame * 0.12); g.beginPath(); g.arc(dsx + dsr * 0.35, dsy - dsr * 0.35, dsr * 0.12, 0, 7); g.fill(); g.globalAlpha = 1;
+    const markTh = -Math.PI / 2 + Math.sin(frame * 0.018) * (A * 0.7);
+    const mx = pcx + R * Math.cos(markTh), my = pcy + R * Math.sin(markTh);
+    g.strokeStyle = '#ff5b6b'; g.lineWidth = 2; g.beginPath(); g.moveTo(mx - 6, my - 6); g.lineTo(mx + 6, my + 6); g.moveTo(mx + 6, my - 6); g.lineTo(mx - 6, my + 6); g.stroke();
+    // condensed plasma dome (thin, bright, glowing) — matches the in-game shield
+    const sweepTh = -Math.PI / 2 + Math.sin(frame * 0.03) * A;
+    g.save(); g.lineCap = 'round'; g.shadowBlur = 18; g.shadowColor = '#38bdf8';
+    g.strokeStyle = 'rgba(56,189,248,0.5)'; g.lineWidth = 9;
+    g.beginPath(); g.arc(pcx, pcy, R + gap, sweepTh - 0.13, sweepTh + 0.13); g.stroke();     // soft glow
+    g.strokeStyle = 'rgba(224,248,255,0.95)'; g.lineWidth = 3;
+    g.beginPath(); g.arc(pcx, pcy, R + gap, sweepTh - 0.12, sweepTh + 0.12); g.stroke();     // bright core
+    g.restore();
+    // charge meter under the station (5 squares filling on a loop)
+    const cn = 5, cc = 8, cgp = 3, cpd = 3, cbw = cn * cc + (cn - 1) * cgp + cpd * 2;
+    const cx0 = dsx - cbw / 2, cy0 = dsy + dsr + 10, cf = Math.floor((frame % 120) / 120 * cn + 0.001);
+    g.fillStyle = 'rgba(8,12,22,0.72)'; KIT.roundRect(g, cx0, cy0, cbw, cc + cpd * 2, 4); g.fill();
+    g.strokeStyle = 'rgba(255,120,120,0.55)'; g.lineWidth = 1.5; KIT.roundRect(g, cx0, cy0, cbw, cc + cpd * 2, 4); g.stroke();
+    for (let k = 0; k < cn; k++) { g.fillStyle = k < cf ? '#ff6b6b' : 'rgba(255,255,255,0.10)'; KIT.roundRect(g, cx0 + cpd + k * (cc + cgp), cy0 + cpd, cc, cc, 2); g.fill(); }
+  }
+
+  function pvPlanet(g, w, h, kind) {
+    g.clearRect(0, 0, w, h);
+    const dome = (cx, cy, R, a0, accent, mp) => {
+      g.strokeStyle = 'rgba(120,180,255,0.35)'; g.lineWidth = 3; g.beginPath(); g.arc(cx, cy, R, a0 - 0.6, a0 + 0.6); g.stroke();
+      g.strokeStyle = accent; g.lineWidth = 5; g.lineCap = 'round'; g.globalAlpha = 0.9; g.shadowBlur = 6; g.shadowColor = accent;
+      g.beginPath(); g.arc(cx, cy, R + h * 0.12, a0 - 0.6 + mp * 1.2 - 0.14, a0 - 0.6 + mp * 1.2 + 0.14); g.stroke(); g.globalAlpha = 1; g.shadowBlur = 0;
+      g.strokeStyle = '#ff5b6b'; g.lineWidth = 2; const [tx, ty] = [cx + R * Math.cos(a0 - 0.15), cy + R * Math.sin(a0 - 0.15)];
+      g.beginPath(); g.moveTo(tx - 4, ty - 4); g.lineTo(tx + 4, ty + 4); g.moveTo(tx + 4, ty - 4); g.lineTo(tx - 4, ty + 4); g.stroke();
+    };
+    if (kind === 'v') { g.fillStyle = '#8a94a4'; g.beginPath(); g.arc(w * 0.5, h * 0.5, h * 0.1, 0, 7); g.fill();
+      dome(-w * 0.5, h * 0.5, w * 0.75, 0, '#38bdf8', 0.4); dome(w * 1.5, h * 0.5, w * 0.75, Math.PI, '#ff6ec7', 0.6); }
+    else dome(w * 0.5, h * 1.5, h * 1.15, -Math.PI / 2, '#38bdf8', 0.45);
+  }
+
+  function comboBest(m, d) { return KIT ? KIT.bestScore(SLUG, storeLabel(m, d)) : 0; }
+
+  function showStartMenu() {
+    state = 'ready';
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: T('game.forcefield.menuTitle', 'FORCEFIELD'), backdrop: menuBackdrop, backdropAnimate: true,
+      lines: [T('game.forcefield.intro1', 'A battle station is charging its cannon at your planet.'),
+              T('game.forcefield.intro2', 'Sweep your dome over the target and lock it before it fires.')],
+      groups: [
+        { id: 'mode', label: T('game.common.modeLabel', 'MODE'), style: 'cards', default: opts.mode, choices: [
+          { id: 'timed', label: modeName('timed'), mech: [T('game.forcefield.modeTimedMech', '60s clock')], best: st => comboBest('timed', st.difficulty), preview: (g, w, h) => pvPlanet(g, w, h, 'h') },
+          { id: 'lives', label: modeName('lives'), mech: [T('game.forcefield.modeLivesMech', '3 shields')], best: st => comboBest('lives', st.difficulty), preview: (g, w, h) => pvPlanet(g, w, h, 'h') },
+          { id: 'double', label: modeName('double'), mech: [T('game.forcefield.modeDoubleMech', '1–2 players · 60s')], best: st => comboBest('double', st.difficulty), preview: (g, w, h) => pvPlanet(g, w, h, 'v') },
+        ] },
+        { id: 'difficulty', label: T('game.forcefield.diffLabel', 'DIFFICULTY'), style: 'slider', default: opts.difficulty, choices: [
+          { id: 'easy', label: diffName('easy') }, { id: 'medium', label: diffName('medium') }, { id: 'hard', label: diffName('hard') },
+        ] },
+      ],
+      onChange: st => { if (st.mode) opts.mode = st.mode; if (st.difficulty) opts.difficulty = st.difficulty; saveOpts(); },
+      actions: [{ id: 'play', label: T('game.common.play', 'PLAY'), primary: true }],
+      hint: () => T('game.forcefield.startHint', 'Tap / Space · A & L for the two lanes · Esc to pause'),
+      onPlay: () => startGame(),
+    });
+  }
+
+  function shareMsg() { return KIT.shareText({ score: score, game: T('game.forcefield.title', 'Forcefield'), emoji: '🛡️', mode: storeLabel(opts.mode, opts.difficulty) }); }
+
+  function vsBanner() {
+    const a = lanes[0].score, b = lanes[1].score, tot = Math.max(1, a + b), tie = a === b;
+    const winA = !tie && a > b, winB = !tie && b > a;
+    const row = (nm, sc, col, pct, win) =>
+      '<div class="forcefield-vs-row' + (win ? ' win' : '') + '">' +
+        '<span class="forcefield-vs-name">' + (win ? '👑 ' : '') + nm + '</span>' +
+        '<span class="forcefield-vs-bar"><i style="width:' + pct + '%;background:' + col + ';box-shadow:0 0 10px ' + col + '"></i></span>' +
+        '<span class="forcefield-vs-score">' + sc + '</span>' +
+      '</div>';
+    const tag = tie ? T('game.forcefield.tie', "It's a tie!") : T('game.forcefield.winner', '{name} wins!', { name: laneName(a > b ? 0 : 1) });
+    return '<div class="forcefield-vs">' +
+      row(laneName(0), a, '#38bdf8', Math.round(a / tot * 100), winA) +
+      row(laneName(1), b, '#ff6ec7', Math.round(b / tot * 100), winB) +
+      '</div><div class="forcefield-vs-tag">' + tag + '</div>';
+  }
+
+  function showEnd(isBest) {
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    const dbl = opts.mode === 'double';
+    const title = isClock() ? T('game.forcefield.timesUp', "TIME'S UP") : T('game.forcefield.generatorDown', 'PLANET LOST');
+    const cfg = { kind: 'end', theme: MENU_THEME, title: title, backdrop: menuBackdrop, backdropAnimate: true,
+      record: { slug: SLUG, mode: storeLabel(opts.mode, opts.difficulty), score: score },
+      score: score, best: best, newBest: isBest,
+      lines: [dispLabel(opts.mode, opts.difficulty) + ' · ' + T('game.forcefield.deflectedLine', 'Deflected: {n}', { n: hits })],
+      share: { slug: SLUG, accent: '#38bdf8', icon: '🛡️', title: T('game.forcefield.title', 'Forcefield'), message: () => shareMsg(), params: () => ({ mode: opts.mode, difficulty: opts.difficulty }) },
+      actions: [{ id: 'again', label: T('game.common.playAgain', 'PLAY AGAIN'), primary: true }, { id: 'menu', label: T('game.common.menu', 'MENU') }],
+      onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } };
+    if (dbl) cfg.banner = () => vsBanner();
+    KIT.menu.show(cfg);
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    state = 'paused';
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: T('game.common.paused', 'PAUSED'), backdrop: menuBackdrop, backdropAnimate: true, lines: [T('game.common.scoreLine', 'Score {score}', { score: score })],
+      actions: [{ id: 'resume', label: T('game.common.resume', 'RESUME (ESC)'), primary: true }, { id: 'menu', label: T('game.common.quitToMenu', 'QUIT TO MENU'), danger: true }],
+      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
+  }
+  function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
+  function toMenu() { if (state === 'playing' || state === 'paused') saveBest(); if (KIT) KIT.menu.hide(); showStartMenu(); }
+  // /MENU
+  // ==================================================================================
+
+  function resize() { W = window.innerWidth; H = window.innerHeight; KIT.fitCanvas(canvas, W, H); topMargin = KIT.layout.hudTop(); stars = null; }
+  window.gamekit.layout.on(resize);
+
+  canvas.addEventListener('pointerdown', e => { e.preventDefault(); if (isDouble()) stop(e.clientX < W / 2 ? 0 : 1); else stop(0); });
+  window.addEventListener('keydown', e => {
+    if (state !== 'playing') return;
+    if (e.key === 'Escape') { e.preventDefault(); pauseGame(); return; }
+    const k = (e.key || '').toLowerCase();
+    if (isDouble()) {
+      if (k === 'a' || e.key === 'ArrowLeft' || k === 'q') { e.preventDefault(); stop(0); }
+      else if (k === 'l' || e.key === 'ArrowRight' || k === 'p') { e.preventDefault(); stop(1); }
+    } else if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); stop(0); }
+  });
+
+  // ==================================================================================
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? T('game.forcefield.leave', "Leave this run? You'll lose your progress.") : false,
+    controls: { title: T('game.forcefield.controlsTitle', 'Forcefield — Controls'),
+      mouse: [[T('game.common.click', 'Click'), T('game.forcefield.ctrlStop', 'Lock the dome')], [T('game.forcefield.ctrlHalves', 'Left / right half'), T('game.forcefield.ctrlStopHalf', 'Defend that planet (Double)')]],
+      keyboard: [[T('game.common.spaceEnter', 'Space · Enter'), T('game.forcefield.ctrlStop', 'Lock the dome')], [T('game.forcefield.ctrlAL', 'A · L (or ← · →)'), T('game.forcefield.ctrlStopHalf', 'Defend that planet (Double)')], [T('game.common.esc', 'Esc'), T('game.common.pause', 'Pause')]],
+      touch: [[T('game.common.tap', 'Tap'), T('game.forcefield.ctrlStop', 'Lock the dome')], [T('game.forcefield.ctrlHalves', 'Left / right half'), T('game.forcefield.ctrlStopHalf', 'Defend that planet (Double)')]] } });
+  KIT.music.play('neon');
+  // ==================================================================================
+
+  // ==================================================================================
+  // __TEST hook + layout getter (topReserve MUST be >= KIT.layout.hudTop())
+  window.__test = {
+    get state() { return state; },
+    get score() { return score; },
+    get best() { return best; },
+    get lives() { return lives; },
+    get hits() { return hits; },
+    get timeLeft() { return timeLeft; },
+    get mode() { return opts.mode; },
+    get difficulty() { return opts.difficulty; },
+    get lanes() { return lanes.map(l => ({ pos: l.pos, zoneCenter: l.zoneCenter, zoneHalf: l.zoneHalf, speed: l.speed, streak: l.streak, score: l.score, chargeT: l.chargeT, charge0: l.charge0 })); },
+    get forcefields() { return this.lanes; },   // back-compat alias
+    get streak() { return lanes[0] ? lanes[0].streak : 0; },
+    get speed() { return lanes[0] ? lanes[0].speed : 0; },
+    get zoneHalf() { return lanes[0] ? lanes[0].zoneHalf : 0; },
+    get pos() { return lanes[0] ? lanes[0].pos : 0; },
+    get zoneCenter() { return lanes[0] ? lanes[0].zoneCenter : 0; },
+    get layout() {
+      const P = planetOf(0), l = lanes[0] || { pos: 0, zoneCenter: 0.5, zoneHalf: 0.1 };
+      const xs = [], ys = [];
+      for (let f = 0; f <= 1.0001; f += 0.1) { const p = rimPt(P, f, P.gap); xs.push(p[0]); ys.push(p[1]); }
+      const barLeft = Math.min.apply(null, xs), barRight = Math.max.apply(null, xs);
+      const barTop = Math.min.apply(null, ys), barBottom = Math.max.apply(null, ys);
+      const mk = rimPt(P, l.pos, P.gap);
+      const z1 = rimPt(P, Math.max(0, l.zoneCenter - l.zoneHalf), P.gap), z2 = rimPt(P, Math.min(1, l.zoneCenter + l.zoneHalf), P.gap);
+      return { W, H, topReserve: topMargin, vertical: false,
+        barLeft, barRight, barTop, barBottom, barY: (barTop + barBottom) / 2,
+        markerX: mk[0], markerY: mk[1], zoneLeft: Math.min(z1[0], z2[0]), zoneRight: Math.max(z1[0], z2[0]) };
+    },
+    setMode(m, d) { if (MODES.indexOf(m) >= 0) opts.mode = m; if (DIFFS.indexOf(d) >= 0) opts.difficulty = d; },
+    start() { startGame(); },
+    stop(i) { stop(i || 0); },
+    setPos(p, i) { const l = lanes[i || 0]; if (l) { l.pos = p; l.holdT = 0; l.recent = []; l.chargeT = 0; } },
+    setZone(c, h, i) { const l = lanes[i || 0]; if (l) { l.zoneCenter = c; if (h != null) l.zoneHalf = h; } },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    best_(m, d) { return loadBest(m, d); },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+  };
+  // /__TEST
+  // ==================================================================================
+
+  resize();
+  setHudLabels();
+  updateHud();
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa();
+</script>
+</body>
+</html>
