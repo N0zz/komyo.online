@@ -128,17 +128,17 @@
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="topHud"><div id="hudL"><div class="label">SCORE</div><div id="score">0</div><div id="wave">WAVE 1</div><div id="credits" style="display:none">◈ 0</div></div><div id="hudR"><div id="hp">♥♥♥</div><div id="shield"></div></div><div id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div><div id="modeTag">Level-up</div></div>
+<div id="topHud"><div id="hudL"><div class="label" id="scoreLbl">SCORE</div><div id="score">0</div><div id="wave">WAVE 1</div><div id="credits" style="display:none">◈ 0</div></div><div id="hudR"><div id="hp">♥♥♥</div><div id="shield"></div></div><div id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div><div id="modeTag">Level-up</div></div>
 <div class="hud" id="xpwrap"><div id="xpbar"><div id="xpfill"></div></div><div id="xplabel">LV 1</div></div>
 <div id="flash"></div>
 
 <div id="overlay">
-  <h1>ASTEROIDS</h1>
+  <h1 id="splashTitle">ASTEROIDS</h1>
   <p id="modeTitle">ROGUELITE — GEM LEVEL-UP</p>
-  <p><strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot &middot; <strong>ESC</strong> pause</p>
+  <p id="splashControls"><strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot &middot; <strong>ESC</strong> pause</p>
   <p class="hint" id="modeHint">Destroy enemies, collect XP gems, level up and pick upgrades. Survive the waves.</p>
-  <p class="hint touchonly">📱 Phone: drag the left side to steer &amp; thrust &middot; tap FIRE to shoot</p>
-  <p class="blink">press ENTER or SPACE to start</p>
+  <p class="hint touchonly" id="splashTouch">📱 Phone: drag the left side to steer &amp; thrust &middot; tap FIRE to shoot</p>
+  <p class="blink" id="splashStart">press ENTER or SPACE to start</p>
 </div>
 
 <script>
@@ -165,6 +165,8 @@
   // ---- Audio: SFX go through the game-kit shared sound engine (site-wide SFX mute/volume);
   //      music stays a local procedural engine whose master gain is driven by the kit's Music channel. ----
   const KIT = (typeof window !== 'undefined' && window.gamekit) ? window.gamekit : null;
+  // i18n: KIT.t with a byte-identical English `def` fallback (null-safe for headless-without-kit).
+  const t = (k, p) => KIT ? KIT.t(k, p) : (p && p.def != null ? p.def : k);
   if (KIT) KIT.sound.define({
     shoot:(c)=>{ c.voice({f:2000,slideTo:240,dur:0.16,type:'sawtooth',gain:0.11,filter:'lowpass',cutoff:3200,cutoffTo:500,q:7,reverb:0.12}); c.voice({f:2600,slideTo:320,dur:0.1,type:'square',gain:0.04}); },
     pop:(c)=>c.voice({f:320,slideTo:200,dur:0.07,type:'square',gain:0.07,filter:'lowpass',cutoff:1600}),
@@ -191,10 +193,21 @@
     xpwrap.style.display   = (PROGRESSION==='levelup') ? '' : 'none';
     creditsEl.style.display= (PROGRESSION==='shop')    ? 'block' : 'none';
     timerEl.style.display  = SPEEDRUN ? 'block' : 'none';
-    if (SPEEDRUN) timerGoal.textContent = 'GOAL: CLEAR WAVE '+SR_TARGET_WAVE;
+    if (SPEEDRUN) timerGoal.textContent = t('game.asteroids-plus.hudGoal', { wave: SR_TARGET_WAVE, def: 'GOAL: CLEAR WAVE '+SR_TARGET_WAVE });
     modeTagEl.textContent = progLabel(PROGRESSION, SPEEDRUN);
   }
   applyModeHud();
+  // static splash + HUD-label prose (set once from the DOM defaults, so it can be localized)
+  function applyStaticText(){
+    $('splashTitle').textContent = t('game.asteroids-plus.splashTitle', { def: 'ASTEROIDS' });
+    modeTitle.textContent = t('game.asteroids-plus.splashSubtitle', { def: 'ROGUELITE — GEM LEVEL-UP' });
+    $('splashControls').innerHTML = t('game.asteroids-plus.splashControls', { def: '<strong>&larr;&rarr;</strong> / <strong>A&nbsp;D</strong> rotate &middot; <strong>&uarr;</strong> / <strong>W</strong> thrust &middot; <strong>SPACE</strong> shoot &middot; <strong>ESC</strong> pause' });
+    modeHint.textContent = t('game.asteroids-plus.splashHint', { def: 'Destroy enemies, collect XP gems, level up and pick upgrades. Survive the waves.' });
+    $('splashTouch').innerHTML = t('game.asteroids-plus.splashTouch', { def: '📱 Phone: drag the left side to steer &amp; thrust &middot; tap FIRE to shoot' });
+    $('splashStart').textContent = t('game.asteroids-plus.splashStart', { def: 'press ENTER or SPACE to start' });
+    $('scoreLbl').textContent = t('game.asteroids-plus.hudScore', { def: 'SCORE' });
+  }
+  applyStaticText();
 
   let W,H,SCALE=1;
   function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; SCALE=S; W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S); buildStars(); }
@@ -251,6 +264,9 @@
     { id:'auto',   name:'Auto-Fire',      desc:'Ship fires by itself — no holding Space.', max:1, price:14 },
     { id:'magnet', name:'Magnet',         desc:'Wider XP pickup radius.',          max:4, price:10, levelupOnly:true },
   ];
+  // display-only translations for the upgrade registry (logic keys off id, never name/desc)
+  const upName = u => t('game.asteroids-plus.up.' + u.id + '.name', { def: u.name });
+  const upDesc = u => t('game.asteroids-plus.up.' + u.id + '.desc', { def: u.desc });
   function pool(){ return ALL_UPGRADES.filter(u => PROGRESSION==='levelup' || !u.levelupOnly); }
   // Offensive + active upgrades EXPIRE: each stack lapses EXPIRE_WAVES after the wave it was picked,
   // so you can't permanently stack to the cap — you keep re-investing. Defensive (hull/shield) + QoL
@@ -310,7 +326,7 @@
   // mode-card mini previews (tiny, self-contained vector)
   function pvLevelup(g,w,h){ mbShip(g,w*.34,h*.54,'#9fe8ff'); ['#7fe0a0','#b0f0c8','#7fe0a0'].forEach((c,i)=>{ g.fillStyle=c; g.save(); g.translate(w*(.6+i*.13),h*(.36+i*.16)); g.rotate(.78); g.fillRect(-3,-3,6,6); g.restore(); }); mbRock(g,w*.72,h*.74,9,205); }
   function pvMilestones(g,w,h){ g.strokeStyle='rgba(159,232,255,.5)'; g.lineWidth=2; [0.66,0.5,0.34].forEach((y,i)=>{ g.beginPath(); g.moveTo(w*.22,h*y); g.lineTo(w*(.4+i*.14),h*y); g.stroke(); g.fillStyle='#ffd166'; g.beginPath(); g.arc(w*(.4+i*.14),h*y,3.2,0,6.28); g.fill(); }); mbShip(g,w*.78,h*.5,'#9fe8ff'); }
-  function pvShop(g,w,h){ g.fillStyle='#ffd166'; g.font='bold 22px ui-monospace,monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('◈',w*.5,h*.4); g.fillStyle='rgba(159,232,255,.85)'; g.font='bold 11px ui-monospace,monospace'; g.fillText('SHOP',w*.5,h*.66); }
+  function pvShop(g,w,h){ g.fillStyle='#ffd166'; g.font='bold 22px ui-monospace,monospace'; g.textAlign='center'; g.textBaseline='middle'; g.fillText('◈',w*.5,h*.4); g.fillStyle='rgba(159,232,255,.85)'; g.font='bold 11px ui-monospace,monospace'; g.fillText(t('game.asteroids-plus.shopPreview',{def:'SHOP'}),w*.5,h*.66); }
   // animated space backdrop: twinkling starfield + slowly drifting, spinning rocks (re-randomized per open)
   var menuRocks = [], menuEnemies = [];
   function genMenuRocks(){ menuRocks = []; var n = 5 + Math.floor(Math.random()*3);
@@ -331,8 +347,8 @@
   function startGame(){ if(KIT) KIT.menu.hide(); resetRun(); startWave(1); state='playing'; overlay.classList.add('hidden');
     srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT){ KIT.showMenuButton(true); KIT.showPauseButton(true); } applyModeHud(); updateHud(); }
   function pauseGame(){ state='paused'; if(!KIT) return;
-    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:'PAUSED', lines:[ 'Wave '+wave+' · Score '+score ],
-      actions:[ {id:'resume',label:'RESUME (ESC)',primary:true}, {id:'menu',label:'QUIT TO MENU',danger:true} ],
+    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:t('game.common.paused',{def:'PAUSED'}), lines:[ t('game.asteroids-plus.pauseLine',{wave:wave,score:score,def:'Wave '+wave+' · Score '+score}) ],
+      actions:[ {id:'resume',label:t('game.common.resume',{def:'RESUME (ESC)'}),primary:true}, {id:'menu',label:t('game.common.quitToMenu',{def:'QUIT TO MENU'}),danger:true} ],
       onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') quitToMenu(); }, onEsc: resumeGame }); }
   function resumeGame(){ state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); }
   function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14,hp:3,maxHp:3,shield:0,shieldMax:0,frenzy:0}; invuln=120; }
@@ -371,26 +387,26 @@
       else { let mi=0; for(let i=1;i<upExp[id].length;i++) if(upExp[id][i]<upExp[id][mi]) mi=i; if(upExp[id].length) upExp[id][mi]=wave+EXPIRE_WAVES; }
     } else { up[id]=Math.min(def.max,cur+1); }
     if(id==='hull') ship.hp=Math.min(99,ship.hp+1); if(id==='shield') ship.shield=(up.shield);
-    recalc(); SND.play('level'); flash(def.name.toUpperCase()); updateHud();
+    recalc(); SND.play('level'); flash(upName(def).toUpperCase()); updateHud();
   }
   // Called at each wave start: drop any expiring stacks whose lapse wave has passed.
   function expireUpgrades(){
     let changed=false, lapsed=[];
     for(const id in upExp){ const keep=upExp[id].filter(w=>w>=wave);
-      if(keep.length!==(up[id]||0)){ const d=(up[id]||0)-keep.length; if(d>0) lapsed.push(ALL_UPGRADES.find(u=>u.id===id).name.toUpperCase()); }
+      if(keep.length!==(up[id]||0)){ const d=(up[id]||0)-keep.length; if(d>0) lapsed.push(upName(ALL_UPGRADES.find(u=>u.id===id)).toUpperCase()); }
       upExp[id]=keep; up[id]=keep.length; if(up[id]===0) delete up[id]; changed=true; }
     if(changed){ recalc(); updateHud(); }
-    if(lapsed.length) flash('LAPSED: '+lapsed.join(' '));
+    if(lapsed.length) flash(t('game.asteroids-plus.lapsed',{names:lapsed.join(' '),def:'LAPSED: '+lapsed.join(' ')}));
   }
   // active expiring upgrades + how many waves until the next stack lapses (for the HUD readout + tests)
   function activeUpgrades(){ const out=[]; for(const id of EXPIRING){ const lv=up[id]||0; if(lv>0){ const exp=(upExp[id]||[]); const soon=exp.length?Math.min.apply(null,exp)-wave+1:0; out.push({id,lv,expiresIn:Math.max(0,soon)}); } } return out; }
 
   function updateHud(){
-    scoreEl.textContent=score; const left=enemiesLeft(); waveEl.textContent='WAVE '+wave+' · '+left+' left';
+    scoreEl.textContent=score; const left=enemiesLeft(); waveEl.textContent=t('game.asteroids-plus.hudWave',{wave:wave,left:left,def:'WAVE '+wave+' · '+left+' left'});
     hpEl.textContent='♥'.repeat(Math.max(0,ship?ship.hp:0)) || '—';
     shieldEl.textContent = (ship&&ship.shieldMax>0) ? ('◇'.repeat(ship.shield)+'·'.repeat(Math.max(0,ship.shieldMax-ship.shield))) : '';
-    if(PROGRESSION==='levelup'){ xpfill.style.width=Math.min(100,(xp/xpNext)*100)+'%'; xplabel.textContent='LV '+level; }
-    if(PROGRESSION==='shop'){ creditsEl.textContent='◈ '+credits; }
+    if(PROGRESSION==='levelup'){ xpfill.style.width=Math.min(100,(xp/xpNext)*100)+'%'; xplabel.textContent=t('game.asteroids-plus.hudLevel',{level:level,def:'LV '+level}); }
+    if(PROGRESSION==='shop'){ creditsEl.textContent=t('game.asteroids-plus.hudCredits',{credits:credits,def:'◈ '+credits}); }
   }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=80; }
   // quit a run back to the start menu, in-place (no reload). Save the score best first (non-speedrun).
@@ -403,24 +419,24 @@
     genMenuRocks();
     const bestScore = k => { const v = KIT ? KIT.bestScore('asteroids-plus', progLabel(k, false)) : 0; return v > 0 ? v : '—'; };
     const bestTime  = k => { const t = KIT ? KIT.best('asteroids-plus', progLabel(k, true)).time : 0; return t > 0 ? fmtTime(t) : '—'; };
-    const goalChip  = st => st.speedrun ? { label:'Clear W'+SR_TARGET_WAVE, hot:true } : null;
+    const goalChip  = st => st.speedrun ? { label:t('game.asteroids-plus.goalChip',{wave:SR_TARGET_WAVE,def:'Clear W'+SR_TARGET_WAVE}), hot:true } : null;
     const modeParams= st => st.speedrun ? { prog: st.mode, speedrun:'1' } : { prog: st.mode };
-    KIT.menu.show({ kind:'start', theme:MENU_THEME, title:'ASTEROIDS+', backdrop:menuBackdrop, backdropAnimate:true,
-      groups:[ { id:'mode', label:'MODE', style:'cards', default: PROGRESSION, choices:[
-        { id:'levelup', label:'LEVEL-UP', tag:'GEMS', preview:pvLevelup,
-          mech: st => ['Collect XP gems','Pick upgrades', goalChip(st)],
+    KIT.menu.show({ kind:'start', theme:MENU_THEME, title:t('game.asteroids-plus.menuTitle',{def:'ASTEROIDS+'}), backdrop:menuBackdrop, backdropAnimate:true,
+      groups:[ { id:'mode', label:t('game.common.modeLabel',{def:'MODE'}), style:'cards', default: PROGRESSION, choices:[
+        { id:'levelup', label:t('game.asteroids-plus.modeLevelup',{def:'LEVEL-UP'}), tag:t('game.asteroids-plus.tagGems',{def:'GEMS'}), preview:pvLevelup,
+          mech: st => [t('game.asteroids-plus.mechCollectGems',{def:'Collect XP gems'}),t('game.asteroids-plus.mechPickUpgrades',{def:'Pick upgrades'}), goalChip(st)],
           best: st => st.speedrun ? bestTime('levelup') : bestScore('levelup') },
-        { id:'milestones', label:'MILESTONES', preview:pvMilestones,
-          mech: st => ['Score thresholds','Auto-offer picks', goalChip(st)],
+        { id:'milestones', label:t('game.asteroids-plus.modeMilestones',{def:'MILESTONES'}), preview:pvMilestones,
+          mech: st => [t('game.asteroids-plus.mechScoreThresholds',{def:'Score thresholds'}),t('game.asteroids-plus.mechAutoOffer',{def:'Auto-offer picks'}), goalChip(st)],
           best: st => st.speedrun ? bestTime('milestones') : bestScore('milestones') },
-        { id:'shop', label:'WAVE SHOP', tag:'CREDITS', preview:pvShop,
-          mech: st => ['Earn credits','Buy between waves', goalChip(st)],
+        { id:'shop', label:t('game.asteroids-plus.modeShop',{def:'WAVE SHOP'}), tag:t('game.asteroids-plus.tagCredits',{def:'CREDITS'}), preview:pvShop,
+          mech: st => [t('game.asteroids-plus.mechEarnCredits',{def:'Earn credits'}),t('game.asteroids-plus.mechBuyBetween',{def:'Buy between waves'}), goalChip(st)],
           best: st => st.speedrun ? bestTime('shop') : bestScore('shop') },
       ]} ],
-      toggles:[ { id:'speedrun', label:'SPEEDRUN', caption:'— clear wave '+SR_TARGET_WAVE+' (first boss) against the clock', default: SPEEDRUN } ],
-      hint: st => st.speedrun ? ('Speedrun — clear wave '+SR_TARGET_WAVE+' as fast as you can.')
-        : ({ levelup:'Level-up — collect gems, level up, choose upgrades.', milestones:'Milestones — cross score thresholds to pick upgrades.', shop:'Wave shop — earn credits and spend them between waves.' }[st.mode] || 'Pick how you power up.'),
-      actions:[ {id:'play',label:'PLAY ▶',primary:true} ],
+      toggles:[ { id:'speedrun', label:t('game.asteroids-plus.speedrun',{def:'SPEEDRUN'}), caption:t('game.asteroids-plus.speedrunCaption',{wave:SR_TARGET_WAVE,def:'— clear wave '+SR_TARGET_WAVE+' (first boss) against the clock'}), default: SPEEDRUN } ],
+      hint: st => st.speedrun ? t('game.asteroids-plus.hintSpeedrun',{wave:SR_TARGET_WAVE,def:'Speedrun — clear wave '+SR_TARGET_WAVE+' as fast as you can.'})
+        : ({ levelup:t('game.asteroids-plus.hintLevelup',{def:'Level-up — collect gems, level up, choose upgrades.'}), milestones:t('game.asteroids-plus.hintMilestones',{def:'Milestones — cross score thresholds to pick upgrades.'}), shop:t('game.asteroids-plus.hintShop',{def:'Wave shop — earn credits and spend them between waves.'}) }[st.mode] || t('game.asteroids-plus.hintFallback',{def:'Pick how you power up.'})),
+      actions:[ {id:'play',label:t('game.asteroids-plus.play',{def:'PLAY ▶'}),primary:true} ],
       onChange: st => { KIT.stampUrl(modeParams(st)); },
       onPlay: st => { applyProgression(st.mode, !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
     });
@@ -432,18 +448,18 @@
     if(!KIT) return;
     KIT.menu.show({ kind:'end', theme:MENU_THEME, title:o.title, backdrop:menuBackdrop, backdropAnimate:true,
       score:score, scoreText:o.scoreText, best:o.best, newBest:o.newBest, lines:o.lines,
-      share:{ slug:'asteroids-plus', accent: '#b98cff', icon: '☄️', title:'Asteroids+', message:()=>shareMsg(score, o.won), params:()=> (SPEEDRUN ? { prog:PROGRESSION, speedrun:'1' } : { prog:PROGRESSION }) },
+      share:{ slug:'asteroids-plus', accent: '#b98cff', icon: '☄️', title:t('game.asteroids-plus.title',{def:'Asteroids+'}), message:()=>shareMsg(score, o.won), params:()=> (SPEEDRUN ? { prog:PROGRESSION, speedrun:'1' } : { prog:PROGRESSION }) },
       record:{ slug:'asteroids-plus', mode:progLabel(PROGRESSION, SPEEDRUN), score:score, time:0, stats:o.stats||{wave:wave} },
-      actions:[ {id:'again',label:'PLAY AGAIN',primary:true}, {id:'menu',label:'MENU'} ],
+      actions:[ {id:'again',label:t('game.common.playAgain',{def:'PLAY AGAIN'}),primary:true}, {id:'menu',label:t('game.common.menu',{def:'MENU'})} ],
       onAction:(id)=>{ if(id==='again') startGame(); else if(id==='menu') quitToMenu(); } });
   }
   // In Speedrun the RESULT is the time, not score/wave — so the share + Discord post lead with the clear time.
   // (die() also sets srDone, so a cleared run is distinguished by state==='won', not srDone.)
   function shareMsg(finalScore, won) {
     if (SPEEDRUN) return state === 'won'
-      ? KIT.shareText({ verb: 'I cleared', score: fmtTime(srElapsed), unit: '', game: 'Asteroids+', emoji: '🛸', mode: 'Speedrun', extra: ['cleared wave ' + SR_TARGET_WAVE] })
-      : KIT.shareText({ verb: 'I reached', score: 'wave ' + wave, unit: '', game: 'Asteroids+', emoji: '🛸', mode: 'Speedrun', extra: ['run failed at ' + fmtTime(srElapsed)] });
-    return KIT.shareText({ verb: won ? 'I beat' : 'I scored', score: finalScore, game: 'Asteroids+', emoji: '🛸', mode: ({ levelup: 'Level-up', milestones: 'Milestones', shop: 'Wave shop' }[PROGRESSION] || 'Roguelite'), extra: won ? ['VICTORY · all ' + RUN_END_WAVE + ' waves'] : ['wave ' + wave] });
+      ? KIT.shareText({ verb: t('game.asteroids-plus.verbCleared',{def:'I cleared'}), score: fmtTime(srElapsed), unit: '', game: t('game.asteroids-plus.title',{def:'Asteroids+'}), emoji: '🛸', mode: t('game.asteroids-plus.modeSpeedrun',{def:'Speedrun'}), extra: [t('game.asteroids-plus.extraCleared',{wave:SR_TARGET_WAVE,def:'cleared wave ' + SR_TARGET_WAVE})] })
+      : KIT.shareText({ verb: t('game.asteroids-plus.verbReached',{def:'I reached'}), score: t('game.asteroids-plus.waveN',{wave:wave,def:'wave ' + wave}), unit: '', game: t('game.asteroids-plus.title',{def:'Asteroids+'}), emoji: '🛸', mode: t('game.asteroids-plus.modeSpeedrun',{def:'Speedrun'}), extra: [t('game.asteroids-plus.extraFailed',{time:fmtTime(srElapsed),def:'run failed at ' + fmtTime(srElapsed)})] });
+    return KIT.shareText({ verb: won ? t('game.asteroids-plus.verbBeat',{def:'I beat'}) : t('game.asteroids-plus.verbScored',{def:'I scored'}), score: finalScore, game: t('game.asteroids-plus.title',{def:'Asteroids+'}), emoji: '🛸', mode: ({ levelup: t('game.asteroids-plus.shareModeLevelup',{def:'Level-up'}), milestones: t('game.asteroids-plus.shareModeMilestones',{def:'Milestones'}), shop: t('game.asteroids-plus.shareModeShop',{def:'Wave shop'}) }[PROGRESSION] || t('game.asteroids-plus.shareModeRoguelite',{def:'Roguelite'})), extra: won ? [t('game.asteroids-plus.extraVictory',{waves:RUN_END_WAVE,def:'VICTORY · all ' + RUN_END_WAVE + ' waves'})] : [t('game.asteroids-plus.waveN',{wave:wave,def:'wave ' + wave})] });
   }
 
   // ---- Spawning / waves ----
@@ -467,8 +483,8 @@
     expireUpgrades();   // lapse any expiring stacks whose 4-wave window has passed
     if(ship && ship.shieldMax>0 && ship.shield<ship.shieldMax) ship.shield++;   // shield tops up +1 per wave (no mid-fight regen)
     bullets=[]; ebullets=[]; // clear leftover shots so a new wave starts clean
-    if(n===RUN_END_WAVE){ bosses=[makeBoss(n,{finale:true,x:W*0.35,dir:1})]; finalePending=true; waveDropRate=0.03; SND.play('boss'); flash('⚠ FINAL STAND — DUAL BOSS'); }
-    else if(n%5===0){ bosses=[makeBoss(n)]; waveDropRate=0.03; SND.play('boss'); flash('⚠ WAVE '+n+' — BOSS'); }
+    if(n===RUN_END_WAVE){ bosses=[makeBoss(n,{finale:true,x:W*0.35,dir:1})]; finalePending=true; waveDropRate=0.03; SND.play('boss'); flash(t('game.asteroids-plus.flashFinalStand',{def:'⚠ FINAL STAND — DUAL BOSS'})); }
+    else if(n%5===0){ bosses=[makeBoss(n)]; waveDropRate=0.03; SND.play('boss'); flash(t('game.asteroids-plus.flashWaveBoss',{wave:n,def:'⚠ WAVE '+n+' — BOSS'})); }
     else {
       const ast=3+Math.floor(n*1.45);
       for(let i=0;i<ast;i++){ const p=edgePos(); asteroids.push(makeAsteroid(p.x,p.y, Math.random()<0.55+n*0.03?3:2)); }
@@ -483,7 +499,7 @@
       // normalize pickup drops to ~4 per wave regardless of enemy count (a size-3 asteroid = 7 kills)
       const p3=Math.min(1,0.55+n*0.03), avgAst=p3*7+(1-p3)*3, waveKills=ast*avgAst+nH+nS+nK;
       waveDropRate=Math.max(0.012, Math.min(0.25, 4/waveKills));
-      flash('WAVE '+n);
+      flash(t('game.asteroids-plus.flashWave',{wave:n,def:'WAVE '+n}));
     }
     updateHud();
   }
@@ -545,10 +561,10 @@
     pickups.push({ x, y, type, vx:(Math.random()-0.5)*0.8, vy:(Math.random()-0.5)*0.8, life:540 });
   }
   function collectPickup(p){
-    if(p.type==='repair'){ ship.hp=Math.min(ship.maxHp, ship.hp+1); flash('REPAIR +1 HP'); }
-    else if(p.type==='shieldcell'){ ship.shield=ship.shieldMax; flash('SHIELD RESTORED'); }
-    else if(p.type==='frenzy'){ ship.frenzy=210; flash('FRENZY!'); }
-    else if(p.type==='pulse'){ novas.push({x:ship.x,y:ship.y,r:0,max:Math.max(W,H)*0.33,dmg:40}); flash('PULSE'); }
+    if(p.type==='repair'){ ship.hp=Math.min(ship.maxHp, ship.hp+1); flash(t('game.asteroids-plus.flashRepair',{def:'REPAIR +1 HP'})); }
+    else if(p.type==='shieldcell'){ ship.shield=ship.shieldMax; flash(t('game.asteroids-plus.flashShield',{def:'SHIELD RESTORED'})); }
+    else if(p.type==='frenzy'){ ship.frenzy=210; flash(t('game.asteroids-plus.flashFrenzy',{def:'FRENZY!'})); }
+    else if(p.type==='pulse'){ novas.push({x:ship.x,y:ship.y,r:0,max:Math.max(W,H)*0.33,dmg:40}); flash(t('game.asteroids-plus.flashPulse',{def:'PULSE'})); }
     burst(p.x,p.y,PICKUPS[p.type].color,12,2); SND.play('pickup'); updateHud();
   }
 
@@ -564,7 +580,7 @@
     dropRewards(k.x,k.y,'kami'); }
   function killBoss(idx){ idx=idx||0; const b=bosses[idx]; if(!b) return; burst(b.x,b.y,'255,180,120',60,5); const wb=wave; bosses.splice(idx,1); SND.play('explode'); dropRewards(b.x,b.y,'boss');
     // finale: if the first boss dies before reaching half HP, bring in the second straight away
-    if(finalePending && bosses.length===0){ bosses.push(makeBoss(RUN_END_WAVE,{finale:true,x:W*0.5,dir:-1})); finalePending=false; SND.play('boss'); flash('⚠ SECOND BOSS'); }
+    if(finalePending && bosses.length===0){ bosses.push(makeBoss(RUN_END_WAVE,{finale:true,x:W*0.5,dir:-1})); finalePending=false; SND.play('boss'); flash(t('game.asteroids-plus.flashSecondBoss',{def:'⚠ SECOND BOSS'})); }
     if(SPEEDRUN && !srDone && wb>=SR_TARGET_WAVE){ winRun(); } }
 
   function damageShip(){
@@ -575,17 +591,17 @@
   }
   function die(){ state='dead'; if(SPEEDRUN) srDone=true; burst(ship.x,ship.y,'255,160,120',50,5); SND.play('over');
     let newBest=false; if(!SPEEDRUN && KIT){ newBest = KIT.saveBest('asteroids-plus', progLabel(PROGRESSION, false), { score: score, stats: { wave: wave } }).isBest; }
-    showEnd({ title:'GAME OVER', scoreText:String(score), best: SPEEDRUN ? null : (KIT ? KIT.bestScore('asteroids-plus', progLabel(PROGRESSION, false)) : 0), newBest,
-      lines: SPEEDRUN ? ['Speedrun — run failed at '+fmtTime(srElapsed)] : ['Reached wave '+wave],
+    showEnd({ title:t('game.asteroids-plus.gameOver',{def:'GAME OVER'}), scoreText:String(score), best: SPEEDRUN ? null : (KIT ? KIT.bestScore('asteroids-plus', progLabel(PROGRESSION, false)) : 0), newBest,
+      lines: SPEEDRUN ? [t('game.asteroids-plus.lineFailed',{time:fmtTime(srElapsed),def:'Speedrun — run failed at '+fmtTime(srElapsed)})] : [t('game.asteroids-plus.reachedWave',{wave:wave,def:'Reached wave '+wave})],
       won:false, mode: SPEEDRUN?'speedrun':'', time: SPEEDRUN?srElapsed:0 }); }
   function winRun(){ srDone=true; state='won'; SND.play('level'); const newBest=saveBest(srElapsed);
-    showEnd({ title:'WAVE '+SR_TARGET_WAVE+' CLEARED', scoreText:fmtTime(srElapsed), best:fmtTime((KIT ? KIT.best('asteroids-plus', progLabel(PROGRESSION, true)).time : 0) || srElapsed), newBest,
-      lines:['score '+score], won:false, mode:'speedrun', time:srElapsed }); }
+    showEnd({ title:t('game.asteroids-plus.waveClearedTitle',{wave:SR_TARGET_WAVE,def:'WAVE '+SR_TARGET_WAVE+' CLEARED'}), scoreText:fmtTime(srElapsed), best:fmtTime((KIT ? KIT.best('asteroids-plus', progLabel(PROGRESSION, true)).time : 0) || srElapsed), newBest,
+      lines:[t('game.asteroids-plus.lineScore',{score:score,def:'score '+score})], won:false, mode:'speedrun', time:srElapsed }); }
   // beat the wave-30 dual-boss finale (non-speedrun) → the run is won and over
   function victoryRun(){ state='won'; SND.play('level'); burst(ship.x,ship.y,'255,220,150',60,5);
     const newBest = KIT ? KIT.saveBest('asteroids-plus', progLabel(PROGRESSION, false), { score: score, stats: { wave: wave } }).isBest : false;
-    showEnd({ title:'VICTORY', scoreText:String(score), best: (KIT ? KIT.bestScore('asteroids-plus', progLabel(PROGRESSION, false)) : 0), newBest,
-      lines:['You cleared all '+RUN_END_WAVE+' waves and broke the dual-boss finale.'],
+    showEnd({ title:t('game.asteroids-plus.victory',{def:'VICTORY'}), scoreText:String(score), best: (KIT ? KIT.bestScore('asteroids-plus', progLabel(PROGRESSION, false)) : 0), newBest,
+      lines:[t('game.asteroids-plus.victoryLine',{waves:RUN_END_WAVE,def:'You cleared all '+RUN_END_WAVE+' waves and broke the dual-boss finale.'})],
       won:true, mode:({levelup:'Level-up',milestones:'Milestones',shop:'Wave shop'}[PROGRESSION]||'Roguelite'), stats:{wave:wave,victory:1} }); }
 
   // ---- Picker (levelup + milestones) ----
@@ -596,14 +612,14 @@
   function openPicker(){ state='levelup'; pickOptions=rollPicks(); selIdx=0;
     if(pickOptions.length===0){ pendingPicks=0; state='playing'; return; }
     if(!KIT) return;
-    const ttl = PROGRESSION==='levelup' ? ('LEVEL '+level) : 'CHOOSE UPGRADE';
+    const ttl = PROGRESSION==='levelup' ? t('game.asteroids-plus.pickerLevel',{level:level,def:'LEVEL '+level}) : t('game.asteroids-plus.chooseUpgrade',{def:'CHOOSE UPGRADE'});
     // no backdrop → the kit menu box sits over the frozen playfield (mid-run); shop-style cards ARE the action
     KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:ttl,
-      hint: () => 'Choose an upgrade' + (pendingPicks>1 ? (' · '+pendingPicks+' pending') : ''),
-      groups:[ { id:'pick', style:'shop', cols:3, choices: pickOptions.map(u=>({ id:u.id, label:u.name, desc:u.desc, icon:UP_ICONS[u.id] })),
+      hint: () => t('game.asteroids-plus.chooseAnUpgrade',{def:'Choose an upgrade'}) + (pendingPicks>1 ? t('game.asteroids-plus.picksPending',{count:pendingPicks,def:' · '+pendingPicks+' pending'}) : ''),
+      groups:[ { id:'pick', style:'shop', cols:3, choices: pickOptions.map(u=>({ id:u.id, label:upName(u), desc:upDesc(u), icon:UP_ICONS[u.id] })),
         sub: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const maxed=lv>=u.max;
-          return maxed ? ('RENEW · '+EXPIRE_WAVES+'w') : ((lv>0?('LV '+lv+' → '+(lv+1)):'NEW')+(EXPIRING.has(u.id)?(' · '+EXPIRE_WAVES+'w'):'')); },
-        pickLabel: (c) => 'TAKE ' + c.label + ' ▶',
+          return maxed ? t('game.asteroids-plus.renewW',{w:EXPIRE_WAVES,def:'RENEW · '+EXPIRE_WAVES+'w'}) : ((lv>0?t('game.asteroids-plus.lvUp',{from:lv,to:lv+1,def:'LV '+lv+' → '+(lv+1)}):t('game.asteroids-plus.new',{def:'NEW'}))+(EXPIRING.has(u.id)?t('game.asteroids-plus.expW',{w:EXPIRE_WAVES,def:' · '+EXPIRE_WAVES+'w'}):'')); },
+        pickLabel: (c) => t('game.asteroids-plus.takeLabel',{label:c.label,def:'TAKE ' + c.label + ' ▶'}),
         onPick: (id) => pickUpgrade(id) } ] });
   }
   function pickUpgrade(id){ if(state!=='levelup') return; applyUpgrade(id); pendingPicks--; if(pendingPicks>0){ openPicker(); } else { state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); } }
@@ -615,18 +631,18 @@
   function anyAffordable(){ return pool().some(u=>{ const lv=up[u.id]||0, renew=lv>=u.max&&EXPIRING.has(u.id); return (lv<u.max||renew) && credits>=shopCost(u); }); }
   function openShop(){ state='shop'; selIdx=0; if(!KIT) return;
     // kind:'pause' (not 'end') — the shop is mid-run, so it must NOT count as a safe-reload moment
-    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:'DRYDOCK',
-      banner: () => '◈ '+credits+' CREDITS',
-      hint: () => 'Wave '+wave+' cleared — buy upgrades, then continue.',
-      groups:[ { id:'buy', style:'shop', choices: pool().map(u=>({ id:u.id, label:u.name, desc:u.desc, icon:UP_ICONS[u.id] })),
+    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:t('game.asteroids-plus.drydock',{def:'DRYDOCK'}),
+      banner: () => t('game.asteroids-plus.creditsBanner',{credits:credits,def:'◈ '+credits+' CREDITS'}),
+      hint: () => t('game.asteroids-plus.shopHint',{wave:wave,def:'Wave '+wave+' cleared — buy upgrades, then continue.'}),
+      groups:[ { id:'buy', style:'shop', choices: pool().map(u=>({ id:u.id, label:upName(u), desc:upDesc(u), icon:UP_ICONS[u.id] })),
         sub: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const exp=EXPIRING.has(u.id); const maxed=lv>=u.max; const renew=maxed&&exp; const cost=shopCost(u);
-          const lvl = renew?('RENEW '+EXPIRE_WAVES+'w'):(maxed?'MAX':('LV '+lv+'/'+u.max)+(exp?(' · '+EXPIRE_WAVES+'w'):''));
-          return '<span>'+lvl+'</span> · '+((maxed&&!renew)?'<span class="max">—</span>':('<span class="cost">◈ '+cost+'</span>')); },
-        pickLabel: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const renew=lv>=u.max&&EXPIRING.has(u.id); return (lv>=u.max&&!renew) ? 'MAXED' : ('BUY · ◈ '+shopCost(u)); },
+          const lvl = renew?t('game.asteroids-plus.renewShort',{w:EXPIRE_WAVES,def:'RENEW '+EXPIRE_WAVES+'w'}):(maxed?t('game.asteroids-plus.max',{def:'MAX'}):t('game.asteroids-plus.lvOf',{lv:lv,max:u.max,def:'LV '+lv+'/'+u.max})+(exp?t('game.asteroids-plus.expW',{w:EXPIRE_WAVES,def:' · '+EXPIRE_WAVES+'w'}):''));
+          return '<span>'+lvl+'</span> · '+((maxed&&!renew)?'<span class="max">—</span>':('<span class="cost">'+t('game.asteroids-plus.cost',{cost:cost,def:'◈ '+cost})+'</span>')); },
+        pickLabel: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const renew=lv>=u.max&&EXPIRING.has(u.id); return (lv>=u.max&&!renew) ? t('game.asteroids-plus.maxed',{def:'MAXED'}) : t('game.asteroids-plus.buyCost',{cost:shopCost(u),def:'BUY · ◈ '+shopCost(u)}); },
         disabled: (c) => { const u=ALL_UPGRADES.find(x=>x.id===c.id); const lv=up[u.id]||0; const renew=lv>=u.max&&EXPIRING.has(u.id); const buyable=(lv<u.max||renew); return !(buyable && credits>=shopCost(u)); },
         onPick: (id) => buyUpgrade(id) } ],
       // no quit here (decided 2026-07-03): leaving mid-shop = the nav ‹ Menu with its confirm
-      actions:[ {id:'continue',label:'CONTINUE ▶',primary:true} ],
+      actions:[ {id:'continue',label:t('game.asteroids-plus.continue',{def:'CONTINUE ▶'}),primary:true} ],
       onAction:(id)=>{ if(id==='continue') closeShop(); } }); }
   function buyUpgrade(id){ if(state!=='shop') return; const u=ALL_UPGRADES.find(x=>x.id===id); if(!u) return; const lv=up[u.id]||0;
     const renew=lv>=u.max && EXPIRING.has(u.id); if(lv>=u.max && !renew) return;   // maxed permanent → no buy; maxed expiring → renew
@@ -704,7 +720,7 @@
         // finale extra attack: a slow, evenly-spaced radial ring you can read and weave through (not bullet hell)
         if(boss.finale){ if(boss.radialCd>0) boss.radialCd--; else { for(let k=0;k<10;k++){ const a=k/10*Math.PI*2; ebullets.push({x:boss.x,y:boss.y,vx:Math.cos(a)*2.4,vy:Math.sin(a)*2.4,life:260,r:4}); } boss.radialCd=210; } } }
       // finale: the second boss joins once the first drops below half HP
-      if(finalePending && bosses.length===1 && bosses[0].hp < bosses[0].maxHp*0.5){ bosses.push(makeBoss(RUN_END_WAVE,{finale:true,x:W*0.65,dir:-1})); finalePending=false; SND.play('boss'); flash('⚠ SECOND BOSS'); }
+      if(finalePending && bosses.length===1 && bosses[0].hp < bosses[0].maxHp*0.5){ bosses.push(makeBoss(RUN_END_WAVE,{finale:true,x:W*0.65,dir:-1})); finalePending=false; SND.play('boss'); flash(t('game.asteroids-plus.flashSecondBoss',{def:'⚠ SECOND BOSS'})); }
 
       // gems (levelup)
       for(let i=gems.length-1;i>=0;i--){ const g=gems[i]; const d=Math.hypot(ship.x-g.x,ship.y-g.y);
@@ -835,7 +851,7 @@
     ctx.save(); ctx.shadowBlur=0; ctx.textAlign='left'; ctx.textBaseline='bottom'; ctx.font=Math.round(11*SCALE)+'px "Courier New",monospace';
     let y=H-10*SCALE; const x=10*SCALE;
     for(let i=list.length-1;i>=0;i--){ const u=list[i]; ctx.fillStyle=u.expiresIn<=2?'rgba(255,150,120,0.95)':'rgba(180,210,255,0.7)';
-      ctx.fillText(UP_NAMES[u.id]+' ×'+u.lv+'  '+u.expiresIn+'w', x, y); y-=14*SCALE; }
+      ctx.fillText(t('game.asteroids-plus.upShort.'+u.id,{def:UP_NAMES[u.id]})+' ×'+u.lv+'  '+u.expiresIn+'w', x, y); y-=14*SCALE; }
     ctx.restore(); ctx.textAlign='start'; ctx.textBaseline='alphabetic'; }
   // CRT hull skin: a whole-game green-phosphor pass — multiply the frame toward green, then faint
   // scanlines + a green wash. One post-pass (cheap) instead of recolouring every enemy draw.
@@ -906,9 +922,9 @@
     const wrap=document.createElement('div'); wrap.id='tcontrols';
     const zone=document.createElement('div'); zone.className='tc-zone';
     const joy=document.createElement('div'); joy.className='tc-joy'; const knob=document.createElement('div'); knob.className='tc-knob'; joy.appendChild(knob);
-    fireBtn=document.createElement('button'); fireBtn.className='tc-fire'; fireBtn.textContent='FIRE';
+    fireBtn=document.createElement('button'); fireBtn.className='tc-fire'; fireBtn.textContent=t('game.asteroids-plus.fire',{def:'FIRE'});
     wrap.appendChild(zone); wrap.appendChild(joy); wrap.appendChild(fireBtn);
-    if(HAS_PAUSE){ const pb=document.createElement('button'); pb.className='tc-pause'; pb.textContent='II'; pb.addEventListener('click',()=>{ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); }); wrap.appendChild(pb); }
+    if(HAS_PAUSE){ const pb=document.createElement('button'); pb.className='tc-pause'; pb.textContent=t('game.asteroids-plus.pauseGlyph',{def:'II'}); pb.addEventListener('click',()=>{ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); }); wrap.appendChild(pb); }
     document.body.appendChild(wrap);
     const R=58; let ox=0, oy=0;
     function getT(e){ for(const x of e.changedTouches) if(x.identifier===joyId) return x; return null; }
@@ -926,7 +942,7 @@
 
   // game-kit nav: top-left ‹ Menu (quits to the start menu, in-place) + top-right sound menu (SFX + Music + Reset)
   if (KIT) { KIT.nav({ slug: 'asteroids-plus', music: true, home: '../../', theme: MENU_THEME,
-    confirmLeave: () => (state==='playing'||state==='paused'||state==='levelup'||state==='shop') ? 'Leave this run? You’ll lose your progress.' : false,
+    confirmLeave: () => (state==='playing'||state==='paused'||state==='levelup'||state==='shop') ? t('confirm.leave', { def: 'Leave this run? You’ll lose your progress.' }) : false,
     onMenu: () => quitToMenu(), onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); } }); KIT.showMenuButton(false); KIT.showPauseButton(false); KIT.pwa(); }
 
   resize(); updateHud(); loop();

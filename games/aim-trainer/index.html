@@ -105,7 +105,7 @@
   // one label per mode+amount — the single key for bests (menu + profile) AND the record.
   // Timed keeps the best SCORE (max); Sprint keeps the best TIME (min). Moving is a toggle, not its own board.
   const modeLabel = (m, amt) => m === 'sprint' ? ('Sprint · ' + amt + ' targets') : ('Timed · ' + amt + 's');
-  const hudModeLabel = () => (mode === 'sprint' ? ('Sprint ' + SPRINT_TARGET) : ('Timed ' + sessionSeconds + 's')) + (movingTargets ? ' · moving' : '');
+  const hudModeLabel = () => (mode === 'sprint' ? KIT.t('game.aim-trainer.hudModeSprint', { n: SPRINT_TARGET, def: 'Sprint ' + SPRINT_TARGET }) : KIT.t('game.aim-trainer.hudModeTimed', { n: sessionSeconds, def: 'Timed ' + sessionSeconds + 's' })) + (movingTargets ? KIT.t('game.aim-trainer.hudMoving', { def: ' · moving' }) : '');
   function loadBest(m, s) {
     if (!KIT) return 0;
     return m === 'sprint' ? KIT.best('aim-trainer', modeLabel('sprint', SPRINT_TARGET)).time
@@ -147,22 +147,22 @@
     $('hMode').textContent = hudModeLabel();
 
     if (mode === 'sprint') {
-      $('hScoreLbl').textContent = 'TARGETS';
+      $('hScoreLbl').textContent = KIT.t('game.aim-trainer.hudTargets', { def: 'TARGETS' });
       $('hScore').textContent = hits + ' / ' + SPRINT_TARGET;
-      $('hTimeLbl').textContent = 'ELAPSED';
+      $('hTimeLbl').textContent = KIT.t('game.aim-trainer.hudElapsed', { def: 'ELAPSED' });
       const secs = (elapsedFrames / 60).toFixed(1);
       $('hTime').textContent = secs + 's';
       $('hTime').className = '';
-      $('hBestLbl').textContent = 'BEST TIME';
+      $('hBestLbl').textContent = KIT.t('game.aim-trainer.hudBestTime', { def: 'BEST TIME' });
       const bt = loadBest('sprint', 0);
       $('hBest').textContent = bt > 0 ? (bt / 1000).toFixed(1) + 's' : '--';
     } else {
-      $('hScoreLbl').textContent = 'SCORE';
-      $('hTimeLbl').textContent = 'TIME';
+      $('hScoreLbl').textContent = KIT.t('game.aim-trainer.hudScore', { def: 'SCORE' });
+      $('hTimeLbl').textContent = KIT.t('game.aim-trainer.hudTime', { def: 'TIME' });
       const tl = Math.ceil(timeLeft);
       $('hTime').textContent = tl;
       $('hTime').className = (state === 'playing' && timeLeft <= 5) ? 'warn' : '';
-      $('hBestLbl').textContent = 'BEST';
+      $('hBestLbl').textContent = KIT.t('game.common.best', { def: 'BEST' });
       $('hBest').textContent = loadBest('timed', sessionSeconds);
     }
   }
@@ -290,10 +290,10 @@
   }
   const rangeParams = () => { const m = rangeLastMode || 'timed'; const p = m === 'sprint' ? { mode: 'sprint', target: SPRINT_TARGET } : { mode: 'timed', secs: sessionSeconds }; p.moving = movingTargets ? 1 : 0; return p; };
   function shareMsg() {
-    const acc = hits + misses > 0 ? Math.round(hits / (hits + misses) * 100) : 0; const mv = movingTargets ? 'moving targets' : null;
+    const acc = hits + misses > 0 ? Math.round(hits / (hits + misses) * 100) : 0; const mv = movingTargets ? KIT.t('game.aim-trainer.shareMoving', { def: 'moving targets' }) : null;
     return mode === 'sprint'
-      ? KIT.shareText({ verb: 'I cleared', score: SPRINT_TARGET + ' targets', game: 'Range', emoji: '🎯', mode: 'Sprint', extra: [(elapsedFrames / 60).toFixed(1) + 's', acc + '% accuracy', mv] })
-      : KIT.shareText({ score: score, game: 'Range', emoji: '🎯', mode: sessionSeconds + 's Timed', extra: [acc + '% accuracy', mv] });
+      ? KIT.shareText({ verb: KIT.t('game.aim-trainer.shareVerb', { def: 'I cleared' }), score: KIT.t('game.aim-trainer.shareTargets', { n: SPRINT_TARGET, def: SPRINT_TARGET + ' targets' }), game: KIT.t('game.aim-trainer.gameName', { def: 'Range' }), emoji: '🎯', mode: KIT.t('game.aim-trainer.modeSprint', { def: 'Sprint' }), extra: [KIT.t('game.aim-trainer.shareTime', { s: (elapsedFrames / 60).toFixed(1), def: (elapsedFrames / 60).toFixed(1) + 's' }), KIT.t('game.aim-trainer.shareAccuracy', { pct: acc, def: acc + '% accuracy' }), mv] })
+      : KIT.shareText({ score: score, game: KIT.t('game.aim-trainer.gameName', { def: 'Range' }), emoji: '🎯', mode: KIT.t('game.aim-trainer.shareModeTimed', { n: sessionSeconds, def: sessionSeconds + 's Timed' }), extra: [KIT.t('game.aim-trainer.shareAccuracy', { pct: acc, def: acc + '% accuracy' }), mv] });
   }
   let rangeLastMode = null;
   function showStartMenu(m) {
@@ -303,20 +303,20 @@
     const amounts = m === 'sprint'
       ? [{ id: '10', label: '10' }, { id: '50', label: '50' }, { id: '100', label: '100' }]
       : [{ id: '10', label: '10s' }, { id: '30', label: '30s' }, { id: '60', label: '60s' }];
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'RANGE', backdrop: menuBackdrop, backdropAnimate: true,
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.aim-trainer.title', { def: 'RANGE' }), backdrop: menuBackdrop, backdropAnimate: true,
       groups: [
-        { id: 'mode', label: 'MODE', style: 'cards', default: m, choices: [
-          { id: 'timed', label: 'Timed', mech: ['Beat the clock'], best: st => loadBest('timed', Number(st.amount) || DEFAULT_SESSION), preview: (g, w, h) => pvRange(g, w, h, 'timed') },
-          { id: 'sprint', label: 'Sprint', mech: ['Race to a count'], best: () => { const t = loadBest('sprint', 0); return t > 0 ? (t / 1000).toFixed(1) + 's' : '--'; }, preview: (g, w, h) => pvRange(g, w, h, 'sprint') },
-          { id: 'reaction', label: 'Reaction', tag: 'SOON', locked: true, mech: ['Random pop-ups', 'Avg reaction ms'],
-            desc: 'Targets pop up at random moments — your average reaction time is the score.',
+        { id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: m, choices: [
+          { id: 'timed', label: KIT.t('game.aim-trainer.modeTimed', { def: 'Timed' }), mech: [KIT.t('game.aim-trainer.mechBeatClock', { def: 'Beat the clock' })], best: st => loadBest('timed', Number(st.amount) || DEFAULT_SESSION), preview: (g, w, h) => pvRange(g, w, h, 'timed') },
+          { id: 'sprint', label: KIT.t('game.aim-trainer.modeSprint', { def: 'Sprint' }), mech: [KIT.t('game.aim-trainer.mechRace', { def: 'Race to a count' })], best: () => { const t = loadBest('sprint', 0); return t > 0 ? (t / 1000).toFixed(1) + 's' : '--'; }, preview: (g, w, h) => pvRange(g, w, h, 'sprint') },
+          { id: 'reaction', label: KIT.t('game.aim-trainer.modeReaction', { def: 'Reaction' }), tag: KIT.t('game.aim-trainer.soon', { def: 'SOON' }), locked: true, mech: [KIT.t('game.aim-trainer.mechPopups', { def: 'Random pop-ups' }), KIT.t('game.aim-trainer.mechAvgReaction', { def: 'Avg reaction ms' })],
+            desc: KIT.t('game.aim-trainer.reactionDesc', { def: 'Targets pop up at random moments — your average reaction time is the score.' }),
             preview: (g, w, h) => pvRange(g, w, h, 'reaction') },
         ] },
-        { id: 'amount', label: m === 'sprint' ? 'TARGETS' : 'DURATION', default: m === 'sprint' ? String(SPRINT_TARGET) : String(sessionSeconds), choices: amounts },
+        { id: 'amount', label: m === 'sprint' ? KIT.t('game.aim-trainer.hudTargets', { def: 'TARGETS' }) : KIT.t('game.aim-trainer.duration', { def: 'DURATION' }), default: m === 'sprint' ? String(SPRINT_TARGET) : String(sessionSeconds), choices: amounts },
       ],
-      toggles: [{ id: 'moving', label: 'Moving targets', caption: 'they drift once you warm up', default: movingTargets }],
-      actions: [{ id: 'play', label: 'READY UP', primary: true }],
-      hint: st => st.mode === 'sprint' ? 'Hit the target count as fast as you can.' : 'Score as many hits as you can before time runs out.',
+      toggles: [{ id: 'moving', label: KIT.t('game.aim-trainer.movingToggle', { def: 'Moving targets' }), caption: KIT.t('game.aim-trainer.movingCaption', { def: 'they drift once you warm up' }), default: movingTargets }],
+      actions: [{ id: 'play', label: KIT.t('game.aim-trainer.readyUp', { def: 'READY UP' }), primary: true }],
+      hint: st => st.mode === 'sprint' ? KIT.t('game.aim-trainer.hintSprint', { def: 'Hit the target count as fast as you can.' }) : KIT.t('game.aim-trainer.hintTimed', { def: 'Score as many hits as you can before time runs out.' }),
       onChange: st => {
         movingTargets = !!st.moving; saveMoving(movingTargets);
         if (st.mode !== rangeLastMode) { rangeLastMode = st.mode; if (st.mode === 'sprint') SPRINT_TARGET = 100; else sessionSeconds = DEFAULT_SESSION; showStartMenu(st.mode); return; }
@@ -335,19 +335,19 @@
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
     const isSprint = mode === 'sprint';
-    const detail = acc + '% accuracy · ' + hits + ' hits · ' + misses + ' misses' + (bestReact < Infinity ? (' · ' + bestReact + 'ms') : '');
-    const cfg = { kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true, title: isSprint ? 'SPRINT CLEAR' : "TIME'S UP", lines: [detail],
-      share: { slug: 'aim-trainer', accent: '#ff7a3c', icon: '🎯', title: 'Range', message: () => shareMsg(), params: () => rangeParams() },
+    const detail = KIT.t('game.aim-trainer.endStats', { acc: acc, hits: hits, misses: misses, def: acc + '% accuracy · ' + hits + ' hits · ' + misses + ' misses' }) + (bestReact < Infinity ? KIT.t('game.aim-trainer.endReact', { ms: bestReact, def: ' · ' + bestReact + 'ms' }) : '');
+    const cfg = { kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true, title: isSprint ? KIT.t('game.aim-trainer.sprintClear', { def: 'SPRINT CLEAR' }) : KIT.t('game.aim-trainer.timesUp', { def: "TIME'S UP" }), lines: [detail],
+      share: { slug: 'aim-trainer', accent: '#ff7a3c', icon: '🎯', title: KIT.t('game.aim-trainer.gameName', { def: 'Range' }), message: () => shareMsg(), params: () => rangeParams() },
       record: { slug: 'aim-trainer', mode: modeLabel(mode, mode === 'sprint' ? SPRINT_TARGET : sessionSeconds), score: score, time: Math.round(elapsedFrames / 60 * 1000), stats: { accuracy: acc } },
-      actions: [ { id: 'again', label: 'FIRE AGAIN', primary: true }, { id: 'menu', label: 'MENU' } ],
+      actions: [ { id: 'again', label: KIT.t('game.aim-trainer.fireAgain', { def: 'FIRE AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } };
-    if (isSprint) { const bt = loadBest('sprint', 0); cfg.score = elapsedFrames; cfg.scoreText = (elapsedFrames / 60).toFixed(2) + 's'; cfg.lines.unshift('Best ' + (bt > 0 ? (bt / 1000).toFixed(2) + 's' : '--')); }
+    if (isSprint) { const bt = loadBest('sprint', 0); cfg.score = elapsedFrames; cfg.scoreText = (elapsedFrames / 60).toFixed(2) + 's'; cfg.lines.unshift(KIT.t('game.aim-trainer.bestTimeLine', { time: (bt > 0 ? (bt / 1000).toFixed(2) + 's' : '--'), def: 'Best ' + (bt > 0 ? (bt / 1000).toFixed(2) + 's' : '--') })); }
     else { cfg.score = score; cfg.best = loadBest('timed', sessionSeconds); cfg.newBest = isBest; }
     KIT.menu.show(cfg);
   }
   function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
-    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED',
-      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame }); }
   function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
   function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(selectedMode); }
@@ -616,11 +616,11 @@
   } }
   KIT.nav({ slug: 'aim-trainer', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
-    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
-    controls: { title: 'Range — Controls',
-      mouse: [ ['Move', 'Aim'], ['Click', 'Shoot'] ],
-      keyboard: [ ['Esc', 'Pause'] ],
-      touch: [ ['Tap', 'Shoot where you tap'] ] } });
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.aim-trainer.controlsTitle', { def: 'Range — Controls' }),
+      mouse: [ [KIT.t('game.aim-trainer.ctrlMove', { def: 'Move' }), KIT.t('game.aim-trainer.ctrlAim', { def: 'Aim' })], [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.aim-trainer.ctrlShoot', { def: 'Shoot' })] ],
+      keyboard: [ [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.aim-trainer.ctrlTapShoot', { def: 'Shoot where you tap' })] ] } });
   KIT.music.play('tactical');
 
   // ---- Test hook ----

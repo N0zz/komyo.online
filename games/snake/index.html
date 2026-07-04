@@ -99,10 +99,10 @@
 <body>
 <canvas id="game"></canvas>
 <div id="hud">
-  <div><div class="lbl">SCORE</div><b id="scoreEl">0</b></div>
-  <div><div class="lbl">BEST</div><b id="bestEl">0</b></div>
-  <div><div class="lbl">LENGTH</div><b id="lenEl">1</b></div>
-  <div style="opacity:.75"><div class="lbl">MODE</div><b id="modeEl">—</b></div>
+  <div><div class="lbl" id="scoreLbl">SCORE</div><b id="scoreEl">0</b></div>
+  <div><div class="lbl" id="bestLbl">BEST</div><b id="bestEl">0</b></div>
+  <div><div class="lbl" id="lenLbl">LENGTH</div><b id="lenEl">1</b></div>
+  <div style="opacity:.75"><div class="lbl" id="modeLbl">MODE</div><b id="modeEl">—</b></div>
 </div>
 
 <script>
@@ -114,6 +114,10 @@
   const bestEl = document.getElementById('bestEl');
   const lenEl = document.getElementById('lenEl');
   const modeEl = document.getElementById('modeEl');
+
+  // HUD labels (i18n; the static HTML holds the English fallback)
+  [['scoreLbl', 'game.snake.hudScore', 'SCORE'], ['bestLbl', 'game.common.best', 'BEST'], ['lenLbl', 'game.snake.hudLength', 'LENGTH'], ['modeLbl', 'game.common.modeLabel', 'MODE']]
+    .forEach(([id, key, def]) => { const el = document.getElementById(id); if (el) el.textContent = KIT.t(key, { def }); });
 
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
@@ -372,26 +376,26 @@
     g.fillStyle = '#00ffdc'; g.shadowColor = '#00ffdc'; g.shadowBlur = 8; for (let i = 0; i < 4; i++) g.fillRect(14 + i * 9, h / 2, 7, 7); g.shadowBlur = 0;
     g.fillStyle = '#f0f'; g.beginPath(); g.arc(w - 18, 20, 5, 0, 7); g.fill();
   }
-  const SPD_LABEL = { slow: 'Slow', normal: 'Normal', fast: 'Fast' };
-  const SZ_LABEL = { small: 'Small', medium: 'Medium', large: 'Large' };
+  const SPD_LABEL = { slow: KIT.t('game.snake.speedSlow', { def: 'Slow' }), normal: KIT.t('game.snake.speedNormal', { def: 'Normal' }), fast: KIT.t('game.snake.speedFast', { def: 'Fast' }) };
+  const SZ_LABEL = { small: KIT.t('game.snake.sizeSmall', { def: 'Small' }), medium: KIT.t('game.snake.sizeMedium', { def: 'Medium' }), large: KIT.t('game.snake.sizeLarge', { def: 'Large' }) };
   function comboBest(o) { return KIT ? KIT.bestScore('snake', modeLabel(o)) : 0; }
   function showStartMenu() {
     state = 'ready'; showDpad(false); if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'NEON SNAKE', backdrop: menuBackdrop, backdropAnimate: true,
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.snake.menuTitle', { def: 'NEON SNAKE' }), backdrop: menuBackdrop, backdropAnimate: true,
       groups: [
-        { id: 'walls', label: 'WALLS', style: 'cards', default: opts.walls, choices: [
-          { id: 'solid', label: 'Solid walls', mech: ['Classic'], best: st => comboBest({ walls: 'solid', speed: st.speed, size: st.size }), preview: (g, w, h) => pvWall(g, w, h, false) },
-          { id: 'wrap', label: 'Wrap-around', mech: ['No edges'], best: st => comboBest({ walls: 'wrap', speed: st.speed, size: st.size }), preview: (g, w, h) => pvWall(g, w, h, true) },
-          { id: 'enhanced', label: 'Enhanced', tag: 'SOON', locked: true, mech: ['Wild power-ups'],
-            desc: 'Crazy pickups — walls off for a while, 2× speed bursts, snake shrink…',
+        { id: 'walls', label: KIT.t('game.snake.wallsLabel', { def: 'WALLS' }), style: 'cards', default: opts.walls, choices: [
+          { id: 'solid', label: KIT.t('game.snake.solidLabel', { def: 'Solid walls' }), mech: [KIT.t('game.snake.solidMech', { def: 'Classic' })], best: st => comboBest({ walls: 'solid', speed: st.speed, size: st.size }), preview: (g, w, h) => pvWall(g, w, h, false) },
+          { id: 'wrap', label: KIT.t('game.snake.wrapLabel', { def: 'Wrap-around' }), mech: [KIT.t('game.snake.wrapMech', { def: 'No edges' })], best: st => comboBest({ walls: 'wrap', speed: st.speed, size: st.size }), preview: (g, w, h) => pvWall(g, w, h, true) },
+          { id: 'enhanced', label: KIT.t('game.snake.enhancedLabel', { def: 'Enhanced' }), tag: KIT.t('game.snake.enhancedTag', { def: 'SOON' }), locked: true, mech: [KIT.t('game.snake.enhancedMech', { def: 'Wild power-ups' })],
+            desc: KIT.t('game.snake.enhancedDesc', { def: 'Crazy pickups — walls off for a while, 2× speed bursts, snake shrink…' }),
             preview: (g, w, h) => { pvWall(g, w, h, false); ['#ffd166', '#ff7ab6', '#7fffc4'].forEach((c, i) => { g.fillStyle = c; g.beginPath(); g.arc(w * 0.3 + i * w * 0.2, h * 0.32, 3, 0, Math.PI * 2); g.fill(); }); } },
         ] },
-        { id: 'speed', label: 'SPEED', style: 'slider', default: opts.speed, choices: [ { id: 'slow', label: 'Slow' }, { id: 'normal', label: 'Normal' }, { id: 'fast', label: 'Fast' } ] },
-        { id: 'size', label: 'BOARD', default: opts.size, choices: [ { id: 'small', label: 'Small' }, { id: 'medium', label: 'Medium' }, { id: 'large', label: 'Large' } ] },
+        { id: 'speed', label: KIT.t('game.snake.speedLabel', { def: 'SPEED' }), style: 'slider', default: opts.speed, choices: [ { id: 'slow', label: KIT.t('game.snake.speedSlow', { def: 'Slow' }) }, { id: 'normal', label: KIT.t('game.snake.speedNormal', { def: 'Normal' }) }, { id: 'fast', label: KIT.t('game.snake.speedFast', { def: 'Fast' }) } ] },
+        { id: 'size', label: KIT.t('game.snake.boardLabel', { def: 'BOARD' }), default: opts.size, choices: [ { id: 'small', label: KIT.t('game.snake.sizeSmall', { def: 'Small' }) }, { id: 'medium', label: KIT.t('game.snake.sizeMedium', { def: 'Medium' }) }, { id: 'large', label: KIT.t('game.snake.sizeLarge', { def: 'Large' }) } ] },
       ],
-      actions: [{ id: 'play', label: 'PLAY', primary: true }],
-      hint: () => 'Arrows / WASD · swipe · on-screen D-pad on phones.',
+      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
+      hint: () => KIT.t('game.snake.hint', { def: 'Arrows / WASD · swipe · on-screen D-pad on phones.' }),
       onChange: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); best = loadBest(); if (bestEl) bestEl.textContent = best; KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); },
       onPlay: st => { opts.walls = st.walls; opts.speed = st.speed; opts.size = st.size; saveOpts(); applyGridSize(); KIT.stampUrl({ walls: opts.walls, speed: opts.speed, size: opts.size }); startGame(); },
     });
@@ -399,22 +403,22 @@
   }
   function shareMsg() {
     const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
-    const m = [cap(opts.speed), opts.walls === 'wrap' ? 'Wrap' : 'Walls']; if (opts.size !== 'medium') m.push(cap(opts.size));
-    return KIT.shareText({ score: score, game: 'Neon Snake', emoji: '🐍', mode: m.join(' · '), extra: ['length ' + (snake ? snake.length : 0)] });
+    const m = [cap(opts.speed), opts.walls === 'wrap' ? KIT.t('game.snake.wrapShort', { def: 'Wrap' }) : KIT.t('game.snake.wallsShort', { def: 'Walls' })]; if (opts.size !== 'medium') m.push(cap(opts.size));
+    return KIT.shareText({ score: score, game: KIT.t('game.snake.title', { def: 'Neon Snake' }), emoji: '🐍', mode: m.join(' · '), extra: [KIT.t('game.snake.shareLength', { n: (snake ? snake.length : 0), def: 'length ' + (snake ? snake.length : 0) })] });
   }
   function showEnd(newBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER', backdrop: menuBackdrop, backdropAnimate: true,
-      score: score, best: best, newBest: newBest, lines: ['Length ' + (snake ? snake.length : 1) + ' · ' + SPD_LABEL[opts.speed] + ' · ' + SZ_LABEL[opts.size] + ' · ' + (opts.walls === 'wrap' ? 'Wrap' : 'Solid')],
-      share: { slug: 'snake', accent: '#7fffb0', icon: '🐍', title: 'Neon Snake', message: () => shareMsg(), params: () => ({ walls: opts.walls, speed: opts.speed, size: opts.size }) },
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.snake.gameOver', { def: 'GAME OVER' }), backdrop: menuBackdrop, backdropAnimate: true,
+      score: score, best: best, newBest: newBest, lines: [KIT.t('game.snake.lengthWord', { def: 'Length' }) + ' ' + (snake ? snake.length : 1) + ' · ' + SPD_LABEL[opts.speed] + ' · ' + SZ_LABEL[opts.size] + ' · ' + (opts.walls === 'wrap' ? KIT.t('game.snake.wrapShort', { def: 'Wrap' }) : KIT.t('game.snake.solidShort', { def: 'Solid' }))],
+      share: { slug: 'snake', accent: '#7fffb0', icon: '🐍', title: KIT.t('game.snake.title', { def: 'Neon Snake' }), message: () => shareMsg(), params: () => ({ walls: opts.walls, speed: opts.speed, size: opts.size }) },
       record: { slug: 'snake', mode: modeLabel(opts), score: score, stats: { length: snake ? snake.length : 1 } },
-      actions: [ { id: 'again', label: 'PLAY AGAIN', primary: true }, { id: 'menu', label: 'MENU' } ],
+      actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
   }
   function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused'; showDpad(false);
-    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: 'PAUSED', lines: ['Score ' + score],
-      actions: [ { id: 'resume', label: 'RESUME (ESC)', primary: true }, { id: 'menu', label: 'QUIT TO MENU', danger: true } ],
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }), lines: [KIT.t('game.common.scoreLine', { score: score, def: 'Score ' + score })],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame }); }
   function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); showDpad(true); }
   function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
@@ -618,7 +622,7 @@
     gripEl.style.top = (offY + 4) + 'px';
     const landscape = W > H;
     gripEl.textContent = landscape ? '↔' : '↕';
-    const label = landscape ? 'Drag to move the board left or right' : 'Drag to move the board up or down';
+    const label = landscape ? KIT.t('game.snake.gripMoveLR', { def: 'Drag to move the board left or right' }) : KIT.t('game.snake.gripMoveUD', { def: 'Drag to move the board up or down' });
     gripEl.title = label;
     gripEl.setAttribute('aria-label', label);
   }
@@ -679,20 +683,21 @@
     if (dpadEl || typeof document === 'undefined' || !document.body || !document.createElement) return;
     dpadEl = document.createElement('div'); dpadEl.id = 'dpad'; dpadBtns = {};
     [['u', '▲', 'up'], ['l', '◀', 'left'], ['r', '▶', 'right'], ['d', '▼', 'down']].forEach(([cls, glyph, d]) => {
-      const b = document.createElement('button'); b.className = cls; b.type = 'button'; b.textContent = glyph; b.setAttribute('aria-label', d);
+      const b = document.createElement('button'); b.className = cls; b.type = 'button'; b.textContent = glyph; b.setAttribute('aria-label', KIT.t('game.snake.dir_' + d, { def: d }));
       const turn = (e) => { if (e && e.preventDefault) e.preventDefault(); if (state === 'playing') queueDir(DIR_MAP[d]); };
       b.addEventListener('touchstart', turn, { passive: false });
       b.addEventListener('click', turn);
       dpadBtns[cls] = b; dpadEl.appendChild(b);
     });
     // center cell: drag handle (move the pad; remembered across sessions)
-    const handle = document.createElement('div'); handle.className = 'c'; handle.setAttribute('aria-label', 'Move controls');
+    const handle = document.createElement('div'); handle.className = 'c'; handle.setAttribute('aria-label', KIT.t('game.snake.moveControls', { def: 'Move controls' }));
     handle.innerHTML = '<i></i>'; dpadEl.appendChild(handle);
     document.body.appendChild(dpadEl);
     // ✕ hide target (only while dragging) + re-enable button (when hidden)
     hideZoneEl = document.createElement('div'); hideZoneEl.id = 'dpadHide'; hideZoneEl.textContent = '✕'; document.body.appendChild(hideZoneEl);
     showBtnEl = document.createElement('button'); showBtnEl.id = 'dpadShow'; showBtnEl.type = 'button'; showBtnEl.textContent = '🎮';
-    showBtnEl.title = 'Show on-screen controls'; showBtnEl.setAttribute('aria-label', 'Show on-screen controls');
+    const showLbl = KIT.t('game.snake.showControls', { def: 'Show on-screen controls' });
+    showBtnEl.title = showLbl; showBtnEl.setAttribute('aria-label', showLbl);
     showBtnEl.addEventListener('click', () => setHidden(false)); document.body.appendChild(showBtnEl);
     // initial position: saved spot (clamped) if it fits this orientation, else the orientation default
     const landscape = W > H; dpadOrient = landscape;
@@ -799,10 +804,10 @@
   // ---- top nav (game-kit) ----
   KIT.nav({ slug: 'snake', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
-    confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
-    controls: { title: 'Neon Snake — Controls',
-      keyboard: [ ['Arrows · WASD', 'Turn'], ['Esc', 'Pause'] ],
-      touch: [ ['Swipe', 'Turn'], ['On-screen D-pad', 'Turn'], ['Drag ↕/↔ handle', 'Slide the board'] ] } });
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.snake.controlsTitle', { def: 'Neon Snake — Controls' }),
+      keyboard: [ [KIT.t('game.snake.ctrlArrows', { def: 'Arrows · WASD' }), KIT.t('game.snake.turn', { def: 'Turn' })], [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.snake.ctrlSwipe', { def: 'Swipe' }), KIT.t('game.snake.turn', { def: 'Turn' })], [KIT.t('game.snake.ctrlDpad', { def: 'On-screen D-pad' }), KIT.t('game.snake.turn', { def: 'Turn' })], [KIT.t('game.snake.ctrlDragHandle', { def: 'Drag ↕/↔ handle' }), KIT.t('game.snake.ctrlSlideBoard', { def: 'Slide the board' })] ] } });
   KIT.music.play('neon');   // menu + in-game bed (reuses the loop throughout)
 
   loadOpts();
