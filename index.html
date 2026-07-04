@@ -1083,13 +1083,13 @@
           '<div class="tags">' + (tagsOf(g).length ? tagsOf(g) : ['GAME']).map(t =>
             '<span class="tag" style="--tc:' + tagColorOf(t) + '">' + t + '</span>').join('') + '</div>' +
           '<p>' + gameBlurb(g) + '</p>' +
-          '<div class="play">' + (soon ? 'COMING SOON' : 'PLAY ▸') + '</div>' +
+          '<div class="play">' + (soon ? T('cat.comingSoon', 'COMING SOON') : T('cat.play', 'PLAY ▸')) + '</div>' +
         '</div>';
       if (!soon) {
         const star = document.createElement('button');
         star.className = 'fav' + (f.includes(g.slug) ? ' on' : '');
         star.textContent = '★';
-        star.setAttribute('aria-label', (f.includes(g.slug) ? 'Unfavorite ' : 'Favorite ') + gameTitle(g));
+        star.setAttribute('aria-label', (f.includes(g.slug) ? T('cat.unfavorite', 'Unfavorite ') : T('cat.favorite', 'Favorite ')) + gameTitle(g));
         star.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleFav(g.slug); });
         el.appendChild(star);
       }
@@ -1164,15 +1164,15 @@
       const order = arr => { const av = arr.filter(g => !g.soon), soon = arr.filter(g => g.soon); return [...av, ...soon]; };
       const sections = [];
       const favList = all.filter(isFav);
-      if (favList.length) sections.push({ label: '★ Favorites', list: favList });
+      if (favList.length) sections.push({ label: T('cat.favorites', '★ Favorites'), list: favList });
       const sp = order(all.filter(g => !g.mp && !isFav(g)));
-      if (sp.length) sections.push({ label: 'Single player', list: sp });
+      if (sp.length) sections.push({ label: T('cat.singlePlayer', 'Single player'), list: sp });
       const mp = order(all.filter(g => g.mp && !isFav(g)));
-      if (mp.length) sections.push({ label: 'Multiplayer', list: mp });
+      if (mp.length) sections.push({ label: T('cat.multiplayer', 'Multiplayer'), list: mp });
       if (!sections.length) {
         const nr = document.createElement('div');
         nr.className = 'no-results';
-        nr.innerHTML = 'No games match. <button type="button" id="clearNr">Clear filters</button>';
+        nr.innerHTML = T('cat.noMatch', 'No games match.') + ' <button type="button" id="clearNr">' + T('cat.clearFilters', 'Clear filters') + '</button>';
         grid.appendChild(nr);
         const c = document.getElementById('clearNr'); if (c) c.addEventListener('click', clearFilters);
         return;
@@ -1197,7 +1197,7 @@
         if (!queue.length) return;
         const more = document.createElement('button');
         more.type = 'button'; more.className = 'load-more';
-        more.textContent = 'Show ' + queue.filter(x => x.slug).length + ' more…';
+        more.textContent = window.gamekit.t('cat.showMore', { n: queue.filter(x => x.slug).length });
         more.addEventListener('click', () => { more.remove(); chunk(); });
         grid.appendChild(more);
         if (typeof IntersectionObserver === 'function') {
@@ -1387,7 +1387,7 @@
         set(ids.reddit, 'https://www.reddit.com/submit?url=' + u + '&title=' + t);
         const cp = document.getElementById(ids.copy);
         if (cp) cp.addEventListener('click', () => {
-          const done = () => { cp.classList.add('ok'); cp.title = 'Copied!'; setTimeout(() => { cp.classList.remove('ok'); cp.title = 'Copy link'; }, 1500); };
+          const done = () => { cp.classList.add('ok'); cp.title = window.gamekit.t('share.copied', { def: 'Copied!' }); setTimeout(() => { cp.classList.remove('ok'); cp.title = window.gamekit.t('cat.copyLink', { def: 'Copy link' }); }, 1500); };
           try { navigator.clipboard.writeText(url).then(done).catch(() => {}); } catch (e) {}
         });
         const ns = document.getElementById(ids.native);
@@ -1476,7 +1476,7 @@
     fbModal.addEventListener('click', (e) => { if (e.target === fbModal) fbModal.close(); }); // backdrop
     fbForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      fbSubmit.disabled = true; fbStatus.className = 'fb-status'; fbStatus.textContent = 'Sending…';
+      fbSubmit.disabled = true; fbStatus.className = 'fb-status'; fbStatus.textContent = window.gamekit.t('fb.sending', { def: 'Sending…' });
       try {
         const w3f = (window.gamekit && window.gamekit.proxyUrl) ? window.gamekit.proxyUrl('https://api.web3forms.com/submit') : 'https://api.web3forms.com/submit';
         const res = await fetch(w3f, {
@@ -1484,7 +1484,7 @@
         });
         const data = await res.json();
         if (data.success) {
-          fbStatus.className = 'fb-status ok'; fbStatus.textContent = 'Thanks! Feedback sent. ✓';
+          fbStatus.className = 'fb-status ok'; fbStatus.textContent = window.gamekit.t('fb.sent', { def: 'Thanks! Feedback sent. ✓' });
           fbForm.reset();
           setTimeout(() => fbModal.close(), 1400);
         } else {
@@ -1513,7 +1513,7 @@
     nlForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (document.getElementById('nlHp').value) return; // honeypot
-      nlSubmit.disabled = true; nlStatus.className = 'fb-status'; nlStatus.textContent = 'Subscribing…';
+      nlSubmit.disabled = true; nlStatus.className = 'fb-status'; nlStatus.textContent = window.gamekit.t('nl.subscribing', { def: 'Subscribing…' });
       try {
         const kitUrl = (window.gamekit && window.gamekit.proxyUrl) ? window.gamekit.proxyUrl('https://app.kit.com/forms/9615603/subscriptions') : 'https://app.kit.com/forms/9615603/subscriptions';
         const res = await fetch(kitUrl, {
@@ -1521,14 +1521,14 @@
         });
         const data = await res.json().catch(() => ({}));
         if (res.ok && (data.status === 'success' || data.status === 'quarantined')) {
-          nlStatus.className = 'fb-status ok'; nlStatus.textContent = 'Almost there — check your inbox to confirm ✓';
+          nlStatus.className = 'fb-status ok'; nlStatus.textContent = window.gamekit.t('nl.almost', { def: 'Almost there — check your inbox to confirm ✓' });
           nlForm.reset();
           setTimeout(() => nlModal.close(), 2200);
         } else {
           nlStatus.className = 'fb-status err'; nlStatus.textContent = (data && data.message) || 'Something went wrong — please try again.';
         }
       } catch (err) {
-        nlStatus.className = 'fb-status err'; nlStatus.textContent = 'Network error — please try again.';
+        nlStatus.className = 'fb-status err'; nlStatus.textContent = window.gamekit.t('form.netErr', { def: 'Network error — please try again.' });
       } finally {
         nlSubmit.disabled = false;
       }
@@ -1560,7 +1560,7 @@
       };
       btn.addEventListener('click', (e) => {
         e.preventDefault();
-        const msg = 'Reset your saved scores, progress & favorites for ALL games? This cannot be undone.';
+        const msg = window.gamekit.t('cat.resetAllConfirm', { def: 'Reset your saved scores, progress & favorites for ALL games? This cannot be undone.' });
         // the kit confirm is a plain overlay — a native <dialog> (Settings) sits in the top layer above
         // it, so close Settings first and bring it back if the player cancels
         const sm = document.getElementById('settingsModal');
@@ -1778,8 +1778,8 @@
         h += '</div>';
         if (o.compact) h += '<span class="pf-chev">›</span>';
         else h += '<div class="pf-tb-meta">'
-          + '<span class="pf-tb-pts">🏆 ' + fmt(o.chPts) + ' <span>TROPHIES EARNED</span></span>'
-          + '<span class="pf-tb-mini" title="Runs that cleared a game’s bar">💪 <b>' + fmt(o.goodRuns) + '</b> good ' + (o.goodRuns === 1 ? 'run' : 'runs') + '</span>'
+          + '<span class="pf-tb-pts">🏆 ' + fmt(o.chPts) + ' <span>' + window.gamekit.t('profile.trophiesEarned', { def: 'TROPHIES EARNED' }) + '</span></span>'
+          + '<span class="pf-tb-mini" title="Runs that cleared a game’s bar">💪 <b>' + fmt(o.goodRuns) + '</b> ' + window.gamekit.t('profile.goodRunsWord', { count: o.goodRuns }) + '</span>'
           + '<span class="pf-tb-mini">📅 Since <b>' + esc(o.sinceStr || '—') + '</b></span>'
           + '</div>';
         return h + '</div>';
@@ -1818,19 +1818,19 @@
         if (p) GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm, pg }); });
         ranked.sort((a, b) => b.pg.plays - a.pg.plays || b.pg.best - a.pg.best);
         if (!ranked.length) {
-          body.innerHTML = '<div class="pf-scroll">' + tb + collectBar + '<p class="pf-empty">No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.</p></div>';
+          body.innerHTML = '<div class="pf-scroll">' + tb + collectBar + '<p class="pf-empty">' + window.gamekit.t('profile.noScores', { def: 'No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.' }) + '</p></div>';
           shareData = null; startTitleFx(); wireNameEdit(); return;
         }
         const favGameMeta = meta(p.favGame.slug), accent = (favGameMeta && favGameMeta.accent) || '#9fe8ff';
         // stat labels pluralize with their count ("1 Day", not "1 Days")
-        const chips = [['Game', p.gamesPlayed], ['Mode', p.modesPlayed], ['Play', p.plays], ['Day', p.daysPlayed]];
+        const chips = [['profile.statGames', p.gamesPlayed], ['profile.statModes', p.modesPlayed], ['profile.statPlays', p.plays], ['profile.statDays', p.daysPlayed]];
         let html = '<div class="pf-scroll">' + tb + '<div class="pf-stats">';
-        chips.forEach(s => { const lbl = s[1] === 1 ? s[0] : s[0] + 's'; html += '<div class="pf-stat"><b>' + esc(fmt(s[1])) + '</b><span>' + esc(lbl) + '</span></div>'; });
+        chips.forEach(s => { const lbl = window.gamekit.t(s[0], { count: s[1] }); html += '<div class="pf-stat"><b>' + esc(fmt(s[1])) + '</b><span>' + esc(lbl) + '</span></div>'; });
         html += '</div>' + collectBar;
         // Your games — total plays in the header (its unit shown once), then each mode's best;
         // a per-mode "×N" appears only when that mode was played more than once (no ×1 noise).
         const rows = [];
-        html += '<div class="pf-sec">Your games</div><div class="pf-games">';
+        html += '<div class="pf-sec">' + window.gamekit.t('profile.yourGames', { def: 'Your games' }) + '</div><div class="pf-games">';
         ranked.forEach(function (it) {
           const gm = it.gm, pg = it.pg;
           const modes = pg.modes.slice().filter(m => m.plays > 0).sort((a, b) => b.plays - a.plays || b.score - a.score);
@@ -1846,31 +1846,31 @@
           });
           html += '<div class="pf-game pf-tinted" style="--acc:' + (gm.accent || '#9fe8ff') + '">'
             + '<div class="pf-gh"><span class="pf-gt">' + (gm.icon || '🎮') + ' ' + esc(gm.title) + '</span>'
-            + '<span class="pf-gp"><b>' + fmt(pg.plays) + '</b> ' + (pg.plays === 1 ? 'play' : 'plays') + '</span></div>'
+            + '<span class="pf-gp"><b>' + fmt(pg.plays) + '</b> ' + window.gamekit.t('profile.playsWord', { count: pg.plays }) + '</span></div>'
             + '<div class="pf-rows"><div class="pf-rhead"><span>Mode</span><span>Best</span></div>' + rowsHtml + '</div></div>';
           rows.push({ name: gm.title, best: fmt(pg.best), mode: (modes[0] && modes[0].mode) || '', accent: gm.accent });
         });
         html += '</div>'; // close .pf-games
         html += '</div>'; // close .pf-scroll (the games list scrolls; the share button below stays pinned)
-        html += '<div class="pf-share"><button type="button" id="pfShare">📷 Share my profile</button></div>';
+        html += '<div class="pf-share"><button type="button" id="pfShare">' + window.gamekit.t('profile.share', { def: '📷 Share my profile' }) + '</button></div>';
         body.innerHTML = html;
         startTitleFx();
         wireNameEdit();
-        shareData = { player: who, accent: accent, stats: [{ label: 'Games', value: p.gamesPlayed }, { label: 'Modes', value: p.modesPlayed }, { label: 'Plays', value: p.plays }, { label: 'Days', value: p.daysPlayed }], rows: rows, collection: cos };
+        shareData = { player: who, accent: accent, stats: [{ label: window.gamekit.t('profile.cardGames', { def: 'Games' }), value: p.gamesPlayed }, { label: window.gamekit.t('profile.cardModes', { def: 'Modes' }), value: p.modesPlayed }, { label: window.gamekit.t('profile.cardPlays', { def: 'Plays' }), value: p.plays }, { label: window.gamekit.t('profile.cardDays', { def: 'Days' }), value: p.daysPlayed }], rows: rows, collection: cos };
         const sh = document.getElementById('pfShare');
         if (sh) sh.addEventListener('click', () => {
           if (sh.disabled) return;
-          const orig = '📷 Share my profile';
-          sh.disabled = true; sh.textContent = 'Rendering…';
+          const orig = window.gamekit.t('profile.share', { def: '📷 Share my profile' });
+          sh.disabled = true; sh.textContent = window.gamekit.t('profile.rendering', { def: 'Rendering…' });
           const flash = (msg) => { sh.textContent = msg; setTimeout(() => { sh.textContent = orig; sh.disabled = false; }, 1500); };
           snapshot()
             .then(b => b || (K && K.profileCard && shareData ? K.profileCard(shareData) : null))   // DOM snapshot, else drawn card
             .then(b => {
-              if (!(b && K && K.shareCard)) { flash("Couldn't render"); return; }
+              if (!(b && K && K.shareCard)) { flash(window.gamekit.t('profile.renderErr', { def: "Couldn't render" })); return; }
               K.shareCard(b, { slug: 'profile', title: 'My Komyo Games profile' });   // opens the kit share menu (it owns the feedback)
               sh.textContent = orig; sh.disabled = false;
             })
-            .catch(() => flash("Couldn't render"));
+            .catch(() => flash(window.gamekit.t('profile.renderErr', { def: "Couldn't render" })));
         });
       }
       // titles ladder modal — every rank prerendered with its tier shine (same classes as the
@@ -1889,7 +1889,7 @@
             + (t.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + t.tier + '"></canvas>' : '')
             + '<span class="tl-emoji">' + (t.emoji || '🎖️') + '</span>'
             + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(rankTitle(t)) + '">' + esc(rankTitle(t)) + '</span></span>'
-            + '<span class="tl-pts">' + (worn ? '<b class="tl-worn">✓ Worn</b>' : (unlocked ? 'Wear' : fmt(t.min) + ' 🏆')) + '</span></div>';
+            + '<span class="tl-pts">' + (worn ? '<b class="tl-worn">' + window.gamekit.t('titles.worn', { def: '✓ Worn' }) + '</b>' : (unlocked ? window.gamekit.t('titles.wear', { def: 'Wear' }) : fmt(t.min) + ' 🏆')) + '</span></div>';
         });
         tlList.innerHTML = h;
       }
@@ -2033,18 +2033,18 @@
       modal.addEventListener('close', () => lock(false));
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
       const track = (name, params) => { try { if (window.gamekitTrack) window.gamekitTrack(name, params); } catch (e) {} };
-      if (copyB) copyB.addEventListener('click', () => { try { ex.select(); if (navigator.clipboard) navigator.clipboard.writeText(ex.value); copyB.textContent = 'Copied!'; setTimeout(() => copyB.textContent = 'Copy', 1500); } catch (e) {} track('data_export', { via: 'copy' }); });
+      if (copyB) copyB.addEventListener('click', () => { try { ex.select(); if (navigator.clipboard) navigator.clipboard.writeText(ex.value); copyB.textContent = window.gamekit.t('data.copied', { def: 'Copied!' }); setTimeout(() => copyB.textContent = window.gamekit.t('data.copy', { def: 'Copy' }), 1500); } catch (e) {} track('data_export', { via: 'copy' }); });
       if (dlB) dlB.addEventListener('click', () => {
         try { const u = URL.createObjectURL(new Blob([ex.value], { type: 'text/plain' })); const a = document.createElement('a'); a.href = u; a.download = 'komyo-backup.txt'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(u); a.remove(); }, 800); } catch (e) {}
         track('data_export', { via: 'download' });
       });
       if (impB) impB.addEventListener('click', () => {
         let parsed = null; try { parsed = JSON.parse(dec((imp.value || '').trim())); } catch (e) {}
-        if (!parsed || parsed.app !== 'komyo' || !parsed.data) { setMsg("That doesn't look like a valid komyo backup code.", 'err'); track('data_import', { result: 'invalid' }); return; }
+        if (!parsed || parsed.app !== 'komyo' || !parsed.data) { setMsg(window.gamekit.t('data.invalid', { def: "That doesn't look like a valid komyo backup code." }), 'err'); track('data_import', { result: 'invalid' }); return; }
         try { for (const k in parsed.data) if (Object.prototype.hasOwnProperty.call(parsed.data, k)) localStorage.setItem(k, parsed.data[k]); }
         catch (e) { setMsg('Import failed — storage error.', 'err'); track('data_import', { result: 'error' }); return; }
         track('data_import', { result: 'ok' });
-        setMsg('Imported! Reloading…', 'ok');
+        setMsg(window.gamekit.t('data.imported', { def: 'Imported! Reloading…' }), 'ok');
         setTimeout(() => { try { location.reload(); } catch (e) {} }, 700);
       });
     })();
@@ -2113,7 +2113,7 @@
       }
       // ---- history view (latest first, "load more") ----
       const histEl = document.getElementById('chalHistory'), moreEl = document.getElementById('chalMore'), emptyEl = document.getElementById('chalEmpty');
-      const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const MON = Array.from({ length: 12 }, (_, i) => { try { return new Date(Date.UTC(2021, i, 1)).toLocaleDateString((window.gamekit && window.gamekit.lang && window.gamekit.lang()) || 'en', { month: 'short', timeZone: 'UTC' }); } catch (e) { return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i]; } });
       const PAGE = 8; let histShown = PAGE;
       const fmtDate = s => { const p = (s || '').split('-'); return p.length < 3 ? (s || '') : (MON[(+p[1]) - 1] || '') + ' ' + (+p[2]); };
       const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
@@ -2298,7 +2298,7 @@
       window.__openNameModal = () => {
         if (!modal || !modal.showModal) return;
         if (input) input.value = cur() === 'anonymous' ? '' : cur();
-        if (skip) skip.textContent = 'Cancel';
+        if (skip) skip.textContent = window.gamekit.t('confirm.cancel', { def: 'Cancel' });
         try { modal.showModal(); } catch (e) {}
       };
       if (form) form.addEventListener('submit', e => { e.preventDefault(); apply(input ? input.value : ''); try { modal.close(); } catch (_) {} });
@@ -2353,11 +2353,11 @@
         if (su && K && K.updates) {
           var upLabel = function (st) {
             var busy = st.status === 'refreshing' || st.status === 'checking';
-            su.textContent = st.status === 'refreshing' ? '⟳ Updating…'
-              : st.status === 'checking' ? '⟳ Checking…'
-              : st.available ? '🔆 Update now'
-              : st.status === 'offline' ? '⚠ Offline — can’t check'
-              : '✓ Up to date';
+            su.textContent = st.status === 'refreshing' ? window.gamekit.t('update.updating', { def: '⟳ Updating…' })
+              : st.status === 'checking' ? window.gamekit.t('update.checking', { def: '⟳ Checking…' })
+              : st.available ? window.gamekit.t('update.updateNow', { def: '🔆 Update now' })
+              : st.status === 'offline' ? window.gamekit.t('update.offline', { def: '⚠ Offline — can’t check' })
+              : window.gamekit.t('update.upToDate', { def: '✓ Up to date' });
             su.disabled = busy || !st.available;
           };
           K.updates.onChange(upLabel); upLabel(K.updates.state());
