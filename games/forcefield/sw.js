@@ -1,0 +1,5 @@
+// forcefield — installable PWA + offline via the shared sw-core (stale-while-revalidate, versioned cache).
+self.SCOPE = 'forcefield';
+self.VERSION = 'dev'; // stamped with the commit SHA at deploy
+self.SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../analytics.js','../../game-kit.js','../../game-kit.css','../../challenges.js','../../cosmetics.js','../../i18n.js','../../version.js'];
+importScripts('../../sw-core.js');

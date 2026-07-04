@@ -36,6 +36,16 @@ window.GAMES = [
   },
 
   {
+    slug: "forcefield",
+    title: "Forcefield",
+    blurb: "Slide your atmosphere dome to block the battle station's fire. Timed, shields, or 1–2-player Double.",
+    icon: "🛡️",
+    accent: "#38bdf8",
+    tags: ["SKILL", "REFLEX"],
+    added: "2026-07-04",
+  },
+
+  {
     slug: "bubbles",
     title: "Bubble Pop",
     blurb: "Shoot glossy soap bubbles to pop matching groups of 3+. Arcade, Endless, and Zen modes with special shots.",
@@ -88,7 +98,7 @@ window.GAMES = [
     slug: "stacker",
     title: "Stack",
     blurb: "Time the drop to stack the tower. One tap, pastel-clean, just-one-more.",
-    icon: "🧊",
+    icon: "🗼",
     accent: "#ff9aa2",
     tags: ["REFLEX", "CASUAL"],
     added: "2026-06-26",

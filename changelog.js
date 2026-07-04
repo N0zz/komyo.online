@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-04', title: 'New game: Forcefield 🛡️', items: [
+    'New: Forcefield — a battle station charges its cannon at your planet and marks where it\'ll strike. Sweep your atmosphere dome over the mark and tap to shield the blast — deflect it, or your planet takes the hit. Play against the clock, on 3 shields, or a 1–2-player Double where the station fires both ways at a planet on each side. Easy to Hard, with unlockable planet skins and bolt colours in the Collection.',
+  ] },
   { date: '2026-07-04', title: 'More polish 🧽', items: [
     'Fix: updating from the home page now truly updates every game — open any game afterwards and it\'s already on the latest version, with no per-game Update needed.',
     'Fix: on a phone, the Filter, Random and Compact buttons now sit neatly on one row instead of spilling onto another line.',
