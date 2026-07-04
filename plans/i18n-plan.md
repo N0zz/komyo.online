@@ -24,6 +24,12 @@
 
 ## Session breakdown (incremental execution)
 
+> **Current status (2026-07-04):** engine + picker + extraction largely shipped; PL landed and in
+> production. **Remaining tracked work:** (a) **Polish fixes** — QA the live PL strings and repair
+> gaps (e.g. the search bars were fixed to match translated names, not just the English source);
+> (b) **more languages** — populate/finish es/pt/fr/it (S7); (c) **mobile-device QA** across
+> languages × orientations (S8); (d) **flip the `komyo-new-game` skill to `t()`-native** (S9, final).
+
 This plan is split into independent sessions. **The English fallback** (`t()` →
 translation → `en` → `def` → key) means a half-migrated site is a fully working
 English site — so **every session ends tests-green and shippable**, and sessions

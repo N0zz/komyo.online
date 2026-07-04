@@ -64,7 +64,9 @@ review and treated as **non-blocking** (no longer a hard gate).
    cost = **string extraction** (catalogue UI, per-game blurbs in `games.js`, in-game menu labels + hints,
    challenges, FAQ/About/privacy) + SEO (`hreflang` + translated `<title>`/meta/OG) + GA4 language read + RTL
    if we ever add Arabic/Hebrew. Then **implement** — ship the small version now; if it's a big surface it
-   stretches but stays on the path (it's the reach lever, not a nice-to-have).
+   stretches but stays on the path (it's the reach lever, not a nice-to-have). **Now in execution
+   (see `plans/i18n-plan.md`):** PL mostly landed — remaining = Polish fixes, more-language
+   translations, the create-game-skill i18n flip (S9), and mobile-device QA.
 2. **Invite more people** — widen the staged friends/family circle (already trickling) → let them share
    further. Real usage before the skill/game push tells us what to build.
 3. **"Create a game" Claude skill** — capture the framework once → describe a game in ~5 min, get an
@@ -74,6 +76,7 @@ review and treated as **non-blocking** (no longer a hard gate).
    iterate). **Bias low-tuning genres** (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower
    defense, roguelite shooters — they ate many tuning cycles). See `komyo-avoid-balance-heavy-genres`.
    Slot in **one original-mechanic, shareable game** alongside the remakes (see `komyo-market-expansion-discussion`).
+   **POC prototypes are saved on a separate branch** — pull them in as build candidates.
 5. **LAUNCH + marketing campaigns** — prep the materials (promo video / montage + Discord preview cuts,
    per-game OG/Twitter cards, story-format share card), then publish everywhere: portals (itch.io, free-to-play
    indexes), news, forums, subreddits, Discord servers, socials. Paid ads considered later.
@@ -219,6 +222,13 @@ from day one.
 
 ### In flight / near-term
 
+- **Bug fixes (noted list).** Work through the personal bug list — pre/parallel to launch prep.
+- **Fable review of recent additions** — have Fable review & test the `komyo-new-game` creation skill,
+  the i18n implementation, and all translations.
+- **Marketing plan (brainstorm + prep).** Build the channel list — Reddit, Facebook, Discords,
+  Twitch/YouTube influencers, indie/free-games sites — across **two paths: gaming** and
+  **Claude/vibe-coding/AI**. Then prepare per-channel post content (text / images / links).
+  (Feeds Path-to-launch #5 + the Marketing sections below.)
 - **Review local Claude Code memories about komyo** (added 2026-07-02) — audit the Claude memory
   notes for stale komyo entries: plans that shipped, superseded decisions, rebrand leftovers;
   prune/merge so future sessions don't act on outdated context.
@@ -254,6 +264,17 @@ from day one.
   asteroids-style mode tiles + option-group rows into a reusable `gamekit.menu`: declarative config →
   one consistent menu system across all games, less per-game markup, easy to rebuild. Migrate every
   live game onto it.
+
+- **Audit the whole site for duplicated reused UI elements → shared kit components** *(refactor)* —
+  the same widget is hand-written in multiple places with its own markup+CSS, so they drift and we keep
+  hand-syncing them (the trophies + Collection **pills** already bit us twice: challenges drawer vs
+  profile vs the in-game 🏆 panel; also candidates: the **collection/progress bar**, the good-run bonus
+  line, the streak/points pill, buttons). Fix pattern: extract one kit factory (e.g. `gamekit.cosmeticPills(opts)`)
+  + one shared CSS class in `game-kit.css`, used by BOTH the catalogue (`index.html`) and the in-game
+  panel (`game-kit.js`). **Task: sweep index.html + game-kit.js for every element rendered in ≥2 places,
+  list them, and extract the DOM ones into shared kit helpers.** Caveat — the **canvas** share/score/profile
+  cards can't reuse DOM/CSS (they're pixels); for those, share only the DATA/label formatting (one
+  function) so text can't drift, and accept the draw code is re-implemented. Moderate effort, not a rewrite.
 
 - **Menu backdrops should share the real game engine** *(refactor — someday, not now)* — each menu's
   animated `cfg.backdrop` is currently a **hand-written re-derivation** of the game's look (starfield,
@@ -452,7 +473,8 @@ Extensions w/ EBS, Discord channel-point hooks.
 
 **Marketing, not integration:** YouTube / TikTok / Shorts = a *content* play (clips of satisfying
 moments, a devlog, a komyo channel), no API work. (Discord **Activity** — play in a voice channel — is
-the best Discord-native one; already under Distribution.)
+the best Discord-native one; already under Distribution.) **Idea — a dedicated TikTok / YT Shorts
+channel** posting short feature/game ads, hashtags **#komyo-feature** / **#komyo-game**.
 
 **Honest tradeoff:** the big traffic portals (Poki, CrazyGames, GameDistribution) send real volume but
 inject **their ads** + want **their SDK** — collides with the "no ads · plays offline" pitch. itch.io
