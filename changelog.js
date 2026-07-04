@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-04', title: 'CRT mode 🖥️', items: [
+    'New: unlock CRT display mode in the 🎨 Collection — a retro phosphor glow over the whole site (games, menus, everything). Turn it on from the store or the ☰ menu and pick a colour: green, amber, cyan or mono. Hover a colour to preview it live before you choose.',
+    'Change: the CHALLENGE tile badge is now gold to match your trophies; the NEW badge is green.',
+  ] },
   { date: '2026-07-04', title: 'Fixes big and small 🛠️', items: [
     'Fix: in Brick Breaker\'s Endless mode, the falling bricks can now actually get you — if a row reaches your paddle line the run ends, instead of bricks sliding harmlessly off the bottom.',
     'Fix: the Asteroids+ upgrade picker no longer shows its heading twice.',
