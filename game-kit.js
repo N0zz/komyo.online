@@ -1253,7 +1253,7 @@
       var doBuy = function () { if (cosBuy(it.id)) { cosSelect(it.set, it.id); try { sound.play('levelup'); } catch (e) {} syncCells(); } };
       // premium items get a second "spend?" step — there is no refund, so one mis-tap on a 🏆500
       // skin must not be able to drain weeks of trophies
-      if ((+it.price || 0) >= 100) confirmDialog(t('shop.confirmBuy', { def: 'Spend {price} 🏆 on {name}?', price: fmtT(it.price), name: cosName(it) }), doBuy, t('shop.buy', { name: cosName(it), price: fmtT(it.price) }), null, { theme: opts.theme });
+      if ((+it.price || 0) >= 100) confirmDialog(t('shop.confirmBuy', { def: 'Spend {price} 🏆 on {name}?', price: fmtT(it.price), name: cosName(it) }), doBuy, t('shop.confirmBtn', { def: 'BUY' }), null, { theme: opts.theme });
       else doBuy();
     }
     // click a cell: OWNED → equip immediately (no spend); UNOWNED → just select (BUY button confirms)
