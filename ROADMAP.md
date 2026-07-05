@@ -258,6 +258,22 @@ from day one.
 
 ### In flight / near-term
 
+- **Discord changelog posts get cut mid-sentence** *(bug, added 2026-07-05)* — Discord caps message
+  length (2000 chars; webhook embeds have their own caps) and `scripts/post-changelog.mjs` doesn't
+  split/trim to it, so long releases truncate mid-sentence. Fix: split a long entry into multiple
+  messages on bullet boundaries (never mid-sentence), or post title + first bullets + a "full
+  changelog →" link.
+- **UI overlap audit** *(added 2026-07-05)* — systematically hunt element collisions across
+  resolutions/orientations: the in-game top bar vs the score pill (worst offender), kit menus that
+  don't fit under the top bar on small/weird viewports, drawers vs the side stack, etc. The headless
+  layout suite only measures canvas-internal rects (`__test.layout`) — DOM chrome overlaps need
+  either real-browser screenshot sweeps or exposing chrome rects to the suite.
+- **Marketing plan: re-aim at where parents & kids are** *(added 2026-07-05)* — fold into the
+  `plans/marketing_plan.md` review: indie-community sharing is likely WEAK for us (those crowds are
+  saturated with indie games and are mostly fellow devs, not players) — shift weight to
+  parent/family/teacher channels (parenting subs & forums, family-friendly app roundups, school
+  holiday activity lists, kid-safe game directories) where "free, no ads, no accounts, kid-safe,
+  works offline" is the actual pitch.
 - **Reddit groundwork — STARTED (2026-07-05).** Advertising in some existing threads + actively
   commenting on target subs to build presence/karma; own threads planned within a few days. Feeds
   Path-to-launch #3.
