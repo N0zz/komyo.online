@@ -12,6 +12,15 @@ const pbG = (store) => { try { return JSON.parse(store['gamekit_pb'] || '{}')['a
 const pbScore = (store, mode) => (pbG(store)[mode] || {}).score || 0;
 const pbTime = (store, mode) => (pbG(store)[mode] || {}).time || 0;
 const pbHas = (store, mode) => !!pbG(store)[mode];
+// the mock DOM's .innerHTML getter only reflects what was explicitly SET on that element (never
+// auto-serialized from .children, unlike a real browser) — so finding markup injected into a
+// nested mkEl(...) call means walking the tree and checking each element's OWN innerHTML.
+const findByHtml = (el, needle, depth = 0) => {
+  if (!el || depth > 10) return null;
+  if (el.innerHTML && el.innerHTML.indexOf(needle) >= 0) return el;
+  for (const c of (el.children || [])) { const r = findByHtml(c, needle, depth + 1); if (r) return r; }
+  return null;
+};
 
 console.log('Running Range (aim-trainer) headless tests…');
 
@@ -140,6 +149,18 @@ section('timed mode: step past session → game over at limit');
   ok(T().timeLeft <= 0, 'timeLeft ≤ 0 at game over (got ' + T().timeLeft + ')');
 }
 
+section('HUD clock ticks every frame, not just on shoot() (regression)');
+{
+  const gh = runGame();
+  const Th = gh.T;
+  Th().startMode(30);
+  const hTime = gh.getEl('hTime');
+  const before = hTime.textContent;
+  Th().step(65); // just over 1s, no shots fired — avoids the exact tick where Math.ceil(timeLeft) still reads 30
+  ok(hTime.textContent !== before, 'HUD time label updates on its own each tick (was "' + before + '", now "' + hTime.textContent + '")');
+  ok(Number(hTime.textContent) <= 29, 'HUD time reflects ~1s elapsed without any shot (got "' + hTime.textContent + '")');
+}
+
 section('sprint mode: ends after 100 targets hit');
 {
   const gsp = runGame();
@@ -149,9 +170,11 @@ section('sprint mode: ends after 100 targets hit');
   ok(Ts().mode === 'sprint', 'mode is "sprint"');
   ok(Ts().timeLeft === 0, 'sprint has no timeLeft countdown (got ' + Ts().timeLeft + ')');
 
-  // drive hits until 100 targets are hit
+  // drive hits until 100 targets are hit; the winning hit parks the game in a brief 'winning'
+  // hold (see shoot()/update() — the sprint bar visibly reads 100% before the end screen appears)
+  // before update() itself flips state to 'over', so keep stepping through that hold too.
   let safetyIter = 0;
-  while (Ts().state === 'playing' && Ts().hits < 100 && safetyIter++ < 4000) {
+  while (Ts().state !== 'over' && safetyIter++ < 4000) {
     Ts().step(3);
     const tgt = Ts().targets[0];
     if (tgt) Ts().shootAt(tgt.x, tgt.y);
@@ -160,6 +183,25 @@ section('sprint mode: ends after 100 targets hit');
   ok(Ts().hits >= 100, 'sprint hits is >= 100 at end (got ' + Ts().hits + ')');
   ok(Ts().elapsedFrames > 0, 'elapsedFrames > 0 after sprint (got ' + Ts().elapsedFrames + ')');
   ok(Ts().elapsed > 0, 'elapsed seconds > 0 after sprint (got ' + Ts().elapsed + ')');
+  // a first-ever sprint clear IS a new best — the end screen must show the "★ New best!" banner
+  // (regression: showEnd() computed isBest but never surfaced it anywhere for the sprint branch)
+  const endEl = Ts().menu().el;
+  ok(!!findByHtml(endEl, 'gkm-new'), 'sprint end screen shows the new-best banner on a first clear');
+}
+
+section('sprint mode: winning hit holds briefly before the end screen (bar visibly fills)');
+{
+  const gw = runGame();
+  const Tw = gw.T;
+  Tw().startMode('sprint');
+  let seenWinning = false, safetyIter = 0;
+  while (Tw().state !== 'over' && safetyIter++ < 4000) {
+    if (Tw().state === 'winning') seenWinning = true;
+    Tw().step(1);
+    const tgt = Tw().targets[0];
+    if (tgt) Tw().shootAt(tgt.x, tgt.y);
+  }
+  ok(seenWinning, 'the winning hit parks the game in a "winning" hold before "over" (bar stays on-screen at 100%)');
 }
 
 section('sprint: best time persists to localStorage');
@@ -168,7 +210,7 @@ section('sprint: best time persists to localStorage');
   const Ts2 = gsp2.T;
   Ts2().startMode('sprint');
   let safetyIter = 0;
-  while (Ts2().state === 'playing' && Ts2().hits < 100 && safetyIter++ < 4000) {
+  while (Ts2().state !== 'over' && safetyIter++ < 4000) {
     Ts2().step(3);
     const tgt = Ts2().targets[0];
     if (tgt) Ts2().shootAt(tgt.x, tgt.y);
