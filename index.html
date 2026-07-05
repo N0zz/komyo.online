@@ -1746,6 +1746,10 @@
       const stack = document.getElementById('sideStack'), tab = document.getElementById('sideTab');
       const clip = document.getElementById('sideClip'), panel = document.getElementById('sidePanel');
       if (!stack || !tab || !clip || !panel) return;
+      // a manual show/hide is REMEMBERED (per device) and always wins; the measured fit is only
+      // the default for players who never touched the tab
+      const STACK_KEY = 'arcade_stack';
+      const storedChoice = () => { try { const v = localStorage.getItem(STACK_KEY); return v === null ? null : v === '1'; } catch (e) { return null; } };
       let shown = false, lastFits = null;
       const applyClip = () => {
         clip.style.width = (shown ? (panel.offsetWidth || 152) : 0) + 'px';
@@ -1757,9 +1761,18 @@
         if (!wrapEl || !wrapEl.getBoundingClientRect || typeof window.innerWidth !== 'number') return;
         const gutter = window.innerWidth - wrapEl.getBoundingClientRect().right;
         const fits = gutter >= (panel.offsetWidth || 152) + 22 + 13; // panel + tab + breathing room
-        if (fits !== lastFits) { lastFits = fits; shown = fits; applyClip(); }
+        if (fits !== lastFits) {
+          lastFits = fits;
+          const choice = storedChoice();
+          shown = choice === null ? fits : choice;
+          applyClip();
+        }
       };
-      tab.addEventListener('click', () => { shown = !shown; applyClip(); });
+      tab.addEventListener('click', () => {
+        shown = !shown;
+        try { localStorage.setItem(STACK_KEY, shown ? '1' : '0'); } catch (e) {}
+        applyClip();
+      });
       if (window.addEventListener) window.addEventListener('resize', place);
       place();
       // quick actions: Profile → the profile modal (via the drawer card's existing wiring, which
