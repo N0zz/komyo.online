@@ -108,6 +108,23 @@ function testCatalogue() {
     }
   }
 
+  // "Continue playing" carousel: hidden with nothing recorded; shows resolved, non-soon games in
+  // gamekit.recentlyPlayed() order when seeded, skipping slugs that no longer exist / are soon.
+  {
+    ok(g.getEl('recentStrip').hidden === true, 'recent strip stays hidden with nothing recorded');
+    const playable = GAMES.filter(gm => !gm.soon);
+    const soonSlug = (GAMES.find(gm => gm.soon) || {}).slug;
+    const seeded = [{ slug: playable[1].slug, at: 2 }, { slug: 'not-a-real-game', at: 1.5 }, { slug: playable[0].slug, at: 1 }];
+    if (soonSlug) seeded.splice(1, 0, { slug: soonSlug, at: 1.7 });
+    const g2 = bootGame('index.html', { preCode: [games, challenges], store: { gamekit_recent: JSON.stringify(seeded) } });
+    ok(g2.bootErr === null, 'catalogue boots fine with recently-played data seeded: ' + g2.bootErr);
+    const strip = g2.getEl('recentStrip'), cards = g2.getEl('recentScroll').children;
+    ok(strip.hidden === false, 'recent strip becomes visible once something valid is recorded');
+    ok(cards.length === 2, 'unknown-slug and soon-game entries are skipped (got ' + cards.length + ')');
+    ok(cards[0].href === 'games/' + playable[1].slug + '/' && cards[1].href === 'games/' + playable[0].slug + '/',
+      'cards render in recency order (got ' + cards.map(c => c.href).join(', ') + ')');
+  }
+
   // challenge history back-fill: a completion is recorded even when detected on a later catalogue
   // load (the old code only awarded "today's" goal lazily, so in-game completions were lost).
   {
@@ -611,6 +628,41 @@ function testKitChrome() {
   ok(!js.includes('if (!interacted)') && !js.includes('showUpdateButton'), 'new build never auto-reloads the visible page — it lights the ☰ badge (no launch fast-path reload)');
 }
 
+function testRecentlyPlayed() {
+  section('recently played (for the catalogue\'s "pick up where you left off" strip)');
+  const h = bootGame('games/breakout/index.html', {});
+  h.sandbox.location.pathname = '/games/breakout/'; // the mock harness has no real pathname — currentSlug() needs one
+  const K = h.win.gamekit;
+  ok(typeof K.recentlyPlayed === 'function', 'gamekit.recentlyPlayed is exposed');
+  ok(K.recentlyPlayed().length === 0, 'nothing recorded before any Play');
+  // pressing Play (a mode was actually chosen) records it — not just opening the game's page
+  const menu = K.menu.current();
+  ok(menu && typeof menu.activate === 'function', 'start menu exposes activate()');
+  menu.activate('play');
+  let recent = K.recentlyPlayed();
+  ok(recent.length === 1 && recent[0].slug === 'breakout', 'Play records this game as recently played (got ' + JSON.stringify(recent) + ')');
+  ok(typeof recent[0].at === 'number' && recent[0].at > 0, 'entry carries a timestamp');
+  // replaying (end menu's "again") re-touches it — bumped to the front, not duplicated
+  K.menu.show({ kind: 'end', actions: [{ id: 'again', label: 'Again' }], onAction: () => {} });
+  K.menu.current().activate('again');
+  recent = K.recentlyPlayed();
+  ok(recent.length === 1, 'replaying the SAME game de-dupes rather than adding a second entry (got ' + recent.length + ')');
+  // a different game (different currentSlug()) bumps to the front, oldest one still present
+  h.sandbox.location.pathname = '/games/snake/';
+  K.menu.show({ kind: 'start', actions: [{ id: 'play', label: 'Play' }] });
+  K.menu.current().activate('play');
+  recent = K.recentlyPlayed();
+  ok(recent.length === 2 && recent[0].slug === 'snake' && recent[1].slug === 'breakout', 'a different game is added to the front, the older one kept (got ' + JSON.stringify(recent) + ')');
+  // cap: seed a full list, then touch a fresh slug — total never exceeds the cap, newest first
+  h.store['gamekit_recent'] = JSON.stringify(Array.from({ length: 12 }, (_, i) => ({ slug: 'game' + i, at: i })));
+  h.sandbox.location.pathname = '/games/new-one/';
+  K.menu.show({ kind: 'start', actions: [{ id: 'play', label: 'Play' }] });
+  K.menu.current().activate('play');
+  recent = K.recentlyPlayed();
+  ok(recent.length === 12, 'the list never grows past the cap (got ' + recent.length + ')');
+  ok(recent[0].slug === 'new-one', 'the newest touch is always first (got ' + recent[0].slug + ')');
+}
+
 function testFullscreen() {
   section('fullscreen (Fullscreen API wrapper)');
   const h = bootGame('games/breakout/index.html', {});
@@ -957,6 +1009,7 @@ testLiveGames();
 await testKit();
 testKitChrome();
 testFullscreen();
+testRecentlyPlayed();
 testI18n();
 testI18nCoverage();
 testChallenges();
