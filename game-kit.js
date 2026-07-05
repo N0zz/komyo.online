@@ -1575,6 +1575,7 @@
     var more = '<div class="gamekit-more-ver" id="gamekitMoreVer"></div>'
       + '<button class="gamekit-more-item" id="gamekitUpdate" type="button">' + t('update.upToDate') + '</button>'
       + '<button class="gamekit-more-item" id="gamekitEmbed" type="button" title="' + t('kit.embedTitle') + '">&#x29C9; ' + t('embed.titleThis') + '</button>'
+      + (fsSupported() ? '<button class="gamekit-more-item" id="gamekitFullscreen" type="button" title="' + t('kit.fullscreenTitle') + '">⛶ ' + t('kit.fullscreen') + '</button>' : '')
       + '<div class="gamekit-more-crt"><button class="gamekit-more-item" id="gamekitCrt" type="button"></button><div class="gamekit-more-sub" id="gamekitCrtOpts" hidden></div></div>'
       + (opts.reset ? '<button class="gamekit-more-item gamekit-more-danger" id="gamekitReset" type="button" title="' + t('kit.resetTitle') + '">' + t('kit.reset') + '</button>' : '');
     wrap.innerHTML = '<button class="gamekit-au-btn gamekit-au-pausebtn" id="gamekitPause" type="button" aria-pressed="false" aria-label="' + t('pause.pause') + '" title="' + t('pause.pause') + '">⏸</button>'
@@ -1656,6 +1657,12 @@
       var m = ((typeof location !== 'undefined' && location.pathname) ? location.pathname : '').match(/games\/([^\/?#]+)/);
       embedModal({ slug: m ? m[1] : '', title: (typeof document !== 'undefined' ? document.title : '') });
     });
+    var fsBtn = document.getElementById('gamekitFullscreen');
+    if (fsBtn) {
+      var renderFsBtn = function () { fsBtn.textContent = (fullscreen.active() ? '⛶ ' + t('kit.exitFullscreen') : '⛶ ' + t('kit.fullscreen')); };
+      renderFsBtn(); fullscreen.onChange(renderFsBtn);
+      fsBtn.addEventListener('click', function () { fullscreen.toggle(); });
+    }
     var crtBtn = document.getElementById('gamekitCrt'), crtOpts = document.getElementById('gamekitCrtOpts');
     if (crtBtn && crtOpts) {
       // always visible: owned → a themed dropdown (Off + colours); locked → grayed, opens the shop to unlock.
@@ -3086,7 +3093,24 @@
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
   }
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu };
+  // ---- fullscreen (Fullscreen API, vendor-prefix-free — every supported browser ships the
+  // unprefixed form now) — useful when an installed PWA/Chrome-app window has no OS "maximize to
+  // true fullscreen" affordance. Headless-safe: every call is guarded, no-ops with no `document`.
+  var _fsSubs = [];
+  function fsSupported() { try { return !!(typeof document !== 'undefined' && document.documentElement && document.documentElement.requestFullscreen); } catch (e) { return false; } }
+  function fsActive() { try { return !!(typeof document !== 'undefined' && document.fullscreenElement); } catch (e) { return false; } }
+  function fsEmit() { for (var i = 0; i < _fsSubs.length; i++) { try { _fsSubs[i](fsActive()); } catch (e) {} } }
+  function fsToggle() {
+    if (!fsSupported()) return;
+    try {
+      if (fsActive()) document.exitFullscreen();
+      else document.documentElement.requestFullscreen().catch(function () {});
+    } catch (e) {}
+  }
+  if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('fullscreenchange', fsEmit);
+  var fullscreen = { supported: fsSupported, active: fsActive, toggle: fsToggle, onChange: function (cb) { if (typeof cb === 'function') _fsSubs.push(cb); } };
+
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
