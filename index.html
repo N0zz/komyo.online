@@ -1976,18 +1976,23 @@
       if (tlClose) tlClose.addEventListener('click', () => tlModal.close());
       if (tlModal) tlModal.addEventListener('click', e => { if (e.target === tlModal) tlModal.close(); });
       if (tlModal) tlModal.addEventListener('close', () => { if (openPanel === 'titles') setPanelUrl(null); tlList.innerHTML = ''; startTitleFx(); });   // drop the ladder fields, keep the profile-box one running
-      // title-unlock moment: crossing a titles-ladder tier since the last-seen one lights a dot on ☰;
-      // the next drawer open plays a one-shot reveal shine on the identity card, then it's "seen"
+      // ☰ dot has two independent sources — a title-unlock moment (crossing a titles-ladder tier
+      // since the last-seen one) and a ready-to-apply site update — ORed into one badge so neither
+      // tracker stomps the other's state. Title "seen" tracking stays scoped to titles only; the
+      // update source is read-only here (gamekit.updates.apply(), from Settings, clears its own state).
       const TSEEN = 'gamekit_title_seen';
       const seenTier = () => { try { return parseInt(localStorage.getItem(TSEEN) || '0', 10) || 0; } catch (e) { return 0; } };
-      function syncTitleNotify() {
+      const titleIsFresh = () => {
         const cur = titleData().earnedTier; // the dot tracks the highest EARNED title, not the worn one
         if (cur < seenTier()) { try { localStorage.setItem(TSEEN, String(cur)); } catch (e) {} } // import/reset lowered the tier — resync silently
-        const fresh = cur > seenTier();
+        return cur > seenTier();
+      };
+      const updateIsAvailable = () => { try { return !!(window.gamekit && window.gamekit.updates.state().available); } catch (e) { return false; } };
+      function renderMenuDot() {
         const mb = document.getElementById('menuBtn');
-        if (mb && mb.classList) mb.classList.toggle('tb-notify', fresh);
-        return fresh;
+        if (mb && mb.classList) mb.classList.toggle('tb-notify', titleIsFresh() || updateIsAvailable());
       }
+      function syncTitleNotify() { const fresh = titleIsFresh(); renderMenuDot(); return fresh; }
       (function () {
         const mb = document.getElementById('menuBtn');
         if (mb) mb.addEventListener('click', () => {
@@ -2001,6 +2006,7 @@
           }
         });
         syncTitleNotify();
+        if (window.gamekit && window.gamekit.updates) window.gamekit.updates.onChange(renderMenuDot);
       })();
       window.__syncTitleNotify = syncTitleNotify;
       // earned-title particle fields (premium tiers) — ONE engine driving EVERY `.pf-pfx` canvas in
