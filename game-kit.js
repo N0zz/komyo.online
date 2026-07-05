@@ -471,6 +471,7 @@
     return lsGet('gamekit_discord_name') === '1' ? 'named' : 'anon';
   }
   var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1520515996933296378/YlXg2W8ypFcQGMHRf0BvWxp10-m7Z7DggStKrBZfusWo8e_emNF6gLpiVjfb0YIExL24';
+  var _dcLastMsg = '', _dcLastAt = 0; // Discord auto-post dedupe/throttle — module-level so a share-row rebuilt each game-over can't reset it
   function postDiscord(text, url, file) {
     try {
       if (typeof fetch !== 'function' || typeof FormData === 'undefined') return;
@@ -1576,11 +1577,11 @@
       + '<input class="gamekit-au-slider" id="gamekitMusV" type="range" min="0" max="100" aria-label="' + t('sound.musVol') + '"></div>';
     // ☰ menu panel: version + update status, force refresh, embed, reset — one home for the
     // rarely-needed actions (keeps the button cluster narrow on phones)
-    var more = '<div class="gamekit-more-ver" id="gamekitMoreVer"></div>'
-      + '<button class="gamekit-more-item" id="gamekitUpdate" type="button">' + t('update.upToDate') + '</button>'
-      + '<button class="gamekit-more-item" id="gamekitEmbed" type="button" title="' + t('kit.embedTitle') + '">&#x29C9; ' + t('embed.titleThis') + '</button>'
+    // ☰ order: Update · Fullscreen · Language (inserted before Embed below) · Embed · Reset.
+    // The version stamp lives in the catalogue footer/Settings; CRT is bought/toggled in the 🎨 shop.
+    var more = '<button class="gamekit-more-item" id="gamekitUpdate" type="button">' + t('update.upToDate') + '</button>'
       + (fsSupported() ? '<button class="gamekit-more-item" id="gamekitFullscreen" type="button" title="' + t('kit.fullscreenTitle') + '">⛶ ' + t('kit.fullscreen') + '</button>' : '')
-      + '<div class="gamekit-more-crt"><button class="gamekit-more-item" id="gamekitCrt" type="button"></button><div class="gamekit-more-sub" id="gamekitCrtOpts" hidden></div></div>'
+      + '<button class="gamekit-more-item" id="gamekitEmbed" type="button" title="' + t('kit.embedTitle') + '">&#x29C9; ' + t('embed.titleThis') + '</button>'
       + (opts.reset ? '<button class="gamekit-more-item gamekit-more-danger" id="gamekitReset" type="button" title="' + t('kit.resetTitle') + '">' + t('kit.reset') + '</button>' : '');
     wrap.innerHTML = '<button class="gamekit-au-btn gamekit-au-pausebtn" id="gamekitPause" type="button" aria-pressed="false" aria-label="' + t('pause.pause') + '" title="' + t('pause.pause') + '">⏸</button>'
       + '<button class="gamekit-au-btn" id="gamekitAudioBtn" type="button" aria-label="' + t('sound.settings') + '" title="' + t('sound.settings') + '">🔊</button>'
@@ -1650,8 +1651,8 @@
       var langBtn = langButton({ label: t('lang.header', { def: 'Language' }), className: 'gamekit-more-item gamekit-more-lang', theme: opts.theme });
       if (langBtn) {
         langBtn.addEventListener('click', function () { setMore(false); }, true);
-        var resetRow = opts.reset ? document.getElementById('gamekitReset') : null;
-        if (resetRow && morePanel.insertBefore) morePanel.insertBefore(langBtn, resetRow);
+        var embedRow = document.getElementById('gamekitEmbed');
+        if (embedRow && morePanel.insertBefore) morePanel.insertBefore(langBtn, embedRow);
         else if (morePanel.appendChild) morePanel.appendChild(langBtn);
       }
     }
@@ -1666,40 +1667,6 @@
       var renderFsBtn = function () { fsBtn.textContent = (fullscreen.active() ? '⛶ ' + t('kit.exitFullscreen') : '⛶ ' + t('kit.fullscreen')); };
       renderFsBtn(); fullscreen.onChange(renderFsBtn);
       fsBtn.addEventListener('click', function () { fullscreen.toggle(); });
-    }
-    var crtBtn = document.getElementById('gamekitCrt'), crtOpts = document.getElementById('gamekitCrtOpts');
-    if (crtBtn && crtOpts) {
-      // always visible: owned → a themed dropdown (Off + colours); locked → grayed, opens the shop to unlock.
-      // the leading icon animates through the colours to hint what's available.
-      var CRT_LBL = { off: t('crt.off', { def: 'Off' }), green: t('crt.green', { def: 'Green' }), amber: t('crt.amber', { def: 'Amber' }), cyan: t('crt.cyan', { def: 'Cyan' }), mono: t('crt.mono', { def: 'Mono' }) };
-      var CRT_SEQ = ['off'].concat(crt.colors());
-      var crtCur = function () { return crt.enabled() ? crt.color() : 'off'; };
-      var syncCrtBtn = function () {
-        if (!crtOwned()) {
-          crtBtn.classList.add('gamekit-more-locked');
-          crtBtn.innerHTML = '<span class="gk-crt-ico"></span> ' + t('crt.label', { def: 'CRT mode' }) + ' <span class="gamekit-more-lock">🔒</span>';
-          crtOpts.hidden = true; return;
-        }
-        crtBtn.classList.remove('gamekit-more-locked');
-        crtBtn.innerHTML = '<span class="gk-crt-ico"></span> ' + t('crt.label', { def: 'CRT mode' }) + ': ' + (CRT_LBL[crtCur()] || crtCur()) + ' <span class="gamekit-more-caret">▾</span>';
-      };
-      var buildCrtOpts = function () {
-        crtOpts.innerHTML = '';
-        CRT_SEQ.forEach(function (id) {
-          var o = mkEl('button', 'gamekit-more-subitem' + (id === crtCur() ? ' on' : ''), CRT_LBL[id] || id);
-          try { o.type = 'button'; } catch (e) {}
-          if (id !== 'off') { var dot = mkEl('span', 'gksp-crt-dot', ''); dot.setAttribute('data-c', id); o.insertBefore(dot, o.firstChild); }
-          o.addEventListener('mouseenter', function () { crt.previewColor(id); }); // live preview of this colour
-          o.addEventListener('click', function () { if (id === 'off') crt.set(false); else crt.setColor(id); crtOpts.hidden = true; syncCrtBtn(); });
-          crtOpts.appendChild(o);
-        });
-      };
-      crtOpts.addEventListener('mouseleave', function () { crt.previewStop(); }); // leaving the list → real state
-      syncCrtBtn();
-      crtBtn.addEventListener('click', function () {
-        if (!crtOwned()) { setMore(false); shopPanel({ theme: opts.theme }); return; }
-        if (crtOpts.hidden) { buildCrtOpts(); crtOpts.hidden = false; } else { crtOpts.hidden = true; crt.previewStop(); }
-      });
     }
     if (opts.challenges) {
       var chb = document.getElementById('gamekitChallenges');
@@ -2214,18 +2181,20 @@
     // auto-post the score to the Komyo Games Discord when the end-screen share row is on-screen.
     // Handles BOTH patterns: built once at init (hidden → shown later) AND rebuilt at game-over
     // (already visible). Gated by discordTier() (consent → anonymous, opt-in → named).
-    // Dedupe + 60s throttle (per player per tab — rapid retries collapse into one post);
-    // replaces any prior observer on this el.
+    // Dedupe + 60s throttle — the state lives at MODULE level (_dcLastMsg/_dcLastAt): the share
+    // row is rebuilt on every game-over, so closure-local state reset each run and a player
+    // finishing several runs back-to-back spammed the channel. Zero-score runs never post.
     (function () {
-      var lastMsg = '', lastAt = 0;
       var visible = function () { try { return !!(el.getClientRects && el.getClientRects().length); } catch (e) { return false; } };
       var maybePost = function () {
         if (!visible()) return;
         var tier = discordTier();
         if (tier === 'off') return;
+        var lr = lastResult(o.slug) || {};
+        if (!((lr.score | 0) > 0 || (lr.time | 0) > 0)) return; // nothing worth announcing
         var msg = getMsg(), now = (typeof Date !== 'undefined' ? Date.now() : 0);
-        if (!msg || msg === lastMsg || now - lastAt <= 60000) return;
-        lastMsg = msg; lastAt = now;   // claim BEFORE the async card render (no double-fire)
+        if (!msg || msg === _dcLastMsg || now - _dcLastAt <= 60000) return;
+        _dcLastMsg = msg; _dcLastAt = now;   // claim BEFORE the async card render (no double-fire)
         var who = tier === 'named' ? ((player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous') : 'anonymous';
         // post the score card image (downscaled 50% for chat); text line = fallback if the render fails
         var opts = cardOpts(); opts.player = who;
