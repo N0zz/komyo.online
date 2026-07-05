@@ -152,10 +152,10 @@ section('forcefield: dome edge grace');
 {
   const T = runGame({ seed: 7 }).T;
   T().start();
-  T().setZone(0.5, 0.1); T().setPos(0.5 + 0.1 * 1.06); T().stop();   // 6% past the drawn edge → inside the 12% grace
+  T().setZone(0.5, 0.1); T().setPos(0.5 + 0.1 * 1.01); T().stop();   // 1% past the drawn edge → inside the 2% grace
   ok(T().hits === 1 && T().lives === 3, 'a shot just outside the drawn dome edge is still blocked');
   ok(T().score > 0, 'a grace deflect still scores');
-  T().setZone(0.5, 0.1); T().setPos(0.5 + 0.1 * 1.2); T().stop();    // beyond the grace band
+  T().setZone(0.5, 0.1); T().setPos(0.5 + 0.1 * 1.06); T().stop();   // beyond the 2% grace band
   ok(T().lives === 2, 'well past the grace band it breaches');
 }
 
