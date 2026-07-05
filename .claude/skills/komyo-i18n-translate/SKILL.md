@@ -7,16 +7,26 @@ description: >-
   coverage. Explains the i18n.js/game-kit.js system, how to split a ~1400-key
   translation into parallel-safe chunks, run a consistency-review pass across
   those chunks, and merge the result back without corrupting the shared
-  i18n.js file. Triggers on "translate komyo into <language>", "add <language>
-  support", "we're missing translations for X", "the changelog isn't
-  translated in <language>".
+  i18n.js file. Also covers the incremental case: adding a batch of NEW keys
+  (e.g. a new game's strings) to every already-complete locale. Triggers on
+  "translate komyo into <language>", "add <language> support", "we're missing
+  translations for X", "the changelog isn't translated in <language>",
+  "translate the new <game> strings / new keys into all languages".
 ---
 
 # Translate komyo into a new (or incomplete) language
 
-komyo's i18n system is one file, `i18n.js` (`window.KOMYO_I18N = { en, pl, es, pt,
-fr, it, cs, uk, ... }`), read by `gamekit.t()`/`lang()` in `game-kit.js`. Read
-`~/arcade/CLAUDE.md`'s i18n section and `~/arcade/plans/i18n-plan.md` first —
+komyo's i18n system is one file, `i18n.js` (`window.KOMYO_I18N`, one key→string
+map per locale), read by `gamekit.t()`/`lang()` in `game-kit.js`. **Never
+hardcode or assume the locale set** — discover the currently-configured locales
+at runtime from `i18n.js` (or `gamekit.langs()`), and treat every populated
+non-`en` locale as a required target for any new key:
+
+```bash
+cd ~/arcade && node -e "const vm=require('node:vm');const sb={window:{}};sb.globalThis=sb;vm.runInNewContext(require('node:fs').readFileSync('i18n.js','utf8'),sb);for(const[k,v]of Object.entries(sb.window.KOMYO_I18N))console.log(k,Object.keys(v).length)"
+```
+
+Read `~/arcade/CLAUDE.md`'s i18n section and `~/arcade/plans/i18n-plan.md` first —
 this skill operationalizes the "S7 · Translate" step of that plan for any
 language, not just the original launch set.
 
@@ -42,10 +52,13 @@ language, not just the original launch set.
   `index.html`'s changelog renderer and the matching logic in
   `test.mjs`'s `testI18nCoverage`. **Never key changelog translations by
   forward array index.**
-- **Plural values** are objects (`{ one, few, many, other }` for Slavic
-  languages — pl/cs/uk — or `{ one, other }` for es/pt/fr/it), selected via
-  `Intl.PluralRules`. Whether a given key is plural is a structural fact of
-  `pl` (or another live locale) — mirror that shape, don't invent it.
+- **Plural values** are objects selected via `Intl.PluralRules` — a plural key
+  in the target locale needs **every category `Intl.PluralRules(code)` can
+  return** for that language (Slavic languages like pl/cs/uk need
+  `one`/`few`/`many` (+`other`); most Romance/Germanic ones use
+  `one`/`other`). Whether a given key is plural is a structural fact of `pl`
+  (or another live locale) — mirror plural-vs-string from `pl`, but take the
+  category set from the TARGET language, don't copy pl's blindly.
 - **Brand tokens never translate:** `Komyo`, `Komyo Games`, `komyo`,
   `komyo.online`, emoji, raw numbers, `2P`/`2–4P`, version hashes. Game/mode
   names are a per-name judgment call — check what the target-adjacent locales
@@ -74,6 +87,31 @@ low-volume edits:
 6. Run `node test.mjs` — should stay green (the new locale is legitimately
    empty; nothing regresses).
 
+## Incremental mode — new keys into all existing locales (the common case)
+
+Once every locale is complete, the recurring job is NOT a full translation —
+it's "a new game/feature added N keys to `pl`; add them to every other
+populated locale" (the coverage test requires each populated locale to stay a
+complete superset of `pl`, so this is mandatory, not optional). For that:
+
+1. Discover the populated locales (snippet above).
+2. Per target locale, extract only what it's missing:
+   ```
+   node .claude/skills/komyo-i18n-translate/scripts/extract-parts.mjs <scratch-dir>/<code> --missing <code>
+   ```
+   Same part files, filtered to keys present in `pl` but absent in that
+   locale; parts with nothing missing are skipped. A new game's strings
+   usually land in one or two small files.
+3. Translate: at this size skip the 6-part fan-out — dispatch **one agent per
+   locale** (or one agent for ALL locales when it's only a few keys), reusing
+   the prompt template's source-hunting + output-format rules. Consistency
+   still matters: tell the agent to grep the neighbouring keys already in
+   that locale's block and reuse its established terms (no separate review
+   pass needed at this size).
+4. Merge per locale (same mechanics as step 4 below): insert ONLY keys the
+   locale doesn't already have — a re-added key must never end up twice in
+   the block — re-parse the file, then `node test.mjs`.
+
 ## Translating a language (new or backfilling gaps)
 
 A full site translation is ~1400 keys — too much for one subagent call to do
@@ -84,19 +122,21 @@ parts in parallel, reconcile terminology across parts, then merge.
 
 Run:
 ```
-node .claude/skills/komyo-i18n-translate/scripts/extract-parts.mjs <scratch-dir>
+node .claude/skills/komyo-i18n-translate/scripts/extract-parts.mjs <scratch-dir> [--missing <locale>]
 ```
 This reads the current `pl` locale + `changelog.js` and writes 6 files to
 `<scratch-dir>`: `part1_kit.keys.txt` … `part5_cosmetics.keys.txt` (one key
 per line) and `part6_changelog.keys.txt` (`key<TAB>English text` pairs — the
 only part with the source text already inlined, since changelog English
-doesn't live in `i18n.js` at all). Re-run this any time the site's key
-surface changes — never hand-maintain a stale key list.
+doesn't live in `i18n.js` at all). With `--missing <locale>` it emits only
+the keys that locale lacks (the incremental mode above). Re-run this any
+time the site's key surface changes — never hand-maintain a stale key list.
 
 Why these 6 buckets and not some other split: `game.*` (~595 keys) and `cos.*`
-(~177) dwarf everything else, so they get their own part(s); `tower-defense`
-and `asteroids-plus` alone are ~115-120 keys each of numbers-in-prose upgrade
-text, so they're split out from the other games into "heavy" vs "rest" to
+(~177) dwarf everything else, so they get their own part(s); the heaviest
+games (the script's `HEAVY_GAMES` list — currently tower-defense,
+asteroids-plus, asteroids, bubbles, each ~100+ keys of numbers-in-prose
+upgrade/map text) are split out from the other games into "heavy" vs "rest" to
 keep every part roughly 150-330 keys — big enough to be worth a subagent call,
 small enough for one agent to get right and for you to sanity-check.
 
@@ -158,13 +198,18 @@ and not by reading all ~1400 translated lines into your own context (you
 don't need to; only the *merge mechanics* need automating):
 
 1. Validate each part file parses as a JS object literal (wrap in `({...})`
-   and `vm.runInNewContext`) and that the union of all parts' keys exactly
-   matches `pl`'s non-changelog keys + the changelog key set (no
-   missing/extra) — fail loudly if not, before touching `i18n.js`.
-2. Concatenate the parts, indent, and splice into `i18n.js` replacing that
-   language's `xx: {}` stub (or inserting before the closing `},` if it
-   already has content, e.g. a changelog-only backfill for an established
-   locale).
+   and `vm.runInNewContext`), that no part key falls outside `pl`'s key set +
+   the changelog key set (no extras/typos), and that **the target locale's
+   existing keys plus the parts' keys form a complete superset of `pl`** —
+   fail loudly if not, before touching `i18n.js`. (Only a from-scratch run
+   reduces to "parts' union === `pl`'s key set"; an incremental run's parts
+   cover just the keys the locale was missing.)
+2. Concatenate the parts, **drop any key the locale already has** (a
+   re-merged key must never appear twice in the block), indent, and splice
+   into `i18n.js` replacing that language's `xx: {}` stub (or inserting the
+   remaining new lines before the block's closing `},` if it already has
+   content, e.g. an incremental or changelog-only backfill for an
+   established locale).
 3. Re-parse the whole `i18n.js` file to confirm it's still valid JS.
 4. Run `node test.mjs`. It should go fully green — if `testI18nCoverage`
    fails, it will tell you exactly which keys are missing.
@@ -172,13 +217,13 @@ don't need to; only the *merge mechanics* need automating):
 ### 5 · Changelog: new-language announcement entry
 
 When a language ships, prepend a `changelog.js` entry announcing it (see the
-existing es/pt/fr/it/cs/uk entries for the pattern: `title` is written *in*
-the newly-announced language as a flourish, e.g. `'komyo parla anche
-italiano! 🇮🇹'`; the body bullet is English, describing the feature). Give it
-the next unused reverse index (`CHANGELOG.length` before you prepend), then
-translate that one new title+bullet into every other already-shipped locale
-(a handful of short strings — fine to do by hand, no need for subagents at
-this size).
+existing new-language announcement entries for the pattern: `title` is
+written *in* the newly-announced language as a flourish, e.g. `'komyo parla
+anche italiano! 🇮🇹'`; the body bullet is English, describing the feature).
+Give it the next unused reverse index (`CHANGELOG.length` before you
+prepend), then translate that one new title+bullet into every other populated
+locale (discover the set as above — a handful of short strings, fine to do by
+hand, no need for subagents at this size).
 
 ## Common failure modes (all hit at least once building this)
 

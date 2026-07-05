@@ -1,7 +1,9 @@
 # Translator agent prompt template
 
 Fill in `{{LANGUAGE}}` (e.g. "Czech"), `{{CODE}}` (e.g. "cs"), `{{PLURAL_NOTE}}`
-(e.g. "one, few, many, other — mirror pl's shape"), `{{KEYS_PATH}}`,
+(the full cardinal category set `Intl.PluralRules('{{CODE}}')` can return —
+e.g. "one, few, many, other" for cs; pl/cs/uk all need few+many, not just
+one/other), `{{KEYS_PATH}}`,
 `{{OUTPUT_PATH}}`, and the part-specific `{{SOURCE_GUIDANCE}}` block below.
 One agent per (language, part) — dispatch all of a language's (or a whole
 batch's) part-agents in a single message so they run in parallel.
@@ -31,9 +33,14 @@ double-translation drift).
 
 OUTPUT FORMAT — critical: for EVERY key in the list, produce exactly one line:
   'KEY': 'TRANSLATED TEXT',
-or for plural keys:
-  'KEY': { one: '...', other: '...' },
+or for plural keys (category set follows the TARGET language, not this example):
+  'KEY': { one: '...', few: '...', many: '...', other: '...' },
 Rules:
+- A key whose value is a plural OBJECT in pl must be a plural object in your
+  output too — never a plain string — and it must contain EVERY cardinal
+  category Intl.PluralRules('{{CODE}}') can return ({{PLURAL_NOTE}}). For
+  example pl/cs/uk need one+few+many(+other); a {one, other}-only object is
+  WRONG for those languages and silently mis-renders counts.
 - Keep every {param} placeholder (e.g. {name}, {count}, {score}) exactly as-is.
 - Keep brand tokens untranslated: Komyo, Komyo Games, komyo, komyo.online,
   emoji, raw numbers, '2P'/'2–4P', version hashes.
@@ -98,7 +105,10 @@ Your job:
    changing anything else (no reformatting, no key additions/removals).
 4. Sanity-check: every line still matches `'key': 'value',` or the plural
    shape, quotes single-quoted with internal ' escaped as \', every {param}
-   token still present verbatim.
+   token still present verbatim, and every plural-object key still carries
+   EVERY cardinal category Intl.PluralRules('{{CODE}}') can return (for
+   {{LANGUAGE}}: {{PLURAL_NOTE}} — e.g. pl/cs/uk need one+few+many, never
+   just {one, other}).
 5. Do NOT change the SET of keys in any file — only the translated VALUES.
 
 When done, reply with a short summary (under 150 words) of what glossary
