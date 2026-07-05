@@ -45,11 +45,22 @@ challenges, tv-controller.
   pre-interaction PWA silent reload was removed (badge/prompt only). Design doc: `plans/cosmetics-shop.html`.
   *Parked: mascot-attire cosmetics (gated on the real mascot); deed-locked exclusives; collector badges.*
 
-- **i18n system + PL + ES — DONE (2026-07-04).** Full no-build i18n: kit `t()` engine + `Intl.PluralRules`,
-  language picker (home Settings + in-game ☰), `?lang=`/`navigator.language`/persisted pick, `hreflang` +
-  translated meta, and a **coverage test** enforcing every locale is empty-or-complete. **Polish and Spanish
-  are live** across catalogue + kit + every game + legal pages. Remaining is just more languages (pt/fr/it) +
-  QA. See `plans/i18n-plan.md`.
+- **i18n system + ALL 8 LANGUAGES — DONE (2026-07-05).** Full no-build i18n: kit `t()` engine +
+  `Intl.PluralRules`, language picker (home Settings + in-game ☰), `?lang=`/`navigator.language`/persisted
+  pick, `hreflang` + translated meta, and a **coverage test** enforcing every locale is empty-or-complete
+  (now incl. every changelog entry + a per-key `{param}`-token parity check). **Live: en, pl, es, pt, fr,
+  it, cs, uk** across catalogue + kit + every game + legal pages + the full changelog. Produced via the
+  split-into-parts + consistency-review process, captured as the `komyo-i18n-translate` repo skill.
+  Remaining: a native QA pass + mobile QA across languages × orientations. See `plans/i18n-plan.md`.
+- **Home page rework — DONE (2026-07-05).** Four shelves (★ Favorites / Recently played / All games /
+  Coming soon; SP+MP merged), Recently-played rail (full cards, » paddle, edge fade), favorites
+  drag & drop (mouse threshold / touch long-press, ghost-clone drop slot, native long-press menu
+  suppressed), right-edge quick-menu drawer (Profile wearing the current title + Challenges + Collection;
+  measured-gutter default, ‹‹ tab, choice persisted), notification dots (title→Profile mirror,
+  new-challenge-rotation→Challenges with ★ NEW badge inside the drawer, tab bubbling), Install/Language/
+  Fullscreen icon row top-right (incl. a new `gamekit.fullscreen` + per-game ☰ entry), and the PWA
+  stale-precache fix (`{cache:'reload'}`) behind the "updated but the game still shows a dot" bug.
+  Design doc: `plans/top-right-menu-mock.html`.
 - **Forcefield — DONE (2026-07-04).** New game (game #10), first pull from the POC branch. Planet
   shield-defense: a battle station charges + fires at a huge planet; sweep your atmosphere dome over the marked
   impact and tap to deflect (instant), or it fires on its own at the deadline. Modes: Timed / Shields / Double
@@ -70,11 +81,9 @@ to build Forcefield) · **friends/family circle** invited & trickling · the **i
 
 ### Ordered path
 
-1. **Translations / i18n — system DONE; adding languages (*in progress*).** The whole i18n machinery shipped
-   (kit `t()` engine + picker, string extraction across catalogue/kit/games/legal, `hreflang`/meta, a
-   **coverage test** that enforces every locale is empty-or-complete). **PL and ES are live.** All that's left
-   is **content: pt / fr / it** translations, a native QA pass, and mobile QA across languages × orientations.
-   See `plans/i18n-plan.md`.
+1. **Translations / i18n — DONE (2026-07-05).** All 8 languages live (en/pl/es/pt/fr/it/cs/uk), full
+   coverage incl. the changelog, enforced by tests. Left over (non-gating): a native QA pass + mobile QA
+   across languages × orientations. See `plans/i18n-plan.md`.
 2. **Build more games — *in progress*.** Toward the content bar; each via the dev-process gate (design+mock →
    POC → MVP → iterate). **Forcefield shipped** (first pull from the POC branch). **Bias low-tuning genres**
    (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower defense, roguelite shooters). See
@@ -277,9 +286,9 @@ from day one.
 - **Welcome speech bubble from the mascot** *(idea, added 2026-07-04)* — the header mascot says "welcome"
   in a random rotation across all supported languages (a little i18n flex). Subtle, not distracting — a
   brief bubble on load / occasional, reduced-motion-safe. (Pairs with the real-mascot work.)
-- **Move the Collection button to the home page** *(idea, added 2026-07-04)* — consider promoting the 🎨
-  Collection entry out of the Challenges drawer to a top-level home-page control (more discoverable; it's a
-  primary feature, currently a bit buried).
+- ~~**Move the Collection button to the home page**~~ *(shipped 2026-07-05)* — the 🎨 Collection is a
+  top-level button in the right-edge quick menu (with Profile + Challenges); the Challenges-drawer pill was
+  removed (its collection bar still opens the store).
 
 - **`gamekit.menu` framework (v3)** *(decided — launch prio #1, see Path to launch)* — promote the
   asteroids-style mode tiles + option-group rows into a reusable `gamekit.menu`: declarative config →
