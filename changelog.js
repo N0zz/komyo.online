@@ -4,6 +4,15 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-05', title: 'Trophies, favorites & fixes 🛠️', items: [
+    'Fix: weekly challenges finished inside a game now always pay their trophies — even if you only open the home page days later. Random “play today\'s pick” challenges finally show their game and progress inside games too.',
+    'Fix: rearranging ★ Favorites while a search or filter was active could silently drop the hidden favorites — they stay put now.',
+    'Fix: changing the language inside a game no longer restarts the game — your run keeps going and the switch applies right away. ?lang= links finally stick, too.',
+    'New: buying a 🏆 100+ item in the Collection asks “spend?” first — no more losing weeks of trophies to one mis-tap.',
+    'Change: Import in Settings now fully replaces this device\'s data with the backup, exactly as promised — no more leftovers mixing two profiles.',
+    'Fix: coming back to the home page from a game shows your run right away — Recently played and the notification dots no longer lag behind.',
+    'Fix: Forcefield — the shield is a touch more forgiving (shots that looked blocked ARE blocked), the battle station no longer hides under the score pill on sideways phones, and keys pressed with a menu open can\'t sneak a shot through anymore.',
+  ] },
   { date: '2026-07-05', title: 'Home page, reworked 🏠', items: [
     'New: the games now sort into four shelves — ★ Favorites, Recently played, All games and Coming soon. Single-player and multiplayer live together under All games (multiplayer tiles keep their 👥 badge, and the Type filter still splits them).',
     'New: Recently played — full game cards of what you actually played, newest first, in a sideways-scrolling row with a » paddle. Starting a run (picking a mode and pressing Play) is what counts as played.',
