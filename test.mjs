@@ -26,18 +26,18 @@ function testCatalogue() {
     'Settings update button is greyed "✓ Up to date" when no update is known (got "' + g.getEl('setUpdate').textContent + '")');
   let drErr = null; try { g.getEl('setUpdate').fire('click'); } catch (e) { drErr = e.message; }
   ok(drErr === null, 'Settings update button runs headless without throwing: ' + drErr);
-  // ☰ menu button lights the same 'tb-notify' dot the per-game kit menu uses, driven by gamekit.updates
-  // (not just title unlocks) — catches "update ready but the home page ☰ shows nothing" regressions.
+  // the top-bar ⚙️ Settings button (it hosts "Update now") lights the 'tb-notify' dot, driven by
+  // gamekit.updates — catches "update ready but the home page shows nothing" regressions.
   {
-    const mb = g.getEl('menuBtn');
-    ok(!mb.classList.contains('tb-notify'), '☰ has no dot with no update pending (got classes: ' + mb.className + ')');
+    const mb = g.getEl('settingsBtn');
+    ok(!mb.classList.contains('tb-notify'), '⚙️ has no dot with no update pending (got classes: ' + mb.className + ')');
     ok(typeof g.win.__syncTitleNotify === 'function', '__syncTitleNotify is exposed for the update-dot render path');
     g.win.gamekit.updates.state().available = true;
     g.win.__syncTitleNotify(); // renderMenuDot() reads updates.state() live — no need to go through upEmit()
-    ok(mb.classList.contains('tb-notify'), '☰ gets the dot once gamekit.updates reports an update available');
+    ok(mb.classList.contains('tb-notify'), '⚙️ gets the dot once gamekit.updates reports an update available');
     g.win.gamekit.updates.state().available = false;
     g.win.__syncTitleNotify();
-    ok(!mb.classList.contains('tb-notify'), '☰ drops the dot once the update state clears');
+    ok(!mb.classList.contains('tb-notify'), '⚙️ drops the dot once the update state clears');
   }
   // density toggle: cozy ⇄ compact
   const db = g.getEl('densityBtn'); db.fire('click');

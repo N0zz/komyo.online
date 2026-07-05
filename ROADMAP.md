@@ -102,6 +102,16 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
 
 ### Later (non-gating)
 
+- **Single service worker for the whole site** — drop the 10 per-game `sw.js` scopes and let ONE
+  root-scope SW cache everything (games included): kills the "one game stayed stale after Update"
+  bug class outright, ends the ~11× duplicate caching (each scope precaches its own copy of the
+  shared files + all 8 locale files), and turns "Update now" into a single worker swap instead of
+  herding 11 registrations. **Keep the per-game manifests** — a root SW controlling
+  `/games/<slug>/` still satisfies installability, so per-game installs keep working. Scope:
+  delete `games/*/sw.js` + their `pwa()` registrations, grow the root SHELL (or runtime-cache game
+  files), simplify `gamekit.updates.apply()` + the catalogue's idle-register loop, rewrite the SW
+  test section. No legacy-user migration shims needed (friends-and-family stage, few/no PWA
+  installs) — a plain `getRegistrations()` sweep that unregisters non-root scopes on boot is enough.
 - **Real mascot** *(external — owned by others)* — when it lands: swap the placeholder chibi everywhere +
   **mascot art refresh** of `buildScoreCard`/`buildProfileCard` around it, + a **mascot attire shop** (spend
   trophies on logo / score-card / profile mascot cosmetics). Placeholder art ships fine until then.
