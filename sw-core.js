@@ -20,7 +20,14 @@
     e.waitUntil(
       caches.open(CACHE).then(function (c) {
         // resilient: one missing/404 file must not fail the whole precache
-        return Promise.all(SHELL.map(function (u) { return c.add(u).catch(function () {}); }));
+        // {cache:'reload'} — cache.add() would otherwise do a normal fetch, which can silently
+        // reuse a browser-HTTP-cached (stale) response and precache stale content into a brand
+        // new versioned cache, so "Update now" applies but a hard refresh is still needed.
+        return Promise.all(SHELL.map(function (u) {
+          return fetch(u, { cache: 'reload' }).then(function (resp) {
+            if (resp && resp.ok) return c.put(u, resp);
+          }).catch(function () {});
+        }));
       }).then(function () { return self.skipWaiting(); })
     );
   });
@@ -44,7 +51,9 @@
     e.respondWith(
       caches.open(CACHE).then(function (cache) {
         return cache.match(e.request).then(function (cached) {
-          var network = fetch(e.request).then(function (resp) {
+          // {cache:'reload'} — the background revalidation must actually reach the network, not
+          // silently resolve from the browser's own HTTP cache (same staleness bug as install above).
+          var network = fetch(e.request, { cache: 'reload' }).then(function (resp) {
             if (resp && resp.ok) { try { cache.put(e.request, resp.clone()); } catch (x) {} }
             return resp;
           }).catch(function () { return null; });
