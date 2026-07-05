@@ -89,19 +89,24 @@
     color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
   .load-more:hover { border-color: #9fe8ff; }
   .section-head .count { font-family:var(--mono); font-size: 11px; color:var(--faint); }
-  /* "Continue playing" — a compact horizontal carousel (native scroll-snap, no JS library) above the
-     main grid; deliberately small so it never competes with the grid for space. Recorded by the kit
-     when a mode is actually chosen and Play is pressed (gamekit.recentlyPlayed), not on page-open. */
-  .recent-strip { margin: 0 0 8px; }
-  .recent-strip .recent-head { margin: 0 2px 10px; }
-  .recent-scroll { display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x proximity; padding:2px 2px 10px; -webkit-overflow-scrolling:touch; }
-  .recent-card { scroll-snap-align:start; flex:0 0 auto; display:flex; align-items:center; gap:9px;
-    padding:9px 16px 9px 11px; border-radius:13px; border:1px solid var(--border); background:var(--surface);
-    text-decoration:none; color:var(--text); transition: transform .12s, border-color .12s, box-shadow .12s; }
-  .recent-card:hover, .recent-card:focus-visible { transform:translateY(-3px); border-color:var(--accent);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.4), 0 0 0 1px var(--accent); outline:none; }
-  .recent-card .rc-glyph { font-size:21px; line-height:1; }
-  .recent-card .rc-title { font-size:13px; font-weight:600; white-space:nowrap; }
+  /* "Recently played" — full game cards in a horizontal scroll-snap rail (one grid row tall),
+     so it never eats vertical space. Recorded by the kit when a mode is actually chosen and Play
+     is pressed (gamekit.recentlyPlayed), not on page-open. */
+  .recent-row { grid-column:1/-1; display:flex; gap:20px; overflow-x:auto; padding:2px 2px 12px;
+    scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; }
+  .recent-row .tile { flex:0 0 264px; scroll-snap-align:start; }
+  .grid.compact .recent-row { gap:10px; }
+  .grid.compact .recent-row .tile { flex-basis:118px; }
+  /* Favorites edit mode: the header's Edit toggle turns tiles into drag handles */
+  .fav-edit { font-family:var(--mono); font-size:11px; letter-spacing:1px; padding:4px 11px; border-radius:8px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--muted); cursor:pointer; white-space:nowrap; }
+  .fav-edit:hover { border-color:#ffcf5c; color:#ffcf5c; }
+  .fav-edit.on { border-color:#ffcf5c; color:#ffcf5c; }
+  .tile.fav-editing { cursor:grab; touch-action:none; border-style:dashed; }
+  .tile.fav-editing .fav { pointer-events:none; opacity:.35; } /* no accidental unfavorite mid-drag */
+  .tile.drag-src { opacity:.35; }
+  .drag-ghost { position:fixed; z-index:80; pointer-events:none; opacity:.85; margin:0;
+    transform:translate(-50%,-50%) scale(.92) rotate(2deg); box-shadow:0 18px 50px rgba(0,0,0,.6); }
   .tile {
     position: relative;
     display:flex; flex-direction:column; text-decoration:none; color:inherit;
@@ -115,15 +120,6 @@
     border:1px solid var(--border); background:rgba(11,15,23,0.72); color:#6b7892; transition: color .12s, border-color .12s, transform .12s; }
   .fav:hover { color:#ffcf5c; border-color:#ffcf5c; transform:scale(1.08); }
   .fav.on { color:#ffcf5c; border-color:#ffcf5c; }
-  /* manual favorites reorder — two tiny chevrons stacked just left of the ★ star, only in the
-     Favorites strip (favPos is only passed there); hidden in compact view like the star shrinks */
-  .favmove { position:absolute; top:10px; right:50px; z-index:3; display:flex; flex-direction:column; gap:3px; }
-  .favmove button { width:22px; height:15.5px; padding:0; border:1px solid var(--border); border-radius:5px;
-    background:rgba(11,15,23,0.72); color:#8a97ac; font-size:9px; line-height:1; cursor:pointer;
-    display:flex; align-items:center; justify-content:center; transition: color .12s, border-color .12s; }
-  .favmove button:hover:not(:disabled) { color:#ffcf5c; border-color:#ffcf5c; }
-  .favmove button:disabled { opacity:0.3; cursor:default; }
-  .grid.compact .favmove { display:none; }
   /* tile badges — one shimmer+sparkle system, color per badge type (add more in the BADGES map) */
   .badges { position:absolute; top:8px; left:11px; z-index:3; pointer-events:none; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
   .badge { position:relative; }
@@ -187,9 +183,9 @@
     color:var(--text); background:var(--surface-2); border:1px solid var(--border); text-decoration:none; display:inline-flex; align-items:center; }
   .ibtn:hover { border-color:#9fe8ff; color:#fff; }
   /* language trigger in the top-left toolbar: a big current-flag icon, aligned to the Install button */
-  .float-btns-l .gamekit-langbtn.ibtn { padding:5px 9px; }
-  .float-btns-l .gamekit-langbtn { box-shadow:0 4px 14px rgba(0,0,0,0.42); }
-  .float-btns-l .gamekit-langbtn .gk-langflag { width:35px; }
+  .float-btns-r .gamekit-langbtn.ibtn { padding:5px 7px; }
+  .float-btns-r .gamekit-langbtn { box-shadow:0 4px 14px rgba(0,0,0,0.42); height:38px; }
+  .float-btns-r .gamekit-langbtn .gk-langflag { width:30px; }
   #langMountSet .gamekit-langbtn.drefresh { padding:8px 12px; }
   .tip { position:relative; display:inline-flex; }
   /* desktop-only hover hint (mobile has no hover → the tap action + modals carry the info) */
@@ -418,6 +414,7 @@
   @media (max-width: 560px) {
     .in-activity { --act-top: 52px; }
     .in-activity .float-btns-l, .in-activity .float-btns-r { top: calc(13px + var(--act-top)); }
+    .in-activity .side-stack { top: calc(62px + var(--act-top)); }
     .in-activity .act-frame { padding-top: var(--act-top); }
   }
   /* FAQ modal (reuses .about container) */
@@ -486,16 +483,42 @@
   .fb-status.ok { color:#7fe0a0; }
   .fb-status.err { color:#ff8a8a; }
 
-  /* ---- sticky top bar (☰ menu + 🏆 challenges) ---- */
+  /* ---- sticky top chrome: ☰ (left) · Install/Language/Fullscreen (right) · side stack below ---- */
   .float-btns-l { position:fixed; top:13px; left:13px; z-index:40; display:flex; align-items:center; gap:10px; }
-  .float-btns-r { position:fixed; top:13px; right:13px; z-index:40; }
-  .float-btns-l .tb-btn, .float-btns-l .ibtn, .float-btns-r .tb-btn { box-shadow:0 4px 14px rgba(0,0,0,0.42); }
-  @media (max-width:520px){ .tb-chal .tb-lbl { display:none; } }
+  .float-btns-r { position:fixed; top:13px; right:13px; z-index:40; display:flex; align-items:center; gap:8px; }
+  .float-btns-l .tb-btn, .float-btns-l .ibtn, .float-btns-r .tb-btn, .float-btns-r .ibtn { box-shadow:0 4px 14px rgba(0,0,0,0.42); }
   .tb-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border:1px solid var(--border); border-radius:10px;
     background:var(--surface-2); color:var(--text); font-family:var(--mono); font-size:12px; letter-spacing:1.5px; cursor:pointer; }
   .tb-btn:hover { border-color:#9fe8ff; }
   .tb-menu { font-size:17px; padding:6px 12px; }
-  .tb-chal .trophy { color:#ffce5c; }
+  /* icon-only squares in the top-right row (the word rides in the tooltip/aria-label) */
+  .tb-mini { width:38px; height:38px; padding:0; justify-content:center; font-size:16px; letter-spacing:0; }
+  /* side stack (Profile / Challenges / Collection). Two modes, decided by measuring the gutter
+     beside .wrap: inline (fits) → a plain fixed column at right:13px; tucked (doesn't fit) → the
+     whole column hides off the right edge behind a ‹‹ pull-tab (its clip window's width toggles
+     0 ↔ the panel's measured width — at 0 the panel is invisible by construction). */
+  .side-stack { position:fixed; top:62px; right:13px; z-index:40; display:flex; align-items:center; }
+  .side-stack .side-tab { display:none; }
+  .side-panel { display:flex; flex-direction:column; gap:8px; max-height:calc(100vh - 80px); overflow-y:auto; }
+  .side-btn { width:130px; height:118px; flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:4px; border-radius:16px; border:1px solid var(--border); background:var(--surface-2);
+    color:var(--text); cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.42); transition:border-color .12s, transform .12s; font:inherit; padding:0; }
+  .side-btn:hover { border-color:#9fe8ff; transform:translateY(-1px); }
+  .side-btn .ico { font-size:30px; line-height:1; }
+  .side-btn .lbl { font-family:var(--mono); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); white-space:normal; padding:0 4px; }
+  .side-btn .sub { font-size:10.5px; color:var(--faint); line-height:1.2; padding:0 8px; white-space:normal; min-height:13px; }
+  .side-chal { background:linear-gradient(160deg, rgba(255,206,92,.16), var(--surface-2)); }
+  .side-cos { background:linear-gradient(160deg, rgba(185,140,255,.18), var(--surface-2)); }
+  .side-profile { background:linear-gradient(160deg, var(--ttbg, rgba(120,130,143,.18)), var(--surface-2)); }
+  .side-stack.tucked { right:0; }
+  .side-stack.tucked .side-tab { display:flex; flex:0 0 auto; width:22px; height:74px; align-items:center; justify-content:center;
+    background:var(--surface); border:1px solid var(--border); border-right:none; border-radius:10px 0 0 10px;
+    color:var(--muted); font-size:14px; cursor:pointer; padding:0; box-shadow:-4px 0 14px rgba(0,0,0,.35); }
+  .side-stack.tucked.shown .side-tab { color:#9fe8ff; }
+  .side-stack.tucked .side-clip { overflow:hidden; width:0; transition:width .22s ease; }
+  .side-stack.tucked.shown .side-clip { box-shadow:-4px 0 14px rgba(0,0,0,.35); border-radius:14px 0 0 14px; }
+  .side-stack.tucked .side-panel { width:max-content; background:var(--surface); border:1px solid var(--border);
+    border-right:none; border-radius:14px 0 0 14px; padding:10px 8px 10px 12px; }
 
   /* ---- control row (Install · Search · Filter) ---- */
   .controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; flex-wrap:wrap; }
@@ -681,8 +704,11 @@
 <body>
   <div class="float-btns-l">
     <button class="tb-btn tb-menu" id="menuBtn" aria-label="Open menu" aria-haspopup="dialog">☰</button>
+  </div>
+  <!-- top-right row: Install / Language / Fullscreen — icon-only, always visible, never collapses -->
+  <div class="float-btns-r">
     <span class="tip">
-      <button class="ibtn" id="install" data-tip="Install Komyo Games to your home screen — fullscreen &amp; offline">📱 Install</button>
+      <button class="ibtn tb-mini" id="install" data-tip="Install Komyo Games to your home screen — fullscreen &amp; offline" aria-label="Install Komyo Games">📱</button>
       <span class="tip-pop" id="tipPop"><b>Install to your home screen</b> — fullscreen &amp; offline:<br>
         <b>Android (Chrome):</b> menu ⋮ → “Add to Home screen”<br>
         <b>iPhone (Safari):</b> Share → “Add to Home Screen”<br>
@@ -691,9 +717,25 @@
         <span style="opacity:.8">Already installed? Open it from your home screen, or the “Open in app” icon in the address bar.</span></span>
     </span>
     <span id="langMount"></span>
+    <button class="ibtn tb-mini" id="fsBtn" hidden aria-label="Fullscreen">⛶</button>
   </div>
-  <div class="float-btns-r">
-    <button class="tb-btn tb-chal" id="chalBtn" aria-label="Open challenges" data-ta="cat.openChallenges" aria-haspopup="dialog"><span class="trophy">🏆</span> <span class="tb-lbl" data-t="cat.challengesBtn">CHALLENGES</span></button>
+  <!-- side stack: Profile / Challenges / Collection — the only cluster that collapses; when the
+       gutter beside .wrap can't hold it, it tucks off the right edge behind the ‹‹ tab -->
+  <div class="side-stack" id="sideStack">
+    <button class="side-tab" id="sideTab" type="button" aria-label="Show quick menu">‹‹</button>
+    <div class="side-clip" id="sideClip">
+      <div class="side-panel" id="sidePanel">
+        <button class="side-btn side-profile" id="profileQuick" type="button" aria-label="My profile" data-ta="drawer.myProfile">
+          <span class="ico" id="spIco">🎖️</span><span class="lbl" data-t="cat.profileBtn">Profile</span><span class="sub" id="spSub"></span>
+        </button>
+        <button class="side-btn side-chal" id="chalBtn" aria-label="Open challenges" data-ta="cat.openChallenges" aria-haspopup="dialog">
+          <span class="ico">🏆</span><span class="lbl" data-t="cat.challengesBtn">CHALLENGES</span><span class="sub" id="scSub"></span>
+        </button>
+        <button class="side-btn side-cos" id="collectionQuick" type="button" aria-label="Collection">
+          <span class="ico">🎨</span><span class="lbl" data-t="cat.collectionBtn">Collection</span><span class="sub" id="skSub"></span>
+        </button>
+      </div>
+    </div>
   </div>
   <div class="wrap">
     <header>
@@ -746,11 +788,6 @@
         <button class="ibtn" id="densityBtn" type="button" aria-pressed="false" title="Switch between cozy and compact tiles" data-tt="cat.compactTitle" data-t="cat.compact">▦ Compact</button>
       </div>
     </header>
-
-    <div class="recent-strip" id="recentStrip" hidden>
-      <div class="section-head recent-head"><span class="line"></span><h2 data-t="cat.continuePlaying">Continue playing</h2><span class="line"></span></div>
-      <div class="recent-scroll" id="recentScroll"></div>
-    </div>
 
     <main><div class="grid" id="grid"></div></main>
 
@@ -1061,13 +1098,66 @@
     function favs() { try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch (e) { return []; } }
     function setFavs(a) { try { localStorage.setItem(FAV_KEY, JSON.stringify(a)); } catch (e) {} }
     function toggleFav(slug) { const a = favs(), i = a.indexOf(slug); if (i >= 0) a.splice(i, 1); else a.push(slug); setFavs(a); render(); }
-    // manual reorder within the Favorites strip — favs() is already the source of truth for order
-    // (toggleFav appends new ones at the end); this just lets the player rearrange that array.
-    function moveFav(slug, dir) {
-      const a = favs(), i = a.indexOf(slug); if (i < 0) return;
-      const j = i + dir; if (j < 0 || j >= a.length) return;
-      [a[i], a[j]] = [a[j], a[i]];
+    // manual reorder within the Favorites strip: an Edit toggle on the section header turns the
+    // tiles into drag handles (pointer events, so touch works too — the whole reason ▲▼ buttons
+    // were dropped). favs() is the ordered source of truth; drag persists the tiles' DOM order.
+    let favEdit = false;
+    function favReorder(from, to) {
+      const a = favs();
+      if (from === to || from < 0 || to < 0 || from >= a.length || to >= a.length) return;
+      const s = a.splice(from, 1)[0]; a.splice(to, 0, s);
       setFavs(a); render();
+    }
+    window.__favReorder = favReorder; // headless hook — the drag path needs real geometry
+    function wireFavDrag(el, slug) {
+      el.addEventListener('click', e => { e.preventDefault(); }); // edit mode: tiles rearrange, never navigate
+      el.addEventListener('pointerdown', e => {
+        if (e.button != null && e.button !== 0) return;
+        if (e.preventDefault) e.preventDefault();
+        const sx = e.clientX, sy = e.clientY;
+        let dragging = false, ghost = null;
+        const favTiles = () => (grid.querySelectorAll ? Array.prototype.slice.call(grid.querySelectorAll('.fav-editing')) : []);
+        const move = ev => {
+          if (!dragging) {
+            if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 7) return;
+            dragging = true;
+            const r = el.getBoundingClientRect();
+            ghost = el.cloneNode(true);
+            ghost.className = 'tile drag-ghost';
+            ghost.style.width = r.width + 'px'; ghost.style.height = r.height + 'px';
+            document.body.appendChild(ghost);
+            el.classList.add('drag-src');
+          }
+          ghost.style.left = ev.clientX + 'px'; ghost.style.top = ev.clientY + 'px';
+          const over = favTiles().find(t => {
+            if (t === el) return false;
+            const r = t.getBoundingClientRect();
+            return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
+          });
+          // live-reorder in the DOM for immediate feedback; favorites tiles are a contiguous run
+          // of grid children, so insertBefore among them can't escape the section
+          if (over && over.parentNode === el.parentNode) {
+            const kids = Array.prototype.slice.call(el.parentNode.children);
+            if (kids.indexOf(el) < kids.indexOf(over)) el.parentNode.insertBefore(el, over.nextSibling);
+            else el.parentNode.insertBefore(el, over);
+          }
+        };
+        const up = () => {
+          el.removeEventListener('pointermove', move);
+          el.removeEventListener('pointerup', up);
+          el.removeEventListener('pointercancel', up);
+          if (ghost && ghost.remove) ghost.remove();
+          el.classList.remove('drag-src');
+          if (dragging) {
+            const order = favTiles().map(t => t.dataset && t.dataset.slug).filter(Boolean);
+            if (order.length) { setFavs(order); render(); }
+          }
+        };
+        try { el.setPointerCapture(e.pointerId); } catch (_) {}
+        el.addEventListener('pointermove', move);
+        el.addEventListener('pointerup', up);
+        el.addEventListener('pointercancel', up);
+      });
     }
     // canonical genre colors — ONE color per tag, shared by tile pills + the genre filter
     // (NOT the per-game `accent`). Add a genre = one entry here; games carry 1–3 in `tags`.
@@ -1141,11 +1231,12 @@
     // catalogue is grouped into sections; favorites pin to the top of their own section.
     // favPos (only passed for tiles rendered within the Favorites strip): { index, count } — drives
     // the ▲▼ manual-reorder buttons, disabled at either end.
-    function tileEl(g, f, favPos) {
+    function tileEl(g, f, isFavTile) {
       const soon = !!g.soon;
       const el = document.createElement(soon ? 'div' : 'a');
-      el.className = 'tile' + (soon ? ' soon' : '');
+      el.className = 'tile' + (soon ? ' soon' : '') + (isFavTile && favEdit ? ' fav-editing' : '');
       if (!soon) el.href = 'games/' + g.slug + '/';
+      if (el.dataset) el.dataset.slug = g.slug;
       el.style.setProperty('--accent', g.accent || '#9fe8ff');
       el.innerHTML =
         badgesHtml(g, soon) +
@@ -1168,21 +1259,8 @@
         star.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleFav(g.slug); });
         el.appendChild(star);
       }
-      // manual reorder within the Favorites strip — two tiny buttons appended (not innerHTML'd,
-      // so they're real, testable elements like the ★ star), disabled at either end of the list.
-      if (favPos) {
-        const move = document.createElement('span'); move.className = 'favmove';
-        const up = document.createElement('button'); up.type = 'button'; up.className = 'favup';
-        up.textContent = '▲'; up.disabled = favPos.index === 0;
-        up.setAttribute('aria-label', T('cat.favMoveUp', 'Move up'));
-        up.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); moveFav(g.slug, -1); });
-        const down = document.createElement('button'); down.type = 'button'; down.className = 'favdown';
-        down.textContent = '▼'; down.disabled = favPos.index === favPos.count - 1;
-        down.setAttribute('aria-label', T('cat.favMoveDown', 'Move down'));
-        down.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); moveFav(g.slug, 1); });
-        move.appendChild(up); move.appendChild(down);
-        el.appendChild(move);
-      }
+      // Favorites-strip tiles: in edit mode they become drag handles (class set at construction)
+      if (isFavTile && favEdit) wireFavDrag(el, g.slug);
       return el;
     }
 
@@ -1252,18 +1330,24 @@
       const f = favs();
       const all = (window.GAMES || []).filter(passes);
       const isFav = g => !g.soon && f.includes(g.slug);
-      // favorites lift into their own top strip; each section is available-then-coming-soon
-      const order = arr => { const av = arr.filter(g => !g.soon), soon = arr.filter(g => g.soon); return [...av, ...soon]; };
+      // sections, in fixed order: Favorites → Recently played → All games → Coming soon
       const sections = [];
       // ordered by the STORED favorites array (manually reorderable), not games.js's fixed order —
       // f may reference a filtered-out/soon slug, so map+filter rather than sort all by indexOf(f)
       const favList = f.map(slug => all.find(g => !g.soon && g.slug === slug)).filter(Boolean);
-      const favIndex = new Map(favList.map((g, i) => [g.slug, { index: i, count: favList.length }]));
       if (favList.length) sections.push({ label: T('cat.favorites', '★ Favorites'), list: favList, favs: true });
-      const sp = order(all.filter(g => !g.mp && !isFav(g)));
-      if (sp.length) sections.push({ label: T('cat.singlePlayer', 'Single player'), list: sp });
-      const mp = order(all.filter(g => g.mp && !isFav(g)));
-      if (mp.length) sections.push({ label: T('cat.multiplayer', 'Multiplayer'), list: mp });
+      // recently played — full game cards in a horizontal rail; recency order from the kit
+      // (recorded when a mode was chosen and Play pressed, not on page-open). Favorites are
+      // already pinned above, so they're skipped here.
+      const recent = ((window.gamekit && window.gamekit.recentlyPlayed) ? window.gamekit.recentlyPlayed() : [])
+        .map(r => all.find(g => !g.soon && g.slug === (r && r.slug)))
+        .filter(g => g && !isFav(g)).slice(0, 10);
+      if (recent.length) sections.push({ label: T('cat.recentlyPlayed', 'Recently played'), list: recent, carousel: true });
+      // all games (single + multi together — MP tiles keep their 👥 pill; the Type filter still splits)
+      const rest = all.filter(g => !g.soon && !isFav(g));
+      if (rest.length) sections.push({ label: T('cat.allGames', 'All games'), list: rest });
+      const soonList = all.filter(g => g.soon);
+      if (soonList.length) sections.push({ label: T('cat.comingSoonHead', 'Coming soon'), list: soonList });
       if (!sections.length) {
         const nr = document.createElement('div');
         nr.className = 'no-results';
@@ -1276,18 +1360,39 @@
       // first paint. The rest streams in when the sentinel scrolls near (or on click without IO).
       const PAGE = 100;
       const queue = [];
+      const favSlugs = new Set(favList.map(g => g.slug));
       sections.forEach(sec => {
+        // heads are built from real child elements (not one innerHTML string) so the Favorites
+        // header's Edit toggle is an actual, wire-able button
         const head = document.createElement('div');
         head.className = 'section-head';
-        head.innerHTML = '<span class="line"></span><h2>' + sec.label + '<span class="count">' + sec.list.length + '</span></h2><span class="line"></span>';
+        const mkSpan = (cls, html) => { const s = document.createElement('span'); s.className = cls; if (html != null) s.innerHTML = html; return s; };
+        head.appendChild(mkSpan('line'));
+        const h2 = document.createElement('h2');
+        h2.innerHTML = sec.label + '<span class="count">' + sec.list.length + '</span>';
+        head.appendChild(h2);
+        if (sec.favs && sec.list.length > 1) {
+          const eb = document.createElement('button');
+          eb.type = 'button'; eb.className = 'fav-edit' + (favEdit ? ' on' : '');
+          eb.textContent = favEdit ? '✓ ' + T('cat.editDone', 'Done') : '✎ ' + T('cat.editFavs', 'Edit');
+          eb.addEventListener('click', () => { favEdit = !favEdit; render(); });
+          head.appendChild(eb);
+        }
+        head.appendChild(mkSpan('line'));
         queue.push(head);
-        sec.list.forEach(g => queue.push(g));
+        if (sec.carousel) {
+          // one full-width rail element holding the tiles — scrolls horizontally, one row tall
+          const row = document.createElement('div');
+          row.className = 'recent-row';
+          sec.list.forEach(g => row.appendChild(tileEl(g, f)));
+          queue.push(row);
+        } else sec.list.forEach(g => queue.push(g));
       });
       (function chunk() {
         let tiles = 0;
         while (queue.length && tiles < PAGE) {
           const it = queue.shift();
-          if (it.slug) { grid.appendChild(tileEl(it, f, favIndex.get(it.slug))); tiles++; } else grid.appendChild(it);
+          if (it.slug) { grid.appendChild(tileEl(it, f, favSlugs.has(it.slug))); tiles++; } else grid.appendChild(it);
         }
         if (!queue.length) return;
         const more = document.createElement('button');
@@ -1318,27 +1423,6 @@
       fcountUpdate(); render();
     }
     readURL(); render();
-
-    // ---- "Continue playing" carousel — recorded when Play is actually pressed (see game-kit.js's
-    // gamekit.recentlyPlayed), not on merely opening a game's page. Rendered once per catalogue load;
-    // doesn't react to filters/favorites (it's a fixed recency list, not a filtered view).
-    (function renderRecent() {
-      const strip = document.getElementById('recentStrip'), scroll = document.getElementById('recentScroll');
-      if (!strip || !scroll || !window.gamekit || typeof window.gamekit.recentlyPlayed !== 'function') return;
-      strip.hidden = true; // explicit — stays this way unless resolved items are found below
-      const recent = window.gamekit.recentlyPlayed();
-      const byslug = new Map((window.GAMES || []).map(g => [g.slug, g]));
-      const items = recent.map(r => byslug.get(r && r.slug)).filter(g => g && !g.soon);
-      if (!items.length) return;
-      scroll.innerHTML = '';
-      items.forEach(g => {
-        const a = document.createElement('a');
-        a.className = 'recent-card'; a.href = 'games/' + g.slug + '/';
-        a.innerHTML = '<span class="rc-glyph">' + (g.icon || '🎮') + '</span><span class="rc-title">' + gameTitle(g) + '</span>';
-        scroll.appendChild(a);
-      });
-      strip.hidden = false;
-    })();
 
     // ---- Search (instant, client-side) ----
     (function () {
@@ -1575,7 +1659,10 @@
         if (tipWrap) tipWrap.style.display = 'none';
         return;
       }
-      installBtn.textContent = installed ? T('cat.installed', '✓ Installed') : T('cat.install', '📱 Install');
+      // icon-only square (the top-right row) — the word lives in the tooltip/aria-label
+      installBtn.textContent = installed ? '✓' : '📱';
+      const lbl = installed ? T('cat.installed', '✓ Installed') : T('cat.install', '📱 Install');
+      installBtn.setAttribute('aria-label', lbl); installBtn.title = lbl.replace(/^[✓📱]\s*/, '');
     }
     window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installed = false; refresh(); });
     window.addEventListener('appinstalled', () => { installed = true; deferredPrompt = null; tipPop.classList.add('show'); refresh(); });
@@ -1590,6 +1677,84 @@
       navigator.getInstalledRelatedApps().then(apps => { if (apps && apps.length) { installed = true; refresh(); } }).catch(() => {});
     }
     refresh();
+
+    // ---- Fullscreen toggle (top-right row) — hidden where the API doesn't exist (e.g. iOS Safari) ----
+    (function () {
+      const K = window.gamekit, b = document.getElementById('fsBtn');
+      if (!b || !K || !K.fullscreen || !K.fullscreen.supported()) return;
+      b.hidden = false;
+      const label = () => {
+        const s = K.fullscreen.active() ? K.t('kit.exitFullscreen', { def: 'Exit fullscreen' }) : K.t('kit.fullscreen', { def: 'Fullscreen' });
+        b.title = s; b.setAttribute('aria-label', s);
+      };
+      label(); K.fullscreen.onChange(label);
+      b.addEventListener('click', () => K.fullscreen.toggle());
+    })();
+
+    // ---- Side stack (Profile / Challenges / Collection) — placement + quick actions ----
+    // Fit is MEASURED, not a breakpoint: if the gutter between .wrap's right edge and the viewport
+    // edge holds the 130px column (+13px inset each side), it sits inline; otherwise it tucks off
+    // the right edge behind the ‹‹ tab (see the .side-stack.tucked CSS).
+    (function () {
+      const K = window.gamekit;
+      const stack = document.getElementById('sideStack'), tab = document.getElementById('sideTab');
+      const clip = document.getElementById('sideClip'), panel = document.getElementById('sidePanel');
+      if (!stack || !tab || !clip || !panel) return;
+      let shown = false;
+      const applyClip = () => {
+        if (!stack.classList.contains('tucked')) { clip.style.width = ''; return; }
+        clip.style.width = (shown ? (panel.offsetWidth || 150) : 0) + 'px';
+      };
+      const place = () => {
+        const wrapEl = document.querySelector ? document.querySelector('.wrap') : null;
+        if (!wrapEl || !wrapEl.getBoundingClientRect || typeof window.innerWidth !== 'number') return;
+        const gutter = window.innerWidth - wrapEl.getBoundingClientRect().right;
+        const fits = gutter >= 130 + 13 + 13;
+        const was = stack.classList.contains('tucked');
+        stack.classList.toggle('tucked', !fits);
+        if (fits !== !was) { shown = false; stack.classList.remove('shown'); tab.textContent = '‹‹'; }
+        applyClip();
+      };
+      tab.addEventListener('click', () => {
+        shown = !shown;
+        stack.classList.toggle('shown', shown);
+        tab.textContent = shown ? '»' : '‹‹';
+        applyClip();
+      });
+      if (window.addEventListener) window.addEventListener('resize', place);
+      place();
+      // quick actions: Profile → the profile modal (via the drawer card's existing wiring, which
+      // also reflects ?m=profile); Collection → the store (window.__openShop reflects ?m=cosmetics)
+      const pq = document.getElementById('profileQuick');
+      if (pq) pq.addEventListener('click', () => { const b = document.getElementById('profileBtn'); if (b && b.click) b.click(); });
+      const cq = document.getElementById('collectionQuick');
+      if (cq) cq.addEventListener('click', () => { if (window.__openShop) window.__openShop(); });
+      // live bits: the Profile button wears your current title (icon + tint + name), Challenges
+      // shows lifetime trophies, Collection shows unlock progress
+      const TIER_TINT = ['rgba(120,130,143,.18)', 'rgba(195,204,216,.16)', 'rgba(208,149,79,.18)', 'rgba(215,224,236,.16)',
+        'rgba(195,156,255,.20)', 'rgba(185,140,255,.20)', 'rgba(159,232,255,.18)', 'rgba(255,138,209,.18)', 'rgba(255,215,106,.20)'];
+      const refreshStack = () => {
+        try {
+          const wt = window.__wornTitle && window.__wornTitle();
+          if (wt) {
+            const ico = document.getElementById('spIco'), sub = document.getElementById('spSub');
+            if (ico) ico.textContent = wt.emoji || '🎖️';
+            if (sub) sub.textContent = wt.name || '';
+            if (pq && pq.style && pq.style.setProperty) pq.style.setProperty('--ttbg', TIER_TINT[wt.tier] || TIER_TINT[0]);
+          }
+          if (K && K.cosmetics && window.COSMETICS) {
+            const sc = document.getElementById('scSub');
+            if (sc) sc.textContent = '🏆 ' + K.cosmetics.lifetime();
+            const pr = K.cosmetics.progress(), sk = document.getElementById('skSub');
+            if (sk && pr && pr.total) sk.textContent = pr.owned + ' / ' + pr.total + ' · ' + Math.round(pr.owned / pr.total * 100) + '%';
+          }
+        } catch (e) {}
+      };
+      window.__refreshSideStack = refreshStack;
+      refreshStack();
+      // refresh after anything that can change titles/trophies/unlocks closes (cheap, event-driven)
+      [document.getElementById('chalBtn'), pq, cq].forEach(b => { if (b) b.addEventListener('click', () => setTimeout(refreshStack, 400)); });
+    })();
 
     // ---- Feedback (Web3Forms, AJAX so we stay on the page) ----
     const fbModal = document.getElementById('fbModal');
@@ -1928,6 +2093,10 @@
         return h + '</div>';
       }
       window.__titleBar = () => { const d = titleData(); return titleBarHTML({ compact: true, TT: d.TT, who: d.who }); };
+      // worn title (tier + emoji + translated name) for the side stack's Profile button; defined
+      // after the stack's IIFE ran, so nudge its renderer now that real data is available
+      window.__wornTitle = () => { const d = titleData(); return { tier: d.TT.tier | 0, emoji: d.TT.emoji, name: rankTitle(d.TT) }; };
+      if (window.__refreshSideStack) window.__refreshSideStack();
       function wireNameEdit() {
         const nb = document.getElementById('pfNameEdit');
         if (nb) nb.addEventListener('click', () => { if (window.__openNameModal) window.__openNameModal(); });

@@ -70,36 +70,53 @@ function testCatalogue() {
     ok(tiles()[0].href === 'games/' + GAMES[0].slug + '/', 'unfavoriting restores order');
   }
 
-  // manual favorites reorder: the ▲▼ buttons let the player rearrange the Favorites strip itself,
-  // independent of games.js order — favorite 3 playable games (in games.js order), then reorder them.
+  // section structure: All games (single + multi merged) then Coming soon as its own shelf —
+  // heads are .section-head grid children; tiles partition exactly across the sections
+  {
+    const heads = grid.children.filter(c => c.className && String(c.className).includes('section-head'));
+    const headLabel = h => { const h2 = h.children.find(c => c.id === 'new-h2' || String(c.innerHTML || '').length); return h2 ? String(h2.innerHTML) : ''; };
+    const labels = heads.map(headLabel);
+    ok(labels.some(l => l.includes('All games')), 'has an "All games" section head (got ' + JSON.stringify(labels) + ')');
+    ok(labels.some(l => l.includes('Coming soon')), 'has a "Coming soon" section head');
+    ok(!labels.some(l => l.includes('Single player') || l.includes('Multiplayer')), 'Single player / Multiplayer sections are gone (merged into All games)');
+    const soonCount = GAMES.filter(gm => gm.soon).length;
+    ok(tiles().filter(t => String(t.className).includes('soon')).length === soonCount, 'every coming-soon game renders exactly once (' + soonCount + ')');
+  }
+
+  // manual favorites reorder — the Favorites header's Edit toggle turns tiles into drag handles;
+  // the drag itself needs real geometry (headless rects are all identical), so the reorder LOGIC
+  // is exercised via the same window.__favReorder the drag path persists through.
   {
     const playable = GAMES.filter(gm => !gm.soon);
     ok(playable.length >= 3, 'catalogue has ≥3 playable games to exercise reordering');
     if (playable.length >= 3) {
       const [ga, gb, gc] = playable;
-      // star them one at a time, always via the CURRENT first single-player tile (favoriting
-      // re-renders and pulls each one into the Favorites strip, so re-query tiles() every time)
       for (const slug of [ga.slug, gb.slug, gc.slug]) {
         const t = tiles().find(el => el.href === 'games/' + slug + '/');
         t.children[0].fire('click'); // ★
       }
       ok(tiles()[0].href === 'games/' + ga.slug + '/' && tiles()[1].href === 'games/' + gb.slug + '/' && tiles()[2].href === 'games/' + gc.slug + '/',
         'favorites render in the order they were starred (got ' + tiles().slice(0, 3).map(t => t.href).join(', ') + ')');
-      const favmove = t => t.children.find(c => c.className === 'favmove');
-      ok(favmove(tiles()[0]).children[0].disabled === true, 'first favorite: ▲ is disabled');
-      ok(favmove(tiles()[0]).children[1].disabled === false, 'first favorite: ▼ is enabled');
-      ok(favmove(tiles()[2]).children[1].disabled === true, 'last favorite: ▼ is disabled');
-      // move the middle favorite (gb) down one slot → gc, gb swap
-      favmove(tiles()[1]).children[1].fire('click'); // ▼
-      ok(tiles()[1].href === 'games/' + gc.slug + '/' && tiles()[2].href === 'games/' + gb.slug + '/',
-        '▼ swaps with the next favorite (got ' + tiles()[1].href + ', ' + tiles()[2].href + ')');
+      // the Favorites head (first section-head) carries the Edit toggle when ≥2 favorites
+      const favHead = grid.children.find(c => String(c.className).includes('section-head'));
+      const editBtn = favHead && favHead.children.find(c => String(c.className).includes('fav-edit'));
+      ok(!!editBtn, 'Favorites header has an Edit toggle');
+      editBtn.fire('click'); // edit mode ON (re-renders)
+      const editing = () => tiles().filter(t => String(t.className).includes('fav-editing'));
+      ok(editing().length === 3, 'edit mode marks all favorite tiles as draggable (got ' + editing().length + ')');
+      ok(typeof g.win.__favReorder === 'function', 'reorder hook exposed');
+      g.win.__favReorder(1, 2); // move gb below gc — same persistence path the drag uses
       ok(JSON.stringify(JSON.parse(g.store['arcade_favs'])) === JSON.stringify([ga.slug, gc.slug, gb.slug]),
-        'reordered favorites persist to localStorage in the new order (got ' + g.store['arcade_favs'] + ')');
-      // clicking a disabled end button is a bounds-checked no-op (moveFav guards it directly —
-      // the mock DOM doesn't enforce .disabled blocking clicks, so this is the real safety net)
-      favmove(tiles()[0]).children[0].fire('click'); // ▲ on the first favorite
-      ok(tiles()[0].href === 'games/' + ga.slug + '/', 'moving past the start is a no-op');
-      // clean up: unfavorite all three so later sections of this test see the original order
+        'reorder persists to localStorage in the new order (got ' + g.store['arcade_favs'] + ')');
+      ok(tiles()[1].href === 'games/' + gc.slug + '/' && tiles()[2].href === 'games/' + gb.slug + '/',
+        'reorder re-renders the strip in the new order');
+      g.win.__favReorder(0, 5); // out of bounds → no-op
+      ok(JSON.parse(g.store['arcade_favs'])[0] === ga.slug, 'out-of-range reorder is a no-op');
+      // leave edit mode, then clean up
+      const favHead2 = grid.children.find(c => String(c.className).includes('section-head'));
+      const editBtn2 = favHead2 && favHead2.children.find(c => String(c.className).includes('fav-edit'));
+      if (editBtn2) editBtn2.fire('click');
+      ok(tiles().filter(t => String(t.className).includes('fav-editing')).length === 0, 'leaving edit mode clears the drag handles');
       for (const slug of [ga.slug, gb.slug, gc.slug]) {
         const t = tiles().find(el => el.href === 'games/' + slug + '/');
         t.children[0].fire('click');
@@ -108,21 +125,39 @@ function testCatalogue() {
     }
   }
 
-  // "Continue playing" carousel: hidden with nothing recorded; shows resolved, non-soon games in
-  // gamekit.recentlyPlayed() order when seeded, skipping slugs that no longer exist / are soon.
+  // "Recently played" rail: absent with nothing recorded; renders FULL game cards (tileEl tiles)
+  // inside a horizontal .recent-row, in recency order, skipping unknown/soon/favorited slugs.
   {
-    ok(g.getEl('recentStrip').hidden === true, 'recent strip stays hidden with nothing recorded');
+    ok(!grid.children.some(c => String(c.className).includes('recent-row')), 'no Recently-played rail with nothing recorded');
     const playable = GAMES.filter(gm => !gm.soon);
     const soonSlug = (GAMES.find(gm => gm.soon) || {}).slug;
     const seeded = [{ slug: playable[1].slug, at: 2 }, { slug: 'not-a-real-game', at: 1.5 }, { slug: playable[0].slug, at: 1 }];
     if (soonSlug) seeded.splice(1, 0, { slug: soonSlug, at: 1.7 });
     const g2 = bootGame('index.html', { preCode: [games, challenges], store: { gamekit_recent: JSON.stringify(seeded) } });
     ok(g2.bootErr === null, 'catalogue boots fine with recently-played data seeded: ' + g2.bootErr);
-    const strip = g2.getEl('recentStrip'), cards = g2.getEl('recentScroll').children;
-    ok(strip.hidden === false, 'recent strip becomes visible once something valid is recorded');
+    const grid2 = g2.getEl('grid');
+    const row = grid2.children.find(c => String(c.className).includes('recent-row'));
+    ok(!!row, 'Recently-played rail renders once something valid is recorded');
+    const cards = row ? row.children.filter(c => String(c.className).includes('tile')) : [];
     ok(cards.length === 2, 'unknown-slug and soon-game entries are skipped (got ' + cards.length + ')');
-    ok(cards[0].href === 'games/' + playable[1].slug + '/' && cards[1].href === 'games/' + playable[0].slug + '/',
-      'cards render in recency order (got ' + cards.map(c => c.href).join(', ') + ')');
+    ok(cards[0] && cards[0].href === 'games/' + playable[1].slug + '/' && cards[1] && cards[1].href === 'games/' + playable[0].slug + '/',
+      'full game cards render in recency order (got ' + cards.map(c => c.href).join(', ') + ')');
+    ok(cards[0] && String(cards[0].innerHTML).includes('class="play"'), 'rail cards are the full tile (art + meta + PLAY), not mini chips');
+    // a favorited game is pinned in Favorites, not duplicated in the rail
+    const g3 = bootGame('index.html', { preCode: [games, challenges], store: { gamekit_recent: JSON.stringify(seeded), arcade_favs: JSON.stringify([playable[1].slug]) } });
+    const row3 = g3.getEl('grid').children.find(c => String(c.className).includes('recent-row'));
+    const cards3 = row3 ? row3.children.filter(c => String(c.className).includes('tile')) : [];
+    ok(cards3.length === 1 && cards3[0].href === 'games/' + playable[0].slug + '/', 'favorited games are skipped in the rail (got ' + cards3.map(c => c.href).join(', ') + ')');
+  }
+
+  // side stack (Profile / Challenges / Collection) + top-right row: wired, headless-safe
+  {
+    ok(!!g.getEl('sideStack') && !!g.getEl('sidePanel'), 'side stack markup present');
+    let err = null;
+    try { g.getEl('profileQuick').fire('click'); g.getEl('collectionQuick').fire('click'); g.getEl('sideTab').fire('click'); } catch (e) { err = e.message; }
+    ok(err === null, 'side-stack buttons + tab fire headless without throwing: ' + err);
+    ok(g.getEl('fsBtn').hidden !== false, 'fullscreen button is never un-hidden where the API is unsupported (mock)');
+    ok(typeof g.win.__wornTitle === 'function' && typeof g.win.__wornTitle().tier === 'number', '__wornTitle exposes {tier, emoji, name} for the Profile button');
   }
 
   // challenge history back-fill: a completion is recorded even when detected on a later catalogue
