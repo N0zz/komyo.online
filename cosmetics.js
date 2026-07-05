@@ -117,6 +117,40 @@
       for (var i = 0; i < rings.length; i++) { g.fillStyle = rings[i]; g.beginPath(); g.arc(cx, cy, r * (1 - i / rings.length), 0, 7); g.fill(); }
     };
   }
+  // Range's regulation target, exactly as drawTarget renders it (dark disc + orange outline rings)
+  function ringsTarget(g, w, h) {
+    g.fillStyle = '#0d1117'; g.fillRect(0, 0, w, h);
+    var cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.32;
+    g.fillStyle = '#1a2030'; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
+    g.strokeStyle = '#ff7a3c'; g.lineWidth = 2.5; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.stroke();
+    g.strokeStyle = 'rgba(255,122,60,0.6)'; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, r * 0.65, 0, 7); g.stroke();
+    g.strokeStyle = '#ff7a3c'; g.beginPath(); g.arc(cx, cy, r * 0.35, 0, 7); g.stroke();
+    g.fillStyle = '#ff7a3c'; g.beginPath(); g.arc(cx, cy, r * 0.12, 0, 7); g.fill();
+    g.strokeStyle = 'rgba(255,122,60,0.53)'; g.lineWidth = 1;
+    var tk = r * 1.15;
+    [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(function (d) {
+      g.beginPath(); g.moveTo(cx + d[0] * tk * 0.7, cy + d[1] * tk * 0.7); g.lineTo(cx + d[0] * tk, cy + d[1] * tk); g.stroke();
+    });
+  }
+  // Range's classic hit marker — the crisp orange X drawHitMarker draws
+  function markerX(g, w, h) {
+    g.fillStyle = '#101820'; g.fillRect(0, 0, w, h);
+    var cx = w / 2, cy = h / 2, s = Math.min(w, h) * 0.2;
+    g.strokeStyle = '#ff7a3c'; g.lineWidth = 2; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(cx - s, cy - s); g.lineTo(cx + s, cy + s); g.stroke();
+    g.beginPath(); g.moveTo(cx + s, cy - s); g.lineTo(cx - s, cy + s); g.stroke();
+  }
+  function popDots(col, bg) { // Bubble Pop's classic pop — round particles, not rays
+    return function (g, w, h) {
+      g.fillStyle = bg || '#0a1420'; g.fillRect(0, 0, w, h);
+      var cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.3;
+      for (var i = 0; i < 8; i++) {
+        var a = i * 0.785 + 0.39, d = R * (0.55 + (i % 3) * 0.22);
+        g.fillStyle = col;
+        g.beginPath(); g.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, 2 + (i % 3) * 1.2, 0, 7); g.fill();
+      }
+    };
+  }
   function burst(cols, bg) {
     return function (g, w, h) {
       g.fillStyle = bg || '#0a1420'; g.fillRect(0, 0, w, h);
@@ -169,6 +203,31 @@
       g.fillStyle = '#ffb03a'; g.beginPath(); g.moveTo(cx + r, cy - r * 0.15); g.lineTo(cx + r * 1.55, cy); g.lineTo(cx + r, cy + r * 0.2); g.closePath(); g.fill();
       g.fillStyle = '#111'; g.beginPath(); g.arc(cx + r * 0.4, cy - r * 0.3, r * 0.14, 0, 7); g.fill();
     };
+  }
+  // Meadow Flyer's bee, ported from the game's drawBirdModel (model space R=14, mid-flap)
+  function beeBird(g, w, h) {
+    g.fillStyle = '#0e1622'; g.fillRect(0, 0, w, h);
+    var s = Math.min(w, h) / 46;
+    g.save(); g.translate(w / 2, h / 2 + s * 6); g.scale(s, s);
+    var R = 14, flap = 2;
+    g.fillStyle = '#f9e040'; g.beginPath(); g.ellipse(0, 0, R, R * 0.8, 0, 0, 7); g.fill();
+    g.save(); g.beginPath(); g.ellipse(0, 0, R, R * 0.8, 0, 0, 7); g.clip(); // brown stripes
+    g.fillStyle = '#6a4a18'; g.fillRect(-10, -R, 5, R * 2); g.fillRect(-1, -R, 5, R * 2);
+    g.restore();
+    g.fillStyle = '#6a4a18'; // stinger
+    g.beginPath(); g.moveTo(-R + 1, -2); g.lineTo(-R - 5, 0); g.lineTo(-R + 1, 2); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.75)'; // gauzy wings above the back
+    g.beginPath(); g.ellipse(-2, -flap - 9, 9, 5, -0.5, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(3, -flap - 8, 7, 4, -0.3, 0, 7); g.fill();
+    g.strokeStyle = '#8a6020'; g.lineWidth = 1.5; // antennae + pom-poms
+    g.beginPath(); g.moveTo(-2, -R * 0.7); g.quadraticCurveTo(-8, -R * 1.3, -12, -R * 1.5); g.stroke();
+    g.beginPath(); g.moveTo(4, -R * 0.7); g.quadraticCurveTo(8, -R * 1.3, 11, -R * 1.5); g.stroke();
+    g.fillStyle = '#f9c080';
+    g.beginPath(); g.arc(-12, -R * 1.5, 2.5, 0, 7); g.fill();
+    g.beginPath(); g.arc(11, -R * 1.5, 2.5, 0, 7); g.fill();
+    g.fillStyle = '#3a2a17'; g.beginPath(); g.arc(R * 0.55, -2, 3, 0, 7); g.fill(); // eye
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(R * 0.55 + 1.05, -3.2, 1.2, 0, 7); g.fill();
+    g.restore();
   }
   // rot matches the in-use cursor's NW tilt (game-kit CURSOR_TWEAK) so the swatch previews the real thing
   function cursorSwatch(draw, rot) {
@@ -257,14 +316,14 @@
   add('breakout', 'ball', 'plasma', 'Plasma', 100, 'Crackling violet energy.', ball('#b98cff', '#7a4dff', '#f0e8ff'));
 
   // ---- 🏰 Keep Defender — castle skins ----
-  add('tower-defense', 'castle', 'stone',    'Stone Keep',        0,   'The keep as the masons built it.', castle('#9aa2ae', '#4a4f58'));
+  add('tower-defense', 'castle', 'stone',    'Stone Keep',        0,   'The keep as the masons built it.', castle('#78788a', '#3a2a17'));
   add('tower-defense', 'castle', 'oak',      'Oak Fort',          25,  'Timber walls, frontier spirit.', castle('#a87848', '#6a4a28'));
   add('tower-defense', 'castle', 'sand',     'Sandcastle',        50,  'Bucket-built, surprisingly sturdy.', castle('#e8cc8a', '#c8a45c', '#2a4a66'));
   add('tower-defense', 'castle', 'ice',      'Ice Keep',          50,  'Carved from a glacier, cold to the core.', castle('#cfeaff', '#8ac0e8', '#0e2233'));
   add('tower-defense', 'castle', 'obsidian', 'Obsidian Citadel',  100, 'Black glass walls that drink the light.', castle('#22242e', '#0e0f16', '#1a1230'));
 
   // ---- 🫧 Bubble Pop — pop effects + shooter bases ----
-  add('bubbles', 'pop', 'classic',   'Classic',   0,   'A clean, satisfying pop.', burst(['#9fe8ff', '#fff']));
+  add('bubbles', 'pop', 'classic',   'Classic',   0,   'A clean, satisfying pop.', popDots('#9fe8ff'));
   add('bubbles', 'pop', 'confetti',  'Confetti',  25,  'Every pop throws a tiny party.', burst(['#ff7ab6', '#ffd166', '#7fe0a0', '#7fd0ff']));
   add('bubbles', 'pop', 'stars',     'Stars',     50,  'Bubbles burst into twinkling stars.', star('#ffe066', '#ffd166', '#0a1420'));
   add('bubbles', 'pop', 'fireworks', 'Fireworks', 100, 'Full skyrocket finale on every match.', burst(['#ff5b5b', '#ffd166', '#fff', '#7fd0ff']));
@@ -273,12 +332,12 @@
   add('bubbles', 'base', 'gold',  'Royal Gold', 50, 'A launcher fit for bubble royalty.', grad(['#ffe08a', '#c89a2a'], 1));
 
   // ---- 🎯 Range — target skins + hit markers ----
-  add('aim-trainer', 'target', 'rings',    'Rings',      0,   'Regulation rings, no excuses.', target(['#e8eef4', '#ff4b4b', '#e8eef4', '#ff4b4b']));
+  add('aim-trainer', 'target', 'rings',    'Rings',      0,   'Regulation rings, no excuses.', ringsTarget);
   add('aim-trainer', 'target', 'donut',    'Neon Donut', 25,  'A glazed ring of pure neon.', target(['#ff7ab6', '#2a1420', '#ff7ab6']));
   add('aim-trainer', 'target', 'fruit',    'Fruit',      50,  'Watermelon slices. Juicy hits.', target(['#7fe05a', '#fff', '#ff5b6b']));
   add('aim-trainer', 'target', 'alien',    'Alien Blob', 50,  'It wobbles. It stares. Shoot it.', target(['#7fe07a', '#3aa858', '#0e2a14']));
   add('aim-trainer', 'target', 'goldstar', 'Gold Star',  100, 'Every hit feels like a gold medal.', star('#ffd166', '#ffb03a', '#141c28'));
-  add('aim-trainer', 'marker', 'classic', 'Classic', 0,  'A crisp white hitmarker.', burst(['#fff'], '#101820'));
+  add('aim-trainer', 'marker', 'classic', 'Classic', 0,  'A crisp white hitmarker.', markerX);
   add('aim-trainer', 'marker', 'spark',   'Spark',   25, 'Hits throw electric sparks.', burst(['#ffe066', '#fff'], '#101820'));
   add('aim-trainer', 'marker', 'boom',    'Boom',    50, 'Tiny comic-book explosions.', burst(['#ff7a3c', '#ffd166', '#ff4b4b'], '#101820'));
 
@@ -309,7 +368,7 @@
 
   // ---- 🐤 Meadow Flyer — birds (migrated from banked cash; progressive tail is the one
   //      approved band exception, Phoenix = the 🏆 500 aspirational ceiling) ----
-  add('flappy', 'bird', 'bee',      'Bee',      0,   'Not technically a bird. Flies anyway.', bird('#f9e040', '#f0c828'));
+  add('flappy', 'bird', 'bee',      'Bee',      0,   'Not technically a bird. Flies anyway.', beeBird);
   add('flappy', 'bird', 'robin',    'Robin',    10,  'A cheerful meadow regular.', bird('#a86a48', '#7a4e34'));
   add('flappy', 'bird', 'bluebird', 'Bluebird', 25,  'Swift, sleek and sky-coloured.', bird('#5fa8e8', '#3f86c8'));
   add('flappy', 'bird', 'parrot',   'Parrot',   50,  'Loud in colour and in spirit.', bird('#5fd07a', '#3aa858'));
@@ -320,7 +379,7 @@
   add('flappy', 'bird', 'phoenix',  'Phoenix',  500, 'The aspirational one. Rises from every game over.', bird('#ff8a3a', '#e85a1a', 'rgba(255,140,40,0.85)'));
 
   // ---- 🌐 Forcefield — bolt colours + planet skins ----
-  add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean white bolt.', forcefieldMarker('#eafcff'));
+  add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean golden bolt.', forcefieldMarker('#ffd36b'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
   add('forcefield', 'marker', 'lime',    'Lime',    50, 'A zesty green bolt.', forcefieldMarker('#b6ff5c'));
   add('forcefield', 'planet', 'azure',   'Azure',   0,  'A deep blue ocean world.', planetSwatch('#2f57a0', '#0a1530'));
