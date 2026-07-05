@@ -85,6 +85,8 @@
   const GAP_FRAMES  = 10;     // brief juice pause between the shot resolving and the next round
   const FX_FRAMES   = 18;     // deflect/breach + shot-streak animation length
   const PASSES      = 2.5;    // the station's charge (deadline) lasts ~this many dome sweeps over the mark
+  const DOME_GRACE  = 0.12;   // effective block arc = zoneHalf × (1 + grace) — the drawn dome has soft
+                              // gradient edges wider than the exact span, so the edge gets benefit of the doubt
   // charge length (frames) sized so the dome gets ~PASSES chances at the mark, regardless of speed
   function chargeFrames(sp) { return Math.max(70, Math.min(360, Math.round(PASSES / sp))); }
   // difficulty: sweep speed (pos-fraction per 60Hz step) + dome half-width (pos-fraction = tolerance)
@@ -102,7 +104,7 @@
   let W = 0, H = 0, topMargin = 48;
   let state = 'ready';
   let diff = DIFF.medium;
-  let score = 0, best = 0, lives = LIVES_START, hits = 0, timeLeft = TIME_LIMIT;
+  let score = 0, best = 0, lives = LIVES_START, hits = 0, shots = 0, timeLeft = TIME_LIMIT;
   let shakeT = 0, lastShownSec = -1, tick = 0;
   let lanes = [], ricochets = [];   // ricochets = deflected shots flying off into space
   const rng = () => Math.random();
@@ -147,7 +149,7 @@
   }
 
   function reset() {
-    score = 0; lives = LIVES_START; hits = 0; timeLeft = TIME_LIMIT; shakeT = 0; lastShownSec = -1;
+    score = 0; lives = LIVES_START; hits = 0; shots = 0; timeLeft = TIME_LIMIT; shakeT = 0; lastShownSec = -1;
     ricochets = [];
     buildLanes();
     best = loadBest();
@@ -155,7 +157,7 @@
   }
 
   function deflect(l, d) {
-    l.lastAcc = 1 - (d != null ? d : Math.abs(l.pos - l.zoneCenter)) / l.zoneHalf;
+    l.lastAcc = Math.max(0, 1 - (d != null ? d : Math.abs(l.pos - l.zoneCenter)) / l.zoneHalf);
     l.streak++;
     const mult = 1 + Math.min(4, Math.floor(l.streak / 5));
     l.lastPts = (10 + Math.round(l.lastAcc * 15)) * mult;
@@ -177,16 +179,17 @@
   // resolve the shot for lane l: deflect if the dome covers the mark (with a few frames of grace
   // for tap latency), otherwise breach. Used both by a TAP and by the station's deadline auto-fire.
   function fire(l) {
+    shots++;
     let d = Math.abs(l.pos - l.zoneCenter);
     for (let k = 0; k < l.recent.length; k++) { const dd = Math.abs(l.recent[k] - l.zoneCenter); if (dd < d) d = dd; }
-    if (d <= l.zoneHalf) deflect(l, d); else breach(l);
+    if (d <= l.zoneHalf * (1 + DOME_GRACE)) deflect(l, d); else breach(l);
   }
 
   // TAP — raise the shield NOW and resolve instantly (crisp, POC-style). If you never tap, the
   // station's charge fills and it fires on its own (see update()).
   function stop(i) {
     const l = lanes[i];
-    if (state !== 'playing' || !l || l.holdT > 0) return;
+    if (state !== 'playing' || KIT.isPaused() || !l || l.holdT > 0) return;
     SND.play('fire');
     fire(l);
   }
@@ -232,7 +235,11 @@
   }
   function thetaOf(P, frac) { return P.base - P.A + frac * 2 * P.A; }
   function rimPt(P, frac, extra) { const th = thetaOf(P, frac), r = P.R + (extra || 0); return [P.pcx + r * Math.cos(th), P.pcy + r * Math.sin(th)]; }
-  function enemyPt() { return isDouble() ? [W / 2, H / 2] : [W / 2, H * 0.14]; }
+  function stationR() { return Math.min(isDouble() ? 44 : 40, W * (isDouble() ? 0.1 : 0.09)); }
+  function enemyPt() {
+    const minY = topMargin + 8 + stationR();   // the station's top edge must clear the HUD pill
+    return isDouble() ? [W / 2, Math.max(minY, H / 2)] : [W / 2, Math.max(minY, H * 0.14)];
+  }
 
   function accentColor() {
     const skin = KIT.cosmetics ? KIT.cosmetics.selected('forcefield.marker') : null;
@@ -418,8 +425,9 @@
     const boltCol = accentColor() || '#ffd36b';
     for (let i = 0; i < lanes.length; i++) drawLane(i, boltCol);
     const [ex, ey] = enemyPt(), hot = lanes.some(s => s.fxKind === 'impact' && s.fxT > 0);
-    const sr = Math.min(isDouble() ? 44 : 40, W * (isDouble() ? 0.1 : 0.09));
+    const sr = stationR();
     drawStation(ctx, ex, ey, sr, tick, hot);
+    if (!lanes.length) { ctx.restore(); return; }   // fresh-load start menu: backdrop only, no round yet
     // the station's charge meter(s) — how close the next shot is (empty during the between-round beat)
     const chgOf = l => (l.holdT > 0 || !l.charge0) ? 0 : Math.min(1, l.chargeT / l.charge0);
     if (isDouble()) { drawChargeBox(ex - sr - 34, ey, chgOf(lanes[0])); drawChargeBox(ex + sr + 34, ey, chgOf(lanes[1])); }
@@ -432,11 +440,11 @@
       ctx.beginPath(); ctx.moveTo(r.x - r.vx * 2.6, r.y - r.vy * 2.6); ctx.lineTo(r.x, r.y); ctx.stroke(); ctx.restore();
     }
 
-    const fresh = hits === 0 && lives === LIVES_START && !lanes.some(s => s.fxT > 0);
+    const fresh = shots === 0 && !lanes.some(s => s.fxT > 0);   // tutorial hint until the first shot resolves
     if (fresh) {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = 'rgba(255,255,255,0.6)';
       ctx.font = '600 ' + Math.round(Math.min(19, W * 0.033)) + 'px system-ui, sans-serif';
-      if (isDouble()) ctx.fillText(T('game.forcefield.tapHintDouble', 'Defend both — left: A / ← · right: L / →'), W / 2, H * 0.5);
+      if (isDouble()) ctx.fillText(T('game.forcefield.tapHintDouble', 'Defend both — left: A / ← · right: L / →'), W / 2, Math.min(H - 16, ey + sr + 34));
       else ctx.fillText(T('game.forcefield.tapHint', 'Sweep to the mark · tap to lock before it fires'), W / 2, H * 0.3);
     }
     ctx.restore();
@@ -609,7 +617,7 @@
 
   canvas.addEventListener('pointerdown', e => { e.preventDefault(); if (isDouble()) stop(e.clientX < W / 2 ? 0 : 1); else stop(0); });
   window.addEventListener('keydown', e => {
-    if (state !== 'playing') return;
+    if (state !== 'playing' || KIT.isPaused()) return;   // a kit modal (sound/challenges/confirm) owns input
     if (e.key === 'Escape') { e.preventDefault(); pauseGame(); return; }
     const k = (e.key || '').toLowerCase();
     if (isDouble()) {
@@ -655,7 +663,9 @@
       const barTop = Math.min.apply(null, ys), barBottom = Math.max.apply(null, ys);
       const mk = rimPt(P, l.pos, P.gap);
       const z1 = rimPt(P, Math.max(0, l.zoneCenter - l.zoneHalf), P.gap), z2 = rimPt(P, Math.min(1, l.zoneCenter + l.zoneHalf), P.gap);
+      const [sx, sy] = enemyPt();
       return { W, H, topReserve: topMargin, vertical: false,
+        stationX: sx, stationY: sy, stationTop: sy - stationR(),
         barLeft, barRight, barTop, barBottom, barY: (barTop + barBottom) / 2,
         markerX: mk[0], markerY: mk[1], zoneLeft: Math.min(z1[0], z2[0]), zoneRight: Math.max(z1[0], z2[0]) };
     },
