@@ -968,9 +968,12 @@
     if (!_chNotifyEl || !_chNotifyEl.classList) return;
     _chNotifyEl.classList.toggle('gkm-notify', !_chNotifySeen && chActiveUndone(_chNotifySlug));
   }
-  function chWeekAgg() {
-    var day = utcDayNumber(), start = CH_WEEK_ANCHOR + Math.floor((day - CH_WEEK_ANCHOR) / 7) * 7, seen = {}, slugs = [], totalScore = 0, count = 0, goodRuns = 0, d;
-    for (d = start; d <= day; d++) {
+  // aggregate the week containing refDay (default: today); a PAST week reads its full Mon–Sun
+  // window from whatever played-logs survive retention — the catalogue's weekly back-fill needs it
+  function chWeekAgg(refDay) {
+    var today = utcDayNumber(), day = (refDay == null) ? today : refDay;
+    var start = CH_WEEK_ANCHOR + Math.floor((day - CH_WEEK_ANCHOR) / 7) * 7, end = Math.min(start + 6, today), seen = {}, slugs = [], totalScore = 0, count = 0, goodRuns = 0, d;
+    for (d = start; d <= end; d++) {
       var log = null; try { log = JSON.parse(lsGet('gamekit_played_' + utcDateStr(d * 86400000)) || 'null'); } catch (e) {}
       if (log) { (log.slugs || []).forEach(function (s) { if (!seen[s]) { seen[s] = 1; slugs.push(s); } }); totalScore += log.totalScore || 0; count += log.count || 0; goodRuns += log.goodRuns || 0; }
     }
@@ -1001,13 +1004,21 @@
     if (goal.scope === 'random') {
       var C = chGoals(), isWeek = goal.range === 'week', dn = chDayNum(dStr);
       var idx = isWeek ? Math.floor((dn - CH_WEEK_ANCHOR) / 7) : dn;
-      var slug = (C && C.randomSlug && opts.playable) ? C.randomSlug(idx, opts.playable) : '';
-      var played = !!slug && ((isWeek ? chWeekAgg() : chDayLog(dStr)).slugs.indexOf(slug) >= 0);
-      var title = slug ? t(isWeek ? 'challenges.playWeek' : 'challenges.playToday', { game: (opts.titles && opts.titles[slug]) || t('challenges.aGame') }) : goal.title;
+      // pool = CHALLENGES.playable unless the caller binds its own (the catalogue passes games.js),
+      // FROZEN to the games live at the period's start (playableSince) — a game shipping mid-period
+      // must never re-resolve an already-seen pick to a different target
+      var playable = opts.playable || (C && C.playable) || null;
+      if (playable && C && C.playableSince) {
+        var startD = isWeek ? (CH_WEEK_ANCHOR + idx * 7) : dn;
+        playable = playable.filter(function (s) { var a = C.playableSince[s]; return !a || chDayNum(a) <= startD; });
+      }
+      var slug = (C && C.randomSlug && playable && playable.length) ? C.randomSlug(idx, playable) : '';
+      var played = !!slug && ((isWeek ? chWeekAgg(dn) : chDayLog(dStr)).slugs.indexOf(slug) >= 0);
+      var title = slug ? t(isWeek ? 'challenges.playWeek' : 'challenges.playToday', { game: (opts.titles && opts.titles[slug]) || t('game.' + slug + '.title', { def: slug }) }) : goal.title;
       return { val: played ? 1 : 0, target: 1, done: played, pct: played ? 1 : 0, title: title, slug: slug };
     }
     if (goal.scope === 'cross') {
-      val = chCrossVal(goal.metric, goal.range === 'week' ? chWeekAgg() : chDayLog(dStr), genreOf);
+      val = chCrossVal(goal.metric, goal.range === 'week' ? chWeekAgg(chDayNum(dStr)) : chDayLog(dStr), genreOf);
     } else {
       var best = null; try { best = (JSON.parse(lsGet('gamekit_daybest_' + dStr) || 'null') || {})[goal.slug] || null; } catch (e) {}
       if (best) val = goal.metric === 'score' ? (best.score || 0) : goal.metric === 'time' ? (best.time || 0) : ((best.stats && best.stats[goal.metric]) || 0);
@@ -1381,7 +1392,7 @@
         var pfx = (k && k.indexOf('gamekit_played_') === 0) ? 'gamekit_played_' : (k && k.indexOf('gamekit_daybest_') === 0) ? 'gamekit_daybest_' : null;
         if (pfx) {
           var n = utcDayNumber(Date.parse(k.slice(pfx.length) + 'T00:00:00Z'));
-          if (today - n > 8) kill.push(k); // keep ~a week of activity + per-day bests
+          if (today - n > 15) kill.push(k); // keep 2+ weeks: the weekly back-fill must still see a FULL previous week whenever the catalogue opens during the current one
         }
       }
       for (var j = 0; j < kill.length; j++) { try { localStorage.removeItem(kill[j]); } catch (e) {} }

@@ -219,6 +219,31 @@ function testCatalogue() {
     }
   }
 
+  // weekly back-fill: a weekly finished LAST week (e.g. in an installed game PWA, catalogue never
+  // opened) is still awarded on the next catalogue open — the previous week's Mon–Sun window is
+  // re-evaluated from the retained played-logs, not just the current week
+  {
+    const K = g.win.gamekit, C = g.win.CHALLENGES;
+    if (K && C && C.weekly && C.weekly.length) {
+      const today = K.utcDayNumber();
+      const w = K.challengePick('weekly', today - 7); // LAST week's pick + period key
+      if (w && w.goal) {
+        const playable = GAMES.filter(x => x && x.slug && !x.soon).map(x => x.slug);
+        // blanket logs for every day of last week — enough to satisfy ANY weekly goal (cross or random)
+        const lastMon = today - 7 - (((today - 7 - K.utcDayNumber(Date.UTC(2026, 5, 22))) % 7) + 7) % 7;
+        for (let d = lastMon; d < lastMon + 7; d++) {
+          g.store['gamekit_played_' + K.utcDateStr(d * 86400000)] =
+            JSON.stringify({ slugs: playable, totalScore: 1e9, count: 99, goodRuns: 99 });
+        }
+        delete g.store['gamekit_done']; delete g.store['gamekit_history'];
+        g.win.__renderChallenges();
+        let done = {}; try { done = JSON.parse(g.store['gamekit_done'] || '{}'); } catch (e) {}
+        ok((w.period + '#' + w.id) in done,
+          'last week\'s weekly is awarded by back-fill on catalogue open (want key ' + w.period + '#' + w.id + ', got ' + Object.keys(done).join(',') + ')');
+      }
+    }
+  }
+
   // goodRuns unification: the catalogue awards a "good runs" daily via the kit's evaluator
   // (the old duplicate catalogue evaluator had no goodRuns metric, so these could never complete)
   {
@@ -623,7 +648,20 @@ async function testKit() {
   const rnd = F.challengeEval({ scope: 'random', range: 'day', title: 'x' }, { playable: ['snake'], titles: { snake: 'Neon Snake' } });
   ok(rnd && rnd.done === true && rnd.slug === 'snake' && rnd.title === 'Play Neon Snake today', 'challengeEval resolves a random pick (title + played)');
   const rnd2 = F.challengeEval({ scope: 'random', range: 'day', title: 'Mystery pick' }, {});
-  ok(rnd2 && rnd2.done === false && rnd2.target === 1 && rnd2.title === 'Mystery pick', 'random goal without a playable list reports honestly (no false Done)');
+  ok(rnd2 && rnd2.done === false && rnd2.target === 1 && rnd2.title === 'Mystery pick', 'random goal without ANY playable list reports honestly (no false Done)');
+  // the in-game 🏆 panel passes no playable list — chEval falls back to CHALLENGES.playable, so
+  // random goals resolve (and can complete) inside games, not only on the catalogue
+  g.win.CHALLENGES.playable = ['snake', 'breakout'];
+  const rnd3 = F.challengeEval({ scope: 'random', range: 'day', title: 'x' }, {});
+  ok(rnd3 && rnd3.slug === 'snake' && rnd3.done === true, 'random goal resolves via CHALLENGES.playable when the caller binds none (in-game panel path)');
+  // playableSince freezes a period's pool to the games live at its start — a game that shipped
+  // AFTER the period began is excluded, so a mid-period launch can't re-resolve the pick
+  g.win.CHALLENGES.playableSince = { snake: '2020-01-01', breakout: '2999-01-01' };
+  g.win.CHALLENGES.randomSlug = (idx, pl) => pl[pl.length - 1] || ''; // would pick breakout if present
+  const rnd4 = F.challengeEval({ scope: 'random', range: 'day', title: 'x' }, {});
+  ok(rnd4 && rnd4.slug === 'snake', 'a game added after the period start is excluded from the random pool (got ' + (rnd4 && rnd4.slug) + ')');
+  delete g.win.CHALLENGES.playableSince; delete g.win.CHALLENGES.playable;
+  g.win.CHALLENGES.randomSlug = (idx, pl) => pl[0] || '';
   // Discord auto-post gate: no consent → off; consent → anonymous; Settings opt-in → named
   delete store['gamekit_consent']; delete store['gamekit_discord_name'];
   ok(F.discordTier() === 'off', 'discordTier: no cookie consent → off (nothing is sent)');
@@ -861,6 +899,17 @@ function testChallenges() {
   // D) referential integrity: every id in the daily/weekly rotations resolves to a defined goal
   for (const id of (C.daily || [])) ok(!!goals[id], 'daily rotation id "' + id + '" is a defined goal');
   for (const id of (C.weekly || [])) ok(!!goals[id], 'weekly rotation id "' + id + '" is a defined goal');
+  // E) CHALLENGES.playable mirrors games.js non-soon slugs IN ORDER — games resolve scope:'random'
+  // picks from this copy (they never load games.js); any drift = a different pick in-game vs drawer
+  const liveOrder = GAMES.filter(g => !g.soon).map(g => g.slug);
+  ok(JSON.stringify(C.playable || []) === JSON.stringify(liveOrder),
+    'CHALLENGES.playable matches games.js non-soon order (got ' + JSON.stringify(C.playable) + ', want ' + JSON.stringify(liveOrder) + ')');
+  // F) playableSince mirrors each live game's added date — freezes a period's random pool to the
+  // games live at its start, so a mid-period launch can't re-resolve an already-seen pick
+  for (const g of GAMES.filter(x => !x.soon)) {
+    ok((C.playableSince || {})[g.slug] === g.added,
+      'CHALLENGES.playableSince["' + g.slug + '"] matches its games.js added date (' + (C.playableSince || {})[g.slug] + ' vs ' + g.added + ')');
+  }
 }
 
 // ---------------- cosmetics (registry + trophies economy + store) ----------------
