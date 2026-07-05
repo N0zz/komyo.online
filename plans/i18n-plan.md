@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make the entire komyo site (catalogue + shared kit + 9 games + legal pages) translatable, with a live language picker, and ship it in 6 languages: **English, Polish, Spanish (neutral), Portuguese (pt-BR), French, Italian**.
+**Goal:** Make the entire komyo site (catalogue + shared kit + 9 games + legal pages) translatable, with a live language picker, and ship it in 8 languages: **English, Polish, Spanish (neutral), Portuguese (pt-BR), French, Italian, Czech, Ukrainian**.
 
 **Architecture:** Add a central `gamekit.t(key, params)` translation function + plural engine + language state to `game-kit.js` (the one file loaded everywhere). Message data lives in a single new `i18n.js` (`window.KOMYO_I18N = { en, pl, es, pt, fr }`), loaded in the atomic `<head>` and every `sw.js` SHELL in lockstep, exactly like `challenges.js`/`cosmetics.js`. UI strings are keyed into `i18n.js`; registry data (games.js/cosmetics.js/challenges.js) keeps its English in place and is translated by id via a `def:` fallback, minimizing churn. No build step — client-side language selection via `?lang=` + `navigator.language` + a persisted picker.
 
@@ -111,7 +111,7 @@ Copied verbatim from `CLAUDE.md` — every task implicitly includes these:
 
 ## Phase 0 — Decisions locked (no task; reference)
 
-- **Languages:** `en` (base), `pl`, `es` (neutral, one file for Spain+LatAm), `pt` (pt-BR — Brazil), `fr` (neutral), `it` (Italian).
+- **Languages:** `en` (base), `pl`, `es` (neutral, one file for Spain+LatAm), `pt` (pt-BR — Brazil), `fr` (neutral), `it` (Italian), `cs` (Czech), `uk` (Ukrainian).
 - **Lang code normalization:** map `pt-*` → `pt`, `es-*` → `es`, `fr-*` → `fr`, `pl-*` → `pl`, else first 2 chars; anything not in the supported set → `en`.
 - **Selection order:** `?lang=` query param → `localStorage.gamekit_lang` → `navigator.language` (normalized) → `en`.
 - **SEO approach (no-build):** single URL per page + `?lang=xx`; JS injects translated `<title>`/meta on load; `<link rel="alternate" hreflang>` for each language; sitemap lists `?lang=` variants. Full path-based/pre-rendered SEO is out of scope (would need a build step) — revisit post-launch if organic traffic warrants it.

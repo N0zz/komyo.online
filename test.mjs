@@ -583,7 +583,7 @@ function testI18n() {
   ok(K.t('apples', { count: 5 }) === '5 jabłek', 'pl plural many');
   ok(K.t('apples', { count: 2 }) === '2 jabłka', 'pl plural few');
   ok(K.lang() === 'pl', 'lang() reflects setLang');
-  ok(typeof K.langs === 'function' && K.langs().length === 6, 'langs() lists 6');
+  ok(typeof K.langs === 'function' && K.langs().length === 8, 'langs() lists 8');
   ok(K.langs()[0].code === 'en', 'en first');
   K.setLang('en');
 }
@@ -595,6 +595,7 @@ function testI18nCoverage() {
   ok(dict.en && dict.pl, 'i18n.js parses with en + pl blocks');
   const GAMES = evalData(fs.readFileSync(path.join(DIR, 'games.js'), 'utf8'), 'games.js').GAMES || [];
   const COS = evalData(fs.readFileSync(path.join(DIR, 'cosmetics.js'), 'utf8'), 'cosmetics.js').COSMETICS || {};
+  const CH = evalData(fs.readFileSync(path.join(DIR, 'changelog.js'), 'utf8'), 'changelog.js').CHANGELOG || [];
 
   // 1) collect the LITERAL i18n keys referenced in code (data-t* attrs + t('…')/T('…') calls).
   // Concatenated/dynamic keys (t('pre'+x)) are skipped — they can't be verified statically.
@@ -612,6 +613,13 @@ function testI18nCoverage() {
   GAMES.forEach(g => { if (g && g.slug) { add('game.' + g.slug + '.title'); add('game.' + g.slug + '.blurb'); } });
   (COS.items || []).forEach(it => { if (it && it.id) { add('cos.' + it.id + '.name'); add('cos.' + it.id + '.desc'); } });
   Object.keys(COS.sets || {}).forEach(sid => add('cos.set.' + sid));
+  // changelog entries — keyed by a REVERSE index (distance from the array's end), stable across
+  // prepends; see index.html's changelog renderer for the matching computation.
+  CH.forEach((r, i) => {
+    const ei = CH.length - 1 - i;
+    add('changelog.e' + ei + '.title');
+    r.items.forEach((_, j) => add('changelog.e' + ei + '.b' + j));
+  });
 
   // 3) pl (the reference locale) must contain EVERY referenced key — else PL users silently see English
   const plMiss = [...used].filter(k => !(k in (dict.pl || {}))).sort();
@@ -619,7 +627,7 @@ function testI18nCoverage() {
 
   // 4) each other locale is EMPTY (not started) or a COMPLETE superset of pl — no half-translated locale
   const plKeys = Object.keys(dict.pl || {});
-  for (const L of ['es', 'pt', 'fr', 'it']) {
+  for (const L of ['es', 'pt', 'fr', 'it', 'cs', 'uk']) {
     const d = dict[L] || {}, n = Object.keys(d).length;
     if (n === 0) { ok(true, `${L}: not started (empty) — ok`); continue; }
     const miss = plKeys.filter(k => !(k in d)).sort();
