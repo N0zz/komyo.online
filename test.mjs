@@ -573,6 +573,20 @@ function testKitChrome() {
   ok(!js.includes('if (!interacted)') && !js.includes('showUpdateButton'), 'new build never auto-reloads the visible page — it lights the ☰ badge (no launch fast-path reload)');
 }
 
+function testFullscreen() {
+  section('fullscreen (Fullscreen API wrapper)');
+  const h = bootGame('games/breakout/index.html', {});
+  const K = h.win.gamekit;
+  ok(K.fullscreen && typeof K.fullscreen.supported === 'function' && typeof K.fullscreen.active === 'function'
+    && typeof K.fullscreen.toggle === 'function' && typeof K.fullscreen.onChange === 'function', 'gamekit.fullscreen exposes supported/active/toggle/onChange');
+  // the mock DOM has no document.documentElement.requestFullscreen — must degrade to "unsupported",
+  // never throw, and the ☰ button must not render (no clutter on platforms without the API)
+  ok(K.fullscreen.supported() === false, 'supported() is false headless (no requestFullscreen on the mock)');
+  ok(K.fullscreen.active() === false, 'active() is false with no fullscreenElement');
+  let err = null; try { K.fullscreen.toggle(); } catch (e) { err = e.message; }
+  ok(err === null, 'toggle() on an unsupported platform is a no-op, never throws: ' + err);
+}
+
 function testI18n() {
   section('i18n engine');
   const h = bootGame('games/breakout/index.html', {});
@@ -904,6 +918,7 @@ testTD();
 testLiveGames();
 await testKit();
 testKitChrome();
+testFullscreen();
 testI18n();
 testI18nCoverage();
 testChallenges();

@@ -918,6 +918,11 @@
         <button class="settoggle" id="setMusToggle" type="button" role="switch" aria-checked="true">On</button>
         <input class="setvol" id="setMusVol" type="range" min="0" max="100" aria-label="Music volume" data-ta="sound.musVol">
       </div>
+      <div class="setrow" id="setFullscreenRow" hidden>
+        <span class="setlbl"><span class="di">⛶</span><span><span data-t="settings.fullscreen">Fullscreen</span>
+          <small class="sethint" data-t="settings.fullscreenHint">Useful when an installed app window has no OS fullscreen option</small></span></span>
+        <button class="drefresh" id="setFullscreen" type="button" data-t="kit.fullscreen">Fullscreen</button>
+      </div>
       <div class="setrow">
         <span class="setlbl"><span class="di">📣</span><span><span data-t="settings.discordName">Nickname in Discord posts</span>
           <small class="sethint" data-t="settings.discordHint">Anonymous unless on · only with cookie consent</small></span></span>
@@ -2436,6 +2441,15 @@
           su.addEventListener('click', function () { K.updates.apply(); });
           var sb2 = document.getElementById('settingsBtn');
           if (sb2) sb2.addEventListener('click', function () { K.updates.check(); });
+        }
+        // Fullscreen row — hidden entirely where the API isn't supported (e.g. iOS Safari); useful
+        // when an installed PWA/Chrome-app window has no OS "true fullscreen" affordance.
+        var fsRow = document.getElementById('setFullscreenRow'), fsBtn = document.getElementById('setFullscreen');
+        if (fsRow && fsBtn && K && K.fullscreen && K.fullscreen.supported()) {
+          fsRow.hidden = false;
+          var renderFsBtn = function () { fsBtn.textContent = K.fullscreen.active() ? K.t('kit.exitFullscreen', { def: 'Exit fullscreen' }) : K.t('kit.fullscreen', { def: 'Fullscreen' }); };
+          renderFsBtn(); K.fullscreen.onChange(renderFsBtn);
+          fsBtn.addEventListener('click', function () { K.fullscreen.toggle(); });
         }
       } catch (e) {}
     })();
