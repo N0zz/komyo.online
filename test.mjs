@@ -160,6 +160,22 @@ function testCatalogue() {
     ok(err === null, 'side-stack buttons + tab fire headless without throwing: ' + err);
     ok(g.getEl('fsBtn').hidden !== false, 'fullscreen button is never un-hidden where the API is unsupported (mock)');
     ok(typeof g.win.__wornTitle === 'function' && typeof g.win.__wornTitle().tier === 'number', '__wornTitle exposes {tier, emoji, name} for the Profile button');
+    // notification dots: a stack button can carry one; the ‹‹ tab bubbles it ONLY while hidden
+    ok(typeof g.win.__setStackDot === 'function', '__setStackDot exposed');
+    g.win.__setStackDot('profileQuick', true);
+    ok(g.getEl('profileQuick').classList.contains('has-dot'), 'a stack button shows its dot');
+    ok(!g.getEl('sideTab').classList.contains('has-dot'), 'no tab bubble while the drawer is OPEN (the earlier tab click left it shown)');
+    g.getEl('sideTab').fire('click'); // hide the drawer
+    ok(g.getEl('sideTab').classList.contains('has-dot'), 'the hidden drawer bubbles the dot to the ‹‹ tab');
+    g.win.__setStackDot('profileQuick', false);
+    ok(!g.getEl('profileQuick').classList.contains('has-dot'), 'clearing the source clears the button dot');
+    // Challenges dot: an unseen rotation lights it from boot (it's why the tab is still dotted)
+    ok(g.getEl('chalBtn').classList.contains('has-dot'), 'a never-seen challenge rotation lights the Challenges dot');
+    ok(g.getEl('sideTab').classList.contains('has-dot'), 'tab still bubbles the remaining challenges dot');
+    g.getEl('chalBtn').fire('click');
+    ok(!g.getEl('chalBtn').classList.contains('has-dot'), 'opening the challenges drawer clears the dot');
+    ok(!g.getEl('sideTab').classList.contains('has-dot'), 'with every source clear, the tab dot goes too');
+    ok(!!g.store['arcade_chal_seen'], 'the seen rotation pair persists (got ' + g.store['arcade_chal_seen'] + ')');
   }
 
   // challenge history back-fill: a completion is recorded even when detected on a later catalogue

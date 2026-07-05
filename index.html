@@ -518,6 +518,14 @@
     background:var(--surface); border:1px solid var(--border); border-right:none; border-radius:10px 0 0 10px;
     color:var(--muted); font-size:14px; cursor:pointer; padding:0; box-shadow:-4px 0 14px rgba(0,0,0,.35); }
   .side-stack.shown .side-tab { color:#9fe8ff; }
+  /* notification dots: any stack button can carry one; while the drawer is HIDDEN the tab mirrors
+     "something inside has a dot" so it's never invisible exactly when it matters */
+  .side-btn { position:relative; }
+  .side-btn.has-dot::after { content:""; position:absolute; top:-3px; right:-3px; width:9px; height:9px;
+    border-radius:50%; background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
+  .side-tab { position:relative; }
+  .side-tab.has-dot::after { content:""; position:absolute; top:7px; left:50%; transform:translateX(-50%);
+    width:8px; height:8px; border-radius:50%; background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
   .side-clip { overflow:hidden; width:0; transition:width .22s ease; }
   .side-stack.shown .side-clip { box-shadow:-4px 0 14px rgba(0,0,0,.35); border-radius:14px 0 0 14px; }
   /* padding also gives the buttons' hover lift/glow headroom against the overflow clip */
@@ -1764,10 +1772,23 @@
       const STACK_KEY = 'arcade_stack';
       const storedChoice = () => { try { const v = localStorage.getItem(STACK_KEY); return v === null ? null : v === '1'; } catch (e) { return null; } };
       let shown = false, lastFits = null;
+      // per-button notification dots; the tab bubbles "any dot inside" while the drawer is hidden
+      const dots = {};
+      const syncTabDot = () => {
+        const any = Object.keys(dots).some(k => dots[k]);
+        if (tab.classList) tab.classList.toggle('has-dot', any && !shown);
+      };
+      window.__setStackDot = (id, on) => {
+        dots[id] = !!on;
+        const b = document.getElementById(id);
+        if (b && b.classList) b.classList.toggle('has-dot', !!on);
+        syncTabDot();
+      };
       const applyClip = () => {
         clip.style.width = (shown ? (panel.offsetWidth || 152) : 0) + 'px';
         stack.classList.toggle('shown', shown);
         tab.textContent = shown ? '»' : '‹‹';
+        syncTabDot();
       };
       const place = () => {
         const wrapEl = document.querySelector ? document.querySelector('.wrap') : null;
@@ -1791,9 +1812,34 @@
       // quick actions: Profile → the profile modal (via the drawer card's existing wiring, which
       // also reflects ?m=profile); Collection → the store (window.__openShop reflects ?m=cosmetics)
       const pq = document.getElementById('profileQuick');
-      if (pq) pq.addEventListener('click', () => { const b = document.getElementById('profileBtn'); if (b && b.click) b.click(); });
+      if (pq) pq.addEventListener('click', () => {
+        if (window.__markTitleSeen) window.__markTitleSeen(); // opening the profile counts as "seen the new title"
+        const b = document.getElementById('profileBtn'); if (b && b.click) b.click();
+      });
       const cq = document.getElementById('collectionQuick');
       if (cq) cq.addEventListener('click', () => { if (window.__openShop) window.__openShop(); });
+      // Challenges dot: "a new challenge rotation you haven't looked at yet" — compares today's
+      // daily period + this week's weekly period (the kit's canonical rotation keys) against the
+      // last pair seen; opening the drawer marks both seen.
+      const CH_SEEN = 'arcade_chal_seen';
+      const chPeriods = () => {
+        try {
+          const d = K.challengePick('daily'), w = K.challengePick('weekly');
+          return (d && w) ? { d: d.period, w: w.period } : null;
+        } catch (e) { return null; }
+      };
+      const syncChalDot = () => {
+        const p = chPeriods(); if (!p) return;
+        let s = {}; try { s = JSON.parse(localStorage.getItem(CH_SEEN) || '{}'); } catch (e) {}
+        window.__setStackDot('chalBtn', p.d !== s.d || p.w !== s.w);
+      };
+      const cb = document.getElementById('chalBtn');
+      if (cb) cb.addEventListener('click', () => {
+        const p = chPeriods();
+        if (p) { try { localStorage.setItem(CH_SEEN, JSON.stringify(p)); } catch (e) {} }
+        syncChalDot();
+      });
+      syncChalDot();
       // live bits: the Profile button wears your current title (icon + tint + name), Challenges
       // shows lifetime trophies, Collection shows unlock progress
       const TIER_TINT = ['rgba(120,130,143,.18)', 'rgba(195,204,216,.16)', 'rgba(208,149,79,.18)', 'rgba(215,224,236,.16)',
@@ -2297,9 +2343,16 @@
       };
       const updateIsAvailable = () => { try { return !!(window.gamekit && window.gamekit.updates.state().available); } catch (e) { return false; } };
       function renderMenuDot() {
+        const fresh = titleIsFresh();
         const mb = document.getElementById('menuBtn');
-        if (mb && mb.classList) mb.classList.toggle('tb-notify', titleIsFresh() || updateIsAvailable());
+        if (mb && mb.classList) mb.classList.toggle('tb-notify', fresh || updateIsAvailable());
+        // mirrored (not moved) onto the stack's Profile button — delete this line to keep it ☰-only
+        if (window.__setStackDot) window.__setStackDot('profileQuick', fresh);
       }
+      window.__markTitleSeen = () => {
+        try { localStorage.setItem(TSEEN, String(titleData().earnedTier)); } catch (e) {}
+        renderMenuDot();
+      };
       function syncTitleNotify() { const fresh = titleIsFresh(); renderMenuDot(); return fresh; }
       (function () {
         const mb = document.getElementById('menuBtn');
