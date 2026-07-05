@@ -28,6 +28,35 @@ section('forcefield: start()');
   ok(T().mode === 'lives' && T().difficulty === 'medium', 'defaults to Lives · Medium');
 }
 
+// ---- The fresh-load start menu renders without lanes (regression: chgOf(lanes[0]) threw) ----
+section('forcefield: menu render with no lanes');
+{
+  const gm = runGame();
+  // the kit loop swallows frame exceptions into console.error — capture it to see a render throw
+  const errs = [], orig = console.error;
+  console.error = e => errs.push(String((e && e.stack) || e));
+  gm.fireRaf(16); gm.fireRaf(33); gm.fireRaf(50);   // drive the kit loop's paused render on the landing screen
+  console.error = orig;
+  ok(errs.length === 0 && gm.errors.length === 0, 'rendering the landing screen throws nothing (' + (errs[0] || gm.errors[0] || 'clean') + ')');
+}
+
+// ---- A kit modal (isPaused) gates Space/tap — no shot resolves behind it ----
+section('forcefield: kit pause gates input');
+{
+  const gm = runGame({ seed: 7 });
+  const T = gm.T;
+  T().start();
+  T().setZone(0.5, 0.1); T().setPos(0.02);          // a tap now would breach
+  gm.win.gamekit.setPaused(true);
+  gm.key('keydown', ' ');
+  ok(T().lives === 3 && T().score === 0, 'Space with a kit modal open resolves nothing');
+  T().stop();
+  ok(T().lives === 3, 'stop() itself is gated while kit-paused (covers the pointer path)');
+  gm.win.gamekit.setPaused(false);
+  gm.key('keydown', ' ');
+  ok(T().lives === 2, 'after the modal closes the same tap resolves normally (breach)');
+}
+
 // ---- Tap on the mark → instant deflect, scores + ramps difficulty ----
 section('forcefield: tap on the mark deflects');
 {
@@ -107,6 +136,29 @@ section('forcefield: double mode = two lanes on a shared clock');
   ok(T().forcefields[0].streak === 0, 'a breach resets that lane\'s combo');
 }
 
+// ---- The right lane's arc is centred on ±π — blocking must work across the seam ----
+section('forcefield: right-lane dome blocks across the ±π seam');
+{
+  const T = runGame({ seed: 7 }).T;
+  T().setMode('double', 'medium'); T().start();
+  // lane 1: base angle π, so zoneCenter/pos near 0.5 straddle the ±π seam in angle space
+  T().setZone(0.52, 0.1, 1); T().setPos(0.48, 1); T().stop(1);
+  ok(T().forcefields[1].score > 0, 'a dome straddling the seam still blocks a mark just past ±π');
+  ok(T().state === 'playing' && T().forcefields[1].streak === 1, 'no spurious breach at the seam');
+}
+
+// ---- Grace margin: the soft dome edge gets the benefit of the doubt ----
+section('forcefield: dome edge grace');
+{
+  const T = runGame({ seed: 7 }).T;
+  T().start();
+  T().setZone(0.5, 0.1); T().setPos(0.5 + 0.1 * 1.06); T().stop();   // 6% past the drawn edge → inside the 12% grace
+  ok(T().hits === 1 && T().lives === 3, 'a shot just outside the drawn dome edge is still blocked');
+  ok(T().score > 0, 'a grace deflect still scores');
+  T().setZone(0.5, 0.1); T().setPos(0.5 + 0.1 * 1.2); T().stop();    // beyond the grace band
+  ok(T().lives === 2, 'well past the grace band it breaches');
+}
+
 // ---- Three breaches => game over, best persisted ----
 section('forcefield: three breaches end the run + best persists');
 {
@@ -163,6 +215,7 @@ runLayoutSuite(
     gl.T().step(1);
     const L = gl.T().layout;
     ok(L.barTop >= L.topReserve, v.name + ': the dome clears the HUD (top ' + Math.round(L.barTop) + ' >= ' + L.topReserve + ')');
+    ok(L.stationTop >= L.topReserve, v.name + ': the station clears the HUD (top ' + Math.round(L.stationTop) + ' >= ' + L.topReserve + ')');
     ok(L.barLeft >= 0 && L.barRight <= L.W, v.name + ': the dome fits the width (' + Math.round(L.barLeft) + '..' + Math.round(L.barRight) + ' in 0..' + L.W + ')');
     ok(L.barBottom < L.H, v.name + ': the dome sits within the height');
     ok(L.markerX >= L.barLeft - 3 && L.markerX <= L.barRight + 3, v.name + ': the dome stays on the arc');
