@@ -1632,9 +1632,12 @@
         filtered.slice(shown, shown + PAGE).forEach((rel, k) => {
           if (shown + k > 0) { const hr = document.createElement('hr'); hr.className = 'cl-sep'; list.appendChild(hr); }
           const b = document.createElement('div'); b.className = 'cl-rel';
-          // per-entry i18n: def = the changelog.js English; keys are stable by ORIGINAL array index
-          // (ei) and bullet index (j) so search-narrowing below can't shift them.
-          const ei = CHANGELOG.indexOf(rel);
+          // per-entry i18n: def = the changelog.js English; keys are stable by a REVERSE index
+          // (distance from the array's end) + bullet index (j). New entries are only ever
+          // PREPENDED (never reordered/removed), so an entry's distance from the end never
+          // changes as newer entries get added above it — unlike a forward index, which would
+          // shift (and silently orphan) every existing translation on every new release.
+          const ei = CHANGELOG.length - 1 - CHANGELOG.indexOf(rel);
           const title = T('changelog.e' + ei + '.title', rel.title);
           // with a query, narrow to the matching bullets (unless the date/title matched → show all)
           let items = rel.items.map((it, j) => T('changelog.e' + ei + '.b' + j, it));
@@ -1650,8 +1653,9 @@
         curQ = ((search && search.value) || '').trim().toLowerCase();
         filtered = CHANGELOG.filter((r, i) => {
           if (!curQ) return true;
-          const title = T('changelog.e' + i + '.title', r.title);
-          const items = r.items.map((it, j) => T('changelog.e' + i + '.b' + j, it));
+          const ei = CHANGELOG.length - 1 - i;
+          const title = T('changelog.e' + ei + '.title', r.title);
+          const items = r.items.map((it, j) => T('changelog.e' + ei + '.b' + j, it));
           return (r.date + ' ' + title + ' ' + items.join(' ')).toLowerCase().includes(curQ);
         });
         shown = 0; list.innerHTML = '';
