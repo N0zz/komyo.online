@@ -2522,7 +2522,9 @@
       if (impB) impB.addEventListener('click', () => {
         let parsed = null; try { parsed = JSON.parse(dec((imp.value || '').trim())); } catch (e) {}
         if (!parsed || parsed.app !== 'komyo' || !parsed.data) { setMsg(window.gamekit.t('data.invalid', { def: "That doesn't look like a valid komyo backup code." }), 'err'); track('data_import', { result: 'invalid' }); return; }
-        try { for (const k in parsed.data) if (Object.prototype.hasOwnProperty.call(parsed.data, k)) localStorage.setItem(k, parsed.data[k]); }
+        // REPLACE semantics (as the modal promises): wipe this device's data first, so keys the
+        // backup doesn't carry (purchases, migration flags, …) can't survive and skew the economy
+        try { localStorage.clear(); for (const k in parsed.data) if (Object.prototype.hasOwnProperty.call(parsed.data, k)) localStorage.setItem(k, parsed.data[k]); }
         catch (e) { setMsg('Import failed — storage error.', 'err'); track('data_import', { result: 'error' }); return; }
         track('data_import', { result: 'ok' });
         setMsg(window.gamekit.t('data.imported', { def: 'Imported! Reloading…' }), 'ok');
@@ -2564,8 +2566,7 @@
         return '<div class="cc"><div class="top"><span class="goal">' + e.title + '</span>' + badge + '</div><div class="bar"><i style="width:' + pct + '%' + (e.done ? ';background:#7fe0a0' : '') + '"></i></div><div class="cmeta">' + meta + '</div></div>';
       }
       // friendly cumulative POINTS — daily challenge = 10 pts, weekly = 50 pts (each period#id awarded
-      // once). Only ever grows, NEVER resets (no predatory streak). ×10 rescale 2026-07-03 — the kit
-      // migrates stored gamekit_done/history once, titles thresholds scaled with it.
+      // once). Only ever grows, NEVER resets (no predatory streak).
       const DAILY_PTS = 10, WEEKLY_PTS = 50;
       // snapshot history — when a challenge is first completed we store a dated record (title + points
       // frozen at that moment, so retuning the rotation/targets later never rewrites the past). Kept

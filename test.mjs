@@ -237,19 +237,6 @@ function testCatalogue() {
     }
   }
 
-  // ×10 points migration: old-scale stores rescale exactly once at boot
-  {
-    const gm = bootGame('index.html', { preCode: [games, challenges], store: {
-      gamekit_done: JSON.stringify({ x: 5, y: 1 }),
-      gamekit_history: JSON.stringify([{ id: 'x', pts: 5, day: 1 }]),
-    } });
-    const d = JSON.parse(gm.store.gamekit_done);
-    ok(d.x === 50 && d.y === 10, '×10 migration rescales stored points (got ' + d.x + '/' + d.y + ')');
-    ok(gm.store.gamekit_pts_x10 === '1', '×10 migration flag set (won\'t re-run)');
-    const h = JSON.parse(gm.store.gamekit_history);
-    ok(h[0] && h[0].pts === 50, '×10 migration rescales frozen history points');
-  }
-
   // ---- 🎲 random game: button pool + deterministic challenge pick ----
   {
     const C = g.win.CHALLENGES;
@@ -925,7 +912,7 @@ function testCosmetics() {
 
   // B) economy: lifetime/balance derivation, buy validation + idempotency, select, progress
   {
-    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 100 }), gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
+    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 100 }), gamekit_flappy_migrated: '1' } });
     g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(cosmetics, 'cosmetics.js');
     const cos = g.sandbox.gamekit.cosmetics;
     ok(cos.lifetime() === 100 && cos.balance() === 100, 'lifetime = Σ gamekit_done; balance starts = lifetime (got ' + cos.lifetime() + '/' + cos.balance() + ')');
@@ -947,7 +934,7 @@ function testCosmetics() {
 
   // C) good-run trophy trickle: +2 each, capped 3/day, lands in gamekit_done (= spendable)
   {
-    const g = makeSandbox({ store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
+    const g = makeSandbox({ store: { gamekit_flappy_migrated: '1' } });
     g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
     const F = g.sandbox.gamekit;
     F.recordResult('snake', { score: 10 }); // below the bar (300) → no bonus
@@ -961,7 +948,7 @@ function testCosmetics() {
 
   // C2) end-menu good-run line is the trickle RECEIPT
   {
-    const g = makeSandbox({ store: { gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
+    const g = makeSandbox({ store: { gamekit_flappy_migrated: '1' } });
     g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
     const F = g.sandbox.gamekit;
     const findByCls = (el, cls, out = []) => { if (!el) return out; if (String(el.className || '').includes(cls)) out.push(el); (el.children || []).forEach(c => findByCls(c, cls, out)); return out; };
@@ -977,7 +964,7 @@ function testCosmetics() {
 
   // D) Meadow Flyer migration: banked cash → trophies 1:1, unlocked birds stay owned at cost 0
   {
-    const g = makeSandbox({ store: { flappy_cash: '320', flappy_bird: 'owl', gamekit_pts_x10: '1' } });
+    const g = makeSandbox({ store: { flappy_cash: '320', flappy_bird: 'owl' } });
     g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(cosmetics, 'cosmetics.js');
     const F = g.sandbox.gamekit;
     const owned = JSON.parse(g.store.gamekit_owned || '{}');
@@ -993,7 +980,7 @@ function testCosmetics() {
 
   // E) the Cosmetics store modal: builds headless, buys + equips, updates balance
   {
-    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 50 }), gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
+    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 50 }), gamekit_flappy_migrated: '1' } });
     g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
     const F = g.sandbox.gamekit;
     let err = null, h = null;
@@ -1025,7 +1012,7 @@ function testCosmetics() {
 
   // G) menu-group wiring: defaults to the free item, locked until bought, buy unlocks + selects
   {
-    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 40 }), gamekit_pts_x10: '1', gamekit_flappy_migrated: '1' } });
+    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 40 }), gamekit_flappy_migrated: '1' } });
     g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(cosmetics, 'cosmetics.js');
     const F = g.sandbox.gamekit;
     const grp = F.cosmetics.menuGroup('snake.food');

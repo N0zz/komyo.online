@@ -82,7 +82,7 @@ window.CHALLENGES.randomSlug = function (idx, playable) {
 // highest title whose `min` you've passed and renders it with an escalating shine (tier 0→8): plain →
 // bronze → steel blade → arcane glow → gradient → shimmer → holographic → gold + sparkles. Client-only
 // cosmetic (forgeable, but only shown on your own profile → zero stakes). Times ≈ ~40 pts/week casual.
-// ×10 economy rescale 2026-07-03 (daily 10 / weekly 50) — the kit migrates stored points once.
+// Economy scale: daily 10 / weekly 50 (since 2026-07-03).
 window.CHALLENGES.titles = [
   { min: 0,     tier: 0, emoji: '👺', title: 'Goblin of the Gutter' },
   { min: 100,   tier: 1, emoji: '🌾', title: 'Peasant of the Fields' },
