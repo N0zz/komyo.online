@@ -637,6 +637,22 @@ function testI18nCoverage() {
   const plural = v => v && typeof v === 'object';
   const enPluralMiss = [...used].filter(k => plural((dict.pl || {})[k]) && !plural((dict.en || {})[k])).sort();
   ok(enPluralMiss.length === 0, 'plural keys exist in en (def can\'t pluralize)' + (enPluralMiss.length ? ` — MISSING: ${enPluralMiss.join(', ')}` : ''));
+
+  // 6) every {param} token in pl must also appear (same set) in every other populated locale for
+  // that key — a locale missing a token silently drops a value (or an unclosed tag) at render time.
+  // Caught a real bug once: several keys got truncated exactly where a def: concatenation started.
+  const tokensOf = v => { const set = new Set(); const scan = s => { const m = String(s).match(/\{\w+\}/g); if (m) m.forEach(t => set.add(t)); }; if (v == null) return set; if (typeof v === 'object') Object.values(v).forEach(scan); else scan(v); return set; };
+  const sameTokens = (a, b) => a.size === b.size && [...a].every(t => b.has(t));
+  const tokenMiss = [];
+  for (const key of Object.keys(dict.pl || {})) {
+    const ref = tokensOf(dict.pl[key]);
+    for (const L of ['es', 'pt', 'fr', 'it', 'cs', 'uk']) {
+      const d = dict[L] || {};
+      if (!(key in d)) continue;
+      if (!sameTokens(ref, tokensOf(d[key]))) tokenMiss.push(`${L}:${key}`);
+    }
+  }
+  ok(tokenMiss.length === 0, 'every locale has the same {param} tokens as pl, per key' + (tokenMiss.length ? ` — MISMATCH ${tokenMiss.length}: ${tokenMiss.slice(0, 25).join(', ')}` : ''));
 }
 
 function testChallenges() {
