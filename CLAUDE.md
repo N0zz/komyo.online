@@ -24,6 +24,9 @@ marketing). `plans/*-plan.md` are the per-initiative execution plans with `- [ ]
 index.html      catalogue (renders tiles from games.js) + drawers/modals (profile, settings, challenges…)
 games.js        catalogue manifest — window.GAMES = [{slug,title,blurb,icon,accent,tags,soon?,added?,updated?,mp?,players?,badges?}]
 challenges.js   window.CHALLENGES — daily/weekly goals + per-game goodRun bars + the titles ladder
+i18n.js         i18n LOADER + the en (def-source) dict; each other locale is its own i18n.<code>.js —
+                the loader sync-loads the ACTIVE language (document.write, atomic head) and lazy-loads
+                the rest after load. A new locale = its file + KOMYO_I18N_AVAILABLE + every SW SHELL.
 cosmetics.js    window.COSMETICS — the cosmetics registry (skins per game + site-wide cursors, painters,
                 prices in 🏆 trophies); loaded like challenges.js (catalogue AND games, in every SW SHELL)
 changelog.js    window.CHANGELOG — player-facing releases (drives the 🗒️ modal + the Discord post)
@@ -103,9 +106,11 @@ silently, not loudly.
 
 **The `<head>` unit is atomic** (NOT `defer`, so `window.gamekit` exists before the inline script),
 in this order: `analytics.js` · `game-kit.css` · `version.js` · `game-kit.js` · `challenges.js` ·
-`cosmetics.js` · `i18n.js`.
-The game's `sw.js` SHELL must list the SAME shared files in lockstep — a missing one silently kills
-that feature offline. Games alias the API once: `const KIT = window.gamekit;`.
+`cosmetics.js` · `i18n.js` (the loader — it document.writes the active `i18n.<code>.js` so `t()`
+is complete before the inline script; the other locales lazy-load after `load`).
+The game's `sw.js` SHELL must list the SAME shared files in lockstep — PLUS every `i18n.<code>.js`
+locale file — a missing one silently kills that feature offline. Games alias the API once:
+`const KIT = window.gamekit;`.
 
 - `gamekit.nav({ slug, music, home, theme, onMenu, onPause, confirmLeave, controls, genres })` —
   the whole top chrome: left `‹ Menu · komyo ›` bar + right cluster (⏸ pause, 🔊 sound menu with

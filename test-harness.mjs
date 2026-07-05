@@ -10,7 +10,11 @@ import path from 'node:path';
 
 export const ROOT = path.dirname(new URL(import.meta.url).pathname);
 export const KIT = fs.readFileSync(path.join(ROOT, 'game-kit.js'), 'utf8');
-export const I18N = fs.readFileSync(path.join(ROOT, 'i18n.js'), 'utf8');
+// the catalogue splits per language (i18n.js = loader + en; i18n.<code>.js per locale, loaded
+// lazily in the browser) — headless, everything is concatenated so tests see the full dictionary
+export const I18N = ['i18n.js']
+  .concat(fs.readdirSync(ROOT).filter(f => /^i18n\.[a-z]{2}\.js$/.test(f)).sort())
+  .map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n');
 
 // ---- reporter (shared pass/fail counters + exit-code summary) ----
 let pass = 0, fail = 0;

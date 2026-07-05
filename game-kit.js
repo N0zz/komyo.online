@@ -2966,7 +2966,25 @@
   // fallbacks). es/pt/fr/it ship as empty {} until translated → shown as "soon" and not selectable.
   function langReady(code) {
     if (code === 'en') return true;
-    try { var d = (window.KOMYO_I18N || {})[code]; return !!d && Object.keys(d).length > 0; } catch (e) { return false; }
+    try {
+      var d = (window.KOMYO_I18N || {})[code];
+      if (d && Object.keys(d).length > 0) return true;
+      // locales ship as separate i18n.<code>.js files loaded lazily — a language whose file
+      // exists (the loader's AVAILABLE list) is selectable even before its dictionary arrives
+      var av = window.KOMYO_I18N_AVAILABLE;
+      return !!(av && av.indexOf && av.indexOf(code) >= 0);
+    } catch (e) { return false; }
+  }
+  // inject a language file that hasn't been lazy-loaded yet (mid-game live switch before the
+  // idle loader ran) — t() falls back to en until it arrives, then repaints on the next frame
+  function langFetch(code) {
+    try {
+      if (code === 'en' || !window.KOMYO_I18N_SRC || (window.KOMYO_I18N && window.KOMYO_I18N[code])) return;
+      if (typeof document === 'undefined' || !document.createElement || !document.head) return;
+      var s = document.createElement('script'); s.src = window.KOMYO_I18N_SRC(code); s.async = true;
+      s.onload = function () { _langSubs.forEach(function (fn) { try { fn(code); } catch (e) {} }); };
+      document.head.appendChild(s);
+    } catch (e) {}
   }
   var I18N_LANGS = [
     { code: 'en', label: 'English' }, { code: 'pl', label: 'Polski' },
@@ -3026,6 +3044,7 @@
     _lang = code;
     try { localStorage.setItem('gamekit_lang', code); } catch (e) {}
     try { document.documentElement.lang = code; } catch (e) {}
+    langFetch(code); // split locale files: pull this one in now if the lazy loader hasn't yet
     _langSubs.forEach(function (fn) { try { fn(code); } catch (e) {} });
   }
   function onLang(fn) { _langSubs.push(fn); return function () { var i = _langSubs.indexOf(fn); if (i >= 0) _langSubs.splice(i, 1); }; }

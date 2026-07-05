@@ -4,6 +4,11 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-05', title: 'Sharper shields & a faster site ⚡', items: [
+    'Fix: Forcefield now blocks every shot the shield visibly crosses — the check follows the laser\'s actual path through the dome, which used to miss most at the edges of the board.',
+    'Fix: saving your display name shows a “Saved ✓” receipt and the new name appears everywhere immediately.',
+    'New: the site loads noticeably faster — only YOUR language is downloaded up front (about an eighth of the old bundle); the others arrive quietly in the background so offline switching still works.',
+  ] },
   { date: '2026-07-05', title: 'A tidier home & shop 🧹', items: [
     'New: home page sections can be folded — click a section name to collapse it (the ▸ arrow shows it opens back up). Your folds are remembered.',
     'New: the right-edge quick menu shows more at a glance — your name under Profile, lifetime 🏆 under Challenges, and collection progress under Collection.',
