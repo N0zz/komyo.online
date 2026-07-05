@@ -515,11 +515,20 @@
      beside .wrap: inline (fits) → a plain fixed column at right:13px; tucked (doesn't fit) → the
      whole column hides off the right edge behind a ‹‹ pull-tab (its clip window's width toggles
      0 ↔ the panel's measured width — at 0 the panel is invisible by construction). */
-  .side-stack { position:fixed; top:50%; transform:translateY(-50%); right:13px; z-index:40; display:flex; align-items:center; }
-  .side-stack .side-tab { display:none; }
-  /* a few px of inner padding: overflow-y:auto clips the buttons' hover lift/glow at the panel's
-     top/bottom edges without it (the Profile button visibly clipped against the top on hover) */
-  .side-panel { display:flex; flex-direction:column; gap:8px; max-height:calc(100vh - 80px); overflow-y:auto; padding:5px 3px; }
+  /* ONE look at every width: the stack is always the edge drawer (boxed panel + ‹‹/» tab, flush
+     against the screen edge). The measured gutter only decides the DEFAULT state — shown when
+     there's room beside .wrap, hidden when there isn't — and the tab toggles it either way. */
+  .side-stack { position:fixed; top:50%; transform:translateY(-50%); right:0; z-index:40; display:flex; align-items:center; }
+  .side-tab { flex:0 0 auto; width:22px; height:74px; display:flex; align-items:center; justify-content:center;
+    background:var(--surface); border:1px solid var(--border); border-right:none; border-radius:10px 0 0 10px;
+    color:var(--muted); font-size:14px; cursor:pointer; padding:0; box-shadow:-4px 0 14px rgba(0,0,0,.35); }
+  .side-stack.shown .side-tab { color:#9fe8ff; }
+  .side-clip { overflow:hidden; width:0; transition:width .22s ease; }
+  .side-stack.shown .side-clip { box-shadow:-4px 0 14px rgba(0,0,0,.35); border-radius:14px 0 0 14px; }
+  /* padding also gives the buttons' hover lift/glow headroom against the overflow clip */
+  .side-panel { display:flex; flex-direction:column; gap:8px; max-height:calc(100vh - 80px); overflow-y:auto;
+    padding:10px; width:max-content; background:var(--surface); border:1px solid var(--border);
+    border-right:none; border-radius:14px 0 0 14px; }
   .side-btn { width:130px; height:112px; flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
     justify-content:center; gap:8px; border-radius:16px; border:1px solid var(--border); background:var(--surface-2);
     color:var(--text); cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.42); transition:border-color .12s, transform .12s; font:inherit; padding:0; }
@@ -529,15 +538,6 @@
   .side-chal { background:linear-gradient(160deg, rgba(255,206,92,.16), var(--surface-2)); }
   .side-cos { background:linear-gradient(160deg, rgba(185,140,255,.18), var(--surface-2)); }
   .side-profile { background:linear-gradient(160deg, var(--ttbg, rgba(120,130,143,.18)), var(--surface-2)); }
-  .side-stack.tucked { right:0; }
-  .side-stack.tucked .side-tab { display:flex; flex:0 0 auto; width:22px; height:74px; align-items:center; justify-content:center;
-    background:var(--surface); border:1px solid var(--border); border-right:none; border-radius:10px 0 0 10px;
-    color:var(--muted); font-size:14px; cursor:pointer; padding:0; box-shadow:-4px 0 14px rgba(0,0,0,.35); }
-  .side-stack.tucked.shown .side-tab { color:#9fe8ff; }
-  .side-stack.tucked .side-clip { overflow:hidden; width:0; transition:width .22s ease; }
-  .side-stack.tucked.shown .side-clip { box-shadow:-4px 0 14px rgba(0,0,0,.35); border-radius:14px 0 0 14px; }
-  .side-stack.tucked .side-panel { width:max-content; background:var(--surface); border:1px solid var(--border);
-    border-right:none; border-radius:14px 0 0 14px; padding:10px 8px 10px 12px; }
 
   /* ---- control row (Install · Search · Filter) ---- */
   .controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; flex-wrap:wrap; }
@@ -664,11 +664,12 @@
   /* two matched pills (trophies wallet + Cosmetics), centered; the collection bar + bonus line below */
   .cpills { display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center; }
   /* both pills share the muted-gold look; the trophy pill shows your SPENDABLE balance */
-  .cpills .streak, .cshop { align-self:auto; margin:12px 0 2px; display:inline-flex; align-items:center; gap:6px;
+  .cpills .streak { align-self:auto; margin:12px 0 2px; display:inline-flex; align-items:center; gap:6px;
     font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:0.5px; cursor:pointer;
     color:#e8c069; background:rgba(255,206,92,0.10); border:1px solid rgba(255,206,92,0.34); border-radius:999px; padding:6px 13px; }
-  .cpills .streak:hover, .cshop:hover { border-color:#ffce5c; background:rgba(255,206,92,0.16); color:#ffce5c; }
-  .ccollect { display:flex; align-items:center; gap:10px; margin:10px 4px 0; }
+  .cpills .streak:hover { border-color:#ffce5c; background:rgba(255,206,92,0.16); color:#ffce5c; }
+  .ccollect { display:flex; align-items:center; gap:10px; margin:10px 4px 0; cursor:pointer; }
+  .ccollect:hover .cbar-txt { color:#ffce5c; }
   .ccollect .cbar { flex:1; height:8px; border-radius:99px; background:rgba(255,255,255,0.09); overflow:hidden; }
   .ccollect .cbar i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#ffce5c,#ff9a5c); }
   .ccollect .cbar-txt { font-family:var(--mono); font-size:10.5px; font-weight:700; color:var(--faint); white-space:nowrap; }
@@ -885,7 +886,6 @@
     <div class="dscroll">
       <div class="cpills">
         <button class="streak" id="chalStreak" type="button" title="What do trophies get you?">🏆 0 trophies</button>
-        <button class="cshop" id="chalShop" type="button" title="Spend trophies on cosmetics" hidden>🎨 COSMETICS · 🏆 0</button>
       </div>
       <div class="ccollect" id="chalCollect" hidden><div class="cbar"><i></i></div><span class="cbar-txt"></span></div>
       <div class="cbonus" id="chalBonus" hidden></div>
@@ -1737,35 +1737,29 @@
     })();
 
     // ---- Side stack (Profile / Challenges / Collection) — placement + quick actions ----
-    // Fit is MEASURED, not a breakpoint: if the gutter between .wrap's right edge and the viewport
-    // edge holds the 130px column (+13px inset each side), it sits inline; otherwise it tucks off
-    // the right edge behind the ‹‹ tab (see the .side-stack.tucked CSS).
+    // ONE drawer at every width (boxed panel + tab at the screen edge). The MEASURED gutter beside
+    // .wrap only picks the DEFAULT state: shown when the panel fits without covering content,
+    // hidden when it doesn't. The ‹‹/» tab always toggles it manually; a manual choice sticks
+    // until the fit verdict itself changes (resize across the threshold re-applies the default).
     (function () {
       const K = window.gamekit;
       const stack = document.getElementById('sideStack'), tab = document.getElementById('sideTab');
       const clip = document.getElementById('sideClip'), panel = document.getElementById('sidePanel');
       if (!stack || !tab || !clip || !panel) return;
-      let shown = false;
+      let shown = false, lastFits = null;
       const applyClip = () => {
-        if (!stack.classList.contains('tucked')) { clip.style.width = ''; return; }
-        clip.style.width = (shown ? (panel.offsetWidth || 150) : 0) + 'px';
+        clip.style.width = (shown ? (panel.offsetWidth || 152) : 0) + 'px';
+        stack.classList.toggle('shown', shown);
+        tab.textContent = shown ? '»' : '‹‹';
       };
       const place = () => {
         const wrapEl = document.querySelector ? document.querySelector('.wrap') : null;
         if (!wrapEl || !wrapEl.getBoundingClientRect || typeof window.innerWidth !== 'number') return;
         const gutter = window.innerWidth - wrapEl.getBoundingClientRect().right;
-        const fits = gutter >= 130 + 13 + 13;
-        const was = stack.classList.contains('tucked');
-        stack.classList.toggle('tucked', !fits);
-        if (fits !== !was) { shown = false; stack.classList.remove('shown'); tab.textContent = '‹‹'; }
-        applyClip();
+        const fits = gutter >= (panel.offsetWidth || 152) + 22 + 13; // panel + tab + breathing room
+        if (fits !== lastFits) { lastFits = fits; shown = fits; applyClip(); }
       };
-      tab.addEventListener('click', () => {
-        shown = !shown;
-        stack.classList.toggle('shown', shown);
-        tab.textContent = shown ? '»' : '‹‹';
-        applyClip();
-      });
+      tab.addEventListener('click', () => { shown = !shown; applyClip(); });
       if (window.addEventListener) window.addEventListener('resize', place);
       place();
       // quick actions: Profile → the profile modal (via the drawer card's existing wiring, which
@@ -2410,8 +2404,9 @@
     (function () {
       const K = window.gamekit, C = window.CHALLENGES;
       const todayEl = document.getElementById('chalToday'), weekEl = document.getElementById('chalWeek'), streakEl = document.getElementById('chalStreak');
-      // both drawer pills open the Cosmetics store (titles live in the profile + ☰ menu, not here);
-      // the store itself carries a "See titles" button (onTitles) for reaching the ladder.
+      // the trophies pill opens the titles ladder; the collection BAR opens the Cosmetics store
+      // (the standalone COSMETICS pill moved out to the side stack's Collection button).
+      // The store itself carries a "See titles" button (onTitles) for reaching the ladder.
       const openShop = () => { if (!K.shopPanel) return; setPanelUrl('cosmetics'); K.shopPanel({ onTitles: () => window.__openTitlesLadder && window.__openTitlesLadder(), onClose: () => { if (openPanel === 'cosmetics') setPanelUrl(null); render(); } }); };
       window.__openShop = openShop;
       if (streakEl) streakEl.addEventListener('click', () => window.__openTitlesLadder && window.__openTitlesLadder());
@@ -2514,15 +2509,12 @@
           if (window.gamekitTrack) window.gamekitTrack('challenge_shown', { id: p.id, kind });
         } catch (e) {}
       }
-      // Cosmetics pill (spendable balance → the store), collection bar + good-run bonus line
-      const shopEl = document.getElementById('chalShop'), collEl = document.getElementById('chalCollect'), bonusEl = document.getElementById('chalBonus');
-      if (shopEl) shopEl.addEventListener('click', openShop);
+      // collection bar (→ the store) + good-run bonus line — the standalone COSMETICS pill is
+      // gone: the side stack's Collection button owns that entry point now
+      const collEl = document.getElementById('chalCollect'), bonusEl = document.getElementById('chalBonus');
+      if (collEl) collEl.addEventListener('click', openShop);
       function renderCosmetics() {
         const cos = K.cosmetics;
-        if (cos && window.COSMETICS && shopEl) {
-          shopEl.hidden = false;
-          shopEl.textContent = window.gamekit.t('challenges.cosmeticsBtn', { bal: cos.balance() });
-        }
         if (cos && window.COSMETICS && collEl) {
           const pr = cos.progress(), pct = Math.round(pr.pct * 100);
           collEl.hidden = false;
