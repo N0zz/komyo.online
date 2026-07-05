@@ -85,8 +85,9 @@
   const GAP_FRAMES  = 10;     // brief juice pause between the shot resolving and the next round
   const FX_FRAMES   = 18;     // deflect/breach + shot-streak animation length
   const PASSES      = 2.5;    // the station's charge (deadline) lasts ~this many dome sweeps over the mark
-  const DOME_GRACE  = 0.12;   // effective block arc = zoneHalf × (1 + grace) — the drawn dome has soft
-                              // gradient edges wider than the exact span, so the edge gets benefit of the doubt
+  const DOME_GRACE  = 0.12;   // effective block arc = zoneHalf × (1 + grace), measured from where the beam
+                              // pierces the dome shell (beamFrac) — the drawn dome has soft gradient edges
+                              // wider than the exact span, so the edge gets benefit of the doubt
   // charge length (frames) sized so the dome gets ~PASSES chances at the mark, regardless of speed
   function chargeFrames(sp) { return Math.max(70, Math.min(360, Math.round(PASSES / sp))); }
   // difficulty: sweep speed (pos-fraction per 60Hz step) + dome half-width (pos-fraction = tolerance)
@@ -138,8 +139,8 @@
   }
 
   // a deflected shot bounces off the dome and streaks away into the cosmos (main bolt + a few sparks)
-  function spawnRicochet(l) {
-    const P = planetOf(lanes.indexOf(l)), th = thetaOf(P, l.pos);
+  function spawnRicochet(l, frac) {
+    const P = planetOf(lanes.indexOf(l)), th = thetaOf(P, frac != null ? frac : l.pos);
     const px = P.pcx + (P.R + P.gap) * Math.cos(th), py = P.pcy + (P.R + P.gap) * Math.sin(th);
     const col = accentColor() || '#ffd36b';
     for (let k = 0; k < 4; k++) {
@@ -156,8 +157,9 @@
     updateHud();
   }
 
-  function deflect(l, d) {
-    l.lastAcc = Math.max(0, 1 - (d != null ? d : Math.abs(l.pos - l.zoneCenter)) / l.zoneHalf);
+  function deflect(l, d, frac) {
+    if (frac == null) frac = beamFrac(l);
+    l.lastAcc = Math.max(0, 1 - (d != null ? d : Math.abs(l.pos - frac)) / l.zoneHalf);
     l.streak++;
     const mult = 1 + Math.min(4, Math.floor(l.streak / 5));
     l.lastPts = (10 + Math.round(l.lastAcc * 15)) * mult;
@@ -165,8 +167,8 @@
     l.zoneHalf = Math.max(diff.halfMin, l.zoneHalf * diff.shrink);
     l.speed = Math.min(diff.speedMax, l.speed * diff.speedup);
     SND.play('deflect'); if (hits % 10 === 0) SND.play('combo');
-    l.fxKind = 'deflect'; l.fxT = FX_FRAMES; l.fxFrac = l.zoneCenter; l.holdT = GAP_FRAMES;
-    spawnRicochet(l); updateHud();
+    l.fxKind = 'deflect'; l.fxT = FX_FRAMES; l.fxFrac = frac; l.holdT = GAP_FRAMES;   // spark lands where the beam meets the shield
+    spawnRicochet(l, frac); updateHud();
   }
   function breach(l) {
     l.streak = 0; l.lastPts = 0;
@@ -176,13 +178,16 @@
     else if (opts.mode === 'lives') { lives--; if (lives <= 0) { updateHud(); return endRun(); } }
     updateHud();
   }
-  // resolve the shot for lane l: deflect if the dome covers the mark (with a few frames of grace
-  // for tap latency), otherwise breach. Used both by a TAP and by the station's deadline auto-fire.
+  // resolve the shot for lane l: deflect if the dome covers the point where the beam pierces the
+  // dome shell (beamFrac — NOT the mark's own fraction; oblique beams cross the shell off-mark),
+  // with a few frames of grace for tap latency, otherwise breach. Used both by a TAP and by the
+  // station's deadline auto-fire.
   function fire(l) {
     shots++;
-    let d = Math.abs(l.pos - l.zoneCenter);
-    for (let k = 0; k < l.recent.length; k++) { const dd = Math.abs(l.recent[k] - l.zoneCenter); if (dd < d) d = dd; }
-    if (d <= l.zoneHalf * (1 + DOME_GRACE)) deflect(l, d); else breach(l);
+    const bf = beamFrac(l);
+    let d = Math.abs(l.pos - bf);
+    for (let k = 0; k < l.recent.length; k++) { const dd = Math.abs(l.recent[k] - bf); if (dd < d) d = dd; }
+    if (d <= l.zoneHalf * (1 + DOME_GRACE)) deflect(l, d, bf); else breach(l);
   }
 
   // TAP — raise the shield NOW and resolve instantly (crisp, POC-style). If you never tap, the
@@ -239,6 +244,23 @@
   function enemyPt() {
     const minY = topMargin + 8 + stationR();   // the station's top edge must clear the HUD pill
     return isDouble() ? [W / 2, Math.max(minY, H / 2)] : [W / 2, Math.max(minY, H * 0.14)];
+  }
+  // where the incoming beam (station → mark) actually pierces the dome SHELL (radius R+gap), as a
+  // pos-fraction. An oblique beam (edge marks) crosses the shell at a visibly different fraction
+  // than the mark itself — blocking must test THIS point, not the mark's fraction.
+  function beamFrac(l) {
+    const P = planetOf(lanes.indexOf(l)), Rd = P.R + P.gap;
+    const [mx, my] = rimPt(P, l.zoneCenter, P.gap * 0.35), [ex, ey] = enemyPt();
+    const dx = mx - ex, dy = my - ey, fx = ex - P.pcx, fy = ey - P.pcy;
+    const a = dx * dx + dy * dy, b = 2 * (fx * dx + fy * dy), c = fx * fx + fy * fy - Rd * Rd;
+    const disc = b * b - 4 * a * c;
+    if (!(a > 1e-9) || disc < 0) return l.zoneCenter;   // degenerate → treat the mark as the crossing
+    let t = (-b - Math.sqrt(disc)) / (2 * a);           // station is outside, the mark inside → the entry root ∈ [0,1]
+    if (t < 0 || t > 1) t = (-b + Math.sqrt(disc)) / (2 * a);
+    if (t < 0 || t > 1) return l.zoneCenter;
+    const th = Math.atan2(ey + t * dy - P.pcy, ex + t * dx - P.pcx);
+    const rel = th - P.base;                            // unwrap vs base (double right lane: base = π sits on the atan2 seam)
+    return (Math.atan2(Math.sin(rel), Math.cos(rel)) + P.A) / (2 * P.A);
   }
 
   function accentColor() {
@@ -674,6 +696,7 @@
     stop(i) { stop(i || 0); },
     setPos(p, i) { const l = lanes[i || 0]; if (l) { l.pos = p; l.holdT = 0; l.recent = []; l.chargeT = 0; } },
     setZone(c, h, i) { const l = lanes[i || 0]; if (l) { l.zoneCenter = c; if (h != null) l.zoneHalf = h; } },
+    beamFrac(i) { const l = lanes[i || 0]; return l ? beamFrac(l) : 0.5; },
     menu() { return KIT ? KIT.menu.current() : null; },
     best_(m, d) { return loadBest(m, d); },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
