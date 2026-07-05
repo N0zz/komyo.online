@@ -1528,6 +1528,23 @@
       fcountUpdate(); render();
     }
     readURL(); render();
+    // Back-navigation restores this page from bfcache WITHOUT re-running scripts — but the game
+    // just played wrote gamekit_recent / bests / challenge progress. Re-render the grid (Recently
+    // played rail + tiles) and resync every notification surface so the catalogue reflects the run.
+    window.addEventListener('pageshow', e => {
+      if (!e.persisted) return;
+      render();
+      if (window.__renderChallenges) window.__renderChallenges();
+      if (window.__syncChalDot) window.__syncChalDot();
+      if (window.__syncTitleNotify) window.__syncTitleNotify();
+    });
+    // a tab left open across the UTC midnight / weekly flip: light the dots when it comes back
+    // to the foreground (the drawer itself re-renders on open, the dot is the fresh signal)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState !== 'visible') return;
+      if (window.__syncChalDot) window.__syncChalDot();
+      if (window.__syncTitleNotify) window.__syncTitleNotify();
+    });
 
     // ---- Search (instant, client-side) ----
     (function () {
@@ -1891,6 +1908,7 @@
         syncChalDot();
       });
       syncChalDot();
+      window.__syncChalDot = syncChalDot;
       // live bits: the Profile button wears your current title (icon + tint + name), Challenges
       // shows lifetime trophies, Collection shows unlock progress
       const TIER_TINT = ['rgba(120,130,143,.18)', 'rgba(195,204,216,.16)', 'rgba(208,149,79,.18)', 'rgba(215,224,236,.16)',
@@ -2672,9 +2690,9 @@
         weekEl.innerHTML = card(weekly && weekly.goal, WEEKLY_PTS, weekly && weekly.id);
         trackShown(daily, 'daily'); trackShown(weekly, 'weekly');
         backfillAndAward();
-        award(); // keep lifetime up to date (drives titles elsewhere); the drawer shows SPENDABLE
-        // the drawer's trophy figure is your spendable balance (your wallet) — lifetime + titles
-        // live in the profile / ☰ menu, so there's only one number to reason about here
+        award(); // keep lifetime up to date (drives titles elsewhere)
+        // the drawer's trophy figure is LIFETIME (opens the titles ladder); the SPENDABLE wallet
+        // lives in the store header — per CLAUDE.md the pill is always the lifetime number
         if (streakEl) { const life = (K.cosmetics && window.COSMETICS && K.cosmetics.lifetime) ? K.cosmetics.lifetime() : award(); streakEl.textContent = window.gamekit.t('chal.lifetime', { count: life, def: '🏆 ' + life + ' Trophies' }); }
         renderCosmetics();
         renderHistory();
