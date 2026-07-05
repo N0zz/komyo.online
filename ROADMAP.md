@@ -89,7 +89,7 @@ to build Forcefield) · **friends/family circle** invited & trickling · the **i
    (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower defense, roguelite shooters). See
    `komyo-avoid-balance-heavy-genres`. Slot in **one original-mechanic, shareable game** alongside the remakes
    (see `komyo-market-expansion-discussion`). More POC prototypes wait on a separate branch. Build order below.
-3. **LAUNCH + marketing campaigns — *todo*.** Prep the materials (promo video / montage + Discord preview cuts,
+3. **LAUNCH + marketing campaigns — *started* (reddit groundwork underway, see In flight).** Prep the materials (promo video / montage + Discord preview cuts,
    per-game OG/Twitter cards, story-format share card), then publish everywhere: portals (itch.io, free-to-play
    indexes), news, forums, subreddits, Discord servers, socials. Paid ads considered later.
 
@@ -240,7 +240,9 @@ from day one.
 
 ### In flight / near-term
 
-- **Bug fixes (noted list).** Work through the personal bug list — pre/parallel to launch prep.
+- **Reddit groundwork — STARTED (2026-07-05).** Advertising in some existing threads + actively
+  commenting on target subs to build presence/karma; own threads planned within a few days. Feeds
+  Path-to-launch #3.
 - **Fable review of recent additions** — have Fable review & test the `komyo-new-game` creation skill,
   the i18n implementation, and all translations.
 - **Marketing plan (brainstorm + prep) — drafted (2026-07-05),** `plans/marketing_plan.md`.
@@ -253,9 +255,6 @@ from day one.
   prune/merge so future sessions don't act on outdated context.
 - **Real mascot art** *(in progress)* — chibi fox-girl (Holo-ish, red/orange hair, fox ears); replaces
   the header + score-card placeholder; reuse on social, stickers, 404, newsletter, empty states.
-- **Score-card share — settle UX, then redesign.** The image card is shipped and works, but two
-  decisions are open before polishing: (a) **redesign the card art** (after the real mascot), and
-  (b) **keep the 📷 button in the share row or rebuild the share affordance** entirely. Decide UX first.
 - **Daily-challenge target tuning.** Challenges are live (UTC daily/weekly, points 1/5 that never reset,
   single-game + cross-game goals, plus a 1-year completion History). Targets are **provisional** —
   playtest and retune (Snake already bumped 50→250); confirm the UTC daily-reset behaves.
