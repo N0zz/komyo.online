@@ -4,6 +4,18 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-05', title: 'komyo тепер розмовляє і українською! 🇺🇦', items: [
+    'New: komyo now speaks Ukrainian too! The whole site — every game, every menu and screen — is translated. Pick Українська from ⚙️ Settings on the home page, or the ☰ menu inside any game. English, Polish, Spanish, Portuguese, French and Italian are there as well, and more languages are on the way.',
+  ] },
+  { date: '2026-07-05', title: 'komyo teď mluví i česky! 🇨🇿', items: [
+    'New: komyo now speaks Czech too! The whole site — every game, every menu and screen — is translated. Pick Čeština from ⚙️ Settings on the home page, or the ☰ menu inside any game. English, Polish, Spanish, Portuguese and French are there as well, and more languages are on the way.',
+  ] },
+  { date: '2026-07-05', title: 'komyo parla anche italiano! 🇮🇹', items: [
+    'New: komyo now speaks Italian too! The whole site — every game, every menu and screen — is translated. Pick Italiano from ⚙️ Settings on the home page, or the ☰ menu inside any game. English, Polish, Spanish, Portuguese and French are there as well, and more languages are on the way.',
+  ] },
+  { date: '2026-07-05', title: 'komyo parle aussi français ! 🇫🇷', items: [
+    'New: komyo now speaks French too! The whole site — every game, every menu and screen — is translated. Pick Français from ⚙️ Settings on the home page, or the ☰ menu inside any game. English, Polish, Spanish and Portuguese are there as well, and more languages are on the way.',
+  ] },
   { date: '2026-07-05', title: 'komyo já fala português! 🇧🇷', items: [
     'New: komyo now speaks Portuguese too! The whole site — every game, every menu and screen — is translated. Pick Português from ⚙️ Settings on the home page, or the ☰ menu inside any game. English, Polish and Spanish are there as well, and more languages are on the way.',
   ] },
