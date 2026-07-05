@@ -1362,7 +1362,9 @@ window.KOMYO_I18N = {
     'cl.noMatch': 'Brak pasujących zmian.',
     'cat.challengesBtn': 'WYZWANIA',
     'cat.openChallenges': 'Otwórz wyzwania',
-    'chal.lifetime': { one: '🏆 {count} Trofeum', few: '🏆 {count} Trofea', many: '🏆 {count} Trofeów', other: '🏆 {count} Trofea' }
+    'chal.lifetime': { one: '🏆 {count} Trofeum', few: '🏆 {count} Trofea', many: '🏆 {count} Trofeów', other: '🏆 {count} Trofea' },
+    'changelog.e21.title': 'komyo mówi już po portugalsku! 🇧🇷',
+    'changelog.e21.b0': 'Nowość: komyo teraz mówi też po portugalsku! Cała strona — każda gra, każde menu i ekran — jest przetłumaczona. Wybierz Português w ⚙️ Ustawieniach na stronie głównej albo w menu ☰ w każdej grze. Angielski, polski i hiszpański są też dostępne, a kolejne języki są w drodze.'
   },
   es: {
     'cat.trophies': { one: '{count} trofeo', other: '{count} trofeos' },
@@ -2577,7 +2579,9 @@ window.KOMYO_I18N = {
     'cl.noMatch': 'Ningún cambio coincide.',
     'cat.challengesBtn': 'DESAFÍOS',
     'cat.openChallenges': 'Abrir desafíos',
-    'chal.lifetime': { one: '🏆 {count} Trofeo', other: '🏆 {count} Trofeos' }
+    'chal.lifetime': { one: '🏆 {count} Trofeo', other: '🏆 {count} Trofeos' },
+    'changelog.e21.title': '¡komyo también habla portugués! 🇧🇷',
+    'changelog.e21.b0': 'Nuevo: ¡komyo ahora también habla portugués! Todo el sitio — cada juego, cada menú y pantalla — está traducido. Elige Português en ⚙️ Configuración en la página principal, o en el menú ☰ dentro de cualquier juego. El inglés, el polaco y el español también están disponibles, y hay más idiomas en camino.'
   },
   pt: {
     'cat.trophies': { one: '{count} troféu', other: '{count} troféus' },
@@ -3791,7 +3795,9 @@ window.KOMYO_I18N = {
     'cl.noMatch': 'Nenhuma alteração encontrada.',
     'cat.challengesBtn': 'DESAFIOS',
     'cat.openChallenges': 'Abrir desafios',
-    'chal.lifetime': { one: '🏆 {count} Troféu', other: '🏆 {count} Troféus' }
+    'chal.lifetime': { one: '🏆 {count} Troféu', other: '🏆 {count} Troféus' },
+    'changelog.e21.title': 'komyo já fala português! 🇧🇷',
+    'changelog.e21.b0': 'Novo: o komyo agora também fala português! O site inteiro — cada jogo, cada menu e tela — está traduzido. Escolha Português em ⚙️ Configurações na página inicial, ou no menu ☰ dentro de qualquer jogo. Inglês, polonês e espanhol também estão disponíveis, e mais idiomas estão a caminho.'
   },
   fr: {},
   it: {}

@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-05', title: 'komyo já fala português! 🇧🇷', items: [
+    'New: komyo now speaks Portuguese too! The whole site — every game, every menu and screen — is translated. Pick Português from ⚙️ Settings on the home page, or the ☰ menu inside any game. English, Polish and Spanish are there as well, and more languages are on the way.',
+  ] },
   { date: '2026-07-04', title: '¡komyo habla español! 🇪🇸', items: [
     'New: komyo now speaks Spanish too! The whole site — every game, every menu and screen — is translated. Pick Español from ⚙️ Settings on the home page, or the ☰ menu inside any game. English and Polish are there as well, and more languages are on the way.',
   ] },
