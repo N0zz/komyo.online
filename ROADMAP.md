@@ -234,10 +234,11 @@ from day one.
 - **Bug fixes (noted list).** Work through the personal bug list — pre/parallel to launch prep.
 - **Fable review of recent additions** — have Fable review & test the `komyo-new-game` creation skill,
   the i18n implementation, and all translations.
-- **Marketing plan (brainstorm + prep).** Build the channel list — Reddit, Facebook, Discords,
-  Twitch/YouTube influencers, indie/free-games sites — across **two paths: gaming** and
-  **Claude/vibe-coding/AI**. Then prepare per-channel post content (text / images / links).
-  (Feeds Path-to-launch #5 + the Marketing sections below.)
+- **Marketing plan (brainstorm + prep) — drafted (2026-07-05),** `plans/marketing_plan.md`.
+  **Next: review & refine into a tl;dr.** No long prose/explanation — per plan, just the list of
+  **where to post** and **what to post**, plus called-out **red flags / crucial points only** (budget
+  risk, ToS/spam risk, anything that could backfire). (Feeds Path-to-launch #5 + the Marketing
+  sections below.)
 - **Review local Claude Code memories about komyo** (added 2026-07-02) — audit the Claude memory
   notes for stale komyo entries: plans that shipped, superseded decisions, rebrand leftovers;
   prune/merge so future sessions don't act on outdated context.
