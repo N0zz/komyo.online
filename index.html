@@ -2816,16 +2816,26 @@
       const cur = () => (window.gamekit && window.gamekit.player) ? window.gamekit.player() : 'anonymous';
       const apply = v => {
         if (window.gamekit && window.gamekit.setName) window.gamekit.setName(v);
-        paint();
-        try { if (window.__renderProfile) window.__renderProfile(); } catch (e) {} // profile is open behind the name modal
+        // the new name must be visible the instant the modal closes — profile behind + quick menu
+        try { if (window.__renderProfile) window.__renderProfile(); } catch (e) {}
+        try { if (window.__refreshSideStack) window.__refreshSideStack(); } catch (e) {}
       };
       window.__openNameModal = () => {
         if (!modal || !modal.showModal) return;
         if (input) input.value = cur() === 'anonymous' ? '' : cur();
         if (skip) skip.textContent = window.gamekit.t('confirm.cancel', { def: 'Cancel' });
+        const sv = document.getElementById('nameSave');
+        if (sv) { sv.textContent = window.gamekit.t('name.save', { def: 'Save ▸' }); sv.disabled = false; }
         try { modal.showModal(); } catch (e) {}
       };
-      if (form) form.addEventListener('submit', e => { e.preventDefault(); apply(input ? input.value : ''); try { modal.close(); } catch (_) {} });
+      if (form) form.addEventListener('submit', e => {
+        e.preventDefault();
+        apply(input ? input.value : '');
+        // visible receipt: the button flashes "Saved ✓", then the modal closes over the updated profile
+        const sv = document.getElementById('nameSave');
+        if (sv) { sv.textContent = window.gamekit.t('name.saved', { def: 'Saved ✓' }); sv.disabled = true; }
+        setTimeout(() => { try { modal.close(); } catch (_) {} }, 450);
+      });
       if (skip) skip.addEventListener('click', () => { try { modal.close(); } catch (_) {} });
       if (modal) modal.addEventListener('click', e => { if (e.target === modal) modal.close(); }); // backdrop click closes
     })();
