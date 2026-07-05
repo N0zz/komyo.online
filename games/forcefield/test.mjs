@@ -159,6 +159,56 @@ section('forcefield: dome edge grace');
   ok(T().lives === 2, 'well past the grace band it breaches');
 }
 
+// ---- Blocking tests the beam's crossing of the dome SHELL, not the mark's fraction ----
+// The dome floats at R+gap while the mark sits near the surface; an oblique beam (edge marks)
+// pierces the shell at a visibly different arc-fraction. Regression: the shield visibly crossed
+// the beam yet a breach registered (and vice versa).
+section('forcefield: blocking uses the beam∩dome crossing');
+{
+  const T = runGame({ seed: 7, w: 390, h: 780 }).T;
+  T().start();
+  // central mark → radial beam → crossing == mark (old and new behaviour agree)
+  T().setZone(0.5, 0.1);
+  const bfC = T().beamFrac();
+  ok(Math.abs(bfC - 0.5) < 0.005, 'central mark: crossing ≈ zoneCenter (got ' + bfC.toFixed(4) + ')');
+  // edge mark on a narrow viewport → the crossing shifts toward the arc middle by a real margin
+  T().setZone(0.05, 0.04);
+  const bf = T().beamFrac();
+  ok(Math.abs(bf - 0.05) > 0.03, 'edge mark: crossing shifted off the mark (|' + bf.toFixed(4) + ' - 0.05| > 0.03)');
+  ok(bf > 0.05, 'the shift points toward the arc middle');
+  // dome over the CROSSING but not the mark → must DEFLECT (was: breach)
+  T().setPos(bf); T().stop();
+  ok(T().hits === 1 && T().lives === 3, 'dome over the beam crossing deflects (hits ' + T().hits + ', lives ' + T().lives + ')');
+  // dome over the MARK but not the crossing → the beam visibly misses the membrane → breach (was: deflect)
+  T().setZone(0.05, 0.04); T().setPos(0.05); T().stop();
+  ok(T().lives === 2, 'dome over the mark but not the crossing breaches (lives ' + T().lives + ')');
+}
+
+// ---- Edge mark on the far side mirrors the shift ----
+section('forcefield: far-edge mark mirrors the crossing shift');
+{
+  const T = runGame({ seed: 7, w: 390, h: 780 }).T;
+  T().start();
+  T().setZone(0.95, 0.04);
+  const bf = T().beamFrac();
+  ok(Math.abs(bf - 0.95) > 0.03 && bf < 0.95, 'far edge: crossing shifted toward the middle (got ' + bf.toFixed(4) + ')');
+  T().setPos(bf); T().stop();
+  ok(T().hits === 1 && T().lives === 3, 'dome over the far-side crossing deflects');
+}
+
+// ---- Double mode: beamFrac unwraps the right lane's ±π seam ----
+section('forcefield: right-lane beamFrac unwraps the ±π seam');
+{
+  const T = runGame({ seed: 7 }).T;
+  T().setMode('double', 'medium'); T().start();
+  // lane 1 (base = π): a mark near the arc middle straddles atan2's seam in angle space
+  T().setZone(0.5, 0.1, 1);
+  const bf = T().beamFrac(1);
+  ok(bf > 0.4 && bf < 0.6, 'crossing lands near the arc middle, not wrapped to an end (got ' + bf.toFixed(4) + ')');
+  T().setPos(bf, 1); T().stop(1);
+  ok(T().forcefields[1].score > 0 && T().state === 'playing', 'dome on the crossing blocks normally across the seam');
+}
+
 // ---- Three breaches => game over, best persisted ----
 section('forcefield: three breaches end the run + best persists');
 {
