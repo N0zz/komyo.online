@@ -91,10 +91,19 @@
   .section-head .count { font-family:var(--mono); font-size: 11px; color:var(--faint); }
   /* "Recently played" — full game cards in a horizontal scroll-snap rail (one grid row tall),
      so it never eats vertical space. Recorded by the kit when a mode is actually chosen and Play
-     is pressed (gamekit.recentlyPlayed), not on page-open. */
-  .recent-row { grid-column:1/-1; display:flex; gap:20px; overflow-x:auto; padding:2px 2px 12px;
-    scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; }
+     is pressed (gamekit.recentlyPlayed), not on page-open. No visible scrollbar — the » paddle
+     (and touch-drag / trackpad swipe) drives it. 8px top padding = headroom for the tiles'
+     -5px hover lift, so a highlighted card can't slide under the section header above. */
+  .recent-wrap { grid-column:1/-1; position:relative; }
+  .recent-row { display:flex; gap:20px; overflow-x:auto; padding:8px 46px 8px 2px;
+    scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .recent-row::-webkit-scrollbar { display:none; }
   .recent-row .tile { flex:0 0 264px; scroll-snap-align:start; }
+  .recent-next { position:absolute; top:50%; right:2px; transform:translateY(-50%); z-index:4;
+    width:34px; height:64px; border-radius:12px; border:1px solid var(--border);
+    background:rgba(22,28,40,0.92); color:var(--muted); font-size:20px; line-height:1; cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,.5); transition:color .12s, border-color .12s; }
+  .recent-next:hover { color:#9fe8ff; border-color:#9fe8ff; }
   .grid.compact .recent-row { gap:10px; }
   .grid.compact .recent-row .tile { flex-basis:118px; }
   /* Favorites edit mode: the header's Edit toggle turns tiles into drag handles */
@@ -104,9 +113,11 @@
   .fav-edit.on { border-color:#ffcf5c; color:#ffcf5c; }
   .tile.fav-editing { cursor:grab; touch-action:none; border-style:dashed; }
   .tile.fav-editing .fav { pointer-events:none; opacity:.35; } /* no accidental unfavorite mid-drag */
-  .tile.drag-src { opacity:.35; }
   .drag-ghost { position:fixed; z-index:80; pointer-events:none; opacity:.85; margin:0;
     transform:translate(-50%,-50%) scale(.92) rotate(2deg); box-shadow:0 18px 50px rgba(0,0,0,.6); }
+  /* the drop slot — an empty dashed grid cell marking where the dragged favorite will land;
+     it travels with the pointer across the whole strip (the source tile is hidden meanwhile) */
+  .fav-slot { border:2px dashed #ffcf5c; border-radius:18px; background:rgba(255,207,92,.06); min-height:120px; }
   .tile {
     position: relative;
     display:flex; flex-direction:column; text-decoration:none; color:inherit;
@@ -414,7 +425,6 @@
   @media (max-width: 560px) {
     .in-activity { --act-top: 52px; }
     .in-activity .float-btns-l, .in-activity .float-btns-r { top: calc(13px + var(--act-top)); }
-    .in-activity .side-stack { top: calc(62px + var(--act-top)); }
     .in-activity .act-frame { padding-top: var(--act-top); }
   }
   /* FAQ modal (reuses .about container) */
@@ -485,7 +495,9 @@
 
   /* ---- sticky top chrome: ☰ (left) · Install/Language/Fullscreen (right) · side stack below ---- */
   .float-btns-l { position:fixed; top:13px; left:13px; z-index:40; display:flex; align-items:center; gap:10px; }
-  .float-btns-r { position:fixed; top:13px; right:13px; z-index:40; display:flex; align-items:center; gap:8px; }
+  /* z-index 41 (> .side-stack's 40): the hover tooltip is a ::after INSIDE this stacking context,
+     so the whole row must sit above the stack or the tooltip paints behind the Profile button */
+  .float-btns-r { position:fixed; top:13px; right:13px; z-index:41; display:flex; align-items:center; gap:8px; }
   .float-btns-l .tb-btn, .float-btns-l .ibtn, .float-btns-r .tb-btn, .float-btns-r .ibtn { box-shadow:0 4px 14px rgba(0,0,0,0.42); }
   .tb-btn { display:inline-flex; align-items:center; gap:7px; padding:8px 13px; border:1px solid var(--border); border-radius:10px;
     background:var(--surface-2); color:var(--text); font-family:var(--mono); font-size:12px; letter-spacing:1.5px; cursor:pointer; }
@@ -497,16 +509,15 @@
      beside .wrap: inline (fits) → a plain fixed column at right:13px; tucked (doesn't fit) → the
      whole column hides off the right edge behind a ‹‹ pull-tab (its clip window's width toggles
      0 ↔ the panel's measured width — at 0 the panel is invisible by construction). */
-  .side-stack { position:fixed; top:62px; right:13px; z-index:40; display:flex; align-items:center; }
+  .side-stack { position:fixed; top:50%; transform:translateY(-50%); right:13px; z-index:40; display:flex; align-items:center; }
   .side-stack .side-tab { display:none; }
   .side-panel { display:flex; flex-direction:column; gap:8px; max-height:calc(100vh - 80px); overflow-y:auto; }
-  .side-btn { width:130px; height:118px; flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
-    justify-content:center; gap:4px; border-radius:16px; border:1px solid var(--border); background:var(--surface-2);
+  .side-btn { width:130px; height:112px; flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:8px; border-radius:16px; border:1px solid var(--border); background:var(--surface-2);
     color:var(--text); cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.42); transition:border-color .12s, transform .12s; font:inherit; padding:0; }
   .side-btn:hover { border-color:#9fe8ff; transform:translateY(-1px); }
-  .side-btn .ico { font-size:30px; line-height:1; }
-  .side-btn .lbl { font-family:var(--mono); font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); white-space:normal; padding:0 4px; }
-  .side-btn .sub { font-size:10.5px; color:var(--faint); line-height:1.2; padding:0 8px; white-space:normal; min-height:13px; }
+  .side-btn .ico { font-size:44px; line-height:1; }
+  .side-btn .lbl { font-family:var(--mono); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); white-space:normal; padding:0 4px; }
   .side-chal { background:linear-gradient(160deg, rgba(255,206,92,.16), var(--surface-2)); }
   .side-cos { background:linear-gradient(160deg, rgba(185,140,255,.18), var(--surface-2)); }
   .side-profile { background:linear-gradient(160deg, var(--ttbg, rgba(120,130,143,.18)), var(--surface-2)); }
@@ -726,13 +737,13 @@
     <div class="side-clip" id="sideClip">
       <div class="side-panel" id="sidePanel">
         <button class="side-btn side-profile" id="profileQuick" type="button" aria-label="My profile" data-ta="drawer.myProfile">
-          <span class="ico" id="spIco">🎖️</span><span class="lbl" data-t="cat.profileBtn">Profile</span><span class="sub" id="spSub"></span>
+          <span class="ico" id="spIco">🎖️</span><span class="lbl" data-t="cat.profileBtn">Profile</span>
         </button>
         <button class="side-btn side-chal" id="chalBtn" aria-label="Open challenges" data-ta="cat.openChallenges" aria-haspopup="dialog">
-          <span class="ico">🏆</span><span class="lbl" data-t="cat.challengesBtn">CHALLENGES</span><span class="sub" id="scSub"></span>
+          <span class="ico">🏆</span><span class="lbl" data-t="cat.challengesBtn">CHALLENGES</span>
         </button>
         <button class="side-btn side-cos" id="collectionQuick" type="button" aria-label="Collection">
-          <span class="ico">🎨</span><span class="lbl" data-t="cat.collectionBtn">Collection</span><span class="sub" id="skSub"></span>
+          <span class="ico">🎨</span><span class="lbl" data-t="cat.collectionBtn">Collection</span>
         </button>
       </div>
     </div>
@@ -1115,7 +1126,7 @@
         if (e.button != null && e.button !== 0) return;
         if (e.preventDefault) e.preventDefault();
         const sx = e.clientX, sy = e.clientY;
-        let dragging = false, ghost = null;
+        let dragging = false, ghost = null, slot = null;
         const favTiles = () => (grid.querySelectorAll ? Array.prototype.slice.call(grid.querySelectorAll('.fav-editing')) : []);
         const move = ev => {
           if (!dragging) {
@@ -1126,7 +1137,14 @@
             ghost.className = 'tile drag-ghost';
             ghost.style.width = r.width + 'px'; ghost.style.height = r.height + 'px';
             document.body.appendChild(ghost);
-            el.classList.add('drag-src');
+            // the tile leaves the strip while dragging; a dashed drop SLOT takes its place and
+            // travels with the pointer across the whole strip — the classic insertion marker,
+            // not a one-step neighbor swap (which stalled the moment the pointer sat over the
+            // just-swapped tile)
+            slot = document.createElement('div');
+            slot.className = 'tile fav-slot';
+            el.parentNode.insertBefore(slot, el);
+            el.style.display = 'none';
           }
           ghost.style.left = ev.clientX + 'px'; ghost.style.top = ev.clientY + 'px';
           const over = favTiles().find(t => {
@@ -1134,12 +1152,11 @@
             const r = t.getBoundingClientRect();
             return ev.clientX >= r.left && ev.clientX <= r.right && ev.clientY >= r.top && ev.clientY <= r.bottom;
           });
-          // live-reorder in the DOM for immediate feedback; favorites tiles are a contiguous run
-          // of grid children, so insertBefore among them can't escape the section
-          if (over && over.parentNode === el.parentNode) {
-            const kids = Array.prototype.slice.call(el.parentNode.children);
-            if (kids.indexOf(el) < kids.indexOf(over)) el.parentNode.insertBefore(el, over.nextSibling);
-            else el.parentNode.insertBefore(el, over);
+          // drop the slot before/after the hovered tile depending on which half the pointer is in
+          if (over && over.parentNode === slot.parentNode) {
+            const r = over.getBoundingClientRect();
+            const before = (ev.clientX - r.left) < r.width / 2;
+            over.parentNode.insertBefore(slot, before ? over : over.nextSibling);
           }
         };
         const up = () => {
@@ -1147,8 +1164,10 @@
           el.removeEventListener('pointerup', up);
           el.removeEventListener('pointercancel', up);
           if (ghost && ghost.remove) ghost.remove();
-          el.classList.remove('drag-src');
-          if (dragging) {
+          if (dragging && slot) {
+            slot.parentNode.insertBefore(el, slot); // land in the slot's spot
+            el.style.display = '';
+            if (slot.remove) slot.remove();
             const order = favTiles().map(t => t.dataset && t.dataset.slug).filter(Boolean);
             if (order.length) { setFavs(order); render(); }
           }
@@ -1337,11 +1356,11 @@
       const favList = f.map(slug => all.find(g => !g.soon && g.slug === slug)).filter(Boolean);
       if (favList.length) sections.push({ label: T('cat.favorites', '★ Favorites'), list: favList, favs: true });
       // recently played — full game cards in a horizontal rail; recency order from the kit
-      // (recorded when a mode was chosen and Play pressed, not on page-open). Favorites are
-      // already pinned above, so they're skipped here.
+      // (recorded when a mode was chosen and Play pressed, not on page-open). Favorited games
+      // appear here TOO (a duplicate beats a hole in your recent history).
       const recent = ((window.gamekit && window.gamekit.recentlyPlayed) ? window.gamekit.recentlyPlayed() : [])
         .map(r => all.find(g => !g.soon && g.slug === (r && r.slug)))
-        .filter(g => g && !isFav(g)).slice(0, 10);
+        .filter(Boolean).slice(0, 10);
       if (recent.length) sections.push({ label: T('cat.recentlyPlayed', 'Recently played'), list: recent, carousel: true });
       // all games (single + multi together — MP tiles keep their 👥 pill; the Type filter still splits)
       const rest = all.filter(g => !g.soon && !isFav(g));
@@ -1381,11 +1400,26 @@
         head.appendChild(mkSpan('line'));
         queue.push(head);
         if (sec.carousel) {
-          // one full-width rail element holding the tiles — scrolls horizontally, one row tall
+          // one full-width rail holding the tiles — scrolls horizontally, one row tall, no
+          // visible scrollbar; a » paddle on the right pages it (wraps back to the start at the end)
+          const wrap = document.createElement('div');
+          wrap.className = 'recent-wrap';
           const row = document.createElement('div');
           row.className = 'recent-row';
           sec.list.forEach(g => row.appendChild(tileEl(g, f)));
-          queue.push(row);
+          wrap.appendChild(row);
+          const next = document.createElement('button');
+          next.type = 'button'; next.className = 'recent-next';
+          next.innerHTML = '»';
+          next.setAttribute('aria-label', T('cat.recentlyPlayed', 'Recently played'));
+          next.addEventListener('click', () => {
+            if (!row.scrollBy) return;
+            const atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 8;
+            if (atEnd) row.scrollTo({ left: 0, behavior: 'smooth' });
+            else row.scrollBy({ left: Math.round(row.clientWidth * 0.8), behavior: 'smooth' });
+          });
+          wrap.appendChild(next);
+          queue.push(wrap);
         } else sec.list.forEach(g => queue.push(g));
       });
       (function chunk() {
@@ -1684,8 +1718,10 @@
       if (!b || !K || !K.fullscreen || !K.fullscreen.supported()) return;
       b.hidden = false;
       const label = () => {
-        const s = K.fullscreen.active() ? K.t('kit.exitFullscreen', { def: 'Exit fullscreen' }) : K.t('kit.fullscreen', { def: 'Fullscreen' });
+        const on = K.fullscreen.active();
+        const s = on ? K.t('kit.exitFullscreen', { def: 'Exit fullscreen' }) : K.t('kit.fullscreen', { def: 'Fullscreen' });
         b.title = s; b.setAttribute('aria-label', s);
+        b.textContent = on ? '▣' : '⛶'; // ▣ = back to windowed
       };
       label(); K.fullscreen.onChange(label);
       b.addEventListener('click', () => K.fullscreen.toggle());
@@ -1737,16 +1773,9 @@
         try {
           const wt = window.__wornTitle && window.__wornTitle();
           if (wt) {
-            const ico = document.getElementById('spIco'), sub = document.getElementById('spSub');
+            const ico = document.getElementById('spIco');
             if (ico) ico.textContent = wt.emoji || '🎖️';
-            if (sub) sub.textContent = wt.name || '';
             if (pq && pq.style && pq.style.setProperty) pq.style.setProperty('--ttbg', TIER_TINT[wt.tier] || TIER_TINT[0]);
-          }
-          if (K && K.cosmetics && window.COSMETICS) {
-            const sc = document.getElementById('scSub');
-            if (sc) sc.textContent = '🏆 ' + K.cosmetics.lifetime();
-            const pr = K.cosmetics.progress(), sk = document.getElementById('skSub');
-            if (sk && pr && pr.total) sk.textContent = pr.owned + ' / ' + pr.total + ' · ' + Math.round(pr.owned / pr.total * 100) + '%';
           }
         } catch (e) {}
       };

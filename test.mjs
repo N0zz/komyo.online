@@ -126,28 +126,39 @@ function testCatalogue() {
   }
 
   // "Recently played" rail: absent with nothing recorded; renders FULL game cards (tileEl tiles)
-  // inside a horizontal .recent-row, in recency order, skipping unknown/soon/favorited slugs.
+  // inside a horizontal .recent-row (in a .recent-wrap with a » paddle), in recency order,
+  // skipping unknown/soon slugs — favorited games DO appear (duplicate beats a hole in history).
+  const railOf = gg => {
+    const wrap = gg.getEl('grid').children.find(c => String(c.className).includes('recent-wrap'));
+    return wrap ? wrap.children.find(c => String(c.className).includes('recent-row')) : null;
+  };
   {
-    ok(!grid.children.some(c => String(c.className).includes('recent-row')), 'no Recently-played rail with nothing recorded');
+    ok(!grid.children.some(c => String(c.className).includes('recent-wrap')), 'no Recently-played rail with nothing recorded');
     const playable = GAMES.filter(gm => !gm.soon);
     const soonSlug = (GAMES.find(gm => gm.soon) || {}).slug;
     const seeded = [{ slug: playable[1].slug, at: 2 }, { slug: 'not-a-real-game', at: 1.5 }, { slug: playable[0].slug, at: 1 }];
     if (soonSlug) seeded.splice(1, 0, { slug: soonSlug, at: 1.7 });
     const g2 = bootGame('index.html', { preCode: [games, challenges], store: { gamekit_recent: JSON.stringify(seeded) } });
     ok(g2.bootErr === null, 'catalogue boots fine with recently-played data seeded: ' + g2.bootErr);
-    const grid2 = g2.getEl('grid');
-    const row = grid2.children.find(c => String(c.className).includes('recent-row'));
+    const row = railOf(g2);
     ok(!!row, 'Recently-played rail renders once something valid is recorded');
     const cards = row ? row.children.filter(c => String(c.className).includes('tile')) : [];
     ok(cards.length === 2, 'unknown-slug and soon-game entries are skipped (got ' + cards.length + ')');
     ok(cards[0] && cards[0].href === 'games/' + playable[1].slug + '/' && cards[1] && cards[1].href === 'games/' + playable[0].slug + '/',
       'full game cards render in recency order (got ' + cards.map(c => c.href).join(', ') + ')');
     ok(cards[0] && String(cards[0].innerHTML).includes('class="play"'), 'rail cards are the full tile (art + meta + PLAY), not mini chips');
-    // a favorited game is pinned in Favorites, not duplicated in the rail
+    // the » paddle exists and firing it headless doesn't throw (scrollBy is guarded)
+    const wrap2 = g2.getEl('grid').children.find(c => String(c.className).includes('recent-wrap'));
+    const paddle = wrap2 && wrap2.children.find(c => String(c.className).includes('recent-next'));
+    ok(!!paddle, 'rail has the » paddle');
+    let perr = null; try { paddle.fire('click'); } catch (e) { perr = e.message; }
+    ok(perr === null, '» paddle fires headless without throwing: ' + perr);
+    // a favorited game shows BOTH in Favorites and in the rail (recency history stays complete)
     const g3 = bootGame('index.html', { preCode: [games, challenges], store: { gamekit_recent: JSON.stringify(seeded), arcade_favs: JSON.stringify([playable[1].slug]) } });
-    const row3 = g3.getEl('grid').children.find(c => String(c.className).includes('recent-row'));
+    const row3 = railOf(g3);
     const cards3 = row3 ? row3.children.filter(c => String(c.className).includes('tile')) : [];
-    ok(cards3.length === 1 && cards3[0].href === 'games/' + playable[0].slug + '/', 'favorited games are skipped in the rail (got ' + cards3.map(c => c.href).join(', ') + ')');
+    ok(cards3.length === 2 && cards3[0].href === 'games/' + playable[1].slug + '/',
+      'favorited games still appear in the rail (got ' + cards3.map(c => c.href).join(', ') + ')');
   }
 
   // side stack (Profile / Challenges / Collection) + top-right row: wired, headless-safe
