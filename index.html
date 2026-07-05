@@ -123,7 +123,7 @@
     transform:translate(-50%,-50%) scale(.92) rotate(2deg); box-shadow:0 18px 50px rgba(0,0,0,.6); }
   /* the drop slot — an empty dashed grid cell marking where the dragged favorite will land;
      it travels with the pointer across the whole strip (the source tile is hidden meanwhile) */
-  .fav-slot { border:2px dashed #ffcf5c; border-radius:18px; background:rgba(255,207,92,.06); min-height:120px; }
+  .fav-slot { opacity:.3; border:2px dashed #ffcf5c; pointer-events:none; }
   .tile {
     position: relative;
     display:flex; flex-direction:column; text-decoration:none; color:inherit;
@@ -1145,11 +1145,12 @@
             ghost.className = 'tile drag-ghost';
             ghost.style.width = r.width + 'px'; ghost.style.height = r.height + 'px';
             document.body.appendChild(ghost);
-            // the tile leaves the strip while dragging; a dashed drop SLOT takes its place and
-            // travels with the pointer across the whole strip — the classic insertion marker,
-            // not a one-step neighbor swap (which stalled the moment the pointer sat over the
-            // just-swapped tile)
-            slot = document.createElement('div');
+            // the tile leaves the strip while dragging; a drop SLOT takes its place and travels
+            // with the pointer across the whole strip — the classic insertion marker, not a
+            // one-step neighbor swap (which stalled the moment the pointer sat over the
+            // just-swapped tile). The slot is a ghosted CLONE of the dragged tile (~30% opacity,
+            // dashed) so the gap previews the actual card, not an empty box.
+            slot = el.cloneNode(true);
             slot.className = 'tile fav-slot';
             el.parentNode.insertBefore(slot, el);
             el.style.display = 'none';
