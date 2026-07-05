@@ -103,8 +103,10 @@
      paddle reads clearly instead of drowning in tile artwork (Netflix-rail pattern) */
   .recent-wrap::after { content:""; position:absolute; top:0; bottom:0; right:0; width:96px; z-index:3;
     pointer-events:none; background:linear-gradient(90deg, transparent, var(--bg) 80%); }
-  .recent-next { position:absolute; top:50%; right:2px; transform:translateY(-50%); z-index:4;
-    width:34px; height:64px; border-radius:12px; border:1px solid var(--border);
+  /* full tile height: top/bottom pinned to the wrap, inset by the row's own 8px vertical padding
+     so it matches the cards' box exactly */
+  .recent-next { position:absolute; top:8px; bottom:8px; right:2px; z-index:4;
+    width:34px; border-radius:12px; border:1px solid var(--border);
     background:var(--surface-2); color:var(--text); font-size:20px; line-height:1; cursor:pointer;
     box-shadow:0 6px 18px rgba(0,0,0,.5); transition:color .12s, border-color .12s; }
   .recent-next:hover { color:#9fe8ff; border-color:#9fe8ff; }
