@@ -2,6 +2,9 @@
 
 Guidance for working in this repo. Read before editing.
 
+**When the user asks "wdyt" (what do you think): TALK, don't build.** Give your take, trade-offs
+and a recommendation, then STOP and discuss — do NOT implement until an explicit go-ahead.
+
 Game design knobs we honor (per-genre, distilled from external playbooks): @game-design-knobs.md
 
 ## What this is
