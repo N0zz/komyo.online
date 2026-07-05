@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import vm from 'node:vm';
 import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { bootGame, makeSandbox, ok, section, summary, KIT, I18N, ROOT } from './test-harness.mjs';
 
 const DIR = ROOT;
@@ -825,13 +826,26 @@ function testI18nCoverage() {
   const add = k => { if (KEY_RE.test(k)) used.add(k); };
   for (const f of files) {
     const src = fs.readFileSync(path.join(DIR, f), 'utf8'); let m;
-    const attr = /\bdata-t[hpa]?="([^"]+)"/g; while ((m = attr.exec(src))) add(m[1]);
+    const attr = /\bdata-t[hpat]?="([^"]+)"/g; while ((m = attr.exec(src))) add(m[1]);
     const call = /(?:[^\w$]|^)[tT]\(\s*'([^']+)'\s*[,)]/g; while ((m = call.exec(src))) add(m[1]);
   }
-  // 2) data-driven keys that are dynamic in code but MUST be translated (games + cosmetics)
+  // 2) data-driven keys that are dynamic in code but MUST be translated. The static scan above
+  // can't see t('pre.' + var) — every such family is derived from its registry here instead,
+  // so a new goal/genre/badge/title can't ship silent English in 7 locales with a green suite.
   GAMES.forEach(g => { if (g && g.slug) { add('game.' + g.slug + '.title'); add('game.' + g.slug + '.blurb'); } });
   (COS.items || []).forEach(it => { if (it && it.id) { add('cos.' + it.id + '.name'); add('cos.' + it.id + '.desc'); } });
   Object.keys(COS.sets || {}).forEach(sid => add('cos.set.' + sid));
+  const CHAL = evalData(fs.readFileSync(path.join(DIR, 'challenges.js'), 'utf8'), 'challenges.js').CHALLENGES || {};
+  Object.keys(CHAL.goals || {}).forEach(id => add('challenge.goal.' + id));            // t('challenge.goal.'+id)
+  (CHAL.titles || []).forEach((_, i) => add('title.t' + i));                           // t('title.t'+tier)
+  GAMES.forEach(g => (g.tags || []).forEach(tg => add('tag.' + String(tg).toLowerCase()))); // T('tag.'+t.toLowerCase())
+  { // badge kinds from the catalogue's BADGES map — T('badge.'+k)
+    const idx = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
+    const bm = idx.match(/const BADGES = \{([\s\S]*?)\n    \};/);
+    const badgeKeys = bm ? [...bm[1].matchAll(/^\s*(\w+):\s*\{/gm)].map(x => x[1]) : [];
+    ok(badgeKeys.length >= 4, 'BADGES map parsed from index.html (got ' + badgeKeys.join(',') + ')');
+    badgeKeys.forEach(k => add('badge.' + k));
+  }
   // changelog entries — keyed by a REVERSE index (distance from the array's end), stable across
   // prepends; see index.html's changelog renderer for the matching computation.
   CH.forEach((r, i) => {
@@ -839,14 +853,34 @@ function testI18nCoverage() {
     add('changelog.e' + ei + '.title');
     r.items.forEach((_, j) => add('changelog.e' + ei + '.b' + j));
   });
+  // PREPEND-ONLY guard: the reverse-index keying (and the Discord poster's diff) both assume
+  // shipped entries are never edited, reordered or deleted — any of those silently attaches every
+  // older entry's translations to the WRONG entry. Diff against HEAD: the tail must be identical.
+  {
+    let headCh = null;
+    try {
+      const src = execFileSync('git', ['show', 'HEAD:changelog.js'], { cwd: DIR, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] });
+      headCh = evalData(src, 'changelog.js@HEAD').CHANGELOG || null;
+    } catch (e) { /* no git (fresh archive?) → skip, CI always has it */ }
+    if (headCh) {
+      const sig = r => JSON.stringify([r.date, r.title, r.items]);
+      const tail = CH.slice(CH.length - headCh.length);
+      const changed = headCh.map((r, i) => sig(r) !== sig(tail[i]) ? ('e' + (headCh.length - 1 - i)) : null).filter(Boolean);
+      ok(CH.length >= headCh.length && changed.length === 0,
+        'changelog is prepend-only vs HEAD — shipped entries untouched' + (changed.length ? ' — EDITED/SHIFTED: ' + changed.join(',') + ' (add a NEW entry instead of editing a shipped one)' : ''));
+    } else ok(true, 'changelog prepend-guard skipped (no git history available)');
+  }
 
   // 3) pl (the reference locale) must contain EVERY referenced key — else PL users silently see English
   const plMiss = [...used].filter(k => !(k in (dict.pl || {}))).sort();
   ok(plMiss.length === 0, 'pl has every referenced key' + (plMiss.length ? ` — MISSING ${plMiss.length}: ${plMiss.slice(0, 25).join(', ')}` : ''));
 
-  // 4) each other locale is EMPTY (not started) or a COMPLETE superset of pl — no half-translated locale
+  // 4) each other locale is EMPTY (not started) or a COMPLETE superset of pl — no half-translated
+  // locale. The list is DISCOVERED from i18n.js so a new language is enforced without a test edit.
+  const OTHER_LOCALES = Object.keys(dict).filter(L => L !== 'en' && L !== 'pl');
+  ok(OTHER_LOCALES.length >= 6, 'discovered non-en/pl locales from i18n.js: ' + OTHER_LOCALES.join(','));
   const plKeys = Object.keys(dict.pl || {});
-  for (const L of ['es', 'pt', 'fr', 'it', 'cs', 'uk']) {
+  for (const L of OTHER_LOCALES) {
     const d = dict[L] || {}, n = Object.keys(d).length;
     if (n === 0) { ok(true, `${L}: not started (empty) — ok`); continue; }
     const miss = plKeys.filter(k => !(k in d)).sort();
@@ -865,13 +899,27 @@ function testI18nCoverage() {
   const tokenMiss = [];
   for (const key of Object.keys(dict.pl || {})) {
     const ref = tokensOf(dict.pl[key]);
-    for (const L of ['es', 'pt', 'fr', 'it', 'cs', 'uk']) {
+    for (const L of OTHER_LOCALES) {
       const d = dict[L] || {};
       if (!(key in d)) continue;
       if (!sameTokens(ref, tokensOf(d[key]))) tokenMiss.push(`${L}:${key}`);
     }
   }
   ok(tokenMiss.length === 0, 'every locale has the same {param} tokens as pl, per key' + (tokenMiss.length ? ` — MISMATCH ${tokenMiss.length}: ${tokenMiss.slice(0, 25).join(', ')}` : ''));
+
+  // 7) a def-less t('key') call has NO fallback for English users (en carries only ~120 keys —
+  // everything else lives in inline def:s), so its key must exist in the en dict or English
+  // players see the raw key string on screen.
+  const defless = new Set();
+  for (const f of files) {
+    const src = fs.readFileSync(path.join(DIR, f), 'utf8'); let m;
+    const bare = /(?:[^\w$]|^)[tT]\(\s*'([^']+)'\s*\)/g;                       // t('key') — no params at all
+    while ((m = bare.exec(src))) { if (KEY_RE.test(m[1])) defless.add(m[1]); }
+    const noDef = /(?:[^\w$]|^)[tT]\(\s*'([^']+)'\s*,\s*\{([^{}]*)\}\s*\)/g;   // t('key', {…}) without def:
+    while ((m = noDef.exec(src))) { if (KEY_RE.test(m[1]) && !/\bdef\s*:/.test(m[2])) defless.add(m[1]); }
+  }
+  const enMiss = [...defless].filter(k => !(k in (dict.en || {}))).sort();
+  ok(enMiss.length === 0, 'every def-less t() key exists in en (English users would see raw keys)' + (enMiss.length ? ` — MISSING ${enMiss.length}: ${enMiss.slice(0, 25).join(', ')}` : ''));
 }
 
 function testChallenges() {
