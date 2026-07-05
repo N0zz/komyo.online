@@ -90,7 +90,9 @@
   let movingTargets = loadMoving();
 
   // ---- State ----
-  let state = 'ready'; // ready | playing | over
+  let state = 'ready'; // ready | playing | winning | over
+  const SPRINT_WIN_HOLD = 18; // frames (~300ms @60fps) — see the sprint win check in shoot()
+  let winHoldFrames = 0;
   let score = 0, hits = 0, misses = 0, timeLeft = sessionSeconds;
   let elapsedFrames = 0; // for sprint: count-up timer
   let targets = [], particles = [];
@@ -213,8 +215,10 @@
         hitMarkers.push({ x: px, y: py, life: 1 });
         SND.play('hit');
         hit = true;
-        // sprint win check
-        if (mode === 'sprint' && hits >= SPRINT_TARGET) { spawnTarget(); endGame(); return; }
+        // sprint win check — hold on a "winning" state for a beat so the progress bar is actually
+        // seen filling to 100% (with a flash) before the end screen appears, instead of cutting to
+        // it on the same frame as the winning hit (read as "did that even count?").
+        if (mode === 'sprint' && hits >= SPRINT_TARGET) { state = 'winning'; winHoldFrames = 0; updateHud(); return; }
         spawnTarget();
         break;
       }
@@ -234,7 +238,7 @@
     elapsedFrames = 0;
     targets = []; particles = []; hitMarkers = [];
     frame = 0; spawnTimer = 0; spawnInterval = SPAWN_INTERVAL_INIT;
-    combo = 0; bestReact = Infinity;
+    combo = 0; bestReact = Infinity; winHoldFrames = 0;
   }
 
   function startGame() {
@@ -341,7 +345,16 @@
       record: { slug: 'aim-trainer', mode: modeLabel(mode, mode === 'sprint' ? SPRINT_TARGET : sessionSeconds), score: score, time: Math.round(elapsedFrames / 60 * 1000), stats: { accuracy: acc } },
       actions: [ { id: 'again', label: KIT.t('game.aim-trainer.fireAgain', { def: 'FIRE AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } };
-    if (isSprint) { const bt = loadBest('sprint', 0); cfg.score = elapsedFrames; cfg.scoreText = (elapsedFrames / 60).toFixed(2) + 's'; cfg.lines.unshift(KIT.t('game.aim-trainer.bestTimeLine', { time: (bt > 0 ? (bt / 1000).toFixed(2) + 's' : '--'), def: 'Best ' + (bt > 0 ? (bt / 1000).toFixed(2) + 's' : '--') })); }
+    if (isSprint) {
+      // sprint's "best" is a TIME, not a score, so it can't use the generic cfg.best/newBest
+      // paragraph (that renders via fmtScore and only appears at all when cfg.best is a score) —
+      // it already has its own custom bestTimeLine; fold the same ★ New best! badge into THAT
+      // line instead (regression: isBest was computed but never surfaced anywhere for sprint).
+      const bt = loadBest('sprint', 0);
+      cfg.score = elapsedFrames; cfg.scoreText = (elapsedFrames / 60).toFixed(2) + 's';
+      const bestLine = KIT.t('game.aim-trainer.bestTimeLine', { time: (bt > 0 ? (bt / 1000).toFixed(2) + 's' : '--'), def: 'Best ' + (bt > 0 ? (bt / 1000).toFixed(2) + 's' : '--') });
+      cfg.lines.unshift(isBest ? bestLine + ' <span class="gkm-new">' + KIT.t('menu.newBest', { def: '★ New best!' }) + '</span>' : bestLine);
+    }
     else { cfg.score = score; cfg.best = loadBest('timed', sessionSeconds); cfg.newBest = isBest; }
     KIT.menu.show(cfg);
   }
@@ -353,6 +366,13 @@
   function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(selectedMode); }
 
   function update() {
+    if (state === 'winning') {
+      // frozen gameplay (no more spawns/hits), just holding the final frame on-screen; freezing
+      // elapsedFrames here also means the recorded clear time is the real win moment, not padded
+      winHoldFrames++;
+      if (winHoldFrames >= SPRINT_WIN_HOLD) endGame();
+      return;
+    }
     if (state !== 'playing') return;
     frame++;
     elapsedFrames++;
@@ -389,6 +409,8 @@
       hitMarkers[i].life -= 0.06;
       if (hitMarkers[i].life <= 0) hitMarkers.splice(i, 1);
     }
+
+    updateHud(); // was only refreshed on shoot() — the on-screen clock/elapsed HUD now ticks live
   }
 
   function moveRamp() {
@@ -566,13 +588,24 @@
     }
 
     // sprint progress bar — race is to SPRINT_TARGET targets HIT, not points. Lifted off the very
-    // bottom edge + thicker + with an inline count so it's actually visible on mobile.
-    if (state === 'playing' && mode === 'sprint') {
+    // bottom edge + thicker + with an inline count so it's actually visible on mobile. Stays drawn
+    // through the brief 'winning' hold (see shoot()) so the bar is actually SEEN hitting 100%,
+    // with a glow flash, instead of cutting straight to the end screen on the winning hit's frame.
+    if ((state === 'playing' || state === 'winning') && mode === 'sprint') {
       const pct = Math.min(hits / SPRINT_TARGET, 1);
+      const won = state === 'winning';
       const barH = 14, bx = 20, bw = W - 40, by = H - barH - 12;
       ctx.fillStyle = '#1a2535'; ctx.fillRect(bx, by, bw, barH);
-      ctx.fillStyle = '#ff7a3c'; ctx.fillRect(bx, by, bw * pct, barH);
-      ctx.fillStyle = '#fff'; ctx.font = 'bold 11px system-ui, sans-serif';
+      if (won) {
+        const glow = 0.55 + 0.45 * Math.sin(winHoldFrames * 0.5);
+        ctx.shadowColor = '#ffd166'; ctx.shadowBlur = 16 * glow;
+        ctx.fillStyle = '#ffd166';
+      } else {
+        ctx.fillStyle = '#ff7a3c';
+      }
+      ctx.fillRect(bx, by, bw * pct, barH);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = won ? '#2a1a00' : '#fff'; ctx.font = 'bold 11px system-ui, sans-serif';
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(hits + ' / ' + SPRINT_TARGET, W / 2, by + barH / 2);
       ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
