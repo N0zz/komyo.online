@@ -102,6 +102,10 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
 
 ### Later (non-gating)
 
+- **Top-bar button labels on desktop** *(idea — undecided)* — at ≥~900px show icon + short label on
+  the right cluster (`📱 Install · Language · ⚙️ Settings · ⛶ Fullscreen`); icon-only below (today's
+  look). ☰ stays bare. Static label text (no "Exit fullscreen" swap — state lives in the icon);
+  only "Install" needs a new i18n key ×7; eyeball label widths per locale (uk/pt/it run long).
 - **Single service worker for the whole site** — drop the 10 per-game `sw.js` scopes and let ONE
   root-scope SW cache everything (games included): kills the "one game stayed stale after Update"
   bug class outright, ends the ~11× duplicate caching (each scope precaches its own copy of the
