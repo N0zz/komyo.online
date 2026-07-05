@@ -1161,6 +1161,10 @@
       el.addEventListener('contextmenu', ev => { if (ev.preventDefault) ev.preventDefault(); });
       el.addEventListener('pointerdown', e => {
         if (e.button != null && e.button !== 0) return;
+        // presses that start on the ★ star (or any button inside the tile) never enter the drag
+        // path — setPointerCapture would otherwise retarget the whole sequence to the tile, so the
+        // click lands on the link (opening the game) instead of the star (unfavoriting)
+        if (e.target && e.target.closest && e.target.closest('button')) return;
         const touch = e.pointerType === 'touch';
         if (!touch && e.preventDefault) e.preventDefault(); // mouse: block native link-drag/text-select
         const sx = e.clientX, sy = e.clientY;
