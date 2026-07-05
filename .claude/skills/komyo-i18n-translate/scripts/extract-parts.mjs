@@ -33,16 +33,27 @@ function load(file) {
   return sb.window;
 }
 
-const I18N = load('i18n.js').KOMYO_I18N;
+// The catalogue is split per language: i18n.js is the loader + the en (def-source) dict; every
+// other locale lives in its own root-level i18n.<code>.js. Eval them all into ONE sandbox
+// (same as test-harness.mjs's I18N list) to reconstruct the full KOMYO_I18N map.
+function loadI18N() {
+  const files = ['i18n.js']
+    .concat(fs.readdirSync(DIR).filter(f => /^i18n\.[a-z]{2}\.js$/.test(f)).sort());
+  const sb = { window: {} }; sb.globalThis = sb;
+  for (const f of files) vm.runInNewContext(fs.readFileSync(path.join(DIR, f), 'utf8'), sb, { filename: f });
+  return sb.window.KOMYO_I18N;
+}
+
+const I18N = loadI18N();
 const CH = load('changelog.js').CHANGELOG;
-const pl = I18N.pl; // pl is the reference locale — every key the site uses lives here.
+const pl = I18N.pl; // pl is the reference locale (i18n.pl.js) — every key the site uses lives here.
 
 // Incremental mode: emit only what the target locale is missing vs pl.
 let target = null;
 if (missingLang) {
   target = I18N[missingLang];
   if (!target) {
-    console.error(`unknown locale "${missingLang}" — locales in i18n.js: ${Object.keys(I18N).join(' ')}`);
+    console.error(`unknown locale "${missingLang}" — locales found (i18n.js + i18n.<code>.js): ${Object.keys(I18N).join(' ')}`);
     process.exit(1);
   }
 }

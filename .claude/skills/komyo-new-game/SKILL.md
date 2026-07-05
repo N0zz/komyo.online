@@ -85,22 +85,25 @@ Play it each time. This is where feel and tuning happen.
 Edit the shared files (see `references/registration.md` for exact shapes):
 `games.js` (entry with `added: "YYYY-MM-DD"`, no `soon:`), `sitemap.xml`,
 `llms.txt`, prepend one player-facing `changelog.js` entry, and add the game's
-keys (title/blurb, in-game strings, `cos.*`, `challenge.goal.*`) to the `pl`
-block in `i18n.js`.
+keys (title/blurb, in-game strings, `cos.*`, `challenge.goal.*`) to
+**`i18n.pl.js`** (the `pl` reference locale's own file — en defs are inline in
+code as `def:`).
 
 ### 7b · Translate the new keys — hand off to komyo-i18n-translate
 `pl` alone is not enough: the coverage test requires every OTHER populated
 locale to stay a **complete superset of `pl`**, so the new keys must land in
-all of them. **Discover the currently-configured locales at runtime** from
-`i18n.js` / `gamekit.langs()` — never hardcode a locale list:
+each locale's own `i18n.<code>.js` file. **Discover the currently-configured
+locales at runtime** — merge `i18n.js` + every root `i18n.<code>.js` (or use
+`gamekit.langs()` / `KOMYO_I18N_AVAILABLE` in `i18n.js`) — never hardcode a
+locale list:
 
 ```bash
-cd ~/arcade && node -e "const vm=require('node:vm');const sb={window:{}};sb.globalThis=sb;vm.runInNewContext(require('node:fs').readFileSync('i18n.js','utf8'),sb);for(const[k,v]of Object.entries(sb.window.KOMYO_I18N))console.log(k,Object.keys(v).length)"
+cd ~/arcade && node -e "const fs=require('node:fs'),vm=require('node:vm');const sb={window:{}};sb.globalThis=sb;for(const f of ['i18n.js'].concat(fs.readdirSync('.').filter(f=>/^i18n\.[a-z]{2}\.js$/.test(f)).sort()))vm.runInNewContext(fs.readFileSync(f,'utf8'),sb,{filename:f});for(const[k,v]of Object.entries(sb.window.KOMYO_I18N))console.log(k,Object.keys(v).length)"
 ```
 
 Every discovered non-`en` locale with keys is a required target. Run the
 **komyo-i18n-translate** skill in its incremental mode ("add the new keys to
-all existing complete locales") to translate them.
+all existing complete locales") to translate them into each `i18n.<code>.js`.
 
 ### 8 · Verify + hand off
 Run `node test.mjs` AND `node games/<slug>/test.mjs` — both green, including the
@@ -132,15 +135,18 @@ frame-rate-dependent game, a reset that wipes another game). The generated
 - **`CHALLENGES.goodRun` bar exists** for the game.
 - **Atomic `<head>` order** (analytics.js · game-kit.css · version.js · game-kit.js
   · challenges.js · cosmetics.js · i18n.js) AND the `sw.js` `SHELL` lists the same
-  shared files in lockstep.
+  shared files in lockstep — plus every per-locale `i18n.<code>.js` file (copy the
+  current set from `games/breakout/sw.js`; a missing one silently kills that
+  language offline).
 - **All player-facing strings go through `KIT.t(key, { def: 'English' })`** — no raw
   English literals in the UI (menus, share, controls, HUD labels). `game.<slug>.*` for
   game-specific, `game.common.*` for shared. See `references/i18n.md`.
-- **New keys added to `i18n.js` for EVERY populated locale** — the i18n-coverage test in
-  `node test.mjs` REQUIRES `pl` to have every `game.<slug>.*` key (title/blurb + all UI
-  strings) + `cos.*` for any skins, AND every other populated locale to be a complete
-  superset of `pl`. English works via `def:`. Discover the current locale set from
-  `i18n.js` / `gamekit.langs()` at runtime (never hardcode it); translate the new keys
+- **New keys added for EVERY populated locale** (each in its own `i18n.<code>.js`; `pl`
+  reference = `i18n.pl.js`) — the i18n-coverage test in `node test.mjs` REQUIRES `pl` to
+  have every `game.<slug>.*` key (title/blurb + all UI strings) + `cos.*` for any skins,
+  AND every other populated locale to be a complete superset of `pl`. English works via
+  `def:` inline in code. Discover the current locale set at runtime (merged i18n files /
+  `gamekit.langs()` / `KOMYO_I18N_AVAILABLE`, never hardcode it); translate the new keys
   via the **komyo-i18n-translate** skill (stage 7b).
 - **Exactly one attribute-less `<script>`**, last before `</body>` (the test
   harness extracts it); `gamekit.pwa()` is called after the IIFE closes.
