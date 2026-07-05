@@ -108,6 +108,15 @@ function testCatalogue() {
         'reorder re-renders the strip in the new order');
       g.win.__favReorder(0, 5); // out of bounds → no-op
       ok(JSON.parse(g.store['arcade_favs'])[0] === ga.slug, 'out-of-range reorder is a no-op');
+      // the DROP path persists through __commitFavOrder(visible DOM order) — merged back into the
+      // FULL list, so favorites hidden by an active filter must survive a filtered reorder
+      ok(typeof g.win.__commitFavOrder === 'function', 'drop-commit hook exposed');
+      g.win.__commitFavOrder([gb.slug, ga.slug]); // as if gc were filtered out of view
+      ok(JSON.stringify(JSON.parse(g.store['arcade_favs'])) === JSON.stringify([gb.slug, gc.slug, ga.slug]),
+        'filtered drop reorders the visible favorites in place and KEEPS the hidden one (got ' + g.store['arcade_favs'] + ')');
+      g.win.__commitFavOrder([ga.slug, gc.slug, gb.slug]); // full-view drop still works
+      ok(JSON.stringify(JSON.parse(g.store['arcade_favs'])) === JSON.stringify([ga.slug, gc.slug, gb.slug]),
+        'unfiltered drop persists the plain DOM order (got ' + g.store['arcade_favs'] + ')');
       for (const slug of [ga.slug, gb.slug, gc.slug]) {
         const t = tiles().find(el => el.href === 'games/' + slug + '/');
         t.children[0].fire('click');
