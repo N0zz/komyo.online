@@ -109,6 +109,12 @@ daily: [ …existing…, 'flood-1', 'flood-2' ],
 
 The **hard target (`flood-2` = 12) MUST equal the `goodRun` bar (12).**
 
+Goal `title` strings stay English in `challenges.js` — they are the `def:` source; the kit renders
+them via `t('challenge.goal.<id>', { def: goal.title })`. **`challenge.goal.<id>` is a dynamic key
+the coverage scanner can't see** (built by concatenation in `game-kit.js`), so a missing translation
+is *silent English*, not a red test — add `challenge.goal.flood-1` / `challenge.goal.flood-2` keys to
+`i18n.js` yourself (§9).
+
 ### 2c. Titles ladder + `randomSlug` `[AUTOMATIC — do not touch]`
 
 `CHALLENGES.titles`, `titleFor`, and `randomSlug` are global machinery. A new game needs **no**
@@ -138,6 +144,10 @@ Rules the tests enforce:
   flagged exceptions (the Meadow Flyer progressive bird tail is the only current one).
 - The **painter** draws a small swatch on any square canvas — drawing only, never touches the DOM.
   Reuse the existing helpers (`fill`, `grad`, `orb`, `star`, `paddle`, …) or add one.
+- The `name`/`desc` strings here are the English `def:` source — the store renders them via
+  `t('cos.<id>.name')` / `t('cos.<id>.desc')` and the set label via `t('cos.set.<setId>')`. The
+  coverage test derives these keys from the registry, so missing translations DO fail the suite —
+  add them in §9.
 
 ### The set label `[MANDATORY if you added a set]`
 
@@ -276,6 +286,35 @@ fresh entry posts cleanly while an edited old one mis-posts.
 
 ---
 
+## 9. `i18n.js` — translations `[MANDATORY]`
+
+The coverage test (`node test.mjs`) requires the `pl` locale to contain every referenced key, and
+every OTHER populated locale to remain a **complete superset of `pl`** — so a new game's keys go
+into `pl` AND every other populated locale. **Discover the currently-configured locales at runtime**
+(never hardcode the list — a future language must not require an edit here):
+
+```bash
+cd ~/arcade && node -e "const vm=require('node:vm');const sb={window:{}};sb.globalThis=sb;vm.runInNewContext(require('node:fs').readFileSync('i18n.js','utf8'),sb);for(const[k,v]of Object.entries(sb.window.KOMYO_I18N))console.log(k,Object.keys(v).length)"
+```
+
+Key families a new game contributes:
+
+| family | English source | enforced? |
+|---|---|---|
+| `game.<slug>.title` / `.blurb` | `games.js` entry | test-enforced (derived from `GAMES`) |
+| `game.<slug>.*` in-game strings | every `KIT.t('game.<slug>.…', { def })` call in `index.html` | test-enforced (literal scan) |
+| `cos.<id>.name` / `.desc` | `cosmetics.js` `add(...)` args | test-enforced (derived from registry) |
+| `cos.set.<setId>` | `COSMETICS.sets` label | test-enforced (derived from registry) |
+| `challenge.goal.<id>` | `challenges.js` goal `title` | **NOT enforced — dynamic key the scanner skips; missing = silent English. Add it yourself.** |
+
+Workflow: add the full key set to the `pl` block by hand (the failing test lists any you missed —
+except `challenge.goal.*`, which never fails; grep the existing entries for the pattern), then hand
+off to the **komyo-i18n-translate** skill (incremental mode) to add the same keys to every other
+populated locale. `en` stays sparse (`def:` is the English source) — except plural keys, which must
+exist in `en`.
+
+---
+
 ## Consolidated ordered checklist — to add a live game `<slug>`
 
 **Create 6 files** in `games/<slug>/`:
@@ -287,15 +326,17 @@ fresh entry posts cleanly while an edited old one mis-posts.
 5. `favicon.svg` (§6).
 6. `icon-192.png` + `icon-512.png` — via `gen-icon.mjs` (§6; counts as one step, two files).
 
-**Edit 7 shared files** at repo root:
+**Edit 8 shared files** at repo root:
 
 1. `games.js` — GAMES entry (§1).
 2. `challenges.js` — `goodRun` bar **and** two goal entries + add ids to `daily` (§2).
 3. `cosmetics.js` — `add()` calls + `sets` label + `games` meta (§3) *(optional but expected)*.
-4. `sitemap.xml` — `<url>` at priority 0.8 (§7).
-5. `llms.txt` — Games bullet (§7).
-6. `changelog.js` — prepend one entry (§8).
-7. `test.mjs` (repo root) — it boots every live game, so the new game is auto-covered; confirm it
+4. `i18n.js` — all the game's key families in `pl` (§9), then the komyo-i18n-translate skill
+   (incremental mode) for every other populated locale.
+5. `sitemap.xml` — `<url>` at priority 0.8 (§7).
+6. `llms.txt` — Games bullet (§7).
+7. `changelog.js` — prepend one entry (§8).
+8. `test.mjs` (repo root) — it boots every live game, so the new game is auto-covered; confirm it
    picks the game up (no edit usually needed, but verify).
 
 **Then run all suites and keep them green:**
@@ -320,3 +361,5 @@ node games/floodgate/test.mjs
 - **Head ↔ SHELL lockstep.** The shared files in the atomic `<head>` and the `sw.js` `SHELL` array
   must be the same set. Adding a file to one without the other silently kills it offline.
 - **NEW/UPDATED are dates, not strings.** Never put "NEW"/"UPDATED" in `badges`; set `added`/`updated`.
+- **`challenge.goal.<id>` is a dynamic i18n key** — the coverage scanner can't see it, so a missing
+  translation renders silent English instead of failing the suite. Add it with the other keys (§9).

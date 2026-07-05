@@ -27,6 +27,7 @@ When in doubt, the code is truth.
 - [challenges](#challenges)
 - [cosmetics / trophies / shop](#cosmetics--trophies--shop)
 - [share / cards / discord](#share--cards--discord)
+- [i18n — t / lang / langs](#i18n--t--lang--langs)
 - [pwa / updates / version](#pwa--updates--version)
 - [misc utilities](#misc-utilities)
 - [Mandatory vs optional vs never-call-directly checklist](#mandatory-vs-optional-vs-never-call-directly-checklist)
@@ -549,6 +550,41 @@ Posts to the public Komyo Discord webhook. Games rely on `shareRow`'s auto-post;
 
 ---
 
+## i18n — t / lang / langs
+
+The kit's translation engine. Locale data lives in `i18n.js` (`window.KOMYO_I18N`, loaded in the
+atomic `<head>` + `sw.js` SHELL); `game-kit.js` owns lookup, plurals, and the language picker.
+
+### `KIT.t(key, params)` — MANDATORY (every player-facing string)
+
+Looks up `key` in the active locale, falling back to `en`, then `params.def`, then the key itself.
+`params`:
+- `def` — the English source text. ALWAYS pass it; never rely on a key already existing in `i18n.js`.
+- Any other param interpolates into `{name}` tokens in the string:
+  `KIT.t('game.x.scoreLine', { score, def: 'Score {score}' })`.
+- `count` — selects the plural category via `Intl.PluralRules` when the entry is a plural object
+  (`{ one, few, many, other }`). `def:` can't pluralize, so plural keys need real `en` entries.
+
+### `KIT.lang()` / `KIT.setLang(code)` / `KIT.onLang(cb)` — optional
+
+`lang()` → the active locale code. `setLang(code)` persists it (`gamekit_lang`), sets `<html lang>`,
+and notifies subscribers (unsupported codes fall back to `'en'`). `onLang(cb)` subscribes to language
+changes; returns an unsubscribe fn.
+
+### `KIT.langs()` — optional
+
+→ a copy of the configured language list `[{code, label}, …]`. **This is the runtime source of truth
+for which locales exist** — discover the set from here (or `Object.keys(window.KOMYO_I18N)`), never
+hardcode it.
+
+### `KIT.langButton(opts)` / `KIT.langMenu(opts)` — optional (the chrome wires them)
+
+`langButton(opts)` → a flag trigger element that opens `langMenu` (the flag-grid picker modal; a
+locale with 0 keys renders as "soon" and isn't selectable). `nav()` already puts a language entry in
+the ☰ menu and the catalogue header has its own button — games don't call these.
+
+---
+
 ## pwa / updates / version
 
 ### `KIT.pwa(file)` — MANDATORY
@@ -599,6 +635,7 @@ from real updates by the worker script URL.
 - `KIT.pwa()`
 - `KIT.saveBest(...)` / `KIT.bestScore(...)` (the only best store)
 - `KIT.sound` — `SND.define({...})` + `SND.play(...)`
+- `KIT.t(key, { def })` — every player-facing string (no raw English literals in the UI)
 
 **OPTIONAL (use when the game needs it):**
 - `KIT.music.play/subscribe`, `nav({music:true})`

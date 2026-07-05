@@ -9,7 +9,8 @@ description: >-
   challenges, cosmetics, pause, PWA, share cards, catalogue registration, tests)
   so the user only supplies the idea and playtests. Triggers on "add a game",
   "let's build a <genre> game", "new komyo game", "make a game where you…",
-  "prototype a game about…", or any pitch for a game to put on the arcade.
+  "prototype a game about…", "port/remake/clone <game> to komyo", or any pitch
+  for a game to put on the arcade.
 ---
 
 # Create a komyo game
@@ -83,7 +84,23 @@ Play it each time. This is where feel and tuning happen.
 ### 7 · Register the game
 Edit the shared files (see `references/registration.md` for exact shapes):
 `games.js` (entry with `added: "YYYY-MM-DD"`, no `soon:`), `sitemap.xml`,
-`llms.txt`, and prepend one player-facing `changelog.js` entry.
+`llms.txt`, prepend one player-facing `changelog.js` entry, and add the game's
+keys (title/blurb, in-game strings, `cos.*`, `challenge.goal.*`) to the `pl`
+block in `i18n.js`.
+
+### 7b · Translate the new keys — hand off to komyo-i18n-translate
+`pl` alone is not enough: the coverage test requires every OTHER populated
+locale to stay a **complete superset of `pl`**, so the new keys must land in
+all of them. **Discover the currently-configured locales at runtime** from
+`i18n.js` / `gamekit.langs()` — never hardcode a locale list:
+
+```bash
+cd ~/arcade && node -e "const vm=require('node:vm');const sb={window:{}};sb.globalThis=sb;vm.runInNewContext(require('node:fs').readFileSync('i18n.js','utf8'),sb);for(const[k,v]of Object.entries(sb.window.KOMYO_I18N))console.log(k,Object.keys(v).length)"
+```
+
+Every discovered non-`en` locale with keys is a required target. Run the
+**komyo-i18n-translate** skill in its incremental mode ("add the new keys to
+all existing complete locales") to translate them.
 
 ### 8 · Verify + hand off
 Run `node test.mjs` AND `node games/<slug>/test.mjs` — both green, including the
@@ -119,9 +136,12 @@ frame-rate-dependent game, a reset that wipes another game). The generated
 - **All player-facing strings go through `KIT.t(key, { def: 'English' })`** — no raw
   English literals in the UI (menus, share, controls, HUD labels). `game.<slug>.*` for
   game-specific, `game.common.*` for shared. See `references/i18n.md`.
-- **Polish keys added to `i18n.js`** — the i18n-coverage test in `node test.mjs` REQUIRES
-  `pl` to have every `game.<slug>.*` key (title/blurb + all UI strings) + `cos.*` for any
-  skins. English works via `def:`, but PL is enforced. `es/pt/fr/it` stay empty.
+- **New keys added to `i18n.js` for EVERY populated locale** — the i18n-coverage test in
+  `node test.mjs` REQUIRES `pl` to have every `game.<slug>.*` key (title/blurb + all UI
+  strings) + `cos.*` for any skins, AND every other populated locale to be a complete
+  superset of `pl`. English works via `def:`. Discover the current locale set from
+  `i18n.js` / `gamekit.langs()` at runtime (never hardcode it); translate the new keys
+  via the **komyo-i18n-translate** skill (stage 7b).
 - **Exactly one attribute-less `<script>`**, last before `</body>` (the test
   harness extracts it); `gamekit.pwa()` is called after the IIFE closes.
 - **Headless-safe** — guard `AudioContext`, `navigator.vibrate`, `matchMedia`; the

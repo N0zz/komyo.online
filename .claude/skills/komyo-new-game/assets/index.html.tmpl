@@ -163,14 +163,14 @@
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.{{SLUG}}.menuTitle', { def: '{{TITLE}}' }).toUpperCase(),
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.{{SLUG}}.menuTitle', { def: '{{TITLE_JS}}' }).toUpperCase(),
       actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'Play' }), primary: true }],
       hint: () => KIT.t('game.{{SLUG}}.startHint', { def: 'Move into the dot to score. 30 seconds on the clock.' }),
       onPlay: () => startGame(),
     });
   }
 
-  function shareMsg() { return KIT.shareText({ score: score, game: KIT.t('game.{{SLUG}}.title', { def: '{{TITLE}}' }), emoji: '{{ICON}}', mode: MODE_LABEL }); }
+  function shareMsg() { return KIT.shareText({ score: score, game: KIT.t('game.{{SLUG}}.title', { def: '{{TITLE_JS}}' }), emoji: '{{ICON}}', mode: MODE_LABEL }); }
 
   function showEnd(isBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
@@ -178,7 +178,7 @@
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.common.gameOver', { def: 'GAME OVER' }),
       record: { slug: SLUG, mode: MODE_LABEL, score: score },
       score: score, best: best, newBest: isBest,
-      share: { slug: SLUG, accent: '{{ACCENT}}', icon: '{{ICON}}', title: KIT.t('game.{{SLUG}}.title', { def: '{{TITLE}}' }), message: () => shareMsg() },
+      share: { slug: SLUG, accent: '{{ACCENT}}', icon: '{{ICON}}', title: KIT.t('game.{{SLUG}}.title', { def: '{{TITLE_JS}}' }), message: () => shareMsg() },
       actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'Play Again' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'Menu' }) } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
   }
@@ -223,7 +223,7 @@
   KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
-    controls: { title: KIT.t('game.{{SLUG}}.controlsTitle', { def: '{{TITLE}} — Controls' }),
+    controls: { title: KIT.t('game.{{SLUG}}.controlsTitle', { def: '{{TITLE_JS}} — Controls' }),
       mouse: [ [KIT.t('game.common.move', { def: 'Move' }), KIT.t('game.{{SLUG}}.ctrlGuide', { def: 'Guide the square' })] ],
       keyboard: [ ['Arrows · WASD', KIT.t('game.common.move', { def: 'Move' })], ['Esc', KIT.t('game.common.pause', { def: 'Pause' })] ],
       touch: [ [KIT.t('game.common.drag', { def: 'Drag' }), KIT.t('game.{{SLUG}}.ctrlDragMove', { def: 'Move the square' })] ] } });

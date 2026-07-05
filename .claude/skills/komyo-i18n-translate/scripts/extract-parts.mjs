@@ -3,15 +3,27 @@
 // chunk, writing one <name>.keys.txt file per part to an output directory.
 // See ../SKILL.md for the full workflow this feeds into.
 //
-// Usage: node extract-parts.mjs <outDir>
+// Usage: node extract-parts.mjs <outDir> [--missing <locale>]
+//   --missing <locale>: incremental mode — emit only the keys present in pl but
+//   absent in that locale ("add the new keys to an already-complete locale");
+//   parts with nothing missing are skipped.
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..');
-const outDir = process.argv[2];
-if (!outDir) { console.error('usage: node extract-parts.mjs <outDir>'); process.exit(1); }
+const USAGE = 'usage: node extract-parts.mjs <outDir> [--missing <locale>]';
+const args = process.argv.slice(2);
+let missingLang = null;
+const mi = args.indexOf('--missing');
+if (mi >= 0) {
+  missingLang = args[mi + 1];
+  if (!missingLang) { console.error(USAGE); process.exit(1); }
+  args.splice(mi, 2);
+}
+const outDir = args[0];
+if (!outDir) { console.error(USAGE); process.exit(1); }
 fs.mkdirSync(outDir, { recursive: true });
 
 function load(file) {
@@ -25,16 +37,27 @@ const I18N = load('i18n.js').KOMYO_I18N;
 const CH = load('changelog.js').CHANGELOG;
 const pl = I18N.pl; // pl is the reference locale — every key the site uses lives here.
 
+// Incremental mode: emit only what the target locale is missing vs pl.
+let target = null;
+if (missingLang) {
+  target = I18N[missingLang];
+  if (!target) {
+    console.error(`unknown locale "${missingLang}" — locales in i18n.js: ${Object.keys(I18N).join(' ')}`);
+    process.exit(1);
+  }
+}
+const wanted = k => !target || !(k in target);
+
 const KIT_NS = ['nav', 'confirm', 'pause', 'sound', 'kit', 'update', 'controls', 'embed', 'menu',
   'share', 'card', 'shop', 'grb', 'challenges', 'challenge', 'title', 'titles', 'lang', 'crt',
   'badge', 'tag', 'chal'];
 const CAT_NS = ['cat', 'profile', 'drawer', 'fb', 'nl', 'cl', 'name', 'about', 'settings', 'faq',
   'legal', 'data', 'cookie', 'form', 'meta'];
-// The two heaviest per-game registries (upgrade/map/tower prose) — keep them alone in one
+// The heaviest per-game registries (upgrade/map/tower prose) — keep them alone in one
 // part so no single translator part is wildly bigger than the others.
 const HEAVY_GAMES = ['tower-defense', 'asteroids-plus', 'asteroids', 'bubbles'];
 
-const keys = Object.keys(pl).filter(k => !k.startsWith('changelog.'));
+const keys = Object.keys(pl).filter(k => !k.startsWith('changelog.') && wanted(k));
 const out = { part1_kit: [], part2_catalogue: [], part3_games_heavy: [], part4_games_rest: [], part5_cosmetics: [] };
 for (const k of keys) {
   const ns = k.split('.')[0];
@@ -46,6 +69,7 @@ for (const k of keys) {
   else out.part2_catalogue.push(k); // CAT_NS + anything unclassified falls here
 }
 for (const [name, list] of Object.entries(out)) {
+  if (missingLang && !list.length) { console.log(name, 0, '(skipped — nothing missing)'); continue; }
   fs.writeFileSync(path.join(outDir, name + '.keys.txt'), list.join('\n') + '\n');
   console.log(name, list.length);
 }
@@ -56,8 +80,13 @@ for (const [name, list] of Object.entries(out)) {
 const chLines = [];
 CH.forEach((r, i) => {
   const ei = CH.length - 1 - i;
-  chLines.push(`changelog.e${ei}.title\t${r.title}`);
-  r.items.forEach((it, j) => chLines.push(`changelog.e${ei}.b${j}\t${it}`));
+  const push = (key, txt) => { if (wanted(key)) chLines.push(`${key}\t${txt}`); };
+  push(`changelog.e${ei}.title`, r.title);
+  r.items.forEach((it, j) => push(`changelog.e${ei}.b${j}`, it));
 });
-fs.writeFileSync(path.join(outDir, 'part6_changelog.keys.txt'), chLines.join('\n') + '\n');
-console.log('part6_changelog', chLines.length);
+if (missingLang && !chLines.length) {
+  console.log('part6_changelog', 0, '(skipped — nothing missing)');
+} else {
+  fs.writeFileSync(path.join(outDir, 'part6_changelog.keys.txt'), chLines.join('\n') + '\n');
+  console.log('part6_changelog', chLines.length);
+}

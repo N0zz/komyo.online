@@ -35,19 +35,22 @@ the `apple-mobile-web-app-title`. Everything else is byte-identical across games
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
 <style> … </style>
 </head>
 ```
 
-**The shared-script block is atomic and order-sensitive.** All five are same-origin, in-repo files
+**The shared-script block is atomic and order-sensitive.** These are all same-origin, in-repo files
 that ship with the site and are cached offline by the game's `sw.js` SHELL — they are NOT external
 "dependencies." Rules:
 
 - **`analytics.js` is the only `defer`.** Everything else loads synchronously so `window.gamekit`
   exists before the inline script runs (the inline script is NOT deferred either).
 - **Canonical order** (use this — it's the breakout template): `analytics.js` (defer) · `game-kit.css`
-  · `version.js` · **`game-kit.js` → `challenges.js` → `cosmetics.js`**. The kit must be defined
-  before `challenges.js`/`cosmetics.js` register their data against it.
+  · `version.js` · **`game-kit.js` → `challenges.js` → `cosmetics.js` → `i18n.js`**. The kit must be
+  defined before `challenges.js`/`cosmetics.js` register their data against it; `i18n.js` sets
+  `window.KOMYO_I18N` (read lazily by `KIT.t`) and must be loaded before the inline script's first
+  `t()` call.
 - The game's `sw.js` SHELL must list these SAME files in lockstep — a missing one silently kills
   that feature offline.
 
@@ -91,9 +94,9 @@ attribute-less inline `<script>` LAST before `</body>`**, and `gamekit.pwa()` OU
 <canvas id="game"></canvas>
 <div id="bkpad" aria-hidden="true"><span>◀</span><span>▶</span></div>  <!-- optional game DOM -->
 <div id="hud" class="gamekit-hud">
-  <div class="stat"><span class="lbl">SCORE</span><span class="val" id="scoreEl">0</span></div>
-  <div class="stat"><span class="lbl">BEST</span><span class="val" id="bestEl">0</span></div>
-  <div class="stat"><span class="lbl">LIVES</span><span class="hrt" id="livesEl">♥♥♥</span></div>
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblLives">LIVES</span><span class="hrt" id="livesEl">♥♥♥</span></div>
 </div>
 <script>
 (() => {
@@ -107,6 +110,9 @@ attribute-less inline `<script>` LAST before `</body>`**, and `gamekit.pwa()` OU
 
 - Score/best HUD items go inside a **`.gamekit-hud`** container (id `hud`). The kit positions it
   center-top; the game reserves `gamekit.layout.hudTop()` px of headroom in its layout.
+- The static label text (`SCORE`/`BEST`/…) is English placeholder only — give each `.lbl` an id and
+  localize once at boot via `KIT.t` (breakout's `i18nHudLabels()`):
+  `document.getElementById('lblScore').textContent = KIT.t('game.<slug>.hudScore', { def: 'SCORE' })`.
 - The inline `<script>` has **no attributes** — the test harness extracts the last attribute-less
   `<script>` before `</body>`, so `<head>` `<script src=…>` never confuse it.
 - **`gamekit.pwa()` is called after the IIFE closes** (outside it), so it's excluded from the inline
@@ -148,10 +154,14 @@ let gameMode = 'classic';
 per-game best key. `modeLabel` is the human label the profile shows.
 
 ```js
-const modeLabel = m => { m = m || gameMode; return m.charAt(0).toUpperCase() + m.slice(1); };
+const modeLabel = m => { m = m || gameMode; return m.charAt(0).toUpperCase() + m.slice(1); };  // storage key — stays English
+const modeDisplay = m => KIT.t('game.breakout.mode' + modeLabel(m), { def: modeLabel(m) });    // displayed name — translated
 function loadBest(mode) { return KIT ? KIT.bestScore('breakout', modeLabel(mode)) : 0; }
 function saveBest()     { if (KIT) KIT.saveBest('breakout', modeLabel(gameMode), { score }); }
 ```
+
+The `modeLabel` used for storage (`saveBest` / `record.mode`) is a stable English string; only the
+*displayed* name goes through `KIT.t` (the `modeDisplay` split above — breakout's real idiom).
 
 Compute `isBest` / `newBest` **before** the single end-of-run save, or "★ New best!" never fires.
 `stacker.gameOver()` is a clean reference: `const prevBest = currentBest(); saveBest(); const isBest = score > prevBest;`.
@@ -183,31 +193,41 @@ wraps — but `topReserve` must still be **≥ `hudTop()`**, never less. Don't r
   run; never call `gamekit.recordResult` directly).
 - **PAUSE** (`kind:'pause'`) — resume / quit actions + `onEsc`.
 
+**Every player-facing string goes through `KIT.t(key, { def: 'English' })`** — `def:` is the English
+source, so the game works with zero `i18n.js` edits, and translations land later without touching the
+game. This is the real breakout code:
+
 ```js
 function showStartMenu() {
   state = 'ready'; KIT.showMenuButton(false); KIT.showPauseButton(false);
-  KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: 'BRICK BREAKER', backdrop: menuBackdrop,
-    groups: [{ id: 'mode', label: 'MODE', style: 'cards', default: gameMode, choices: [
-      { id: 'classic', label: 'Classic', mech: ['Levels'], best: () => loadBest('classic'), preview: (g,w,h)=>pvBrick(g,w,h,3) },
+  KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.breakout.menuTitle', { def: 'BRICK BREAKER' }), backdrop: menuBackdrop,
+    groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: gameMode, choices: [
+      { id: 'classic', label: modeDisplay('classic'), mech: [KIT.t('game.breakout.mechLevels', { def: 'Levels' })], best: () => loadBest('classic'), preview: (g,w,h)=>pvBrick(g,w,h,3) },
       /* … */
     ] }],
-    toggles: [{ id: 'speed2x', label: '2× speed', default: loadSpeedPref() }],
-    actions: [{ id: 'play', label: 'INSERT COIN', primary: true }],
-    hint: st => MODE_DESCS[st.mode] || '',
+    toggles: [{ id: 'speed2x', label: KIT.t('game.breakout.speed2x', { def: '2× speed' }), default: loadSpeedPref() }],
+    actions: [{ id: 'play', label: KIT.t('game.breakout.insertCoin', { def: 'INSERT COIN' }), primary: true }],
+    hint: st => { const d = MODE_DESCS[st.mode]; return d ? KIT.t('game.breakout.desc' + modeLabel(st.mode), { def: d }) : ''; },
     onChange: st => { gameMode = st.mode; KIT.stampUrl({ mode: st.mode }); },
     onPlay:   st => { gameMode = st.mode; startMode(st.mode); },
   });
 }
 function showEnd() {
-  KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: 'GAME OVER', backdrop: menuBackdrop,
-    record: { slug: 'breakout', mode: modeLabel(gameMode), score },              // records exactly once
-    score, best, newBest: score >= best && score > 0, lines: [gameMode.toUpperCase()],
-    share: { slug: 'breakout', accent: '#ff5cc8', icon: '🧱', title: 'Brick Breaker',
+  KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.breakout.gameOver', { def: 'GAME OVER' }), backdrop: menuBackdrop,
+    record: { slug: 'breakout', mode: modeLabel(gameMode), score },              // records exactly once; mode = the ENGLISH storage label
+    score, best, newBest: score >= best && score > 0,
+    lines: [KIT.t('game.breakout.endLine', { mode: gameMode.toUpperCase(), level, def: gameMode.toUpperCase() + ' · level ' + level })],
+    share: { slug: 'breakout', accent: '#ff5cc8', icon: '🧱', title: KIT.t('game.breakout.title', { def: 'Brick Breaker' }),
              message: () => shareMsg(), params: () => ({ mode: gameMode }) },
-    actions: [{ id: 'again', label: 'PLAY AGAIN', primary: true }, { id: 'menu', label: 'MENU' }],
+    actions: [{ id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) }],
     onAction: id => { if (id === 'again') startMode(gameMode); else if (id === 'menu') toMenu(); } });
 }
 ```
+
+Reuse the already-translated `game.common.*` keys (`playAgain`, `menu`, `paused`, `resume`,
+`quitToMenu`, `modeLabel`, `score`, `best`, …) for shared strings; mint `game.<slug>.*` keys for
+game-specific ones. Interpolate with `{param}` tokens (never `+`-join sentence fragments — word
+order changes between languages). See `references/i18n.md`.
 
 **f. `update()` / `render()`.** Model is truth; the view only renders it. `update()` advances one
 fixed 60 Hz step and must be drivable via `__test.step(n)` (never rely on rAF). `render()` reads the
@@ -243,13 +263,16 @@ window.addEventListener('keydown', e => {
 KIT.nav({ slug: 'breakout', music: true, home: '../../', theme: MENU_THEME,
   onMenu: () => toMenu(),
   onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
-  confirmLeave: () => (state === 'playing' || state === 'paused') ? "Leave this run? You'll lose your progress." : false,
-  controls: { title: 'Brick Breaker — Controls',
-    mouse: [['Move','Slide paddle'],['Click','Launch']],
-    keyboard: [['← →','Move paddle'],['Space · Enter','Launch'],['Esc','Pause']],
-    touch: [['Hold L / R side','Slide paddle'],['Tap','Launch']] } });
+  confirmLeave: () => (state === 'playing' || state === 'paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+  controls: { title: KIT.t('game.breakout.controlsTitle', { def: 'Brick Breaker — Controls' }),
+    mouse: [[KIT.t('game.breakout.ctrlMove', { def: 'Move' }), KIT.t('game.breakout.ctrlSlidePaddle', { def: 'Slide paddle' })], [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.breakout.ctrlLaunch', { def: 'Launch' })]],
+    keyboard: [['← →', KIT.t('game.breakout.ctrlMovePaddle', { def: 'Move paddle' })], [KIT.t('game.common.spaceEnter', { def: 'Space · Enter' }), KIT.t('game.breakout.ctrlLaunch', { def: 'Launch' })], [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })]],
+    touch: [[KIT.t('game.breakout.ctrlHoldSide', { def: 'Hold L / R side' }), KIT.t('game.breakout.ctrlSlidePaddle', { def: 'Slide paddle' })], [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.breakout.ctrlLaunch', { def: 'Launch' })]] } });
 KIT.music.play('synthwave');
 ```
+
+(Controls labels are player-facing too — key glyphs like `'← →'` stay literal, everything worded
+goes through `KIT.t`, exactly as breakout does.)
 
 **i. The main loop — `KIT.loop`.** New games use the kit's fixed-timestep accumulator (60 Hz at any
 refresh rate, kit-pause built in). It never ticks headlessly — tests drive `__test.step(n)`.

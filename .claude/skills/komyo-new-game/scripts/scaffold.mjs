@@ -9,6 +9,7 @@
 // stamps the folder. It prints the remaining manual steps at the end.
 import fs from 'node:fs';
 import path from 'node:path';
+import vm from 'node:vm';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,13 +24,27 @@ function die(msg) { console.error('error: ' + msg); process.exit(1); }
 if (!slug || !title || !icon || !accent) {
   die('usage: node scaffold.mjs <slug> "<title>" "<icon>" "<accent>" [themeKey]');
 }
-if (!/^[a-z0-9_][a-z0-9_-]*$/.test(slug)) {
-  die('slug must be lowercase letters/digits/hyphens (the slug is the ONE identity): got "' + slug + '"');
+if (!/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
+  // No underscores and no leading/trailing hyphens: nav() derives the localStorage reset prefix
+  // as slug + '_', so e.g. "snake_battle" would be wiped by Snake's reset.
+  die('slug must be lowercase letters/digits in hyphen-separated chunks, like "snake-battle" (no underscores, no leading/trailing hyphen — the slug is the ONE identity): got "' + slug + '"');
 }
-if (!/^#[0-9a-fA-F]{3,8}$/.test(accent)) {
-  die('accent must be a hex color like "#8b5cf6": got "' + accent + '"');
+if (!/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(accent)) {
+  die('accent must be a 3-, 6- or 8-digit hex color like "#8b5cf6": got "' + accent + '"');
 }
 const themeKey = themeKeyArg || 'neon';
+// Validate the music theme against the kit's REAL registry (discovered from game-kit.js, not hardcoded).
+let kitThemes = null;
+try {
+  const sb = { window: {} }; sb.globalThis = sb;
+  vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'game-kit.js'), 'utf8'), sb, { filename: 'game-kit.js' });
+  kitThemes = Object.keys(sb.window.gamekit.music.themes);
+} catch (e) {
+  console.error('warning: could not load game-kit.js to validate the theme key (' + e.message + ')');
+}
+if (kitThemes && !kitThemes.includes(themeKey)) {
+  die('unknown music theme "' + themeKey + '" — kit themes (from game-kit.js): ' + kitThemes.join(', '));
+}
 
 const destDir = path.join(ROOT, 'games', slug);
 if (fs.existsSync(destDir)) {
@@ -39,6 +54,10 @@ if (fs.existsSync(destDir)) {
 const REPL = {
   '{{SLUG}}': slug,
   '{{TITLE}}': title,
+  // The title also lands inside single-quoted JS strings (index.html) and JSON strings
+  // (manifest.json) — escape per context so "Dragon's Lair" still scaffolds a booting game.
+  '{{TITLE_JS}}': title.replace(/\\/g, '\\\\').replace(/'/g, "\\'"),
+  '{{TITLE_JSON}}': JSON.stringify(title).slice(1, -1),
   '{{ICON}}': icon,
   '{{ACCENT}}': accent,
   '{{THEME_KEY}}': themeKey,
@@ -79,8 +98,11 @@ console.log('       { slug: "' + slug + '", title: "' + title + '", icon: "' + i
 console.log('         blurb: "…", tags: ["…"], added: "YYYY-MM-DD" }');
 console.log('\n  5. On go-live (not soon:): add https://komyo.online/games/' + slug + '/ to sitemap.xml AND llms.txt.');
 console.log('\n  6. changelog.js — prepend ONE player-facing entry for the release.');
-console.log('\n  7. i18n — Polish is REQUIRED (node test.mjs enforces it). English works from the');
-console.log('     KIT.t def: fallbacks, but add game.' + slug + '.* keys to the pl block in i18n.js');
-console.log('     (reuse game.common.* for shared strings). The i18n-coverage test lists any missing.');
-console.log('     es/pt/fr/it stay empty until a full translation pass (empty-or-complete is enforced).');
+console.log('\n  7. i18n — node test.mjs enforces coverage. English works from the KIT.t def:');
+console.log('     fallbacks, but add game.' + slug + '.* keys to the pl block in i18n.js (reuse');
+console.log('     game.common.* for shared strings) — the i18n-coverage test lists any missing —');
+console.log('     then add the SAME keys to every other populated locale (each must stay a complete');
+console.log('     superset of pl). Discover the current locale set at runtime from i18n.js');
+console.log('     (Object.keys(window.KOMYO_I18N)) or gamekit.langs() — never hardcode it — and use');
+console.log('     the komyo-i18n-translate skill (incremental mode) for the translations.');
 console.log('\n  8. Run the suites:  node test.mjs   &&   node games/' + slug + '/test.mjs');
