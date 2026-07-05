@@ -83,7 +83,11 @@
   .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 20px; min-height: 70vh; align-content: start; }
   .section-head { grid-column: 1 / -1; display:flex; align-items:center; gap:14px; margin: 12px 2px 0; }
   .section-head:first-child { margin-top: 0; }
-  .section-head h2 { margin:0; display:inline-flex; align-items:baseline; gap:8px; font-family:var(--mono); font-size: 13px; letter-spacing: 3px; text-transform:uppercase; color:var(--muted); white-space:nowrap; }
+  .section-head h2 { margin:0; display:inline-flex; align-items:baseline; gap:8px; font-family:var(--mono); font-size: 13px; letter-spacing: 3px; text-transform:uppercase; color:var(--muted); white-space:nowrap;
+    cursor:pointer; user-select:none; border-radius:8px; padding:2px 6px; }
+  .section-head h2:hover, .section-head h2:focus-visible { color:var(--text); }
+  .section-head .sec-caret { font-size:11px; color:var(--faint); }
+  .section-head.collapsed h2 { color:var(--faint); }
   .section-head .line { flex:1; height:1px; background:var(--border); }
   .load-more { grid-column: 1 / -1; margin: 6px auto; padding: 10px 26px; font: 600 13px var(--mono); letter-spacing: 1px;
     color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
@@ -551,6 +555,9 @@
   .side-btn:hover { border-color:#9fe8ff; transform:translateY(-1px); }
   .side-btn .ico { font-size:44px; line-height:1; }
   .side-btn .lbl { font-family:var(--mono); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); white-space:normal; padding:0 4px; }
+  .side-btn .side-sub { font-family:var(--mono); font-size:11px; color:var(--muted); opacity:.8; max-width:120px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 4px; }
+  .side-btn .side-sub:empty { display:none; }
   .side-chal { background:linear-gradient(160deg, rgba(255,206,92,.16), var(--surface-2)); }
   .side-cos { background:linear-gradient(160deg, rgba(185,140,255,.18), var(--surface-2)); }
   .side-profile { background:linear-gradient(160deg, var(--ttbg, rgba(120,130,143,.18)), var(--surface-2)); }
@@ -647,6 +654,10 @@
   .tb-btn.tb-notify { position:relative; animation:tbNotify 1.9s ease-in-out infinite; }
   .tb-btn.tb-notify::after { content:""; position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:50%;
     background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
+  /* update dot on the drawer's Settings row (it hosts "Update now") — inline, no bounce */
+  .ditem.tb-notify { position:relative; }
+  .ditem.tb-notify::after { content:""; position:absolute; top:50%; right:12px; margin-top:-4px; width:9px; height:9px;
+    border-radius:50%; background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
   @keyframes tbNotify { 0%,100% { border-color:var(--border); } 50% { border-color:#ffd166; } }
   .idcard.pf-reveal { position:relative; animation:idReveal 1.4s cubic-bezier(.2,1.2,.4,1); }
   .idcard.pf-reveal .pf-titlebar { border-color:#ffd166; }
@@ -762,13 +773,13 @@
     <div class="side-clip" id="sideClip">
       <div class="side-panel" id="sidePanel">
         <button class="side-btn side-profile" id="profileQuick" type="button" aria-label="My profile" data-ta="drawer.myProfile">
-          <span class="ico" id="spIco">🎖️</span><span class="lbl" data-t="cat.profileBtn">Profile</span>
+          <span class="ico" id="spIco">🎖️</span><span class="lbl" data-t="cat.profileBtn">Profile</span><span class="side-sub" id="spSub"></span>
         </button>
         <button class="side-btn side-chal" id="chalBtn" aria-label="Open challenges" data-ta="cat.openChallenges" aria-haspopup="dialog">
-          <span class="ico">🏆</span><span class="lbl" data-t="cat.challengesBtn">CHALLENGES</span>
+          <span class="ico">🏆</span><span class="lbl" data-t="cat.challengesBtn">CHALLENGES</span><span class="side-sub" id="scSub"></span>
         </button>
         <button class="side-btn side-cos" id="collectionQuick" type="button" aria-label="Collection">
-          <span class="ico">🎨</span><span class="lbl" data-t="cat.collectionBtn">Collection</span>
+          <span class="ico">🎨</span><span class="lbl" data-t="cat.collectionBtn">Collection</span><span class="side-sub" id="skSub"></span>
         </button>
       </div>
     </div>
@@ -858,7 +869,6 @@
     <div class="dresize" title="Drag to resize"></div>
     <div class="dh"><span class="dt" data-t="drawer.menuTitle">☰ Komyo Games</span><button class="dx" data-close aria-label="Close menu" data-ta="drawer.closeMenu">✕</button></div>
     <div class="dscroll">
-      <button class="idcard" id="profileBtn" type="button" aria-label="My profile" data-ta="drawer.myProfile"></button>
       <div class="dgrp">
         <div class="dl" data-t="drawer.connect">Connect</div>
         <button class="ditem" id="feedback" type="button"><span class="di">💬</span> <span data-t="drawer.feedback">Feedback</span></button>
@@ -1016,11 +1026,6 @@
         <span class="setlbl"><span class="di">🎵</span> <span data-t="settings.music">Music</span></span>
         <button class="settoggle" id="setMusToggle" type="button" role="switch" aria-checked="true">On</button>
         <input class="setvol" id="setMusVol" type="range" min="0" max="100" aria-label="Music volume" data-ta="sound.musVol">
-      </div>
-      <div class="setrow" id="setFullscreenRow" hidden>
-        <span class="setlbl"><span class="di">⛶</span><span><span data-t="settings.fullscreen">Fullscreen</span>
-          <small class="sethint" data-t="settings.fullscreenHint">Useful when an installed app window has no OS fullscreen option</small></span></span>
-        <button class="drefresh" id="setFullscreen" type="button" data-t="kit.fullscreen">Fullscreen</button>
       </div>
       <div class="setrow">
         <span class="setlbl"><span class="di">📣</span><span><span data-t="settings.discordName">Nickname in Discord posts</span>
@@ -1427,24 +1432,32 @@
       const f = favs();
       const all = (window.GAMES || []).filter(passes);
       const isFav = g => !g.soon && f.includes(g.slug);
+      // per-section collapse — clicking a section head toggles it; stored by stable KEY (not the
+      // translated label) so a language switch keeps your folded shelves folded
+      const collapsedSet = (() => { try { const a = JSON.parse(localStorage.getItem('arcade_collapsed') || '[]'); return new Set(Array.isArray(a) ? a : []); } catch (e) { return new Set(); } })();
+      const toggleCollapsed = key => {
+        if (collapsedSet.has(key)) collapsedSet.delete(key); else collapsedSet.add(key);
+        try { localStorage.setItem('arcade_collapsed', JSON.stringify([...collapsedSet])); } catch (e) {}
+        render();
+      };
       // sections, in fixed order: Favorites → Recently played → All games → Coming soon
       const sections = [];
       // ordered by the STORED favorites array (manually reorderable), not games.js's fixed order —
       // f may reference a filtered-out/soon slug, so map+filter rather than sort all by indexOf(f)
       const favList = f.map(slug => all.find(g => !g.soon && g.slug === slug)).filter(Boolean);
-      if (favList.length) sections.push({ label: T('cat.favorites', '★ Favorites'), list: favList, favs: true });
+      if (favList.length) sections.push({ key: 'fav', label: T('cat.favorites', '★ Favorites'), list: favList, favs: true });
       // recently played — full game cards in a horizontal rail; recency order from the kit
       // (recorded when a mode was chosen and Play pressed, not on page-open). Favorited games
       // appear here TOO (a duplicate beats a hole in your recent history).
       const recent = ((window.gamekit && window.gamekit.recentlyPlayed) ? window.gamekit.recentlyPlayed() : [])
         .map(r => all.find(g => !g.soon && g.slug === (r && r.slug)))
         .filter(Boolean).slice(0, 10);
-      if (recent.length) sections.push({ label: T('cat.recentlyPlayed', 'Recently played'), list: recent, carousel: true });
+      if (recent.length) sections.push({ key: 'recent', label: T('cat.recentlyPlayed', 'Recently played'), list: recent, carousel: true });
       // all games (single + multi together — MP tiles keep their 👥 pill; the Type filter still splits)
       const rest = all.filter(g => !g.soon && !isFav(g));
-      if (rest.length) sections.push({ label: T('cat.allGames', 'All games'), list: rest });
+      if (rest.length) sections.push({ key: 'all', label: T('cat.allGames', 'All games'), list: rest });
       const soonList = all.filter(g => g.soon);
-      if (soonList.length) sections.push({ label: T('cat.comingSoonHead', 'Coming soon'), list: soonList });
+      if (soonList.length) sections.push({ key: 'soon', label: T('cat.comingSoonHead', 'Coming soon'), list: soonList });
       if (!sections.length) {
         const nr = document.createElement('div');
         nr.className = 'no-results';
@@ -1461,15 +1474,22 @@
       sections.forEach(sec => {
         // heads are built from real child elements (not one innerHTML string) so the Favorites
         // header's Edit toggle is an actual, wire-able button
+        const collapsed = collapsedSet.has(sec.key);
         const head = document.createElement('div');
-        head.className = 'section-head';
+        head.className = 'section-head' + (collapsed ? ' collapsed' : '');
         const mkSpan = (cls, html) => { const s = document.createElement('span'); s.className = cls; if (html != null) s.innerHTML = html; return s; };
         head.appendChild(mkSpan('line'));
         const h2 = document.createElement('h2');
-        h2.innerHTML = sec.label + '<span class="count">' + sec.list.length + '</span>';
+        h2.innerHTML = '<span class="sec-caret">' + (collapsed ? '▸' : '▾') + '</span>' + sec.label + '<span class="count">' + sec.list.length + '</span>';
+        h2.setAttribute('role', 'button');
+        h2.setAttribute('tabindex', '0');
+        h2.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        h2.addEventListener('click', () => toggleCollapsed(sec.key));
+        h2.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { if (e.preventDefault) e.preventDefault(); toggleCollapsed(sec.key); } });
         head.appendChild(h2);
         head.appendChild(mkSpan('line'));
         queue.push(head);
+        if (collapsed) return; // folded shelf: header (with count) only
         if (sec.carousel) {
           // one full-width rail holding the tiles — scrolls horizontally, one row tall, no
           // visible scrollbar; a » paddle on the right pages it (wraps back to the start at the end)
@@ -1482,7 +1502,7 @@
           const next = document.createElement('button');
           next.type = 'button'; next.className = 'recent-next';
           next.innerHTML = '»';
-          next.setAttribute('aria-label', T('cat.recentlyPlayed', 'Recently played'));
+          next.setAttribute('aria-label', T('cat.scrollRecent', 'Scroll recently played'));
           next.addEventListener('click', () => {
             if (!row.scrollBy) return;
             const atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 8;
@@ -1490,6 +1510,10 @@
             else row.scrollBy({ left: Math.round(row.clientWidth * 0.8), behavior: 'smooth' });
           });
           wrap.appendChild(next);
+          // the paddle only exists when the rail actually overflows — otherwise it pages nothing
+          const syncNext = () => { try { next.hidden = row.scrollWidth <= row.clientWidth + 8; } catch (e) {} };
+          if (typeof requestAnimationFrame === 'function') requestAnimationFrame(syncNext);
+          if (typeof ResizeObserver === 'function') { try { new ResizeObserver(syncNext).observe(row); } catch (e) {} }
           queue.push(wrap);
         } else sec.list.forEach(g => queue.push(g));
       });
@@ -1537,6 +1561,7 @@
       if (window.__renderChallenges) window.__renderChallenges();
       if (window.__syncChalDot) window.__syncChalDot();
       if (window.__syncTitleNotify) window.__syncTitleNotify();
+      if (window.__refreshSideStack) window.__refreshSideStack();
     });
     // a tab left open across the UTC midnight / weekly flip: light the dots when it comes back
     // to the foreground (the drawer itself re-renders on open, the dot is the fresh signal)
@@ -1872,7 +1897,7 @@
       const pq = document.getElementById('profileQuick');
       if (pq) pq.addEventListener('click', () => {
         if (window.__markTitleSeen) window.__markTitleSeen(); // opening the profile counts as "seen the new title"
-        const b = document.getElementById('profileBtn'); if (b && b.click) b.click();
+        if (window.__openProfile) window.__openProfile();
       });
       const cq = document.getElementById('collectionQuick');
       if (cq) cq.addEventListener('click', () => { if (window.__openShop) window.__openShop(); });
@@ -1920,6 +1945,14 @@
             const ico = document.getElementById('spIco');
             if (ico) ico.textContent = wt.emoji || '🎖️';
             if (pq && pq.style && pq.style.setProperty) pq.style.setProperty('--ttbg', TIER_TINT[wt.tier] || TIER_TINT[0]);
+          }
+          // detail sub-lines: player name · lifetime 🏆 · collection progress
+          const K = window.gamekit;
+          const sp = document.getElementById('spSub'), sc = document.getElementById('scSub'), sk = document.getElementById('skSub');
+          if (sp && K && K.player) { const who = K.player(); sp.textContent = (who && who !== 'anonymous') ? who : ''; }
+          if (K && K.cosmetics && window.COSMETICS) {
+            if (sc) sc.textContent = '🏆 ' + K.cosmetics.lifetime().toLocaleString();
+            if (sk) { const pr = K.cosmetics.progress(); sk.textContent = pr.owned + ' / ' + pr.total + ' · ' + Math.round(pr.pct * 100) + '%'; }
           }
         } catch (e) {}
       };
@@ -2386,7 +2419,7 @@
         if (!isFinite(t)) return;
         setWornTier(t); renderTitles(); startTitleFx();
         try { if (window.__renderProfile) window.__renderProfile(); } catch (e2) {}
-        try { if (window.__renderIdCard) window.__renderIdCard(); } catch (e2) {}
+        try { if (window.__refreshSideStack) window.__refreshSideStack(); } catch (e2) {} // worn title drives the stack's Profile icon/tint
         if (window.gamekitTrack) window.gamekitTrack('title_wear', { tier: t });
       });
       // challenges drawer's points pill opens the ladder — points → titles is the payoff
@@ -2412,32 +2445,22 @@
       };
       const updateIsAvailable = () => { try { return !!(window.gamekit && window.gamekit.updates.state().available); } catch (e) { return false; } };
       function renderMenuDot() {
-        const fresh = titleIsFresh();
+        // ☰ carries the UPDATE dot (Settings lives in the drawer and hosts "Update now" — its row
+        // gets the dot too); a fresh TITLE dots the side stack's Profile button (where profile lives)
+        const upd = updateIsAvailable();
         const mb = document.getElementById('menuBtn');
-        if (mb && mb.classList) mb.classList.toggle('tb-notify', fresh || updateIsAvailable());
-        // mirrored (not moved) onto the stack's Profile button — delete this line to keep it ☰-only
-        if (window.__setStackDot) window.__setStackDot('profileQuick', fresh);
+        if (mb && mb.classList) mb.classList.toggle('tb-notify', upd);
+        const sb = document.getElementById('settingsBtn');
+        if (sb && sb.classList) sb.classList.toggle('tb-notify', upd);
+        if (window.__setStackDot) window.__setStackDot('profileQuick', titleIsFresh());
       }
       window.__markTitleSeen = () => {
         try { localStorage.setItem(TSEEN, String(titleData().earnedTier)); } catch (e) {}
         renderMenuDot();
       };
       function syncTitleNotify() { const fresh = titleIsFresh(); renderMenuDot(); return fresh; }
-      (function () {
-        const mb = document.getElementById('menuBtn');
-        if (mb) mb.addEventListener('click', () => {
-          if (!syncTitleNotify()) return;
-          try { localStorage.setItem(TSEEN, String(titleData().earnedTier)); } catch (e) {}
-          syncTitleNotify();
-          const card = document.getElementById('profileBtn');
-          if (card && card.classList) {
-            card.classList.remove('pf-reveal'); void card.offsetWidth; card.classList.add('pf-reveal');
-            setTimeout(() => { try { card.classList.remove('pf-reveal'); } catch (e) {} }, 2600);
-          }
-        });
-        syncTitleNotify();
-        if (window.gamekit && window.gamekit.updates) window.gamekit.updates.onChange(renderMenuDot);
-      })();
+      syncTitleNotify();
+      if (window.gamekit && window.gamekit.updates) window.gamekit.updates.onChange(renderMenuDot);
       window.__syncTitleNotify = syncTitleNotify;
       // earned-title particle fields (premium tiers) — ONE engine driving EVERY `.pf-pfx` canvas in
       // the profile body + titles ladder, so a new title-shine surface only has to include the canvas.
@@ -2449,7 +2472,7 @@
         const CFG = { 3: { n: 9, cols: ['#d3deed', '#fff'], sz: [.7, 1.8], v: .13, glow: 5 }, 4: { n: 12, cols: ['#b98cff', '#c9b3ff'], sz: [.7, 2], v: .16, glow: 5 }, 5: { n: 15, cols: ['#b98cff', '#9fe8ff'], sz: [.7, 2.2], v: .18, glow: 6 }, 6: { n: 18, cols: ['#9fe8ff', '#7fe8d0', '#fff'], sz: [.7, 2.4], v: .22, glow: 7 }, 7: { n: 24, cols: ['#ff8ad1', '#b98cff', '#9fe8ff', '#7fffc4'], sz: [.8, 2.6], v: .26, glow: 8 }, 8: { n: 32, cols: ['#ffd76a', '#fff3c0', '#fff', '#ff9ad1'], sz: [.9, 3], v: .32, glow: 10 } };
         const dpr = Math.min(window.devicePixelRatio || 1, 2), rnd = (a, b) => a + Math.random() * (b - a);
         const fields = [];
-        const cvs = document.querySelectorAll ? document.querySelectorAll('#profileBody .pf-pfx, #titlesList .pf-pfx, #profileBtn .pf-pfx') : [];
+        const cvs = document.querySelectorAll ? document.querySelectorAll('#profileBody .pf-pfx, #titlesList .pf-pfx') : [];
         cvs.forEach(cv => {
           const cfg = CFG[+cv.getAttribute('data-tier')];
           const ctx = cv.getContext && cv.getContext('2d');
@@ -2483,8 +2506,10 @@
         _pfRaf = raf(frame);
       }
       window.__renderProfile = render; // exposed for tests
-      window.__startTitleFx = startTitleFx; // so the ☰ hamburger card's title particles can (re)start too
-      if (btn) btn.addEventListener('click', () => { render(); modal.showModal(); lock(true); });
+      window.__startTitleFx = startTitleFx;
+      // the profile opens from the side stack (and the ?m=profile deep link) — no drawer card anymore
+      window.__openProfile = () => { render(); modal.showModal(); lock(true); };
+      if (btn) btn.addEventListener('click', window.__openProfile);
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
       modal.addEventListener('close', () => { lock(false); stopTitleFx(); });
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
@@ -2789,12 +2814,6 @@
       const modal = document.getElementById('nameModal');
       const form = document.getElementById('nameForm'), input = document.getElementById('nameInput'), skip = document.getElementById('nameSkip');
       const cur = () => (window.gamekit && window.gamekit.player) ? window.gamekit.player() : 'anonymous';
-      const card = document.getElementById('profileBtn');
-      const paint = () => { if (card && window.__titleBar) { try { card.innerHTML = window.__titleBar(); if (window.__startTitleFx) window.__startTitleFx(); } catch (e) {} } };
-      window.__renderIdCard = paint;
-      paint();
-      const mb = document.getElementById('menuBtn');
-      if (mb) mb.addEventListener('click', paint); // re-render on drawer open (name/title/points may have changed)
       const apply = v => {
         if (window.gamekit && window.gamekit.setName) window.gamekit.setName(v);
         paint();
@@ -2817,7 +2836,7 @@
 
     // ---- Deep links: /?m=faq|changelog|about|privacy|embed|data — open that panel + keep it in the URL ----
     (function () {
-      const MAP = { faq: 'faqBtn', changelog: 'changelogBtn', about: 'aboutBtn', privacy: 'legalBtn', embed: 'embedBtn', data: 'dataBtn', settings: 'settingsBtn', profile: 'profileBtn' };
+      const MAP = { faq: 'faqBtn', changelog: 'changelogBtn', about: 'aboutBtn', privacy: 'legalBtn', embed: 'embedBtn', data: 'dataBtn', settings: 'settingsBtn', profile: 'profileQuick' };
       const DLG = { faq: 'faqModal', changelog: 'clModal', about: 'aboutModal', privacy: 'legalModal', data: 'dataModal', settings: 'settingsModal', profile: 'profileModal' };
       const ALIAS = { legal: 'privacy', license: 'privacy', shop: 'cosmetics', store: 'cosmetics' };
       // reflect manual opens/closes in the URL (so it's shareable): trigger click → ?m=key; dialog close → drop it
@@ -2871,15 +2890,6 @@
           su.addEventListener('click', function () { K.updates.apply(); });
           var sb2 = document.getElementById('settingsBtn');
           if (sb2) sb2.addEventListener('click', function () { K.updates.check(); });
-        }
-        // Fullscreen row — hidden entirely where the API isn't supported (e.g. iOS Safari); useful
-        // when an installed PWA/Chrome-app window has no OS "true fullscreen" affordance.
-        var fsRow = document.getElementById('setFullscreenRow'), fsBtn = document.getElementById('setFullscreen');
-        if (fsRow && fsBtn && K && K.fullscreen && K.fullscreen.supported()) {
-          fsRow.hidden = false;
-          var renderFsBtn = function () { fsBtn.textContent = K.fullscreen.active() ? K.t('kit.exitFullscreen', { def: 'Exit fullscreen' }) : K.t('kit.fullscreen', { def: 'Fullscreen' }); };
-          renderFsBtn(); K.fullscreen.onChange(renderFsBtn);
-          fsBtn.addEventListener('click', function () { K.fullscreen.toggle(); });
         }
       } catch (e) {}
     })();
