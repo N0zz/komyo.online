@@ -654,13 +654,9 @@
   .idcard { display:block; width:100%; background:none; border:none; padding:0; margin:2px 0 8px; cursor:pointer; text-align:left; font:inherit; color:inherit; }
   .idcard .pf-titlebar { margin-bottom:0; transition:border-color .15s ease; }
   /* title-unlock: dot on ☰ until the drawer is opened, then a one-shot reveal shine on the card */
-  .tb-btn.tb-notify { position:relative; animation:tbNotify 1.9s ease-in-out infinite; }
-  .tb-btn.tb-notify::after { content:""; position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:50%;
+  .tb-btn.tb-notify, .ibtn.tb-notify { position:relative; animation:tbNotify 1.9s ease-in-out infinite; }
+  .tb-btn.tb-notify::after, .ibtn.tb-notify::after { content:""; position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:50%;
     background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
-  /* update dot on the drawer's Settings row (it hosts "Update now") — inline, no bounce */
-  .ditem.tb-notify { position:relative; }
-  .ditem.tb-notify::after { content:""; position:absolute; top:50%; right:12px; margin-top:-4px; width:9px; height:9px;
-    border-radius:50%; background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
   @keyframes tbNotify { 0%,100% { border-color:var(--border); } 50% { border-color:#ffd166; } }
   .idcard.pf-reveal { position:relative; animation:idReveal 1.4s cubic-bezier(.2,1.2,.4,1); }
   .idcard.pf-reveal .pf-titlebar { border-color:#ffd166; }
@@ -755,7 +751,7 @@
   <div class="float-btns-l">
     <button class="tb-btn tb-menu" id="menuBtn" aria-label="Open menu" aria-haspopup="dialog">☰</button>
   </div>
-  <!-- top-right row: Install / Language / Fullscreen — icon-only, always visible, never collapses -->
+  <!-- top-right row: Install / Language / Settings / Fullscreen — icon-only, always visible, never collapses -->
   <div class="float-btns-r">
     <span class="tip">
       <button class="ibtn tb-mini" id="install" data-tip="Install Komyo Games to your home screen — fullscreen &amp; offline" aria-label="Install Komyo Games">📱</button>
@@ -767,6 +763,7 @@
         <span style="opacity:.8">Already installed? Open it from your home screen, or the “Open in app” icon in the address bar.</span></span>
     </span>
     <span id="langMount"></span>
+    <button class="ibtn tb-mini" id="settingsBtn" type="button" aria-label="Settings" data-ta="drawer.settings" data-tt="drawer.settings">⚙️</button>
     <button class="ibtn tb-mini" id="fsBtn" hidden aria-label="Fullscreen">⛶</button>
   </div>
   <!-- side stack: Profile / Challenges / Collection — the only cluster that collapses; when the
@@ -885,10 +882,6 @@
         <button class="ditem" id="faqBtn" type="button"><span class="di">❓</span> <span data-t="drawer.faq">FAQ</span></button>
         <button class="ditem" id="changelogBtn" type="button"><span class="di">🗒️</span> <span data-t="drawer.changelog">Changelog</span></button>
         <button class="ditem" id="legalBtn" type="button"><span class="di">⚖️</span> <span data-t="drawer.legal">Legal</span></button>
-      </div>
-      <div class="dgrp">
-        <div class="dl" data-t="drawer.settingsGroup">Settings</div>
-        <button class="ditem" id="settingsBtn" type="button"><span class="di">⚙️</span> <span data-t="drawer.settings">Settings</span></button>
       </div>
       <div class="dgrp">
         <div class="dl" data-t="drawer.support">Support</div>
@@ -2448,13 +2441,10 @@
       };
       const updateIsAvailable = () => { try { return !!(window.gamekit && window.gamekit.updates.state().available); } catch (e) { return false; } };
       function renderMenuDot() {
-        // ☰ carries the UPDATE dot (Settings lives in the drawer and hosts "Update now" — its row
-        // gets the dot too); a fresh TITLE dots the side stack's Profile button (where profile lives)
-        const upd = updateIsAvailable();
-        const mb = document.getElementById('menuBtn');
-        if (mb && mb.classList) mb.classList.toggle('tb-notify', upd);
+        // the UPDATE dot lives on the top-bar ⚙️ Settings button (it hosts "Update now"); a fresh
+        // TITLE dots the side stack's Profile button. The ☰ drawer holds neither → no dot there.
         const sb = document.getElementById('settingsBtn');
-        if (sb && sb.classList) sb.classList.toggle('tb-notify', upd);
+        if (sb && sb.classList) sb.classList.toggle('tb-notify', updateIsAvailable());
         if (window.__setStackDot) window.__setStackDot('profileQuick', titleIsFresh());
       }
       window.__markTitleSeen = () => {
