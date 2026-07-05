@@ -1055,6 +1055,22 @@ function testCosmetics() {
     }
   }
 
+  // E2) premium purchases (≥🏆100) go through a confirm step — no refunds exist, so a single
+  // mis-tap must never drain the wallet; cheap items still buy in one go
+  {
+    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 500 }), gamekit_flappy_migrated: '1' } });
+    g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
+    const F = g.sandbox.gamekit;
+    const h = F.shopPanel();
+    if (h) {
+      h.buy('snake.food.golden'); // 25 — under the confirm threshold
+      ok(F.cosmetics.owned('snake.food.golden'), 'a cheap item still buys in one tap');
+      h.buy('snake.food.rainbow'); // 100, affordable — must WAIT for the confirm
+      ok(!F.cosmetics.owned('snake.food.rainbow') && F.cosmetics.balance() === 475,
+        'a ≥🏆100 buy is gated behind a confirm — nothing spent on the first tap (balance ' + F.cosmetics.balance() + ')');
+    }
+  }
+
   // F) hashed challengePick export: deterministic, defined goal, never yesterday's pick
   {
     const g = makeSandbox({});
