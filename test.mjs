@@ -176,6 +176,13 @@ function testCatalogue() {
     ok(!g.getEl('chalBtn').classList.contains('has-dot'), 'opening the challenges drawer clears the dot');
     ok(!g.getEl('sideTab').classList.contains('has-dot'), 'with every source clear, the tab dot goes too');
     ok(!!g.store['arcade_chal_seen'], 'the seen rotation pair persists (got ' + g.store['arcade_chal_seen'] + ')');
+    // the drawer POINTS at what was new: the unseen rotation's card is badged on that first open…
+    ok(g.getEl('chalToday').classList.contains('ch-new') && g.getEl('chalWeek').classList.contains('ch-new'),
+      'first open badges the never-seen daily + weekly cards as NEW');
+    // …and a second open (nothing new anymore) clears the badges
+    g.getEl('chalBtn').fire('click');
+    ok(!g.getEl('chalToday').classList.contains('ch-new') && !g.getEl('chalWeek').classList.contains('ch-new'),
+      'reopening with nothing new shows no NEW badges');
   }
 
   // challenge history back-fill: a completion is recorded even when detected on a later catalogue
