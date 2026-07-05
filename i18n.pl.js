@@ -786,7 +786,7 @@ window.KOMYO_I18N.pl = {
   'game.asteroids.blurb': 'Leć, strzelaj, przetrwaj. Klasyczna zręcznościówka — niekończące się fale i wyścig na czas.',
   'game.asteroids-plus.blurb': 'Asteroidy jak roguelite — XP, ulepszenia, bossowie i sklep między falami. Przetrwaj fale.',
   'game.tower-defense.blurb': 'Broń ścieżki. Buduj wieże, wydawaj złoto i broń twierdzy fala za falą.',
-  'game.bubbles.blurb': 'Strzelaj bańkami i zbijaj grupy 3+ w jednym kolorze. Tryby Arcade, Endless i Zen.',
+  'game.bubbles.blurb': 'Strzelaj bańkami i zbijaj grupy 3+ — tryby Arcade, Endless i Zen, plus specjalne strzały.',
   'game.breakout.blurb': 'Odbijaj piłkę i rozbij każdą cegłę. Neonowy synthwave, dopalacze i coraz trudniejsze ściany.',
   'game.invaders.title': 'Najeźdźcy',
   'game.invaders.blurb': 'Maszerujący kosmici schodzą na zielonym ekranie CRT. Uniki, strzały, utrzymaj linię.',
@@ -1058,7 +1058,7 @@ window.KOMYO_I18N.pl = {
   'cos.set.flappy.bird': 'Ptaki',
   // ---- 🎯 Neonowe Wahadło (forcefield) ----
   'game.forcefield.title': 'Pole Siłowe',
-  'game.forcefield.blurb': 'Przesuwaj kopułę atmosfery, by blokować ogień stacji bojowej. Na czas, na tarcze lub Podwójny dla 1–2 graczy.',
+  'game.forcefield.blurb': 'Przesuwaj kopułę atmosfery i blokuj ostrzał stacji bojowej — solo lub w 2 osoby.',
   'game.forcefield.menuTitle': 'POLE SIŁOWE',
   'game.forcefield.intro1': 'Stacja bojowa ładuje działo wymierzone w twoją planetę.',
   'game.forcefield.intro2': 'Przesuń kopułę na cel i zablokuj ją, zanim wystrzeli.',

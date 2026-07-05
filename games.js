@@ -38,7 +38,7 @@ window.GAMES = [
   {
     slug: "forcefield",
     title: "Forcefield",
-    blurb: "Slide your atmosphere dome to block the battle station's fire. Timed, shields, or 1–2-player Double.",
+    blurb: "Slide your atmosphere dome to block the battle station's fire — solo or 2-player.",
     icon: "🌐",
     accent: "#38bdf8",
     tags: ["SKILL", "REFLEX"],
@@ -48,7 +48,7 @@ window.GAMES = [
   {
     slug: "bubbles",
     title: "Bubble Pop",
-    blurb: "Shoot glossy soap bubbles to pop matching groups of 3+. Arcade, Endless, and Zen modes with special shots.",
+    blurb: "Shoot glossy bubbles to pop groups of 3+ — Arcade, Endless and Zen, with special shots.",
     icon: "🫧",
     accent: "#2ee8c8",
     tags: ["PUZZLE", "CASUAL"],

@@ -15,7 +15,7 @@ Komyo Games is a hobby project. Each game is a single self-contained HTML/Canvas
 - [Meadow Flyer](https://komyo.online/games/flappy/): One-tap flyer through a soft storybook meadow.
 - [Range](https://komyo.online/games/aim-trainer/): Timed flick-aim target practice on a tactical range.
 - [Neon Snake](https://komyo.online/games/snake/): The classic grid snake, in glowing neon.
-- [Forcefield](https://komyo.online/games/forcefield/): Slide your atmosphere dome to block the battle station's fire — timed, shields, or 1–2-player Double.
+- [Forcefield](https://komyo.online/games/forcefield/): Slide your atmosphere dome to block the battle station's fire — solo or 2-player.
 
 ## Optional
 

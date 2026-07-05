@@ -785,7 +785,7 @@ window.KOMYO_I18N.es = {
   'game.asteroids.blurb': 'Vuela, dispara, sobrevive. Un arcade clásico — oleadas sin fin y carrera contrarreloj.',
   'game.asteroids-plus.blurb': 'Asteroides al estilo roguelite — XP, mejoras, jefes y tienda entre oleadas. Sobrevive a las oleadas.',
   'game.tower-defense.blurb': 'Defiende el camino. Construye torres, gasta oro y defiende el torreón oleada tras oleada.',
-  'game.bubbles.blurb': 'Dispara burbujas y junta grupos de 3+ del mismo color. Modos Arcade, Sin fin y Zen.',
+  'game.bubbles.blurb': 'Dispara burbujas y revienta grupos de 3+ — Arcade, Endless y Zen, con tiros especiales.',
   'game.breakout.blurb': 'Rebota la bola y rompe cada ladrillo. Synthwave de neón, potenciadores y paredes cada vez más duras.',
   'game.invaders.title': 'Invasores',
   'game.invaders.blurb': 'Alienígenas en marcha descienden por una pantalla CRT verde. Esquiva, dispara, aguanta la línea.',
@@ -1057,7 +1057,7 @@ window.KOMYO_I18N.es = {
   'cos.set.flappy.bird': 'Pájaros',
   // ---- 🎯 Swing Neón (forcefield) ----
   'game.forcefield.title': 'Campo de Fuerza',
-  'game.forcefield.blurb': 'Desliza tu cúpula atmosférica para bloquear el fuego de la estación de combate. Por tiempo, por escudos o Doble para 1–2 jugadores.',
+  'game.forcefield.blurb': 'Desliza la cúpula atmosférica y bloquea el fuego de la estación de combate — solo o entre 2.',
   'game.forcefield.menuTitle': 'CAMPO DE FUERZA',
   'game.forcefield.intro1': 'Una estación de combate carga su cañón contra tu planeta.',
   'game.forcefield.intro2': 'Desliza la cúpula sobre el objetivo y fíjala antes de que dispare.',
