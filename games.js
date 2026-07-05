@@ -39,7 +39,7 @@ window.GAMES = [
     slug: "forcefield",
     title: "Forcefield",
     blurb: "Slide your atmosphere dome to block the battle station's fire. Timed, shields, or 1–2-player Double.",
-    icon: "🛡️",
+    icon: "🌐",
     accent: "#38bdf8",
     tags: ["SKILL", "REFLEX"],
     added: "2026-07-04",
