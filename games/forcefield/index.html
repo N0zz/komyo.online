@@ -558,7 +558,7 @@
     });
   }
 
-  function shareMsg() { return KIT.shareText({ score: score, game: T('game.forcefield.title', 'Forcefield'), emoji: '🛡️', mode: storeLabel(opts.mode, opts.difficulty) }); }
+  function shareMsg() { return KIT.shareText({ score: score, game: T('game.forcefield.title', 'Forcefield'), emoji: '🌐', mode: storeLabel(opts.mode, opts.difficulty) }); }
 
   function vsBanner() {
     const a = lanes[0].score, b = lanes[1].score, tot = Math.max(1, a + b), tie = a === b;
@@ -585,7 +585,7 @@
       record: { slug: SLUG, mode: storeLabel(opts.mode, opts.difficulty), score: score },
       score: score, best: best, newBest: isBest,
       lines: [dispLabel(opts.mode, opts.difficulty) + ' · ' + T('game.forcefield.deflectedLine', 'Deflected: {n}', { n: hits })],
-      share: { slug: SLUG, accent: '#38bdf8', icon: '🛡️', title: T('game.forcefield.title', 'Forcefield'), message: () => shareMsg(), params: () => ({ mode: opts.mode, difficulty: opts.difficulty }) },
+      share: { slug: SLUG, accent: '#38bdf8', icon: '🌐', title: T('game.forcefield.title', 'Forcefield'), message: () => shareMsg(), params: () => ({ mode: opts.mode, difficulty: opts.difficulty }) },
       actions: [{ id: 'again', label: T('game.common.playAgain', 'PLAY AGAIN'), primary: true }, { id: 'menu', label: T('game.common.menu', 'MENU') }],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } };
     if (dbl) cfg.banner = () => vsBanner();

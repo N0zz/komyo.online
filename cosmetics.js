@@ -319,7 +319,7 @@
   add('flappy', 'bird', 'raven',    'Raven',    250, 'Midnight feathers, ancient secrets.', bird('#17181d', '#0c0d11', 'rgba(170,200,255,0.55)'));
   add('flappy', 'bird', 'phoenix',  'Phoenix',  500, 'The aspirational one. Rises from every game over.', bird('#ff8a3a', '#e85a1a', 'rgba(255,140,40,0.85)'));
 
-  // ---- 🛡️ Forcefield — bolt colours + planet skins ----
+  // ---- 🌐 Forcefield — bolt colours + planet skins ----
   add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean white bolt.', forcefieldMarker('#eafcff'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
   add('forcefield', 'marker', 'lime',    'Lime',    50, 'A zesty green bolt.', forcefieldMarker('#b6ff5c'));
@@ -364,7 +364,7 @@
       'asteroids':      { title: 'Asteroids', icon: '🛸', accent: '#9fe8ff' },
       'asteroids-plus': { title: 'Asteroids+', icon: '☄️', accent: '#b98cff' },
       'flappy':         { title: 'Meadow Flyer', icon: '🐤', accent: '#8fd3a6' },
-      'forcefield':          { title: 'Forcefield', icon: '🛡️', accent: '#38bdf8' },
+      'forcefield':          { title: 'Forcefield', icon: '🌐', accent: '#38bdf8' },
     },
   };
 })();
