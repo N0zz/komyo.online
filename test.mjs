@@ -83,9 +83,10 @@ function testCatalogue() {
     ok(tiles().filter(t => String(t.className).includes('soon')).length === soonCount, 'every coming-soon game renders exactly once (' + soonCount + ')');
   }
 
-  // manual favorites reorder — the Favorites header's Edit toggle turns tiles into drag handles;
-  // the drag itself needs real geometry (headless rects are all identical), so the reorder LOGIC
-  // is exercised via the same window.__favReorder the drag path persists through.
+  // manual favorites reorder — favorites tiles are ALWAYS drag handles (mouse drag-threshold /
+  // touch long-press; no edit mode). The drag itself needs real geometry (headless rects are all
+  // identical), so the reorder LOGIC is exercised via the same window.__favReorder path the drag
+  // persists through.
   {
     const playable = GAMES.filter(gm => !gm.soon);
     ok(playable.length >= 3, 'catalogue has ≥3 playable games to exercise reordering');
@@ -97,13 +98,8 @@ function testCatalogue() {
       }
       ok(tiles()[0].href === 'games/' + ga.slug + '/' && tiles()[1].href === 'games/' + gb.slug + '/' && tiles()[2].href === 'games/' + gc.slug + '/',
         'favorites render in the order they were starred (got ' + tiles().slice(0, 3).map(t => t.href).join(', ') + ')');
-      // the Favorites head (first section-head) carries the Edit toggle when ≥2 favorites
-      const favHead = grid.children.find(c => String(c.className).includes('section-head'));
-      const editBtn = favHead && favHead.children.find(c => String(c.className).includes('fav-edit'));
-      ok(!!editBtn, 'Favorites header has an Edit toggle');
-      editBtn.fire('click'); // edit mode ON (re-renders)
-      const editing = () => tiles().filter(t => String(t.className).includes('fav-editing'));
-      ok(editing().length === 3, 'edit mode marks all favorite tiles as draggable (got ' + editing().length + ')');
+      const favTiles = () => tiles().filter(t => String(t.className).includes('fav-tile'));
+      ok(favTiles().length === 3, 'all favorite tiles are drag handles, no edit mode needed (got ' + favTiles().length + ')');
       ok(typeof g.win.__favReorder === 'function', 'reorder hook exposed');
       g.win.__favReorder(1, 2); // move gb below gc — same persistence path the drag uses
       ok(JSON.stringify(JSON.parse(g.store['arcade_favs'])) === JSON.stringify([ga.slug, gc.slug, gb.slug]),
@@ -112,11 +108,6 @@ function testCatalogue() {
         'reorder re-renders the strip in the new order');
       g.win.__favReorder(0, 5); // out of bounds → no-op
       ok(JSON.parse(g.store['arcade_favs'])[0] === ga.slug, 'out-of-range reorder is a no-op');
-      // leave edit mode, then clean up
-      const favHead2 = grid.children.find(c => String(c.className).includes('section-head'));
-      const editBtn2 = favHead2 && favHead2.children.find(c => String(c.className).includes('fav-edit'));
-      if (editBtn2) editBtn2.fire('click');
-      ok(tiles().filter(t => String(t.className).includes('fav-editing')).length === 0, 'leaving edit mode clears the drag handles');
       for (const slug of [ga.slug, gb.slug, gc.slug]) {
         const t = tiles().find(el => el.href === 'games/' + slug + '/');
         t.children[0].fire('click');
