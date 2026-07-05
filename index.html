@@ -113,7 +113,10 @@
   .grid.compact .recent-row { gap:10px; }
   .grid.compact .recent-row .tile { flex-basis:118px; }
   /* Favorites drag & drop (no edit mode — always on: mouse drags past a small threshold,
-     touch lifts on long-press so normal page scrolling keeps working) */
+     touch lifts on long-press so normal page scrolling keeps working). Favorite tiles give up
+     the native long-press affordances (context menu / iOS link preview / text selection) — the
+     long press means "lift", same trade-off as app icons on a phone home screen. */
+  .tile.fav-tile { -webkit-touch-callout:none; -webkit-user-select:none; user-select:none; }
   .drag-ghost { position:fixed; z-index:80; pointer-events:none; opacity:.85; margin:0;
     transform:translate(-50%,-50%) scale(.92) rotate(2deg); box-shadow:0 18px 50px rgba(0,0,0,.6); }
   /* the drop slot — an empty dashed grid cell marking where the dragged favorite will land;
@@ -1153,6 +1156,9 @@
       // non-passive touchmove listener can preventDefault the scroll)
       const live = { on: false };
       el.addEventListener('touchmove', ev => { if (live.on && ev.preventDefault) ev.preventDefault(); }, { passive: false });
+      // Android fires the link context menu at ~500ms — right after our 420ms lift; the long press
+      // on a favorite means "lift", so the native menu is suppressed here (and only here)
+      el.addEventListener('contextmenu', ev => { if (ev.preventDefault) ev.preventDefault(); });
       el.addEventListener('pointerdown', e => {
         if (e.button != null && e.button !== 0) return;
         const touch = e.pointerType === 'touch';
