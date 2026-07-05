@@ -797,6 +797,14 @@ function testI18n() {
   ok(typeof K.langs === 'function' && K.langs().length === 8, 'langs() lists 8');
   ok(K.langs()[0].code === 'en', 'en first');
   K.setLang('en');
+
+  // ?lang= deep link: consumed at head-script eval — persisted to gamekit_lang so it survives the
+  // catalogue's query-string rewrite AND can't override the picker on later reloads
+  const h2 = bootGame('games/breakout/index.html', { search: '?lang=pl' });
+  ok(h2.win.gamekit.lang() === 'pl', '?lang=pl activates Polish');
+  ok(h2.store['gamekit_lang'] === 'pl', '?lang= choice is PERSISTED at load (picker can\'t be reverted by a stale param)');
+  const h3 = bootGame('games/breakout/index.html', { search: '?lang=xx' });
+  ok(h3.win.gamekit.lang() !== 'xx' && h3.store['gamekit_lang'] === undefined, 'an unknown ?lang= is ignored, nothing persisted');
 }
 
 function testI18nCoverage() {
