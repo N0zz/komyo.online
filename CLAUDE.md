@@ -19,7 +19,7 @@ marketing). `plans/*-plan.md` are the per-initiative execution plans with `- [ ]
 
 ```text
 index.html      catalogue (renders tiles from games.js) + drawers/modals (profile, settings, challenges…)
-games.js        catalogue manifest — window.GAMES = [{slug,title,blurb,icon,accent,tag,soon?,added?,updated?,mp?,players?,badges?}]
+games.js        catalogue manifest — window.GAMES = [{slug,title,blurb,icon,accent,tags,soon?,added?,updated?,mp?,players?,badges?}]
 challenges.js   window.CHALLENGES — daily/weekly goals + per-game goodRun bars + the titles ladder
 cosmetics.js    window.COSMETICS — the cosmetics registry (skins per game + site-wide cursors, painters,
                 prices in 🏆 trophies); loaded like challenges.js (catalogue AND games, in every SW SHELL)
@@ -100,7 +100,7 @@ silently, not loudly.
 
 **The `<head>` unit is atomic** (NOT `defer`, so `window.gamekit` exists before the inline script),
 in this order: `analytics.js` · `game-kit.css` · `version.js` · `game-kit.js` · `challenges.js` ·
-`cosmetics.js`.
+`cosmetics.js` · `i18n.js`.
 The game's `sw.js` SHELL must list the SAME shared files in lockstep — a missing one silently kills
 that feature offline. Games alias the API once: `const KIT = window.gamekit;`.
 
@@ -154,7 +154,9 @@ that feature offline. Games alias the API once: `const KIT = window.gamekit;`.
   never re-derive it), `gamekit.activeChallenge(slug)` (drives the 🏆 glow),
   `gamekit.challengesPanel(opts)` (the in-game 🏆 modal). `window.CHALLENGES` carries goals +
   daily/weekly rotations, **`goodRun` per-game bars (every live game needs one or it silently never
-  earns good runs)**, the `titles` ladder, `randomSlug`.
+  earns good runs)**, the `titles` ladder, `randomSlug`, and **`playable` + `playableSince`** (the
+  canonical random-pick pool, mirrored from games.js — test-enforced; a new live game adds its slug
+  IN games.js ORDER + its `added` date, or random picks desync between game and catalogue).
 - **Cosmetics / trophies (kit-owned, data in `cosmetics.js`):** challenge points are **trophies 🏆**
   everywhere player-facing. TWO metrics: **lifetime** (Σ `gamekit_done`, drives titles) and the
   **spendable balance** (lifetime − Σ owned costs, derived not stored). `gamekit.cosmetics` →
@@ -310,10 +312,11 @@ When the change is visual/interactive, offer the user this local URL to verify b
   rebrands and bump `?v=` so scrapers refetch; re-scrape via the FB Sharing Debugger.
 - **Newsletter:** Kit. The inline Subscribe modal POSTs to Kit form **9615603**; sending domain
   `komyo.online` is DKIM/DMARC-verified (records in OVH), default from `news@komyo.online`.
-- **Catalogue layout:** tiles render from `games.js` into two sections — **Single player** and
-  **Multiplayer** (`mp: true`) — split by centered horizontal dividers; within each, order is
-  favorites → available → coming-soon (`soon: true`, greyed). MP tiles show a `players` pill
-  (👥 2P / 2–4P) and keep their genre tag. **Badges** (shimmer+sparkle marks, top-left, stackable
+- **Catalogue layout (2026-07-05 rework):** tiles render from `games.js` into ordered sections —
+  **Favorites** (drag & drop reorder, always on) → **Recently played** (the "continue playing"
+  carousel from `gamekit.recentlyPlayed`) → **All games** (single + multiplayer merged) →
+  **Coming soon** (`soon: true`, greyed) — split by centered horizontal dividers. MP tiles
+  (`mp: true`) show a `players` pill (👥 2P / 2–4P) and keep their genre tag. **Badges** (shimmer+sparkle marks, top-left, stackable
   vertically) come from the `BADGES` map in `index.html`: **NEW** (gold) and **UPDATED** (blue) are
   auto-applied from a game's `added` / `updated` date in `games.js` (within 7 days; NEW wins over
   UPDATED); **POPULAR** (purple, `badges: ["pick"]`) is manual. Add a type = one map entry + a color
