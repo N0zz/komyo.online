@@ -4,6 +4,14 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-05', title: 'A tidier home & shop 🧹', items: [
+    'New: home page sections can be folded — click a section name to collapse it (the ▸ arrow shows it opens back up). Your folds are remembered.',
+    'New: the right-edge quick menu shows more at a glance — your name under Profile, lifetime 🏆 under Challenges, and collection progress under Collection.',
+    'Change: leaner menus — the profile card left the home ☰ menu (Profile lives on the quick menu), Settings shows the update dot too, and each game\'s ☰ is now Update · Fullscreen · Language · Embed · Reset.',
+    'Fix: Collection swatches now show the REAL in-game look of default items — Range\'s rings and hit-marker, the bee, the stone castle, bubble pops and Forcefield\'s golden bolt.',
+    'Fix: Discord score posts stopped spamming — properly spaced out, and a zero-score run posts nothing.',
+    'Fix: the » arrow on Recently played only appears when there\'s actually something to scroll.',
+  ] },
   { date: '2026-07-05', title: 'Trophies, favorites & fixes 🛠️', items: [
     'Fix: weekly challenges finished inside a game now always pay their trophies — even if you only open the home page days later. Random “play today\'s pick” challenges finally show their game and progress inside games too.',
     'Fix: rearranging ★ Favorites while a search or filter was active could silently drop the hidden favorites — they stay put now.',
