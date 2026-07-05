@@ -1146,11 +1146,23 @@
     }
     window.__favReorder = favReorder; // headless hook — the drag path needs real geometry
     // a drag just ended → swallow the click that follows the pointerup, so the tile (or whatever
-    // render() rebuilt at that spot) doesn't navigate. Capture phase, grid-wide.
-    let dragEndAt = 0;
+    // render() rebuilt at that spot) doesn't navigate. Also swallows clicks while a drag is LIVE —
+    // a second finger tapping a ★ would render() and detach the dragged tile. Capture phase, grid-wide.
+    let dragEndAt = 0, dragActive = false;
     if (grid.addEventListener) grid.addEventListener('click', e => {
-      if (Date.now() - dragEndAt < 350) { if (e.preventDefault) e.preventDefault(); if (e.stopPropagation) e.stopPropagation(); }
+      if (dragActive || Date.now() - dragEndAt < 350) { if (e.preventDefault) e.preventDefault(); if (e.stopPropagation) e.stopPropagation(); }
     }, true);
+    // a drop persists the NEW order of the tiles that are on screen — merged back into the full
+    // favorites list, so favorites hidden by an active search/genre filter keep their spots
+    function commitFavOrder(order) {
+      const a = favs(), vis = {};
+      order.forEach(s => { vis[s] = true; });
+      let k = 0;
+      const merged = a.map(s => vis[s] ? order[k++] : s);
+      for (; k < order.length; k++) merged.push(order[k]); // visible slug missing from storage — keep it
+      setFavs(merged); render();
+    }
+    window.__commitFavOrder = commitFavOrder; // headless hook — the real drop path needs geometry
     function wireFavDrag(el, slug) {
       // while a drag is live, cancel touch panning per-event (pointermove can't — only a
       // non-passive touchmove listener can preventDefault the scroll)
@@ -1160,6 +1172,7 @@
       // on a favorite means "lift", so the native menu is suppressed here (and only here)
       el.addEventListener('contextmenu', ev => { if (ev.preventDefault) ev.preventDefault(); });
       el.addEventListener('pointerdown', e => {
+        if (dragActive) return; // one drag at a time — a second pointer can't start another
         if (e.button != null && e.button !== 0) return;
         // presses that start on the ★ star (or any button inside the tile) never enter the drag
         // path — setPointerCapture would otherwise retarget the whole sequence to the tile, so the
@@ -1171,7 +1184,7 @@
         let dragging = false, ghost = null, slot = null, holdTimer = 0;
         const favTiles = () => (grid.querySelectorAll ? Array.prototype.slice.call(grid.querySelectorAll('.fav-tile')) : []);
         const begin = (x, y) => {
-          dragging = true; live.on = true;
+          dragging = true; live.on = true; dragActive = true;
           const r = el.getBoundingClientRect();
           ghost = el.cloneNode(true);
           ghost.className = 'tile drag-ghost';
@@ -1213,26 +1226,34 @@
           el.removeEventListener('pointermove', move);
           el.removeEventListener('pointerup', onUp);
           el.removeEventListener('pointercancel', onCancel);
+          el.removeEventListener('lostpointercapture', onLost);
           if (!dragging) return;
-          live.on = false;
+          dragging = false; live.on = false; dragActive = false;
           if (ghost && ghost.remove) ghost.remove();
-          if (commit && slot) {
+          // a render() mid-drag detaches the slot — treat that drop as cancelled, not as data
+          if (commit && slot && slot.parentNode) {
             slot.parentNode.insertBefore(el, slot); // land in the slot's spot
             el.style.display = '';
             if (slot.remove) slot.remove();
             dragEndAt = Date.now();
             const order = favTiles().map(t => t.dataset && t.dataset.slug).filter(Boolean);
-            if (order.length) { setFavs(order); render(); }
+            if (order.length) commitFavOrder(order);
           } else if (slot) { // cancelled (e.g. the browser reclaimed the gesture) → put things back
             el.style.display = '';
             if (slot.remove) slot.remove();
           }
         };
         const onUp = finish(true), onCancel = finish(false);
+        // safety net: losing the capture for ANY reason (element detached by a re-render, browser
+        // reclaim) must clean up the ghost/slot — otherwise the ghost clone sticks to the page.
+        // Runs as a COMMIT: on a normal drop it lands the same as pointerup (whichever fires
+        // first wins, the other is a no-op), and a detached slot falls to the cancel branch.
+        const onLost = finish(true);
         try { el.setPointerCapture(e.pointerId); } catch (_) {}
         el.addEventListener('pointermove', move);
         el.addEventListener('pointerup', onUp);
         el.addEventListener('pointercancel', onCancel);
+        el.addEventListener('lostpointercapture', onLost);
       });
     }
     // canonical genre colors — ONE color per tag, shared by tile pills + the genre filter
