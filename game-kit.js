@@ -2372,6 +2372,24 @@
   // slug from the URL (/games/<slug>/) — used for the game_start analytics event
   function currentSlug() { try { var m = String(location.pathname).match(/\/games\/([^/]+)\//); return m ? m[1] : ''; } catch (e) { return ''; } }
 
+  // ---------- "recently played" (for the catalogue's "pick up where you left off" strip) ----------
+  // Recorded at the SAME moment as the game_start analytics event (entering gameplay from a menu via
+  // 'play' or 'again') — i.e. a mode was actually chosen and Play was pressed, not just "opened the
+  // page". Deliberately NOT tied to record()/end-of-run: long-round games (Keep Defender…) should
+  // show up even if the player leaves mid-run. De-duped by slug (replaying bumps it to the front).
+  var RECENT_KEY = 'gamekit_recent', RECENT_CAP = 12;
+  function recentlyPlayed() {
+    try { var a = JSON.parse(localStorage.getItem(RECENT_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+  }
+  function touchRecent(slug) {
+    if (!slug) return;
+    try {
+      var a = recentlyPlayed().filter(function (r) { return r && r.slug !== slug; });
+      a.unshift({ slug: slug, at: Date.now() });
+      localStorage.setItem(RECENT_KEY, JSON.stringify(a.slice(0, RECENT_CAP)));
+    } catch (e) {}
+  }
+
   // ---------- "Tap to play" splash (start gate + audio unlock) ----------
   // Always shown once per game load — a normal start gate. It also doubles as the audio-unlock gesture:
   // browsers block audio until a user interacts, so the tap lets music start with the menu instead of
@@ -2922,8 +2940,12 @@
     function toggleOne(ref) { if (ref.disabled) return; tog[ref.id] = !tog[ref.id]; changed(); }
     function fireAction(a) {
       var go = function () {
-        // game_start (analytics): fired on entering gameplay from a menu — 'play' (start) or 'again' (replay)
-        if (a.id === 'play' || a.id === 'again') { try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('game_start', { slug: currentSlug() || 'unknown' }); } catch (e) {} }
+        // game_start (analytics) + "recently played" (catalogue strip): fired on entering gameplay
+        // from a menu — 'play' (start) or 'again' (replay), i.e. a mode was actually chosen.
+        if (a.id === 'play' || a.id === 'again') {
+          try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('game_start', { slug: currentSlug() || 'unknown' }); } catch (e) {}
+          touchRecent(currentSlug());
+        }
         if (a.id === 'play' && typeof cfg.onPlay === 'function') cfg.onPlay(state()); else if (typeof cfg.onAction === 'function') cfg.onAction(a.id, state());
       };
       var cm = a.confirm ? (typeof a.confirm === 'function' ? a.confirm() : a.confirm) : null;
@@ -3110,7 +3132,7 @@
   if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('fullscreenchange', fsEmit);
   var fullscreen = { supported: fsSupported, active: fsActive, toggle: fsToggle, onChange: function (cb) { if (typeof cb === 'function') _fsSubs.push(cb); } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

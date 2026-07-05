@@ -89,6 +89,19 @@
     color: var(--text); background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; }
   .load-more:hover { border-color: #9fe8ff; }
   .section-head .count { font-family:var(--mono); font-size: 11px; color:var(--faint); }
+  /* "Continue playing" — a compact horizontal carousel (native scroll-snap, no JS library) above the
+     main grid; deliberately small so it never competes with the grid for space. Recorded by the kit
+     when a mode is actually chosen and Play is pressed (gamekit.recentlyPlayed), not on page-open. */
+  .recent-strip { margin: 0 0 8px; }
+  .recent-strip .recent-head { margin: 0 2px 10px; }
+  .recent-scroll { display:flex; gap:10px; overflow-x:auto; scroll-snap-type:x proximity; padding:2px 2px 10px; -webkit-overflow-scrolling:touch; }
+  .recent-card { scroll-snap-align:start; flex:0 0 auto; display:flex; align-items:center; gap:9px;
+    padding:9px 16px 9px 11px; border-radius:13px; border:1px solid var(--border); background:var(--surface);
+    text-decoration:none; color:var(--text); transition: transform .12s, border-color .12s, box-shadow .12s; }
+  .recent-card:hover, .recent-card:focus-visible { transform:translateY(-3px); border-color:var(--accent);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4), 0 0 0 1px var(--accent); outline:none; }
+  .recent-card .rc-glyph { font-size:21px; line-height:1; }
+  .recent-card .rc-title { font-size:13px; font-weight:600; white-space:nowrap; }
   .tile {
     position: relative;
     display:flex; flex-direction:column; text-decoration:none; color:inherit;
@@ -734,6 +747,11 @@
       </div>
     </header>
 
+    <div class="recent-strip" id="recentStrip" hidden>
+      <div class="section-head recent-head"><span class="line"></span><h2 data-t="cat.continuePlaying">Continue playing</h2><span class="line"></span></div>
+      <div class="recent-scroll" id="recentScroll"></div>
+    </div>
+
     <main><div class="grid" id="grid"></div></main>
 
     <footer>
@@ -1300,6 +1318,27 @@
       fcountUpdate(); render();
     }
     readURL(); render();
+
+    // ---- "Continue playing" carousel — recorded when Play is actually pressed (see game-kit.js's
+    // gamekit.recentlyPlayed), not on merely opening a game's page. Rendered once per catalogue load;
+    // doesn't react to filters/favorites (it's a fixed recency list, not a filtered view).
+    (function renderRecent() {
+      const strip = document.getElementById('recentStrip'), scroll = document.getElementById('recentScroll');
+      if (!strip || !scroll || !window.gamekit || typeof window.gamekit.recentlyPlayed !== 'function') return;
+      strip.hidden = true; // explicit — stays this way unless resolved items are found below
+      const recent = window.gamekit.recentlyPlayed();
+      const byslug = new Map((window.GAMES || []).map(g => [g.slug, g]));
+      const items = recent.map(r => byslug.get(r && r.slug)).filter(g => g && !g.soon);
+      if (!items.length) return;
+      scroll.innerHTML = '';
+      items.forEach(g => {
+        const a = document.createElement('a');
+        a.className = 'recent-card'; a.href = 'games/' + g.slug + '/';
+        a.innerHTML = '<span class="rc-glyph">' + (g.icon || '🎮') + '</span><span class="rc-title">' + gameTitle(g) + '</span>';
+        scroll.appendChild(a);
+      });
+      strip.hidden = false;
+    })();
 
     // ---- Search (instant, client-side) ----
     (function () {
