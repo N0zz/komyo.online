@@ -89,7 +89,18 @@ to build Forcefield) · **friends/family circle** invited & trickling · the **i
    (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower defense, roguelite shooters). See
    `komyo-avoid-balance-heavy-genres`. Slot in **one original-mechanic, shareable game** alongside the remakes
    (see `komyo-market-expansion-discussion`). More POC prototypes wait on a separate branch. Build order below.
-3. **LAUNCH + marketing campaigns — *started* (reddit groundwork underway, see In flight).** Prep the materials (promo video / montage + Discord preview cuts,
+3. **Single service worker for the whole site — PRE-LAUNCH GATE.** Must land BEFORE real users
+   arrive: once strangers install per-game PWAs, their scoped workers keep serving stale caches and
+   a clean migration needs shims — today (friends & family, few/no installs) a plain
+   `getRegistrations()` sweep that unregisters non-root scopes on boot is enough. Scope: drop the
+   10 per-game `sw.js` scopes, ONE root-scope SW caches everything (kills the "one game stayed
+   stale after Update" bug class + the ~11× duplicate caching of shared files and all 8 locale
+   files; "Update now" becomes a single worker swap). **Keep the per-game manifests** — a root SW
+   controlling `/games/<slug>/` still satisfies installability, so per-game installs keep working.
+   Delete `games/*/sw.js` + their `pwa()` registrations, grow the root SHELL (or runtime-cache game
+   files), simplify `gamekit.updates.apply()` + the catalogue's idle-register loop, rewrite the SW
+   test section.
+4. **LAUNCH + marketing campaigns — *started* (reddit groundwork underway, see In flight).** Prep the materials (promo video / montage + Discord preview cuts,
    per-game OG/Twitter cards, story-format share card), then publish everywhere: portals (itch.io, free-to-play
    indexes), news, forums, subreddits, Discord servers, socials. Paid ads considered later.
 
@@ -110,16 +121,6 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
   description; preferred direction: a small gray (i) next to the tile's ★ (tap/hover → blurb
   popover). Rejected: whole-tile hover tooltip. Blurb length is test-capped meanwhile (source ≤120,
   translations ≤170) so descriptions stay tile-sized either way.
-- **Single service worker for the whole site** — drop the 10 per-game `sw.js` scopes and let ONE
-  root-scope SW cache everything (games included): kills the "one game stayed stale after Update"
-  bug class outright, ends the ~11× duplicate caching (each scope precaches its own copy of the
-  shared files + all 8 locale files), and turns "Update now" into a single worker swap instead of
-  herding 11 registrations. **Keep the per-game manifests** — a root SW controlling
-  `/games/<slug>/` still satisfies installability, so per-game installs keep working. Scope:
-  delete `games/*/sw.js` + their `pwa()` registrations, grow the root SHELL (or runtime-cache game
-  files), simplify `gamekit.updates.apply()` + the catalogue's idle-register loop, rewrite the SW
-  test section. No legacy-user migration shims needed (friends-and-family stage, few/no PWA
-  installs) — a plain `getRegistrations()` sweep that unregisters non-root scopes on boot is enough.
 - **Real mascot** *(external — owned by others)* — when it lands: swap the placeholder chibi everywhere +
   **mascot art refresh** of `buildScoreCard`/`buildProfileCard` around it, + a **mascot attire shop** (spend
   trophies on logo / score-card / profile mascot cosmetics). Placeholder art ships fine until then.
