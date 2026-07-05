@@ -79,7 +79,7 @@ window.GAMES = [
   {
     slug: "sudoku",
     title: "Sudoku",
-    blurb: "Fill the 9×9 grid so every row, column, and box holds 1–9. Easy to expert, with notes and hints.",
+    blurb: "Fill the 9×9 grid so every row, column and box holds 1–9 — easy to expert, with hints.",
     icon: "🔢",
     accent: "#7aa2ff",
     tags: ["LOGIC", "PUZZLE"],
@@ -204,7 +204,7 @@ window.GAMES = [
   {
     slug: "dusk-runner",
     title: "Dusk Runner",
-    blurb: "Chrome's offline dino runner, our way — mono line-art, jump the cacti, duck the birds, day fades to night.",
+    blurb: "Chrome's dino runner, our way — jump the cacti, duck the birds, day fades to night.",
     icon: "🦖",
     accent: "#d7d2c4",
     tags: ["ARCADE", "REFLEX"],
@@ -231,7 +231,7 @@ window.GAMES = [
   {
     slug: "blink",
     title: "Blink",
-    blurb: "Watch the scene, then answer what you saw — how many ducks? what color was the sky? Trust nothing.",
+    blurb: "Watch the scene, then answer what you saw — how many ducks? what color was the sky?",
     icon: "👁️",
     accent: "#9aa6ff",
     tags: ["LOGIC", "PUZZLE"],
@@ -240,7 +240,7 @@ window.GAMES = [
   {
     slug: "pocket-rally",
     title: "Pocket Rally",
-    blurb: "Floor it down a busy multi-lane straight — weave the traffic, don't clip a bumper, chase distance.",
+    blurb: "Floor it down a busy multi-lane straight — weave the traffic, chase distance.",
     icon: "🏎️",
     accent: "#ff6a3c",
     tags: ["RACING", "ARCADE"],
@@ -249,7 +249,7 @@ window.GAMES = [
   {
     slug: "market-parking",
     title: "Market Parking",
-    blurb: "A packed lot, too few spaces — beat the others to an empty spot and slot in before they do. Bots fill the solo game.",
+    blurb: "A packed lot, too few spaces — beat the rest to an empty spot. Bots fill the solo game.",
     icon: "🅿️",
     accent: "#4db6e0",
     tags: ["SKILL", "RACING"],
@@ -258,7 +258,7 @@ window.GAMES = [
   {
     slug: "floodgate",
     title: "Floodgate",
-    blurb: "Rotate the pipes to route water source-to-drain before it floods. Plug the leaks, beat the timer.",
+    blurb: "Rotate the pipes to route water source-to-drain — plug the leaks, beat the timer.",
     icon: "🚰",
     accent: "#5fb8d9",
     tags: ["LOGIC", "PUZZLE"],
@@ -267,7 +267,7 @@ window.GAMES = [
   {
     slug: "minesweeper",
     title: "Minesweeper",
-    blurb: "Clear the minefield — flag the bombs, read the numbers, deduce the rest. The timeless logic classic.",
+    blurb: "Clear the minefield — flag bombs, read the numbers, deduce the rest. The logic classic.",
     icon: "💣",
     accent: "#9fb2c8",
     tags: ["LOGIC", "PUZZLE", "CLASSIC"],
@@ -334,7 +334,7 @@ window.GAMES = [
   {
     slug: "foxden",
     title: "Foxden",
-    blurb: "Grow your little fox den over days — gather, build, upgrade. Earns while away, resumes where you left off.",
+    blurb: "Grow your little fox den — gather, build, upgrade. Earns while you're away.",
     icon: "🦊",
     accent: "#e0883a",
     tags: ["IDLE", "CASUAL"],
