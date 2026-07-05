@@ -1792,6 +1792,9 @@
           else { try { location.reload(); } catch (e) {} }
         });
       });
+      // live language switch (no reload in games): the nav back label is the one piece of
+      // always-visible kit DOM built at mount — refresh it when the language changes
+      onLang(function () { try { if (menu) menu.textContent = t('nav.menu'); } catch (e) {} });
       var homeA = document.getElementById('gamekitHome');
       if (homeA) homeA.addEventListener('click', function (e) {
         if (!leaveMsg()) return; // no run → let the link navigate normally
@@ -3025,6 +3028,23 @@
     if (!res) { var nav = 'en'; try { nav = (navigator.languages && navigator.languages[0]) || navigator.language || 'en'; } catch (e) {} res = normLang(nav); }
     return langReady(res) ? res : 'en'; // never activate a not-yet-translated ("soon") locale
   }
+  // consume a ?lang= deep link at load: persist the choice + strip the param. Runs at head-script
+  // eval, BEFORE the catalogue's syncURL rewrites the query string (which would drop the param
+  // unread), and a stripped URL can't override the picker on later reloads.
+  (function () {
+    try {
+      var q = new URLSearchParams(location.search).get('lang');
+      if (!q) return;
+      // validate against the static supported set (NOT langReady — i18n.js loads after this
+      // script; detectLang's own langReady guard still keeps a "soon" locale from activating)
+      var low = String(q).toLowerCase();
+      var code = low.indexOf('pt') === 0 ? 'pt' : low.slice(0, 2);
+      if (!I18N_SUPPORTED[code]) return;
+      try { localStorage.setItem('gamekit_lang', code); } catch (e) {}
+      var u = new URL(location.href); u.searchParams.delete('lang');
+      history.replaceState(history.state, '', u);
+    } catch (e) {}
+  })();
   function lang() { if (!_lang) _lang = detectLang(); return _lang; }
   function setLang(code) {
     code = I18N_SUPPORTED[code] ? code : 'en';
@@ -3072,6 +3092,7 @@
     b.title = opts.label || 'Language';
     b.innerHTML = langGlyphHTML(lang()) + (opts.label ? '<span class="gk-lang-lbl">' + opts.label + '</span>' : '');
     b.addEventListener('click', function () { langMenu(opts); });
+    onLang(function (code) { try { b.innerHTML = langGlyphHTML(code) + (opts.label ? '<span class="gk-lang-lbl">' + (opts.label || '') + '</span>' : ''); } catch (e) {} });
     return b;
   }
   // langMenu(opts) → a themed overlay grid: big flags + small language names, current one highlighted.
@@ -3106,7 +3127,15 @@
     function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
     if (ov.querySelectorAll) Array.prototype.forEach.call(ov.querySelectorAll('.gklang-cell'), function (cell) {
       if (!langReady(cell.getAttribute('data-code'))) return; // "soon" languages aren't selectable yet
-      cell.addEventListener('click', function () { setLang(cell.getAttribute('data-code')); try { location.reload(); } catch (e) {} });
+      cell.addEventListener('click', function () {
+        setLang(cell.getAttribute('data-code'));
+        // INSIDE a game (nav mounted): never reload — a reload wipes the run in progress. The
+        // canvas HUD retranslates next frame (t() per draw), menus on their next rebuild, and
+        // onLang subscribers fire for anything live. Catalogue/legal pages have nothing to lose
+        // and plenty of boot-built strings → a reload there guarantees a complete switch.
+        if (_navEl) { close(); return; }
+        try { location.reload(); } catch (e) {}
+      });
     });
     var xb = ov.querySelector ? ov.querySelector('.gklang-x') : null; if (xb) xb.addEventListener('click', close);
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
