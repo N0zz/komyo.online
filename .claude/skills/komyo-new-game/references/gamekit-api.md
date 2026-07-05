@@ -552,14 +552,16 @@ Posts to the public Komyo Discord webhook. Games rely on `shareRow`'s auto-post;
 
 ## i18n — t / lang / langs
 
-The kit's translation engine. Locale data lives in `i18n.js` (`window.KOMYO_I18N`, loaded in the
-atomic `<head>` + `sw.js` SHELL); `game-kit.js` owns lookup, plurals, and the language picker.
+The kit's translation engine. Locale data lives in `window.KOMYO_I18N` — `i18n.js` (the loader +
+the `en` dict) is loaded in the atomic `<head>` and pulls in each locale's own root
+`i18n.<code>.js`; the `sw.js` SHELL lists `i18n.js` AND every locale file. `game-kit.js` owns
+lookup, plurals, and the language picker.
 
 ### `KIT.t(key, params)` — MANDATORY (every player-facing string)
 
 Looks up `key` in the active locale, falling back to `en`, then `params.def`, then the key itself.
 `params`:
-- `def` — the English source text. ALWAYS pass it; never rely on a key already existing in `i18n.js`.
+- `def` — the English source text. ALWAYS pass it; never rely on a key already existing in the i18n catalogue.
 - Any other param interpolates into `{name}` tokens in the string:
   `KIT.t('game.x.scoreLine', { score, def: 'Score {score}' })`.
 - `count` — selects the plural category via `Intl.PluralRules` when the entry is a plural object
@@ -574,7 +576,8 @@ changes; returns an unsubscribe fn.
 ### `KIT.langs()` — optional
 
 → a copy of the configured language list `[{code, label}, …]`. **This is the runtime source of truth
-for which locales exist** — discover the set from here (or `Object.keys(window.KOMYO_I18N)`), never
+for which locales exist** — discover the set from here (or `window.KOMYO_I18N_AVAILABLE` in `i18n.js`
++ `'en'`; `Object.keys(window.KOMYO_I18N)` is only complete after the lazy loader ran), never
 hardcode it.
 
 ### `KIT.langButton(opts)` / `KIT.langMenu(opts)` — optional (the chrome wires them)

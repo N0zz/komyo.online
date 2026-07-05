@@ -4,10 +4,11 @@ description: >-
   Add a new language to komyo, or fill in/extend an existing one. Use this
   WHENEVER the user asks to translate the site into a language, add language
   support, fix a half-translated locale, or update the changelog's language
-  coverage. Explains the i18n.js/game-kit.js system, how to split a ~1400-key
-  translation into parallel-safe chunks, run a consistency-review pass across
-  those chunks, and merge the result back without corrupting the shared
-  i18n.js file. Also covers the incremental case: adding a batch of NEW keys
+  coverage. Explains the i18n.js/i18n.<code>.js/game-kit.js system, how to
+  split a ~1400-key translation into parallel-safe chunks, run a
+  consistency-review pass across those chunks, and merge the result back into
+  the locale's i18n.<code>.js file without corrupting it. Also covers the
+  incremental case: adding a batch of NEW keys
   (e.g. a new game's strings) to every already-complete locale. Triggers on
   "translate komyo into <language>", "add <language> support", "we're missing
   translations for X", "the changelog isn't translated in <language>",
@@ -16,14 +17,26 @@ description: >-
 
 # Translate komyo into a new (or incomplete) language
 
-komyo's i18n system is one file, `i18n.js` (`window.KOMYO_I18N`, one key→string
-map per locale), read by `gamekit.t()`/`lang()` in `game-kit.js`. **Never
+komyo's i18n catalogue is **split per language**: `i18n.js` is a small LOADER +
+the `en` (def-source) dict + `window.KOMYO_I18N_AVAILABLE` (the list of language
+codes that ship a file); **every other locale lives in its own root-level file
+`i18n.<code>.js`** (e.g. `i18n.pl.js`), shaped:
+
+```js
+window.KOMYO_I18N = window.KOMYO_I18N || {};
+window.KOMYO_I18N.pl = { 'key': 'value', ... };
+```
+
+All files populate the one `window.KOMYO_I18N` map read by
+`gamekit.t()`/`lang()` in `game-kit.js` (the loader sync-loads the active
+language via `document.write`, then lazy-loads the rest after load). **Never
 hardcode or assume the locale set** — discover the currently-configured locales
-at runtime from `i18n.js` (or `gamekit.langs()`), and treat every populated
-non-`en` locale as a required target for any new key:
+at runtime by evaluating `i18n.js` PLUS every `i18n.<code>.js` into one sandbox
+(the way `extract-parts.mjs` and `test-harness.mjs` do), and treat every
+populated non-`en` locale as a required target for any new key:
 
 ```bash
-cd ~/arcade && node -e "const vm=require('node:vm');const sb={window:{}};sb.globalThis=sb;vm.runInNewContext(require('node:fs').readFileSync('i18n.js','utf8'),sb);for(const[k,v]of Object.entries(sb.window.KOMYO_I18N))console.log(k,Object.keys(v).length)"
+cd ~/arcade && node -e "const fs=require('node:fs'),vm=require('node:vm');const sb={window:{}};sb.globalThis=sb;for(const f of ['i18n.js'].concat(fs.readdirSync('.').filter(f=>/^i18n\.[a-z]{2}\.js$/.test(f)).sort()))vm.runInNewContext(fs.readFileSync(f,'utf8'),sb,{filename:f});for(const[k,v]of Object.entries(sb.window.KOMYO_I18N))console.log(k,Object.keys(v).length)"
 ```
 
 Read `~/arcade/CLAUDE.md`'s i18n section and `~/arcade/plans/i18n-plan.md` first —
@@ -32,16 +45,17 @@ language, not just the original launch set.
 
 ## The system, in brief
 
-- **`pl` (Polish) is the reference locale.** `test.mjs`'s `testI18nCoverage`
-  requires `pl` to contain **every** key the site actually uses (scanned from
-  `data-t*` attrs and `t('key', ...)`/`T('key', ...)` calls, plus every
+- **`pl` (Polish) is the reference locale — it lives in `i18n.pl.js`.**
+  `test.mjs`'s `testI18nCoverage` requires `pl` to contain **every** key the
+  site actually uses (scanned from `data-t*` attrs and
+  `t('key', ...)`/`T('key', ...)` calls, plus every
   `game.<slug>.title/.blurb`, `cos.<id>.name/.desc`, `cos.set.<id>`, and every
   `changelog.eN.title/.bM`). Every *other* locale must be **empty (not
   started) or a complete superset matching `pl`'s key set** — no
   half-translated locale ships. This means: to see the exact, current,
-  complete key surface for a new language, read `pl`, not `en` (`en` is
-  sparse — most English text lives as inline `def:` fallbacks in the source
-  files, not in `i18n.js`'s `en` block).
+  complete key surface for a new language, read `pl` (`i18n.pl.js`), not `en`
+  (`en` is sparse — most English text lives as inline `def:` fallbacks in the
+  source files, not in `i18n.js`'s `en` dict).
 - **Changelog keys are `changelog.eN.title` / `changelog.eN.bM`, where N is a
   REVERSE index** — distance from the END of `window.CHANGELOG` (in
   `changelog.js`), not the entry's current array position. New entries are
@@ -73,18 +87,34 @@ low-volume edits:
 1. `game-kit.js`: add the code to `I18N_SUPPORTED`, an entry to `I18N_LANGS`
    (`{code, label}`, label in the language's own script), and a flag SVG to
    `I18N_FLAG_SVG` (inline, no external assets — a simple 2-3 colour
-   rect/path is enough, see the existing entries).
-2. `i18n.js`: add an empty `xx: {}` stub. A locale with 0 keys renders as
-   "soon" in the language picker (see `langReady()` in `game-kit.js`) —
-   it's a real, safe intermediate state.
-3. `test.mjs`: bump the `K.langs().length === N` assertion in `testI18n()`,
-   and add the new code to the locale loop in `testI18nCoverage()` (the
-   `for (const L of [...])` line).
-4. `index.html` + `sitemap.xml`: add an `hreflang="xx"` alternate link /
+   rect/path is enough, see the existing entries). With ONLY this wired, the
+   language renders as "soon" in the picker and is not selectable (see
+   `langReady()` in `game-kit.js`) — a real, safe intermediate state.
+2. Create the locale's own root-level file `i18n.xx.js`, shaped like the
+   existing ones (see `i18n.pl.js`):
+   ```js
+   window.KOMYO_I18N = window.KOMYO_I18N || {};
+   window.KOMYO_I18N.xx = { ... };
+   ```
+   It may sit with an empty map while translation is in flight.
+3. **Register + ship the file — do this when it's populated** (typically the
+   same push as the merge, step 4 below), because `langReady()` treats a code
+   listed in `KOMYO_I18N_AVAILABLE` as selectable even before its dictionary
+   loads — never list an untranslated language:
+   - `i18n.js`: add `'xx'` to `window.KOMYO_I18N_AVAILABLE`.
+   - **Every SW SHELL** — append the file to the root `sw.js` SHELL
+     (`'./i18n.xx.js'`) AND to every `games/*/sw.js` SHELL
+     (`'../../i18n.xx.js'`) — root + one per game folder. This is the
+     silent-offline-kill step: a SHELL that misses the file means that
+     language simply never works offline for that page, with no error.
+4. `test.mjs`: bump the `K.langs().length === N` assertion in `testI18n()`.
+   (`testI18nCoverage()` needs NO edit — it discovers the locale set from the
+   i18n files at runtime.)
+5. `index.html` + `sitemap.xml`: add an `hreflang="xx"` alternate link /
    `xhtml:link` next to the existing ones.
-5. `plans/i18n-plan.md`: update the language count/list in the goal line and
+6. `plans/i18n-plan.md`: update the language count/list in the goal line and
    Phase 0 decisions.
-6. Run `node test.mjs` — should stay green (the new locale is legitimately
+7. Run `node test.mjs` — should stay green (the new locale is legitimately
    empty; nothing regresses).
 
 ## Incremental mode — new keys into all existing locales (the common case)
@@ -104,13 +134,16 @@ complete superset of `pl`, so this is mandatory, not optional). For that:
    usually land in one or two small files.
 3. Translate: at this size skip the 6-part fan-out — dispatch **one agent per
    locale** (or one agent for ALL locales when it's only a few keys), reusing
-   the prompt template's source-hunting + output-format rules. Consistency
+   the prompt template's source-hunting + output-format rules. Each locale is
+   its own file now, so per-locale agents are parallel-safe across locales
+   (never two writers per FILE still holds). Consistency
    still matters: tell the agent to grep the neighbouring keys already in
-   that locale's block and reuse its established terms (no separate review
-   pass needed at this size).
-4. Merge per locale (same mechanics as step 4 below): insert ONLY keys the
-   locale doesn't already have — a re-added key must never end up twice in
-   the block — re-parse the file, then `node test.mjs`.
+   that locale's `i18n.<code>.js` and reuse its established terms (no separate
+   review pass needed at this size).
+4. Merge per locale into its `i18n.<code>.js` (same mechanics as step 4
+   below): insert ONLY keys the locale doesn't already have — a re-added key
+   must never end up twice in the map — re-parse the file, then
+   `node test.mjs`.
 
 ## Translating a language (new or backfilling gaps)
 
@@ -124,7 +157,8 @@ Run:
 ```
 node .claude/skills/komyo-i18n-translate/scripts/extract-parts.mjs <scratch-dir> [--missing <locale>]
 ```
-This reads the current `pl` locale + `changelog.js` and writes 6 files to
+This reads the current `pl` locale (merged from `i18n.js` + every root
+`i18n.<code>.js`) + `changelog.js` and writes 6 files to
 `<scratch-dir>`: `part1_kit.keys.txt` … `part5_cosmetics.keys.txt` (one key
 per line) and `part6_changelog.keys.txt` (`key<TAB>English text` pairs — the
 only part with the source text already inlined, since changelog English
@@ -157,7 +191,7 @@ Dispatch one Agent per (language × part) — for a single new language that's
   - everything else (kit chrome, catalogue, legal) → `game-kit.js` /
     `index.html` / `tos.html` / `privacy.html`, via `data-t*` attributes or
     `t()`/`T()` calls.
-- Use the live `pl` block in `i18n.js` **only** as a structural/tone
+- Use the live `pl` map in `i18n.pl.js` **only** as a structural/tone
   reference (plural shape, whether a proper noun is translated) — translating
   from Polish text instead of the real English is a game of telephone that
   compounds errors.
@@ -169,8 +203,11 @@ Dispatch one Agent per (language × part) — for a single new language that's
 See `references/agent-prompt-template.md` for the full prompt text this
 project has used successfully (fill in language + part + scratch paths).
 
-**Never have multiple agents write to `i18n.js` directly and concurrently** —
-they'll race on the same file. Scratch files first, always.
+**Never have two agents write to the same FILE concurrently.** All 6 part
+agents of one language would land in that language's single `i18n.<code>.js`,
+so within a language it's scratch files first, always. Across languages the
+per-locale split makes concurrency safe: agents each merging a DIFFERENT
+locale's `i18n.<code>.js` may run at the same time.
 
 ### 3 · Consistency-review pass (one agent per language)
 
@@ -191,7 +228,7 @@ translated under two different names across parts, a dropped `{param}`
 token, mismatched formal/informal register between a shared kit string and a
 game's override).
 
-### 4 · Merge into `i18n.js`
+### 4 · Merge into the locale's `i18n.<code>.js`
 
 Do this yourself, via a script — not by having an agent `Edit` the live file,
 and not by reading all ~1400 translated lines into your own context (you
@@ -201,17 +238,22 @@ don't need to; only the *merge mechanics* need automating):
    and `vm.runInNewContext`), that no part key falls outside `pl`'s key set +
    the changelog key set (no extras/typos), and that **the target locale's
    existing keys plus the parts' keys form a complete superset of `pl`** —
-   fail loudly if not, before touching `i18n.js`. (Only a from-scratch run
-   reduces to "parts' union === `pl`'s key set"; an incremental run's parts
-   cover just the keys the locale was missing.)
+   fail loudly if not, before touching `i18n.<code>.js`. (Only a
+   from-scratch run reduces to "parts' union === `pl`'s key set"; an
+   incremental run's parts cover just the keys the locale was missing.)
 2. Concatenate the parts, **drop any key the locale already has** (a
-   re-merged key must never appear twice in the block), indent, and splice
-   into `i18n.js` replacing that language's `xx: {}` stub (or inserting the
-   remaining new lines before the block's closing `},` if it already has
-   content, e.g. an incremental or changelog-only backfill for an
-   established locale).
-3. Re-parse the whole `i18n.js` file to confirm it's still valid JS.
-4. Run `node test.mjs`. It should go fully green — if `testI18nCoverage`
+   re-merged key must never appear twice in the map), indent, and splice
+   into that locale's `i18n.<code>.js` — filling the empty
+   `window.KOMYO_I18N.xx = { ... }` map for a new language, or inserting the
+   remaining new lines before the map's closing `};` if it already has
+   content (an incremental or changelog-only backfill for an established
+   locale).
+3. Re-parse the whole `i18n.<code>.js` file to confirm it's still valid JS.
+4. **New language only:** register the now-populated file — add the code to
+   `KOMYO_I18N_AVAILABLE` in `i18n.js` and append the file to **every** SW
+   SHELL (root `sw.js` + all `games/*/sw.js`) — see the wiring section's
+   step 3; missing a SHELL silently kills that language offline.
+5. Run `node test.mjs`. It should go fully green — if `testI18nCoverage`
    fails, it will tell you exactly which keys are missing.
 
 ### 5 · Changelog: new-language announcement entry
@@ -222,20 +264,26 @@ written *in* the newly-announced language as a flourish, e.g. `'komyo parla
 anche italiano! 🇮🇹'`; the body bullet is English, describing the feature).
 Give it the next unused reverse index (`CHANGELOG.length` before you
 prepend), then translate that one new title+bullet into every other populated
-locale (discover the set as above — a handful of short strings, fine to do by
-hand, no need for subagents at this size).
+locale — the keys go into each locale's own `i18n.<code>.js` (discover the
+set as above — a handful of short strings, fine to do by hand, no need for
+subagents at this size).
 
 ## Common failure modes (all hit at least once building this)
 
-- **Stripping a locale's changelog keys while trying to fix another
-  locale's.** If you ever bulk-regex-delete `changelog.e\d+\.` lines to clean
-  up stale keys, you'll delete them for *every* locale in the file, not just
-  the one you're fixing — re-merge any locale whose changelog content you
-  didn't mean to touch.
-- **Dangling double commas** after removing/inserting lines near a block's
-  last key — always re-parse the whole file with `vm.runInNewContext` after
-  any bulk edit, don't eyeball it.
-- **Editing `i18n.js` with the `Edit` tool right after a `Bash`/`node`-script
-  write to the same file** can fail with "file modified since read" — prefer
-  doing the actual merge via a `node -e` script in the first place instead of
-  interleaving `Edit` calls with script writes to the same file.
+- **Bulk-regexing MORE files than you meant to.** Each locale is its own
+  `i18n.<code>.js` now, which contains the blast radius of a bad regex to one
+  language — but a glob like `sed -i ... i18n.*.js` still hits every locale
+  at once. Scope any bulk delete/rewrite to the ONE file you're fixing, and
+  re-merge any locale you touched by accident.
+- **Dangling double commas** after removing/inserting lines near the map's
+  last key — always re-parse the whole `i18n.<code>.js` with
+  `vm.runInNewContext` after any bulk edit, don't eyeball it.
+- **Editing a locale file with the `Edit` tool right after a
+  `Bash`/`node`-script write to the same file** can fail with "file modified
+  since read" — prefer doing the actual merge via a `node -e` script in the
+  first place instead of interleaving `Edit` calls with script writes to the
+  same file.
+- **Forgetting the SW SHELL appends for a new language.** The site works
+  online, tests stay green, but the new language never loads offline —
+  nothing errors. `grep -L 'i18n.xx.js' sw.js games/*/sw.js` should come
+  back empty after the register step.

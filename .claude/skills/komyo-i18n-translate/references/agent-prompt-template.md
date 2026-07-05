@@ -10,10 +10,12 @@ batch's) part-agents in a single message so they run in parallel.
 
 ```
 Repo: ~/arcade (komyo, a browser-game arcade site). It has a client-side i18n
-system: window.KOMYO_I18N in i18n.js holds per-locale key→string maps, loaded
-by game-kit.js's t()/lang() engine. The `pl` locale (Polish) is fully
-translated and is the reference for which keys exist and their shape (plain
-string vs plural object {one,few,many,other}).
+system: window.KOMYO_I18N holds per-locale key→string maps, loaded by
+game-kit.js's t()/lang() engine. The catalogue is split per language: i18n.js
+is the loader + the en (def-source) dict; every other locale lives in its own
+root file i18n.<code>.js (e.g. i18n.pl.js). The `pl` locale (Polish, in
+~/arcade/i18n.pl.js) is fully translated and is the reference for which keys
+exist and their shape (plain string vs plural object {one,few,many,other}).
 
 TASK: produce {{LANGUAGE}} ("{{CODE}}") translations for the exact list of
 keys in this file (one key per line):
@@ -21,8 +23,8 @@ keys in this file (one key per line):
 
 {{SOURCE_GUIDANCE}}
 
-Use the existing `pl` block in ~/arcade/i18n.js (grep `  pl: {` then the
-relevant lines) ONLY as a structural/tone reference: which keys are plural
+Use the existing `pl` map in ~/arcade/i18n.pl.js (grep the relevant keys)
+ONLY as a structural/tone reference: which keys are plural
 objects vs plain strings, how {param} placeholders are used, and whether a
 given proper noun/game name is translated or kept as-is in Polish — mirror
 the SAME choice for {{LANGUAGE}}, but always translate from the actual
@@ -80,7 +82,8 @@ When done, reply with ONLY: "wrote N keys" (N = the count you produced).
 
 ```
 Repo: ~/arcade (komyo, a browser-game arcade site with a client-side i18n
-system in i18n.js). Six different translators independently produced
+system: i18n.js = loader + en dict, each other locale in its own root
+i18n.<code>.js). Six different translators independently produced
 {{LANGUAGE}} ("{{CODE}}") translations for six different chunks of the
 site's UI strings, each writing to its own file:
 {{PART1_PATH}}  (kit/UI chrome — nav, menus, sound, sharing, shop, challenges, titles…)

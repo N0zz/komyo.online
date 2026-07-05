@@ -48,11 +48,22 @@ that ship with the site and are cached offline by the game's `sw.js` SHELL — t
   exists before the inline script runs (the inline script is NOT deferred either).
 - **Canonical order** (use this — it's the breakout template): `analytics.js` (defer) · `game-kit.css`
   · `version.js` · **`game-kit.js` → `challenges.js` → `cosmetics.js` → `i18n.js`**. The kit must be
-  defined before `challenges.js`/`cosmetics.js` register their data against it; `i18n.js` sets
-  `window.KOMYO_I18N` (read lazily by `KIT.t`) and must be loaded before the inline script's first
-  `t()` call.
-- The game's `sw.js` SHELL must list these SAME files in lockstep — a missing one silently kills
-  that feature offline.
+  defined before `challenges.js`/`cosmetics.js` register their data against it; `i18n.js` is the
+  i18n LOADER + the `en` dict — it synchronously pulls in the active locale's `i18n.<code>.js`
+  (each locale ships as its own root file) so `window.KOMYO_I18N` is complete before the inline
+  script's first `t()` call. The `<head>` tag itself is unchanged by that split — only ever load
+  plain `i18n.js` here, never a locale file directly.
+- The game's `sw.js` SHELL must list these SAME files in lockstep — **plus every per-locale
+  `i18n.<code>.js` file** (the loader fetches them at runtime, so offline they only exist if the
+  SHELL cached them). A missing one silently kills that feature (or that language) offline. The
+  real current breakout SHELL:
+
+  ```js
+  self.SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../analytics.js','../../game-kit.js','../../game-kit.css','../../challenges.js','../../cosmetics.js','../../i18n.js','../../i18n.pl.js','../../i18n.es.js','../../i18n.pt.js','../../i18n.fr.js','../../i18n.it.js','../../i18n.cs.js','../../i18n.uk.js','../../version.js'];
+  ```
+
+  (The locale list is a snapshot — mirror `KOMYO_I18N_AVAILABLE` in `i18n.js` / copy from
+  `games/breakout/sw.js` at build time.)
 
 (`flappy` happens to load `challenges.js`/`cosmetics.js` before `game-kit.js`; that ordering works
 because those files defer their kit hookups, but **follow the canonical breakout order for new

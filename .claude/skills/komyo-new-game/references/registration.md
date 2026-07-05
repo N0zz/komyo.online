@@ -113,7 +113,7 @@ Goal `title` strings stay English in `challenges.js` — they are the `def:` sou
 them via `t('challenge.goal.<id>', { def: goal.title })`. **`challenge.goal.<id>` is a dynamic key
 the coverage scanner can't see** (built by concatenation in `game-kit.js`), so a missing translation
 is *silent English*, not a red test — add `challenge.goal.flood-1` / `challenge.goal.flood-2` keys to
-`i18n.js` yourself (§9).
+`i18n.pl.js` (and the other locale files) yourself (§9).
 
 ### 2c. Titles ladder + `randomSlug` `[AUTOMATIC — do not touch]`
 
@@ -196,11 +196,15 @@ Real breakout SHELL (copy verbatim, swap nothing but keep the relative paths):
 // floodgate — installable PWA + offline via the shared sw-core (stale-while-revalidate).
 self.SCOPE = 'floodgate';
 self.VERSION = 'dev'; // stamped with the commit SHA at deploy
-self.SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../analytics.js','../../game-kit.js','../../game-kit.css','../../challenges.js','../../cosmetics.js','../../i18n.js','../../version.js'];
+self.SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../analytics.js','../../game-kit.js','../../game-kit.css','../../challenges.js','../../cosmetics.js','../../i18n.js','../../i18n.pl.js','../../i18n.es.js','../../i18n.pt.js','../../i18n.fr.js','../../i18n.it.js','../../i18n.cs.js','../../i18n.uk.js','../../version.js'];
 importScripts('../../sw-core.js');
 ```
 
-`SCOPE` must equal the slug. `VERSION` stays `'dev'` (the deploy stamps the SHA).
+`SCOPE` must equal the slug. `VERSION` stays `'dev'` (the deploy stamps the SHA). The SHELL lists
+`i18n.js` (the loader + `en`) **plus every per-locale `i18n.<code>.js` file** — the locale set above
+is a snapshot; copy the current list from a live game's `sw.js` (e.g. `games/breakout/sw.js`, which
+must mirror `KOMYO_I18N_AVAILABLE` in `i18n.js`). A missing locale file silently kills that language
+offline.
 
 ---
 
@@ -286,16 +290,21 @@ fresh entry posts cleanly while an edited old one mis-posts.
 
 ---
 
-## 9. `i18n.js` — translations `[MANDATORY]`
+## 9. i18n — translations (`i18n.pl.js` + the other `i18n.<code>.js` files) `[MANDATORY]`
 
+The i18n catalogue is split per language: `i18n.js` is the loader + the `en` (def-source) dict;
+every other locale lives in its own root file `i18n.<code>.js` (the `pl` reference in `i18n.pl.js`).
 The coverage test (`node test.mjs`) requires the `pl` locale to contain every referenced key, and
 every OTHER populated locale to remain a **complete superset of `pl`** — so a new game's keys go
-into `pl` AND every other populated locale. **Discover the currently-configured locales at runtime**
-(never hardcode the list — a future language must not require an edit here):
+into `i18n.pl.js` AND every other populated locale's `i18n.<code>.js` (en stays inline in code as
+`def:`). **Discover the currently-configured locales at runtime** (never hardcode the list — a
+future language must not require an edit here) by merging `i18n.js` + every `i18n.<code>.js`:
 
 ```bash
-cd ~/arcade && node -e "const vm=require('node:vm');const sb={window:{}};sb.globalThis=sb;vm.runInNewContext(require('node:fs').readFileSync('i18n.js','utf8'),sb);for(const[k,v]of Object.entries(sb.window.KOMYO_I18N))console.log(k,Object.keys(v).length)"
+cd ~/arcade && node -e "const fs=require('node:fs'),vm=require('node:vm');const sb={window:{}};sb.globalThis=sb;for(const f of ['i18n.js'].concat(fs.readdirSync('.').filter(f=>/^i18n\.[a-z]{2}\.js$/.test(f)).sort()))vm.runInNewContext(fs.readFileSync(f,'utf8'),sb,{filename:f});for(const[k,v]of Object.entries(sb.window.KOMYO_I18N))console.log(k,Object.keys(v).length)"
 ```
+
+(Or simply read `window.KOMYO_I18N_AVAILABLE` from `i18n.js` and add `'en'`.)
 
 Key families a new game contributes:
 
@@ -307,11 +316,11 @@ Key families a new game contributes:
 | `cos.set.<setId>` | `COSMETICS.sets` label | test-enforced (derived from registry) |
 | `challenge.goal.<id>` | `challenges.js` goal `title` | **NOT enforced — dynamic key the scanner skips; missing = silent English. Add it yourself.** |
 
-Workflow: add the full key set to the `pl` block by hand (the failing test lists any you missed —
+Workflow: add the full key set to `i18n.pl.js` by hand (the failing test lists any you missed —
 except `challenge.goal.*`, which never fails; grep the existing entries for the pattern), then hand
 off to the **komyo-i18n-translate** skill (incremental mode) to add the same keys to every other
-populated locale. `en` stays sparse (`def:` is the English source) — except plural keys, which must
-exist in `en`.
+populated locale's `i18n.<code>.js`. `en` stays sparse (`def:` in code is the English source) —
+except plural keys, which must exist in the `en` dict in `i18n.js`.
 
 ---
 
@@ -331,8 +340,8 @@ exist in `en`.
 1. `games.js` — GAMES entry (§1).
 2. `challenges.js` — `goodRun` bar **and** two goal entries + add ids to `daily` (§2).
 3. `cosmetics.js` — `add()` calls + `sets` label + `games` meta (§3) *(optional but expected)*.
-4. `i18n.js` — all the game's key families in `pl` (§9), then the komyo-i18n-translate skill
-   (incremental mode) for every other populated locale.
+4. `i18n.pl.js` — all the game's key families in `pl` (§9; en defs are inline in code), then the
+   komyo-i18n-translate skill (incremental mode) for every other populated locale's `i18n.<code>.js`.
 5. `sitemap.xml` — `<url>` at priority 0.8 (§7).
 6. `llms.txt` — Games bullet (§7).
 7. `changelog.js` — prepend one entry (§8).
@@ -359,7 +368,9 @@ node games/floodgate/test.mjs
 - **Hard-tier goal target = the good-run bar.** `challenges.js` goal `<slug>-2.target` **must equal**
   `CHALLENGES.goodRun.<slug>`. Retune them together.
 - **Head ↔ SHELL lockstep.** The shared files in the atomic `<head>` and the `sw.js` `SHELL` array
-  must be the same set. Adding a file to one without the other silently kills it offline.
+  must be the same set — plus the SHELL additionally lists every `i18n.<code>.js` locale file (the
+  head only loads `i18n.js`; the loader fetches the locale files at runtime, so offline they exist
+  only if the SHELL cached them). Adding a file to one without the other silently kills it offline.
 - **NEW/UPDATED are dates, not strings.** Never put "NEW"/"UPDATED" in `badges`; set `added`/`updated`.
 - **`challenge.goal.<id>` is a dynamic i18n key** — the coverage scanner can't see it, so a missing
   translation renders silent English instead of failing the suite. Add it with the other keys (§9).
