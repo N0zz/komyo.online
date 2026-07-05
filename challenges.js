@@ -69,6 +69,21 @@ window.CHALLENGES.goodRun = {
   forcefield: 500,
 };
 
+// THE canonical pool for scope:'random' picks — window.GAMES non-soon slugs in games.js order,
+// mirrored here because games never load games.js but their 🏆 panel must resolve the SAME pick
+// as the catalogue (test.mjs enforces the lockstep). playableSince = each game's go-live date:
+// the evaluator freezes a period's pool to the games live at its START, so a game shipping
+// mid-week/mid-day never re-resolves an already-seen pick to a different target.
+window.CHALLENGES.playable = [
+  'asteroids', 'asteroids-plus', 'tower-defense', 'forcefield', 'bubbles',
+  'breakout', 'stacker', 'flappy', 'aim-trainer', 'snake',
+];
+window.CHALLENGES.playableSince = {
+  asteroids: '2026-06-26', 'asteroids-plus': '2026-06-28', 'tower-defense': '2026-06-26',
+  forcefield: '2026-07-04', bubbles: '2026-06-26', breakout: '2026-06-26',
+  stacker: '2026-06-26', flappy: '2026-06-26', 'aim-trainer': '2026-06-26', snake: '2026-06-26',
+};
+
 // Deterministic, same-for-everyone pick for scope:'random' goals — chosen from ALL playable
 // slugs by the day (daily) or week index. Pure so the catalogue's evalGoal and the tile-badge
 // resolver agree. `playable` = window.GAMES filtered to non-soon, in catalogue order.

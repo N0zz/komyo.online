@@ -2546,7 +2546,6 @@
       const genreOf = {}, titleOf = {};
       (window.GAMES || []).forEach(g => { if (g && g.slug) { genreOf[g.slug] = (tagsOf(g)[0]) || ''; titleOf[g.slug] = g.title || g.slug; } });
       const PLAYABLE = (window.GAMES || []).filter(g => g && g.slug && !g.soon).map(g => g.slug); // for scope:'random' picks
-      const WEEK_ANCHOR = Math.floor(Date.UTC(2026, 5, 22) / 86400000); // a Monday — week buckets
       const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
       // goal evaluation = the kit's single evaluator (game-kit chEval); the catalogue only binds its
       // context (genres + playable/titles for scope:'random'). dStr = a past UTC day for the back-fill.
@@ -2615,19 +2614,26 @@
         if (moreEl) moreEl.hidden = h.length <= histShown;
       }
       if (moreEl) moreEl.addEventListener('click', () => { histShown += PAGE; renderHistory(); });
-      // award any completion in the retained window (≈8 days), so a challenge counts even if the
-      // catalogue wasn't open the day it was finished (the old code only awarded today's, lazily).
+      // award any completion in the retained window (~15 days of played-logs), so a challenge
+      // counts even if the catalogue wasn't open when it was finished. The weekly check covers the
+      // PREVIOUS week too — trophies are only ever awarded here, and a player who finishes the
+      // weekly from an installed game and opens the catalogue after Monday must still get paid.
       function backfillAndAward() {
         const today = K.utcDayNumber();
-        for (let d = today; d > today - 8; d--) {
+        for (let d = today; d > today - 15; d--) {
           const p = K.challengePick ? K.challengePick('daily', d) : null;
           if (!p || !p.goal) continue;
           const dStr = K.utcDateStr(d * 86400000);
-          const e = evalGoal(p.goal, dStr);
+          const e = evalGoal(p.goal, dStr, p.id);
           if (e && e.done) award(dStr + '#' + p.id, p.goal.points || DAILY_PTS, { id: p.id, title: e.title || p.goal.title, kind: 'daily', day: d, date: dStr });
         }
-        const weekly = pick('week'); // weekly persists all week → current week is enough
-        if (weekly && weekly.goal) { const we = evalGoal(weekly.goal); if (we && we.done) award(weekly.period + '#' + weekly.id, weekly.goal.points || WEEKLY_PTS, { id: weekly.id, title: we.title || weekly.goal.title, kind: 'weekly', day: today, date: K.utcDateStr() }); }
+        for (const refDay of [today, today - 7]) { // this week + last week
+          const w = K.challengePick ? K.challengePick('weekly', refDay) : null;
+          if (!w || !w.goal) continue;
+          const dStr = K.utcDateStr(refDay * 86400000);
+          const we = evalGoal(w.goal, dStr, w.id);
+          if (we && we.done) award(w.period + '#' + w.id, w.goal.points || WEEKLY_PTS, { id: w.id, title: we.title || w.goal.title, kind: 'weekly', day: refDay, date: dStr });
+        }
       }
       // aggregate, consent-gated: which goals get seen (once per tab-session per goal) — the
       // denominator for challenge_done, so we can read completion rates per goal and retune targets.
