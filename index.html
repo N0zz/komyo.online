@@ -102,6 +102,15 @@
     border:1px solid var(--border); background:rgba(11,15,23,0.72); color:#6b7892; transition: color .12s, border-color .12s, transform .12s; }
   .fav:hover { color:#ffcf5c; border-color:#ffcf5c; transform:scale(1.08); }
   .fav.on { color:#ffcf5c; border-color:#ffcf5c; }
+  /* manual favorites reorder — two tiny chevrons stacked just left of the ★ star, only in the
+     Favorites strip (favPos is only passed there); hidden in compact view like the star shrinks */
+  .favmove { position:absolute; top:10px; right:50px; z-index:3; display:flex; flex-direction:column; gap:3px; }
+  .favmove button { width:22px; height:15.5px; padding:0; border:1px solid var(--border); border-radius:5px;
+    background:rgba(11,15,23,0.72); color:#8a97ac; font-size:9px; line-height:1; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition: color .12s, border-color .12s; }
+  .favmove button:hover:not(:disabled) { color:#ffcf5c; border-color:#ffcf5c; }
+  .favmove button:disabled { opacity:0.3; cursor:default; }
+  .grid.compact .favmove { display:none; }
   /* tile badges — one shimmer+sparkle system, color per badge type (add more in the BADGES map) */
   .badges { position:absolute; top:8px; left:11px; z-index:3; pointer-events:none; display:flex; flex-direction:column; align-items:flex-start; gap:6px; }
   .badge { position:relative; }
@@ -1034,6 +1043,14 @@
     function favs() { try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch (e) { return []; } }
     function setFavs(a) { try { localStorage.setItem(FAV_KEY, JSON.stringify(a)); } catch (e) {} }
     function toggleFav(slug) { const a = favs(), i = a.indexOf(slug); if (i >= 0) a.splice(i, 1); else a.push(slug); setFavs(a); render(); }
+    // manual reorder within the Favorites strip — favs() is already the source of truth for order
+    // (toggleFav appends new ones at the end); this just lets the player rearrange that array.
+    function moveFav(slug, dir) {
+      const a = favs(), i = a.indexOf(slug); if (i < 0) return;
+      const j = i + dir; if (j < 0 || j >= a.length) return;
+      [a[i], a[j]] = [a[j], a[i]];
+      setFavs(a); render();
+    }
     // canonical genre colors — ONE color per tag, shared by tile pills + the genre filter
     // (NOT the per-game `accent`). Add a genre = one entry here; games carry 1–3 in `tags`.
     const TAG_COLORS = {
@@ -1104,7 +1121,9 @@
     const gameBlurb = g => T('game.' + g.slug + '.blurb', g.blurb);
 
     // catalogue is grouped into sections; favorites pin to the top of their own section.
-    function tileEl(g, f) {
+    // favPos (only passed for tiles rendered within the Favorites strip): { index, count } — drives
+    // the ▲▼ manual-reorder buttons, disabled at either end.
+    function tileEl(g, f, favPos) {
       const soon = !!g.soon;
       const el = document.createElement(soon ? 'div' : 'a');
       el.className = 'tile' + (soon ? ' soon' : '');
@@ -1130,6 +1149,21 @@
         star.setAttribute('aria-label', (f.includes(g.slug) ? T('cat.unfavorite', 'Unfavorite ') : T('cat.favorite', 'Favorite ')) + gameTitle(g));
         star.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); toggleFav(g.slug); });
         el.appendChild(star);
+      }
+      // manual reorder within the Favorites strip — two tiny buttons appended (not innerHTML'd,
+      // so they're real, testable elements like the ★ star), disabled at either end of the list.
+      if (favPos) {
+        const move = document.createElement('span'); move.className = 'favmove';
+        const up = document.createElement('button'); up.type = 'button'; up.className = 'favup';
+        up.textContent = '▲'; up.disabled = favPos.index === 0;
+        up.setAttribute('aria-label', T('cat.favMoveUp', 'Move up'));
+        up.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); moveFav(g.slug, -1); });
+        const down = document.createElement('button'); down.type = 'button'; down.className = 'favdown';
+        down.textContent = '▼'; down.disabled = favPos.index === favPos.count - 1;
+        down.setAttribute('aria-label', T('cat.favMoveDown', 'Move down'));
+        down.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); moveFav(g.slug, 1); });
+        move.appendChild(up); move.appendChild(down);
+        el.appendChild(move);
       }
       return el;
     }
@@ -1203,8 +1237,11 @@
       // favorites lift into their own top strip; each section is available-then-coming-soon
       const order = arr => { const av = arr.filter(g => !g.soon), soon = arr.filter(g => g.soon); return [...av, ...soon]; };
       const sections = [];
-      const favList = all.filter(isFav);
-      if (favList.length) sections.push({ label: T('cat.favorites', '★ Favorites'), list: favList });
+      // ordered by the STORED favorites array (manually reorderable), not games.js's fixed order —
+      // f may reference a filtered-out/soon slug, so map+filter rather than sort all by indexOf(f)
+      const favList = f.map(slug => all.find(g => !g.soon && g.slug === slug)).filter(Boolean);
+      const favIndex = new Map(favList.map((g, i) => [g.slug, { index: i, count: favList.length }]));
+      if (favList.length) sections.push({ label: T('cat.favorites', '★ Favorites'), list: favList, favs: true });
       const sp = order(all.filter(g => !g.mp && !isFav(g)));
       if (sp.length) sections.push({ label: T('cat.singlePlayer', 'Single player'), list: sp });
       const mp = order(all.filter(g => g.mp && !isFav(g)));
@@ -1232,7 +1269,7 @@
         let tiles = 0;
         while (queue.length && tiles < PAGE) {
           const it = queue.shift();
-          if (it.slug) { grid.appendChild(tileEl(it, f)); tiles++; } else grid.appendChild(it);
+          if (it.slug) { grid.appendChild(tileEl(it, f, favIndex.get(it.slug))); tiles++; } else grid.appendChild(it);
         }
         if (!queue.length) return;
         const more = document.createElement('button');

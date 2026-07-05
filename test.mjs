@@ -70,6 +70,44 @@ function testCatalogue() {
     ok(tiles()[0].href === 'games/' + GAMES[0].slug + '/', 'unfavoriting restores order');
   }
 
+  // manual favorites reorder: the ▲▼ buttons let the player rearrange the Favorites strip itself,
+  // independent of games.js order — favorite 3 playable games (in games.js order), then reorder them.
+  {
+    const playable = GAMES.filter(gm => !gm.soon);
+    ok(playable.length >= 3, 'catalogue has ≥3 playable games to exercise reordering');
+    if (playable.length >= 3) {
+      const [ga, gb, gc] = playable;
+      // star them one at a time, always via the CURRENT first single-player tile (favoriting
+      // re-renders and pulls each one into the Favorites strip, so re-query tiles() every time)
+      for (const slug of [ga.slug, gb.slug, gc.slug]) {
+        const t = tiles().find(el => el.href === 'games/' + slug + '/');
+        t.children[0].fire('click'); // ★
+      }
+      ok(tiles()[0].href === 'games/' + ga.slug + '/' && tiles()[1].href === 'games/' + gb.slug + '/' && tiles()[2].href === 'games/' + gc.slug + '/',
+        'favorites render in the order they were starred (got ' + tiles().slice(0, 3).map(t => t.href).join(', ') + ')');
+      const favmove = t => t.children.find(c => c.className === 'favmove');
+      ok(favmove(tiles()[0]).children[0].disabled === true, 'first favorite: ▲ is disabled');
+      ok(favmove(tiles()[0]).children[1].disabled === false, 'first favorite: ▼ is enabled');
+      ok(favmove(tiles()[2]).children[1].disabled === true, 'last favorite: ▼ is disabled');
+      // move the middle favorite (gb) down one slot → gc, gb swap
+      favmove(tiles()[1]).children[1].fire('click'); // ▼
+      ok(tiles()[1].href === 'games/' + gc.slug + '/' && tiles()[2].href === 'games/' + gb.slug + '/',
+        '▼ swaps with the next favorite (got ' + tiles()[1].href + ', ' + tiles()[2].href + ')');
+      ok(JSON.stringify(JSON.parse(g.store['arcade_favs'])) === JSON.stringify([ga.slug, gc.slug, gb.slug]),
+        'reordered favorites persist to localStorage in the new order (got ' + g.store['arcade_favs'] + ')');
+      // clicking a disabled end button is a bounds-checked no-op (moveFav guards it directly —
+      // the mock DOM doesn't enforce .disabled blocking clicks, so this is the real safety net)
+      favmove(tiles()[0]).children[0].fire('click'); // ▲ on the first favorite
+      ok(tiles()[0].href === 'games/' + ga.slug + '/', 'moving past the start is a no-op');
+      // clean up: unfavorite all three so later sections of this test see the original order
+      for (const slug of [ga.slug, gb.slug, gc.slug]) {
+        const t = tiles().find(el => el.href === 'games/' + slug + '/');
+        t.children[0].fire('click');
+      }
+      ok(tiles()[0].href === 'games/' + GAMES[0].slug + '/', 'unfavoriting all three restores original order');
+    }
+  }
+
   // challenge history back-fill: a completion is recorded even when detected on a later catalogue
   // load (the old code only awarded "today's" goal lazily, so in-game completions were lost).
   {
