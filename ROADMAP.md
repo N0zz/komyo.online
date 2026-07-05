@@ -113,6 +113,12 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
 
 ### Later (non-gating)
 
+- **Score card as the DEFAULT share payload** *(to discuss — parked 2026-07-05, no decision yet)* —
+  end-screen share row: can the X/Reddit/native buttons share the score-card IMAGE by default
+  instead of text+link? Discussion points when picked up: X/Reddit web intents are URL-only (no
+  image upload), native share can attach the card file (already done for the 📷 button), and the
+  card ships no link — so it's likely "native = card, X/Reddit = text+link (unchanged)" or
+  card-behind-the-link via OG tricks. Talk first.
 - **Top-bar button labels on desktop** *(idea — undecided)* — at ≥~900px show icon + short label on
   the right cluster (`📱 Install · Language · ⚙️ Settings · ⛶ Fullscreen`); icon-only below (today's
   look). ☰ stays bare. Static label text (no "Exit fullscreen" swap — state lives in the icon);
