@@ -106,6 +106,10 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
   the right cluster (`📱 Install · Language · ⚙️ Settings · ⛶ Fullscreen`); icon-only below (today's
   look). ☰ stays bare. Static label text (no "Exit fullscreen" swap — state lives in the icon);
   only "Install" needs a new i18n key ×7; eyeball label widths per locale (uk/pt/it run long).
+- **Tile blurbs behind an (i)** *(idea — parked, START WITH MOCKS in plans/)* — hide the always-on
+  description; preferred direction: a small gray (i) next to the tile's ★ (tap/hover → blurb
+  popover). Rejected: whole-tile hover tooltip. Blurb length is test-capped meanwhile (source ≤120,
+  translations ≤170) so descriptions stay tile-sized either way.
 - **Single service worker for the whole site** — drop the 10 per-game `sw.js` scopes and let ONE
   root-scope SW cache everything (games included): kills the "one game stayed stale after Update"
   bug class outright, ends the ~11× duplicate caching (each scope precaches its own copy of the

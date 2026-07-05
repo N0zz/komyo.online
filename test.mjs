@@ -54,6 +54,11 @@ function testCatalogue() {
     const dupIcons = Object.keys(byIcon).filter(k => byIcon[k].length > 1).map(k => k + ' (' + byIcon[k].join(', ') + ')');
     ok(dupSlugs.length === 0, 'no duplicate slugs in games.js' + (dupSlugs.length ? ': ' + dupSlugs.join(', ') : ''));
     ok(dupIcons.length === 0, 'no duplicate tile icons in games.js' + (dupIcons.length ? ': ' + dupIcons.join('; ') : ''));
+    // blurbs are TILE copy — one glanceable sentence, not a paragraph (longest today: 116)
+    const BLURB_MAX = 120;
+    const longBlurbs = GAMES.filter(gm => String(gm.blurb || '').length > BLURB_MAX)
+      .map(gm => gm.slug + ' (' + String(gm.blurb).length + ')');
+    ok(longBlurbs.length === 0, 'every games.js blurb is ≤ ' + BLURB_MAX + ' chars' + (longBlurbs.length ? ' — TOO LONG: ' + longBlurbs.join(', ') : ''));
   }
   const grid = g.getEl('grid');
   // #grid now also holds full-width section dividers, so count only the tiles.
@@ -917,6 +922,17 @@ function testI18nCoverage() {
   }
   const enMiss = [...defless].filter(k => !(k in (dict.en || {}))).sort();
   ok(enMiss.length === 0, 'every def-less t() key exists in en (English users would see raw keys)' + (enMiss.length ? ` — MISSING ${enMiss.length}: ${enMiss.slice(0, 25).join(', ')}` : ''));
+
+  // 8) translated tile blurbs stay tile-sized — translations run ~40% longer than the en source
+  // (source cap 120, tested against games.js), so the locale cap gets matching headroom
+  const TR_BLURB_MAX = 170;
+  const longTr = [];
+  for (const L of Object.keys(dict)) {
+    for (const k of Object.keys(dict[L] || {})) {
+      if (/^game\.[\w-]+\.blurb$/.test(k) && String(dict[L][k]).length > TR_BLURB_MAX) longTr.push(`${L}:${k} (${String(dict[L][k]).length})`);
+    }
+  }
+  ok(longTr.length === 0, 'every translated game blurb is ≤ ' + TR_BLURB_MAX + ' chars' + (longTr.length ? ' — TOO LONG: ' + longTr.join(', ') : ''));
 }
 
 function testChallenges() {
