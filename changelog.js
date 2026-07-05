@@ -4,6 +4,20 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-05', title: 'Home page, reworked 🏠', items: [
+    'New: the games now sort into four shelves — ★ Favorites, Recently played, All games and Coming soon. Single-player and multiplayer live together under All games (multiplayer tiles keep their 👥 badge, and the Type filter still splits them).',
+    'New: Recently played — full game cards of what you actually played, newest first, in a sideways-scrolling row with a » paddle. Starting a run (picking a mode and pressing Play) is what counts as played.',
+    'New: rearrange your ★ Favorites by dragging — on a phone, hold a tile for a moment to lift it. A see-through copy of the card shows exactly where it will land.',
+    'New: a quick menu on the right edge — Profile (wearing your current title), Challenges and Collection as big buttons. It tucks away behind a ‹‹ tab when the screen is narrow, or whenever you hide it — and it remembers your choice.',
+    'New: notification dots — Profile lights up when you earn a new title, Challenges when a fresh daily or weekly challenge arrives (with a ★ NEW badge on it inside), and the ‹‹ tab carries the dot while the menu is hidden.',
+    'New: Install, Language and Fullscreen buttons in the top-right corner — fullscreen helps when the installed app window has no fullscreen option of its own. Each game\'s ☰ menu got a fullscreen switch too.',
+  ] },
+  { date: '2026-07-05', title: 'Fixes & polish 🔧', items: [
+    'Fix: updating really updates everything now — no more "Settings says up to date, but a game still shows the update dot" (a caching gremlin fed freshly-updated games stale files). The home page ☰ also lights up when an update is ready.',
+    'Fix: Range — the clock ticks in real time instead of only when you shoot, finishing a Sprint shows the bar visibly filling with a golden flash before the end screen, and a record run finally shows its "★ New best!".',
+    'Change: Forcefield\'s icon is now 🌐 (was 🛡️) — the globe fits defending a planet\'s atmosphere better.',
+    'Fix: on phones, the Filter, Random and Compact buttons center their labels properly.',
+  ] },
   { date: '2026-07-05', title: 'komyo тепер розмовляє і українською! 🇺🇦', items: [
     'New: komyo now speaks Ukrainian too! The whole site — every game, every menu and screen — is translated. Pick Українська from ⚙️ Settings on the home page, or the ☰ menu inside any game. English, Polish, Spanish, Portuguese, French and Italian are there as well, and more languages are on the way.',
   ] },
