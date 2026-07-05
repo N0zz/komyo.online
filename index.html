@@ -526,6 +526,16 @@
   .side-tab { position:relative; }
   .side-tab.has-dot::after { content:""; position:absolute; top:7px; left:50%; transform:translateX(-50%);
     width:8px; height:8px; border-radius:50%; background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
+  /* inside the drawer, the NEW rotation gets a chip + a couple of glow pulses, so the dot that led
+     you here actually points at something (chip text comes from i18n via data-new) */
+  .ch-new { position:relative; }
+  .ch-new::after { content:attr(data-new); position:absolute; top:-9px; right:10px; z-index:2; padding:3px 8px;
+    border-radius:999px; background:#ffd166; color:#1a1405; font:800 10px/1 var(--mono, monospace); letter-spacing:1px;
+    box-shadow:0 0 12px rgba(255,209,102,0.8); animation:chNewIn .5s ease; }
+  .ch-new > * { animation:chNewGlow 1.8s ease-in-out 2; border-radius:12px; }
+  @keyframes chNewGlow { 0%,100% { box-shadow:none; } 50% { box-shadow:0 0 0 1px #ffd166, 0 0 16px rgba(255,209,102,.55); } }
+  @keyframes chNewIn { 0% { opacity:0; transform:translateY(4px) scale(.8); } 100% { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce){ .ch-new::after, .ch-new > * { animation:none; } }
   .side-clip { overflow:hidden; width:0; transition:width .22s ease; }
   .side-stack.shown .side-clip { box-shadow:-4px 0 14px rgba(0,0,0,.35); border-radius:14px 0 0 14px; }
   /* padding also gives the buttons' hover lift/glow headroom against the overflow clip */
@@ -1836,6 +1846,16 @@
       const cb = document.getElementById('chalBtn');
       if (cb) cb.addEventListener('click', () => {
         const p = chPeriods();
+        // badge whichever rotation is NEW inside the freshly-rendered drawer (the drawer-open
+        // listener registered earlier already ran __renderChallenges) — the dot alone said nothing
+        let s = {}; try { s = JSON.parse(localStorage.getItem(CH_SEEN) || '{}'); } catch (e) {}
+        const mark = (id, fresh) => {
+          const box = document.getElementById(id);
+          if (!box || !box.classList) return;
+          box.classList.toggle('ch-new', !!fresh);
+          if (fresh && box.setAttribute) box.setAttribute('data-new', K.t('challenges.newBadge', { def: '★ NEW' }));
+        };
+        if (p) { mark('chalToday', p.d !== s.d); mark('chalWeek', p.w !== s.w); }
         if (p) { try { localStorage.setItem(CH_SEEN, JSON.stringify(p)); } catch (e) {} }
         syncChalDot();
       });
