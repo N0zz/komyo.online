@@ -63,6 +63,7 @@ window.GAMES = [
     accent: "#7ed957",
     tags: ["REFLEX", "KIDS"],
     added: "2026-07-06",
+    updated: "2026-07-06",
   },
 
   // ---- coming soon ----
