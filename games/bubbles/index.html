@@ -870,6 +870,10 @@
     ctx.globalAlpha = alpha;
     ctx.translate(x, y);
 
+    // texture pass: dark contact shadow grounds the orb before the coloured glow
+    ctx.fillStyle = 'rgba(4,10,18,0.4)';
+    ctx.beginPath(); ctx.arc(r * 0.12, r * 0.2, r * 0.98, 0, Math.PI * 2); ctx.fill();
+
     // Shadow / glow
     ctx.shadowColor = col;
     ctx.shadowBlur = isSpecial ? 14 : 4;
@@ -883,9 +887,16 @@
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fillStyle = grad;
     ctx.fill();
-
-    // Highlight (top-left gloss)
     ctx.shadowBlur = 0;
+
+    // candy translucency: light bleeding through the bottom of the sphere
+    const bgl = safeGrad(ctx.createRadialGradient(0, r * 0.5, 0, 0, r * 0.4, r * 0.75));
+    bgl.addColorStop(0, 'rgba(255,255,255,0.14)');
+    bgl.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
+    ctx.fillStyle = bgl; ctx.fill();
+
+    // Highlight (top-left gloss) + a small counter-spec + rim light
     const hgrad = safeGrad(ctx.createRadialGradient(-r * 0.35, -r * 0.38, 0, -r * 0.2, -r * 0.25, r * 0.55));
     hgrad.addColorStop(0, 'rgba(255,255,255,0.75)');
     hgrad.addColorStop(1, 'rgba(255,255,255,0)');
@@ -893,6 +904,11 @@
     ctx.arc(0, 0, r, 0, Math.PI * 2);
     ctx.fillStyle = hgrad;
     ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath(); ctx.arc(r * 0.32, r * 0.36, r * 0.11, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = Math.max(1, r * 0.07);
+    ctx.beginPath(); ctx.arc(0, 0, r * 0.9, Math.PI * 1.05, Math.PI * 1.6); ctx.stroke();
 
     // Symbol for accessibility
     if (r >= 10) {
@@ -942,6 +958,15 @@
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
 
+    // candy-glow pools give the dark board depth (also the menu's backdrop)
+    for (const pool of [[W * 0.2, H * 0.25, H * 0.55, 'rgba(255,126,182,0.07)'],
+                        [W * 0.82, H * 0.6, H * 0.6, 'rgba(46,232,200,0.06)'],
+                        [W * 0.55, H * 0.1, H * 0.45, 'rgba(183,140,255,0.06)']]) {
+      const pg = safeGrad(ctx.createRadialGradient(pool[0], pool[1], 0, pool[0], pool[1], pool[2]));
+      pg.addColorStop(0, pool[3]); pg.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = pg; ctx.fillRect(0, 0, W, H);
+    }
+
     // Subtle grid bg hint
     ctx.strokeStyle = 'rgba(46,232,200,0.04)';
     ctx.lineWidth = 1;
@@ -958,6 +983,14 @@
     ctx.fillRect(wb.left - WALL, topMargin, WALL, H - topMargin);                    // left
     ctx.fillRect(wb.right, topMargin, WALL, H - topMargin);                          // right
     ctx.fillRect(wb.left - WALL, topMargin, (wb.right + WALL) - (wb.left - WALL), WALL); // ceiling
+    // texture pass: wall form shading — lit inner face, dark outer edge
+    ctx.fillStyle = 'rgba(120,200,220,0.10)';
+    ctx.fillRect(wb.left - 4, topMargin + WALL, 4, H - topMargin - WALL);
+    ctx.fillRect(wb.right, topMargin + WALL, 4, H - topMargin - WALL);
+    ctx.fillRect(wb.left - WALL, topMargin + WALL - 4, (wb.right + WALL) - (wb.left - WALL), 4);
+    ctx.fillStyle = 'rgba(4,10,18,0.35)';
+    ctx.fillRect(wb.left - WALL, topMargin, 3, H - topMargin);
+    ctx.fillRect(wb.right + WALL - 3, topMargin, 3, H - topMargin);
     ctx.strokeStyle = 'rgba(46,232,200,0.45)';
     ctx.lineWidth = 2;
     ctx.beginPath();
@@ -1076,6 +1109,12 @@
       ctx.stroke();
       ctx.restore();
     }
+
+    // texture pass: a gentle vignette pulls the eye to the play column
+    const vig = safeGrad(ctx.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 0.98));
+    vig.addColorStop(0, 'rgba(2,6,14,0)');
+    vig.addColorStop(1, 'rgba(2,6,14,0.3)');
+    ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
   }
 
   // ---- Game loop ----
