@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Endgame share — reorg mocks (A/B/C/D)</title>
+<style>
+  :root{ --bg:#0b0e14; --panel:#141a24; --panel2:#0f141d; --border:rgba(255,255,255,.12);
+    --text:#e8eef7; --faint:#8fa0b6; --accent:#7ed957; --accent2:#9fe8ff; --gold:#ffd45e;
+    --mono:ui-monospace,SFMono-Regular,Menlo,monospace; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:radial-gradient(1200px 600px at 50% -10%,#16202e,#0b0e14); color:var(--text);
+    font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; padding:28px 18px 60px; }
+  h1{ font-size:22px; margin:0 0 6px; }
+  .sub{ color:var(--faint); max-width:900px; margin:0 0 22px; }
+  .grid{ display:flex; gap:22px; flex-wrap:wrap; align-items:flex-start; }
+  .col{ flex:1 1 300px; max-width:340px; }
+  .tag{ display:inline-block; font:600 11px/1 var(--mono); letter-spacing:1.5px; text-transform:uppercase;
+    color:#0b0e14; background:var(--accent2); padding:5px 9px; border-radius:6px; margin-bottom:10px; }
+  .tag.rec{ background:var(--accent); }
+  .tag.alt{ background:var(--gold); }
+  /* phone frame */
+  .phone{ background:var(--panel); border:1px solid var(--border); border-radius:20px; padding:16px 15px 18px;
+    box-shadow:0 18px 50px rgba(0,0,0,.5); position:relative; overflow:hidden; }
+  .phone::before{ content:""; position:absolute; inset:0 0 auto 0; height:120px;
+    background:radial-gradient(300px 120px at 50% -30px,rgba(126,217,87,.22),transparent); pointer-events:none; }
+  .mtitle{ text-align:center; font-weight:800; letter-spacing:2px; font-size:15px; margin:2px 0 12px; }
+  .score{ text-align:center; }
+  .score .n{ font:800 46px/1 var(--mono); background:linear-gradient(180deg,#fff,var(--accent)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .score .lbl{ font:600 10px/1 var(--mono); letter-spacing:2px; color:var(--faint); }
+  .best{ text-align:center; color:var(--faint); font-size:12px; margin:8px 0 14px; }
+  .best b{ color:var(--gold); }
+  /* the rendered scorecard image (placeholder render of the neon marquee card) */
+  .card{ position:relative; border-radius:12px; padding:14px 14px 12px; margin:2px 0 14px;
+    background:linear-gradient(160deg,#0e1622,#0b1119); border:1.5px solid var(--accent);
+    box-shadow:0 0 0 1px rgba(126,217,87,.25),0 10px 30px rgba(0,0,0,.4); overflow:hidden; aspect-ratio:1200/630; }
+  .card::after{ content:""; position:absolute; left:0; right:0; bottom:0; height:46%;
+    background:linear-gradient(180deg,transparent,rgba(126,217,87,.10));
+    -webkit-mask:repeating-linear-gradient(90deg,#000 0 1px,transparent 1px 22px); }
+  .card .ico{ position:absolute; top:10px; left:12px; font-size:26px; filter:drop-shadow(0 0 8px var(--accent)); }
+  .card .wm{ position:absolute; top:9px; right:12px; text-align:right; font:800 9px/1.15 var(--mono); letter-spacing:2px; color:var(--faint); }
+  .card .cn{ position:absolute; left:0; right:0; top:46%; transform:translateY(-50%); text-align:center;
+    font:800 40px/1 var(--mono); background:linear-gradient(180deg,#fff,var(--accent)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .card .cl{ position:absolute; left:0; right:0; top:70%; text-align:center; font:600 9px/1 var(--mono); letter-spacing:3px; color:var(--faint); }
+  .card .cta{ position:absolute; bottom:9px; right:12px; font:700 10px/1 var(--mono); color:var(--accent2); }
+  .card .gname{ position:absolute; bottom:9px; left:12px; font:700 10px/1 var(--mono); letter-spacing:1px; color:var(--text); opacity:.85; }
+  /* buttons */
+  .btn{ display:block; width:100%; text-align:center; padding:12px; border-radius:11px; border:1px solid var(--border);
+    background:var(--panel2); color:var(--text); font-weight:700; margin:8px 0 0; cursor:default; }
+  .btn.primary{ background:var(--accent); color:#0b1119; border-color:var(--accent); }
+  .btn.share{ background:linear-gradient(180deg,#1a2634,#131c27); border-color:var(--accent2); color:var(--accent2); }
+  .btn.big{ font-size:15px; padding:14px; }
+  .muted{ opacity:.5; }
+  /* icon row */
+  .row{ display:flex; gap:8px; justify-content:center; margin:10px 0 0; }
+  .sbtn{ width:40px; height:40px; border-radius:9px; border:1px solid var(--border); background:var(--panel2);
+    display:flex; align-items:center; justify-content:center; font-size:16px; }
+  .sbtn.hot{ border-color:var(--accent2); }
+  .lane{ margin:12px 0 0; }
+  .lane .cap{ font:600 9px/1 var(--mono); letter-spacing:1.5px; text-transform:uppercase; color:var(--faint); text-align:center; margin-bottom:5px; }
+  .goodrun{ text-align:center; color:var(--accent); font-size:11px; margin-top:12px; }
+  .note{ font-size:12.5px; color:var(--faint); margin:12px 2px 0; }
+  .note b{ color:var(--text); }
+  .pro{ color:#8fe0a4; } .con{ color:#f0a0a0; }
+  .callout{ background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--accent2);
+    border-radius:10px; padding:14px 16px; margin:26px 0 6px; max-width:900px; }
+  .callout h3{ margin:0 0 6px; font-size:15px; }
+  .callout p{ margin:6px 0; color:var(--faint); font-size:13.5px; }
+  .divider{ height:1px; background:var(--border); margin:30px 0; }
+  small.k{ font-family:var(--mono); color:var(--faint); }
+</style>
+</head>
+<body>
+  <h1>Endgame share — reorganization mocks</h1>
+  <p class="sub">Four ways to make the <b>scorecard image the star</b> of the end screen. All use the same real
+  card render + the <small class="k">navigator.share</small> image menu we already ship. Buttons are illustrative
+  (not clickable). The example run is <b>Frog Bonk · Waves · Medium</b>.</p>
+
+  <div class="grid">
+
+    <!-- A -->
+    <div class="col">
+      <span class="tag rec">A — card replaces score · rec</span>
+      <div class="phone">
+        <div class="mtitle">FROG BONK</div>
+        <div class="card">
+          <div class="ico">🐸</div><div class="wm">KOMYO<br>GAMES</div>
+          <div class="cn">4,820</div><div class="cl">WAVES · MEDIUM</div>
+          <div class="gname">Frog Bonk</div><div class="cta">▶ komyo.online</div>
+        </div>
+        <div class="best">Best <b>5,110</b> · ✓ Good run +5 🏆</div>
+        <button class="btn primary big">↻ Play again</button>
+        <button class="btn share big">📤 Share my score</button>
+        <div class="lane">
+          <div class="cap">or share a link</div>
+          <div class="row">
+            <div class="sbtn">𝕏</div><div class="sbtn">👽</div><div class="sbtn">🟢</div><div class="sbtn">🔗</div>
+          </div>
+        </div>
+      </div>
+      <p class="note"><b>Card is the hero</b> — it replaces the textual score block (the card already shows
+      score + mode). One big <b>Share my score</b> = native sheet w/ the image (Copy image on desktop).
+      Link buttons demoted to a thin labeled row.</p>
+      <p class="note"><span class="pro">+ card front-and-center, doubles as the result readout</span><br>
+      <span class="con">– tallest layout; link row still present</span></p>
+    </div>
+
+    <!-- B -->
+    <div class="col">
+      <span class="tag">B — primary + overflow</span>
+      <div class="phone">
+        <div class="mtitle">FROG BONK</div>
+        <div class="score"><div class="n">4,820</div><div class="lbl">SCORE · WAVES · MEDIUM</div></div>
+        <div class="best">Best <b>5,110</b> · ✓ Good run +5 🏆</div>
+        <button class="btn primary big">↻ Play again</button>
+        <button class="btn share big">📷 Share your score</button>
+        <button class="btn muted">⋯ more ways to share ▾</button>
+        <div class="row muted" style="margin-top:6px">
+          <div class="sbtn">𝕏</div><div class="sbtn">👽</div><div class="sbtn">🟢</div><div class="sbtn">🔗</div>
+        </div>
+      </div>
+      <p class="note"><b>Cleanest end screen.</b> Keeps the textual score; one prominent
+      <b>Share your score</b> renders + shares the card image. Link buttons hidden behind
+      <b>“more ways”</b> (shown faded here).</p>
+      <p class="note"><span class="pro">+ least clutter, card path is obvious</span><br>
+      <span class="con">– card only seen after tapping (not shown inline)</span></p>
+    </div>
+
+    <!-- C -->
+    <div class="col">
+      <span class="tag">C — two labeled lanes</span>
+      <div class="phone">
+        <div class="mtitle">FROG BONK</div>
+        <div class="score"><div class="n">4,820</div><div class="lbl">SCORE · WAVES · MEDIUM</div></div>
+        <div class="best">Best <b>5,110</b> · ✓ Good run +5 🏆</div>
+        <button class="btn primary big">↻ Play again</button>
+        <div class="lane">
+          <div class="cap">share image</div>
+          <div class="row"><div class="sbtn hot">📱</div><div class="sbtn hot">🖼️</div><div class="sbtn hot">⬇</div></div>
+        </div>
+        <div class="lane">
+          <div class="cap">share link</div>
+          <div class="row"><div class="sbtn">𝕏</div><div class="sbtn">👽</div><div class="sbtn">🟢</div><div class="sbtn">🔗</div></div>
+        </div>
+      </div>
+      <p class="note"><b>Honest about the two payloads.</b> One lane for the image (native · copy image ·
+      download), one for the link (X · Reddit · WhatsApp · copy). Minimal layout change.</p>
+      <p class="note"><span class="pro">+ explicit, no hidden actions</span><br>
+      <span class="con">– two icon rows = busiest; card still not shown inline</span></p>
+    </div>
+
+    <!-- D -->
+    <div class="col">
+      <span class="tag alt">D — image menu only (your instinct)</span>
+      <div class="phone">
+        <div class="mtitle">FROG BONK</div>
+        <div class="card">
+          <div class="ico">🐸</div><div class="wm">KOMYO<br>GAMES</div>
+          <div class="cn">4,820</div><div class="cl">WAVES · MEDIUM</div>
+          <div class="gname">Frog Bonk</div><div class="cta">▶ komyo.online</div>
+        </div>
+        <div class="best">Best <b>5,110</b> · ✓ Good run +5 🏆</div>
+        <button class="btn primary big">↻ Play again</button>
+        <button class="btn share big">📤 Share score card</button>
+        <div class="note" style="text-align:center;margin-top:10px">
+          <small class="k">→ opens the menu we already have:</small>
+        </div>
+        <div class="row" style="flex-direction:column;gap:6px;margin-top:6px">
+          <div class="btn" style="margin:0">Share…&nbsp; <small class="k">(native sheet)</small></div>
+          <div class="btn" style="margin:0">Copy image</div>
+          <div class="btn" style="margin:0">Download</div>
+        </div>
+      </div>
+      <p class="note"><b>No social zoo.</b> Just the card + the image menu we already built. On mobile the
+      native sheet already lists WhatsApp / IG / X / everything the player has. No X/Reddit/FB link buttons.</p>
+      <p class="note"><span class="pro">+ simplest; the card can't ride link-intents anyway</span><br>
+      <span class="con">– desktop loses one-click-to-X/Reddit of the site link (card has no link regardless)</span></p>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+  <span class="tag alt">E — side by side (landscape / desktop)</span>
+  <p class="sub" style="margin-top:8px">Card <b>beside</b> the current results menu instead of replacing it. Only fits in landscape/desktop
+  (the end menu already splits into two panes there); on a portrait phone it falls back to a stacked layout (A or D).</p>
+  <div class="phone" style="max-width:720px; display:flex; gap:20px; align-items:stretch">
+    <div style="flex:1 1 55%; display:flex; flex-direction:column; justify-content:center">
+      <div class="card" style="margin:0">
+        <div class="ico">🐸</div><div class="wm">KOMYO<br>GAMES</div>
+        <div class="cn">4,820</div><div class="cl">WAVES · MEDIUM</div>
+        <div class="gname">Frog Bonk</div><div class="cta">▶ komyo.online</div>
+      </div>
+    </div>
+    <div style="flex:1 1 45%; border-left:1px solid var(--border); padding-left:20px">
+      <div class="mtitle" style="text-align:left">FROG BONK</div>
+      <div class="score" style="text-align:left"><div class="n" style="font-size:38px">4,820</div><div class="lbl">SCORE · WAVES · MEDIUM</div></div>
+      <div class="best" style="text-align:left">Best <b>5,110</b> · ✓ Good run +5 🏆</div>
+      <button class="btn primary">↻ Play again</button>
+      <button class="btn share">📤 Share my score</button>
+      <div class="row" style="justify-content:flex-start;margin-top:10px">
+        <div class="sbtn">📱</div><div class="sbtn">🖼️</div><div class="sbtn">𝕏</div><div class="sbtn">👽</div><div class="sbtn">🔗</div>
+      </div>
+    </div>
+  </div>
+  <p class="note" style="max-width:720px"><b>Card + menu both visible, no compromise</b> — the card shows the run, the menu keeps
+  the textual score/best + actions. <span class="pro">+ richest, nothing hidden or replaced</span> &nbsp;
+  <span class="con">– landscape/desktop only; needs a portrait fallback (A or D); the score reads twice (card + text)</span></p>
+
+  <div class="callout">
+    <h3>On “drop the many-sites idea” — the case for D</h3>
+    <p>The scorecard is an <b>image with no embedded link</b>. X / Reddit / Facebook web-intents are
+    <b>link-only</b> — they physically can't upload the card; they'd show the page's OG image, not the run.
+    So the link buttons never actually carried the thing worth sharing.</p>
+    <p>On <b>mobile</b>, the native share sheet already exposes every app the player has (WhatsApp, Instagram,
+    Messages, X…) — so a dedicated button row is redundant there. The only thing D gives up is <b>desktop</b>
+    one-click-to-X/Reddit, and that was only ever sharing the generic site link + text.</p>
+    <p><b>My lean:</b> <b>D for the endgame</b> (image-first, the menu we already have) — it matches “the card is
+    the important thing” and drops dead weight. Optionally keep <b>one “Copy link”</b> in D for the desktop case.
+    Keep the link buttons only on the <b>site</b> share (sharing the catalogue URL is genuinely a link, not a card).</p>
+  </div>
+
+  <div class="divider"></div>
+  <p class="sub"><b>Site share (footer + drawer)</b> is unchanged in these mocks — it shares
+  <small class="k">komyo.online</small> as a link, so X / Facebook / Reddit / WhatsApp / Copy still make sense there.
+  Open question: do we also want a brand/catalogue <b>card image</b> for the site, or keep it link-only?</p>
+</body>
+</html>

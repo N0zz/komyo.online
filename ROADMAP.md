@@ -126,11 +126,14 @@ quality bar — see the Done entry).
    Per-game manifests kept — installs keep working (root SW satisfies installability). Left to
    verify post-deploy: a previously-installed game PWA migrates cleanly (open → old worker
    unregisters → next launch runs on the root worker).
-4. **Score card as the DEFAULT share payload** *(promoted from Later 2026-07-06 — wanted pre-release).*
-   End-screen share row shares the score-card IMAGE by default where possible. Constraints from the
-   parked note: X/Reddit web intents are URL-only (no image upload); native share can attach the card
-   file (the 📷 button already does); the card ships no link — so likely "native = card,
-   X/Reddit = text+link (unchanged)", or card-behind-the-link via OG tricks. Discuss shape first.
+4. **Score card as the DEFAULT share payload — DONE (2026-07-06).** The endgame share is now
+   score-card-first: `gamekit.shareRow` renders the card **inline** + ONE **Share** button that opens
+   the image menu (native share attaches the card image **+** the link/text together · Copy image ·
+   Download). Dropped the X/Reddit/copy-link buttons — a link web-intent can't carry the card, and
+   mobile's native sheet already lists every app. The **site** share (footer + drawer) collapsed to a
+   single adaptive button (native sheet on mobile, copy-link on desktop) — a bare link doesn't need a
+   social-icon row. Profile share unchanged (already image-first). Rationale in the
+   `plans/share-reorg-mocks.html` mock (option D).
 5. **LAUNCH + marketing campaigns — *started* (reddit groundwork underway, see In flight).** Prep the materials (promo video / montage + Discord preview cuts,
    per-game OG/Twitter cards, story-format share card), then publish everywhere: portals (itch.io, free-to-play
    indexes), news, forums, subreddits, Discord servers, socials. Paid ads considered later.

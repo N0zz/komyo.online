@@ -186,10 +186,15 @@ Games alias the API once: `const KIT = window.gamekit;`.
   (`gamekit.goodRunBonus()` → `{count,cap,per}`; one `gr#YYYY-MM-DD` entry in `gamekit_done`); the end
   menu's "✓ Good run" line is the receipt. **Titles are worn, not just earned:** the ladder's unlocked
   ranks are tap-to-equip (`gamekit_title_sel`); a new higher tier auto-switches (`gamekit_title_adopted`).
-- `gamekit.shareRow(el, { slug, title, message })` — Native/X/Reddit/Copy; `message` is a fn → a
-  standalone sentence (no url), evaluated at click time. `gamekit.scoreCard/profileCard/shareCard`
-  render + share the neon card images; the Discord auto-post is consent-tiered
+- `gamekit.shareRow(el, { slug, title, message })` — **score-card-first**: renders the neon score
+  card inline + ONE **Share** button that opens the image menu (native share attaches the card image
+  **+** the link/text together, plus Copy image / Download). No X/Reddit/copy-link buttons — a link
+  web-intent can't carry the card, and mobile's native sheet already lists every app. `message` is a
+  fn → a standalone sentence (no url), evaluated at click time; `gamekit.scoreCard/profileCard/
+  shareCard` render + share the neon card images; the Discord auto-post is consent-tiered
   (`gamekit.discordTier()`: no consent → nothing, consent → anonymous, Settings toggle → named).
+  (The catalogue's own site share is a single adaptive button — native sheet on mobile, copy-link on
+  desktop — not this row.)
 - `gamekit.pwa()` — registers the ONE root-scope SW (catalogue passes `'sw.js'`, games
   `'../../sw.js'`) + the ONE update policy: a new build **never auto-reloads the visible page** — it
   lights a dot on ☰ (and the catalogue's Settings "Update now") and the player applies it via the ☰
