@@ -232,6 +232,7 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
   /* the level-up picker (cols:3, only a few choices) still fills the pane, no scroll */
   .gamekit-menu.gkm-split .gkm-shop-c3 { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; height: 100%; align-content: stretch; }
   .gamekit-menu.gkm-split .gkm-shop-c3 .gkm-shop-desc { display: none; } /* rail focdesc carries it */
+  .gamekit-menu.gkm-split .gkm-shop-c2 { grid-template-columns: repeat(2, 1fr); }
   /* thumbnail grid auto-fits the pane width (more flyers → more columns, not more scrolling) */
   .gamekit-menu.gkm-split .gkm-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); margin: 0; }
   .gamekit-menu.gkm-split .gkm-gcell { padding: 7px 4px 6px; }
@@ -353,6 +354,8 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 .gamekit-menu .gkm-shop-ic { grid-row: 1 / span 3; width: 26px; height: 26px; display: block; }
 /* cols:3 — the exactly-3 picker shape: 3 across (desktop + landscape), stacked in portrait */
 .gamekit-menu .gkm-shop-c3 { grid-template-columns: repeat(3, 1fr); }
+/* cols:2 — the exactly-2 grid shape (e.g. a 4-item shop as 2×2 instead of 3+1) */
+.gamekit-menu .gkm-shop-c2 { grid-template-columns: repeat(2, 1fr); }
 .gamekit-menu .gkm-shop-c3 .gkm-shopcard.gkm-has-ic { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 7px; padding: 14px 10px; }
 .gamekit-menu .gkm-shop-c3 .gkm-shop-ic { width: 34px; height: 34px; }
 /* focused-choice desc line + BUY/TAKE button — small screens only (desktop cards show their desc) */

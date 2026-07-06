@@ -56,7 +56,7 @@
     } catch (e) {}
   }
 
-  var ac, master, verbNode, verbWet, musicGain, defs = {}, audioUIs = [], musicListeners = [];
+  var ac, master, verbNode, verbWet, musicGain, musicVerb, musicVerbWet, defs = {}, audioUIs = [], musicListeners = [];
   function ensureAC() {
     if (ac !== undefined) return;
     var AC = (typeof AudioContext !== 'undefined' && AudioContext) ||
@@ -68,6 +68,10 @@
       verbNode = ac.createConvolver(); verbNode.buffer = makeImpulse(2.0, 2.4);          // shared algorithmic reverb
       verbWet = ac.createGain(); verbWet.gain.value = 0.5; verbNode.connect(verbWet); verbWet.connect(master);
       musicGain = ac.createGain(); musicGain.gain.value = musMuted ? 0 : musVol; musicGain.connect(master);
+      // music voices need their own reverb path INSIDE the music channel — sending them to the
+      // shared verbNode (→ master) would keep their wet tail audible with music muted.
+      musicVerb = ac.createConvolver(); musicVerb.buffer = verbNode.buffer;
+      musicVerbWet = ac.createGain(); musicVerbWet.gain.value = 0.5; musicVerb.connect(musicVerbWet); musicVerbWet.connect(musicGain);
     } catch (e) { ac = null; }
   }
   function makeImpulse(dur, decay) {
@@ -95,7 +99,7 @@
       var node = osc;
       if (o.filter) { var bq = ac.createBiquadFilter(); bq.type = o.filter; bq.frequency.setValueAtTime(o.cutoff || 1200, t); if (o.cutoffTo) bq.frequency.exponentialRampToValueAtTime(Math.max(40, o.cutoffTo), t + dur); if (o.q) bq.Q.value = o.q; node.connect(bq); node = bq; }
       node.connect(g); g.connect(out);
-      if (o.reverb && verbNode) { var s = ac.createGain(); s.gain.value = o.reverb; g.connect(s); s.connect(verbNode); }
+      if (o.reverb && verbNode) { var s = ac.createGain(); s.gain.value = o.reverb; g.connect(s); s.connect(out === musicGain && musicVerb ? musicVerb : verbNode); }
       osc.start(t); osc.stop(t + dur + 0.05);
     } catch (e) {}
   }
@@ -111,7 +115,7 @@
       if (o.q) bq.Q.value = o.q;
       var g = ac.createGain(); g.gain.setValueAtTime(o.gain != null ? o.gain : 0.2, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
       src.connect(bq); bq.connect(g); g.connect(out);
-      if (o.reverb && verbNode) { var s = ac.createGain(); s.gain.value = o.reverb; g.connect(s); s.connect(verbNode); }
+      if (o.reverb && verbNode) { var s = ac.createGain(); s.gain.value = o.reverb; g.connect(s); s.connect(out === musicGain && musicVerb ? musicVerb : verbNode); }
       src.start(t);
     } catch (e) {}
   }
@@ -2734,9 +2738,9 @@
       } else if (g2.style === 'shop') {
         // action grid: each cell BUYS/PICKS on click or Enter (it doesn't hold a selection). sub()/disabled()
         // are per-item + re-run on every refresh, so after onPick the costs/affordability/banner update live.
-        // opts: icon (painter, like cards' preview), cols:3 (fixed 3-across picker shape),
+        // opts: icon (painter, like cards' preview), cols:3 / cols:2 (fixed grid shape),
         // pickLabel (choice→label for the small-screen BUY/TAKE button).
-        var shopWrap = mkEl('div', 'gkm-shop' + (g2.cols === 3 ? ' gkm-shop-c3' : ''));
+        var shopWrap = mkEl('div', 'gkm-shop' + (g2.cols === 3 ? ' gkm-shop-c3' : g2.cols === 2 ? ' gkm-shop-c2' : ''));
         (g2.choices || []).forEach(function (c) {
           var cell = mkEl('div', 'gkm-shopcard' + (c.icon ? ' gkm-has-ic' : ''));
           var icc = null;
