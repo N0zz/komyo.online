@@ -1581,4 +1581,7 @@ window.KOMYO_I18N.pl = {
   'changelog.e26.b1': 'Poprawka: Strzelnica — zegar tyka w czasie rzeczywistym, a nie tylko przy strzale, ukończenie Sprintu pokazuje pasek wypełniający się ze złotym błyskiem przed ekranem końcowym, a rekordowy bieg w końcu pokazuje swoje "★ Nowy rekord!".',
   'changelog.e26.b2': 'Zmiana: ikoną Pola Siłowego jest teraz 🌐 (było 🛡️) — glob lepiej pasuje do obrony atmosfery planety.',
   'changelog.e26.b3': 'Poprawka: na telefonach przyciski filtra, losowej gry i widoku kompaktowego porządnie wyśrodkowują swoje etykiety.',
+  'changelog.e43.title': 'Jedna aktualizacja, by rządzić wszystkimi 🔄',
+  'changelog.e43.b0': 'Poprawka: naciśnięcie „Zaktualizuj teraz” (w Ustawieniach lub w menu ☰ dowolnej gry) podnosi teraz CAŁĄ stronę do najnowszej wersji naraz — wcześniej gra, której dawno nie otwierałeś, mogła zostać na starszej wersji, aż zaktualizujesz ją osobno.',
+  'changelog.e43.b1': 'Nowość: dane offline zajmują dużo mniej miejsca — gry współdzielą teraz jedną pamięć offline, zamiast trzymać każda własną kopię wspólnych plików, a każda gra wciąż działa w pełni offline.',
 };

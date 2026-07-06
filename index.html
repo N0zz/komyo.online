@@ -2844,8 +2844,9 @@
       if (modal) modal.addEventListener('click', e => { if (e.target === modal) modal.close(); }); // backdrop click closes
     })();
 
-    // SW registration + update policy come from the kit (same rules as in-game: silent reload only
-    // pre-interaction or when backgrounded; otherwise the drawer's Refresh button lights up)
+    // SW registration + update policy come from the kit: the ONE root-scope worker caches the whole
+    // site (catalogue + every game); a new build only lights the ☰/Settings update badge, never
+    // auto-reloads. pwa() also sweeps out legacy per-game scope registrations.
     if (window.gamekit && window.gamekit.pwa) window.gamekit.pwa('sw.js');
 
     // ---- Deep links: /?m=faq|changelog|about|privacy|embed|data — open that panel + keep it in the URL ----
@@ -2887,7 +2888,7 @@
         });
         // Settings → Version row: current build + the update button. The button IS the status —
         // greyed "✓ Up to date" when current (checked live when Settings opens), lit "🔆 Update now"
-        // when a new build exists; clicking updates every scope's SW (site + all games) and reloads.
+        // when a new build exists; clicking updates the site's single SW (covers all games) and reloads.
         var sv = document.getElementById('setVersion'), su = document.getElementById('setUpdate');
         if (sv) sv.textContent = real ? b.label : 'dev';
         if (su && K && K.updates) {
@@ -2905,28 +2906,6 @@
           var sb2 = document.getElementById('settingsBtn');
           if (sb2) sb2.addEventListener('click', function () { K.updates.check(); });
         }
-      } catch (e) {}
-    })();
-
-    // Idle-register every live game's service worker so each game's FULL shell (HTML + icons +
-    // manifest + shared head files) precaches up front — all games playable offline after one online
-    // catalogue visit, and Settings "Update now" reaches every scope via getRegistrations() (an
-    // unregistered scope would be invisible to it). Runs one at a time on idle, after the page settles;
-    // re-running register() on later visits doubles as an update check per scope.
-    (function () {
-      try {
-        if (!('serviceWorker' in navigator) || navigator.onLine === false) return;
-        var slugs = (window.GAMES || []).filter(function (g) { return g && g.slug && !g.soon; }).map(function (g) { return g.slug; });
-        var i = 0, idle = window.requestIdleCallback || function (fn) { return setTimeout(fn, 400); };
-        var next = function () {
-          if (i >= slugs.length) return;
-          var s = slugs[i++];
-          try {
-            navigator.serviceWorker.register('games/' + s + '/sw.js', { scope: 'games/' + s + '/' })
-              .catch(function () {}).then(function () { idle(next); });
-          } catch (e) { idle(next); }
-        };
-        setTimeout(function () { idle(next); }, 2500);
       } catch (e) {}
     })();
 

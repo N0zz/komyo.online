@@ -565,7 +565,7 @@ async function testKit() {
     // scope hand-over is not an update; an in-use page only gets the badge
     const b = mk();
     b.F2.pwa();
-    b.setCtl('https://k/games/x/sw.js'); b.fire(); // different worker URL = root→game hand-over
+    b.setCtl('https://k/games/x/sw.js'); b.fire(); // different worker URL = legacy game-scope → root hand-over
     ok(b.reloads() === 0 && b.F2.updates.state().available === false, 'scope hand-over (different worker URL) is ignored');
     b.s.key('pointerdown'); // the player touches the page
     b.fire();               // same-URL new build lands mid-session
@@ -1016,16 +1016,13 @@ function testCosmetics() {
     ok(noDefault.length === 0, 'every set has exactly ONE free default' + (noDefault.length ? ': ' + noDefault.join(', ') : ''));
   }
 
-  // A2) head ↔ SW-shell lockstep: every game ships cosmetics.js in BOTH or NEITHER
+  // A2) cosmetics.js ships everywhere: cached once by the single root SW, loaded by every game's <head>
   {
-    const gamesDirs = fs.readdirSync(path.join(DIR, 'games')).filter(d => fs.existsSync(path.join(DIR, 'games', d, 'sw.js')));
-    const off = [];
-    for (const d of gamesDirs) {
-      const html = fs.readFileSync(path.join(DIR, 'games', d, 'index.html'), 'utf8');
-      const sw = fs.readFileSync(path.join(DIR, 'games', d, 'sw.js'), 'utf8');
-      if (html.includes('cosmetics.js') !== sw.includes('cosmetics.js')) off.push(d);
-    }
-    ok(off.length === 0, 'cosmetics.js in <head> ⇄ SW SHELL lockstep' + (off.length ? ': ' + off.join(', ') : ''));
+    const rootSw = fs.readFileSync(path.join(DIR, 'sw.js'), 'utf8');
+    ok(rootSw.includes('cosmetics.js'), 'cosmetics.js is in the root SW SHELL');
+    const gamesDirs = fs.readdirSync(path.join(DIR, 'games')).filter(d => fs.existsSync(path.join(DIR, 'games', d, 'index.html')));
+    const off = gamesDirs.filter(d => !fs.readFileSync(path.join(DIR, 'games', d, 'index.html'), 'utf8').includes('cosmetics.js'));
+    ok(off.length === 0, 'every game loads cosmetics.js in <head>' + (off.length ? ': ' + off.join(', ') : ''));
   }
 
   // B) economy: lifetime/balance derivation, buy validation + idempotency, select, progress
@@ -1163,33 +1160,56 @@ function testCosmetics() {
   }
 }
 
-// ---------------- service workers (sw-core + per-scope) ----------------
+// ---------------- service worker (ONE root scope for the whole site) ----------------
 function testServiceWorkers() {
-  section('service workers (sw-core + per-scope)');
+  section('service worker (single root scope)');
   const core = fs.readFileSync(path.join(DIR, 'sw-core.js'), 'utf8');
-  const scopes = [['sw.js', 'root'], ['games/aim-trainer/sw.js', 'aim-trainer'], ['games/asteroids/sw.js', 'asteroids'],
-    ['games/asteroids-plus/sw.js', 'asteroids-plus'], ['games/breakout/sw.js', 'breakout'], ['games/bubbles/sw.js', 'bubbles'],
-    ['games/flappy/sw.js', 'flappy'], ['games/snake/sw.js', 'snake'], ['games/stacker/sw.js', 'stacker'], ['games/tower-defense/sw.js', 'tower-defense']];
-  for (const [file, scope] of scopes) {
-    const src = fs.readFileSync(path.join(DIR, file), 'utf8');
-    const listeners = {}; let opened = null;
-    const sb = {
-      location: { origin: 'https://komyo.online' },
-      addEventListener: (t, fn) => { listeners[t] = fn; }, skipWaiting: () => {}, clients: { claim: () => {} },
-      caches: { open: n => { opened = n; return Promise.resolve({ add: () => Promise.resolve(), match: () => Promise.resolve(null), put: () => {} }); }, keys: () => Promise.resolve([]), delete: () => Promise.resolve() },
-      fetch: () => Promise.reject(new Error('offline')), Response: { error: () => ({}) }, Promise, console, URL,
-    };
-    sb.self = sb; sb.globalThis = sb;
-    const ctx = vm.createContext(sb);
-    sb.importScripts = rel => vm.runInContext(rel.indexOf('sw-core') >= 0 ? core : '', ctx, { filename: rel });
-    let err = null;
-    try { vm.runInContext(src, ctx, { filename: file }); } catch (e) { err = e.message; }
-    ok(err === null, file + ' loads + imports sw-core: ' + err);
-    ok(typeof listeners.install === 'function' && typeof listeners.activate === 'function' && typeof listeners.fetch === 'function',
-      file + ' registers install/activate/fetch');
-    try { if (listeners.install) listeners.install({ waitUntil() {} }); } catch (e) {}
-    ok(opened === 'komyo-' + scope + '-dev', file + ' precaches the scope-keyed cache (got ' + opened + ')');
+  const src = fs.readFileSync(path.join(DIR, 'sw.js'), 'utf8');
+  const listeners = {}; let opened = null;
+  const sb = {
+    location: { origin: 'https://komyo.online' },
+    addEventListener: (t, fn) => { listeners[t] = fn; }, skipWaiting: () => {}, clients: { claim: () => {} },
+    caches: { open: n => { opened = n; return Promise.resolve({ add: () => Promise.resolve(), match: () => Promise.resolve(null), put: () => {} }); }, keys: () => Promise.resolve([]), delete: () => Promise.resolve() },
+    fetch: () => Promise.reject(new Error('offline')), Response: { error: () => ({}) }, Promise, console, URL,
+  };
+  sb.self = sb; sb.globalThis = sb;
+  const ctx = vm.createContext(sb);
+  sb.importScripts = rel => vm.runInContext(rel.indexOf('sw-core') >= 0 ? core : '', ctx, { filename: rel });
+  let err = null;
+  try { vm.runInContext(src, ctx, { filename: 'sw.js' }); } catch (e) { err = e.message; }
+  ok(err === null, 'sw.js loads + imports sw-core: ' + err);
+  ok(typeof listeners.install === 'function' && typeof listeners.activate === 'function' && typeof listeners.fetch === 'function',
+    'sw.js registers install/activate/fetch');
+  try { if (listeners.install) listeners.install({ waitUntil() {} }); } catch (e) {}
+  ok(opened === 'komyo-root-dev', 'sw.js precaches the root-keyed cache (got ' + opened + ')');
+
+  // ONE worker for the whole site — a leftover per-game sw.js would shadow the root scope on that game
+  const strays = fs.readdirSync(path.join(DIR, 'games')).filter(d => fs.existsSync(path.join(DIR, 'games', d, 'sw.js')));
+  ok(strays.length === 0, 'no per-game sw.js remains' + (strays.length ? ': ' + strays.join(', ') : ''));
+
+  const SHELL = Array.isArray(sb.SHELL) ? sb.SHELL : [];
+  const gw = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(DIR, 'games.js'), 'utf8'), gw);
+  const live = (gw.window.GAMES || []).filter(x => x && x.slug && !x.soon).map(x => x.slug);
+  // SHELL ⇄ games.js lockstep: every live game's FULL shell is precached (offline after one visit)
+  const missing = [];
+  for (const s of live) for (const f of ['', 'index.html', 'manifest.json', 'favicon.svg', 'icon-192.png', 'icon-512.png']) {
+    if (!SHELL.includes('./games/' + s + '/' + f)) missing.push(s + '/' + (f || '(dir)'));
   }
+  ok(missing.length === 0, 'SHELL covers every live game in games.js' + (missing.length ? ' — missing: ' + missing.join(', ') : ''));
+  const stale = [...new Set(SHELL.filter(u => u.startsWith('./games/')).map(u => u.split('/')[2]).filter(s => !live.includes(s)))];
+  ok(stale.length === 0, 'SHELL lists no soon/removed game' + (stale.length ? ': ' + stale.join(', ') : ''));
+  // SHELL ⇄ locale lockstep: every i18n.<code>.js in the repo is precached (a missing one silently
+  // kills that language offline)
+  const locales = fs.readdirSync(DIR).filter(f => /^i18n\.[a-z-]+\.js$/.test(f));
+  const missLoc = locales.filter(f => !SHELL.includes('./' + f));
+  ok(missLoc.length === 0, 'SHELL lists every locale file' + (missLoc.length ? ' — missing: ' + missLoc.join(', ') : ''));
+  // every SHELL entry resolves on disk (a typo would silently 404 out of the precache)
+  const gone = SHELL.filter(u => !fs.existsSync(path.join(DIR, u.slice(2))));
+  ok(gone.length === 0, 'every SHELL entry exists on disk' + (gone.length ? ' — missing: ' + gone.join(', ') : ''));
+  // every live game registers the ONE root worker (a bare pwa() would re-register a dead per-game scope)
+  const badReg = live.filter(s => !fs.readFileSync(path.join(DIR, 'games', s, 'index.html'), 'utf8').includes("pwa('../../sw.js')"));
+  ok(badReg.length === 0, "every live game calls pwa('../../sw.js')" + (badReg.length ? ' — off: ' + badReg.join(', ') : ''));
 }
 
 console.log('Running arcade tests…');

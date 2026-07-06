@@ -41,7 +41,7 @@ the `apple-mobile-web-app-title`. Everything else is byte-identical across games
 ```
 
 **The shared-script block is atomic and order-sensitive.** These are all same-origin, in-repo files
-that ship with the site and are cached offline by the game's `sw.js` SHELL — they are NOT external
+that ship with the site and are cached offline by the ROOT `sw.js` SHELL — they are NOT external
 "dependencies." Rules:
 
 - **`analytics.js` is the only `defer`.** Everything else loads synchronously so `window.gamekit`
@@ -53,17 +53,11 @@ that ship with the site and are cached offline by the game's `sw.js` SHELL — t
   (each locale ships as its own root file) so `window.KOMYO_I18N` is complete before the inline
   script's first `t()` call. The `<head>` tag itself is unchanged by that split — only ever load
   plain `i18n.js` here, never a locale file directly.
-- The game's `sw.js` SHELL must list these SAME files in lockstep — **plus every per-locale
-  `i18n.<code>.js` file** (the loader fetches them at runtime, so offline they only exist if the
-  SHELL cached them). A missing one silently kills that feature (or that language) offline. The
-  real current breakout SHELL:
-
-  ```js
-  self.SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../analytics.js','../../game-kit.js','../../game-kit.css','../../challenges.js','../../cosmetics.js','../../i18n.js','../../i18n.pl.js','../../i18n.es.js','../../i18n.pt.js','../../i18n.fr.js','../../i18n.it.js','../../i18n.cs.js','../../i18n.uk.js','../../version.js'];
-  ```
-
-  (The locale list is a snapshot — mirror `KOMYO_I18N_AVAILABLE` in `i18n.js` / copy from
-  `games/breakout/sw.js` at build time.)
+- There is **no per-game `sw.js`** — the ONE root-scope `sw.js` (repo root) SHELL lists these SAME
+  shared files, every per-locale `i18n.<code>.js` file, AND every live game's HTML/manifest/icons
+  (via its `GAME_SLUGS` list). A new game = one `GAME_SLUGS` entry, in games.js order
+  (test-enforced); the game registers the worker via `window.gamekit.pwa('../../sw.js')` (already
+  in the template). A slug missing from `GAME_SLUGS` silently means the game never works offline.
 
 (`flappy` happens to load `challenges.js`/`cosmetics.js` before `game-kit.js`; that ordering works
 because those files defer their kit hookups, but **follow the canonical breakout order for new

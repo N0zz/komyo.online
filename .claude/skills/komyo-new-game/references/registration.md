@@ -184,27 +184,20 @@ Do NOT build a per-game STYLE grid in the start menu — the 🎨 modal owns sel
 
 ---
 
-## 4. `games/<slug>/sw.js` — service worker `[MANDATORY]`
+## 4. Root `sw.js` — register the game in the site-wide service worker `[MANDATORY]`
 
-Sets `SCOPE` (= slug), `VERSION`, and the `SHELL` array, then imports the shared engine. **The
-SHELL must list the HTML + icons + the shared head files, in lockstep with `<head>`** — a missing
-shared file silently kills that feature offline.
+There is **no per-game `sw.js`** — ONE root-scope service worker (repo-root `sw.js`, importing
+`sw-core.js`) caches the catalogue, the shared head files, every locale AND every live game.
+Registering a new game is one edit: **add the slug to `GAME_SLUGS` in the root `sw.js`, in
+`games.js` order** — the SW then precaches the game's `./`, `index.html`, `manifest.json`,
+`favicon.svg` and both icons. The top-level suite enforces the lockstep (a live game missing from
+`GAME_SLUGS` fails `node test.mjs`); a missing entry would otherwise silently mean "this game
+doesn't work offline".
 
-Real breakout SHELL (copy verbatim, swap nothing but keep the relative paths):
-
-```js
-// floodgate — installable PWA + offline via the shared sw-core (stale-while-revalidate).
-self.SCOPE = 'floodgate';
-self.VERSION = 'dev'; // stamped with the commit SHA at deploy
-self.SHELL = ['./','./index.html','./manifest.json','./favicon.svg','./icon-192.png','./icon-512.png','../../analytics.js','../../game-kit.js','../../game-kit.css','../../challenges.js','../../cosmetics.js','../../i18n.js','../../i18n.pl.js','../../i18n.es.js','../../i18n.pt.js','../../i18n.fr.js','../../i18n.it.js','../../i18n.cs.js','../../i18n.uk.js','../../version.js'];
-importScripts('../../sw-core.js');
-```
-
-`SCOPE` must equal the slug. `VERSION` stays `'dev'` (the deploy stamps the SHA). The SHELL lists
-`i18n.js` (the loader + `en`) **plus every per-locale `i18n.<code>.js` file** — the locale set above
-is a snapshot; copy the current list from a live game's `sw.js` (e.g. `games/breakout/sw.js`, which
-must mirror `KOMYO_I18N_AVAILABLE` in `i18n.js`). A missing locale file silently kills that language
-offline.
+The game's inline script registers that worker with `window.gamekit.pwa('../../sw.js')` (already in
+the template) — never `pwa()` bare (that would try to register a dead per-game scope). If the game
+ships an EXTRA file beyond the standard set (rare — logic stays inline), add it to the root `SHELL`
+by hand.
 
 ---
 
@@ -326,17 +319,17 @@ except plural keys, which must exist in the `en` dict in `i18n.js`.
 
 ## Consolidated ordered checklist — to add a live game `<slug>`
 
-**Create 6 files** in `games/<slug>/`:
+**Create 5 files** in `games/<slug>/`:
 
 1. `index.html` (the game; atomic `<head>` + kit shell + inline logic + `__test`).
 2. `test.mjs` (imports the shared harness).
 3. `manifest.json` (§5).
-4. `sw.js` (§4).
-5. `favicon.svg` (§6).
-6. `icon-192.png` + `icon-512.png` — via `gen-icon.mjs` (§6; counts as one step, two files).
+4. `favicon.svg` (§6).
+5. `icon-192.png` + `icon-512.png` — via `gen-icon.mjs` (§6; counts as one step, two files).
 
-**Edit 8 shared files** at repo root:
+**Edit 9 shared files** at repo root:
 
+0. root `sw.js` — add the slug to `GAME_SLUGS` (§4).
 1. `games.js` — GAMES entry (§1).
 2. `challenges.js` — `goodRun` bar **and** two goal entries + add ids to `daily` (§2).
 3. `cosmetics.js` — `add()` calls + `sets` label + `games` meta (§3) *(optional but expected)*.
@@ -360,17 +353,17 @@ node games/floodgate/test.mjs
 ## Cross-file consistency traps
 
 - **Slug identity — byte-identical everywhere.** Folder name = `games.js` `slug` = `nav({slug})` =
-  `sw.js` `SCOPE` = `challenges.js` `goodRun`/goal `slug` = `cosmetics.js` `add(game,…)` + `games`
-  key. One mismatch = wrong URLs, orphaned storage keys, a dead challenge, or a reset that wipes
-  another game — all silent.
+  the root `sw.js` `GAME_SLUGS` entry = `challenges.js` `goodRun`/goal `slug` = `cosmetics.js`
+  `add(game,…)` + `games` key. One mismatch = wrong URLs, orphaned storage keys, a dead challenge,
+  a game that never caches offline, or a reset that wipes another game — all silent.
 - **Accent agreement.** The same hex must appear in `games.js` `accent`, `cosmetics.js` `games.<slug>.accent`,
   and `manifest.json` `theme_color`. They drift independently if you're not deliberate.
 - **Hard-tier goal target = the good-run bar.** `challenges.js` goal `<slug>-2.target` **must equal**
   `CHALLENGES.goodRun.<slug>`. Retune them together.
-- **Head ↔ SHELL lockstep.** The shared files in the atomic `<head>` and the `sw.js` `SHELL` array
-  must be the same set — plus the SHELL additionally lists every `i18n.<code>.js` locale file (the
-  head only loads `i18n.js`; the loader fetches the locale files at runtime, so offline they exist
-  only if the SHELL cached them). Adding a file to one without the other silently kills it offline.
+- **Head ↔ SHELL lockstep.** The shared files in the atomic `<head>` must all be in the ROOT
+  `sw.js` `SHELL` — which additionally lists every `i18n.<code>.js` locale file (the head only
+  loads `i18n.js`; the loader fetches the locale files at runtime, so offline they exist only if
+  the SHELL cached them). A head file missing from the root SHELL silently kills it offline.
 - **NEW/UPDATED are dates, not strings.** Never put "NEW"/"UPDATED" in `badges`; set `added`/`updated`.
 - **`challenge.goal.<id>` is a dynamic i18n key** — the coverage scanner can't see it, so a missing
   translation renders silent English instead of failing the suite. Add it with the other keys (§9).

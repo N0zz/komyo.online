@@ -2233,12 +2233,14 @@
   }
 
   // ---------- PWA auto-update ----------
+  // ONE root-scope worker serves the whole site (catalogue + every game). Pages under /games/<slug>/
+  // register it as '../../sw.js'; the catalogue as 'sw.js'.
   function pwa(file) {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
     var prevCtl = navigator.serviceWorker.controller || null;
     // A new worker took control. Two cases, told apart by the worker SCRIPT URL (not a timing guess):
-    //  - different URL → scope hand-over (first visit: the catalogue's root SW briefly controls a game
-    //    page until the game's own SW claims it) — same build, not an update, ignore;
+    //  - different URL → scope hand-over (a legacy per-game worker giving way to the root one during
+    //    the single-SW migration) — same build, not an update, ignore;
     //  - same URL → a genuinely new build of THIS page's worker is live. We NEVER auto-reload the
     //    visible page for it: a new build just lights the ☰ badge / catalogue "Update now" and the
     //    player applies it when they choose. The ONLY reload is an explicit Update (_upApplying) —
@@ -2258,6 +2260,15 @@
           try { r.update(); } catch (e) {}
           setInterval(function () { try { r.update(); } catch (e) {} }, 3600000);
         }).catch(function () {});
+        // migration sweep: legacy per-game registrations (pre single-SW) would shadow the root
+        // scope on /games/<slug>/ pages forever — unregister every non-root scope
+        if (navigator.serviceWorker.getRegistrations) {
+          navigator.serviceWorker.getRegistrations().then(function (regs) {
+            regs.forEach(function (reg) {
+              try { if (new URL(reg.scope).pathname !== '/') reg.unregister(); } catch (e) {}
+            });
+          }).catch(function () {});
+        }
       } catch (e) {}
     };
     if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', register); else register();
@@ -2420,8 +2431,8 @@
   var _bdRaf = 0, _bdFrame = 0, _bdResize = null; // per-menu backdrop canvas: rAF id, frame counter, resize listener
   // ---------- build info + update engine (gamekit.updates) ----------
   // Policy: updates NEVER auto-reload. A new build is ALWAYS just a dot on the ☰ menu (and the
-  // catalogue's "Update now"); the player applies it whenever they choose. Applying from the
-  // catalogue force-updates every game scope too, not only visited ones (see upApply).
+  // catalogue's "Update now"); the player applies it whenever they choose. ONE root-scope worker
+  // serves the whole site, so applying anywhere updates the catalogue AND every game at once.
   var _swReloaded = false;
   function doReload() { if (_swReloaded) return; _swReloaded = true; try { location.reload(); } catch (e) {} }
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
@@ -2454,9 +2465,9 @@
       setSt('ok'); return _upState;
     }).catch(function () { setSt('offline'); return _upState; });
   }
-  // drive ONE scope's SW to the new build: update() → wait for the fresh worker to activate (its
-  // install precaches the new shell into a fresh version-cache, so the next navigation serves NEW).
-  // Resolves immediately when there's nothing new, and is backstopped so one slow scope can't hang.
+  // drive the SW to the new build: update() → wait for the fresh worker to activate (its install
+  // precaches the new shell into a fresh version-cache, so the next navigation serves NEW).
+  // Resolves immediately when there's nothing new, and is backstopped so a slow update can't hang.
   function refreshScope(reg) {
     return new Promise(function (res) {
       if (!reg) { res(); return; }
@@ -2475,26 +2486,16 @@
   function upApply() {
     if (_upApplying || _swReloaded) return;
     _upApplying = true; _upState.status = 'refreshing'; upEmit();
-    var cap = setTimeout(doReload, 9000); // absolute cap: a plain refresh beats an endless spinner (we now wait on every game scope too)
+    var cap = setTimeout(doReload, 9000); // absolute cap: a plain refresh beats an endless spinner
     var finish = function () { clearTimeout(cap); doReload(); };
     upCheck().then(function (st) {
-      if (!st.available) { finish(); return; } // already latest everywhere (same deploy stamps every scope) → plain refresh
+      if (!st.available) { finish(); return; } // already latest → plain refresh
       try {
         var sw = (typeof navigator !== 'undefined') ? navigator.serviceWorker : null;
         if (!sw || !sw.getRegistration) { finish(); return; }
-        var onGame = (typeof location !== 'undefined' && (location.pathname || '').indexOf('/games/') >= 0);
-        var jobs = [];
-        // one update anywhere updates EVERYWHERE: from the catalogue, register + refresh every game's
-        // scope (not just the ones visited) so entering any game already shows the new build — no
-        // per-game manual Update tap. We now WAIT on each scope's new worker to activate before reloading.
-        if (!onGame && sw.register && typeof window !== 'undefined' && Array.isArray(window.GAMES)) {
-          window.GAMES.forEach(function (g) {
-            if (!g || !g.slug || g.soon) return;
-            jobs.push(sw.register('games/' + g.slug + '/sw.js', { scope: 'games/' + g.slug + '/' }).then(refreshScope).catch(function () {}));
-          });
-        }
-        jobs.push(sw.getRegistration().then(refreshScope).catch(function () {})); // this page's own scope
-        Promise.all(jobs).then(finish, finish);
+        // ONE root-scope worker serves the whole site — refreshing it updates every page at once.
+        // We WAIT on the new worker to activate before reloading, so the reload serves the new build.
+        sw.getRegistration('/').then(refreshScope).catch(function () {}).then(finish, finish);
       } catch (e) { finish(); }
     });
   }

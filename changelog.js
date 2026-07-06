@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-06', title: 'One update to rule them all 🔄', items: [
+    'Fix: pressing "Update now" (in Settings or any game\'s ☰ menu) now brings the WHOLE site to the newest version at once — before, a game you hadn\'t opened in a while could stay on an older version until updated separately.',
+    'New: offline storage is much leaner — the games now share one offline cache instead of each keeping its own copy of the shared files, and every game still works fully offline.',
+  ] },
   { date: '2026-07-06', title: 'Smoother arcade all around 🧈', items: [
     'Fix: Brick Breaker\'s ball (and falling power-ups) and Forcefield\'s sweeping dome now glide perfectly between physics steps — the same micro-hitch cure Meadow Flyer got, visible on any screen and especially 120 Hz.',
   ] },

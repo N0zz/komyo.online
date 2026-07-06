@@ -1579,4 +1579,7 @@ window.KOMYO_I18N.cs = {
   'changelog.e31.b2': 'Kolekce: pět vzhledů palice (plyšová! nafukovací! cukrová hůl!) a čtyři roční období louky — slunce, podzim, déšť a sníh.',
   'changelog.e31.b3': 'Změna: dlaždice hry Skoky přes silnici má nyní ikonu 🚧 — žába se přestěhovala do Žabího ťuku.',
   'changelog.e31.b4': 'Oprava: ztlumení hudby ji nyní opravdu ztlumí — dřív v každé hře dál zněla tichá ozvěna dozvuku.',
+  'changelog.e43.title': 'Jedna aktualizace vládne všem 🔄',
+  'changelog.e43.b0': 'Oprava: stisknutí „Aktualizovat“ (v Nastavení nebo v menu ☰ kterékoli hry) teď převede CELÝ web na nejnovější verzi najednou — dřív mohla hra, kterou jsi dlouho neotevřel, zůstat na starší verzi, dokud jsi ji neaktualizoval zvlášť.',
+  'changelog.e43.b1': 'Novinka: offline úložiště je mnohem úspornější — hry teď sdílejí jednu offline mezipaměť, místo aby si každá držela vlastní kopii společných souborů, a každá hra dál plně funguje offline.',
 };

@@ -102,11 +102,12 @@ low-volume edits:
    listed in `KOMYO_I18N_AVAILABLE` as selectable even before its dictionary
    loads — never list an untranslated language:
    - `i18n.js`: add `'xx'` to `window.KOMYO_I18N_AVAILABLE`.
-   - **Every SW SHELL** — append the file to the root `sw.js` SHELL
-     (`'./i18n.xx.js'`) AND to every `games/*/sw.js` SHELL
-     (`'../../i18n.xx.js'`) — root + one per game folder. This is the
+   - **The root `sw.js` SHELL** — append `'./i18n.xx.js'` to the shared-files
+     list in the ONE site-wide service worker (there are no per-game `sw.js`
+     files — the root SHELL serves the catalogue AND every game). This is the
      silent-offline-kill step: a SHELL that misses the file means that
-     language simply never works offline for that page, with no error.
+     language simply never works offline, with no error (the SHELL⇄locale
+     lockstep test in `node test.mjs` catches it).
 4. `test.mjs`: bump the `K.langs().length === N` assertion in `testI18n()`.
    (`testI18nCoverage()` needs NO edit — it discovers the locale set from the
    i18n files at runtime.)
@@ -250,9 +251,10 @@ don't need to; only the *merge mechanics* need automating):
    locale).
 3. Re-parse the whole `i18n.<code>.js` file to confirm it's still valid JS.
 4. **New language only:** register the now-populated file — add the code to
-   `KOMYO_I18N_AVAILABLE` in `i18n.js` and append the file to **every** SW
-   SHELL (root `sw.js` + all `games/*/sw.js`) — see the wiring section's
-   step 3; missing a SHELL silently kills that language offline.
+   `KOMYO_I18N_AVAILABLE` in `i18n.js` and append the file to the root
+   `sw.js` SHELL (the ONE site-wide service worker — no per-game `sw.js`
+   exists) — see the wiring section's step 3; a missing SHELL entry silently
+   kills that language offline.
 5. Run `node test.mjs`. It should go fully green — if `testI18nCoverage`
    fails, it will tell you exactly which keys are missing.
 
@@ -283,7 +285,8 @@ subagents at this size).
   since read" — prefer doing the actual merge via a `node -e` script in the
   first place instead of interleaving `Edit` calls with script writes to the
   same file.
-- **Forgetting the SW SHELL appends for a new language.** The site works
-  online, tests stay green, but the new language never loads offline —
-  nothing errors. `grep -L 'i18n.xx.js' sw.js games/*/sw.js` should come
-  back empty after the register step.
+- **Forgetting the root SW SHELL append for a new language.** The site works
+  online, but the new language never loads offline — nothing errors at
+  runtime. `grep -l 'i18n.xx.js' sw.js` should hit after the register step
+  (and the SHELL⇄locale lockstep test in `node test.mjs` fails if it
+  doesn't).

@@ -1579,4 +1579,7 @@ window.KOMYO_I18N.pt = {
   'changelog.e31.b2': 'Coleção: cinco visuais de martelo (fofinho! inflável! bengala doce!) e quatro estações do prado — sol, outono, chuva e neve.',
   'changelog.e31.b3': 'Mudança: o cartão de Atravessando a Rua agora tem o ícone 🚧 — a rã se mudou para Martela Rãs.',
   'changelog.e31.b4': 'Correção: silenciar a música agora a silencia de verdade — antes um eco suave de reverberação continuava tocando em todos os jogos.',
+  'changelog.e43.title': 'Uma atualização para a todos governar 🔄',
+  'changelog.e43.b0': 'Correção: apertar "Atualizar agora" (nas Configurações ou no menu ☰ de qualquer jogo) agora traz o site INTEIRO para a versão mais recente de uma vez — antes, um jogo que você não abria há tempo podia ficar numa versão antiga até ser atualizado separadamente.',
+  'changelog.e43.b1': 'Novo: o armazenamento offline ficou muito mais enxuto — os jogos agora compartilham um único cache offline em vez de cada um guardar sua própria cópia dos arquivos comuns, e todos continuam funcionando perfeitamente offline.',
 };

@@ -1579,4 +1579,7 @@ window.KOMYO_I18N.fr = {
   'changelog.e31.b2': 'Collection : cinq habillages de marteau (peluche ! gonflable ! sucre d\'orge !) et quatre saisons de la prairie — soleil, automne, pluie et neige.',
   'changelog.e31.b3': 'Changement : la vignette de Sauts de Grenouille porte désormais l\'icône 🚧 — la grenouille a déménagé dans Tape la Grenouille.',
   'changelog.e31.b4': 'Correctif : couper la musique la coupe vraiment — un léger écho de réverbération continuait de jouer dans tous les jeux.',
+  'changelog.e43.title': 'Une mise à jour pour les gouverner toutes 🔄',
+  'changelog.e43.b0': 'Correctif : appuyer sur « Mettre à jour » (dans les Réglages ou le menu ☰ de n\'importe quel jeu) met désormais TOUT le site à la dernière version d\'un coup — avant, un jeu resté longtemps fermé pouvait garder une ancienne version jusqu\'à une mise à jour séparée.',
+  'changelog.e43.b1': 'Nouveau : le stockage hors ligne est bien plus léger — les jeux partagent désormais un seul cache hors ligne au lieu de garder chacun sa copie des fichiers communs, et chaque jeu fonctionne toujours parfaitement hors ligne.',
 };

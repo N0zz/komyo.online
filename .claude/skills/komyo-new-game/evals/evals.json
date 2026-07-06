@@ -25,14 +25,14 @@
     }
   ],
   "shared_assertions": [
-    "The game folder games/<slug>/ exists with index.html, test.mjs, sw.js, manifest.json, favicon.svg.",
+    "The game folder games/<slug>/ exists with index.html, test.mjs, manifest.json, favicon.svg (no per-game sw.js).",
     "The game boots headless: bootGame() returns bootErr === null and __test is present.",
     "node games/<slug>/test.mjs passes, including the runLayoutSuite (portrait/landscape/desktop, topReserve >= hudTop()).",
     "node test.mjs (full catalogue suite) still passes — registration did not break the catalogue.",
-    "slug is byte-identical across the folder name, games.js entry, sw.js SCOPE, and the challenges.js goodRun key.",
+    "slug is byte-identical across the folder name, games.js entry, the root sw.js GAME_SLUGS list, and the challenges.js goodRun key.",
     "The end menu uses a record: block; the game never calls gamekit.recordResult directly.",
     "A CHALLENGES.goodRun bar was added for the slug.",
-    "Exactly one attribute-less <script> exists, last before </body>; gamekit.pwa() is called after the IIFE.",
+    "Exactly one attribute-less <script> exists, last before </body>; gamekit.pwa('../../sw.js') is called after the IIFE.",
     "__test.layout exposes topReserve; the game uses gamekit.loop (not a hand-rolled rAF/accumulator).",
     "SND.define does not reuse a kit stinger name (levelup/lose/victory/newbest/gameover)."
   ]

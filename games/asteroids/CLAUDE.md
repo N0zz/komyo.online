@@ -72,9 +72,8 @@ variants are the same code behind the flag. The test drives each variant by quer
   desktop. The move joystick is *aim-and-go*: it sets `ship.angle` to the stick direction every frame
   (instant aim) and only thrusts past a ~0.45 deflection. `resize()` scales the canvas up on small
   screens (min dim < 640) so the world zooms out instead of looking cramped.
-- **PWA:** `manifest.json` + `sw.js` make it installable and offline-capable. `sw.js` is **stale-
-  while-revalidate** via the shared **`../../sw-core.js`** (it just sets `SCOPE` / `VERSION` / `SHELL`;
-  `VERSION` = `'dev'` locally, stamped with the commit SHA at deploy → a fresh cache + silent
-  auto-update per build). If you add a file that must work offline, add it to **`SHELL`** in `sw.js`.
+- **PWA:** `manifest.json` makes it installable; offline + updates come from the site's ONE
+  root-scope service worker (`../../sw.js`, registered via `KIT.pwa('../../sw.js')`) — no per-game
+  `sw.js`. If you add a file that must work offline, add it to the root `sw.js` `SHELL`.
 - `.nojekyll` (repo root) disables GitHub Pages' Jekyll build so files serve as-is.
 - Match the existing terse, single-line code style in the game files. Comment sparingly.

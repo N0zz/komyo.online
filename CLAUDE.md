@@ -26,22 +26,24 @@ games.js        catalogue manifest — window.GAMES = [{slug,title,blurb,icon,ac
 challenges.js   window.CHALLENGES — daily/weekly goals + per-game goodRun bars + the titles ladder
 i18n.js         i18n LOADER + the en (def-source) dict; each other locale is its own i18n.<code>.js —
                 the loader sync-loads the ACTIVE language (document.write, atomic head) and lazy-loads
-                the rest after load. A new locale = its file + KOMYO_I18N_AVAILABLE + every SW SHELL.
+                the rest after load. A new locale = its file + KOMYO_I18N_AVAILABLE + the root sw.js SHELL.
 cosmetics.js    window.COSMETICS — the cosmetics registry (skins per game + site-wide cursors, painters,
-                prices in 🏆 trophies); loaded like challenges.js (catalogue AND games, in every SW SHELL)
+                prices in 🏆 trophies); loaded like challenges.js (catalogue AND games, in the SW SHELL)
 changelog.js    window.CHANGELOG — player-facing releases (drives the 🗒️ modal + the Discord post)
 analytics.js    GA4 loader, consent-gated (see "Analytics")
 version.js      build stamp {sha, built} — 'dev' locally, stamped by the Pages deploy workflow
 game-kit.js     SHARED game shell — see "Shared kit" (nav, menus, sound, loop, layout, best store, PWA)
 game-kit.css    shared shell styles (nav/menus/HUD/share row)
-sw-core.js      shared service-worker engine — each sw.js sets SCOPE/VERSION/SHELL and imports it
+sw-core.js      service-worker engine — the ONE root sw.js sets SCOPE/VERSION/SHELL and imports it
 plans/          PUBLIC design docs & mocks (komyo.online/plans/<name>.html — transparency by intent);
                 new plans/designs go here (not ~/), and get sitemap.xml (priority 0.2) + llms.txt entries
 test.mjs        top-level suite: catalogue + Keep Defender + live-games boot + game-kit test
 test-harness.mjs  the ONE shared headless harness (sandbox/bootGame/runLayoutSuite) all suites import
 scripts/        post-changelog.mjs (Discord changelog action) + gen-icon.mjs (icon generation) + bench.sh
-manifest.json sw.js favicon.svg og-image.png logo-*.png   CNAME .nojekyll .gitignore
-games/<slug>/   each game: index.html (+ test.mjs, manifest.json, sw.js, favicon.svg, icon-192/512.png)
+sw.js           the ONE site-wide service worker (root scope) — SHELL covers the catalogue, the shared
+                head files, every locale AND every live game (slug list in games.js order, test-enforced)
+manifest.json favicon.svg og-image.png logo-*.png   CNAME .nojekyll .gitignore
+games/<slug>/   each game: index.html (+ test.mjs, manifest.json, favicon.svg, icon-192/512.png)
 ```
 
 ## Game conventions (the rules that matter)
@@ -51,7 +53,7 @@ silently, not loudly.
 
 - **No external dependencies / assets.** No build, no CDNs/fonts/images — visuals are canvas
   vector + system fonts + emoji-as-text. Games DO load the **in-repo, same-origin** shared head
-  files (see "Shared kit"); these ship with the site and are cached offline (each game's `sw.js`
+  files (see "Shared kit"); these ship with the site and are cached offline (the root `sw.js`
   SHELL), so they're not external "dependencies." All game-specific logic stays inline in the one
   `index.html`.
 - **The slug is the ONE identity:** folder name = `games.js` slug = `nav({slug})` = the
@@ -94,9 +96,11 @@ silently, not loudly.
 - **If a game renders its OWN mouse cursor** (e.g. aim-trainer's crosshair), set `cursor:none` on that
   element **and** `data-gk-hide-cursor` on it — the kit's site cursor skins (incl. the blinking terminal
   follower) then hide there instead of doubling up over the game's cursor.
-- **Each game is its own installable PWA:** `manifest.json` + `sw.js` (sets `SCOPE`/`VERSION`/
-  `SHELL`, imports `../../sw-core.js`) + `icon-192/512.png` (distinct color-emoji icon) +
-  apple/theme meta in `<head>`.
+- **Each game is its own installable PWA** via its `manifest.json` + `icon-192/512.png` (distinct
+  color-emoji icon) + apple/theme meta in `<head>` — but offline/updates come from the ONE root-scope
+  `sw.js` (its SHELL lists the game's files + the slug in `GAME_SLUGS`; a root SW controlling
+  `/games/<slug>/` satisfies installability). No per-game `sw.js` — games call
+  `gamekit.pwa('../../sw.js')`.
 - **Distinct visual theme per game.** (asteroids=space, keep-defender=castle/parchment,
   bubbles=candy/aqua, snake=neon, breakout=synthwave, flappy=meadow, stacker=pastel, range=tactical.)
 - **Responsive:** size the playfield from the viewport (don't hardcode px) so it fits narrow /
@@ -108,9 +112,9 @@ silently, not loudly.
 in this order: `analytics.js` · `game-kit.css` · `version.js` · `game-kit.js` · `challenges.js` ·
 `cosmetics.js` · `i18n.js` (the loader — it document.writes the active `i18n.<code>.js` so `t()`
 is complete before the inline script; the other locales lazy-load after `load`).
-The game's `sw.js` SHELL must list the SAME shared files in lockstep — PLUS every `i18n.<code>.js`
-locale file — a missing one silently kills that feature offline. Games alias the API once:
-`const KIT = window.gamekit;`.
+The root `sw.js` SHELL lists the SAME shared files in lockstep — PLUS every `i18n.<code>.js` locale
+file and every live game's files — a missing one silently kills that feature offline (test-enforced).
+Games alias the API once: `const KIT = window.gamekit;`.
 
 - `gamekit.nav({ slug, music, home, theme, onMenu, onPause, confirmLeave, controls, genres })` —
   the whole top chrome: left `‹ Menu · komyo ›` bar + right cluster (⏸ pause, 🔊 sound menu with
@@ -185,14 +189,16 @@ locale file — a missing one silently kills that feature offline. Games alias t
   standalone sentence (no url), evaluated at click time. `gamekit.scoreCard/profileCard/shareCard`
   render + share the neon card images; the Discord auto-post is consent-tiered
   (`gamekit.discordTier()`: no consent → nothing, consent → anonymous, Settings toggle → named).
-- `gamekit.pwa()` — SW registration + the ONE update policy (catalogue passes `'sw.js'`): a new build
-  **never auto-reloads the visible page** — it lights a dot on ☰ (and the catalogue's Settings "Update
-  now") and the player applies it via the ☰ Update button (`gamekit.updates.apply()`). The only reloads
-  are that explicit apply and a **backgrounded tab** (invisible, non-disruptive). (The old pre-interaction
-  "launch fast-path" silent reload was removed — it raced the tap-to-play splash and forced a second
-  tap.) Scope hand-overs are told apart from real updates by the worker **script URL**, never by timing.
-- `gamekit.updates` — `check()` (fresh `version.js` vs the running build), `apply()` (update every
-  scope's SW + reload), `state()`/`onChange(cb)`; `gamekit.buildInfo()` → `{sha, built, when, label}`
+- `gamekit.pwa()` — registers the ONE root-scope SW (catalogue passes `'sw.js'`, games
+  `'../../sw.js'`) + the ONE update policy: a new build **never auto-reloads the visible page** — it
+  lights a dot on ☰ (and the catalogue's Settings "Update now") and the player applies it via the ☰
+  Update button (`gamekit.updates.apply()`). The only reloads are that explicit apply and a
+  **backgrounded tab** (invisible, non-disruptive). (The old pre-interaction "launch fast-path" silent
+  reload was removed — it raced the tap-to-play splash and forced a second tap.) Hand-overs are told
+  apart from real updates by the worker **script URL**, never by timing; `pwa()` also sweeps out
+  legacy per-game scope registrations (pre single-SW migration).
+- `gamekit.updates` — `check()` (fresh `version.js` vs the running build), `apply()` (update the
+  root SW — covers the whole site — + reload), `state()`/`onChange(cb)`; `gamekit.buildInfo()` → `{sha, built, when, label}`
   (label = `sha · local deploy date+time`, shown by `versionTag()`, the ☰ panel and the catalogue
   footer/Settings).
 - Misc: `gamekit.isPaused()/setPaused/togglePause` (any kit overlay counts as paused — the loop
@@ -230,14 +236,14 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
    Reference: `games/breakout/test.mjs`.
 3. Icon: `node scripts/gen-icon.mjs <emoji> <background-css> games/<slug>` (Chrome headless 512 →
    `sips` 192).
-4. `manifest.json` + `sw.js` (sets `SCOPE`/`VERSION`/`SHELL`, imports `../../sw-core.js`
-   — stale-while-revalidate; SHELL = the HTML + icons + the shared head files, in lockstep with
-   `<head>`).
+4. `manifest.json` (per-game, for installability) + register the game in the ROOT `sw.js`: add the
+   slug to `GAME_SLUGS` (games.js order — its HTML/manifest/icons precache from there; test-enforced).
+   No per-game `sw.js`; the game's inline script calls `gamekit.pwa('../../sw.js')`.
 5. Add the game's **`CHALLENGES.goodRun` bar** (and, when it goes live, goal entries) in
    `challenges.js` — without the bar it never earns good runs.
 5b. **Cosmetics (optional but expected):** add the game's sets/items to `cosmetics.js`
    (`<slug>.<set>.<key>`, free default at price 0, prices in the 🏆 bands), load `cosmetics.js` in the
-   `<head>` + `sw.js` SHELL (see the atomic head order), and read the selected skin in the game's render
+   `<head>` (see the atomic head order), and read the selected skin in the game's render
    (`KIT.cosmetics.selected('<slug>.<set>')`). The 🎨 button + store modal are automatic (kit-owned).
 6. Add an entry to `games.js` (`soon: true` = greyed "coming soon" tile). Set **`added: "YYYY-MM-DD"`**
    on a new game (drives the auto **NEW** badge for 7 days). **Whenever you ship a notable update to a

@@ -1116,7 +1116,7 @@
   { const P = KIT && KIT.param; if (P) { const pb = P('bird'); if (pb && BIRDS.some(b => b.id === pb) && selectBird(pb)) selectedBird = getSelectedBird(); const pm = P('mode'); if (pm === 'day' || pm === 'night') { mode = pm; saveMode(mode); } } }
   showStartMenu(); // open the shared start menu (bird/day-night preselected from the URL)
 })();
-  window.gamekit.pwa();
+  window.gamekit.pwa('../../sw.js');
 </script>
 </body>
 </html>
