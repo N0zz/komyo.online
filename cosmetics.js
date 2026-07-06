@@ -270,6 +270,50 @@
     };
   }
 
+  // frog-bonk hammer swatch — handle + a head that previews the skin's shape
+  function hammerSwatch(c0, c1, shape) {
+    return function (g, w, h) {
+      g.fillStyle = '#12240f'; g.fillRect(0, 0, w, h);
+      var cx = w / 2, cy = h / 2, hw = w * 0.52, hh = h * 0.3;
+      g.save(); g.translate(cx, cy); g.rotate(-0.5);
+      g.strokeStyle = '#8a5c30'; g.lineWidth = 4; g.lineCap = 'round';
+      g.beginPath(); g.moveTo(0, h * 0.34); g.lineTo(0, -h * 0.05); g.stroke();
+      var lg = g.createLinearGradient(-hw / 2, -h * 0.05 - hh, hw / 2, -h * 0.05);
+      lg.addColorStop(0, c0); lg.addColorStop(1, c1);
+      g.fillStyle = lg;
+      if (shape === 'fluff') {
+        for (var i = 0; i < 6; i++) { var a = i * 1.05; g.beginPath(); g.arc(Math.cos(a) * hw * 0.26, -h * 0.05 - hh / 2 + Math.sin(a) * hh * 0.3, hh * 0.36, 0, 7); g.fill(); }
+        g.beginPath(); g.ellipse(0, -h * 0.05 - hh / 2, hw / 2, hh / 2 + 1, 0, 0, 7); g.fill();
+      } else if (shape === 'balloon') {
+        g.globalAlpha = 0.9;
+        g.beginPath(); g.ellipse(0, -h * 0.05 - hh / 2, hw / 2 + 2, hh / 2 + 3, 0, 0, 7); g.fill();
+        g.globalAlpha = 1;
+        g.fillStyle = 'rgba(255,255,255,0.6)'; g.beginPath(); g.ellipse(-hw * 0.16, -h * 0.1 - hh / 2, 4, 2.4, -0.5, 0, 7); g.fill();
+      } else {
+        if (g.roundRect) { g.beginPath(); g.roundRect(-hw / 2, -h * 0.05 - hh, hw, hh, 5); g.fill(); }
+        else g.fillRect(-hw / 2, -h * 0.05 - hh, hw, hh);
+        if (shape === 'stripe') {
+          g.fillStyle = '#fff';
+          for (var s = -1; s <= 1; s++) g.fillRect(s * hw * 0.3 - 2, -h * 0.05 - hh, 4, hh);
+        }
+        if (shape === 'gold') { g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.ellipse(-hw * 0.2, -h * 0.08 - hh * 0.7, 4, 2, -0.5, 0, 7); g.fill(); }
+      }
+      g.restore();
+    };
+  }
+  // frog-bonk meadow swatch — grass gradient + a season mark
+  function meadowSwatch(stops, mark) {
+    return function (g, w, h) {
+      var lg = g.createLinearGradient(0, 0, 0, h);
+      for (var i = 0; i < stops.length; i++) lg.addColorStop(i / (stops.length - 1), stops[i]);
+      g.fillStyle = lg; g.fillRect(0, 0, w, h);
+      if (mark === 'rain') { g.strokeStyle = 'rgba(190,225,255,0.7)'; g.lineWidth = 1.5; for (var r = 0; r < 5; r++) { g.beginPath(); g.moveTo(w * (0.15 + r * 0.17), h * 0.2); g.lineTo(w * (0.12 + r * 0.17), h * 0.45); g.stroke(); } }
+      else if (mark === 'snow') { g.fillStyle = 'rgba(255,255,255,0.9)'; for (var s = 0; s < 6; s++) { g.beginPath(); g.arc(w * ((s * 0.31 + 0.13) % 1), h * ((s * 0.23 + 0.14) % 0.6), 2, 0, 7); g.fill(); } }
+      else if (mark === 'leaf') { g.fillStyle = '#c85a28'; for (var l = 0; l < 4; l++) { g.beginPath(); g.ellipse(w * (0.2 + l * 0.2), h * (0.2 + (l % 2) * 0.18), 3.4, 2, l, 0, 7); g.fill(); } }
+      else { g.fillStyle = '#ffd7e6'; for (var f = 0; f < 4; f++) { g.beginPath(); g.arc(w * (0.18 + f * 0.21), h * (0.62 + (f % 2) * 0.16), 2.4, 0, 7); g.fill(); } g.fillStyle = '#ffe08a'; g.beginPath(); g.arc(w * 0.75, h * 0.2, 5, 0, 7); g.fill(); }
+    };
+  }
+
   var items = [];
   function add(game, set, key, name, price, desc, painter) {
     items.push({ id: (game || 'site') + '.' + set + '.' + key, game: game, set: (game || 'site') + '.' + set, name: name, desc: desc, price: price, painter: painter });
@@ -378,6 +422,17 @@
   add('flappy', 'bird', 'raven',    'Raven',    250, 'Midnight feathers, ancient secrets.', bird('#17181d', '#0c0d11', 'rgba(170,200,255,0.55)'));
   add('flappy', 'bird', 'phoenix',  'Phoenix',  500, 'The aspirational one. Rises from every game over.', bird('#ff8a3a', '#e85a1a', 'rgba(255,140,40,0.85)'));
 
+  // ---- 🐸 Frog Bonk — hammer skins + meadow seasons ----
+  add('frog-bonk', 'hammer', 'wood',    'Wooden',     0,   'The royal bonker, carved from oak.', hammerSwatch('#b0793f', '#7a4e28', 'block'));
+  add('frog-bonk', 'hammer', 'fluffy',  'Fluffy',     25,  'A plush pink mallet. Maximum softness.', hammerSwatch('#ffb6d9', '#f08ab8', 'fluff'));
+  add('frog-bonk', 'hammer', 'candy',   'Candy Cane', 50,  'Peppermint-striped and perfectly bonkable.', hammerSwatch('#ff5b6b', '#ff8a94', 'stripe'));
+  add('frog-bonk', 'hammer', 'balloon', 'Inflatable', 50,  'Squeaky, bouncy, surprisingly effective.', hammerSwatch('#9fd8ff', '#4d9ae0', 'balloon'));
+  add('frog-bonk', 'hammer', 'gold',    'Royal Gold', 100, 'Solid gold. The frogs feel honoured.', hammerSwatch('#ffe08a', '#c89a2a', 'gold'));
+  add('frog-bonk', 'meadow', 'sunny',   'Sunny',      0,   'The meadow on its best day.', meadowSwatch(['#8fce5e', '#5da741', '#3f8a33'], 'sun'));
+  add('frog-bonk', 'meadow', 'autumn',  'Autumn',     25,  'Golden grass and drifting leaves.', meadowSwatch(['#d8b25a', '#b08a3e', '#8a6a30'], 'leaf'));
+  add('frog-bonk', 'meadow', 'rain',    'Rainy Day',  50,  'Soft rain over deep green grass.', meadowSwatch(['#6aa84f', '#457a38', '#2f5e2c'], 'rain'));
+  add('frog-bonk', 'meadow', 'snow',    'Winter',     100, 'A quiet snowfall over the frozen meadow.', meadowSwatch(['#dfe8ea', '#b8ccd0', '#9ab4bc'], 'snow'));
+
   // ---- 🌐 Forcefield — bolt colours + planet skins ----
   add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean golden bolt.', forcefieldMarker('#ffd36b'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
@@ -410,6 +465,8 @@
       'flappy.bird':          { label: 'Birds' },
       'forcefield.marker':         { label: 'Bolt colours' },
       'forcefield.planet':         { label: 'Planet skins' },
+      'frog-bonk.hammer':    { label: 'Hammer skins' },
+      'frog-bonk.meadow':    { label: 'Meadow seasons' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -424,6 +481,7 @@
       'asteroids-plus': { title: 'Asteroids+', icon: '☄️', accent: '#b98cff' },
       'flappy':         { title: 'Meadow Flyer', icon: '🐤', accent: '#8fd3a6' },
       'forcefield':          { title: 'Forcefield', icon: '🌐', accent: '#38bdf8' },
+      'frog-bonk':     { title: 'Frog Bonk', icon: '🐸', accent: '#7ed957' },
     },
   };
 })();
