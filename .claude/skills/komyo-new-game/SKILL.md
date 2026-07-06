@@ -88,7 +88,8 @@ screenshot-driven, unless its identity is deliberately flat/glow.
 - **Icons:** `node scripts/gen-icon.mjs <emoji> '<background-css>' games/<slug>`
   (macOS + Chrome + `sips`; if unavailable, tell the user to generate the two PNGs
   manually).
-- **PWA:** `gamekit.pwa()` (already in the template, outside the IIFE).
+- **PWA:** `gamekit.pwa('../../sw.js')` registers the ONE root-scope SW (already in
+  the template, outside the IIFE) + add the slug to `GAME_SLUGS` in the root `sw.js`.
 
 ### 7 · Register the game
 Edit the shared files (see `references/registration.md` for exact shapes):
@@ -128,7 +129,8 @@ frame-rate-dependent game, a reset that wipes another game). The generated
 `test.mjs` + `node test.mjs` are your proof. Confirm each:
 
 - **Slug is ONE identity** — folder name = `games.js` slug = `nav({slug})` =
-  best/record slug = `CHALLENGES.goodRun` key = `sw.js` `SCOPE`. Byte-identical.
+  best/record slug = `CHALLENGES.goodRun` key = the root `sw.js` `GAME_SLUGS` entry.
+  Byte-identical.
 - **Results recorded ONLY via the end menu's `record:` block** — never call
   `gamekit.recordResult` directly (it double-counts; the menu path is idempotent).
 - **Compute `isBest` BEFORE the single end-of-run `saveBest`** — mid-run saves make
@@ -154,10 +156,10 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   reference). Games with only eased/arced/discrete motion can skip it.
 - **`CHALLENGES.goodRun` bar exists** for the game.
 - **Atomic `<head>` order** (analytics.js · game-kit.css · version.js · game-kit.js
-  · challenges.js · cosmetics.js · i18n.js) AND the `sw.js` `SHELL` lists the same
-  shared files in lockstep — plus every per-locale `i18n.<code>.js` file (copy the
-  current set from `games/breakout/sw.js`; a missing one silently kills that
-  language offline).
+  · challenges.js · cosmetics.js · i18n.js). The ROOT `sw.js` SHELL already carries
+  these shared files + every locale; the game's own files are cached by adding the
+  slug to `GAME_SLUGS` in the root `sw.js` (no per-game sw.js exists — a missing
+  entry silently means the game never works offline; test-enforced).
 - **All player-facing strings go through `KIT.t(key, { def: 'English' })`** — no raw
   English literals in the UI (menus, share, controls, HUD labels). `game.<slug>.*` for
   game-specific, `game.common.*` for shared. See `references/i18n.md`.
@@ -169,7 +171,7 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   `gamekit.langs()` / `KOMYO_I18N_AVAILABLE`, never hardcode it); translate the new keys
   via the **komyo-i18n-translate** skill (stage 7b).
 - **Exactly one attribute-less `<script>`**, last before `</body>` (the test
-  harness extracts it); `gamekit.pwa()` is called after the IIFE closes.
+  harness extracts it); `gamekit.pwa('../../sw.js')` is called after the IIFE closes.
 - **Headless-safe** — guard `AudioContext`, `navigator.vibrate`, `matchMedia`; the
   game must boot in the mocked DOM without throwing.
 - **Ships at the visual-quality bar** (`references/visual-quality.md`) — cached
@@ -195,8 +197,8 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   the hard performance/determinism rules, the two-round screenshot review, cost
   planning. Read at stage 5 (the visual pass) and before any look-dev mock.
 - `references/registration.md` — every shared file a game touches (games.js,
-  challenges.js, cosmetics.js, sw.js, manifest, icons, sitemap, llms, changelog),
-  exact shapes + the ordered checklist. Read at stages 6–7.
+  challenges.js, cosmetics.js, the root sw.js GAME_SLUGS, manifest, icons, sitemap,
+  llms, changelog), exact shapes + the ordered checklist. Read at stages 6–7.
 - `references/audio.md` — SFX voice recipes + music theme keys.
 - `references/genres.md` — genre → mechanic starter map + the repo's genre bias;
   points to `~/arcade/game-design-knobs.md`.
@@ -206,8 +208,8 @@ frame-rate-dependent game, a reset that wipes another game). The generated
 
 ## Templates & scripts
 
-- `assets/index.html.tmpl`, `test.mjs.tmpl`, `sw.js.tmpl`, `manifest.json.tmpl` —
-  the contract-correct skeleton. `scripts/scaffold.mjs` stamps them into
+- `assets/index.html.tmpl`, `test.mjs.tmpl`, `manifest.json.tmpl` — the
+  contract-correct skeleton. `scripts/scaffold.mjs` stamps them into
   `games/<slug>/` with the slug/title/icon/accent filled.
 - The reference game to imitate is `~/arcade/games/breakout/`. When in doubt, read
   it — it's the canonical implementation these templates come from.

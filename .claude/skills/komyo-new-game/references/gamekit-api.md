@@ -511,8 +511,8 @@ scoped to the current game automatically.
 menu's "✓ Good run" line is the receipt.
 
 **New-game wiring (optional but expected):** add sets/items to `cosmetics.js` (`<slug>.<set>.<key>`,
-free default at price 0), load `cosmetics.js` in the `<head>` + `sw.js` SHELL, and read the selected
-skin in render. The 🎨 button + store are automatic.
+free default at price 0), load `cosmetics.js` in the `<head>` (the root sw.js SHELL already caches
+it), and read the selected skin in render. The 🎨 button + store are automatic.
 
 ---
 
@@ -568,7 +568,7 @@ Posts to the public Komyo Discord webhook. Games rely on `shareRow`'s auto-post;
 
 The kit's translation engine. Locale data lives in `window.KOMYO_I18N` — `i18n.js` (the loader +
 the `en` dict) is loaded in the atomic `<head>` and pulls in each locale's own root
-`i18n.<code>.js`; the `sw.js` SHELL lists `i18n.js` AND every locale file. `game-kit.js` owns
+`i18n.<code>.js`; the root `sw.js` SHELL lists `i18n.js` AND every locale file. `game-kit.js` owns
 lookup, plurals, and the language picker.
 
 ### `KIT.t(key, params)` — MANDATORY (every player-facing string)
@@ -606,16 +606,18 @@ the ☰ menu and the catalogue header has its own button — games don't call th
 
 ### `KIT.pwa(file)` — MANDATORY
 
-Service-worker registration + the ONE update policy. The catalogue passes `'sw.js'`; a game calls
-`KIT.pwa()` (defaults to `sw.js`). A new build **never auto-reloads a visible page** — it lights a
-dot on the ☰ menu (and the catalogue's "Update now"); the player applies it via the ☰ Update button.
-The only reloads are that explicit apply and a backgrounded tab. Scope hand-overs are told apart
-from real updates by the worker script URL.
+Registers the ONE root-scope service worker (it serves the whole site) + the ONE update policy.
+The catalogue passes `'sw.js'`; a game calls `KIT.pwa('../../sw.js')` — never bare `pwa()` from a
+game page (that would try to register a dead per-game scope). A new build **never auto-reloads a
+visible page** — it lights a dot on the ☰ menu (and the catalogue's "Update now"); the player
+applies it via the ☰ Update button. The only reloads are that explicit apply and a backgrounded
+tab. Hand-overs are told apart from real updates by the worker script URL; `pwa()` also
+unregisters legacy per-game scope registrations (pre single-SW migration).
 
 ### `KIT.updates` — optional
 
 - `updates.check()` → Promise — fetch fresh `version.js` vs the running build; sets `available`.
-- `updates.apply()` — update every scope's SW + reload (the ☰ Update button calls this).
+- `updates.apply()` — update the root SW (covers the whole site) + reload (the ☰ Update button calls this).
 - `updates.state()` → `{status, available, controlled, latest}` (`status`:
   idle|checking|ok|offline|refreshing).
 - `updates.onChange(cb)` — subscribe to state changes.

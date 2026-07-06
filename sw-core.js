@@ -1,13 +1,14 @@
-// Shared service-worker engine for komyo. Each sw.js sets three globals then imports this:
-//   self.SCOPE   — cache namespace ('root' or a game slug)
+// Service-worker engine for komyo. The ONE root-scope sw.js sets three globals then imports this:
+//   self.SCOPE   — cache namespace ('root' — the whole site lives in one scope)
 //   self.VERSION — build id ('dev' locally; the commit SHA, stamped at deploy)
-//   self.SHELL   — same-origin URLs to precache for offline
+//   self.SHELL   — same-origin URLs to precache for offline (catalogue + shared files + every game)
 //
 // Strategy: STALE-WHILE-REVALIDATE — serve the cached copy instantly (so an offline refresh never
 // breaks), and refresh it from the network in the background when online. The cache name carries the
-// VERSION, so a new build lands in a fresh cache; skipWaiting + clients.claim make the new worker take
-// over immediately, and gamekit.pwa() reloads the page once → silent auto-update. Old versions of THIS
-// scope (and the legacy 'gamekit-' cache) are purged on activate.
+// VERSION, so a new build lands in a fresh cache; skipWaiting + clients.claim make the new worker
+// take over immediately (the page is NOT auto-reloaded — gamekit.pwa() just lights the ☰/Settings
+// update badge). Everything that isn't the current cache is purged on activate — old versions AND
+// the legacy per-game 'komyo-<slug>-*' / 'gamekit-*' caches from the pre-single-SW era.
 (function () {
   var SCOPE = self.SCOPE || 'app';
   var VERSION = self.VERSION || 'dev';
@@ -36,9 +37,10 @@
     e.waitUntil(
       caches.keys().then(function (keys) {
         return Promise.all(keys.map(function (k) {
-          // drop old versions of THIS scope, and every pre-overhaul cache (anything not in the
-          // 'komyo-' namespace: gamekit-v1, bubbles-v1, …); leave other scopes' current caches alone
-          if ((k.indexOf(PREFIX) === 0 && k !== CACHE) || k.indexOf('komyo-') !== 0) return caches.delete(k);
+          // ONE worker, ONE cache: drop everything that isn't the current version — old versions
+          // of this cache, the legacy per-game scope caches (komyo-<slug>-*) and every
+          // pre-overhaul cache (gamekit-v1, bubbles-v1, …)
+          if (k !== CACHE) return caches.delete(k);
           return null;
         }));
       }).then(function () { return self.clients.claim(); })

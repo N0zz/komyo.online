@@ -375,7 +375,7 @@
     confirmLeave: () => (state==='playing' || state==='paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
     controls: { title: KIT.t('game.asteroids.controlsTitle', { def: 'Asteroids — Controls' }),
       keyboard: [ [KIT.t('game.asteroids.keysRotate', { def: '← →  ·  A D' }),KIT.t('game.asteroids.rotate', { def: 'Rotate' })], [KIT.t('game.asteroids.keysThrust', { def: '↑  ·  W' }),KIT.t('game.asteroids.thrust', { def: 'Thrust' })], [KIT.t('game.asteroids.keySpace', { def: 'Space' }),KIT.t('game.asteroids.shoot', { def: 'Shoot' })], [KIT.t('game.common.esc', { def: 'Esc' }),KIT.t('game.common.pause', { def: 'Pause' })] ],
-      touch: [ [KIT.t('game.asteroids.touchDrag', { def: 'Drag the left half' }),KIT.t('game.asteroids.steerThrust', { def: 'Steer & thrust' })], [KIT.t('game.asteroids.fireButton', { def: 'FIRE button' }),KIT.t('game.asteroids.shoot', { def: 'Shoot' })] ] } }); KIT.pwa(); KIT.showMenuButton(false); }
+      touch: [ [KIT.t('game.asteroids.touchDrag', { def: 'Drag the left half' }),KIT.t('game.asteroids.steerThrust', { def: 'Steer & thrust' })], [KIT.t('game.asteroids.fireButton', { def: 'FIRE button' }),KIT.t('game.asteroids.shoot', { def: 'Shoot' })] ] } }); KIT.pwa('../../sw.js'); KIT.showMenuButton(false); }
 
   // ---- test hook: state getters + a layout snapshot for the headless harness (inert in normal play) ----
   window.__test = {

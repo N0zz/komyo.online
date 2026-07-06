@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="{{TITLE}}">
 <link rel="apple-touch-icon" href="icon-192.png">
 <!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
-     exist before the inline IIFE runs). The sw.js SHELL must list these same files. -->
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
 <script src="../../analytics.js" defer></script>
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
@@ -264,7 +264,7 @@
   KIT.loop(update, render);   // THE main loop — fixed-timestep, kit-pause built in
   showStartMenu();
 })();
-  window.gamekit.pwa();       // SW registration + update policy — AFTER the IIFE closes
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
 </script>
 </body>
 </html>

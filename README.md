@@ -72,7 +72,8 @@ screen (its own icon, opens fullscreen, plays offline). Handy if you only want o
    Multiplayer section), `badges: ["new"]`/`["pick"]` (gold/purple tile badge).
 3. Add `games/<slug>/test.mjs` (dependency-free headless harness; **preload `../../game-kit.js`**
    in the sandbox before the inline script) and keep it green.
-4. `sw.js` `SHELL` includes the HTML, icons, and `../../game-kit.js` + `../../game-kit.css` (offline).
+4. Register the game in the root `sw.js`: add its slug to `GAME_SLUGS` (the ONE site-wide service
+   worker precaches its HTML/manifest/icons for offline); the game calls `gamekit.pwa('../../sw.js')`.
 
 ## Testing
 
@@ -93,12 +94,12 @@ games.js          catalogue manifest         challenges.js  daily/weekly goals +
 cosmetics.js      cosmetics registry (skins + cursors)   changelog.js  player-facing releases
 analytics.js      consent-gated GA4 loader   version.js    build stamp (sha/date)
 game-kit.js      shared game shell (nav, menus, sound+music, loop, layout, challenges, cosmetics, best store, share, PWA)
-game-kit.css     shared shell styles         sw-core.js   shared service-worker engine (each sw.js imports it)
+game-kit.css     shared shell styles         sw-core.js   service-worker engine (imported by the root sw.js)
 favicon.svg       Komyo Games icon           plans/       public design docs/mocks
-manifest.json     PWA manifest      sw.js   service worker (offline)
+manifest.json     PWA manifest      sw.js   the ONE site-wide service worker (offline for catalogue + every game)
 CNAME             custom domain (komyo.online)   .nojekyll   serve files as-is on GitHub Pages
 test.mjs          catalogue + Keep Defender + kit + cosmetics harness   test-harness.mjs  the shared headless harness
-games/<slug>/     each game, standalone (index.html + test.mjs + manifest/sw/icons)
+games/<slug>/     each game, standalone (index.html + test.mjs + manifest/icons)
 ```
 
 > History note: `games/asteroids/` was imported with `git subtree` so its full

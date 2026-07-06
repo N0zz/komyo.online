@@ -3,7 +3,7 @@
 //
 //   node scaffold.mjs <slug> "<title>" "<icon>" "<accent>" [themeKey]
 //
-// Writes games/<slug>/{index.html,test.mjs,sw.js,manifest.json} from ../assets/*.tmpl with
+// Writes games/<slug>/{index.html,test.mjs,manifest.json} from ../assets/*.tmpl with
 // {{SLUG}}/{{TITLE}}/{{ICON}}/{{ACCENT}}/{{THEME_KEY}} filled in. It NEVER edits the shared
 // files (games.js, challenges.js, cosmetics.js, sitemap.xml, llms.txt, changelog.js) — only
 // stamps the folder. It prints the remaining manual steps at the end.
@@ -70,7 +70,6 @@ function fill(s) {
 const FILES = [
   ['index.html.tmpl', 'index.html'],
   ['test.mjs.tmpl', 'test.mjs'],
-  ['sw.js.tmpl', 'sw.js'],
   ['manifest.json.tmpl', 'manifest.json'],
   ['favicon.svg.tmpl', 'favicon.svg'],
 ];
@@ -83,8 +82,11 @@ for (const [tmpl, out] of FILES) {
   console.log('  wrote games/' + slug + '/' + out);
 }
 
-console.log('\nStamped games/' + slug + '/ (index.html, test.mjs, sw.js, manifest.json, favicon.svg).');
+console.log('\nStamped games/' + slug + '/ (index.html, test.mjs, manifest.json, favicon.svg).');
 console.log('\nRemaining manual steps (this script does NOT touch shared files):');
+console.log('\n  0. Root sw.js — add "' + slug + '" to GAME_SLUGS (games.js order) so the ONE');
+console.log('     site-wide service worker precaches the game (no per-game sw.js exists;');
+console.log("     the stamped index.html already registers it via pwa('../../sw.js')).");
 console.log('\n  1. Icons (from repo root):');
 console.log("       node scripts/gen-icon.mjs '" + icon + "' '" + accent + "' games/" + slug);
 console.log('     (writes icon-192.png / icon-512.png; favicon.svg was already stamped).');

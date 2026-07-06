@@ -946,7 +946,7 @@
   // game-kit nav: top-left ‹ Menu (quits to the start menu, in-place) + top-right sound menu (SFX + Music + Reset)
   if (KIT) { KIT.nav({ slug: 'asteroids-plus', music: true, home: '../../', theme: MENU_THEME,
     confirmLeave: () => (state==='playing'||state==='paused'||state==='levelup'||state==='shop') ? t('confirm.leave', { def: 'Leave this run? You’ll lose your progress.' }) : false,
-    onMenu: () => quitToMenu(), onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); } }); KIT.showMenuButton(false); KIT.showPauseButton(false); KIT.pwa(); }
+    onMenu: () => quitToMenu(), onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); } }); KIT.showMenuButton(false); KIT.showPauseButton(false); KIT.pwa('../../sw.js'); }
 
   resize(); updateHud(); loop();
   showStartMenu(); // always open the unified kit start menu (mode preselected from the URL)

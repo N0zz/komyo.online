@@ -1579,4 +1579,7 @@ window.KOMYO_I18N.it = {
   'changelog.e31.b2': 'Collezione: cinque aspetti del martello (peluche! gonfiabile! bastoncino di zucchero!) e quattro stagioni del prato — sole, autunno, pioggia e neve.',
   'changelog.e31.b3': 'Cambiamento: la scheda di Salta la Strada ora ha l\'icona 🚧 — la rana si è trasferita in Colpisci la Rana.',
   'changelog.e31.b4': 'Fix: silenziare la musica ora la silenzia davvero — prima in ogni gioco continuava a suonare una leggera eco di riverbero.',
+  'changelog.e43.title': 'Un aggiornamento per domarli tutti 🔄',
+  'changelog.e43.b0': 'Fix: premere "Aggiorna ora" (nelle Impostazioni o nel menu ☰ di qualsiasi gioco) ora porta TUTTO il sito all\'ultima versione in un colpo solo — prima, un gioco che non aprivi da un po\' poteva restare su una versione vecchia finché non lo aggiornavi a parte.',
+  'changelog.e43.b1': 'Novità: l\'archiviazione offline è molto più leggera — i giochi ora condividono un\'unica cache offline invece di tenere ognuno la propria copia dei file comuni, e ogni gioco continua a funzionare perfettamente offline.',
 };

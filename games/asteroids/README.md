@@ -104,7 +104,7 @@ index.html                launcher (version select, mode toggle, audio + reset, 
 levels.js                 the version manifest (single source of truth for the menu)
 favicon.svg               themed neon-ship icon
 manifest.json             PWA manifest (installable / fullscreen)
-sw.js                     service worker (offline cache, network-first)
+../../sw.js               the site-wide root service worker (offline cache — no per-game sw.js)
 .nojekyll                 tells GitHub Pages to serve files as-is (no Jekyll build)
 levels/                   all playable game builds (each is one standalone .html)
   classic.html              ┐

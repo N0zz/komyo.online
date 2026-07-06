@@ -117,17 +117,15 @@ quality bar — see the Done entry).
    (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower defense, roguelite shooters). See
    `komyo-avoid-balance-heavy-genres`. Slot in **one original-mechanic, shareable game** alongside the remakes
    (see `komyo-market-expansion-discussion`). More POC prototypes wait on a separate branch. Build order below.
-3. **Single service worker for the whole site — PRE-LAUNCH GATE.** Must land BEFORE real users
-   arrive: once strangers install per-game PWAs, their scoped workers keep serving stale caches and
-   a clean migration needs shims — today (friends & family, few/no installs) a plain
-   `getRegistrations()` sweep that unregisters non-root scopes on boot is enough. Scope: drop the
-   10 per-game `sw.js` scopes, ONE root-scope SW caches everything (kills the "one game stayed
-   stale after Update" bug class + the ~11× duplicate caching of shared files and all 8 locale
-   files; "Update now" becomes a single worker swap). **Keep the per-game manifests** — a root SW
-   controlling `/games/<slug>/` still satisfies installability, so per-game installs keep working.
-   Delete `games/*/sw.js` + their `pwa()` registrations, grow the root SHELL (or runtime-cache game
-   files), simplify `gamekit.updates.apply()` + the catalogue's idle-register loop, rewrite the SW
-   test section.
+3. **Single service worker for the whole site — DONE (2026-07-06).** The pre-launch gate landed:
+   ONE root-scope SW caches everything (catalogue + shared files + all locales + every live game —
+   `GAME_SLUGS` in `sw.js`, lockstep with games.js test-enforced); the 11 per-game `sw.js` are gone,
+   games register `pwa('../../sw.js')`, `gamekit.pwa()` sweeps legacy per-game scope registrations
+   on boot, the root SW's activate purges the old `komyo-<slug>-*` caches, `updates.apply()` is a
+   single worker swap, the catalogue's idle-register loop is deleted, deploy stamps only `sw.js`.
+   Per-game manifests kept — installs keep working (root SW satisfies installability). Left to
+   verify post-deploy: a previously-installed game PWA migrates cleanly (open → old worker
+   unregisters → next launch runs on the root worker).
 4. **Score card as the DEFAULT share payload** *(promoted from Later 2026-07-06 — wanted pre-release).*
    End-screen share row shares the score-card IMAGE by default where possible. Constraints from the
    parked note: X/Reddit web intents are URL-only (no image upload); native share can attach the card

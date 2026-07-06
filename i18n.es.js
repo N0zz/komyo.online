@@ -1580,4 +1580,7 @@ window.KOMYO_I18N.es = {
   'changelog.e31.b2': 'Colección: cinco aspectos de mazo (¡de peluche! ¡inflable! ¡bastón de caramelo!) y cuatro estaciones de la pradera — sol, otoño, lluvia y nieve.',
   'changelog.e31.b3': 'Cambio: la ficha de Cruza la Calle ahora tiene el icono 🚧 — la rana se mudó a Golpea Ranas.',
   'changelog.e31.b4': 'Arreglo: silenciar la música ahora la silencia de verdad — antes seguía sonando un eco suave de reverberación en todos los juegos.',
+  'changelog.e43.title': 'Una actualización para gobernarlas a todas 🔄',
+  'changelog.e43.b0': 'Arreglo: pulsar "Actualizar ahora" (en Ajustes o en el menú ☰ de cualquier juego) ahora lleva TODO el sitio a la versión más reciente de una vez — antes, un juego que llevabas tiempo sin abrir podía quedarse en una versión antigua hasta actualizarlo por separado.',
+  'changelog.e43.b1': 'Nuevo: el almacenamiento sin conexión es mucho más ligero — los juegos ahora comparten una sola caché offline en vez de guardar cada uno su propia copia de los archivos comunes, y todos siguen funcionando perfectamente sin conexión.',
 };
