@@ -17,7 +17,7 @@ challenges, tv-controller.
   laser shot; catalogue global Settings page. See the `komyo-audio-design` note.
 - **`gamekit.menu` framework — DONE (2026-07-01).** All 9 games migrated to the declarative kit menu
   (cards / sliders / grid / map-popup + animated backdrops), suites green.
-- **Profile page + share card fit — DONE (2026-07-02)** *(pending a final on-phone verify)*. Title
+- **Profile page + share card fit — DONE (2026-07-02, on-phone verified 2026-07-06).** Title
   box = title + name full-width with a right meta column (🏆 pts / 💪 good runs / 📅 since — always shown,
   never hidden at 0); core counts in a centered divider strip; ✕ floats on the modal corner; avatar emoji
   dropped. **Shared image now matches the live modal:** crop fixed (the clone inherited `bottom:0` →
@@ -66,7 +66,7 @@ challenges, tv-controller.
   impact and tap to deflect (instant), or it fires on its own at the deadline. Modes: Timed / Shields / Double
   (station centre, a planet + player each side, 1–2 players); Easy/Med/Hard scale sweep speed + dome width;
   planet skins + bolt colours in the Collection; 2 daily challenges + good-run bar; PL + ES strings.
-  *Follow-up: retune the 250/500 challenge targets + good-run bar from real scores.*
+  *(Challenge targets retuned 2026-07-06.)*
 - **Frog Bonk 🐸 — DONE (2026-07-06).** New game (game #11; the "Frog Rush" queue idea), built via the
   full dev-process gate + two playtest-feedback rounds. Whack-a-mole castle defense: the frog king bonks
   hatted invaders (scout/knight/mage/brute + chief mini-bosses) with a head-anchored soft hammer;
@@ -75,8 +75,7 @@ challenges, tv-controller.
   keep, per-season meadows + hammer skins in the Collection (2 sets), animated menu backdrop whose king
   wears the equipped hammer, 2 daily challenges + good-run bar, all 8 languages, 66-assert suite. Road
   Hop's tile icon ceded 🐸 → 🚧. Kit gains along the way: music reverb routed through the music channel
-  (mute now truly mutes — every game) + `cols:2` shop grids.
-  *Follow-up: retune the 800/2,000 challenge targets + good-run bar from real scores.*
+  (mute now truly mutes — every game) + `cols:2` shop grids. *(Challenge targets retuned 2026-07-06.)*
 - **Visual texture-pass initiative — DONE (2026-07-06).** Catalogue-wide graphics detail upgrade,
   driven by look-dev mocks the user approved before each implementation (`plans/frog-bonk-lookdev.html`,
   `plans/frog-bonk-texture-pass.html`, `plans/graphics-detail-review.html`, `plans/keep-defender-assets.html`).
@@ -89,10 +88,10 @@ challenges, tv-controller.
   collars, shaded clouds/flowers/birds, ground tufts, day+night grades, **render interpolation** fixing
   the fixed-timestep pipe hitch) · **Bubble Pop** (candy-gloss orbs + board depth + shaded walls).
   **Keep simple (decided):** Snake, Brick Breaker, Forcefield, Range, both Asteroids — flat/glow is
-  their identity; Stack = light-touch, still pending. The bar is codified in the komyo-new-game skill
+  their identity; **Stack closed as keep-simple too (2026-07-06)** — the minimal pastel look IS the
+  style. Initiative fully wrapped. The bar is codified in the komyo-new-game skill
   (`references/visual-quality.md`: 7 requirements, determinism/perf rules, 2-round screenshot review)
   plus `references/responsive.md` (model-geometry scaling, from the frog-bonk mobile bugs).
-  *Follow-up: Stack light-touch material pass (borderline, user may skip).*
 
 ## 🚀 Path to launch (ordered)
 
@@ -129,7 +128,12 @@ quality bar — see the Done entry).
    Delete `games/*/sw.js` + their `pwa()` registrations, grow the root SHELL (or runtime-cache game
    files), simplify `gamekit.updates.apply()` + the catalogue's idle-register loop, rewrite the SW
    test section.
-4. **LAUNCH + marketing campaigns — *started* (reddit groundwork underway, see In flight).** Prep the materials (promo video / montage + Discord preview cuts,
+4. **Score card as the DEFAULT share payload** *(promoted from Later 2026-07-06 — wanted pre-release).*
+   End-screen share row shares the score-card IMAGE by default where possible. Constraints from the
+   parked note: X/Reddit web intents are URL-only (no image upload); native share can attach the card
+   file (the 📷 button already does); the card ships no link — so likely "native = card,
+   X/Reddit = text+link (unchanged)", or card-behind-the-link via OG tricks. Discuss shape first.
+5. **LAUNCH + marketing campaigns — *started* (reddit groundwork underway, see In flight).** Prep the materials (promo video / montage + Discord preview cuts,
    per-game OG/Twitter cards, story-format share card), then publish everywhere: portals (itch.io, free-to-play
    indexes), news, forums, subreddits, Discord servers, socials. Paid ads considered later.
 
@@ -150,12 +154,6 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
   Asteroids+** (own loops, rotating drift — handle-with-care pair, only touch if someone notices).
   Pattern + all-or-none layer rule documented in the komyo-new-game skill (`gamekit-api.md`).
 
-- **Score card as the DEFAULT share payload** *(to discuss — parked 2026-07-05, no decision yet)* —
-  end-screen share row: can the X/Reddit/native buttons share the score-card IMAGE by default
-  instead of text+link? Discussion points when picked up: X/Reddit web intents are URL-only (no
-  image upload), native share can attach the card file (already done for the 📷 button), and the
-  card ships no link — so it's likely "native = card, X/Reddit = text+link (unchanged)" or
-  card-behind-the-link via OG tricks. Talk first.
 - **Top-bar button labels on desktop** *(idea — undecided)* — at ≥~900px show icon + short label on
   the right cluster (`📱 Install · Language · ⚙️ Settings · ⛶ Fullscreen`); icon-only below (today's
   look). ☰ stays bare. Static label text (no "Exit fullscreen" swap — state lives in the icon);
@@ -316,8 +314,8 @@ from day one.
 - **Reddit groundwork — STARTED (2026-07-05).** Advertising in some existing threads + actively
   commenting on target subs to build presence/karma; own threads planned within a few days. Feeds
   Path-to-launch #3.
-- **Fable review of recent additions** — have Fable review & test the `komyo-new-game` creation skill,
-  the i18n implementation, and all translations.
+- ~~**Fable review of recent additions**~~ *(done 2026-07-06)* — komyo-new-game skill, i18n
+  implementation and translations reviewed & tested.
 - **Marketing plan (brainstorm + prep) — drafted (2026-07-05),** `plans/marketing_plan.md`.
   **Next: review & refine into a tl;dr.** No long prose/explanation — per plan, just the list of
   **where to post** and **what to post**, plus called-out **red flags / crucial points only** (budget
@@ -328,9 +326,8 @@ from day one.
   prune/merge so future sessions don't act on outdated context.
 - **Real mascot art** *(in progress)* — chibi fox-girl (Holo-ish, red/orange hair, fox ears); replaces
   the header + score-card placeholder; reuse on social, stickers, 404, newsletter, empty states.
-- **Daily-challenge target tuning.** Challenges are live (UTC daily/weekly, points 1/5 that never reset,
-  single-game + cross-game goals, plus a 1-year completion History). Targets are **provisional** —
-  playtest and retune (Snake already bumped 50→250); confirm the UTC daily-reset behaves.
+- ~~**Daily-challenge target tuning.**~~ *(done 2026-07-06)* — targets retuned across the catalogue
+  (incl. Forcefield + Frog Bonk); post-launch re-checks from real GA4 data stay in Ongoing.
 
 - **Aggregate usage insights via GA4 — v1 SHIPPED (2026-07-01).** Anonymous, consent-gated GA4 events
   via `window.gamekitTrack` (no-ops unless the cookie banner was accepted; counts only, no per-user
@@ -385,24 +382,10 @@ from day one.
   actual game** (factor each game's scene draw into a shared `drawScene(frame)` the menu can call), so
   there's one source of truth. Bigger refactor (needs ambient-motion in a non-playing state); deferred.
 
-- **"CHALLENGE" tile badge + filter** *(idea)* — a new badge (alongside NEW / UPDATED / POPULAR in
-  the `BADGES` map) on a game tile when that game has an **active today's/weekly challenge**, and a
-  matching **filter** ("has an active challenge") that lists only those games. **Must key off
-  game-specific challenges only** — generic cross-game goals (e.g. "play 2 games") must NOT light up
-  the badge on every tile; only a challenge scoped to that game's slug counts. Drives players toward
-  games with something to chase today.
-- **In-game Challenges button (🏆 top bar)** *(idea — pairs with the CHALLENGE badge)* — when you start a
-  game that has an active challenge, you currently can't see the goal without going back to the catalogue.
-  Add a 🏆 button to the in-game top bar that opens the **same Challenges panel** as the home page — so you
-  can check (or re-check mid-run) today's daily + weekly goals and progress without leaving the game. Opens
-  as a kit modal that freezes the game (like the other top-bar overlays), highlighting *this game's* active
-  goal. **Always show the button** (so players learn it's always there); when the current game HAS an active
-  challenge, give it a **notification state** — a subtle glow/pulse or a small dot badge — as a "there's
-  something for you here" nudge (reuse `activeChallengeSlugs`). Keep it subtle (a gentle pulse/dot, NOT a
-  bounce — distracting mid-game) and **reduced-motion-safe** (static dot/glow, no animation); optionally
-  quiet it once opened (like a read notification). **Main lift:** the challenge logic (`CHALLENGES`, the UTC
-  daily/weekly pick math, `evalGoal`, progress) lives inline in `index.html` today — it needs to move into
-  `game-kit.js` (shared module) so the catalogue and the in-game button render from one source.
+- ~~**"CHALLENGE" tile badge + filter**~~ *(shipped — badge in the `BADGES` map + a CHALLENGE filter
+  chip live in index.html; keyed to game-scoped challenges via `gamekit.challengePick`)*.
+- ~~**In-game Challenges button (🏆 top bar)**~~ *(shipped — `gamekit.nav` adds the 🏆 button in every
+  game; `gamekit.challengesPanel` is the shared board, `gamekit.activeChallenge` drives the glow)*.
 - **Claude skill: scaffold a new game on our framework** *(idea — dev tooling, big leverage)* — a
   `synerise`-style skill (name TBD, komyo-scoped) that captures **once** everything a new game must obey
   — repo layout, the three-screen schema, `gamekit.menu` declarative config, `gamekit.sound`/`music`
@@ -607,8 +590,6 @@ Play Store via PWA → itch.io. Rest are post-launch or parked.
 
 ## Parked (someday)
 
-- **User-facing sort control** — defer to ~20 games, then a small control next to Filter (Featured ·
-  Newest · A–Z · Most played). Favorites pinned above any sort.
 - **Live "users online now" count** — not possible client-side on a static site; conflicts with the
   no-server identity. Routes if reconsidered: GA4 Realtime via a relay (approximate) or a small presence
   backend (Cloudflare Worker + Durable Object / WebSocket — accurate but real infra). Empty-room risk on
@@ -625,6 +606,8 @@ Play Store via PWA → itch.io. Rest are post-launch or parked.
 
 ## Decision guards (don't re-propose)
 
+- **No user-facing sort control** — closed 2026-07-06: sortable Favorites + the Recently-played rail
+  cover the need; a Featured/Newest/A–Z dropdown adds chrome without value at this catalogue size.
 - **No per-tile personal bests** — every game has many modes, so there's no single best to show, and it
   overcrowds the home page.
 - **No on-site local "recent plays" ticker** — with no server it only shows your own plays and misreads
