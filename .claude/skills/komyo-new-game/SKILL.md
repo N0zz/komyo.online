@@ -147,6 +147,11 @@ frame-rate-dependent game, a reset that wipes another game). The generated
 - **Main loop is `gamekit.loop(update, render)`** — never `rAF → update()` directly.
   `update()` must be drivable by `__test.step(n)` and deterministic (seeded RNG in
   any path an assert checks).
+- **Constant-velocity movers interpolate with `gamekit.loopAlpha()`** — fixed 60 Hz
+  steps alone make linear motion (scrollers, balls, walkers, sweeps) visibly hitch on
+  0-/2-step display frames at ANY refresh rate. In render, offset such movers by
+  `perStepVelocity * KIT.loopAlpha()` (view-only; update untouched — flappy is the
+  reference). Games with only eased/arced/discrete motion can skip it.
 - **`CHALLENGES.goodRun` bar exists** for the game.
 - **Atomic `<head>` order** (analytics.js · game-kit.css · version.js · game-kit.js
   · challenges.js · cosmetics.js · i18n.js) AND the `sw.js` `SHELL` lists the same

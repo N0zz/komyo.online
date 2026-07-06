@@ -264,12 +264,26 @@ resume); a tab stall is clamped at 100 ms (no catch-up spiral).
 - `mult` — `fn()→number` scaling game-time (a 2× toggle = exactly 2× real-time on any screen).
 - `frame` — `fn()` run once per display frame BEFORE stepping (input polling etc.).
 
+**`KIT.loopAlpha()` — render interpolation (REQUIRED for constant-velocity movers):**
+Fixed steps alone make LINEAR motion visibly hitch: on a 60 Hz display the rAF clock beats
+against the 16.667 ms step clock, so some frames run 0 or 2 physics steps; on 120 Hz+ every
+other frame repeats a step. Curved/eased/discrete motion hides it — scrolling pipes, flying
+balls, walking enemies, sweeping domes do NOT. `loopAlpha()` returns the accumulator's real
+0..1 phase into the next step at render time; offset each constant-velocity mover by
+`perStepVelocity * alpha` in render (translate a whole layer where possible). View-only —
+`update()` and determinism untouched; headless it stays 0. **Interpolate every mover in a
+scene or none that sit side by side** — a stepped object next to an interpolated layer reads
+as shaking. Flappy (pipes/bird/scrolls/collectibles) is the reference implementation. Do NOT
+estimate the phase from wall-clock time since the last update — that measures execution
+jitter, not the loop phase, and stays jagged.
+
 **Gotchas:**
 - Never do `rAF → update()` directly — that ships a frame-rate-dependent game.
 - `update()` must stay drivable via `__test.step(n)` (headless, rAF is a no-op → the loop never
   ticks; tests call `update()` themselves).
 - Grandfathered exceptions with their own equivalent fixed-step + isPaused accumulators: breakout,
-  snake, asteroids, asteroids-plus. New games use `KIT.loop`.
+  snake, asteroids, asteroids-plus. New games use `KIT.loop` (their own accumulators have the same
+  judder class — mirror the loopAlpha idea from their local `acc` if it ever needs fixing).
 
 ### Pause helpers — optional
 
