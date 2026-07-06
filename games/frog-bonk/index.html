@@ -500,7 +500,17 @@
     ballistaUpdate();
     for (let i = bolts.length - 1; i >= 0; i--) {
       const b = bolts[i];
-      if (--b.t <= 0) { SND.play(b.stone ? 'stone' : 'zaphit'); damageCastle(b.dmg); bolts.splice(i, 1); }
+      const bk = 1 - b.t / (b.stone ? 36 : 30);
+      const bx2 = b.x + (cx - b.x) * bk, by2 = b.y + (cy - b.y) * bk - Math.sin(bk * Math.PI) * 60;
+      if (!b.stone && b.t % 2 === 0) {   // sparkling arcane trail
+        parts.push({ x: bx2 + rand(-3, 3), y: by2 + rand(-3, 3), vx: rand(-0.6, 0.6), vy: rand(-0.4, 0.8), t: 16, col: Math.random() < 0.5 ? '#b98cff' : '#e6c0ff' });
+      }
+      if (--b.t <= 0) {
+        SND.play(b.stone ? 'stone' : 'zaphit');
+        damageCastle(b.dmg);
+        burst(bx2, by2, b.stone ? '#9a9284' : '#c8a0ff', b.stone ? 7 : 9);
+        bolts.splice(i, 1);
+      }
     }
     for (let i = peas.length - 1; i >= 0; i--) {
       const p = peas[i];
@@ -1165,7 +1175,7 @@
         ctx.fillStyle = 'rgb(12,35,30)';
         ctx.beginPath(); ctx.ellipse(0, 0, sr * 1.5 * (1 + p * 0.2), sr * 0.5 * (1 + p * 0.25), 0, 0, 7); ctx.fill();
       }
-      ctx.restore(); ctx.globalAlpha = 1;
+      ctx.restore();   // restore() brings back the caller's globalAlpha (x-ray ghosts pass 0.35)
     }
     ctx.translate(f.x + ox, f.y - lift + oy);
     if (f.ph === 'out') ctx.rotate(f.rot);
@@ -1396,8 +1406,41 @@
     for (const b of bolts) {
       const k = 1 - b.t / (b.stone ? 36 : 30);
       const x = b.x + (cx - b.x) * k, y = b.y + (cy - b.y) * k - Math.sin(k * Math.PI) * 60;
-      if (b.stone) { ctx.fillStyle = '#9a9284'; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); }
-      else { ctx.fillStyle = '#b98cff'; ctx.shadowColor = '#b98cff'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
+      if (b.stone) {   // a real spinning rock: shaded irregular shape, speckles, glint
+        ctx.save();
+        ctx.translate(x, y); ctx.rotate(b.t * 0.18);
+        const sg3 = ctx.createLinearGradient(-6, -6, 6, 6);
+        sg3.addColorStop(0, '#b8b0a0'); sg3.addColorStop(1, '#666054');
+        ctx.fillStyle = sg3;
+        ctx.beginPath();
+        ctx.moveTo(-6, -2); ctx.lineTo(-3, -6); ctx.lineTo(3, -5.5); ctx.lineTo(6.5, -1);
+        ctx.lineTo(4, 5); ctx.lineTo(-2.5, 6); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(40,35,30,0.5)'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.beginPath(); ctx.ellipse(-2.5, -3, 2.2, 1.3, -0.5, 0, 7); ctx.fill();
+        ctx.fillStyle = 'rgba(40,35,30,0.45)';
+        ctx.beginPath(); ctx.arc(2, 2, 1.1, 0, 7); ctx.fill();
+        ctx.beginPath(); ctx.arc(-1, 3.5, 0.8, 0, 7); ctx.fill();
+        ctx.restore();
+      } else {   // arcane bolt: fading trail ghosts, glow, white-hot core, orbiting sparks
+        for (let tr = 3; tr >= 1; tr--) {
+          const kk = Math.max(0, k - tr * 0.05);
+          const tx2 = b.x + (cx - b.x) * kk, ty2 = b.y + (cy - b.y) * kk - Math.sin(kk * Math.PI) * 60;
+          ctx.globalAlpha = 0.28 - tr * 0.07;
+          ctx.fillStyle = '#b98cff';
+          ctx.beginPath(); ctx.arc(tx2, ty2, 5.5 - tr, 0, 7); ctx.fill();
+        }
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#b98cff'; ctx.shadowColor = '#b98cff'; ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); ctx.shadowBlur = 0;
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath(); ctx.arc(x - 1, y - 1, 2, 0, 7); ctx.fill();
+        ctx.fillStyle = '#e6c0ff';
+        for (let s2 = 0; s2 < 2; s2++) {
+          const a2 = b.t * 0.45 + s2 * Math.PI;
+          ctx.beginPath(); ctx.arc(x + Math.cos(a2) * 8, y + Math.sin(a2) * 4, 1.5, 0, 7); ctx.fill();
+        }
+      }
     }
     for (const p of peas) {
       const k = 1 - p.t / 14;
