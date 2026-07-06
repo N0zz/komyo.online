@@ -598,6 +598,25 @@ async function testKit() {
   ok(played && played.mode === 'enh' && played.run === 'speedrun', 'menu Play fires onPlay with the live selection');
   hm.hide();
   ok(F.menu.current() === null, 'menu.hide clears current');
+  // a choice-row group with a reactive `disabled` evaluator grays out + refuses selection (the
+  // pattern Bubble Pop / Frog Bonk use to switch a knob off in a mode where it does nothing)
+  {
+    const collect = (el, cls, out = []) => { if (!el) return out; if (String(el.className || '').split(/\s+/).indexOf(cls) >= 0) out.push(el); (el.children || []).forEach(c => collect(c, cls, out)); return out; };
+    const hd = F.menu.show({ kind: 'start', groups: [
+      { id: 'mode', label: 'MODE', choices: [{ id: 'run', label: 'Run' }, { id: 'zen', label: 'Zen' }] },
+      { id: 'diff', label: 'DIFF', default: 'med', disabled: st => st.mode === 'zen', choices: [{ id: 'easy', label: 'Easy' }, { id: 'med', label: 'Med' }, { id: 'hard', label: 'Hard' }] },
+    ], actions: [{ id: 'play', label: 'Play', primary: true }] });
+    const diffCells = () => collect(hd.el, 'gkm-choice').filter(b => /Easy|Med|Hard/.test(String(b.innerHTML || '')));
+    ok(diffCells().length === 3 && diffCells().every(b => !b.classList.contains('gkm-disabled')), 'diff group enabled while mode ≠ zen');
+    ok(hd.select('diff', 'hard') && hd.selection().diff === 'hard', 'diff selectable while enabled');
+    hd.select('mode', 'zen');
+    ok(diffCells().every(b => b.classList.contains('gkm-disabled')), 'diff group grays out (gkm-disabled) once disabled fn is true');
+    hd.select('diff', 'easy');
+    ok(hd.selection().diff === 'hard', 'selecting a disabled choice is a no-op (kept hard)');
+    hd.select('mode', 'run');
+    ok(diffCells().every(b => !b.classList.contains('gkm-disabled')) && hd.select('diff', 'easy') && hd.selection().diff === 'easy', 're-enables + selectable when disabled fn goes false');
+    hd.hide();
+  }
   // pause: onAction fires by id
   let acted = null;
   const hp = F.menu.show({ kind: 'pause', title: 'Paused', lines: ['score 10'], actions: [{ id: 'resume', label: 'Resume', primary: true }, { id: 'quit', label: 'Quit', danger: true }], onAction: id => { acted = id; } });

@@ -2783,7 +2783,9 @@
         (g2.choices || []).forEach(function (c) {
           var b = mkEl('button', 'gkm-choice', c.label + (c.desc ? '<span class="gkm-desc">' + c.desc + '</span>' : ''));
           try { b.type = 'button'; } catch (e) {}
-          var ref = { el: b, kind: 'choice', grp: g2.id, choice: c.id };
+          // grpDisabled: a group-level evaluator (bool | state->bool) — grays the whole row and makes
+          // selecting a no-op (same pattern as toggles/shop), re-evaluated on every refresh.
+          var ref = { el: b, kind: 'choice', grp: g2.id, choice: c.id, grpDisabled: g2.disabled };
           b.addEventListener('click', function () { selectChoice(ref); setFocusEl(b); });
           b.addEventListener('mouseenter', function () { setFocusEl(b); });
           choiceRefs.push(ref); row.appendChild(b);
@@ -2910,7 +2912,19 @@
       }
     }
     function setFocusEl(el) { for (var k = 0; k < focusables.length; k++) if (focusables[k].el === el) { setFocus(k); return; } }
-    function paintChoices() { for (var k = 0; k < choiceRefs.length; k++) { var r = choiceRefs[k]; if (r.el.classList) r.el.classList.toggle('gkm-on', sel[r.grp] === r.choice); } }
+    function paintChoices() {
+      var st = null;
+      for (var k = 0; k < choiceRefs.length; k++) {
+        var r = choiceRefs[k];
+        if (r.el.classList) r.el.classList.toggle('gkm-on', sel[r.grp] === r.choice);
+        if (r.grpDisabled != null) {
+          if (st === null) st = state();
+          r.disabled = !!evalVal(r.grpDisabled, st);
+          if (r.el.classList) r.el.classList.toggle('gkm-disabled', r.disabled);
+          try { if (r.disabled) r.el.setAttribute('aria-disabled', 'true'); else r.el.removeAttribute('aria-disabled'); } catch (e) {}
+        }
+      }
+    }
     function paintToggles() {
       var st = state();
       for (var k = 0; k < toggleRefs.length; k++) {
@@ -2924,7 +2938,7 @@
     function renderBanner() { if (bannerEl) { try { bannerEl.innerHTML = cfg.banner(state()); } catch (e) {} } }
     function refresh() { paintChoices(); paintToggles(); renderDynamic(); renderHint(); renderBanner(); syncShopFocus(); paintBackdrop(); }
     function changed() { refresh(); if (typeof cfg.onChange === 'function') { try { cfg.onChange(state()); } catch (e) {} } }
-    function selectChoice(ref) { if (ref.locked) return; sel[ref.grp] = ref.choice; changed(); }
+    function selectChoice(ref) { if (ref.locked || ref.disabled) return; sel[ref.grp] = ref.choice; changed(); }
     function toggleOne(ref) { if (ref.disabled) return; tog[ref.id] = !tog[ref.id]; changed(); }
     function fireAction(a) {
       var go = function () {
