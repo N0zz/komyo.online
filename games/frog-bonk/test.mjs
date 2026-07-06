@@ -253,6 +253,34 @@ section('frog-bonk: best persistence + deep links');
   ok(g3.T().mode === 'endless' && g3.T().diff === 'hard', 'deep link preselects mode + difficulty');
 }
 
+// ---- Start menu: the DIFFICULTY selector grays out in Zen (Zen ignores difficulty entirely) ----
+section('frog-bonk: Zen disables the difficulty selector');
+{
+  const g = runGame();
+  const T = g.T;
+  // the only .gkm-choice buttons in this menu are the 3 difficulty choices (mode uses .gkm-card cards).
+  // find by the className string (the mock's classList.contains only reflects toggled classes, not the
+  // initial className), then read gkm-disabled via classList.contains (it IS set via classList.toggle).
+  const collect = (el, cls, out = []) => { if (!el) return out; if (String(el.className || '').split(/\s+/).indexOf(cls) >= 0) out.push(el); (el.children || []).forEach(c => collect(c, cls, out)); return out; };
+  const diffBtns = () => collect(T().menu().el, 'gkm-choice');
+  ok(T().menu() != null, 'start menu is shown at boot');
+  ok('diff' in T().menu().selection(), 'DIFFICULTY group is present (default mode = Waves)');
+  ok(diffBtns().length === 3 && diffBtns().every(b => !b.classList.contains('gkm-disabled')),
+    'difficulty choices are enabled for Waves');
+  // switch to Zen — the group stays but grays out and stops responding
+  T().menu().select('mode', 'zen');
+  ok(T().mode === 'zen', 'selecting the Zen card sets zen mode');
+  ok(diffBtns().length === 3 && diffBtns().every(b => b.classList.contains('gkm-disabled')),
+    'difficulty choices are grayed (gkm-disabled) in Zen — not removed');
+  const before = T().menu().selection().diff;
+  T().menu().select('diff', 'hard');
+  ok(T().menu().selection().diff === before, 'clicking a difficulty in Zen is a no-op (stays ' + before + ')');
+  // back to Endless — the group re-enables, keeping the retained difficulty
+  T().menu().select('mode', 'endless');
+  ok(diffBtns().every(b => !b.classList.contains('gkm-disabled')), 'leaving Zen re-enables the difficulty group');
+  ok(T().menu().select('diff', 'hard') && T().menu().selection().diff === 'hard', 'difficulty is selectable again outside Zen');
+}
+
 // ---- Cosmetics render without errors ----
 section('frog-bonk: hammer + meadow skins render');
 {

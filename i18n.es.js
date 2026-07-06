@@ -1583,4 +1583,6 @@ window.KOMYO_I18N.es = {
   'changelog.e43.title': 'Una actualización para gobernarlas a todas 🔄',
   'changelog.e43.b0': 'Arreglo: pulsar "Actualizar ahora" (en Ajustes o en el menú ☰ de cualquier juego) ahora lleva TODO el sitio a la versión más reciente de una vez — antes, un juego que llevabas tiempo sin abrir podía quedarse en una versión antigua hasta actualizarlo por separado.',
   'changelog.e43.b1': 'Nuevo: el almacenamiento sin conexión es mucho más ligero — los juegos ahora comparten una sola caché offline en vez de guardar cada uno su propia copia de los archivos comunes, y todos siguen funcionando perfectamente sin conexión.',
+  'changelog.e44.title': 'Golpea Ranas: Zen más pulido 🐸',
+  'changelog.e44.b0': 'Arreglo: en el modo Zen de Golpea Ranas el selector de dificultad ahora aparece atenuado — en Zen no se puede perder, así que la dificultad nunca hacía nada ahí, y el menú por fin lo refleja en vez de ofrecer una opción muerta.',
 };

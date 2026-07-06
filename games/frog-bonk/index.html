@@ -1916,7 +1916,9 @@
             mech: [t('game.frog-bonk.mechNoLose', { def: 'No losing' }), t('game.frog-bonk.mechChill', { def: 'Chill bonks' })],
             best: () => loadBest('zen'), preview: pvZen },
         ] },
-        { id: 'diff', label: t('game.frog-bonk.diffLabel', { def: 'DIFFICULTY' }), default: diff, choices: [
+        // Zen ignores difficulty entirely (invulnerable castle, fixed gentle spawn) — gray the
+        // selector out there instead of letting the player pick a knob that does nothing.
+        { id: 'diff', label: t('game.frog-bonk.diffLabel', { def: 'DIFFICULTY' }), default: diff, disabled: st => st.mode === 'zen', choices: [
           { id: 'easy', label: diffDisplay('easy') },
           { id: 'medium', label: diffDisplay('medium') },
           { id: 'hard', label: diffDisplay('hard') },
