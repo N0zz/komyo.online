@@ -663,21 +663,26 @@
       ctx.beginPath(); ctx.arc(t.x, t.y, BALL_R * t.life * 0.8, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
-    // balls — layered halo/body/core instead of a per-frame radial gradient + shadowBlur
+    // balls — layered halo/body/core instead of a per-frame radial gradient + shadowBlur.
+    // Render-interpolated by the accumulator phase so the straight fast ball glides
+    // instead of hitching on 0-/2-step frames (see gamekit.loopAlpha's doc).
+    const iSf = slowBall > 0 ? 0.55 : 1;
+    const iA = (state === 'playing' && !ballStuck) ? renAlpha : 0;
     for (const b of balls) {
+      const bx = b.x + b.vx * iSf * iA, by = b.y + b.vy * iSf * iA;
       ctx.globalAlpha = 0.3;
       ctx.fillStyle = sk.halo;
-      ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R * 1.9, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx, by, BALL_R * 1.9, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 1;
       ctx.fillStyle = body;
-      ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(bx, by, BALL_R, 0, Math.PI * 2); ctx.fill();
       if (sk.eight) { // 8-ball: white badge + the number instead of the shine dot
-        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(b.x, b.y, BALL_R * 0.48, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(bx, by, BALL_R * 0.48, 0, Math.PI * 2); ctx.fill();
         ctx.fillStyle = '#15161c'; ctx.font = 'bold ' + Math.round(BALL_R * 0.75) + 'px "Courier New"';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('8', b.x, b.y + 0.5);
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('8', bx, by + 0.5);
       } else {
         ctx.fillStyle = sk.core;
-        ctx.beginPath(); ctx.arc(b.x - 1, b.y - 1, BALL_R * 0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(bx - 1, by - 1, BALL_R * 0.5, 0, Math.PI * 2); ctx.fill();
       }
     }
   }
@@ -701,7 +706,7 @@
       ctx.fillStyle = cols[p.type] || '#fff';
       ctx.shadowColor = cols[p.type] || '#fff';
       ctx.shadowBlur = 10;
-      ctx.fillText(symbols[p.type] || '?', p.x, p.y);
+      ctx.fillText(symbols[p.type] || '?', p.x, p.y + (state === 'playing' ? p.vy * renAlpha : 0));
       ctx.restore();
     }
   }
@@ -795,6 +800,7 @@
   const STEP = 1000 / 60;        // ms of game-time per physics step
   const MAX_FRAME = 100;         // clamp dt to avoid spiral-of-death after a tab stall
   let lastT = null, acc = 0;
+  let renAlpha = 0;              // accumulator phase (0..1) at render time — render interpolation
   function loop2(now) {
     requestAnimationFrame(loop2);
     try {
@@ -809,6 +815,7 @@
       const mult = state === 'playing' ? speedMult : 1;
       acc += dt * mult;
       while (acc >= STEP) { update(); acc -= STEP; }
+      renAlpha = acc / STEP;
       render();
     } catch (e) { if (window.console) console.error(e); }
   }
