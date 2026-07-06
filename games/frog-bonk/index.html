@@ -1621,6 +1621,15 @@
     g.lineTo(kx + r, ky);
     g.ellipse(kx, ky, r, ery, 0, 0, Math.PI, false);
     g.closePath(); g.fill();
+    // bricks + base AO + moss — ALL clipped to the wall band (anything unclipped
+    // here reads as a square shadow / floating stones on the grass)
+    g.save();
+    g.beginPath();
+    g.moveTo(kx - r, ky); g.lineTo(kx - r, ky + wallH);
+    g.ellipse(kx, ky + wallH, r, ery, 0, Math.PI, 0, true);
+    g.lineTo(kx + r, ky);
+    g.ellipse(kx, ky, r, ery, 0, 0, Math.PI, false);
+    g.closePath(); g.clip();
     for (let row = 0; row < 3; row++) {   // brick jitter on the band
       const yy = ky + r * 0.05 + row * (wallH + ery * 0.7) / 3;
       for (let b = 0; b < 8; b++) {
@@ -1641,6 +1650,7 @@
       const a = 0.2 + h01(i * 13 + 7100) * (Math.PI - 0.4);
       g.beginPath(); g.arc(kx - Math.cos(a) * r * (0.7 + h01(i + 7200) * 0.27), ky + wallH + ery * 0.3 - h01(i + 7300) * r * 0.12, r * 0.03 + h01(i + 7400) * r * 0.04, 0, 7); g.fill();
     }
+    g.restore();
     const rg2 = g.createLinearGradient(kx - r, ky - ery, kx + r, ky + ery);
     rg2.addColorStop(0, '#bcb8cc'); rg2.addColorStop(1, '#8e8aa2');
     g.fillStyle = rg2; g.beginPath(); g.ellipse(kx, ky, r, ery, 0, 0, 7); g.fill();
