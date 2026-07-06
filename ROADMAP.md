@@ -67,6 +67,16 @@ challenges, tv-controller.
   (station centre, a planet + player each side, 1–2 players); Easy/Med/Hard scale sweep speed + dome width;
   planet skins + bolt colours in the Collection; 2 daily challenges + good-run bar; PL + ES strings.
   *Follow-up: retune the 250/500 challenge targets + good-run bar from real scores.*
+- **Frog Bonk 🐸 — DONE (2026-07-06).** New game (game #11; the "Frog Rush" queue idea), built via the
+  full dev-process gate + two playtest-feedback rounds. Whack-a-mole castle defense: the frog king bonks
+  hatted invaders (scout/knight/mage/brute + chief mini-bosses) with a head-anchored soft hammer;
+  telegraphed ranged attacks, combo scoring, fly economy. Waves (15, winnable, 2×2 upgrade shop:
+  repair/walls/moat/ballista) · Endless · Zen (wander-and-leave visitors, invulnerable castle). 3/4-view
+  keep, per-season meadows + hammer skins in the Collection (2 sets), animated menu backdrop whose king
+  wears the equipped hammer, 2 daily challenges + good-run bar, all 8 languages, 66-assert suite. Road
+  Hop's tile icon ceded 🐸 → 🚧. Kit gains along the way: music reverb routed through the music channel
+  (mute now truly mutes — every game) + `cols:2` shop grids.
+  *Follow-up: retune the 800/2,000 challenge targets + good-run bar from real scores.*
 
 ## 🚀 Path to launch (ordered)
 
@@ -85,7 +95,8 @@ to build Forcefield) · **friends/family circle** invited & trickling · the **i
    coverage incl. the changelog, enforced by tests. Left over (non-gating): a native QA pass + mobile QA
    across languages × orientations. See `plans/i18n-plan.md`.
 2. **Build more games — *in progress*.** Toward the content bar; each via the dev-process gate (design+mock →
-   POC → MVP → iterate). **Forcefield shipped** (first pull from the POC branch). **Bias low-tuning genres**
+   POC → MVP → iterate). **Forcefield shipped** (first pull from the POC branch). **Frog Bonk shipped**
+   (2026-07-06). **Bias low-tuning genres**
    (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower defense, roguelite shooters). See
    `komyo-avoid-balance-heavy-genres`. Slot in **one original-mechanic, shareable game** alongside the remakes
    (see `komyo-market-expansion-discussion`). More POC prototypes wait on a separate branch. Build order below.
@@ -212,12 +223,7 @@ Not yet tiles (lane/genre ideas, added 2026-07-03 — a game gets a tile once it
 - **More puzzle/riddle lane** (beyond Sudoku/Minesweeper/Floodgate/Blink) — nonogram/picross,
   sokoban, sliding-15, tents-and-trees / logic-riddle packs, daily riddle ("one brain-teaser a
   day" pairs with challenges/streaks). All solvable-by-construction per the design knobs.
-- **Frog Rush** 🐸 (whack-a-mole variant, added 2026-07-04) — a flock of frogs hops across a
-  grassland/meadow toward something you're protecting in the middle; click/tap each frog to shoo it
-  away before it reaches the centre. Open: **what they're hunting** (e.g. a nest of eggs, a picnic,
-  fireflies, a flower patch) → that's the fail condition (they eat/steal it). One-tap, escalating
-  spawn rate/speed, kid-friendly. Distinct from the tap-only kids Balloon Pop by having a *defend*
-  objective + swarms.
+- ~~**Frog Rush** 🐸~~ — **shipped 2026-07-06 as Frog Bonk** (see Done).
 
 ### Kids-first (ages 6–10)
 

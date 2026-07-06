@@ -55,6 +55,15 @@ window.GAMES = [
     added: "2026-06-26",
     updated: "2026-07-03",
   },
+  {
+    slug: "frog-bonk",
+    title: "Frog Bonk",
+    blurb: "Bonk the invading frogs with the king's soft hammer before they chomp the castle.",
+    icon: "🐸",
+    accent: "#7ed957",
+    tags: ["REFLEX", "KIDS"],
+    added: "2026-07-06",
+  },
 
   // ---- coming soon ----
   {
@@ -89,7 +98,7 @@ window.GAMES = [
     slug: "crossy",
     title: "Road Hop",
     blurb: "Hop across roads and rivers without getting squished. Blocky and endless.",
-    icon: "🐸",
+    icon: "🚧",
     accent: "#5bb6e0",
     tags: ["ARCADE", "CASUAL"],
     soon: true,

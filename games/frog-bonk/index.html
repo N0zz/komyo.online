@@ -1,0 +1,1487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Frog Bonk</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#7ed957">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Frog Bonk">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The sw.js SHELL must list these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  :root { --frg:#7ed957; --sun:#ffd166; --bg:#1d3a1d; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:#fff;
+    font-family: system-ui, -apple-system, sans-serif; user-select:none; touch-action:none; }
+  #game { display:block; width:100vw; height:100vh; cursor:pointer; }
+  /* Position/background/font come from the shared .gamekit-hud (center-top pill). */
+  #hud .val { color:var(--frg); text-shadow:0 0 8px rgba(126,217,87,0.55); }
+  #hud .hp  { color:#ff9aa2; text-shadow:0 0 8px rgba(255,154,162,0.55); }
+  #hud .fly { color:var(--sun); text-shadow:0 0 8px rgba(255,209,102,0.55); }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblCastle">CASTLE</span><span class="hp" id="castleEl">15♥</span></div>
+  <div class="stat"><span class="lbl" id="lblWave">WAVE</span><span class="val" id="waveEl">1</span></div>
+  <div class="stat" id="fliesStat" style="display:none"><span class="lbl" id="lblFlies">FLIES</span><span class="fly" id="fliesEl">0</span></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'frog-bonk';
+  const t = (k, p) => KIT ? KIT.t(k, p) : ((p && p.def) || k);
+
+  // ---- Audio (shared engine; never reuse kit stinger names) ----
+  const SND = window.gamekit.sound;
+  SND.define({
+    bonk:   c => { c.noiseHit({ dur: 0.1, gain: 0.16, filter: 'lowpass', cutoff: 900, cutoffTo: 250 }); c.voice({ f: 300, slideTo: 130, dur: 0.14, type: 'sine', gain: 0.14 }); },
+    whiff:  c => c.noiseHit({ dur: 0.12, gain: 0.08, filter: 'highpass', cutoff: 1800 }),
+    boing:  c => c.voice({ f: 220, slideTo: 640, dur: 0.24, type: 'sine', gain: 0.13, vibrato: 9, vibratoDepth: 26 }),
+    chomp:  c => { c.noiseHit({ dur: 0.14, gain: 0.15, filter: 'lowpass', cutoff: 500 }); c.voice({ f: 130, slideTo: 80, dur: 0.16, type: 'square', gain: 0.07, filter: 'lowpass', cutoff: 500 }); },
+    cast:   c => c.voice({ f: 620, slideTo: 1150, dur: 0.3, type: 'sine', gain: 0.08, reverb: 0.3, vibrato: 7, vibratoDepth: 14 }),
+    zaphit: c => { c.voice({ f: 480, slideTo: 190, dur: 0.16, type: 'sawtooth', gain: 0.1, filter: 'lowpass', cutoff: 1400 }); c.noiseHit({ dur: 0.08, gain: 0.08 }); },
+    stone:  c => c.noiseHit({ dur: 0.16, gain: 0.16, filter: 'lowpass', cutoff: 420, cutoffTo: 160 }),
+    horn:   c => { const n = c.now(); [262, 330].forEach((f, i) => c.voice({ f, dur: 0.34, type: 'sawtooth', gain: 0.08, filter: 'lowpass', cutoff: 1100, t: n + i * 0.16, reverb: 0.25 })); },
+    fanfare:c => c.seq([523, 659, 784, 1047], 90, f => c.voice({ f, dur: 0.24, type: 'triangle', gain: 0.1, reverb: 0.3 })),
+    coin:   c => { c.voice({ f: 880, dur: 0.07, type: 'square', gain: 0.09 }); c.voice({ f: 1320, dur: 0.12, type: 'square', gain: 0.08, t: c.now() + 0.06 }); },
+    flyblip:c => c.voice({ f: 740, slideTo: 990, dur: 0.07, type: 'triangle', gain: 0.08 }),
+    chain:  c => c.voice({ f: 500 + Math.min(10, combo) * 55, dur: 0.09, type: 'triangle', gain: 0.1 }),
+    knock:  c => c.voice({ f: 340, slideTo: 480, dur: 0.1, type: 'triangle', gain: 0.1 }),
+    crumble:c => { c.noiseHit({ dur: 0.3, gain: 0.16, filter: 'lowpass', cutoff: 600, cutoffTo: 120 }); c.play('lose'); },
+  });
+
+  // ---- Config ----
+  const WIND = 9;            // hammer wind-up steps (impact lands here)
+  const CD_HIT = 19;         // recover steps after a hit (total 28 ≈ 0.47 s)
+  const CD_WHIFF = 34;       // recover steps after hitting grass (penalty)
+  const HIT_PAD = 26;        // tap forgiveness around a frog, px (generous — kids + touch)
+  const COMBO_WIN = 120;     // combo window, steps (2 s)
+  const AIR = 22;            // hop airborne steps
+  const BITE = 144;          // latched chomp period, steps
+  const CAST = 130;          // mage cast telegraph, steps
+  const STONE_WIND = 80;     // brute stone telegraph, steps
+  const WAVE_MAX = 15;
+
+  const DIFFS = {
+    easy:   { hp: 20, spawn: 1.3,  sit: 1.25, count: 0.8,  bite: 1.15, chiefHp: 5 },
+    medium: { hp: 15, spawn: 1.0,  sit: 1.0,  count: 1.0,  bite: 1.0,  chiefHp: 6 },
+    hard:   { hp: 12, spawn: 0.75, sit: 0.8,  count: 1.25, bite: 0.85, chiefHp: 8 },
+  };
+  const TYPES = {
+    scout:  { hp: 1, r: 19, sit: 25, hop: 56, dmg: 1, score: 10,  flies: 1 },
+    knight: { hp: 2, r: 22, sit: 40, hop: 50, dmg: 1, score: 25,  flies: 2 },
+    mage:   { hp: 1, r: 21, sit: 50, hop: 46, dmg: 1, score: 30,  flies: 2, caster: true },
+    brute:  { hp: 3, r: 26, sit: 55, hop: 44, dmg: 2, score: 50,  flies: 4, stone: true },
+    chief:  { hp: 6, r: 34, sit: 60, hop: 40, dmg: 3, score: 150, flies: 10 },
+  };
+  const UPGRADES = [
+    { id: 'repair',   max: 9, cost: lv => Math.round(8 * Math.pow(1.4, lv)) },
+    { id: 'walls',    max: 3, cost: lv => [12, 20, 32][lv] },
+    { id: 'moat',     max: 2, cost: lv => [15, 25][lv] },
+    { id: 'ballista', max: 2, cost: lv => [20, 35][lv] },
+  ];
+
+  // ---- State ----
+  let W = 0, H = 0, topMargin = 48, dpr = 1;
+  let cx = 0, cy = 0, castR = 60;
+  let state = 'ready';               // ready | playing | shop | paused | over
+  let gameMode = 'waves';            // waves | endless | zen
+  let diff = 'medium';
+  let score = 0, best = 0, kills = 0;
+  let castleHp = 15, castleMax = 15;
+  let wave = 1, flies = 0;
+  let combo = 0, comboT = 0;
+  let steps = 0;
+  let frogs = [], bolts = [], peas = [], pickups = [], parts = [], pops = [];
+  let spawnQueue = [], spawnT = 0, endlessGap = 132;
+  let upg = { repair: 0, walls: 0, moat: 0, ballista: 0 };
+  let ballistaT = 0;
+  let hammer = { st: 'ready', t: 0, tx: 0, ty: 0, frog: null };
+  let shakeT = 0, castleFlash = 0;
+  let waveBanner = 0;                // steps left showing the "WAVE n" banner
+
+  const DIFF = () => DIFFS[diff] || DIFFS.medium;
+  const diffName = d => { d = d || diff; return d.charAt(0).toUpperCase() + d.slice(1); };
+  // storage label stays English; the displayed name goes through t()
+  function modeLabel(m, d) { m = m || gameMode; return m === 'zen' ? 'Zen' : (m.charAt(0).toUpperCase() + m.slice(1)) + ' · ' + diffName(d); }
+  function modeDisplay(m) {
+    const names = { waves: t('game.frog-bonk.modeWaves', { def: 'Waves' }), endless: t('game.frog-bonk.modeEndless', { def: 'Endless' }), zen: t('game.frog-bonk.modeZen', { def: 'Zen' }) };
+    return names[m || gameMode] || m;
+  }
+  function diffDisplay(d) {
+    return { easy: t('game.frog-bonk.diffEasy', { def: 'Easy' }), medium: t('game.frog-bonk.diffMedium', { def: 'Medium' }), hard: t('game.frog-bonk.diffHard', { def: 'Hard' }) }[d || diff] || d;
+  }
+  function loadBest(m, d) { return KIT ? KIT.bestScore(SLUG, modeLabel(m, d)) : 0; }
+  function saveBest() { if (KIT) KIT.saveBest(SLUG, modeLabel(), { score, stats: { wave, kills } }); }
+
+  // ---- Cosmetics (the kit's 🎨 store owns buying/selecting; the game only reads) ----
+  function skinSel(set, fallback) {
+    try { const id = KIT.cosmetics && KIT.cosmetics.selected(SLUG + '.' + set); if (id) return id; } catch (e) {}
+    return SLUG + '.' + set + '.' + fallback;
+  }
+  const MEADOWS = {
+    'frog-bonk.meadow.sunny':  { grass: ['#8fce5e', '#5da741', '#3f8a33'], path: '#c8b078', sky: 'rgba(255,240,180,0.16)', petal: '#ffd7e6', precip: null,
+      flowers: ['#ffd7e6', '#fff2b0', '#e8d0ff'], deco: 'flowers', tuft: 'rgba(255,255,255,0.14)', blade: 'rgba(0,60,0,0.18)' },
+    'frog-bonk.meadow.autumn': { grass: ['#d8b25a', '#b08a3e', '#8a6a30'], path: '#b09468', sky: 'rgba(255,180,90,0.16)',  petal: '#e07a3c', precip: 'leaf',
+      flowers: ['#e07a3c', '#c85a28', '#e8a84a'], deco: 'leaves', tuft: 'rgba(120,70,20,0.28)', blade: 'rgba(90,50,10,0.25)' },
+    'frog-bonk.meadow.rain':   { grass: ['#6aa84f', '#457a38', '#2f5e2c'], path: '#8a9078', sky: 'rgba(90,120,160,0.22)',  petal: '#9fd0e8', precip: 'rain',
+      flowers: ['#9fd0e8', '#c8b0ff', '#e8f0ff'], deco: 'puddles', tuft: 'rgba(220,240,255,0.16)', blade: 'rgba(0,40,10,0.25)' },
+    'frog-bonk.meadow.snow':   { grass: ['#dfe8ea', '#b8ccd0', '#9ab4bc'], path: '#c8c8c0', sky: 'rgba(210,230,255,0.2)',  petal: '#ffffff', precip: 'snow',
+      flowers: [], deco: 'snow', tuft: 'rgba(90,110,120,0.3)', blade: 'rgba(70,90,100,0.3)' },
+  };
+  const HAMMERS = {
+    'frog-bonk.hammer.wood':    { head: ['#b0793f', '#7a4e28'], band: '#8a5c30', shape: 'block' },
+    'frog-bonk.hammer.fluffy':  { head: ['#ffb6d9', '#f08ab8'], band: '#ffd7e6', shape: 'fluff' },
+    'frog-bonk.hammer.candy':   { head: ['#ff5b6b', '#ffffff'], band: '#ff5b6b', shape: 'stripe' },
+    'frog-bonk.hammer.balloon': { head: ['#9fd8ff', '#4d9ae0'], band: '#e8f6ff', shape: 'balloon' },
+    'frog-bonk.hammer.gold':    { head: ['#ffe08a', '#c89a2a'], band: '#fff2c0', shape: 'gold' },
+  };
+
+  // ---- Layout ----
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    dpr = KIT.fitCanvas(canvas, W, H).dpr;
+    // the 5-stat pill wraps on narrow screens (like breakout) — reserve extra headroom there
+    topMargin = KIT.layout.narrow ? 128 : KIT.layout.hudTop();
+    cx = W / 2;
+    cy = topMargin + (H - topMargin) * 0.52;
+    castR = Math.min(78, Math.max(36, Math.min(W, H - topMargin) * 0.12));
+    bgCache = null; // repaint the meadow at the new size
+  }
+  window.gamekit.layout.on(resize);
+
+  // ---- Frogs ----
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  // stable, well-mixed 0..1 hash — deco layouts look random but never shift between frames
+  function h01(n) {
+    n = Math.imul(n ^ (n >>> 15), 2246822519);
+    n = Math.imul(n ^ (n >>> 13), 3266489917);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  }
+  function spawnPos() {
+    const a = Math.random() * Math.PI * 2;
+    const R = Math.hypot(W, H) / 2 + 50;
+    return { x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R };
+  }
+  function makeFrog(type, x, y) {
+    const tp = TYPES[type];
+    const hp = type === 'chief' ? DIFF().chiefHp : tp.hp;
+    return { type, hp, maxHp: hp, x, y, r: tp.r, ph: 'sit', t: Math.round(rand(6, 30)),
+      tx: x, ty: y, fx: x, fy: y, hitFlash: 0, lunge: 0, biteT: Math.round(BITE * DIFF().bite * 0.5),
+      castT: 0, stoneT: 0, stoneCd: Math.round(rand(240, 420)), vx: 0, vy: 0, rot: 0, spin: 0, trail: [],
+      // zen visitors don't attack — they wander the meadow for a while, then hop home
+      zen: gameMode === 'zen' ? { visit: Math.round(rand(900, 1500)), wx: 0, wy: 0, has: false, leaving: false } : null };
+  }
+  function spawnFrog(type) { const p = spawnPos(); frogs.push(makeFrog(type, p.x, p.y)); }
+  function distC(f) { return Math.hypot(f.x - cx, f.y - cy); }
+  // the moat ring sits FAR enough out to cover the mage casting range (castR+120)
+  function inMoat(f) { const d = distC(f); return upg.moat > 0 && d > castR + 80 && d < castR + 155; }
+
+  function zenTarget(f) {
+    for (let i = 0; i < 8; i++) {
+      const x = rand(30, W - 30), y = rand(topMargin + 30, H - 30);
+      if (Math.hypot(x - cx, y - cy) > castR + 60) { f.zen.wx = x; f.zen.wy = y; return; }
+    }
+    f.zen.wx = 40; f.zen.wy = topMargin + 40;
+  }
+  function zenUpdate(f) {
+    const tp = TYPES[f.type];
+    if (!f.zen.has) { zenTarget(f); f.zen.has = true; }
+    if (!f.zen.leaving && --f.zen.visit <= 0) {   // done visiting — hop home (last chance to bonk it!)
+      f.zen.leaving = true;
+      const a = Math.atan2(f.y - cy, f.x - cx);
+      const R = Math.hypot(W, H) / 2 + 120;
+      f.zen.wx = cx + Math.cos(a) * R; f.zen.wy = cy + Math.sin(a) * R;
+    }
+    const d = Math.hypot(f.zen.wx - f.x, f.zen.wy - f.y);
+    if (f.ph === 'sit') {
+      if (--f.t <= 0) {
+        if (d < 14 && !f.zen.leaving) zenTarget(f);
+        f.ph = 'wind'; f.t = 6;
+      }
+    } else if (f.ph === 'wind') {
+      if (--f.t <= 0) {
+        const ang = Math.atan2(f.zen.wy - f.y, f.zen.wx - f.x) + rand(-0.2, 0.2);
+        const hop = Math.min(tp.hop * rand(0.85, 1.15), Math.max(6, d));
+        f.fx = f.x; f.fy = f.y;
+        f.tx = f.x + Math.cos(ang) * hop; f.ty = f.y + Math.sin(ang) * hop;
+        f.ph = 'air'; f.t = AIR;
+      }
+    } else if (f.ph === 'air') {
+      f.t--;
+      const k = 1 - f.t / AIR;
+      f.x = f.fx + (f.tx - f.fx) * k;
+      f.y = f.fy + (f.ty - f.fy) * k;
+      if (f.t <= 0) { f.ph = 'sit'; f.t = Math.round(tp.sit * (f.zen.leaving ? 0.5 : rand(1.2, 2.2))); }
+    }
+    return !(f.zen.leaving && (f.x < -80 || f.x > W + 80 || f.y < -120 || f.y > H + 80));
+  }
+
+  function frogUpdate(f) {
+    if (f.hitFlash > 0) f.hitFlash--;
+    if (f.lunge > 0) f.lunge--;
+    if (f.ph === 'out') { // bonked — flying off with a rainbow trail
+      f.x += f.vx; f.y += f.vy; f.vy += 0.32; f.rot += f.spin;
+      f.trail.push({ x: f.x, y: f.y });
+      if (f.trail.length > 14) f.trail.shift();
+      return !(f.x < -90 || f.x > W + 90 || f.y > H + 90 || f.y < -140);
+    }
+    if (f.zen) return zenUpdate(f);
+    const tp = TYPES[f.type];
+    const d = distC(f);
+    const stop = tp.caster ? castR + 120 : castR + f.r * 0.7;
+    // brutes only throw from MID approach — close enough to feel fair, never from off-screen
+    const throwRange = tp.stone && d > castR + 170 && d < castR + 340;
+    if (f.ph === 'sit') {
+      if (throwRange) f.stoneCd--;
+      if (--f.t <= 0) {
+        if (d <= stop + 2) { // arrived
+          if (tp.caster) { f.ph = 'cast'; f.castT = CAST; SND.play('cast'); }
+          else { f.ph = 'latch'; f.biteT = Math.round(BITE * DIFF().bite * 0.6); }
+        } else if (throwRange && f.stoneCd <= 0) {
+          f.ph = 'throw'; f.stoneT = STONE_WIND; f.stoneCd = Math.round(rand(300, 480));
+        } else {
+          f.ph = 'wind'; f.t = 6;
+        }
+      }
+    } else if (f.ph === 'wind') {
+      if (--f.t <= 0) {
+        const ang = Math.atan2(cy - f.y, cx - f.x) + rand(-0.25, 0.25);
+        const hop = Math.min(tp.hop * rand(0.85, 1.15), Math.max(4, d - stop));
+        f.fx = f.x; f.fy = f.y;
+        f.tx = f.x + Math.cos(ang) * hop; f.ty = f.y + Math.sin(ang) * hop;
+        f.ph = 'air'; f.t = AIR;
+      }
+    } else if (f.ph === 'air') {
+      f.t--;
+      const k = 1 - f.t / AIR;
+      f.x = f.fx + (f.tx - f.fx) * k;
+      f.y = f.fy + (f.ty - f.fy) * k;
+      if (f.t <= 0) {
+        f.ph = 'sit';
+        const slow = inMoat(f) ? (1 + 0.6 * upg.moat) : 1;
+        f.t = Math.round(tp.sit * DIFF().sit * slow * rand(0.8, 1.2));
+      }
+    } else if (f.ph === 'latch') {
+      if (--f.biteT <= 0) {
+        f.biteT = Math.round(BITE * DIFF().bite);
+        f.lunge = 12;                       // visible chomp lunge at the wall
+        const a = Math.atan2(cy - f.y, cx - f.x);
+        burst(f.x + Math.cos(a) * f.r * 1.6, f.y + Math.sin(a) * f.r * 1.6, '#c8c4d8', 6);
+        damageCastle(tp.dmg);
+        SND.play('chomp');
+      }
+    } else if (f.ph === 'cast') {
+      if (--f.castT <= 0) {
+        bolts.push({ x: f.x, y: f.y, t: 30, dmg: tp.dmg });
+        f.ph = 'sit'; f.t = Math.round(90 * DIFF().sit);
+      }
+    } else if (f.ph === 'throw') {
+      if (--f.stoneT <= 0) {
+        bolts.push({ x: f.x, y: f.y, t: 36, dmg: 1, stone: true });
+        f.ph = 'sit'; f.t = Math.round(tp.sit * DIFF().sit);
+      }
+    }
+    return true;
+  }
+
+  // ---- Castle ----
+  function damageCastle(n) {
+    if (gameMode === 'zen') return;             // zen: the castle is invulnerable
+    castleHp = Math.max(0, castleHp - n);
+    castleFlash = 12; shakeT = 8;
+    updateHud();
+    if (castleHp <= 0 && state === 'playing') { SND.play('crumble'); gameOver(false); }
+  }
+
+  // ---- Hammer ----
+  function whack(x, y) {
+    if (state !== 'playing' || hammer.st !== 'ready') return;
+    let tgt = null, bd = 1e9;
+    for (const f of frogs) {
+      if (f.ph === 'out') continue;
+      const d = Math.hypot(f.x - x, f.y - y);
+      if (d < f.r + HIT_PAD && d < bd) { bd = d; tgt = f; }
+    }
+    hammer.st = 'swing'; hammer.t = WIND; hammer.frog = tgt; hammer.tx = x; hammer.ty = y;
+  }
+  function hammerUpdate() {
+    if (hammer.st === 'swing') {
+      if (--hammer.t <= 0) { // impact
+        const f = hammer.frog;
+        const live = f && f.ph !== 'out' && frogs.indexOf(f) >= 0;
+        if (live) { hammer.tx = f.x; hammer.ty = f.y; }
+        burst(hammer.tx, hammer.ty, live ? '#ffe066' : '#cfe8c0', live ? 12 : 5);
+        if (live) {
+          hitFrog(f);
+          hammer.st = 'recover'; hammer.t = CD_HIT;
+        } else {
+          combo = 0; comboT = 0;
+          SND.play('whiff');
+          hammer.st = 'recover'; hammer.t = CD_WHIFF;
+        }
+      }
+    } else if (hammer.st === 'recover') {
+      if (--hammer.t <= 0) hammer.st = 'ready';
+    }
+  }
+  function hitFrog(f) {
+    const tp = TYPES[f.type];
+    f.hp--; f.hitFlash = 8;
+    SND.play('bonk');
+    const chain = combo; combo++; comboT = COMBO_WIN;
+    if (combo >= 2) SND.play('chain');
+    if (f.hp <= 0) {
+      kills++;
+      const pts = Math.round(tp.score * (1 + Math.min(10, chain) * 0.1));
+      addScore(pts, f.x, f.y);
+      const drop = tp.flies + (chain >= 3 && gameMode === 'waves' ? 1 : 0);
+      if (gameMode === 'waves') { flies += drop; for (let i = 0; i < Math.min(drop, 5); i++) pickups.push({ x: f.x + rand(-8, 8), y: f.y + rand(-8, 8), t: 30 + i * 4 }); }
+      else addScore(drop * 5, f.x, f.y - 18);
+      SND.play('boing');
+      // launch off the map, away from the castle
+      const ang = Math.atan2(f.y - cy, f.x - cx) + rand(-0.4, 0.4);
+      f.ph = 'out'; f.vx = Math.cos(ang) * rand(6, 9); f.vy = Math.sin(ang) * rand(4, 7) - 6;
+      f.spin = rand(0.25, 0.5) * (Math.random() < 0.5 ? -1 : 1);
+      updateHud();
+    } else {
+      // knockback a nudge away from the castle; a latched/casting frog is interrupted
+      const ang = Math.atan2(f.y - cy, f.x - cx);
+      f.x += Math.cos(ang) * 14; f.y += Math.sin(ang) * 14;
+      if (f.ph === 'latch' || f.ph === 'cast' || f.ph === 'throw') { f.ph = 'sit'; f.t = Math.round(30 * DIFF().sit); }
+    }
+  }
+  function addScore(n, x, y) {
+    score += n;
+    if (x !== undefined) pops.push({ x, y, txt: '+' + n, t: 50 });
+    if (score > best) best = score;
+    updateHud();
+  }
+  function burst(x, y, col, n) {
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, s = rand(1.4, 3.4);
+      parts.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 1, t: 26, col });
+    }
+  }
+
+  // ---- Ballista (auto-knockback — the player still does all the bonking) ----
+  function ballistaUpdate() {
+    if (!upg.ballista) return;
+    if (--ballistaT > 0) return;
+    ballistaT = upg.ballista >= 2 ? 150 : 240;
+    let tgt = null, bd = 1e9;
+    for (const f of frogs) { if (f.ph === 'out' || f.type === 'chief') continue; const d = distC(f); if (d < bd) { bd = d; tgt = f; } }
+    if (!tgt || bd > castR + 260) { ballistaT = 30; return; }
+    peas.push({ x: cx + castR * 0.72, y: cy - castR * 0.1, tx: tgt.x, ty: tgt.y, t: 14, frog: tgt });
+  }
+
+  // ---- Waves / spawning ----
+  function pickType(pool, weights) {
+    let tot = 0; for (const p of pool) tot += weights[p] || 1;
+    let r = Math.random() * tot;
+    for (const p of pool) { r -= weights[p] || 1; if (r <= 0) return p; }
+    return pool[0];
+  }
+  function waveComp(w) {
+    const c = Math.max(3, Math.round((4 + w * 1.5) * DIFF().count));
+    const pool = ['scout'];
+    if (w >= 2) pool.push('knight');
+    if (w >= 4) pool.push('mage');
+    if (w >= 6) pool.push('brute');
+    const weights = { scout: 3, knight: 2.2, mage: 1.6, brute: 1.2 };
+    const q = [];
+    for (let i = 0; i < c; i++) q.push(pickType(pool, weights));
+    if (w % 5 === 0) q.push('chief');
+    return q;
+  }
+  function startWave(w) {
+    wave = w;
+    spawnQueue = waveComp(w);
+    spawnT = 20;
+    waveBanner = 90;
+    SND.play('horn');
+    updateHud();
+  }
+  function spawning() {
+    if (gameMode === 'waves') {
+      if (spawnQueue.length && --spawnT <= 0) {
+        spawnFrog(spawnQueue.shift());
+        spawnT = Math.round(54 * DIFF().spawn * rand(0.7, 1.3));
+      } else if (!spawnQueue.length && !frogs.length) waveCleared();
+    } else if (gameMode === 'endless') {
+      if (--spawnT <= 0) {
+        const pool = ['scout'];
+        if (steps > 1200) pool.push('knight');
+        if (steps > 3000) pool.push('mage');
+        if (steps > 5400) pool.push('brute');
+        if (steps > 9000) pool.push('chief');
+        spawnFrog(pickType(pool, { scout: 3, knight: 2.2, mage: 1.6, brute: 1.2, chief: 0.25 }));
+        endlessGap = Math.max(27, endlessGap * 0.985);
+        spawnT = Math.round(endlessGap * DIFF().spawn);
+      }
+    } else { // zen — a slow, gentle drip with a small crowd cap
+      if (--spawnT <= 0) {
+        if (frogs.filter(f => f.ph !== 'out').length < 6) spawnFrog(pickType(['scout', 'knight', 'mage', 'brute'], { scout: 3, knight: 2, mage: 1.5, brute: 1 }));
+        spawnT = 210;
+      }
+    }
+  }
+  function waveCleared() {
+    addScore(25 * wave);
+    flies += 4 + wave;                              // supply drop — the shop stays "almost affordable"
+    castleHp = Math.min(castleMax, castleHp + 2);   // breather regen — no death spirals
+    updateHud();
+    SND.play('fanfare');
+    if (wave >= WAVE_MAX) { gameOver(true); return; }
+    openShop();
+  }
+
+  // ---- Update ----
+  function update() {
+    if (state !== 'playing') return;
+    steps++;
+    if (comboT > 0 && --comboT === 0) combo = 0;
+    if (waveBanner > 0) waveBanner--;
+    if (shakeT > 0) shakeT--;
+    if (castleFlash > 0) castleFlash--;
+    spawning();
+    frogs = frogs.filter(frogUpdate);
+    hammerUpdate();
+    ballistaUpdate();
+    for (let i = bolts.length - 1; i >= 0; i--) {
+      const b = bolts[i];
+      if (--b.t <= 0) { SND.play(b.stone ? 'stone' : 'zaphit'); damageCastle(b.dmg); bolts.splice(i, 1); }
+    }
+    for (let i = peas.length - 1; i >= 0; i--) {
+      const p = peas[i];
+      if (--p.t <= 0) {
+        const f = p.frog;
+        if (f && f.ph !== 'out' && frogs.indexOf(f) >= 0) {
+          const ang = Math.atan2(f.y - cy, f.x - cx);
+          f.x += Math.cos(ang) * 60; f.y += Math.sin(ang) * 60;
+          f.ph = 'sit'; f.t = Math.round(TYPES[f.type].sit * DIFF().sit);
+          SND.play('knock');
+        }
+        peas.splice(i, 1);
+      }
+    }
+    for (let i = pickups.length - 1; i >= 0; i--) { if (--pickups[i].t <= 0) { SND.play('flyblip'); pickups.splice(i, 1); } }
+    for (let i = parts.length - 1; i >= 0; i--) { const p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.12; if (--p.t <= 0) parts.splice(i, 1); }
+    for (let i = pops.length - 1; i >= 0; i--) { pops[i].y -= 0.5; if (--pops[i].t <= 0) pops.splice(i, 1); }
+    if (gameMode !== 'waves' && steps % 60 === 0) updateHud();   // tick the TIME stat
+  }
+
+  // ---- Meadow background (cached per size + skin) ----
+  let bgCache = null, bgSkin = '';
+  function meadow() { return MEADOWS[skinSel('meadow', 'sunny')] || MEADOWS['frog-bonk.meadow.sunny']; }
+  function paintMeadow(g, m) {
+    const lg = g.createLinearGradient(0, 0, 0, H);
+    lg.addColorStop(0, m.grass[0]); lg.addColorStop(0.55, m.grass[1]); lg.addColorStop(1, m.grass[2]);
+    g.fillStyle = lg; g.fillRect(0, 0, W, H);
+    // soft mottled patches — breaks the flat gradient into "real" grass
+    for (let i = 0; i < 34; i++) {
+      const px = h01(i * 3 + 11) * W, py = topMargin + h01(i * 3 + 12) * (H - topMargin);
+      const rr = 26 + h01(i * 3 + 13) * 60;
+      g.fillStyle = (i % 2 ? 'rgba(255,255,220,0.05)' : 'rgba(0,40,0,0.06)');
+      g.beginPath(); g.ellipse(px, py, rr * 1.6, rr, h01(i + 400) * 3, 0, 7); g.fill();
+    }
+    // soft daylight wash at the top — fades out, no hard edge
+    const skg = g.createLinearGradient(0, 0, 0, topMargin + 70);
+    skg.addColorStop(0, m.sky); skg.addColorStop(1, 'rgba(255,255,255,0)');
+    g.fillStyle = skg; g.fillRect(0, 0, W, topMargin + 70);
+    // ONE winding dirt path from the gate to the bottom of the meadow
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    const wp = [[cx, cy + castR * 0.9]];
+    { let px2 = cx, py2 = cy + castR * 0.9, a2 = Math.PI / 2;
+      for (let s2 = 0; s2 < 5 && py2 < H + 40; s2++) {
+        a2 = Math.PI / 2 + (h01(s2 * 17 + 5) - 0.5) * 1.3;      // meander, but always trending down
+        const len = (H - topMargin) * 0.24;
+        px2 += Math.cos(a2) * len; py2 += Math.sin(a2) * len;
+        wp.push([px2, py2]);
+      } }
+    const pathStroke = (wdt, col, alpha) => {
+      g.globalAlpha = alpha; g.strokeStyle = col; g.lineWidth = wdt;
+      g.beginPath(); g.moveTo(wp[0][0], wp[0][1]);
+      for (let s2 = 1; s2 < wp.length - 1; s2++) g.quadraticCurveTo(wp[s2][0], wp[s2][1], (wp[s2][0] + wp[s2 + 1][0]) / 2, (wp[s2][1] + wp[s2 + 1][1]) / 2);
+      g.lineTo(wp[wp.length - 1][0], wp[wp.length - 1][1]);
+      g.stroke();
+    };
+    pathStroke(20, 'rgba(60,40,10,0.8)', 0.3);
+    pathStroke(15, m.path, 0.6);
+    g.globalAlpha = 0.55; g.fillStyle = 'rgba(255,255,255,0.4)';
+    for (let s2 = 0; s2 < wp.length - 1; s2++) {   // stepping stones along each leg
+      for (let q = 1; q <= 3; q++) {
+        const t2 = q / 4;
+        const sx = wp[s2][0] + (wp[s2 + 1][0] - wp[s2][0]) * t2;
+        const sy = wp[s2][1] + (wp[s2 + 1][1] - wp[s2][1]) * t2;
+        if (sy > H + 6) break;
+        g.beginPath(); g.ellipse(sx + (h01(s2 * 31 + q) - 0.5) * 6, sy, 4.5, 2.8, 0, 0, 7); g.fill();
+      }
+    }
+    g.globalAlpha = 1;
+    // scattered deco: flowers / fallen leaves / puddles / snow patches — per meadow season
+    for (let i = 0; i < 110; i++) {
+      const px = h01(i * 7 + 1) * W;
+      const py = topMargin + h01(i * 7 + 2) * (H - topMargin);
+      if (Math.hypot(px - cx, py - cy) < castR + 26) continue;
+      const roll = i % 6;
+      if (roll === 0 && m.flowers.length) {           // flower
+        g.fillStyle = m.flowers[i % m.flowers.length];
+        for (let p = 0; p < 5; p++) { const a = p * 1.257 + h01(i) * 6; g.beginPath(); g.ellipse(px + Math.cos(a) * 3, py + Math.sin(a) * 3, 2.4, 2.4, 0, 0, 7); g.fill(); }
+        g.fillStyle = '#ffb03a'; g.beginPath(); g.arc(px, py, 2, 0, 7); g.fill();
+      } else if (roll === 1) {                        // season deco
+        if (m.deco === 'leaves') {
+          g.fillStyle = ['#c85a28', '#a84a20', '#e8a84a'][i % 3];
+          g.beginPath(); g.ellipse(px, py, 4.4, 2.4, h01(i + 50) * 3, 0, 7); g.fill();
+        } else if (m.deco === 'puddles') {
+          g.fillStyle = 'rgba(140,180,220,0.4)';
+          g.beginPath(); g.ellipse(px, py, 9 + h01(i) * 8, 4 + h01(i + 9) * 3, 0, 0, 7); g.fill();
+          g.fillStyle = 'rgba(255,255,255,0.35)';
+          g.beginPath(); g.ellipse(px - 3, py - 1, 3.4, 1.2, 0, 0, 7); g.fill();
+        } else if (m.deco === 'snow') {
+          g.fillStyle = 'rgba(255,255,255,0.55)';
+          g.beginPath(); g.ellipse(px, py, 10 + h01(i) * 10, 4 + h01(i + 9) * 4, 0, 0, 7); g.fill();
+        } else if (i % 12 === 1) {                    // sunny: an occasional bush
+          g.fillStyle = 'rgba(40,110,40,0.75)';
+          g.beginPath(); g.arc(px - 5, py, 6, 0, 7); g.arc(px + 4, py - 1, 7, 0, 7); g.arc(px, py - 5, 6, 0, 7); g.fill();
+        }
+      } else if (roll === 2 && i % 18 === 2) {        // a rock
+        g.fillStyle = 'rgba(120,120,130,0.85)';
+        g.beginPath(); g.ellipse(px, py, 6.5, 4.5, 0, 0, 7); g.fill();
+        g.fillStyle = 'rgba(255,255,255,0.3)';
+        g.beginPath(); g.ellipse(px - 2, py - 1.6, 2.4, 1.4, 0, 0, 7); g.fill();
+      } else if (m.deco === 'leaves' && roll === 3 && i % 12 === 3) { // autumn mushroom
+        g.fillStyle = '#e8e0d0'; g.fillRect(px - 1.5, py - 3, 3, 4);
+        g.fillStyle = '#d04a3a'; g.beginPath(); g.arc(px, py - 3, 4.4, Math.PI, 0); g.fill();
+        g.fillStyle = '#fff'; g.beginPath(); g.arc(px - 1.5, py - 4.5, 1, 0, 7); g.fill();
+      } else {                                        // grass blade clump (two-tone)
+        g.strokeStyle = m.blade; g.lineWidth = 1.6;
+        g.beginPath();
+        g.moveTo(px, py + 4); g.lineTo(px - 3, py - 4);
+        g.moveTo(px, py + 4); g.lineTo(px + 1, py - 6);
+        g.moveTo(px, py + 4); g.lineTo(px + 4, py - 3);
+        g.stroke();
+      }
+    }
+  }
+  function ensureBg() {
+    const id = skinSel('meadow', 'sunny');
+    if (bgCache && bgSkin === id) return;
+    bgSkin = id;
+    try {
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(W * dpr)); c.height = Math.max(1, Math.round(H * dpr));
+      const g = c.getContext('2d');
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      paintMeadow(g, meadow());
+      bgCache = c;
+    } catch (e) { bgCache = null; }
+  }
+
+  // swaying tufts + drifting petals / rain / snow (view-only, time-driven)
+  function drawWind(m) {
+    const T = steps;
+    ctx.strokeStyle = m.tuft; ctx.lineWidth = 2; ctx.lineCap = 'round';
+    for (let i = 0; i < 26; i++) {
+      const px = h01(i * 5 + 3) * W;
+      const py = topMargin + h01(i * 5 + 4) * (H - topMargin);
+      if (Math.hypot(px - cx, py - cy) < castR + 24) continue;
+      const sw = Math.sin(T * 0.03 + i) * 3;
+      ctx.beginPath(); ctx.moveTo(px, py); ctx.quadraticCurveTo(px + sw, py - 7, px + sw * 1.8, py - 13); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(px + 3, py); ctx.quadraticCurveTo(px + 3 + sw, py - 5, px + 3 + sw * 1.6, py - 9); ctx.stroke();
+    }
+    for (let i = 0; i < 18; i++) {
+      const seed = i * 373;
+      const speed = m.precip === 'rain' ? 9 : m.precip === 'snow' ? 1.2 : 0.8;
+      const px = ((seed + T * (m.precip === 'rain' ? 2 : 0.6) + Math.sin((T + seed) * 0.01) * 40) % (W + 40)) - 20;
+      const py = ((seed * 7 + T * speed) % (H + 40)) - 20;
+      if (m.precip === 'rain') {
+        ctx.strokeStyle = 'rgba(180,220,255,0.4)'; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px - 2, py + 10); ctx.stroke();
+      } else if (m.precip === 'snow') {
+        ctx.fillStyle = 'rgba(255,255,255,0.8)'; ctx.beginPath(); ctx.arc(px, py, 2.2, 0, 7); ctx.fill();
+      } else {
+        ctx.fillStyle = m.petal; ctx.globalAlpha = 0.7;
+        ctx.beginPath(); ctx.ellipse(px, py, 3, 1.8, (T + seed) * 0.05, 0, 7); ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  // ---- Drawing: castle, king, hammer, frogs ----
+  function drawCastle() {
+    const r = castR;
+    ctx.save();
+    if (upg.moat > 0) {
+      ctx.strokeStyle = upg.moat >= 2 ? 'rgba(70,140,220,0.55)' : 'rgba(70,140,220,0.38)';
+      ctx.lineWidth = 34;
+      ctx.beginPath(); ctx.arc(cx, cy, r + 118, 0, 7); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(cx, cy, r + 128, 0, 7); ctx.stroke();
+      ctx.fillStyle = 'rgba(120,200,120,0.8)';
+      for (let i = 0; i < 8; i++) { const a = i * 0.785 + 0.4; ctx.beginPath(); ctx.ellipse(cx + Math.cos(a) * (r + 118), cy + Math.sin(a) * (r + 118), 6, 4, a, 0, 7); ctx.fill(); }
+    }
+    // 3/4-view keep: the wall is a squat cylinder — an elliptical rim on top, a wall band
+    // below it, and a base ellipse whose footprint the ground shadow actually matches.
+    const ry = r * 0.55, wallH = r * 0.55;
+    ctx.fillStyle = 'rgba(0,40,0,0.25)';
+    ctx.beginPath(); ctx.ellipse(cx + r * 0.1, cy + wallH + ry * 0.3, r * 1.18, ry * 1.05, 0, 0, 7); ctx.fill();
+    const hit = castleFlash > 0 && (castleFlash & 2);
+    const wallC = hit ? '#e8a0a0' : '#a8a4b8';
+    const wallD = hit ? '#b87878' : '#807c94';
+    const wallE = hit ? '#9a6060' : '#6a6680';
+    // wall band (side of the cylinder)
+    ctx.fillStyle = wallD;
+    ctx.beginPath();
+    ctx.moveTo(cx - r, cy);
+    ctx.lineTo(cx - r, cy + wallH);
+    ctx.ellipse(cx, cy + wallH, r, ry, 0, Math.PI, 0, true);   // base, bulging down
+    ctx.lineTo(cx + r, cy);
+    ctx.ellipse(cx, cy, r, ry, 0, 0, Math.PI, false);          // underside of the rim
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = wallE; ctx.lineWidth = 2 + upg.walls * 1.5; ctx.stroke();
+    // brick joints on the band front
+    ctx.strokeStyle = 'rgba(0,0,0,0.18)'; ctx.lineWidth = 1.2;
+    for (let i = 1; i < 9; i++) {
+      const a = 0.25 + (i / 9) * (Math.PI - 0.5);
+      const bx = cx + Math.cos(a) * r, byT = cy + Math.sin(a) * ry, byB = cy + wallH + Math.sin(a) * ry;
+      ctx.beginPath(); ctx.moveTo(bx, byT + (byB - byT) * (i % 2 ? 0.5 : 0.08)); ctx.lineTo(bx, byB - 1); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.ellipse(cx, cy + wallH * 0.55, r, ry, 0, 0.25, Math.PI - 0.25); ctx.stroke();
+    // rim walkway + courtyard
+    ctx.fillStyle = wallC;
+    ctx.beginPath(); ctx.ellipse(cx, cy, r, ry, 0, 0, 7); ctx.fill();
+    ctx.strokeStyle = wallE; ctx.lineWidth = 2 + upg.walls * 1.5;
+    ctx.beginPath(); ctx.ellipse(cx, cy, r, ry, 0, 0, 7); ctx.stroke();
+    ctx.fillStyle = hit ? '#d8b0a0' : '#b8b4c4';
+    ctx.beginPath(); ctx.ellipse(cx, cy, r * 0.74, ry * 0.74, 0, 0, 7); ctx.fill();
+    // courtyard flagstones
+    ctx.fillStyle = 'rgba(0,0,0,0.07)';
+    for (let i = 0; i < 7; i++) { const a = h01(i + 70) * 6.28, d = h01(i + 90) * 0.6; ctx.beginPath(); ctx.ellipse(cx + Math.cos(a) * d * r, cy + Math.sin(a) * d * ry, 6, 3.4, 0, 0, 7); ctx.fill(); }
+    // battlement merlons standing on the rim (back row first, so the tower covers them)
+    ctx.fillStyle = wallD;
+    for (let i = 0; i < 12; i++) {
+      const a = i * 0.5236 + 0.26;
+      const bx = cx + Math.cos(a) * r * 0.98, by = cy + Math.sin(a) * ry * 0.98;
+      ctx.fillRect(bx - 4, by - 9, 8, 10);
+    }
+    // gate — flush IN the wall band, feet on the base line
+    const gw = r * 0.26, gb = cy + wallH + ry - 1;
+    ctx.fillStyle = '#5a3e20';
+    ctx.beginPath(); ctx.moveTo(cx - gw, gb); ctx.lineTo(cx - gw, gb - wallH * 0.62);
+    ctx.arc(cx, gb - wallH * 0.62, gw, Math.PI, 0); ctx.lineTo(cx + gw, gb); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = wallE; ctx.lineWidth = 2; ctx.stroke();
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)'; ctx.lineWidth = 1.2;
+    for (let i = -1; i <= 1; i++) { ctx.beginPath(); ctx.moveTo(cx + i * gw * 0.45, gb - 1); ctx.lineTo(cx + i * gw * 0.45, gb - wallH * 0.62 - (i ? 0 : gw * 0.8)); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(0,0,0,0.3)';                          // doorstep shadow
+    ctx.beginPath(); ctx.ellipse(cx, gb + 2, gw * 1.2, 3, 0, 0, 7); ctx.fill();
+    // keep tower (rises from the courtyard)
+    const tw = r * 0.82, th = r * 1.1, tx0 = cx - tw / 2, ty0 = cy - r * 0.5 - th;
+    const tb = cy + ry * 0.28;                                  // tower foot, inside the courtyard
+    ctx.fillStyle = 'rgba(0,0,0,0.14)';
+    ctx.beginPath(); ctx.ellipse(cx + 3, tb + 2, tw * 0.62, 5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = wallC; ctx.fillRect(tx0, ty0, tw, tb - ty0);
+    ctx.strokeStyle = wallE; ctx.lineWidth = 2; ctx.strokeRect(tx0, ty0, tw, tb - ty0);
+    // brick courses + offset joints
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)'; ctx.lineWidth = 1;
+    for (let i = 1; i < 5; i++) {
+      const yy = ty0 + i * th / 5;
+      ctx.beginPath(); ctx.moveTo(tx0, yy); ctx.lineTo(tx0 + tw, yy); ctx.stroke();
+      for (let j2 = 0; j2 < 3; j2++) { const jx = tx0 + ((j2 + (i % 2 ? 0.5 : 0)) / 3) * tw + tw / 6; if (jx < tx0 + tw - 2) { ctx.beginPath(); ctx.moveTo(jx, yy - th / 5); ctx.lineTo(jx, yy); ctx.stroke(); } }
+    }
+    // arched window + arrow slit
+    ctx.fillStyle = 'rgba(20,16,30,0.85)';
+    ctx.beginPath(); ctx.arc(cx, ty0 + th * 0.32, tw * 0.13, Math.PI, 0); ctx.rect(cx - tw * 0.13, ty0 + th * 0.32, tw * 0.26, th * 0.2); ctx.fill();
+    ctx.strokeStyle = 'rgba(255,240,170,0.5)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(cx, ty0 + th * 0.24); ctx.lineTo(cx, ty0 + th * 0.52); ctx.moveTo(cx - tw * 0.12, ty0 + th * 0.36); ctx.lineTo(cx + tw * 0.12, ty0 + th * 0.36); ctx.stroke();
+    ctx.fillStyle = 'rgba(20,16,30,0.7)';
+    ctx.fillRect(cx - 1.5, ty0 + th * 0.68, 3, th * 0.16);
+    // ivy at the tower base
+    ctx.fillStyle = 'rgba(50,120,50,0.55)';
+    ctx.beginPath(); ctx.arc(tx0 + 4, tb - 5, 7, 0, 7); ctx.arc(tx0 + 12, tb - 3, 5, 0, 7); ctx.arc(tx0 + tw - 6, tb - 4, 6, 0, 7); ctx.fill();
+    ctx.fillStyle = wallD;
+    for (let i = 0; i < 4; i++) ctx.fillRect(tx0 - 2 + i * (tw + 4) / 4, ty0 - 7, (tw / 4) - 5, 9);
+    // banner
+    ctx.strokeStyle = '#6a4a28'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(tx0 + tw + 2, ty0 - 22); ctx.lineTo(tx0 + tw + 2, ty0 + 6); ctx.stroke();
+    ctx.fillStyle = '#3f8a33';
+    ctx.beginPath(); ctx.moveTo(tx0 + tw + 3, ty0 - 20); ctx.lineTo(tx0 + tw + 26 + Math.sin(steps * 0.05) * 3, ty0 - 14); ctx.lineTo(tx0 + tw + 3, ty0 - 6); ctx.closePath(); ctx.fill();
+    // ballista perch — stands on the rim walkway, right side
+    if (upg.ballista > 0) {
+      const bpx = cx + r * 0.72, bpy = cy + ry * 0.1;
+      ctx.fillStyle = '#6a4a28';
+      ctx.fillRect(bpx - 6, bpy - 8, 12, 10);
+      ctx.strokeStyle = upg.ballista >= 2 ? '#ffd166' : '#c8b078'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(bpx, bpy - 8); ctx.lineTo(bpx + 6, bpy - 20); ctx.stroke();
+    }
+    drawKing(tx0 + tw / 2, ty0 - 12);
+    ctx.restore();
+  }
+
+  function drawKing(kx, ky) {
+    ctx.save();
+    ctx.translate(kx, ky);
+    const bob = Math.sin(steps * 0.04) * castR * 0.015;
+    ctx.translate(0, bob);
+    // little cape
+    ctx.fillStyle = '#c0392b';
+    ctx.beginPath(); ctx.moveTo(-castR * 0.3, -castR * 0.05); ctx.quadraticCurveTo(0, castR * 0.34, castR * 0.3, -castR * 0.05); ctx.lineTo(castR * 0.24, -castR * 0.2); ctx.lineTo(-castR * 0.24, -castR * 0.2); ctx.closePath(); ctx.fill();
+    // body
+    ctx.fillStyle = '#5da741';
+    ctx.beginPath(); ctx.ellipse(0, 0, castR * 0.3, castR * 0.24, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#c8e89a';
+    ctx.beginPath(); ctx.ellipse(0, castR * 0.08, castR * 0.17, castR * 0.12, 0, 0, 7); ctx.fill();
+    // arms — left on the wall, right toward the hammer
+    ctx.strokeStyle = '#4f8a3a'; ctx.lineWidth = castR * 0.07; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-castR * 0.24, 0); ctx.quadraticCurveTo(-castR * 0.4, castR * 0.08, -castR * 0.42, castR * 0.16); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(castR * 0.24, 0); ctx.quadraticCurveTo(castR * 0.42, castR * 0.02, castR * 0.5, castR * 0.06); ctx.stroke();
+    // eyes + pupils + blush
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-castR * 0.13, -castR * 0.2, castR * 0.1, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(castR * 0.13, -castR * 0.2, castR * 0.1, 0, 7); ctx.fill();
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(-castR * 0.13, -castR * 0.19, castR * 0.045, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(castR * 0.13, -castR * 0.19, castR * 0.045, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,140,140,0.5)';
+    ctx.beginPath(); ctx.ellipse(-castR * 0.2, -castR * 0.06, castR * 0.05, castR * 0.03, 0, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(castR * 0.2, -castR * 0.06, castR * 0.05, castR * 0.03, 0, 0, 7); ctx.fill();
+    // smile
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(0, -castR * 0.08, castR * 0.1, 0.35, Math.PI - 0.35); ctx.stroke();
+    // crown + jewel
+    ctx.fillStyle = '#ffd166';
+    ctx.beginPath();
+    ctx.moveTo(-castR * 0.18, -castR * 0.3); ctx.lineTo(-castR * 0.18, -castR * 0.46); ctx.lineTo(-castR * 0.09, -castR * 0.36);
+    ctx.lineTo(0, -castR * 0.5); ctx.lineTo(castR * 0.09, -castR * 0.36); ctx.lineTo(castR * 0.18, -castR * 0.46); ctx.lineTo(castR * 0.18, -castR * 0.3);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#e0304a';
+    ctx.beginPath(); ctx.arc(0, -castR * 0.36, castR * 0.035, 0, 7); ctx.fill();
+    ctx.restore();
+    // hammer held in front, tilted OUTWARD from the face (head up-and-away, never covering him)
+    if (hammer.st === 'ready') drawHammer(ctx, kx + castR * 0.5, ky + castR * 0.08, 0.55, 0.8);
+  }
+
+  // anchor 'handle' (default) = x,y at the grip · anchor 'head' = x,y at the head's center
+  function drawHammer(g, x, y, rot, scale, anchor) {
+    const sk = HAMMERS[skinSel('hammer', 'wood')] || HAMMERS['frog-bonk.hammer.wood'];
+    g.save();
+    g.translate(x, y); g.rotate(rot); g.scale(scale, scale);
+    if (anchor === 'head') g.translate(0, 27);   // shift so the head (local 0,-27) sits at x,y
+    g.strokeStyle = '#8a5c30'; g.lineWidth = 7; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(0, 26); g.lineTo(0, -14); g.stroke();
+    const hw = 44, hh = 26;
+    const lg = g.createLinearGradient(-hw / 2, -14 - hh, hw / 2, -14);
+    lg.addColorStop(0, sk.head[0]); lg.addColorStop(1, sk.head[1]);
+    g.fillStyle = lg;
+    if (sk.shape === 'fluff') {
+      for (let i = 0; i < 7; i++) { const a = i * 0.9; g.beginPath(); g.arc(Math.cos(a) * hw * 0.28, -14 - hh / 2 + Math.sin(a) * hh * 0.3, 11, 0, 7); g.fill(); }
+      g.beginPath(); g.ellipse(0, -14 - hh / 2, hw / 2, hh / 2 + 2, 0, 0, 7); g.fill();
+    } else if (sk.shape === 'balloon') {
+      g.globalAlpha = 0.9;
+      g.beginPath(); g.ellipse(0, -14 - hh / 2, hw / 2 + 4, hh / 2 + 5, 0, 0, 7); g.fill();
+      g.globalAlpha = 1;
+      g.fillStyle = 'rgba(255,255,255,0.6)';
+      g.beginPath(); g.ellipse(-hw * 0.18, -18 - hh / 2, 7, 4, -0.5, 0, 7); g.fill();
+    } else {
+      g.beginPath(); g.roundRect(-hw / 2, -14 - hh, hw, hh, 9); g.fill();
+      if (sk.shape === 'stripe') {
+        g.save(); g.beginPath(); g.roundRect(-hw / 2, -14 - hh, hw, hh, 9); g.clip();
+        g.fillStyle = sk.band;
+        for (let i = -2; i < 3; i++) { g.save(); g.translate(i * 14, -14 - hh / 2); g.rotate(0.5); g.fillRect(-4, -hh, 8, hh * 2); g.restore(); }
+        g.restore();
+      }
+      if (sk.shape === 'gold') { g.fillStyle = 'rgba(255,255,255,0.7)'; g.beginPath(); g.ellipse(-hw * 0.22, -16 - hh * 0.68, 6, 3, -0.5, 0, 7); g.fill(); }
+      g.strokeStyle = sk.band; g.lineWidth = 2.5;
+      g.beginPath(); g.moveTo(-hw / 2 + 5, -14 - hh); g.lineTo(-hw / 2 + 5, -14); g.moveTo(hw / 2 - 5, -14 - hh); g.lineTo(hw / 2 - 5, -14); g.stroke();
+    }
+    g.restore();
+  }
+
+  function drawSwing() {
+    if (hammer.st === 'ready') return;
+    const restX = cx, restY = cy - castR * 1.6;
+    const live = hammer.frog && hammer.frog.ph !== 'out' && frogs.indexOf(hammer.frog) >= 0;
+    const fx = live ? hammer.frog.x : hammer.tx;
+    const fy = live ? hammer.frog.y : hammer.ty;
+    // head-anchored: the HEAD flies to the frog and lands on it (rot π = handle straight up)
+    let k, rot;
+    if (hammer.st === 'swing') { k = 1 - hammer.t / WIND; rot = Math.PI * (0.35 + 0.65 * k); }
+    else { k = 1; rot = Math.PI - Math.min(0.5, (1 - hammer.t / CD_HIT) * 0.45); }
+    const x = restX + (fx - restX) * k;
+    const y = restY + (fy - restY) * k - Math.sin(k * Math.PI) * 70;
+    drawHammer(ctx, x, y - (1 - k) * 10, rot, 1.25, 'head');
+    if (hammer.st === 'recover' && hammer.t > CD_HIT - 5) { // impact stars
+      ctx.strokeStyle = '#ffe066'; ctx.lineWidth = 2.5;
+      const rr = (CD_HIT - hammer.t) * 6 + 8;
+      for (let i = 0; i < 6; i++) { const a = i * 1.05; ctx.beginPath(); ctx.moveTo(fx + Math.cos(a) * rr * 0.5, fy + Math.sin(a) * rr * 0.3); ctx.lineTo(fx + Math.cos(a) * rr, fy + Math.sin(a) * rr * 0.6); ctx.stroke(); }
+    }
+  }
+
+  const RAINBOW = ['#ff5b5b', '#ffb03a', '#ffe066', '#7fe0a0', '#7fd0ff', '#b98cff'];
+  function frogBody(f) {
+    const base = { scout: '#8fce5e', knight: '#5da741', mage: '#6ab8a0', brute: '#7a9a3e', chief: '#4f8a3a' }[f.type];
+    let sx = 1, sy = 1, lift = 0, ox = 0, oy = 0;
+    if (f.ph === 'wind') { sx = 1.15; sy = 0.78; }
+    else if (f.ph === 'air') { const k = Math.sin((1 - f.t / AIR) * Math.PI); sx = 0.92; sy = 1.18; lift = k * 26; }
+    else if (f.ph === 'cast' || f.ph === 'throw') { sx = 1.05; sy = 0.95; }
+    if (f.ph === 'latch' && f.lunge > 0) { // chomp lunge into the wall
+      const a = Math.atan2(cy - f.y, cx - f.x);
+      const k = Math.sin((12 - f.lunge) / 12 * Math.PI) * 9;
+      ox = Math.cos(a) * k; oy = Math.sin(a) * k;
+      sx = 1.08; sy = 0.92;
+    }
+    ctx.save();
+    // ground shadow
+    if (f.ph !== 'out') {
+      ctx.fillStyle = 'rgba(0,40,0,0.25)';
+      ctx.beginPath(); ctx.ellipse(f.x, f.y + f.r * 0.7, f.r * (1 - lift / 90), f.r * 0.34, 0, 0, 7); ctx.fill();
+    }
+    ctx.translate(f.x + ox, f.y - lift + oy);
+    if (f.ph === 'out') ctx.rotate(f.rot);
+    ctx.scale(sx, sy);
+    const flash = f.hitFlash > 0 && (f.hitFlash & 2);
+    ctx.fillStyle = flash ? '#fff' : base;
+    ctx.beginPath(); ctx.ellipse(-f.r * 0.85, f.r * 0.5, f.r * 0.45, f.r * 0.3, 0.5, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(f.r * 0.85, f.r * 0.5, f.r * 0.45, f.r * 0.3, -0.5, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 0, f.r, f.r * 0.88, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = flash ? '#fff' : '#e8f0c8';
+    ctx.beginPath(); ctx.ellipse(0, f.r * 0.3, f.r * 0.6, f.r * 0.45, 0, 0, 7); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(-f.r * 0.42, -f.r * 0.72, f.r * 0.3, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(f.r * 0.42, -f.r * 0.72, f.r * 0.3, 0, 7); ctx.fill();
+    ctx.fillStyle = '#222';
+    const la = Math.atan2(cy - f.y, cx - f.x);
+    const ex = Math.cos(la) * f.r * 0.08, ey = Math.sin(la) * f.r * 0.08;
+    ctx.beginPath(); ctx.arc(-f.r * 0.42 + ex, -f.r * 0.72 + ey, f.r * 0.13, 0, 7); ctx.fill();
+    ctx.beginPath(); ctx.arc(f.r * 0.42 + ex, -f.r * 0.72 + ey, f.r * 0.13, 0, 7); ctx.fill();
+    // mouth — wide open while winding up / landing a chomp at the wall
+    const chomping = f.ph === 'latch' && (f.lunge > 0 || f.biteT < 26);
+    if (chomping) {
+      ctx.fillStyle = 'rgba(60,20,30,0.85)';
+      ctx.beginPath(); ctx.ellipse(0, f.r * 0.2, f.r * 0.34, f.r * 0.26, 0, 0, 7); ctx.fill();
+      ctx.fillStyle = '#ff9aa2';
+      ctx.beginPath(); ctx.ellipse(0, f.r * 0.32, f.r * 0.18, f.r * 0.1, 0, 0, 7); ctx.fill();
+    } else {
+      ctx.strokeStyle = 'rgba(0,0,0,0.4)'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, f.r * 0.05, f.r * 0.4, 0.3, Math.PI - 0.3); ctx.stroke();
+    }
+    drawHat(f);
+    drawWeapon(f);
+    ctx.restore();
+    // zen: a hurry mark over a frog that's hopping home — bonk it before it's gone
+    if (f.zen && f.zen.leaving && f.ph !== 'out') {
+      ctx.font = 'bold ' + Math.round(f.r * 0.9) + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffd166'; ctx.strokeStyle = 'rgba(60,30,0,0.6)'; ctx.lineWidth = 3;
+      ctx.strokeText('!', f.x, f.y - f.r * 2.1); ctx.fillText('!', f.x, f.y - f.r * 2.1);
+    }
+    // telegraphs (world space, above the frog)
+    if (f.ph === 'cast') {
+      const k = 1 - f.castT / CAST;
+      ctx.fillStyle = 'rgba(185,140,255,' + (0.35 + 0.5 * k).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(f.x, f.y - f.r * 2 - 8, 4 + k * 8, 0, 7); ctx.fill();
+      ctx.strokeStyle = 'rgba(185,140,255,0.5)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(f.x, f.y - f.r * 2 - 8, 6 + k * 10, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * k); ctx.stroke();
+    } else if (f.ph === 'throw') {
+      const k = 1 - f.stoneT / STONE_WIND;
+      ctx.fillStyle = 'rgba(200,190,170,' + (0.5 + 0.4 * k).toFixed(2) + ')';
+      ctx.beginPath(); ctx.arc(f.x + f.r * 0.8, f.y - f.r * 2 - 6 - k * 6, 5 + k * 3, 0, 7); ctx.fill();
+    }
+    // hp pips for damaged multi-hp frogs
+    if (f.maxHp > 1 && f.hp < f.maxHp && f.ph !== 'out') {
+      for (let i = 0; i < f.maxHp; i++) {
+        ctx.fillStyle = i < f.hp ? '#7fe0a0' : 'rgba(0,0,0,0.3)';
+        ctx.beginPath(); ctx.arc(f.x - (f.maxHp - 1) * 4 + i * 8, f.y + f.r * 1.5, 3, 0, 7); ctx.fill();
+      }
+    }
+  }
+  function drawHat(f) {
+    const r = f.r;
+    if (f.type === 'scout') {          // leaf cap
+      ctx.fillStyle = '#3f8a33';
+      ctx.beginPath(); ctx.ellipse(0, -r * 0.95, r * 0.55, r * 0.25, -0.2, 0, 7); ctx.fill();
+      ctx.strokeStyle = '#2f6a26'; ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(-r * 0.4, -r * 0.95); ctx.quadraticCurveTo(0, -r * 1.25, r * 0.45, -r * 0.9); ctx.stroke();
+    } else if (f.type === 'knight') {  // steel helm + plume
+      ctx.fillStyle = '#b8c4d8';
+      ctx.beginPath(); ctx.arc(0, -r * 0.75, r * 0.72, Math.PI, 0); ctx.fill();
+      ctx.fillRect(-r * 0.72, -r * 0.78, r * 1.44, r * 0.22);
+      ctx.fillStyle = '#8a97ad'; ctx.fillRect(-r * 0.1, -r * 1.5, r * 0.2, r * 0.45);
+      ctx.fillStyle = '#ff5b5b'; ctx.beginPath(); ctx.arc(0, -r * 1.5, r * 0.16, 0, 7); ctx.fill();
+    } else if (f.type === 'mage') {    // wizard hat
+      ctx.fillStyle = '#5a4dbf';
+      ctx.beginPath(); ctx.moveTo(-r * 0.75, -r * 0.8); ctx.lineTo(r * 0.75, -r * 0.8); ctx.lineTo(r * 0.1, -r * 1.9); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#ffd166';
+      ctx.beginPath(); ctx.arc(r * 0.16, -r * 1.35, r * 0.12, 0, 7); ctx.fill();
+      ctx.fillStyle = '#5a4dbf';
+      ctx.beginPath(); ctx.ellipse(0, -r * 0.8, r * 0.9, r * 0.2, 0, 0, 7); ctx.fill();
+    } else if (f.type === 'brute') {   // horned helm
+      ctx.fillStyle = '#8a6a40';
+      ctx.beginPath(); ctx.arc(0, -r * 0.75, r * 0.66, Math.PI, 0); ctx.fill();
+      ctx.strokeStyle = '#e8e0d0'; ctx.lineWidth = r * 0.2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(-r * 0.6, -r * 0.9); ctx.quadraticCurveTo(-r * 1.05, -r * 1.15, -r * 1.0, -r * 1.55); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(r * 0.6, -r * 0.9); ctx.quadraticCurveTo(r * 1.05, -r * 1.15, r * 1.0, -r * 1.55); ctx.stroke();
+    } else if (f.type === 'chief') {   // war paint + crown
+      ctx.fillStyle = '#e05a5a';
+      ctx.beginPath(); ctx.arc(0, -r * 0.72, r * 0.7, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = '#ffd166';
+      ctx.beginPath();
+      ctx.moveTo(-r * 0.55, -r * 1.05); ctx.lineTo(-r * 0.55, -r * 1.5); ctx.lineTo(-r * 0.25, -r * 1.15);
+      ctx.lineTo(0, -r * 1.6); ctx.lineTo(r * 0.25, -r * 1.15); ctx.lineTo(r * 0.55, -r * 1.5); ctx.lineTo(r * 0.55, -r * 1.05);
+      ctx.closePath(); ctx.fill();
+    }
+  }
+  function drawWeapon(f) {
+    const r = f.r;
+    ctx.save();
+    ctx.translate(r * 0.95, r * 0.1); ctx.rotate(0.4);
+    if (f.type === 'scout') {
+      ctx.fillStyle = '#cfd8e8'; ctx.fillRect(-1.5, -r * 0.9, 3, r * 0.7);
+      ctx.fillStyle = '#8a5c30'; ctx.fillRect(-3, -r * 0.25, 6, r * 0.3);
+    } else if (f.type === 'knight') {
+      ctx.fillStyle = '#cfd8e8'; ctx.fillRect(-2, -r * 1.3, 4, r);
+      ctx.beginPath(); ctx.moveTo(-2, -r * 1.3); ctx.lineTo(0, -r * 1.55); ctx.lineTo(2, -r * 1.3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#c8894a'; ctx.fillRect(-6, -r * 0.35, 12, 4);
+    } else if (f.type === 'mage') {
+      ctx.strokeStyle = '#8a5c30'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(0, r * 0.3); ctx.lineTo(0, -r * 1.4); ctx.stroke();
+      ctx.fillStyle = '#b98cff'; ctx.beginPath(); ctx.arc(0, -r * 1.5, r * 0.24, 0, 7); ctx.fill();
+    } else if (f.type === 'brute' || f.type === 'chief') {
+      ctx.strokeStyle = '#8a5c30'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(0, r * 0.3); ctx.lineTo(0, -r * 1.0); ctx.stroke();
+      ctx.fillStyle = '#9a9284';
+      ctx.beginPath(); ctx.ellipse(0, -r * 1.1, r * 0.32, r * 0.42, 0, 0, 7); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawFrogWithTrail(f) {
+    if (f.ph === 'out') {
+      for (let i = 0; i < f.trail.length; i++) {
+        ctx.globalAlpha = (i / f.trail.length) * 0.5;
+        ctx.fillStyle = RAINBOW[i % RAINBOW.length];
+        ctx.beginPath(); ctx.arc(f.trail[i].x, f.trail[i].y, 5, 0, 7); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+    frogBody(f);
+  }
+
+  function render() {
+    ensureBg();
+    const m = meadow();
+    ctx.save();
+    if (shakeT > 0) ctx.translate(rand(-3, 3), rand(-2, 2));
+    if (bgCache) ctx.drawImage(bgCache, 0, 0, W, H);
+    else paintMeadow(ctx, m);
+    drawWind(m);
+    // depth: frogs behind the castle, castle, frogs in front
+    const sorted = frogs.slice().sort((a, b) => a.y - b.y);
+    for (const f of sorted) if (f.y < cy) drawFrogWithTrail(f);
+    drawCastle();
+    for (const f of sorted) if (f.y >= cy) drawFrogWithTrail(f);
+    // x-ray ghosts for frogs hidden behind the keep — you can always see what's coming
+    ctx.save(); ctx.globalAlpha = 0.35;
+    for (const f of sorted) {
+      if (f.ph === 'out' || f.y >= cy) continue;
+      if (f.y > cy - castR * 2.6 && Math.abs(f.x - cx) < castR * 1.1 && distC(f) < castR * 2.4) frogBody(f);
+    }
+    ctx.restore();
+    ctx.globalAlpha = 1;
+    for (const b of bolts) {
+      const k = 1 - b.t / (b.stone ? 36 : 30);
+      const x = b.x + (cx - b.x) * k, y = b.y + (cy - b.y) * k - Math.sin(k * Math.PI) * 60;
+      if (b.stone) { ctx.fillStyle = '#9a9284'; ctx.beginPath(); ctx.arc(x, y, 6, 0, 7); ctx.fill(); }
+      else { ctx.fillStyle = '#b98cff'; ctx.shadowColor = '#b98cff'; ctx.shadowBlur = 10; ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill(); ctx.shadowBlur = 0; }
+    }
+    for (const p of peas) {
+      const k = 1 - p.t / 14;
+      const x = p.x + (p.tx - p.x) * k, y = p.y + (p.ty - p.y) * k - Math.sin(k * Math.PI) * 40;
+      ctx.fillStyle = '#7fe07a'; ctx.beginPath(); ctx.arc(x, y, 5, 0, 7); ctx.fill();
+    }
+    ctx.fillStyle = '#3a2a17';
+    for (const p of pickups) {
+      const k = 1 - p.t / 34;
+      ctx.globalAlpha = 1 - k * 0.6;
+      ctx.beginPath(); ctx.arc(p.x + Math.sin(p.t * 0.5) * 4, p.y - k * 40, 3, 0, 7); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    for (const p of parts) {
+      ctx.globalAlpha = Math.max(0, p.t / 26);
+      ctx.fillStyle = p.col;
+      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+    }
+    ctx.globalAlpha = 1;
+    drawSwing();
+    ctx.font = 'bold 15px system-ui, sans-serif'; ctx.textAlign = 'center';
+    for (const p of pops) {
+      ctx.globalAlpha = Math.min(1, p.t / 25);
+      ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(0,60,0,0.6)'; ctx.lineWidth = 3;
+      ctx.strokeText(p.txt, p.x, p.y); ctx.fillText(p.txt, p.x, p.y);
+    }
+    ctx.globalAlpha = 1;
+    if (combo >= 2 && state === 'playing') {
+      ctx.font = 'bold 17px system-ui, sans-serif';
+      ctx.fillStyle = '#ffe066'; ctx.strokeStyle = 'rgba(60,30,0,0.6)'; ctx.lineWidth = 3;
+      const txt = t('game.frog-bonk.comboBadge', { n: combo, def: 'COMBO ×{n}' });
+      ctx.strokeText(txt, cx, topMargin + 24); ctx.fillText(txt, cx, topMargin + 24);
+    }
+    if (waveBanner > 0 && gameMode === 'waves') {
+      ctx.globalAlpha = Math.min(1, waveBanner / 20);
+      ctx.font = 'bold 30px system-ui, sans-serif';
+      ctx.fillStyle = '#fff'; ctx.strokeStyle = 'rgba(0,60,0,0.7)'; ctx.lineWidth = 5;
+      const txt = t('game.frog-bonk.waveBanner', { n: wave, def: 'WAVE {n}' });
+      ctx.strokeText(txt, cx, cy - castR * 2.4); ctx.fillText(txt, cx, cy - castR * 2.4);
+      ctx.globalAlpha = 1;
+    }
+    ctx.restore();
+  }
+
+  // ---- HUD ----
+  function fmtTime(s) { const m2 = Math.floor(s / 60), ss = s % 60; return m2 + ':' + (ss < 10 ? '0' : '') + ss; }
+  function updateHud() {
+    document.getElementById('scoreEl').textContent = score;
+    document.getElementById('bestEl').textContent = best;
+    document.getElementById('castleEl').textContent = gameMode === 'zen' ? '∞' : castleHp + '♥';
+    document.getElementById('waveEl').textContent =
+      gameMode === 'waves' ? wave + '/' + WAVE_MAX : fmtTime(Math.floor(steps / 60));
+    document.getElementById('fliesEl').textContent = flies;
+    document.getElementById('fliesStat').style.display = gameMode === 'waves' ? '' : 'none';
+  }
+  function i18nHudLabels() {
+    if (!KIT) return;
+    const set = (id, key, def) => { const e = document.getElementById(id); if (e) e.textContent = KIT.t(key, { def }); };
+    set('lblScore', 'game.common.score', 'SCORE');
+    set('lblBest', 'game.common.best', 'BEST');
+    set('lblCastle', 'game.frog-bonk.hudCastle', 'CASTLE');
+    if (gameMode === 'waves') set('lblWave', 'game.frog-bonk.hudWave', 'WAVE');
+    else set('lblWave', 'game.common.time', 'TIME');
+    set('lblFlies', 'game.frog-bonk.hudFlies', 'FLIES');
+  }
+
+  // ---- Run lifecycle ----
+  function reset() {
+    score = 0; kills = 0; flies = 0; combo = 0; comboT = 0; steps = 0;
+    frogs = []; bolts = []; peas = []; pickups = []; parts = []; pops = [];
+    spawnQueue = []; spawnT = 60; endlessGap = 132;
+    upg = { repair: 0, walls: 0, moat: 0, ballista: 0 }; ballistaT = 120;
+    hammer = { st: 'ready', t: 0, tx: 0, ty: 0, frog: null };
+    castleMax = DIFF().hp; castleHp = castleMax;
+    wave = 1; waveBanner = 0;
+    best = loadBest();
+  }
+  function startMode(m, d) {
+    if (m) gameMode = m;
+    if (d) diff = d;
+    reset();
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    if (gameMode === 'waves') startWave(1);
+    KIT.music.play(gameMode === 'zen' ? 'meadow' : 'castle');
+    i18nHudLabels();
+    updateHud();
+  }
+  function gameOver(won) {
+    state = 'over';
+    const prevBest = loadBest();
+    saveBest();                                   // single end-of-run save
+    const isBest = score > prevBest && score > 0; // computed against the pre-save best
+    best = loadBest();
+    showEnd(won, isBest);
+  }
+  function finishZen() { if (gameMode === 'zen' && (state === 'playing' || state === 'paused')) { if (KIT) KIT.menu.hide(); gameOver(false); } }
+
+  // ---- Menus ----
+  const MENU_THEME = { accent: '#7ed957', title: '#bdf29a', bg: 'rgba(16,42,18,0.78)', border: 'rgba(126,217,87,0.35)',
+    overlay: 'rgba(8,24,8,0.55)', 'on-accent': '#0e2a10', 'accent-soft': 'rgba(126,217,87,0.22)', new: '#ffd166' };
+  // the start/end-screen scenery — a mini version of the REAL in-game look. Animated (kit
+  // backdropAnimate): frogs hop around like zen mode. The keep sits bottom-LEFT so the centered
+  // menu box doesn't cover it. Deterministic (h01 counters, no Math.random) — headless-safe.
+  let mbFrogs = null, mbW = 0, mbH = 0;
+  function mbInit(w, h) {
+    mbW = w; mbH = h; mbFrogs = [];
+    for (let i = 0; i < 8; i++) {
+      mbFrogs.push({ x: h01(i * 9 + 1) * w, y: h01(i * 9 + 2) * h, fx: 0, fy: 0, tx: 0, ty: 0,
+        ph: 'sit', t: 20 + Math.round(h01(i * 9 + 3) * 100), r: 9 + (i % 3) * 2.5,
+        col: ['#8fce5e', '#5da741', '#6ab8a0', '#7a9a3e'][i % 4], hat: i % 3, seed: i * 997 });
+    }
+  }
+  function mbStep(w, h) {
+    const AIRM = 20;
+    for (const f of mbFrogs) {
+      if (f.ph === 'sit') { if (--f.t <= 0) { f.ph = 'wind'; f.t = 6; } }
+      else if (f.ph === 'wind') {
+        if (--f.t <= 0) {
+          f.seed++;
+          const a = h01(f.seed) * Math.PI * 2, hop = 34 + h01(f.seed + 13) * 40;
+          f.fx = f.x; f.fy = f.y;
+          f.tx = Math.max(16, Math.min(w - 16, f.x + Math.cos(a) * hop));
+          f.ty = Math.max(16, Math.min(h - 12, f.y + Math.sin(a) * hop));
+          f.ph = 'air'; f.t = AIRM;
+        }
+      } else { // air
+        f.t--;
+        const k = 1 - f.t / AIRM;
+        f.x = f.fx + (f.tx - f.fx) * k;
+        f.y = f.fy + (f.ty - f.fy) * k;
+        f.lift = Math.sin(k * Math.PI) * 14;
+        if (f.t <= 0) { f.ph = 'sit'; f.t = 30 + Math.round(h01(++f.seed) * 110); f.lift = 0; }
+      }
+    }
+  }
+  function mbFrog(g, f) {
+    const fr = f.r, lift = f.ph === 'air' ? (f.lift || 0) : 0;
+    let sx2 = 1, sy2 = 1;
+    if (f.ph === 'wind') { sx2 = 1.14; sy2 = 0.8; }
+    else if (f.ph === 'air') { sx2 = 0.94; sy2 = 1.14; }
+    g.fillStyle = 'rgba(0,40,0,0.2)';
+    g.beginPath(); g.ellipse(f.x, f.y + fr * 0.7, fr * (1 - lift / 60), fr * 0.32, 0, 0, 7); g.fill();
+    g.save();
+    g.translate(f.x, f.y - lift); g.scale(sx2, sy2);
+    g.fillStyle = f.col;
+    g.beginPath(); g.ellipse(0, 0, fr, fr * 0.85, 0, 0, 7); g.fill();
+    g.fillStyle = '#e8f0c8';
+    g.beginPath(); g.ellipse(0, fr * 0.3, fr * 0.55, fr * 0.4, 0, 0, 7); g.fill();
+    g.fillStyle = '#fff';
+    g.beginPath(); g.arc(-fr * 0.4, -fr * 0.65, fr * 0.3, 0, 7); g.fill();
+    g.beginPath(); g.arc(fr * 0.4, -fr * 0.65, fr * 0.3, 0, 7); g.fill();
+    g.fillStyle = '#222';
+    g.beginPath(); g.arc(-fr * 0.4, -fr * 0.62, fr * 0.13, 0, 7); g.fill();
+    g.beginPath(); g.arc(fr * 0.4, -fr * 0.62, fr * 0.13, 0, 7); g.fill();
+    if (f.hat === 0) {        // knight helm
+      g.fillStyle = '#b8c4d8'; g.beginPath(); g.arc(0, -fr * 0.7, fr * 0.6, Math.PI, 0); g.fill();
+    } else if (f.hat === 1) { // wizard hat
+      g.fillStyle = '#5a4dbf';
+      g.beginPath(); g.moveTo(-fr * 0.7, -fr * 0.75); g.lineTo(fr * 0.7, -fr * 0.75); g.lineTo(fr * 0.08, -fr * 1.8); g.closePath(); g.fill();
+    } else {                  // leaf cap
+      g.fillStyle = '#3f8a33'; g.beginPath(); g.ellipse(0, -fr * 0.9, fr * 0.5, fr * 0.22, -0.2, 0, 7); g.fill();
+    }
+    g.restore();
+  }
+  function menuBackdrop(g, w, h) {
+    const lg = g.createLinearGradient(0, 0, 0, h);
+    lg.addColorStop(0, '#8fce5e'); lg.addColorStop(0.55, '#5da741'); lg.addColorStop(1, '#3f8a33');
+    g.fillStyle = lg; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 16; i++) { // mottled grass
+      g.fillStyle = i % 2 ? 'rgba(255,255,220,0.05)' : 'rgba(0,40,0,0.06)';
+      g.beginPath(); g.ellipse(h01(i * 3 + 11) * w, h01(i * 3 + 12) * h, 30 + h01(i) * 50, 18 + h01(i + 7) * 26, h01(i + 40) * 3, 0, 7); g.fill();
+    }
+    // the keep lives bottom-LEFT so the centered menu box doesn't sit on top of it
+    const kx = w * 0.16, ky = h * 0.66, r = Math.min(w, h) * 0.12, ery = r * 0.55, wallH = r * 0.55;
+    // winding path from the gate off to the right
+    g.strokeStyle = '#c8b078'; g.lineCap = 'round'; g.globalAlpha = 0.6; g.lineWidth = r * 0.32;
+    g.beginPath(); g.moveTo(kx, ky + wallH + ery);
+    g.quadraticCurveTo(kx + w * 0.12, ky + h * 0.16, kx + w * 0.3, h * 0.92);
+    g.quadraticCurveTo(kx + w * 0.5, h * 1.02, w + 20, h * 0.9); g.stroke();
+    g.globalAlpha = 1;
+    // flowers + grass blades
+    for (let i = 0; i < 40; i++) {
+      const px = h01(i * 7 + 1) * w, py = h01(i * 7 + 2) * h;
+      if (Math.hypot(px - kx, py - ky) < r * 2.1) continue;
+      if (i % 4 === 0) {
+        g.fillStyle = ['#ffd7e6', '#fff2b0', '#e8d0ff'][i % 3];
+        for (let p = 0; p < 5; p++) { const a = p * 1.257; g.beginPath(); g.ellipse(px + Math.cos(a) * 2.6, py + Math.sin(a) * 2.6, 2, 2, 0, 0, 7); g.fill(); }
+        g.fillStyle = '#ffb03a'; g.beginPath(); g.arc(px, py, 1.6, 0, 7); g.fill();
+      } else {
+        g.strokeStyle = 'rgba(0,60,0,0.2)'; g.lineWidth = 1.4;
+        g.beginPath(); g.moveTo(px, py + 3); g.lineTo(px - 2, py - 4); g.moveTo(px, py + 3); g.lineTo(px + 3, py - 3); g.stroke();
+      }
+    }
+    // 3/4-view keep (matches drawCastle's shapes)
+    g.fillStyle = 'rgba(0,40,0,0.25)';
+    g.beginPath(); g.ellipse(kx + r * 0.1, ky + wallH + ery * 0.3, r * 1.18, ery * 1.05, 0, 0, 7); g.fill();
+    g.fillStyle = '#807c94';
+    g.beginPath();
+    g.moveTo(kx - r, ky); g.lineTo(kx - r, ky + wallH);
+    g.ellipse(kx, ky + wallH, r, ery, 0, Math.PI, 0, true);
+    g.lineTo(kx + r, ky);
+    g.ellipse(kx, ky, r, ery, 0, 0, Math.PI, false);
+    g.closePath(); g.fill();
+    g.fillStyle = '#a8a4b8'; g.beginPath(); g.ellipse(kx, ky, r, ery, 0, 0, 7); g.fill();
+    g.fillStyle = '#b8b4c4'; g.beginPath(); g.ellipse(kx, ky, r * 0.74, ery * 0.74, 0, 0, 7); g.fill();
+    g.fillStyle = '#807c94';
+    for (let i = 0; i < 12; i++) { const a = i * 0.5236 + 0.26; g.fillRect(kx + Math.cos(a) * r * 0.98 - 3, ky + Math.sin(a) * ery * 0.98 - 7, 6, 8); }
+    const gw = r * 0.26, gb = ky + wallH + ery - 1;   // gate, flush in the band
+    g.fillStyle = '#5a3e20';
+    g.beginPath(); g.moveTo(kx - gw, gb); g.lineTo(kx - gw, gb - wallH * 0.62);
+    g.arc(kx, gb - wallH * 0.62, gw, Math.PI, 0); g.lineTo(kx + gw, gb); g.closePath(); g.fill();
+    const tw = r * 0.82, th = r * 1.1, tx0 = kx - tw / 2, ty0 = ky - r * 0.5 - th;
+    g.fillStyle = '#a8a4b8'; g.fillRect(tx0, ty0, tw, ky + ery * 0.28 - ty0);
+    g.strokeStyle = '#6a6680'; g.lineWidth = 1.5; g.strokeRect(tx0, ty0, tw, ky + ery * 0.28 - ty0);
+    g.fillStyle = 'rgba(20,16,30,0.85)';
+    g.beginPath(); g.arc(kx, ty0 + th * 0.34, tw * 0.13, Math.PI, 0); g.rect(kx - tw * 0.13, ty0 + th * 0.34, tw * 0.26, th * 0.2); g.fill();
+    g.fillStyle = '#807c94';
+    for (let i = 0; i < 4; i++) g.fillRect(tx0 - 2 + i * (tw + 4) / 4, ty0 - 6, (tw / 4) - 5, 8);
+    g.strokeStyle = '#6a4a28'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(tx0 + tw + 2, ty0 - 20); g.lineTo(tx0 + tw + 2, ty0 + 4); g.stroke();
+    g.fillStyle = '#3f8a33';
+    g.beginPath(); g.moveTo(tx0 + tw + 3, ty0 - 18); g.lineTo(tx0 + tw + 22, ty0 - 13); g.lineTo(tx0 + tw + 3, ty0 - 8); g.closePath(); g.fill();
+    // the king on top (crown + hammer at his side)
+    const kgy = ty0 - r * 0.22;
+    g.fillStyle = '#5da741'; g.beginPath(); g.ellipse(kx, kgy, r * 0.3, r * 0.24, 0, 0, 7); g.fill();
+    g.fillStyle = '#fff';
+    g.beginPath(); g.arc(kx - r * 0.13, kgy - r * 0.2, r * 0.1, 0, 7); g.fill();
+    g.beginPath(); g.arc(kx + r * 0.13, kgy - r * 0.2, r * 0.1, 0, 7); g.fill();
+    g.fillStyle = '#222';
+    g.beginPath(); g.arc(kx - r * 0.13, kgy - r * 0.19, r * 0.045, 0, 7); g.fill();
+    g.beginPath(); g.arc(kx + r * 0.13, kgy - r * 0.19, r * 0.045, 0, 7); g.fill();
+    g.fillStyle = '#ffd166';
+    g.beginPath();
+    g.moveTo(kx - r * 0.18, kgy - r * 0.3); g.lineTo(kx - r * 0.18, kgy - r * 0.46); g.lineTo(kx - r * 0.09, kgy - r * 0.36);
+    g.lineTo(kx, kgy - r * 0.5); g.lineTo(kx + r * 0.09, kgy - r * 0.36); g.lineTo(kx + r * 0.18, kgy - r * 0.46); g.lineTo(kx + r * 0.18, kgy - r * 0.3);
+    g.closePath(); g.fill();
+    // the SAME hammer he wields in-game — reads the equipped 🎨 skin live
+    drawHammer(g, kx + r * 0.5, kgy + r * 0.08, 0.55, r / 80);
+    // hatted frogs hopping around like zen mode (one sim tick per painted frame)
+    if (!mbFrogs || mbW !== w || mbH !== h) mbInit(w, h);
+    mbStep(w, h);
+    for (const f of mbFrogs) mbFrog(g, f);
+  }
+  function pvScene(g, w, h, frogsN, ring) {
+    g.fillStyle = '#5da741'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#8fce5e'; g.fillRect(0, 0, w, h * 0.4);
+    const kx = w / 2, ky = h * 0.52, r = w * 0.11;
+    if (ring) { g.strokeStyle = 'rgba(70,140,220,0.6)'; g.lineWidth = 5; g.beginPath(); g.arc(kx, ky, r * 2.4, 0, 7); g.stroke(); }
+    g.fillStyle = '#a8a4b8'; g.fillRect(kx - r, ky - r * 1.5, r * 2, r * 2.2);
+    g.fillStyle = '#6a4a28'; g.beginPath(); g.arc(kx, ky + r * 0.7, r * 0.5, Math.PI, 0); g.fill();
+    for (let i = 0; i < frogsN; i++) {
+      const a = i * (6.28 / frogsN) + 0.5, d = r * 3 + (i % 2) * 8;
+      const fx = kx + Math.cos(a) * d, fy = ky + Math.sin(a) * d * 0.7;
+      g.fillStyle = '#3f7a2e'; g.beginPath(); g.ellipse(fx, fy, 6, 5, 0, 0, 7); g.fill();
+      g.fillStyle = '#fff'; g.beginPath(); g.arc(fx - 2, fy - 4, 1.7, 0, 7); g.fill(); g.beginPath(); g.arc(fx + 2, fy - 4, 1.7, 0, 7); g.fill();
+    }
+  }
+  function pvZen(g, w, h) {
+    g.fillStyle = '#6ab88a'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#8fce9e'; g.fillRect(0, 0, w, h * 0.4);
+    const kx = w / 2, ky = h * 0.55;
+    g.fillStyle = '#5da741'; g.beginPath(); g.ellipse(kx, ky, 14, 11, 0, 0, 7); g.fill();
+    g.fillStyle = '#fff'; g.beginPath(); g.arc(kx - 5, ky - 9, 4, 0, 7); g.fill(); g.beginPath(); g.arc(kx + 5, ky - 9, 4, 0, 7); g.fill();
+    g.fillStyle = '#222'; g.beginPath(); g.arc(kx - 5, ky - 9, 1.8, 0, 7); g.fill(); g.beginPath(); g.arc(kx + 5, ky - 9, 1.8, 0, 7); g.fill();
+    g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = 1.5; g.beginPath(); g.arc(kx, ky + 1, 6, 0.4, Math.PI - 0.4); g.stroke();
+    for (let i = 0; i < 5; i++) {
+      const fx = (i + 0.5) * w / 5, fy = h * 0.85;
+      g.fillStyle = ['#ffd7e6', '#fff2b0', '#e8d0ff'][i % 3];
+      for (let p = 0; p < 5; p++) { const a = p * 1.257; g.beginPath(); g.ellipse(fx + Math.cos(a) * 3, fy + Math.sin(a) * 3, 2.5, 2.5, 0, 0, 7); g.fill(); }
+      g.fillStyle = '#ffb03a'; g.beginPath(); g.arc(fx, fy, 2, 0, 7); g.fill();
+    }
+  }
+
+  const urlParams = st => ({ mode: st.mode, diff: st.diff });
+  function showStartMenu() {
+    state = 'ready';
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    KIT.music.play('castle');
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: t('game.frog-bonk.menuTitle', { def: 'FROG BONK' }), backdrop: menuBackdrop, backdropAnimate: true,
+      groups: [
+        { id: 'mode', label: t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: gameMode, choices: [
+          { id: 'waves', label: t('game.frog-bonk.modeWaves', { def: 'Waves' }),
+            mech: [t('game.frog-bonk.mechWaves15', { def: '15 waves' }), t('game.frog-bonk.mechShop', { def: 'Upgrade shop' })],
+            best: st => loadBest('waves', st.diff), preview: (g, w, h) => pvScene(g, w, h, 6, false) },
+          { id: 'endless', label: t('game.frog-bonk.modeEndless', { def: 'Endless' }),
+            mech: [t('game.frog-bonk.mechRamps', { def: 'Ramps up' }), t('game.frog-bonk.mechScoreChase', { def: 'Score chase' })],
+            best: st => loadBest('endless', st.diff), preview: (g, w, h) => pvScene(g, w, h, 9, true) },
+          { id: 'zen', label: t('game.frog-bonk.modeZen', { def: 'Zen' }),
+            mech: [t('game.frog-bonk.mechNoLose', { def: 'No losing' }), t('game.frog-bonk.mechChill', { def: 'Chill bonks' })],
+            best: () => loadBest('zen'), preview: pvZen },
+        ] },
+        { id: 'diff', label: t('game.frog-bonk.diffLabel', { def: 'DIFFICULTY' }), default: diff, choices: [
+          { id: 'easy', label: diffDisplay('easy') },
+          { id: 'medium', label: diffDisplay('medium') },
+          { id: 'hard', label: diffDisplay('hard') },
+        ] },
+      ],
+      hint: st => ({
+        waves: t('game.frog-bonk.hintWaves', { def: 'Bonk every frog before it chomps the castle. Spend flies between waves.' }),
+        endless: t('game.frog-bonk.hintEndless', { def: 'They never stop coming — how long can the castle stand?' }),
+        zen: t('game.frog-bonk.hintZen', { def: 'No damage, no rush. Just you, a hammer and some silly frogs.' }),
+      }[st.mode] || ''),
+      actions: [{ id: 'play', label: t('game.frog-bonk.defend', { def: 'DEFEND!' }), primary: true }],
+      onChange: st => { gameMode = st.mode; diff = st.diff; KIT.stampUrl(urlParams(st)); },
+      onPlay: st => { KIT.stampUrl(urlParams(st)); startMode(st.mode, st.diff); },
+    });
+    KIT.stampUrl(urlParams({ mode: gameMode, diff }));
+  }
+
+  function shareMsg(won) {
+    return KIT.shareText({
+      verb: won ? t('game.frog-bonk.verbDefended', { def: 'I held the castle with' }) : undefined,
+      score, game: t('game.frog-bonk.title', { def: 'Frog Bonk' }), emoji: '🐸',
+      mode: modeDisplay() + (gameMode === 'zen' ? '' : ' · ' + diffDisplay()),
+      extra: gameMode === 'waves' ? [t('game.frog-bonk.waveN', { wave, def: 'wave ' + wave })] : [t('game.frog-bonk.bonksN', { kills, def: kills + ' bonks' })],
+    });
+  }
+  function showEnd(won, isBest) {
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    const lines = [];
+    if (gameMode === 'waves') lines.push(won ? t('game.frog-bonk.endWavesWon', { def: 'All 15 waves held — the meadow is safe!' }) : t('game.frog-bonk.endWavesLost', { wave, def: 'The castle fell on wave {wave}.' }));
+    else if (gameMode === 'endless') lines.push(t('game.frog-bonk.endEndless', { time: fmtTime(Math.floor(steps / 60)), kills, def: 'Held out {time} · {kills} frogs bonked.' }));
+    else lines.push(t('game.frog-bonk.endZen', { kills, def: '{kills} happy bonks. See you next time.' }));
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      title: won ? t('game.frog-bonk.victory', { def: 'VICTORY!' }) : (gameMode === 'zen' ? t('game.frog-bonk.zenDone', { def: 'NICE SESSION' }) : t('game.common.gameOver', { def: 'GAME OVER' })),
+      record: { slug: SLUG, mode: modeLabel(), score, stats: { wave, kills } },
+      score, best, newBest: isBest, lines,
+      share: { slug: SLUG, accent: '#7ed957', icon: '🐸', title: t('game.frog-bonk.title', { def: 'Frog Bonk' }), message: () => shareMsg(won), params: () => urlParams({ mode: gameMode, diff }) },
+      actions: [ { id: 'again', label: t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true }, { id: 'menu', label: t('game.common.menu', { def: 'MENU' }) } ],
+      onAction: id => { if (id === 'again') startMode(gameMode, diff); else if (id === 'menu') toMenu(); } });
+  }
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    state = 'paused';
+    const acts = [{ id: 'resume', label: t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }];
+    if (gameMode === 'zen') acts.push({ id: 'finish', label: t('game.frog-bonk.finishSave', { def: 'FINISH & SAVE' }) });
+    acts.push({ id: 'menu', label: t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true });
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: t('game.common.paused', { def: 'PAUSED' }),
+      lines: [t('game.common.scoreLine', { score, def: 'Score {score}' })],
+      actions: acts,
+      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'finish') finishZen(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
+  }
+  function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
+  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
+
+  // ---- Between-wave shop (waves mode; per-run upgrades, paid in flies) ----
+  function upgName(id) {
+    return { repair: t('game.frog-bonk.upRepair', { def: 'Repair' }), walls: t('game.frog-bonk.upWalls', { def: 'Stone Walls' }),
+      moat: t('game.frog-bonk.upMoat', { def: 'Moat' }), ballista: t('game.frog-bonk.upBallista', { def: 'Pea Ballista' }) }[id];
+  }
+  function upgDesc(id) {
+    return { repair: t('game.frog-bonk.upRepairDesc', { def: 'Patch the walls: +5 castle HP.' }),
+      walls: t('game.frog-bonk.upWallsDesc', { def: 'Thicker walls: +5 max HP (and +5 now).' }),
+      moat: t('game.frog-bonk.upMoatDesc', { def: 'Frogs crossing the moat rest much longer.' }),
+      ballista: t('game.frog-bonk.upBallistaDesc', { def: 'Auto-lobs peas that knock frogs back. No damage — bonking is your job.' }) }[id];
+  }
+  const UP_ICONS = {
+    repair: (g, w, h) => { g.strokeStyle = '#ffd166'; g.lineWidth = 3; g.beginPath(); g.moveTo(w * 0.3, h * 0.7); g.lineTo(w * 0.7, h * 0.3); g.stroke(); g.fillStyle = '#c8b078'; g.fillRect(w * 0.6, h * 0.16, w * 0.2, h * 0.26); },
+    walls: (g, w, h) => { g.fillStyle = '#a8a4b8'; g.fillRect(w * 0.2, h * 0.4, w * 0.6, h * 0.4); g.fillStyle = '#807c94'; for (let i = 0; i < 3; i++) g.fillRect(w * 0.2 + i * w * 0.22, h * 0.3, w * 0.14, h * 0.12); },
+    moat: (g, w, h) => { g.strokeStyle = '#4d8ce0'; g.lineWidth = 5; g.beginPath(); g.arc(w / 2, h / 2, Math.min(w, h) * 0.3, 0, 7); g.stroke(); g.fillStyle = '#7fe07a'; g.beginPath(); g.ellipse(w / 2 + Math.min(w, h) * 0.3, h / 2, 4, 3, 0, 0, 7); g.fill(); },
+    ballista: (g, w, h) => { g.strokeStyle = '#c8894a'; g.lineWidth = 3; g.beginPath(); g.moveTo(w * 0.3, h * 0.75); g.lineTo(w * 0.7, h * 0.3); g.stroke(); g.fillStyle = '#7fe07a'; g.beginPath(); g.arc(w * 0.72, h * 0.26, 5, 0, 7); g.fill(); },
+  };
+  function upgCost(u) { const lv = upg[u.id] || 0; return lv >= u.max ? 0 : u.cost(lv); }
+  function openShop() {
+    state = 'shop';
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: t('game.frog-bonk.shopTitle', { wave, def: 'WAVE {wave} CLEARED!' }),
+      banner: () => '🪰 ' + t('game.frog-bonk.fliesBanner', { flies, def: '{flies} flies' }),
+      hint: () => t('game.frog-bonk.shopHint', { def: 'Spend flies on the castle, then sound the horn.' }),
+      groups: [{ id: 'buy', style: 'shop', cols: 2, choices: UPGRADES.map(u => ({ id: u.id, label: upgName(u.id), desc: upgDesc(u.id), icon: UP_ICONS[u.id] })),
+        sub: c => { const u = UPGRADES.find(x => x.id === c.id); const lv = upg[u.id] || 0;
+          return lv >= u.max ? t('game.frog-bonk.upMax', { def: 'MAX' }) : ((u.id === 'repair' ? '' : t('game.frog-bonk.upLv', { lv, max: u.max, def: 'LV {lv}/{max}' }) + ' · ') + '🪰 ' + upgCost(u)); },
+        pickLabel: c => { const u = UPGRADES.find(x => x.id === c.id); const lv = upg[u.id] || 0;
+          return lv >= u.max ? t('game.frog-bonk.upMaxed', { def: 'MAXED' }) : t('game.frog-bonk.buyCost', { cost: upgCost(u), def: 'BUY · 🪰 {cost}' }); },
+        disabled: c => { const u = UPGRADES.find(x => x.id === c.id); const lv = upg[u.id] || 0;
+          return lv >= u.max || flies < upgCost(u) || (u.id === 'repair' && castleHp >= castleMax); },
+        onPick: id => buyUpgrade(id) }],
+      actions: [{ id: 'next', label: t('game.frog-bonk.nextWave', { def: 'NEXT WAVE ▶' }), primary: true }],
+      onAction: id => { if (id === 'next') closeShop(); } });
+  }
+  function buyUpgrade(id) {
+    if (state !== 'shop') return;
+    const u = UPGRADES.find(x => x.id === id);
+    if (!u) return;
+    const lv = upg[u.id] || 0;
+    const cost = upgCost(u);
+    if (lv >= u.max || flies < cost) return;
+    if (u.id === 'repair' && castleHp >= castleMax) return;
+    flies -= cost;
+    if (u.id === 'repair') { castleHp = Math.min(castleMax, castleHp + 5); upg.repair++; }
+    else if (u.id === 'walls') { upg.walls++; castleMax += 5; castleHp += 5; }
+    else if (u.id === 'moat') upg.moat++;
+    else if (u.id === 'ballista') { upg.ballista++; ballistaT = 60; }
+    SND.play('coin');
+    updateHud();
+  }
+  function closeShop() { if (state !== 'shop') return; state = 'playing'; if (KIT) KIT.menu.hide(); startWave(wave + 1); }
+
+  // ---- Input ----
+  function toCanvas(e, r) { return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) }; }
+  canvas.addEventListener('pointerdown', e => {
+    const r = canvas.getBoundingClientRect();
+    const p = toCanvas(e, r);
+    whack(p.x, p.y);
+  });
+  window.addEventListener('keydown', e => {
+    if (state === 'playing' && e.key === 'Escape') { e.preventDefault(); pauseGame(); }
+  });
+
+  // ---- Nav / chrome ----
+  { const pm = KIT && KIT.param && KIT.param('mode'); if (['waves', 'endless', 'zen'].indexOf(pm) >= 0) gameMode = pm; }
+  { const pd = KIT && KIT.param && KIT.param('diff'); if (['easy', 'medium', 'hard'].indexOf(pd) >= 0) diff = pd; }
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
+    confirmLeave: () => (state === 'playing' || state === 'paused' || state === 'shop') ? t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: t('game.frog-bonk.controlsTitle', { def: 'Frog Bonk — Controls' }),
+      mouse: [ [t('game.common.click', { def: 'Click' }), t('game.frog-bonk.ctrlBonk', { def: 'Bonk a frog' })] ],
+      keyboard: [ [t('game.common.esc', { def: 'Esc' }), t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [t('game.common.tap', { def: 'Tap' }), t('game.frog-bonk.ctrlBonk', { def: 'Bonk a frog' })] ] } });
+  KIT.music.play('castle');
+
+  // ---- __test hook + layout getter ----
+  window.__test = {
+    get state() { return state; },
+    get score() { return score; },
+    get best() { return best; },
+    get castleHp() { return castleHp; },
+    get castleMax() { return castleMax; },
+    get wave() { return wave; },
+    get flies() { return flies; },
+    get combo() { return combo; },
+    get kills() { return kills; },
+    get mode() { return gameMode; },
+    get diff() { return diff; },
+    get frogCount() { return frogs.filter(f => f.ph !== 'out').length; },
+    get frogs() { return frogs.map(f => ({ type: f.type, hp: f.hp, x: f.x, y: f.y, ph: f.ph })); },
+    get hammer() { return { st: hammer.st, t: hammer.t }; },
+    get upgrades() { return { repair: upg.repair, walls: upg.walls, moat: upg.moat, ballista: upg.ballista }; },
+    get spawnQueueLen() { return spawnQueue.length; },
+    get layout() {
+      return { W, H, topReserve: topMargin,
+        castle: { x: cx, y: cy, r: castR },
+        castleTop: cy - castR * 0.5 - castR * 1.1 - 9,   // keep-tower top incl. battlements
+        castleBottom: cy + castR * 1.1 + 8 };            // wall band + base ellipse
+    },
+    start() { startMode(gameMode, diff); },
+    startMode,
+    spawnAt(type, x, y) { frogs.push(makeFrog(type, x, y)); },
+    clearFrogs() { frogs = []; spawnQueue = []; },
+    setFlies(n) { flies = n; updateHud(); },
+    setCastleHp(n) { castleHp = n; updateHud(); },
+    whack,
+    buyUpgrade,
+    closeShop,
+    finishZen,
+    menu() { return KIT ? KIT.menu.current() : null; },
+    best_(m, d) { return loadBest(m, d); },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+  };
+
+  resize();
+  i18nHudLabels();
+  updateHud();
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa();
+</script>
+</body>
+</html>

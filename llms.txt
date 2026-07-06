@@ -16,6 +16,7 @@ Komyo Games is a hobby project. Each game is a single self-contained HTML/Canvas
 - [Range](https://komyo.online/games/aim-trainer/): Timed flick-aim target practice on a tactical range.
 - [Neon Snake](https://komyo.online/games/snake/): The classic grid snake, in glowing neon.
 - [Forcefield](https://komyo.online/games/forcefield/): Slide your atmosphere dome to block the battle station's fire — solo or 2-player.
+- [Frog Bonk](https://komyo.online/games/frog-bonk/): Whack-a-mole castle defense — bonk invading frogs with the king's soft hammer across Waves, Endless and Zen modes.
 
 ## Optional
 

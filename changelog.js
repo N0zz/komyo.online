@@ -4,6 +4,13 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-06', title: 'New game: Frog Bonk 🐸', items: [
+    'New: Frog Bonk — the frog king defends his meadow castle with a soft hammer. Tap the invading frogs (knights, mages, brutes and more) before they chomp the walls; bonked frogs boing off with a rainbow trail.',
+    'Three ways to play: Waves (15 winnable waves with a between-wave upgrade shop — moat, pea ballista, stone walls), Endless (they never stop coming) and Zen (no losing, just happy bonks). Easy, Medium and Hard.',
+    'Collection: five hammer skins (fluffy! inflatable! candy cane!) and four meadow seasons — sun, autumn, rain and snow.',
+    'Change: Road Hop\'s tile icon is now 🚧 — the frog moved to Frog Bonk.',
+    'Fix: muting the music now makes it truly silent — a faint reverb echo used to keep playing, in every game.',
+  ] },
   { date: '2026-07-05', title: 'Sharper shields & a faster site ⚡', items: [
     'Fix: Forcefield now blocks every shot the shield visibly crosses — the check follows the laser\'s actual path through the dome, which used to miss most at the edges of the board.',
     'Fix: saving your display name shows a “Saved ✓” receipt and the new name appears everywhere immediately.',
