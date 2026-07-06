@@ -1586,4 +1586,10 @@ window.KOMYO_I18N.pl = {
   'changelog.e43.b1': 'Nowość: dane offline zajmują dużo mniej miejsca — gry współdzielą teraz jedną pamięć offline, zamiast trzymać każda własną kopię wspólnych plików, a każda gra wciąż działa w pełni offline.',
   'changelog.e44.title': 'Żabi Stuk: schludniejszy Zen 🐸',
   'changelog.e44.b0': 'Poprawka: w trybie Zen w Żabim Stuku wybór trudności jest teraz wyszarzony — w Zen nie da się przegrać, więc trudność i tak nic tam nie zmieniała, a menu wreszcie to pokazuje, zamiast oferować martwy wybór.',
+  'changelog.e45.title': 'Udostępniaj wynik jako kartę 📤',
+  'changelog.e45.b0': 'Nowość: udostępnianie po grze zaczyna się teraz od Twojej karty wyniku — karta pokazuje się od razu, a jeden przycisk Udostępnij wysyła sam obraz (do dowolnej aplikacji przez systemowe okno udostępniania na telefonie, albo kopiuje/pobiera na komputerze). Koniec z wysyłaniem zwykłej linijki tekstu.',
+  'changelog.e45.b1': 'Zmiana: przycisk udostępniania strony też jest teraz pojedynczy — na telefonie otwiera systemowe okno udostępniania (każda aplikacja), a na komputerze kopiuje link, zamiast rzędu ikon serwisów.',
+  'changelog.e46.title': 'Range: celniej i płynniej 🎯',
+  'changelog.e46.b0': 'Poprawka: w Range celownik podąża teraz za myszą natychmiast, zamiast opóźniać się o klatkę — celowanie jest ostre i responsywne.',
+  'changelog.e46.b1': 'Zmiana: ekran końcowy pozbył się mylącej dodatkowej liczby czasu — pokazuje teraz tylko celność, trafienia i pudła.',
 };

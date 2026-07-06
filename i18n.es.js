@@ -1585,4 +1585,10 @@ window.KOMYO_I18N.es = {
   'changelog.e43.b1': 'Nuevo: el almacenamiento sin conexión es mucho más ligero — los juegos ahora comparten una sola caché offline en vez de guardar cada uno su propia copia de los archivos comunes, y todos siguen funcionando perfectamente sin conexión.',
   'changelog.e44.title': 'Golpea Ranas: Zen más pulido 🐸',
   'changelog.e44.b0': 'Arreglo: en el modo Zen de Golpea Ranas el selector de dificultad ahora aparece atenuado — en Zen no se puede perder, así que la dificultad nunca hacía nada ahí, y el menú por fin lo refleja en vez de ofrecer una opción muerta.',
+  'changelog.e45.title': 'Comparte tu partida como tarjeta 📤',
+  'changelog.e45.b0': 'Nuevo: al terminar la partida, el compartir ahora gira en torno a tu tarjeta de puntuación — la tarjeta aparece ahí mismo y un solo botón Compartir envía la propia imagen (a cualquier app mediante el menú de compartir del móvil, o copiar/descargar en el ordenador). Se acabó compartir una línea de texto.',
+  'changelog.e45.b1': 'Cambio: el botón de compartir del sitio también es ahora único — abre el menú de compartir en el móvil (todas las apps) o copia el enlace en el ordenador, en vez de una fila de iconos de redes.',
+  'changelog.e46.title': 'Range: puntería más ágil 🎯',
+  'changelog.e46.b0': 'Arreglo: en Range la mira ahora sigue el ratón al instante en lugar de ir un fotograma por detrás — apuntar se siente preciso y con respuesta.',
+  'changelog.e46.b1': 'Cambio: la pantalla final quitó un número de tiempo confuso — ahora muestra solo precisión, aciertos y fallos.',
 };
