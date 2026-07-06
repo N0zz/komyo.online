@@ -3,9 +3,9 @@
 Established by the 2026-07 texture-pass initiative (frog-bonk, keep-defender,
 meadow-flyer, bubble-pop). New games ship AT this bar from the start — retrofits
 cost far more than building on-bar. The exception is games whose identity is
-deliberately flat/glow (neon, synthwave, vector, tactical — snake, breakout,
-forcefield, aim-trainer, asteroids): for those, polish means bloom/readability,
-not detail; don't texture them.
+deliberately flat/glow (neon, synthwave, vector, tactical, minimal pastel — snake,
+breakout, forcefield, aim-trainer, asteroids, stacker): for those, polish means
+bloom/readability, not detail; don't texture them.
 
 **Core principle: flat fills are a POC look, not a shipping look.** A shipping
 scene has one light source, form shading on every hero element, textured
