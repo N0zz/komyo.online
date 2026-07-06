@@ -4,6 +4,11 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-06', title: 'Frog Bonk got a painterly makeover 🎨🐸', items: [
+    'New: the whole meadow got a texture pass — thousands of grass blades, soft colour patches and one warm light direction with real cast shadows, in all four seasons.',
+    'New: the castle is built from real stones now — weathered bricks, moss, a warmly lit window and gate, and a long evening shadow.',
+    'New: frogs (and the king) have glossy eyes, shaded bodies and polished helmets and gear; a gentle colour grade and vignette rounds the scene off.',
+  ] },
   { date: '2026-07-06', title: 'Frog Bonk plays fair on phones 🐸📱', items: [
     'Fix: frogs no longer lurk far off screen on phones — they appear right at the screen edge, and brutes/mages never throw stones or cast spells at you from outside the view.',
     'Fix: the pea ballista\'s knockback is now a visible backward hop instead of an instant jump — no more swinging at a frog that teleported away mid-tap (and losing your combo to the whiff).',
