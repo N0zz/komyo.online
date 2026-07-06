@@ -146,6 +146,14 @@
 
   // ---- Parallax layers ----
   let cloudScroll = 0, hillScroll = 0;
+  // Render interpolation: the kit loop steps physics at a fixed 60 Hz with no
+  // interpolation, so constant-speed movers (the pipes!) visibly hitch whenever a
+  // display frame runs 0 or 2 steps (60 Hz beat) or repeats a step (120 Hz+).
+  // update() stamps its wall-clock time; render() advances every mover by its
+  // per-step velocity × the fraction of the step elapsed since. View-only.
+  const perfNow = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
+  let stepAt = 0;
+  let renFrac = 0, hillScrollR = 0, cloudScrollR = 0;
   const clouds = [];
   const hills = [];
 
@@ -442,6 +450,7 @@
   // ---- Update ----
   function update() {
     frame++;
+    stepAt = perfNow();
     if (state !== 'playing') return;
 
     obsSpeed = currentSpeed();
@@ -547,7 +556,7 @@
   // ±150px margin made wide hills vanish while still half on screen
   function hillX(base, speed, r) {
     const period = W + 2 * r;
-    return ((base - hillScroll * speed) % period + period) % period - r;
+    return ((base - hillScrollR * speed) % period + period) % period - r;
   }
 
   function drawStars() {
@@ -874,7 +883,7 @@
     const period = W + 20;
     for (let i = 0; i < W / 26; i++) {
       const s = Math.sin(i * 12.9898) * 43758.5453, j = s - Math.floor(s);
-      const x = (((i * 26 + j * 14 - hillScroll * 0.8) % period) + period) % period - 10;
+      const x = (((i * 26 + j * 14 - hillScrollR * 0.8) % period) + period) % period - 10;
       const tl = 4 + j * 3;
       for (let b = -1; b <= 1; b++) {
         ctx.beginPath(); ctx.moveTo(x, gy + 6);
@@ -908,7 +917,7 @@
   function drawBird() {
     const angle = Math.max(-0.5, Math.min(1.0, bird.vy * 0.07)) + bird.wobble;
     ctx.save();
-    ctx.translate(bird.x, bird.y);
+    ctx.translate(bird.x, bird.y + bird.vy * renFrac);
     ctx.rotate(angle);
     if (selectedBird.id === 'phoenix') { ctx.shadowColor = 'rgba(255,140,40,0.85)'; ctx.shadowBlur = 18; } // fiery glow
     else if (selectedBird.id === 'raven') { ctx.shadowColor = 'rgba(170,200,255,0.55)'; ctx.shadowBlur = 11; } // moonlit spirit glow (the near-black bird stays visible at night)
@@ -917,6 +926,10 @@
   }
 
   function render() {
+    renFrac = (state === 'playing' && !(KIT.isPaused && KIT.isPaused()))
+      ? Math.min(1, Math.max(0, (perfNow() - stepAt) / (1000 / 60))) : 0;
+    hillScrollR = hillScroll + 0.55 * renFrac;
+    cloudScrollR = cloudScroll + 0.28 * renFrac;
     if (mode === 'night') {
       // Night sky gradient
       const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
@@ -953,7 +966,9 @@
 
       // fireflies live in the meadow BEHIND the flower stems, like the day leaves
       drawFireflies();
+      ctx.save(); ctx.translate(-obsSpeed * renFrac, 0);
       for (const o of obstacles) drawObstacle(o);
+      ctx.restore();
     } else {
       // Day sky gradient
       const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
@@ -969,7 +984,7 @@
 
       // clouds
       for (const c of clouds) {
-        const cx = ((c.x - cloudScroll * c.s) % (W + 120) + W + 120) % (W + 120) - 60;
+        const cx = ((c.x - cloudScrollR * c.s) % (W + 120) + W + 120) % (W + 120) - 60;
         drawCloud(cx, c.y, c.r);
       }
 
@@ -987,7 +1002,9 @@
       drawGroundTufts('rgba(70,140,45,0.9)');
 
       drawLeaves();
+      ctx.save(); ctx.translate(-obsSpeed * renFrac, 0);
       for (const o of obstacles) drawObstacle(o);
+      ctx.restore();
     }
 
     // collectibles (both modes) — emoji-as-text with a soft glow
