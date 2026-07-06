@@ -4,6 +4,20 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-06', title: 'New title, proper fanfare ✨', items: [
+    'Fix: earning a new title lights the golden dot on the Profile button again AND replays the "★ NEW TITLE" shine on your profile card when you open it — the shine had been lost when the profile moved to the side panel.',
+  ] },
+  { date: '2026-07-06', title: 'Meadow Flyer: butter-smooth 🧈', items: [
+    'Fix: scrolling is silky now — stems, hills, clouds and the flyer glide between physics steps instead of micro-hitching, and taps feel snappier for it. Especially visible on 120 Hz screens.',
+  ] },
+  { date: '2026-07-06', title: 'Frog Bonk: flashier sieges 🪄', items: [
+    'New: mage frogs\' bolts streak with a sparkling arcane trail, a white-hot core and orbiting sparks, and burst on impact.',
+    'New: brute stones are real spinning rocks now — shaded, speckled, with a dust burst when they hit the walls.',
+    'Fix: frogs sneaking behind the castle show as faint silhouettes again instead of popping in front of the tower.',
+  ] },
+  { date: '2026-07-06', title: 'Keep Defender: sharper roles 🧙', items: [
+    'Change: the Mage no longer slows enemies — chilling is the Frost tower\'s whole job. Arcane bolts keep their splash damage and armor piercing.',
+  ] },
   { date: '2026-07-06', title: 'Bubble Pop, extra glossy 🫧', items: [
     'New: bubbles are proper candy now — grounded with soft shadows, lit through the bottom, with double sparkles and a rim of light. Colours and symbols stay exactly as readable as before.',
     'New: the board has depth — soft candy-glow pools behind the field, shaded walls and a gentle vignette.',

@@ -77,6 +77,22 @@ challenges, tv-controller.
   Hop's tile icon ceded 🐸 → 🚧. Kit gains along the way: music reverb routed through the music channel
   (mute now truly mutes — every game) + `cols:2` shop grids.
   *Follow-up: retune the 800/2,000 challenge targets + good-run bar from real scores.*
+- **Visual texture-pass initiative — DONE (2026-07-06).** Catalogue-wide graphics detail upgrade,
+  driven by look-dev mocks the user approved before each implementation (`plans/frog-bonk-lookdev.html`,
+  `plans/frog-bonk-texture-pass.html`, `plans/graphics-detail-review.html`, `plans/keep-defender-assets.html`).
+  Shipped: **Frog Bonk** (all 4 meadows: cached grass tufts + colour patches + one light direction,
+  per-stone castle, gradient frogs w/ glossy eyes, detailed hammer/swords, grade+vignette, textured menu
+  scenery) · **Keep Defender** (drawn towers with 3 visible upgrade levels on a growing stone base —
+  emoji stay in the UI — drawn enemies 1:1 with the old species, 6 themed board textures, textured keep,
+  new buff/frost/impact FX, coin/orb/medallion pickups, textured menu backdrop, mage slow removed
+  [Frost owns slow], THREAT uncapped) · **Meadow Flyer** (layered sky/haze/hills, ribbed stems + leaf
+  collars, shaded clouds/flowers/birds, ground tufts, day+night grades, **render interpolation** fixing
+  the fixed-timestep pipe hitch) · **Bubble Pop** (candy-gloss orbs + board depth + shaded walls).
+  **Keep simple (decided):** Snake, Brick Breaker, Forcefield, Range, both Asteroids — flat/glow is
+  their identity; Stack = light-touch, still pending. The bar is codified in the komyo-new-game skill
+  (`references/visual-quality.md`: 7 requirements, determinism/perf rules, 2-round screenshot review)
+  plus `references/responsive.md` (model-geometry scaling, from the frog-bonk mobile bugs).
+  *Follow-up: Stack light-touch material pass (borderline, user may skip).*
 
 ## 🚀 Path to launch (ordered)
 
@@ -87,7 +103,9 @@ art ships fine and gets swapped whenever real art lands; the **privacy policy** 
 **non-blocking** (no longer a hard gate).
 
 *Recently done:* the **cosmetics shop / titles** system · the **"create a game" skill** (gate cleared, used
-to build Forcefield) · **friends/family circle** invited & trickling · the **i18n system + PL + ES live**.
+to build Forcefield) · **friends/family circle** invited & trickling · the **i18n system + PL + ES live** ·
+the **visual texture-pass initiative** (frog-bonk / Keep Defender / Meadow Flyer / Bubble Pop + the skill
+quality bar — see the Done entry).
 
 ### Ordered path
 
