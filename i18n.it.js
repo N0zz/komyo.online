@@ -1584,4 +1584,10 @@ window.KOMYO_I18N.it = {
   'changelog.e43.b1': 'Novità: l\'archiviazione offline è molto più leggera — i giochi ora condividono un\'unica cache offline invece di tenere ognuno la propria copia dei file comuni, e ogni gioco continua a funzionare perfettamente offline.',
   'changelog.e44.title': 'Colpisci la Rana: Zen più curato 🐸',
   'changelog.e44.b0': 'Fix: nella modalità Zen di Colpisci la Rana il selettore di difficoltà ora è disattivato — in Zen non si può perdere, quindi la difficoltà lì non faceva nulla, e il menu finalmente lo mostra invece di offrire una scelta inutile.',
+  'changelog.e45.title': 'Condividi la partita come card 📤',
+  'changelog.e45.b0': 'Novità: la condivisione a fine partita ora parte dalla tua card del punteggio — la card compare lì e un unico pulsante Condividi invia l\'immagine stessa (a qualsiasi app tramite il menu di condivisione del telefono, o copia/scarica su computer). Basta condividere una riga di testo.',
+  'changelog.e45.b1': 'Modifica: anche il pulsante di condivisione del sito ora è unico — apre il menu di condivisione su cellulare (tutte le app) o copia il link su computer, invece di una fila di icone dei social.',
+  'changelog.e46.title': 'Range: mira più scattante 🎯',
+  'changelog.e46.b0': 'Fix: in Range il mirino ora segue il mouse all\'istante invece di restare indietro di un fotogramma — mirare è preciso e reattivo.',
+  'changelog.e46.b1': 'Modifica: la schermata finale ha tolto un numero di tempo confuso — ora mostra solo precisione, colpi e mancati.',
 };

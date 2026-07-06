@@ -1584,4 +1584,10 @@ window.KOMYO_I18N.pt = {
   'changelog.e43.b1': 'Novo: o armazenamento offline ficou muito mais enxuto — os jogos agora compartilham um único cache offline em vez de cada um guardar sua própria cópia dos arquivos comuns, e todos continuam funcionando perfeitamente offline.',
   'changelog.e44.title': 'Martela Rãs: Zen mais caprichado 🐸',
   'changelog.e44.b0': 'Correção: no modo Zen de Martela Rãs o seletor de dificuldade agora fica esmaecido — no Zen não dá para perder, então a dificuldade nunca fazia nada ali, e o menu enfim mostra isso em vez de oferecer uma opção morta.',
+  'changelog.e45.title': 'Compartilhe sua partida como card 📤',
+  'changelog.e45.b0': 'Novo: o compartilhamento no fim do jogo agora começa pelo seu card de pontuação — o card aparece ali mesmo e um único botão Compartilhar envia a própria imagem (para qualquer app pelo menu de compartilhamento do celular, ou copiar/baixar no computador). Chega de compartilhar uma linha de texto.',
+  'changelog.e45.b1': 'Mudança: o botão de compartilhar do site também virou um só — abre o menu de compartilhamento no celular (todos os apps) ou copia o link no computador, em vez de uma fileira de ícones de redes.',
+  'changelog.e46.title': 'Range: mira mais ágil 🎯',
+  'changelog.e46.b0': 'Correção: no Range a mira agora acompanha o mouse na hora, em vez de ficar um quadro atrás — mirar fica preciso e responsivo.',
+  'changelog.e46.b1': 'Mudança: a tela final tirou um número de tempo confuso — agora mostra só precisão, acertos e erros.',
 };

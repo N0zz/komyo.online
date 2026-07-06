@@ -4,6 +4,14 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-06', title: 'Range: snappier aim 🎯', items: [
+    'Fix: in Range the crosshair now tracks your mouse instantly instead of trailing a frame behind — aiming feels tight and responsive.',
+    'Change: the end screen dropped a confusing extra timing number — it now shows just accuracy, hits and misses.',
+  ] },
+  { date: '2026-07-06', title: 'Share your run as a card 📤', items: [
+    'New: the end-of-game share now leads with your score card — the card shows right there, and one Share button sends the image itself (into any app via your phone\'s share sheet, or copy/download on desktop). No more sharing a plain text line.',
+    'Change: the site Share button is now a single button too — it opens your share sheet on mobile (every app) or copies the link on desktop, instead of a row of network icons.',
+  ] },
   { date: '2026-07-06', title: 'Frog Bonk: tidier Zen 🐸', items: [
     'Fix: in Frog Bonk\'s Zen mode the difficulty picker is now grayed out — Zen has no failing, so difficulty never did anything there, and the menu now says so instead of offering a dead choice.',
   ] },

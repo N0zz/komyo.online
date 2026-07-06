@@ -1584,4 +1584,10 @@ window.KOMYO_I18N.fr = {
   'changelog.e43.b1': 'Nouveau : le stockage hors ligne est bien plus léger — les jeux partagent désormais un seul cache hors ligne au lieu de garder chacun sa copie des fichiers communs, et chaque jeu fonctionne toujours parfaitement hors ligne.',
   'changelog.e44.title': 'Tape la Grenouille : Zen plus soigné 🐸',
   'changelog.e44.b0': 'Correctif : en mode Zen de Tape la Grenouille, le sélecteur de difficulté est désormais grisé — en Zen on ne peut pas perdre, la difficulté n\'y changeait donc rien, et le menu le montre enfin au lieu de proposer un choix mort.',
+  'changelog.e45.title': 'Partage ta partie sous forme de carte 📤',
+  'changelog.e45.b0': 'Nouveau : le partage en fin de partie s\'articule désormais autour de ta carte de score — la carte s\'affiche directement, et un seul bouton Partager envoie l\'image elle-même (vers n\'importe quelle appli via le menu de partage du téléphone, ou copier/télécharger sur ordinateur). Fini le partage d\'une simple ligne de texte.',
+  'changelog.e45.b1': 'Changement : le bouton de partage du site est lui aussi unique désormais — il ouvre le menu de partage sur mobile (toutes les applis) ou copie le lien sur ordinateur, au lieu d\'une rangée d\'icônes de réseaux.',
+  'changelog.e46.title': 'Range : visée plus vive 🎯',
+  'changelog.e46.b0': 'Correctif : dans Range, le réticule suit désormais la souris instantanément au lieu d\'accuser une image de retard — la visée est nette et réactive.',
+  'changelog.e46.b1': 'Changement : l\'écran de fin a retiré un chiffre de temps déroutant — il n\'affiche plus que la précision, les touches et les ratés.',
 };

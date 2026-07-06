@@ -1584,4 +1584,10 @@ window.KOMYO_I18N.cs = {
   'changelog.e43.b1': 'Novinka: offline úložiště je mnohem úspornější — hry teď sdílejí jednu offline mezipaměť, místo aby si každá držela vlastní kopii společných souborů, a každá hra dál plně funguje offline.',
   'changelog.e44.title': 'Žabí ťuk: uklizenější Zen 🐸',
   'changelog.e44.b0': 'Oprava: v režimu Zen ve Žabím ťuku je výběr obtížnosti teď zešedlý — v Zenu nelze prohrát, takže obtížnost tam stejně nic nedělala, a menu to konečně dává najevo místo mrtvé volby.',
+  'changelog.e45.title': 'Sdílej skóre jako kartu 📤',
+  'changelog.e45.b0': 'Novinka: sdílení po hře teď vychází z tvé kartičky se skóre — kartička se hned ukáže a jediné tlačítko Sdílet pošle samotný obrázek (do libovolné aplikace přes systémové sdílení na telefonu, nebo zkopíruje/stáhne na počítači). Konec sdílení pouhého řádku textu.',
+  'changelog.e45.b1': 'Změna: tlačítko sdílení webu je teď taky jediné — na telefonu otevře systémové sdílení (každou aplikaci), na počítači zkopíruje odkaz, místo řady ikon sítí.',
+  'changelog.e46.title': 'Range: svižnější míření 🎯',
+  'changelog.e46.b0': 'Oprava: v Range zaměřovač teď sleduje myš okamžitě, místo aby se opožďoval o snímek — míření je ostré a svižné.',
+  'changelog.e46.b1': 'Změna: koncová obrazovka vypustila matoucí časový údaj — ukazuje teď jen přesnost, zásahy a minutí.',
 };
