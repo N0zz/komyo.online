@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-06', title: 'Meadow Flyer tidy-ups 🌼', items: [
+    'Fix: fireflies now drift behind the flower stems instead of glowing on top of them.',
+    'Fix: the background hills no longer vanish while still half on screen — they slide all the way out before recycling.',
+  ] },
   { date: '2026-07-06', title: 'Frog Bonk got a painterly makeover 🎨🐸', items: [
     'New: the whole meadow got a texture pass — thousands of grass blades, soft colour patches and one warm light direction with real cast shadows, in all four seasons.',
     'New: the castle is built from real stones now — weathered bricks, moss, a warmly lit window and gate, and a long evening shadow.',

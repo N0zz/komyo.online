@@ -494,6 +494,12 @@
     ctx.fillStyle = col;
     ctx.beginPath(); ctx.arc(x, H, r, 0, Math.PI, true); ctx.closePath(); ctx.fill();
   }
+  // wrap a hill's center over a period that includes its FULL diameter — a fixed
+  // ±150px margin made wide hills vanish while still half on screen
+  function hillX(base, speed, r) {
+    const period = W + 2 * r;
+    return ((base - hillScroll * speed) % period + period) % period - r;
+  }
 
   function drawStars() {
     for (const s of stars) {
@@ -797,9 +803,9 @@
       ctx.beginPath(); ctx.arc(W * 0.82 + 10, H * 0.12 - 8, 22, 0, Math.PI * 2); ctx.fill();
 
       // night hills
-      drawHill(((120 - hillScroll * 0.45) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.28, '#101830');
-      drawHill(((W * 0.55 - hillScroll * 0.6) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.22, '#0c1428');
-      drawHill(((W * 0.8 - hillScroll * 0.5) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.32, '#141c34');
+      drawHill(hillX(120, 0.45, W * 0.28), W * 0.28, '#101830');
+      drawHill(hillX(W * 0.55, 0.6, W * 0.22), W * 0.22, '#0c1428');
+      drawHill(hillX(W * 0.8, 0.5, W * 0.32), W * 0.32, '#141c34');
 
       // ground
       const groundH = 28;
@@ -808,9 +814,9 @@
       ctx.fillStyle = '#162010';
       ctx.fillRect(0, H - groundH, W, 5);
 
-      for (const o of obstacles) drawObstacle(o);
-
+      // fireflies live in the meadow BEHIND the flower stems, like the day leaves
       drawFireflies();
+      for (const o of obstacles) drawObstacle(o);
     } else {
       // Day sky gradient
       const skyGrad = ctx.createLinearGradient(0, 0, 0, H);
@@ -826,9 +832,9 @@
       }
 
       // hills
-      drawHill(((120 - hillScroll * 0.45) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.28, '#a8d870');
-      drawHill(((W * 0.55 - hillScroll * 0.6) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.22, '#90cc60');
-      drawHill(((W * 0.8 - hillScroll * 0.5) % (W + 300) + W + 300) % (W + 300) - 150, W * 0.32, '#b0dc80');
+      drawHill(hillX(120, 0.45, W * 0.28), W * 0.28, '#a8d870');
+      drawHill(hillX(W * 0.55, 0.6, W * 0.22), W * 0.22, '#90cc60');
+      drawHill(hillX(W * 0.8, 0.5, W * 0.32), W * 0.32, '#b0dc80');
 
       // ground
       const groundH = 28;
