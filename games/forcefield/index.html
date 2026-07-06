@@ -342,8 +342,8 @@
 
   // the deflector dome — a soft, fluid plasma field: gradient-faded band (no hard edges), gentle
   // breathing glow, drifting energy motes. No strokes, no gliding line.
-  function drawDome(P, l, col, bright) {
-    const dh = Math.max(0.03, l.zoneHalf) * 2 * P.A, th = thetaOf(P, l.pos), R = P.R + P.gap;
+  function drawDome(P, l, col, bright, posR) {
+    const dh = Math.max(0.03, l.zoneHalf) * 2 * P.A, th = thetaOf(P, posR != null ? posR : l.pos), R = P.R + P.gap;
     const thick = Math.max(4, P.gap * 0.26), a0 = th - dh, a1 = th + dh, rgb = hexRgb(col);   // thin, condensed
     ctx.save();
     ctx.shadowBlur = bright ? 26 : 18; ctx.shadowColor = col;
@@ -392,9 +392,13 @@
     ctx.strokeStyle = hot ? '#ffb0b8' : '#ff5b6b'; ctx.lineWidth = 2.5; const ms = Math.min(11, Math.max(7, P.gap * 0.4)) * (1 + 0.25 * chg);
     ctx.beginPath(); ctx.moveTo(mx - ms, my - ms); ctx.lineTo(mx + ms, my + ms); ctx.moveTo(mx + ms, my - ms); ctx.lineTo(mx - ms, my + ms); ctx.stroke();
 
-    // the atmosphere dome — a translucent plasma shield membrane
+    // the atmosphere dome — a translucent plasma shield membrane. The sweep is a
+    // constant-velocity mover → render-interpolate it with the loop phase so it
+    // glides at any refresh rate (see gamekit.loopAlpha).
+    const iA = (state === 'playing' && l.holdT <= 0 && KIT.loopAlpha) ? KIT.loopAlpha() : 0;
+    const posR = Math.max(0, Math.min(1, l.pos + l.dir * l.speed * iA));
     const dCol = (l.fxKind === 'deflect' && l.fxT > 0) ? '#b6ff5c' : shield;
-    drawDome(P, l, dCol, l.fxT > 0);
+    drawDome(P, l, dCol, l.fxT > 0, posR);
 
     // shot streak on tap: battle station → dome (deflect, stops at the atmosphere) or surface (breach)
     if (l.fxT > 0) {
@@ -454,12 +458,14 @@
     const chgOf = l => (l.holdT > 0 || !l.charge0) ? 0 : Math.min(1, l.chargeT / l.charge0);
     if (isDouble()) { drawChargeBox(ex - sr - 34, ey, chgOf(lanes[0])); drawChargeBox(ex + sr + 34, ey, chgOf(lanes[1])); }
     else drawChargeBox(ex, ey + sr + 15, chgOf(lanes[0]));
-    // deflected shots streaking off into space
+    // deflected shots streaking off into space (render-interpolated like the dome)
+    const ricA = KIT.loopAlpha ? KIT.loopAlpha() : 0;
     for (let i = 0; i < ricochets.length; i++) {
       const r = ricochets[i], a = Math.min(1, r.life / r.max * 1.4);
+      const rx = r.x + r.vx * ricA, ry = r.y + r.vy * ricA;
       ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = r.col; ctx.lineWidth = r.main ? 3 : 2; ctx.lineCap = 'round';
       ctx.shadowBlur = 10; ctx.shadowColor = r.col;
-      ctx.beginPath(); ctx.moveTo(r.x - r.vx * 2.6, r.y - r.vy * 2.6); ctx.lineTo(r.x, r.y); ctx.stroke(); ctx.restore();
+      ctx.beginPath(); ctx.moveTo(rx - r.vx * 2.6, ry - r.vy * 2.6); ctx.lineTo(rx, ry); ctx.stroke(); ctx.restore();
     }
 
     const fresh = shots === 0 && !lanes.some(s => s.fxT > 0);   // tutorial hint until the first shot resolves
