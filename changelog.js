@@ -4,6 +4,14 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-06', title: 'Keep Defender got real towers 🏰', items: [
+    'New: towers are hand-drawn builds now — stone platforms that visibly grow with every upgrade (flagstone ring → brick drum → battlement crown) carrying bows, cannons, ice spires, arcane orbs and harps. The emoji still mark them in the build bar.',
+    'New: enemies are drawn creatures — the rat, bat, troll, dragon, armored turtle and ant kept their species but gained shaded bodies, glossy eyes and grounded shadows.',
+    'New: all six maps got the texture pass — terrain colour patches, per-map micro-texture (grass blades, snow sparkle, sand grain, lava embers), a worn road with embedded stones, a stone-built keep and a gentle colour grade.',
+    'New: better battle feedback — bard-buffed towers sparkle gold with a drifting note instead of a plain circle, chilled enemies grow real ice shards with twinkling frost, and arrows kick up chips on impact.',
+    'Change: the adaptive THREAT multiplier is no longer capped at 5.0× — keep dominating and the game keeps climbing (and keeps paying more score).',
+    'New: map pickups got a facelift — minted gold coins with a travelling glint, a glassy haste orb and bronze event medallions, all grounded with soft shadows.',
+  ] },
   { date: '2026-07-06', title: 'Meadow Flyer tidy-ups 🌼', items: [
     'Fix: fireflies now drift behind the flower stems instead of glowing on top of them.',
     'Fix: the background hills no longer vanish while still half on screen — they slide all the way out before recycling.',

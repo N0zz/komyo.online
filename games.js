@@ -32,7 +32,7 @@ window.GAMES = [
     accent: "#e0b25a",
     tags: ["STRATEGY"],
     added: "2026-06-26",
-    updated: "2026-07-03",
+    updated: "2026-07-06",
   },
 
   {
