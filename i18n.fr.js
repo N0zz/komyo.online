@@ -1582,4 +1582,6 @@ window.KOMYO_I18N.fr = {
   'changelog.e43.title': 'Une mise à jour pour les gouverner toutes 🔄',
   'changelog.e43.b0': 'Correctif : appuyer sur « Mettre à jour » (dans les Réglages ou le menu ☰ de n\'importe quel jeu) met désormais TOUT le site à la dernière version d\'un coup — avant, un jeu resté longtemps fermé pouvait garder une ancienne version jusqu\'à une mise à jour séparée.',
   'changelog.e43.b1': 'Nouveau : le stockage hors ligne est bien plus léger — les jeux partagent désormais un seul cache hors ligne au lieu de garder chacun sa copie des fichiers communs, et chaque jeu fonctionne toujours parfaitement hors ligne.',
+  'changelog.e44.title': 'Tape la Grenouille : Zen plus soigné 🐸',
+  'changelog.e44.b0': 'Correctif : en mode Zen de Tape la Grenouille, le sélecteur de difficulté est désormais grisé — en Zen on ne peut pas perdre, la difficulté n\'y changeait donc rien, et le menu le montre enfin au lieu de proposer un choix mort.',
 };

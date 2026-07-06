@@ -1582,4 +1582,6 @@ window.KOMYO_I18N.cs = {
   'changelog.e43.title': 'Jedna aktualizace vládne všem 🔄',
   'changelog.e43.b0': 'Oprava: stisknutí „Aktualizovat“ (v Nastavení nebo v menu ☰ kterékoli hry) teď převede CELÝ web na nejnovější verzi najednou — dřív mohla hra, kterou jsi dlouho neotevřel, zůstat na starší verzi, dokud jsi ji neaktualizoval zvlášť.',
   'changelog.e43.b1': 'Novinka: offline úložiště je mnohem úspornější — hry teď sdílejí jednu offline mezipaměť, místo aby si každá držela vlastní kopii společných souborů, a každá hra dál plně funguje offline.',
+  'changelog.e44.title': 'Žabí ťuk: uklizenější Zen 🐸',
+  'changelog.e44.b0': 'Oprava: v režimu Zen ve Žabím ťuku je výběr obtížnosti teď zešedlý — v Zenu nelze prohrát, takže obtížnost tam stejně nic nedělala, a menu to konečně dává najevo místo mrtvé volby.',
 };

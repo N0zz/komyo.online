@@ -1584,4 +1584,6 @@ window.KOMYO_I18N.pl = {
   'changelog.e43.title': 'Jedna aktualizacja, by rządzić wszystkimi 🔄',
   'changelog.e43.b0': 'Poprawka: naciśnięcie „Zaktualizuj teraz” (w Ustawieniach lub w menu ☰ dowolnej gry) podnosi teraz CAŁĄ stronę do najnowszej wersji naraz — wcześniej gra, której dawno nie otwierałeś, mogła zostać na starszej wersji, aż zaktualizujesz ją osobno.',
   'changelog.e43.b1': 'Nowość: dane offline zajmują dużo mniej miejsca — gry współdzielą teraz jedną pamięć offline, zamiast trzymać każda własną kopię wspólnych plików, a każda gra wciąż działa w pełni offline.',
+  'changelog.e44.title': 'Żabi Stuk: schludniejszy Zen 🐸',
+  'changelog.e44.b0': 'Poprawka: w trybie Zen w Żabim Stuku wybór trudności jest teraz wyszarzony — w Zen nie da się przegrać, więc trudność i tak nic tam nie zmieniała, a menu wreszcie to pokazuje, zamiast oferować martwy wybór.',
 };

@@ -1582,4 +1582,6 @@ window.KOMYO_I18N.pt = {
   'changelog.e43.title': 'Uma atualização para a todos governar 🔄',
   'changelog.e43.b0': 'Correção: apertar "Atualizar agora" (nas Configurações ou no menu ☰ de qualquer jogo) agora traz o site INTEIRO para a versão mais recente de uma vez — antes, um jogo que você não abria há tempo podia ficar numa versão antiga até ser atualizado separadamente.',
   'changelog.e43.b1': 'Novo: o armazenamento offline ficou muito mais enxuto — os jogos agora compartilham um único cache offline em vez de cada um guardar sua própria cópia dos arquivos comuns, e todos continuam funcionando perfeitamente offline.',
+  'changelog.e44.title': 'Martela Rãs: Zen mais caprichado 🐸',
+  'changelog.e44.b0': 'Correção: no modo Zen de Martela Rãs o seletor de dificuldade agora fica esmaecido — no Zen não dá para perder, então a dificuldade nunca fazia nada ali, e o menu enfim mostra isso em vez de oferecer uma opção morta.',
 };

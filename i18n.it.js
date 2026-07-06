@@ -1582,4 +1582,6 @@ window.KOMYO_I18N.it = {
   'changelog.e43.title': 'Un aggiornamento per domarli tutti 🔄',
   'changelog.e43.b0': 'Fix: premere "Aggiorna ora" (nelle Impostazioni o nel menu ☰ di qualsiasi gioco) ora porta TUTTO il sito all\'ultima versione in un colpo solo — prima, un gioco che non aprivi da un po\' poteva restare su una versione vecchia finché non lo aggiornavi a parte.',
   'changelog.e43.b1': 'Novità: l\'archiviazione offline è molto più leggera — i giochi ora condividono un\'unica cache offline invece di tenere ognuno la propria copia dei file comuni, e ogni gioco continua a funzionare perfettamente offline.',
+  'changelog.e44.title': 'Colpisci la Rana: Zen più curato 🐸',
+  'changelog.e44.b0': 'Fix: nella modalità Zen di Colpisci la Rana il selettore di difficoltà ora è disattivato — in Zen non si può perdere, quindi la difficoltà lì non faceva nulla, e il menu finalmente lo mostra invece di offrire una scelta inutile.',
 };
