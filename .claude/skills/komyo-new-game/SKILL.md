@@ -44,9 +44,12 @@ the repo does well; see `references/genres.md`.
 
 ### 2 · Design note
 Before code: a short concept + a rough layout sketch (what's on screen, where the
-HUD sits, the core loop in 2–3 sentences). For anything with a novel mechanic,
-consider a quick mock at `~/arcade/plans/<slug>.html` (the repo publishes plans).
-This is the CLAUDE.md "design + mock" gate.
+HUD sits, the core loop in 2–3 sentences), **plus the scaling model** — fixed
+logical world (default) vs viewport-is-the-world vs scaled world, per
+`references/responsive.md` §1; if viewport-is-the-world, list every gameplay
+distance (spawn, ranges, knockbacks) the design will need. For anything with a
+novel mechanic, consider a quick mock at `~/arcade/plans/<slug>.html` (the repo
+publishes plans). This is the CLAUDE.md "design + mock" gate.
 
 ### 3 · POC — the mechanic only
 Build ONLY the core mechanic on a canvas: `update()` / `render()` / input, driven
@@ -64,7 +67,9 @@ section by section. Add the first real feature.
 
 ### 5 · Iterate ×2–3
 Each pass: add one feature and fix the bugs the previous playthrough surfaced.
-Play it each time. This is where feel and tuning happen.
+Play it each time. This is where feel and tuning happen. **At least one pass in
+browser device mode at 390×780 with a coarse pointer** (phone reach, rotation,
+entities arriving "from nowhere") — see `references/responsive.md` §5.
 
 ### 6 · Wire the feature systems
 - **Challenges (mandatory):** add the game's `CHALLENGES.goodRun` bar — without it
@@ -129,6 +134,12 @@ frame-rate-dependent game, a reset that wipes another game). The generated
 - **All drawing in CSS px** after `gamekit.fitCanvas`; scale pointers by
   `W / rect.width` (never `canvas.width`). Reserve `gamekit.layout.hudTop()` px of
   top headroom; the `layout` getter's `topReserve` must be ≥ `hudTop()`.
+- **Gameplay geometry scales with the viewport** (viewport-is-the-world games) —
+  distances derive from `W`/`H` (never desktop-tuned px constants), entities never
+  act while off-screen, spawns hug the screen edge, every displacement clamps into
+  the field, and the model invariants are asserted in the `runLayoutSuite` check
+  callback. See `references/responsive.md` §3–4 — Frog Bonk shipped all three of
+  these bugs with the layout suite green.
 - **Main loop is `gamekit.loop(update, render)`** — never `rAF → update()` directly.
   `update()` must be drivable by `__test.step(n)` and deterministic (seeded RNG in
   any path an assert checks).
@@ -161,6 +172,10 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   real snippets. Read at stage 4 (MVP).
 - `references/testing.md` — `test.mjs` + the shared harness + `runLayoutSuite` + the
   `__test`/`layout` contract. Read at stages 4 and 8.
+- `references/responsive.md` — fitting all devices: choosing the scaling model,
+  scaling MODEL geometry (spawns, ranges, knockbacks) with the viewport, making it
+  testable, phone-shaped playtesting. Read at stage 2 (design) and whenever the
+  playfield is the window.
 - `references/registration.md` — every shared file a game touches (games.js,
   challenges.js, cosmetics.js, sw.js, manifest, icons, sitemap, llms, changelog),
   exact shapes + the ordered checklist. Read at stages 6–7.
