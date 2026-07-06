@@ -415,7 +415,7 @@
     archer: { name: 'Archer', icon: '🏹', cost: 18, color: '#7fb85f', range: 2.7, dmg: 5,  cd: 30, kind: 'arrow', special: 'Fast single-target arrows. Weak vs armor.' },
     cannon: { name: 'Cannon', icon: '💣', cost: 38, color: '#c07a44', range: 2.4, dmg: 14, cd: 80, kind: 'ball', splash: 1.3, special: 'Splash damage in a blast radius. Pierces armor.' },
     frost:  { name: 'Frost',  icon: '❄️', cost: 30, color: '#6fb6e0', range: 2.3, dmg: 1,  cd: 16, kind: 'frost', slow: 0.5, special: 'Slows all enemies in range. Weak vs armor.' },
-    mage:   { name: 'Mage',   icon: '🔮', cost: 45, color: '#9b59b6', range: 2.6, dmg: 10, cd: 46, kind: 'mage', splash: 1.0, slow: 0.3, special: 'Arcane bolt: splash + slow. Pierces armor.' },
+    mage:   { name: 'Mage',   icon: '🔮', cost: 45, color: '#9b59b6', range: 2.6, dmg: 10, cd: 46, kind: 'mage', splash: 1.0, special: 'Arcane bolt: splash damage. Pierces armor.' },
     // Buff tower: deals no damage; auras nearby towers (+dmg / +range / +fire-rate).
     bard:   { name: 'Bard',   icon: '🎵', cost: 40, color: '#d9a441', range: 2.4, dmg: 0,  cd: 999, kind: 'buff', aura: { dmg: 0.35, range: 0.35, rate: 0.20 }, special: 'No attack. Aura buffs nearby towers: +35% dmg, +35% range, +20% fire-rate.' },
   };
@@ -1187,7 +1187,7 @@
         let any = false;
         for (const e of enemies) {
           if (dist(t.x, t.y, e.x, e.y) <= R) {
-            shots.push({ x: t.x, y: t.y, gx: t.c, gy: t.r, tx: e.x, ty: e.y, tgt: e, dmg: dmg0, kind: 'mage', splash: t.splash, slow: t.slow || 0.3, col: TOWERS.mage.color, t: 0, src: t });
+            shots.push({ x: t.x, y: t.y, gx: t.c, gy: t.r, tx: e.x, ty: e.y, tgt: e, dmg: dmg0, kind: 'mage', splash: t.splash, col: TOWERS.mage.color, t: 0, src: t });
             any = true;
           }
         }
@@ -1225,7 +1225,6 @@
           const SR = (s.splash || 1) * ts * 0.8;
           for (const e of enemies) {
             if (dist(aimx, aimy, e.x, e.y) <= SR) {
-              e.slow = Math.round((s.slow || 0.3) * 60);
               const dmg = effectiveDmg(s.dmg, e, 'mage');
               e.hp -= dmg;
               if (e.hp <= 0) { if (s.src) s.src.kills++; killEnemy(e); }
