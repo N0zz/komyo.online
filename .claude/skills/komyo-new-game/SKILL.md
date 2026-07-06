@@ -70,6 +70,10 @@ Each pass: add one feature and fix the bugs the previous playthrough surfaced.
 Play it each time. This is where feel and tuning happen. **At least one pass in
 browser device mode at 390×780 with a coarse pointer** (phone reach, rotation,
 entities arriving "from nowhere") — see `references/responsive.md` §5.
+**One iteration is the visual-quality pass** — the game ships at the bar in
+`references/visual-quality.md` (one light direction, form shading, glossy eyes,
+cached textured terrain, post grade, menu-backdrop parity), reviewed twice
+screenshot-driven, unless its identity is deliberately flat/glow.
 
 ### 6 · Wire the feature systems
 - **Challenges (mandatory):** add the game's `CHALLENGES.goodRun` bar — without it
@@ -163,6 +167,11 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   harness extracts it); `gamekit.pwa()` is called after the IIFE closes.
 - **Headless-safe** — guard `AudioContext`, `navigator.vibrate`, `matchMedia`; the
   game must boot in the mocked DOM without throwing.
+- **Ships at the visual-quality bar** (`references/visual-quality.md`) — cached
+  textured terrain (tufts not hair-strokes), one light direction with cast shadows,
+  form-shaded entities with glossy eyes, grade+vignette, menu backdrop at the same
+  bar (~2× stronger vs the kit's menu overlay), deterministic `h01` texture, drawn
+  board assets with emoji kept to the DOM UI. Flat/glow-identity games are exempt.
 
 ## Reference index — read the one the stage needs
 
@@ -176,6 +185,10 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   scaling MODEL geometry (spawns, ranges, knockbacks) with the viewport, making it
   testable, phone-shaped playtesting. Read at stage 2 (design) and whenever the
   playfield is the window.
+- `references/visual-quality.md` — the shipping visual bar: the seven requirements
+  (light, shading, eyes, cached texture, post, menu parity, grounded pickups/FX),
+  the hard performance/determinism rules, the two-round screenshot review, cost
+  planning. Read at stage 5 (the visual pass) and before any look-dev mock.
 - `references/registration.md` — every shared file a game touches (games.js,
   challenges.js, cosmetics.js, sw.js, manifest, icons, sitemap, llms, changelog),
   exact shapes + the ordered checklist. Read at stages 6–7.
