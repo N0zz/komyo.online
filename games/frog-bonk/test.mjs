@@ -158,8 +158,11 @@ section('frog-bonk: mage casts a telegraphed bolt from range');
   const L = T().layout;
   T().spawnAt('mage', L.castle.x + L.castle.r + 118, L.castle.y); // at casting range
   const hp0 = T().castleHp;
-  T().step(40 + 130 + 30 + 5); // sit → cast telegraph → bolt flight
+  // step to the impact tick and prove the explosion FX actually spawns
+  let stepped = 0, atImpact = 0;
+  while (T().castleHp === hp0 && stepped++ < 400) { T().step(1); atImpact = T().fxCount; }
   ok(T().castleHp === hp0 - 1, 'mage bolt deals 1 castle damage (hp ' + T().castleHp + ')');
+  ok(atImpact >= 14, 'bolt impact bursts particles + a shockwave ring (fx ' + atImpact + ')');
 }
 
 // ---- Waves / shop ----

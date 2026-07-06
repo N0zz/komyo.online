@@ -508,7 +508,13 @@
       if (--b.t <= 0) {
         SND.play(b.stone ? 'stone' : 'zaphit');
         damageCastle(b.dmg);
-        burst(bx2, by2, b.stone ? '#9a9284' : '#c8a0ff', b.stone ? 7 : 9);
+        // explode ON the wall face toward the thrower (the castle centre swallows small FX)
+        const ia = Math.atan2(b.y - cy, b.x - cx);
+        const ix = cx + Math.cos(ia) * castR * 0.96;
+        const iy = cy + Math.sin(ia) * castR * 0.55 * 0.96 + castR * 0.3;
+        parts.push({ x: ix, y: iy, ring: true, r: 4, maxR: b.stone ? 30 : 24, t: 16, col: b.stone ? '#cfc8b8' : '#e6c0ff' });
+        burst(ix, iy, b.stone ? '#9a9284' : '#c8a0ff', b.stone ? 12 : 14);
+        if (b.stone) burst(ix, iy - 4, '#6e685c', 5);   // darker rubble in the dust
         bolts.splice(i, 1);
       }
     }
@@ -531,7 +537,7 @@
       }
     }
     for (let i = pickups.length - 1; i >= 0; i--) { if (--pickups[i].t <= 0) { SND.play('flyblip'); pickups.splice(i, 1); } }
-    for (let i = parts.length - 1; i >= 0; i--) { const p = parts[i]; p.x += p.vx; p.y += p.vy; p.vy += 0.12; if (--p.t <= 0) parts.splice(i, 1); }
+    for (let i = parts.length - 1; i >= 0; i--) { const p = parts[i]; if (p.ring) { p.r += (p.maxR - p.r) * 0.3; } else { p.x += p.vx; p.y += p.vy; p.vy += 0.12; } if (--p.t <= 0) parts.splice(i, 1); }
     for (let i = pops.length - 1; i >= 0; i--) { pops[i].y -= 0.5; if (--pops[i].t <= 0) pops.splice(i, 1); }
     if (gameMode !== 'waves' && steps % 60 === 0) updateHud();   // tick the TIME stat
   }
@@ -1456,8 +1462,13 @@
     }
     for (const p of parts) {
       ctx.globalAlpha = Math.max(0, p.t / 26);
-      ctx.fillStyle = p.col;
-      ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+      if (p.ring) {
+        ctx.strokeStyle = p.col; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.ellipse(p.x, p.y, p.r, p.r * 0.6, 0, 0, 7); ctx.stroke();
+      } else {
+        ctx.fillStyle = p.col;
+        ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+      }
     }
     ctx.globalAlpha = 1;
     drawSwing();
@@ -2066,6 +2077,7 @@
     clearFrogs() { frogs = []; spawnQueue = []; },
     spawnPos,
     firePea(i) { const f = frogs[i]; if (f) peas.push({ x: cx, y: cy, tx: f.x, ty: f.y, t: 2, frog: f }); },
+    get fxCount() { return parts.length; },
     setFlies(n) { flies = n; updateHud(); },
     setCastleHp(n) { castleHp = n; updateHud(); },
     whack,
