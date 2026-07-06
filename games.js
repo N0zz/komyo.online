@@ -53,7 +53,7 @@ window.GAMES = [
     accent: "#2ee8c8",
     tags: ["PUZZLE", "CASUAL"],
     added: "2026-06-26",
-    updated: "2026-07-03",
+    updated: "2026-07-06",
   },
   {
     slug: "frog-bonk",

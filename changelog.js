@@ -4,6 +4,15 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-06', title: 'Bubble Pop, extra glossy 🫧', items: [
+    'New: bubbles are proper candy now — grounded with soft shadows, lit through the bottom, with double sparkles and a rim of light. Colours and symbols stay exactly as readable as before.',
+    'New: the board has depth — soft candy-glow pools behind the field, shaded walls and a gentle vignette.',
+  ] },
+  { date: '2026-07-06', title: 'Meadow Flyer got the storybook pass 🌼', items: [
+    'New: the meadow is layered now — shaded clouds with sunlit caps, far hills fading into haze, a low sun by day and a moon halo at night, plus a gentle colour grade.',
+    'New: the flower stems grew ribs, sunlit rims and leaf collars at the gaps, the blossoms got shading, and little grass tufts line the ground.',
+    'New: every flyer has glossy eyes and soft body shading — same silhouettes, more life.',
+  ] },
   { date: '2026-07-06', title: 'Keep Defender got real towers 🏰', items: [
     'New: towers are hand-drawn builds now — stone platforms that visibly grow with every upgrade (flagstone ring → brick drum → battlement crown) carrying bows, cannons, ice spires, arcane orbs and harps. The emoji still mark them in the build bar.',
     'New: enemies are drawn creatures — the rat, bat, troll, dragon, armored turtle and ant kept their species but gained shaded bodies, glossy eyes and grounded shadows.',
