@@ -148,11 +148,9 @@
   let cloudScroll = 0, hillScroll = 0;
   // Render interpolation: the kit loop steps physics at a fixed 60 Hz with no
   // interpolation, so constant-speed movers (the pipes!) visibly hitch whenever a
-  // display frame runs 0 or 2 steps (60 Hz beat) or repeats a step (120 Hz+).
-  // update() stamps its wall-clock time; render() advances every mover by its
-  // per-step velocity × the fraction of the step elapsed since. View-only.
-  const perfNow = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
-  let stepAt = 0;
+  // display frame runs 0 or 2 steps. gamekit.loopAlpha() is the loop's REAL
+  // accumulator phase (0..1 into the next step) — render() advances every mover by
+  // its per-step velocity × that phase. View-only; wall-clock guesses jitter.
   let renFrac = 0, hillScrollR = 0, cloudScrollR = 0;
   const clouds = [];
   const hills = [];
@@ -450,7 +448,6 @@
   // ---- Update ----
   function update() {
     frame++;
-    stepAt = perfNow();
     if (state !== 'playing') return;
 
     obsSpeed = currentSpeed();
@@ -572,7 +569,7 @@
   function drawLeaves() {
     for (const l of leaves) {
       const y = l.y + Math.sin(l.sway) * 10;
-      ctx.save(); ctx.translate(l.x, y); ctx.rotate(l.spin); ctx.globalAlpha = 0.8;
+      ctx.save(); ctx.translate(l.x - obsSpeed * l.speed * renFrac, y); ctx.rotate(l.spin); ctx.globalAlpha = 0.8;
       ctx.fillStyle = l.col; ctx.beginPath(); ctx.ellipse(0, 0, l.r + 2, l.r - 1, 0, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
@@ -583,12 +580,13 @@
     for (const f of fireflies) {
       const glow = 0.5 + 0.5 * Math.sin(frame * 0.07 + f.phase);
       const fy = f.y + Math.sin(frame * 0.02 + f.phase) * f.amp * 0.3;
+      const ffx = f.x - obsSpeed * 0.3 * renFrac;
       ctx.globalAlpha = 0.3 + 0.7 * glow;
       ctx.fillStyle = '#d0ff60';
-      ctx.beginPath(); ctx.arc(f.x, fy, 2.5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ffx, fy, 2.5, 0, Math.PI * 2); ctx.fill();
       ctx.globalAlpha = 0.12 * glow;
       ctx.fillStyle = '#c0ff40';
-      ctx.beginPath(); ctx.arc(f.x, fy, 8, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ffx, fy, 8, 0, Math.PI * 2); ctx.fill();
     }
     ctx.globalAlpha = 1;
   }
@@ -926,8 +924,8 @@
   }
 
   function render() {
-    renFrac = (state === 'playing' && !(KIT.isPaused && KIT.isPaused()))
-      ? Math.min(1, Math.max(0, (perfNow() - stepAt) / (1000 / 60))) : 0;
+    renFrac = (state === 'playing' && KIT.loopAlpha && !(KIT.isPaused && KIT.isPaused()))
+      ? Math.min(1, Math.max(0, KIT.loopAlpha())) : 0;
     hillScrollR = hillScroll + 0.55 * renFrac;
     cloudScrollR = cloudScroll + 0.28 * renFrac;
     if (mode === 'night') {
@@ -1007,8 +1005,10 @@
       ctx.restore();
     }
 
-    // collectibles (both modes) — emoji-as-text with a soft glow
+    // collectibles (both modes) — emoji-as-text with a soft glow; they scroll with
+    // the pipes, so they ride the same interpolated layer (else they judder beside them)
     if (collectibles.length) {
+      ctx.save(); ctx.translate(-obsSpeed * renFrac, 0);
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.font = '24px serif';
@@ -1020,6 +1020,7 @@
         ctx.globalAlpha = 1;
         ctx.fillText(c.emoji, c.x, c.y);
       }
+      ctx.restore();
     }
 
     // particles (both modes)
