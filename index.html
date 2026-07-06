@@ -663,10 +663,15 @@
   .idcard.pf-reveal::after { content:"★ NEW TITLE"; position:absolute; top:-9px; right:10px; z-index:2; padding:3px 8px; border-radius:999px;
     background:#ffd166; color:#1a1405; font:800 10px/1 var(--mono, monospace); letter-spacing:1px;
     box-shadow:0 0 12px rgba(255,209,102,0.8); animation:idChip 2.4s ease forwards; }
+  /* the same one-shot reveal on the profile MODAL's titlebar — the side-stack Profile dot leads here now */
+  .pf-titlebar.pf-reveal { animation:idReveal 1.4s cubic-bezier(.2,1.2,.4,1); border-color:#ffd166; overflow:visible; }
+  .pf-titlebar.pf-reveal::after { content:"★ NEW TITLE"; position:absolute; top:-9px; right:10px; z-index:2; padding:3px 8px; border-radius:999px;
+    background:#ffd166; color:#1a1405; font:800 10px/1 var(--mono, monospace); letter-spacing:1px;
+    box-shadow:0 0 12px rgba(255,209,102,0.8); animation:idChip 2.4s ease forwards; }
   @keyframes idReveal { 0% { transform:scale(.94); filter:brightness(1.7) drop-shadow(0 0 18px rgba(255,209,102,.9)); }
     45% { transform:scale(1.03); } 100% { transform:scale(1); filter:none; } }
   @keyframes idChip { 0% { opacity:0; transform:translateY(4px); } 12%,80% { opacity:1; transform:translateY(0); } 100% { opacity:0; } }
-  @media (prefers-reduced-motion: reduce){ .tb-btn.tb-notify, .idcard.pf-reveal { animation:none; } .idcard.pf-reveal::after { animation:none; } }
+  @media (prefers-reduced-motion: reduce){ .tb-btn.tb-notify, .idcard.pf-reveal, .pf-titlebar.pf-reveal { animation:none; } .idcard.pf-reveal::after, .pf-titlebar.pf-reveal::after { animation:none; } }
   .idcard:hover .pf-titlebar, .idcard:focus-visible .pf-titlebar { border-color:#9fe8ff; }
   .idcard:hover .pf-chev { color:#9fe8ff; transform:translateX(2px); }
   .pf-compact { padding:11px 12px; gap:10px; }
@@ -1892,8 +1897,13 @@
       // also reflects ?m=profile); Collection → the store (window.__openShop reflects ?m=cosmetics)
       const pq = document.getElementById('profileQuick');
       if (pq) pq.addEventListener('click', () => {
+        const fresh = window.__titleIsFresh ? window.__titleIsFresh() : false;
         if (window.__markTitleSeen) window.__markTitleSeen(); // opening the profile counts as "seen the new title"
         if (window.__openProfile) window.__openProfile();
+        if (fresh) requestAnimationFrame(() => {   // one-shot "★ NEW TITLE" reveal on the freshly rendered titlebar
+          const tb = document.querySelector('#profileModal .pf-titlebar');
+          if (tb) { tb.classList.add('pf-reveal'); setTimeout(() => { try { tb.classList.remove('pf-reveal'); } catch (e) {} }, 2700); }
+        });
       });
       const cq = document.getElementById('collectionQuick');
       if (cq) cq.addEventListener('click', () => { if (window.__openShop) window.__openShop(); });
@@ -2447,6 +2457,7 @@
         if (sb && sb.classList) sb.classList.toggle('tb-notify', updateIsAvailable());
         if (window.__setStackDot) window.__setStackDot('profileQuick', titleIsFresh());
       }
+      window.__titleIsFresh = titleIsFresh;
       window.__markTitleSeen = () => {
         try { localStorage.setItem(TSEEN, String(titleData().earnedTier)); } catch (e) {}
         renderMenuDot();
