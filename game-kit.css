@@ -501,9 +501,20 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 .gamekit-share .sbtn:hover { color: #fff !important; border-color: var(--gamekit-accent) !important; background: rgba(8, 12, 20, 0.8) !important; }
 .gamekit-share .sbtn.ok { color: #7fe0a0 !important; border-color: #7fe0a0 !important; }
 .gamekit-share .sbtn[data-act="discord"]:hover { color: #fff !important; border-color: #5865F2 !important; background: #5865F2 !important; }
-/* Discord Activity: X / Reddit open other sites (can't proxy without the SDK) → hide them. Copy, the
-   Discord post (proxied webhook) and native share (only shown when supported) stay. */
-.in-activity .gamekit-share .sbtn[data-act="x"], .in-activity .gamekit-share .sbtn[data-act="reddit"] { display: none !important; }
+/* score-card-first share (end screen): the branded card renders inline (the shareable artifact) above
+   ONE Share button that opens the image menu (native w/ image+link · copy image · download). Themed by
+   the menu's --gkm-accent so the button matches the game. */
+.gamekit-share-card { flex-direction: column !important; gap: 12px !important; }
+.gamekit-share-card .gkshare-card { display: block; width: 100%; max-width: 340px; border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45); cursor: pointer; }
+.gamekit-share .gkshare-btn { appearance: none; -webkit-appearance: none; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  font: 700 14px/1 ui-monospace, monospace; letter-spacing: 0.5px; padding: 12px 24px; border-radius: 11px;
+  color: #06131f; background: var(--gkm-accent, #9fe8ff); border: 1px solid var(--gkm-accent, #9fe8ff);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); transition: filter .12s, transform .06s; }
+.gamekit-share .gkshare-btn:hover { filter: brightness(1.08); }
+.gamekit-share .gkshare-btn:active { transform: translateY(1px); }
+.gamekit-share .gkshare-btn svg { width: 17px; height: 17px; fill: currentColor; display: block; }
 
 /* "Tap to play" splash — one gesture up front so audio can start (browsers block autoplay until a tap).
    Shown once per game load; the tap is the unlock. */

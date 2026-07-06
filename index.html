@@ -225,12 +225,18 @@
 
   footer { text-align:center; margin-top: 46px; font-size: 12px; color:var(--faint); }
   footer a { text-decoration:none; }
-  .coffee { color:#ffce5c; font-weight:700; }
-  .coffee:hover { color:#ffe08a; text-decoration:underline; }
-  /* footer is three stacked lines: tagline / links / commit sha */
-  .foot-links { display:flex; gap:18px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:7px; }
-  .foot-links a { display:inline-flex; align-items:center; gap:5px; }
-  .foot-ver { margin-top:9px; }
+  /* footer is three stacked lines: tagline / pill row (coffee · github · share) / commit sha */
+  .foot-links { display:flex; gap:10px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:12px; }
+  /* one equal pill shape for all three; coffee keeps its golden text as its identity */
+  .footpill { display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 15px; border-radius:999px; cursor:pointer;
+    color:var(--faint); background:var(--surface-2); border:1px solid var(--border); font-size:12.5px; font-weight:600;
+    text-decoration:none; transition:color .12s, border-color .12s, background .12s; }
+  .footpill svg { width:16px; height:16px; fill:currentColor; display:block; }
+  .footpill:hover { color:#fff; border-color:#9fe8ff; }
+  .footpill.coffee { color:#ffce5c; }
+  .footpill.coffee:hover { color:#ffe08a; border-color:#ffce5c; background:rgba(255,206,92,0.10); }
+  .footpill.ok { color:#7fe0a0; border-color:#7fe0a0; }
+  .foot-ver { margin-top:11px; }
   /* version label (footer + drawer): small, muted monospace; links to the commit, accent on hover */
   .verlink { font-family:var(--mono); font-size:11px; letter-spacing:.4px; color:var(--faint); text-decoration:none; display:inline-block; }
   .verlink:hover { color:#9fe8ff; }
@@ -262,15 +268,7 @@
   .cb-accept { background:#9fe8ff; color:#06121a; font-weight:700; border-color:#9fe8ff; }
   .cb-accept:hover { background:#bdf0ff; }
 
-  .share { display:flex; gap:9px; justify-content:center; flex-wrap:wrap; align-items:center; margin-bottom:18px; }
-  .share .lbl { font-family:var(--mono); font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:var(--faint); margin-right:2px; }
-  .share .sbtn { display:inline-flex; align-items:center; justify-content:center; width:38px; height:38px; padding:0; cursor:pointer;
-    border-radius:10px; color:var(--muted); background:var(--surface-2); border:1px solid var(--border); transition:color .12s, border-color .12s; }
-  .share .sbtn svg { width:18px; height:18px; fill:currentColor; display:block; }
-  .share .sbtn:hover { color:#fff; border-color:#9fe8ff; }
-  #shareFb:hover { color:#1877f2; border-color:#1877f2; }
-  #shareReddit:hover { color:#ff4500; border-color:#ff4500; }
-  #shareCopy.ok { color:#7fe0a0; border-color:#7fe0a0; }
+  .ditem.ok { color:#7fe0a0; } /* drawer Share item flashes green on "Copied!" (desktop) */
 
   /* feedback modal */
   #fbModal, #nlModal, #clModal, #aboutModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal, #profileModal, #titlesModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
@@ -734,8 +732,6 @@
   .ditem.coffee { color:#ffce5c; }
   .ditem.coffee:hover { background:rgba(255,206,92,0.10); }
   .ditem .di svg { width:16px; height:16px; display:block; margin:0 auto; fill:currentColor; }
-  .dshare { justify-content:center; margin:2px 4px 8px; gap:8px; flex-wrap:wrap; }
-  .share .sbtn.ok { color:#7fe0a0; border-color:#7fe0a0; }
   .gtag { font-family:var(--mono); font-size:11px; letter-spacing:1px; }
   .dresize { position:absolute; top:0; bottom:0; width:9px; cursor:col-resize; z-index:3; touch-action:none; }
   .drawer.left .dresize { right:0; } .drawer.right .dresize { left:0; }
@@ -844,25 +840,15 @@
     <main><div class="grid" id="grid"></div></main>
 
     <footer>
-      <div class="share">
-        <span class="lbl" data-t="cat.share">Share</span>
-        <a class="sbtn" id="shareNative" href="#" style="display:none" aria-label="Share…" title="Share…">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></a>
-        <a class="sbtn" id="shareX" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-        <a class="sbtn" id="shareFb" target="_blank" rel="noopener" aria-label="Share on Facebook" title="Share on Facebook">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
-        <a class="sbtn" id="shareReddit" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12c-.688 0-1.25.561-1.25 1.25 0 .687.562 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.688-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg></a>
-        <button class="sbtn" id="shareCopy" type="button" aria-label="Copy link" title="Copy link">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button>
-      </div>
       <div class="foot-tag" data-t="cat.footTag">built for fun · free forever · no ads · no accounts · kid-safe · every game works offline</div>
       <div class="foot-links">
-        <a class="coffee" href="https://buymeacoffee.com/komyo.online" data-t="cat.coffee">☕ Buy me a coffee</a>
-        <a class="ghlink" href="https://github.com/N0zz/komyo.online" target="_blank" rel="noopener" aria-label="Komyo Games on GitHub" title="View source on GitHub">
+        <a class="footpill coffee" href="https://buymeacoffee.com/komyo.online" target="_blank" rel="noopener" data-t="cat.coffee">☕ Buy me a coffee</a>
+        <a class="footpill ghlink" href="https://github.com/N0zz/komyo.online" target="_blank" rel="noopener" aria-label="Komyo Games on GitHub" title="View source on GitHub">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.37.5 0 5.87 0 12.5c0 5.3 3.44 9.8 8.21 11.39.6.11.82-.26.82-.58 0-.29-.01-1.04-.02-2.05-3.34.73-4.04-1.61-4.04-1.61-.55-1.39-1.34-1.76-1.34-1.76-1.09-.75.08-.73.08-.73 1.21.09 1.84 1.24 1.84 1.24 1.07 1.84 2.81 1.31 3.5 1 .11-.78.42-1.31.76-1.61-2.67-.3-5.47-1.34-5.47-5.95 0-1.31.47-2.39 1.24-3.23-.12-.31-.54-1.52.12-3.18 0 0 1.01-.32 3.3 1.23a11.5 11.5 0 0 1 6.01 0c2.29-1.55 3.3-1.23 3.3-1.23.66 1.66.24 2.87.12 3.18.77.84 1.24 1.92 1.24 3.23 0 4.62-2.81 5.64-5.49 5.94.43.37.81 1.1.81 2.22 0 1.61-.01 2.9-.01 3.29 0 .32.21.7.82.58A12.01 12.01 0 0 0 24 12.5C24 5.87 18.63.5 12 .5z"/></svg>
           GitHub</a>
+        <button class="footpill" id="shareSite" type="button" aria-label="Share komyo">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg>
+          <span data-t="cat.share">Share</span></button>
       </div>
       <div class="foot-ver"><a class="verlink" id="footVersion" target="_blank" rel="noopener" aria-label="View this build's commit on GitHub"></a></div>
     </footer>
@@ -891,19 +877,10 @@
       <div class="dgrp">
         <div class="dl" data-t="drawer.support">Support</div>
         <a class="ditem coffee" href="https://buymeacoffee.com/komyo.online" target="_blank" rel="noopener"><span class="di">☕</span> <span data-t="drawer.coffee">Buy me a coffee</span></a>
+        <button class="ditem" id="dShareSite" type="button"><span class="di">📤</span> <span data-t="cat.share">Share</span></button>
         <button class="ditem" id="merchBtn" type="button"><span class="di">🛍️</span> <span data-t="drawer.merch">Merch / Store</span> <span class="mock">SOON</span></button>
       </div>
-      <div class="dgrp dbottom">
-        <div class="dl" data-t="cat.share">Share</div>
-        <div class="share dshare">
-          <a class="sbtn" id="dShareNative" href="#" style="display:none" aria-label="Share…" title="Share…"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></svg></a>
-          <a class="sbtn" id="dShareX" target="_blank" rel="noopener" aria-label="Share on X" title="Share on X"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
-          <a class="sbtn" id="dShareFb" target="_blank" rel="noopener" aria-label="Share on Facebook" title="Share on Facebook"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg></a>
-          <a class="sbtn" id="dShareReddit" target="_blank" rel="noopener" aria-label="Share on Reddit" title="Share on Reddit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12c-.688 0-1.25.561-1.25 1.25 0 .687.562 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.688-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/></svg></a>
-          <button class="sbtn" id="dShareCopy" type="button" aria-label="Copy link" title="Copy link"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z"/></svg></button>
-        </div>
-      </div>
-      <div class="dver"><a class="verlink" id="drawerVersion" target="_blank" rel="noopener" aria-label="View this build's commit on GitHub"></a></div>
+      <div class="dver dbottom"><a class="verlink" id="drawerVersion" target="_blank" rel="noopener" aria-label="View this build's commit on GitHub"></a></div>
     </div>
   </aside>
 
@@ -1686,8 +1663,9 @@
         // aggregate, consent-gated: which drawer feature a player opens (id 'fooBtn' → 'foo')
         const item = e.target.closest('.ditem, .idcard');
         if (item && item.id && window.gamekitTrack) window.gamekitTrack('feature_open', { feature: item.id.replace(/Btn$/, '') });
-        // close button, or any actionable item (link / action button) dismisses the drawer
-        if (e.target.closest('[data-close]') || item) close();
+        // close button, or any actionable item (link / action button) dismisses the drawer — EXCEPT
+        // Share, which fires a transient native sheet / in-place "Copied!"; keep the drawer open there
+        if (e.target.closest('[data-close]') || (item && item.id !== 'dShareSite')) close();
       }));
       // resizable + persisted widths (challenges defaults wider than the menu)
       const DW = { menu: { key: 'gamekit_dw_menu', def: 340 }, chal: { key: 'gamekit_dw_chal', def: 440 } };
@@ -1722,30 +1700,31 @@
       if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('resize', () => { applyW(menu, 'menu'); applyW(chal, 'chal'); });
     })();
 
-    // ---- Share buttons (footer + drawer share rows share one wiring) ----
+    // ---- Site share — ONE adaptive button (footer + drawer): native sheet on mobile (drops the link
+    // into any app), copy-link on desktop. No hardcoded X/Reddit/FB — the site is a plain link, so
+    // those intents just pre-fill text a sharer would rather write themselves, and mobile's native
+    // sheet already lists every app. ----
     (function () {
       const url = 'https://komyo.online/';
       const text = 'Free, self-contained browser games — no ads, plays offline:';
-      const enc = (typeof encodeURIComponent === 'function') ? encodeURIComponent : (s => String(s));
-      const u = enc(url), t = enc(text);
-      function wire(ids) {
-        const set = (id, href) => { const e = document.getElementById(id); if (e) e.href = href; };
-        set(ids.x, 'https://twitter.com/intent/tweet?text=' + t + '&url=' + u);
-        set(ids.fb, 'https://www.facebook.com/sharer/sharer.php?u=' + u);
-        set(ids.reddit, 'https://www.reddit.com/submit?url=' + u + '&title=' + t);
-        const cp = document.getElementById(ids.copy);
-        if (cp) cp.addEventListener('click', () => {
-          const done = () => { cp.classList.add('ok'); cp.title = window.gamekit.t('share.copied', { def: 'Copied!' }); setTimeout(() => { cp.classList.remove('ok'); cp.title = window.gamekit.t('cat.copyLink', { def: 'Copy link' }); }, 1500); };
-          try { navigator.clipboard.writeText(url).then(done).catch(() => {}); } catch (e) {}
+      const K = window.gamekit;
+      const canNative = typeof navigator !== 'undefined' && !!navigator.share;
+      function wire(id) {
+        const b = document.getElementById(id); if (!b) return;
+        const sp = b.querySelector('span[data-t]'); // the label span (drawer item's first span is the icon)
+        if (!canNative && sp) { sp.setAttribute('data-t', 'cat.copyLink'); sp.textContent = K.t('cat.copyLink', { def: 'Copy link' }); }
+        b.addEventListener('click', () => {
+          if (canNative) { try { navigator.share({ title: 'Komyo Games', text, url }).catch(() => {}); } catch (e) {} return; }
+          try {
+            navigator.clipboard.writeText(url).then(() => {
+              if (!sp) return; const prev = sp.textContent; b.classList.add('ok');
+              sp.textContent = K.t('share.copied', { def: 'Copied!' });
+              setTimeout(() => { b.classList.remove('ok'); sp.textContent = prev; }, 1500);
+            }).catch(() => {});
+          } catch (e) {}
         });
-        const ns = document.getElementById(ids.native);
-        if (ns && typeof navigator !== 'undefined' && navigator.share) {
-          ns.style.display = '';
-          ns.addEventListener('click', (e) => { e.preventDefault(); navigator.share({ title: 'Komyo Games', text: text, url: url }).catch(() => {}); });
-        }
       }
-      wire({ x: 'shareX', fb: 'shareFb', reddit: 'shareReddit', copy: 'shareCopy', native: 'shareNative' });
-      wire({ x: 'dShareX', fb: 'dShareFb', reddit: 'dShareReddit', copy: 'dShareCopy', native: 'dShareNative' });
+      wire('shareSite'); wire('dShareSite');
     })();
 
     // ---- Language picker (header) — kit-built flag trigger → themed grid ----

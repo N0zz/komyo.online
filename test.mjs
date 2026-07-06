@@ -511,9 +511,12 @@ async function testKit() {
   let embErr = null; try { F.embedModal({ slug: 'snake', title: 'Neon Snake' }); F.embedModal({ games: [{ slug: 'a', title: 'A' }, { slug: 'b', title: 'B' }] }); } catch (e) { embErr = e.message; }
   ok(embErr === null && typeof F.embedModal === 'function', 'embedModal builds (single + picker) headless: ' + embErr);
   // headless-safe (incl. the audio menu + reset + music flag)
-  let threw = null;
-  try { F.nav({ music: true, reset: 'snake_' }); F.shareRow(doc.getElementById('sr'), { slug: 'snake', message: () => 'x' }); F.pwa(); F.resetScores('snake_'); } catch (e) { threw = e.message; }
+  let threw = null; const sr = doc.getElementById('sr');
+  try { F.nav({ music: true, reset: 'snake_' }); F.shareRow(sr, { slug: 'snake', message: () => 'x' }); F.pwa(); F.resetScores('snake_'); } catch (e) { threw = e.message; }
   ok(threw === null, 'nav/audioMenu/shareRow/pwa/resetScores run headless without throwing: ' + threw);
+  // endgame share is score-card-first: one Share button (opens the image menu), no X/Reddit/copy-link
+  ok(String(sr.innerHTML).indexOf('data-act="card"') >= 0 && !/data-act="(x|reddit|native|copy)"/.test(String(sr.innerHTML)),
+    'endgame share row is card-only — single Share button, no link/social buttons');
   // version tag (bottom-left build stamp): renders the SHA when present, no-op on dev
   g.win.KOMYO_VERSION = { sha: 'abc1234', url: 'https://github.com/N0zz/komyo.online/commit/abc1234' };
   F.versionTag();

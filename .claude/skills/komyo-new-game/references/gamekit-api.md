@@ -523,10 +523,12 @@ it), and read the selected skin in render. The 🎨 button + store are automatic
 
 ### `KIT.shareRow(el, o)` — optional (usually via menu `share:`)
 
-Renders the Native/X/Reddit/Copy/Card share row into `el`, and auto-posts the score to Discord when
-the row becomes visible (consent-tiered). `o`: `{slug, url?, title, message, params?, accent, icon,
-mascot, card?}`:
-- `message` is a fn → a standalone sentence (no URL), evaluated at click time.
+**Score-card-first.** Renders the neon score card **inline** + ONE **Share** button that opens the
+image menu (native share attaches the card image **+** the link/text together · Copy image ·
+Download). No X/Reddit/copy-link buttons — a link web-intent can't carry the card image, and mobile's
+native sheet already lists every app. Auto-posts the score to Discord when the row becomes visible
+(consent-tiered). `o`: `{slug, url?, title, message, params?, accent, icon, mascot, card?}`:
+- `message` is a fn → a standalone sentence (no URL), evaluated at click time (rides the native share as `text`).
 - `params` (object or fn) → appended as a query string so a shared link deep-links back to the mode.
 - `card` (object or fn → `{score, sub, accent, icon, mascot}`) customises the score card; defaults
   come from the last recorded result, so no per-game wiring is needed.

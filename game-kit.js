@@ -2110,7 +2110,11 @@
     var bShare = q('.gamekit-sm-share'), bCopy = q('.gamekit-sm-copy'), bDl = q('.gamekit-sm-dl'), bX = q('.gamekit-sm-x');
     if (bShare) bShare.addEventListener('click', function () {
       close();
-      try { navigator.share({ files: [file], title: opts.title || 'Komyo Games' })['catch'](function () {}); } catch (e) {}
+      // attach the card image AND the link/text: targets that take files show the card, the rest keep the link
+      var data = { files: [file], title: opts.title || 'Komyo Games' };
+      if (opts.text) data.text = opts.text;
+      if (opts.url) data.url = opts.url;
+      try { navigator.share(data)['catch'](function () {}); } catch (e) {}
     });
     if (bCopy) bCopy.addEventListener('click', function () {
       try {
@@ -2144,33 +2148,18 @@
     }
     var title = o.title || 'Komyo Games';
     var getMsg = (typeof o.message === 'function') ? o.message : function () { return o.message || ''; };
-    if (el.classList) el.classList.add('gamekit-share');
+    // Score-card first: the end screen shows the branded card inline (it IS the shareable artifact,
+    // personalised to the run) + ONE Share button that opens the image menu (native w/ image+link,
+    // copy image, download). No X/Reddit/copy-link buttons — a link web-intent can't carry the card,
+    // and the native sheet already lists every app on mobile.
+    if (el.classList) el.classList.add('gamekit-share', 'gamekit-share-card');
     el.innerHTML =
-      '<a class="sbtn" data-act="native" href="#" style="display:none" aria-label="' + t('share.share') + '" title="' + t('share.share') + '">' + SVG.native + '</a>' +
-      '<a class="sbtn" data-act="x" target="_blank" rel="noopener" aria-label="' + t('share.onX') + '" title="' + t('share.onX') + '">' + SVG.x + '</a>' +
-      '<a class="sbtn" data-act="reddit" target="_blank" rel="noopener" aria-label="' + t('share.onReddit') + '" title="' + t('share.onReddit') + '">' + SVG.reddit + '</a>' +
-      '<button class="sbtn" data-act="copy" type="button" aria-label="' + t('share.copy') + '" title="' + t('share.copy') + '">' + SVG.copy + '</button>' +
-      '<button class="sbtn" data-act="card" type="button" aria-label="' + t('share.cardImage') + '" title="' + t('share.cardImage') + '">' + SVG.card + '</button>';
+      '<img class="gkshare-card" alt="" style="display:none">' +
+      '<button class="gkshare-btn" type="button" data-act="card">' + SVG.card + '<span>' + t('share.share') + '</span></button>';
     var q = function (sel) { try { return el.querySelector ? el.querySelector(sel) : null; } catch (e) { return null; } };
-    var x = q('[data-act="x"]'), reddit = q('[data-act="reddit"]'), copy = q('[data-act="copy"]'), native = q('[data-act="native"]'), cardBtn = q('[data-act="card"]');
-    var refresh = function () { var u = shareUrls(getUrl(), getMsg()); if (x) x.href = u.x; if (reddit) reddit.href = u.reddit; };
-    if (x) x.addEventListener('click', refresh);
-    if (reddit) reddit.addEventListener('click', refresh);
-    refresh();
-    if (copy) copy.addEventListener('click', function () {
-      var u = shareUrls(getUrl(), getMsg());
-      try {
-        if (navigator.clipboard) navigator.clipboard.writeText(u.copy).then(function () {
-          if (copy.classList) copy.classList.add('ok');
-          var prev = copy.title; copy.title = t('share.copied');
-          setTimeout(function () { if (copy.classList) copy.classList.remove('ok'); copy.title = prev; }, 1500);
-        }).catch(function () {});
-      } catch (e) {}
-    });
-    // 📷 score card (Level 2): render a branded PNG and share/copy/download it. Score/mode come
-    // from the game's last recorded result (recordResult), so no per-game wiring is needed; a game
-    // may still pass o.card ({score, sub, accent, mascot} or a fn) to customise.
-    // card options from the last recorded result — shared by the 📷 button and the Discord auto-post
+    var cardImg = q('.gkshare-card'), cardBtn = q('[data-act="card"]');
+    // card options from the last recorded result (recordResult ran earlier in menu.show) — shared by
+    // the inline render, the Share button and the Discord auto-post. A game may pass o.card to customise.
     var cardOpts = function () {
       var lr = lastResult(o.slug) || {};
       var extra = (typeof o.card === 'function') ? (o.card() || {}) : (o.card || {});
@@ -2180,15 +2169,27 @@
         accent: extra.accent || o.accent, mascot: extra.mascot || o.mascot, icon: extra.icon || o.icon,
         score: score, scoreText: (typeof score === 'number' && score.toLocaleString) ? score.toLocaleString() : String(score),
         sub: (extra.sub != null) ? extra.sub : (lr.mode || ''),
+        url: getUrl(), text: getMsg(), // the native share attaches the image AND the link/text together
       };
       // speedrun/sprint modes: the record IS the time (same rule as the profile) → TIME card
       if (/speedrun|sprint/i.test(String(opts.sub)) && extra.score == null && lr.time > 0) { opts.label = 'TIME'; opts.scoreText = fmtMs(lr.time); }
       return opts;
     };
-    if (cardBtn) cardBtn.addEventListener('click', function () {
-      var opts = cardOpts();
-      buildScoreCard(opts).then(function (b) { shareCardBlob(b, opts); });
-    });
+    // render the card inline once (async, headless-safe → resolves null → just the button); reuse the
+    // rendered blob when the player taps Share so we don't re-render.
+    var _blob = null, _blobUrl = '';
+    var openMenu = function () {
+      if (_blob) { shareCardBlob(_blob, cardOpts()); return; }
+      var opts = cardOpts(); buildScoreCard(opts).then(function (b) { shareCardBlob(b, opts); });
+    };
+    try {
+      buildScoreCard(cardOpts()).then(function (b) {
+        _blob = b || null;
+        if (b && cardImg) { try { _blobUrl = URL.createObjectURL(b); cardImg.src = _blobUrl; if (cardImg.style) cardImg.style.display = ''; } catch (e) {} }
+      });
+    } catch (e) {}
+    if (cardBtn) cardBtn.addEventListener('click', openMenu);
+    if (cardImg) cardImg.addEventListener('click', openMenu); // tapping the card itself opens the menu too
     // auto-post the score to the Komyo Games Discord when the end-screen share row is on-screen.
     // Handles BOTH patterns: built once at init (hidden → shown later) AND rebuilt at game-over
     // (already visible). Gated by discordTier() (consent → anonymous, opt-in → named).
@@ -2223,13 +2224,6 @@
         } catch (e) {}
       }
     })();
-    if (native && typeof navigator !== 'undefined' && navigator.share) {
-      if (native.style) native.style.display = '';
-      native.addEventListener('click', function (e) {
-        if (e && e.preventDefault) e.preventDefault();
-        try { navigator.share({ title: title, text: getMsg(), url: getUrl() }).catch(function () {}); } catch (_) {}
-      });
-    }
   }
 
   // ---------- PWA auto-update ----------
