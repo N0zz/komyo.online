@@ -82,6 +82,54 @@ section('frog-bonk: whiff penalty resets the combo');
   ok(T().hammer.st === 'recover' && T().hammer.t > 20, 'whiff recovery is longer than a hit');
 }
 
+// ---- Mobile fairness: edge spawns, no off-screen attacks, clamped knockback ----
+section('frog-bonk: narrow screens — spawns hug the edge, no off-screen acting, clamped knockback');
+{
+  const g = runGame({ seed: 7, w: 390, h: 780 });   // narrow portrait
+  const T = g.T;
+  T().startMode('waves', 'medium');
+  T().clearFrogs();
+  const L = T().layout;
+  // spawns land just past the nearest screen edge (the old diagonal ring started ~300px out)
+  let near = true;
+  for (let i = 0; i < 200; i++) {
+    const p = T().spawnPos();
+    if (p.x < -70 || p.x > L.W + 70 || p.y < -70 || p.y > L.H + 70) near = false;
+  }
+  ok(near, 'every spawn is within 70px of a screen edge');
+  // a brute never throws and a mage never casts while off screen
+  T().spawnAt('brute', -110, L.castle.y);
+  T().spawnAt('mage', L.W + 90, L.castle.y);
+  let offAct = false;
+  for (let i = 0; i < 700; i++) {
+    T().step(1);
+    for (const f of T().frogs) {
+      if ((f.x < 10 || f.x > L.W - 10) && (f.ph === 'throw' || f.ph === 'cast')) offAct = true;
+    }
+  }
+  ok(!offAct, 'no frog throws or casts from off screen');
+  // hammer knockback keeps a multi-HP frog inside the meadow
+  T().clearFrogs();
+  T().spawnAt('knight', L.W - 4, L.castle.y);
+  T().whack(L.W - 4, L.castle.y); T().step(WIND);
+  ok(T().frogs[0] && T().frogs[0].x <= L.W, 'hammer knockback clamps to the field (x ' + Math.round(T().frogs[0].x) + ')');
+  // pea knockback is a visible hop, not a teleport, and stays on screen
+  T().clearFrogs();
+  T().spawnAt('scout', L.castle.x + 120, L.castle.y);
+  const x0 = T().frogs[0].x;
+  T().firePea(0);
+  T().step(3);                            // pea lands → the hop starts
+  ok(T().frogs[0].ph === 'air', 'pea knockback hops the frog (ph ' + T().frogs[0].ph + ')');
+  ok(Math.abs(T().frogs[0].x - x0) < 20, 'no instant 60px teleport (moved ' + Math.round(Math.abs(T().frogs[0].x - x0)) + 'px)');
+  T().step(25);                           // land
+  ok(T().frogs[0].ph === 'sit' && Math.abs(T().frogs[0].x - x0) > 40, 'hop lands ~60px back');
+  T().clearFrogs();
+  T().spawnAt('scout', L.W - 20, L.castle.y);   // knocked toward the right edge
+  T().firePea(0);
+  T().step(28);
+  ok(T().frogs[0].x <= L.W, 'pea knockback clamps to the field (x ' + Math.round(T().frogs[0].x) + ')');
+}
+
 // ---- Castle damage / game over ----
 section('frog-bonk: frogs chomp the castle; game over at 0');
 {

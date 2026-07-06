@@ -178,9 +178,19 @@
     return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
   }
   function spawnPos() {
+    // just past the nearest screen edge along the ray — a circle by the diagonal
+    // left frogs starting ~300px out horizontally on narrow portrait screens
     const a = Math.random() * Math.PI * 2;
-    const R = Math.hypot(W, H) / 2 + 50;
-    return { x: cx + Math.cos(a) * R, y: cy + Math.sin(a) * R };
+    const dx = Math.cos(a), dy = Math.sin(a);
+    const tx = dx > 0 ? (W - cx) / dx : dx < 0 ? -cx / dx : Infinity;
+    const ty = dy > 0 ? (H - cy) / dy : dy < 0 ? -cy / dy : Infinity;
+    const t = Math.min(tx, ty) + 60;
+    return { x: cx + dx * t, y: cy + dy * t };
+  }
+  // keep gameplay inside the visible meadow (knockbacks must never shove a frog off screen)
+  function clampField(f) {
+    f.x = Math.min(W - f.r, Math.max(f.r, f.x));
+    f.y = Math.min(H - f.r, Math.max(topMargin + f.r, f.y));
   }
   function makeFrog(type, x, y) {
     const tp = TYPES[type];
@@ -248,9 +258,12 @@
     if (f.zen) return zenUpdate(f);
     const tp = TYPES[f.type];
     const d = distC(f);
-    const stop = tp.caster ? castR + 120 : castR + f.r * 0.7;
+    // no acting from off screen: casters keep approaching until visible, brutes
+    // hold their stones — the fixed ranges land outside a narrow phone viewport
+    const onScr = f.x > f.r && f.x < W - f.r && f.y > topMargin + f.r * 0.5 && f.y < H - f.r;
+    const stop = tp.caster && onScr ? castR + 120 : castR + f.r * 0.7;
     // brutes only throw from MID approach — close enough to feel fair, never from off-screen
-    const throwRange = tp.stone && d > castR + 170 && d < castR + 340;
+    const throwRange = tp.stone && onScr && d > castR + 170 && d < castR + 340;
     if (f.ph === 'sit') {
       if (throwRange) f.stoneCd--;
       if (--f.t <= 0) {
@@ -367,6 +380,7 @@
       // knockback a nudge away from the castle; a latched/casting frog is interrupted
       const ang = Math.atan2(f.y - cy, f.x - cx);
       f.x += Math.cos(ang) * 14; f.y += Math.sin(ang) * 14;
+      clampField(f);
       if (f.ph === 'latch' || f.ph === 'cast' || f.ph === 'throw') { f.ph = 'sit'; f.t = Math.round(30 * DIFF().sit); }
     }
   }
@@ -476,9 +490,14 @@
       if (--p.t <= 0) {
         const f = p.frog;
         if (f && f.ph !== 'out' && frogs.indexOf(f) >= 0) {
+          // a visible backward hop, not a teleport — an instant 60px jump kept
+          // yanking frogs out from under a mid-swing tap (whiff → combo reset)
           const ang = Math.atan2(f.y - cy, f.x - cx);
-          f.x += Math.cos(ang) * 60; f.y += Math.sin(ang) * 60;
-          f.ph = 'sit'; f.t = Math.round(TYPES[f.type].sit * DIFF().sit);
+          f.fx = f.x; f.fy = f.y;
+          f.tx = f.x + Math.cos(ang) * 60; f.ty = f.y + Math.sin(ang) * 60;
+          f.tx = Math.min(W - f.r, Math.max(f.r, f.tx));
+          f.ty = Math.min(H - f.r, Math.max(topMargin + f.r, f.ty));
+          f.ph = 'air'; f.t = AIR;
           SND.play('knock');
         }
         peas.splice(i, 1);
@@ -1464,6 +1483,8 @@
     startMode,
     spawnAt(type, x, y) { frogs.push(makeFrog(type, x, y)); },
     clearFrogs() { frogs = []; spawnQueue = []; },
+    spawnPos,
+    firePea(i) { const f = frogs[i]; if (f) peas.push({ x: cx, y: cy, tx: f.x, ty: f.y, t: 2, frog: f }); },
     setFlies(n) { flies = n; updateHud(); },
     setCastleHp(n) { castleHp = n; updateHud(); },
     whack,
