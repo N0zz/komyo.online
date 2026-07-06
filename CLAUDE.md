@@ -141,6 +141,9 @@ locale file — a missing one silently kills that feature offline. Games alias t
   (1000/60 ms steps at any refresh rate), kit-pause built in (paused → render only), 100 ms stall
   clamp. `mult()` scales game-time (a 2× toggle = exactly 2×); `frame()` runs once per display
   frame (input polling). Headless it never ticks — tests drive `__test.step(n)`.
+  **`gamekit.loopAlpha()`** = the accumulator's 0..1 phase into the next step at render time —
+  offset constant-velocity movers by `perStepVelocity * alpha` in render for hitch-free scrolling
+  at any refresh rate (fixed steps alone judder on 0-/2-step frames; flappy is the reference).
 - `gamekit.layout` — `w/h/portrait/landscape/narrow` getters, **`hudTop()`** (the ONE HUD headroom
   number: 92 narrow / 48 otherwise; narrow = portrait or ≤560px wide), `on(cb)` (coalesced
   relayout on resize/orientationchange/visualViewport), `requireOrientation('portrait'|'landscape')`
