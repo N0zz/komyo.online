@@ -419,8 +419,7 @@
     // Buff tower: deals no damage; auras nearby towers (+dmg / +range / +fire-rate).
     bard:   { name: 'Bard',   icon: '🎵', cost: 40, color: '#d9a441', range: 2.4, dmg: 0,  cd: 999, kind: 'buff', aura: { dmg: 0.35, range: 0.35, rate: 0.20 }, special: 'No attack. Aura buffs nearby towers: +35% dmg, +35% range, +20% fire-rate.' },
   };
-  // Tower icons drawn above placed towers (TASK 1).
-  const TOWER_ICON = { archer: '🏹', cannon: '💣', frost: '❄️', mage: '🔮', bard: '🎵' };
+  // (Board towers are drawn assets — see TURRETS; the emoji live on in the build bar/panels.)
 
   // ---- Enemy base stats (tankier + leaner rewards so placement & tower mix matter) ----
   const ENEMY_DEFS = {
@@ -431,8 +430,7 @@
     armored: { hp: 78,  speed: 0.85, reward: 10,  color: '#6a8a6a', rr: 0.35, leak: 1, armored: true },
     swarm:   { hp: 11,  speed: 1.8,  reward: 1,   color: '#c09040', rr: 0.20, leak: 1 },
   };
-  // Creature emoji drawn centred on each enemy (TASK 2).
-  const ENEMY_ICON = { grunt: '🐀', runner: '🦇', brute: '🧌', boss: '🐉', armored: '🐢', swarm: '🐜' };
+  // (Board enemies are drawn critters — see CRITTERS — 1:1 species mapping to 🐀🦇🧌🐉🐢🐜.)
 
   // ---- State ----
   let state = 'menu';
@@ -452,12 +450,13 @@
   //   dominated (no leaks AND enemies never reached the early checkpoint) → threat rises a little.
   //   struggled (any leak OR enemies reached the LATE checkpoint)         → threat falls (faster).
   //   otherwise (dead-band)                                               → unchanged.
-  // It can therefore go back DOWN over later rounds. Clamped to [1.0, 5.0].
+  // It can therefore go back DOWN over later rounds. Floor 1.0, no ceiling —
+  // a player who dominates forever keeps earning a harder (and higher-scoring) game.
   let difficulty = 1;          // global threat multiplier (HP/speed)
   let waveLeaked = false;      // did any enemy reach the keep this wave?
   let waveMaxFrac = 0;         // furthest path fraction any enemy reached this wave (0..1)
   const DIFF_CP = [0.45, 0.70, 0.90]; // early / mid / LATE checkpoint fractions (moved closer to the keep)
-  const DIFF_MIN = 1.0, DIFF_MAX = 5.0;
+  const DIFF_MIN = 1.0, DIFF_MAX = Infinity;   // uncapped upward — see the note above
   const DIFF_UP = 0.30, DIFF_DOWN = 0.40;  // 2× faster threat swings (rise/fall step doubled)
   const DIFF_EARLY = DIFF_CP[0], DIFF_LATE = DIFF_CP[2];
 
@@ -523,10 +522,38 @@
     border: 'rgba(224,178,90,0.32)', overlay: 'rgba(20,14,8,0.62)', title: '#f0c87a', 'on-accent': '#1c1207', 'accent-soft': 'rgba(224,178,90,0.18)' };
   function menuKeep(g, x, y, s) {
     const sk = castleSkin();
-    const hw = s * .34, hh = s * .32; g.fillStyle = sk.body; g.fillRect(x - hw, y - hh, hw * 2, hh * 2);
-    g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(x + hw * .3, y - hh, hw * .7, hh * 2);
-    g.fillStyle = sk.batt; const bw = s * .13, bh = s * .15, gap = s * .15; for (let i = -1; i <= 1; i++) g.fillRect(x + i * gap - bw / 2, y - hh - bh, bw, bh);
-    g.fillStyle = '#cc3333'; g.beginPath(); g.moveTo(x, y - hh - bh - s * .26); g.lineTo(x + s * .16, y - hh - bh - s * .17); g.lineTo(x, y - hh - bh - s * .08); g.fill();
+    const hw = s * .34, hh = s * .32;
+    // form shading + soft shadow (the light version of drawKeep's texture pass)
+    g.fillStyle = 'rgba(12,25,20,.25)';
+    g.beginPath(); g.ellipse(x + s * .1, y + hh + s * .03, hw * 1.4, s * .1, 0, 0, Math.PI * 2); g.fill();
+    const kb = g.createLinearGradient(x - hw, 0, x + hw, 0);
+    kb.addColorStop(0, tint(sk.body, 16)); kb.addColorStop(.5, sk.body); kb.addColorStop(1, tint(sk.body, -18));
+    g.fillStyle = kb; g.fillRect(x - hw, y - hh, hw * 2, hh * 2);
+    for (let row = 0; row < 3; row++) for (let b = 0; b < 2; b++) {   // light stone jitter
+      const j = h01(row * 17 + b * 7 + 9000);
+      g.fillStyle = tint(sk.body, (j - .5) * 16 + 6, .45);
+      g.fillRect(x - hw + s * .04 + b * hw * .95 + (row % 2 ? hw * .48 : 0), y - hh + s * .05 + row * hh * .6, hw * .8, hh * .48);
+    }
+    const kao = g.createLinearGradient(0, y + hh * .3, 0, y + hh);
+    kao.addColorStop(0, 'rgba(15,12,25,0)'); kao.addColorStop(1, 'rgba(15,12,25,.3)');
+    g.fillStyle = kao; g.fillRect(x - hw, y + hh * .3, hw * 2, hh * .7);
+    g.fillStyle = 'rgba(255,240,200,.3)'; g.fillRect(x - hw, y - hh, s * .025, hh * 2);
+    const bw = s * .13, bh = s * .15, gap = s * .15;
+    for (let i = -1; i <= 1; i++) {
+      g.fillStyle = tint(sk.batt, (0 - i) * 7);
+      g.fillRect(x + i * gap - bw / 2, y - hh - bh, bw, bh);
+      g.fillStyle = 'rgba(255,240,220,.25)';
+      g.fillRect(x + i * gap - bw / 2, y - hh - bh, bw * .3, bh);
+    }
+    // warm-lit gate
+    g.fillStyle = sk.gate;
+    g.beginPath(); g.arc(x, y + hh * .3, s * .1, Math.PI, 0); g.rect(x - s * .1, y + hh * .3, s * .2, hh * .7); g.fill();
+    g.fillStyle = 'rgba(255,190,90,.3)';
+    g.beginPath(); g.arc(x, y + hh * .3, s * .075, Math.PI, 0); g.rect(x - s * .075, y + hh * .3, s * .15, hh * .62); g.fill();
+    const mf = g.createLinearGradient(x, y - hh - bh - s * .26, x + s * .16, y - hh - bh - s * .12);
+    mf.addColorStop(0, '#e04848'); mf.addColorStop(1, '#a02424');
+    g.fillStyle = mf;
+    g.beginPath(); g.moveTo(x, y - hh - bh - s * .26); g.quadraticCurveTo(x + s * .1, y - hh - bh - s * .24, x + s * .16, y - hh - bh - s * .17); g.quadraticCurveTo(x + s * .09, y - hh - bh - s * .12, x, y - hh - bh - s * .08); g.fill();
     g.strokeStyle = '#4a3220'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, y - hh - bh); g.lineTo(x, y - hh - bh - s * .28); g.stroke();
   }
   function menuMapRender(g, W2, H2, m) {
@@ -536,13 +563,61 @@
     const rd = Array.from({ length: COLS }, () => Array(ROWS).fill(false));
     for (let i = 0; i < m.wp.length - 1; i++) { let [c0, r0] = m.wp[i], [c1, r1] = m.wp[i + 1]; const sc = Math.sign(c1 - c0), sr = Math.sign(r1 - r0); let c = c0, r = r0; for (; ;) { if (c >= 0 && c < COLS && r >= 0 && r < ROWS) rd[c][r] = true; if (c === c1 && r === r1) break; c += sc; r += sr; } }
     const rgb1 = hexToRgb(th.g1), rgb2 = hexToRgb(th.g2);
-    for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) { if (rd[c][r]) continue; const base = ((c + r) % 2) ? rgb1 : rgb2, v = ((c * 7 + r * 13) % 5) - 2; g.fillStyle = 'rgb(' + (base[0] + v) + ',' + (base[1] + v) + ',' + (base[2] + v) + ')'; g.fillRect(ox2 + c * ts2, oy2 + r * ts2, ts2 + 1, ts2 + 1); }
+    // giant backdrop tiles amplify the checker — blend the two greens to half strength
+    for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+      if (rd[c][r]) continue;
+      const chk = ((c + r) % 2), v = ((c * 7 + r * 13) % 5) - 2;
+      const mr = Math.round((rgb1[0] + rgb2[0]) / 2), mg = Math.round((rgb1[1] + rgb2[1]) / 2), mb = Math.round((rgb1[2] + rgb2[2]) / 2);
+      const base = chk ? rgb1 : rgb2;
+      g.fillStyle = 'rgb(' + (Math.round((base[0] + mr) / 2) + v) + ',' + (Math.round((base[1] + mg) / 2) + v) + ',' + (Math.round((base[2] + mb) / 2) + v) + ')';
+      g.fillRect(ox2 + c * ts2, oy2 + r * ts2, ts2 + 1, ts2 + 1);
+    }
+    // texture pass — deliberately STRONGER than the in-game board: the kit dims the
+    // backdrop under a ~60% menu overlay, so subtle marks simply vanish here
+    for (let i = 0; i < 16; i++) {
+      const x = h01(i * 5 + 700) * W2, y = h01(i * 5 + 701) * H2, rad = ts2 * (1.2 + h01(i * 5 + 702) * 2.2);
+      const col = i % 2 ? th.g1 : th.g2;
+      const grd = g.createRadialGradient(x, y, 0, x, y, rad);
+      grd.addColorStop(0, tint(col, (h01(i + 703) - 0.5) * 30, 0.4));
+      grd.addColorStop(1, tint(col, 0, 0));
+      g.fillStyle = grd; g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
+    }
+    g.lineCap = 'round';
+    const marks = Math.round(W2 * H2 / 1100);
+    for (let i = 0; i < marks; i++) {
+      const x = h01(i * 7 + 710) * W2, y = h01(i * 7 + 711) * H2, j = h01(i + 712);
+      const col = i % 2 ? th.g1 : th.g2;
+      if (th.decoType === 'snow') {
+        g.fillStyle = 'rgba(255,255,255,' + (0.45 + j * 0.45) + ')';
+        g.beginPath(); g.arc(x, y, 1 + j * 1.6, 0, Math.PI * 2); g.fill();
+      } else {
+        const tl = ts2 * (0.06 + j * 0.04);
+        g.lineWidth = 1.8;
+        for (let b = -1; b <= 1; b++) {
+          const lean = b * tl * 0.5;
+          g.strokeStyle = tint(col, b === 0 ? -34 : -20, 0.6);
+          g.beginPath(); g.moveTo(x, y);
+          g.quadraticCurveTo(x + lean * 0.4, y - tl * 0.55, x + lean, y - tl * (b === 0 ? 1 : 0.7));
+          g.stroke();
+        }
+      }
+    }
     const pth = () => { g.beginPath(); for (let i = 0; i < m.wp.length; i++) { const x = cxx(m.wp[i][0]), y = cyy(m.wp[i][1]); i ? g.lineTo(x, y) : g.moveTo(x, y); } };
     g.lineCap = 'round'; g.lineJoin = 'round';
+    g.strokeStyle = 'rgba(20,12,4,.28)'; g.lineWidth = ts2 * .88; pth(); g.stroke();   // road seat
     g.strokeStyle = th.road; g.lineWidth = ts2 * .76; pth(); g.stroke();
     g.strokeStyle = th.edge; g.lineWidth = ts2 * .62; pth(); g.stroke();
     g.strokeStyle = th.road; g.lineWidth = ts2 * .5; pth(); g.stroke();
+    g.strokeStyle = tint(th.road, 16, .55); g.lineWidth = ts2 * .2; pth(); g.stroke(); // worn core
     const last = m.wp[m.wp.length - 1]; menuKeep(g, Math.min(cxx(last[0]), W2 - ts2 * .5), cyy(last[1]), ts2);
+    // one light direction + a gentle vignette, matching the in-game grade
+    const sun = g.createLinearGradient(0, 0, W2, H2);
+    sun.addColorStop(0, 'rgba(255,244,190,.1)'); sun.addColorStop(.5, 'rgba(255,244,190,0)');
+    sun.addColorStop(1, 'rgba(20,40,80,.09)');
+    g.fillStyle = sun; g.fillRect(0, 0, W2, H2);
+    const vig = g.createRadialGradient(W2 / 2, H2 / 2, H2 * .42, W2 / 2, H2 / 2, H2 * .95);
+    vig.addColorStop(0, 'rgba(20,12,40,0)'); vig.addColorStop(1, 'rgba(20,12,40,.2)');
+    g.fillStyle = vig; g.fillRect(0, 0, W2, H2);
   }
   function showStartMenu() {
     state = 'menu'; if (KIT) { KIT.showMenuButton(false); KIT.music.play('castle'); } // stately menu bed
@@ -1086,6 +1161,14 @@
             const d = effectiveDmg(dmg0, e, 'frost');
             e.hp -= d;
             any = true;
+            // a couple of pale ice chips flake off the chilled creature (budgeted)
+            if (particles.length < PART_BUDGET) {
+              for (let ic2 = 0; ic2 < 2; ic2++) {
+                particles.push({ x: e.x + (Math.random() - 0.5) * 10, y: e.y - 2,
+                  vx: (Math.random() - 0.5) * 1.4, vy: -0.9 - Math.random() * 0.8,
+                  life: 0.7, decay: 0.06, col: ic2 ? '#bfe8ff' : '#e8f6ff' });
+              }
+            }
             if (e.hp <= 0) { t.kills++; killEnemy(e); }
           }
         }
@@ -1147,6 +1230,13 @@
           if (s.tgt && s.tgt.hp > 0) {
             const dmg = effectiveDmg(s.dmg, s.tgt, s.kind);
             s.tgt.hp -= dmg;
+            // arrow thunk: a few wood-and-dust chips at the point of impact (budgeted)
+            if (particles.length < PART_BUDGET) {
+              for (let ic2 = 0; ic2 < 3; ic2++) {
+                particles.push({ x: aimx, y: aimy, vx: (Math.random() - 0.5) * 2.4, vy: -0.6 - Math.random() * 1.4,
+                  life: 0.6, decay: 0.07, col: ic2 === 0 ? '#e8dcc0' : '#b09a6a' });
+              }
+            }
             if (s.tgt.hp <= 0) { if (s.src) s.src.kills++; killEnemy(s.tgt); }
           }
           playCapped('hit');
@@ -1240,48 +1330,69 @@
   // ---- Render helpers ----
 
   function hexToRgb(h) { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  // lighten/darken a #hex by amt (optionally with alpha) — the texture pass derives every
+  // tint from the map theme through this, so all six maps stay coherent
+  function tint(hex, amt, alpha) {
+    const [r0, g0, b0] = hexToRgb(hex);
+    const r = Math.min(255, Math.max(0, r0 + amt * 2 | 0));
+    const g = Math.min(255, Math.max(0, g0 + amt * 2 | 0));
+    const b = Math.min(255, Math.max(0, b0 + amt * 1.5 | 0));
+    return alpha === undefined ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${alpha})`;
+  }
+  // stable, well-mixed 0..1 hash — texture layouts look random but never shift between frames
+  function h01(n) {
+    n = Math.imul(n ^ (n >>> 15), 2246822519);
+    n = Math.imul(n ^ (n >>> 13), 3266489917);
+    return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+  }
 
   // Terrain cell, themed per map, with subtle variation + light decor
-  function drawGrassCell(c, r) {
+  function drawGrassCell(g, c, r) {
     const th = theme();
     const x = ox + c * ts, y = oy + r * ts;
     const [R0, G0, B0] = hexToRgb(((c + r) % 2) ? th.g1 : th.g2);
     const vary = ((c * 7 + r * 13) % 5) - 2;
-    ctx.fillStyle = 'rgb(' + (R0 + vary) + ',' + (G0 + vary) + ',' + (B0 + vary) + ')';
-    ctx.fillRect(x, y, ts, ts);
+    g.fillStyle = 'rgb(' + (R0 + vary) + ',' + (G0 + vary) + ',' + (B0 + vary) + ')';
+    g.fillRect(x, y, ts, ts);
     // sparse themed decoration (deterministic, cheap)
     const seed = (c * 23 + r * 41) % 11;
     if (seed === 0 || seed === 5) {
-      ctx.fillStyle = th.decor;
+      g.fillStyle = th.decor;
       const dx = x + ts * (0.3 + (seed % 3) * 0.15), dy = y + ts * 0.55;
-      if (th.decoType === 'grass') { ctx.fillRect(dx, dy, 2, ts * 0.18); ctx.fillRect(dx + 4, dy + 3, 2, ts * 0.14); }
-      else if (th.decoType === 'snow') { ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.arc(dx, dy, ts * 0.06, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
-      else if (th.decoType === 'rock') { ctx.beginPath(); ctx.arc(dx, dy, ts * 0.09, 0, Math.PI * 2); ctx.fill(); }
-      else if (th.decoType === 'sand') { ctx.globalAlpha = 0.4; ctx.fillRect(dx, dy, ts * 0.3, 1.5); ctx.globalAlpha = 1; }
-      else { ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(dx, dy, ts * 0.1, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1; }
+      if (th.decoType === 'grass') { g.fillRect(dx, dy, 2, ts * 0.18); g.fillRect(dx + 4, dy + 3, 2, ts * 0.14); }
+      else if (th.decoType === 'snow') { g.globalAlpha = 0.6; g.beginPath(); g.arc(dx, dy, ts * 0.06, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1; }
+      else if (th.decoType === 'rock') { g.beginPath(); g.arc(dx, dy, ts * 0.09, 0, Math.PI * 2); g.fill(); }
+      else if (th.decoType === 'sand') { g.globalAlpha = 0.4; g.fillRect(dx, dy, ts * 0.3, 1.5); g.globalAlpha = 1; }
+      else { g.globalAlpha = 0.5; g.beginPath(); g.arc(dx, dy, ts * 0.1, 0, Math.PI * 2); g.fill(); g.globalAlpha = 1; }
     }
     // Lava map: glowing pools on some non-road cells
     if (th.lava && ((c * 13 + r * 7) % 17) === 3) {
-      ctx.fillStyle = 'rgba(255,90,30,0.5)';
-      ctx.beginPath(); ctx.ellipse(x + ts / 2, y + ts / 2, ts * 0.3, ts * 0.22, 0, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = 'rgba(255,200,80,0.5)';
-      ctx.beginPath(); ctx.ellipse(x + ts / 2, y + ts / 2, ts * 0.14, ts * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+      g.fillStyle = 'rgba(255,90,30,0.5)';
+      g.beginPath(); g.ellipse(x + ts / 2, y + ts / 2, ts * 0.3, ts * 0.22, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,200,80,0.5)';
+      g.beginPath(); g.ellipse(x + ts / 2, y + ts / 2, ts * 0.14, ts * 0.1, 0, 0, Math.PI * 2); g.fill();
     }
   }
 
   // Themed road
-  function drawRoadTexture() {
+  function drawRoadTexture(g) {
     const th = theme();
-    ctx.strokeStyle = th.road; ctx.lineWidth = ts * 0.76; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    ctx.beginPath();
-    for (let i = 0; i < WP.length; i++) {
-      const x = cx(WP[i][0]), y = cy(WP[i][1]);
-      i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
-    }
-    ctx.stroke();
-    // edge/underlay
-    ctx.strokeStyle = th.edge; ctx.lineWidth = ts * 0.62; ctx.stroke();
-    ctx.strokeStyle = th.road; ctx.lineWidth = ts * 0.5; ctx.stroke();
+    const roadPath = () => {
+      g.beginPath();
+      for (let i = 0; i < WP.length; i++) {
+        const x = cx(WP[i][0]), y = cy(WP[i][1]);
+        i ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+    };
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    // texture pass: a dark seat under the whole road bed grounds it in the terrain
+    roadPath();
+    g.strokeStyle = 'rgba(20,12,4,0.28)'; g.lineWidth = ts * 0.88; g.stroke();
+    g.strokeStyle = th.road; g.lineWidth = ts * 0.76; roadPath(); g.stroke();
+    g.strokeStyle = th.edge; g.lineWidth = ts * 0.62; g.stroke();
+    g.strokeStyle = th.road; g.lineWidth = ts * 0.5; g.stroke();
+    // worn centre line — the packed core travellers actually walk
+    g.strokeStyle = tint(th.road, 16, 0.55); g.lineWidth = ts * 0.2; g.stroke();
 
     // patch overlay using road cells
     for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
@@ -1289,13 +1400,128 @@
       const x = ox + c * ts, y = oy + r * ts;
       const seed = (c * 17 + r * 31) % 8;
       if (seed < 3) {
-        ctx.fillStyle = 'rgba(255,255,255,0.10)';
-        ctx.fillRect(x + ts * 0.1, y + ts * 0.1, ts * 0.8, ts * 0.8);
+        g.fillStyle = 'rgba(255,255,255,0.10)';
+        g.fillRect(x + ts * 0.1, y + ts * 0.1, ts * 0.8, ts * 0.8);
       } else if (seed >= 6) {
-        ctx.fillStyle = 'rgba(0,0,0,0.12)';
-        ctx.fillRect(x + ts * 0.2, y + ts * 0.2, ts * 0.6, ts * 0.6);
+        g.fillStyle = 'rgba(0,0,0,0.12)';
+        g.fillRect(x + ts * 0.2, y + ts * 0.2, ts * 0.6, ts * 0.6);
+      }
+      // texture pass: embedded stones + ruts along every road cell
+      for (let i = 0; i < 2; i++) {
+        const j = h01(c * 977 + r * 131 + i * 7);
+        const sx2 = x + ts * (0.15 + h01(c * 31 + r * 7 + i) * 0.7);
+        const sy2 = y + ts * (0.2 + h01(c * 13 + r * 57 + i) * 0.6);
+        if (j < 0.55) {
+          const pr = ts * (0.03 + j * 0.05);
+          g.fillStyle = tint(th.edge, 14 + h01(c + r + i) * 20, 0.85);
+          g.beginPath(); g.ellipse(sx2, sy2, pr, pr * 0.66, j * 3, 0, Math.PI * 2); g.fill();
+          g.fillStyle = 'rgba(255,250,235,0.28)';
+          g.beginPath(); g.ellipse(sx2 - pr * 0.3, sy2 - pr * 0.3, pr * 0.4, pr * 0.25, 0, 0, Math.PI * 2); g.fill();
+        } else {
+          g.fillStyle = tint(th.edge, -14, 0.3);
+          g.beginPath(); g.ellipse(sx2, sy2, ts * 0.1, ts * 0.02, 0, 0, Math.PI * 2); g.fill();
+        }
       }
     }
+  }
+
+  // ---- texture pass: the static board (terrain + texture + road) is painted ONCE
+  //      into a cache per (map × size); render() just blits it every frame ----
+  let boardCache = null, boardKey = '', boardDpr = 1, postGrade = null, postVig = null;
+  function paintBoardTexture(g) {
+    const th = theme();
+    const gx0 = ox, gy0 = oy, gw = COLS * ts, gh = ROWS * ts;
+    g.save();
+    g.beginPath(); g.rect(gx0, gy0, gw, gh); g.clip();
+    // big soft colour patches melt the checkerboard into terrain
+    for (let i = 0; i < 18; i++) {
+      const x = gx0 + h01(i * 5 + 11) * gw, y = gy0 + h01(i * 5 + 12) * gh;
+      const rad = ts * (1.2 + h01(i * 5 + 13) * 2.4);
+      const col = i % 2 ? th.g1 : th.g2;
+      const grd = g.createRadialGradient(x, y, 0, x, y, rad);
+      grd.addColorStop(0, tint(col, (h01(i + 44) - 0.5) * 14, 0.16));
+      grd.addColorStop(1, tint(col, 0, 0));
+      g.fillStyle = grd; g.beginPath(); g.arc(x, y, rad, 0, Math.PI * 2); g.fill();
+    }
+    // per-theme micro-texture (blades / specks / grain / scratches)
+    const kind = th.decoType;
+    const n = Math.round((gw * gh) / (kind === 'snow' ? 620 : kind === 'sand' ? 420 : 760));
+    g.lineCap = 'round';
+    for (let i = 0; i < n; i++) {
+      const x = gx0 + h01(i * 7 + 90) * gw, y = gy0 + h01(i * 7 + 91) * gh;
+      const lit = 1 - ((x - gx0) / gw * 0.5 + (y - gy0) / gh * 0.5);
+      const col = i % 2 ? th.g1 : th.g2;
+      const j = h01(i + 93);
+      if (kind === 'snow') {              // sparkle specks + faint drift ticks
+        g.fillStyle = i % 3 ? 'rgba(255,255,255,' + (0.25 + j * 0.4) + ')' : tint(th.edge, 10, 0.25);
+        g.beginPath(); g.arc(x, y, 0.6 + j * 1.4, 0, Math.PI * 2); g.fill();
+      } else if (kind === 'sand') {       // wind-combed grain dashes
+        g.strokeStyle = tint(col, (j - 0.3) * 24, 0.25 + j * 0.25);
+        g.lineWidth = 1;
+        g.beginPath(); g.moveTo(x, y); g.lineTo(x + ts * (0.12 + j * 0.12), y + ts * 0.02); g.stroke();
+      } else if (kind === 'rock') {       // cracks + ember specks
+        if (i % 5 === 0 && th.lava) {
+          g.fillStyle = 'rgba(255,140,50,' + (0.2 + j * 0.35) + ')';
+          g.beginPath(); g.arc(x, y, 0.8 + j, 0, Math.PI * 2); g.fill();
+        } else {
+          g.strokeStyle = tint(col, -18, 0.3 + j * 0.25); g.lineWidth = 1;
+          g.beginPath(); g.moveTo(x, y); g.lineTo(x + (j - 0.5) * ts * 0.24, y + ts * (0.06 + j * 0.1)); g.stroke();
+        }
+      } else {                            // grass/moss: small two-tone tufts fanning from a
+        // root — single scattered hairs read as rain streaks on the olive terrain
+        const tl = ts * (0.09 + j * 0.06);
+        g.lineWidth = 1.2;
+        for (let b = -1; b <= 1; b++) {
+          const lean = b * tl * 0.5 + (h01(i + 97 + b) - 0.5) * ts * 0.03;
+          g.strokeStyle = tint(col, (b === 0 ? -24 : -14) + lit * 6, 0.45);
+          g.beginPath(); g.moveTo(x, y);
+          g.quadraticCurveTo(x + lean * 0.4, y - tl * 0.55, x + lean, y - tl * (b === 0 ? 1 : 0.7));
+          g.stroke();
+        }
+        if (j > 0.82) {                   // the odd sunlit tip
+          g.strokeStyle = tint(col, 20, 0.45);
+          g.beginPath(); g.moveTo(x, y);
+          g.quadraticCurveTo(x + tl * 0.1, y - tl * 0.5, x + tl * 0.25, y - tl * 0.85);
+          g.stroke();
+        }
+      }
+    }
+    // one light direction: warm upper-left, cool lower-right (muted on dark maps)
+    const dark = th.lava || th.bg === '#1c1c22';
+    const sun = g.createLinearGradient(gx0, gy0, gx0 + gw, gy0 + gh);
+    sun.addColorStop(0, dark ? 'rgba(255,244,190,0.06)' : 'rgba(255,244,190,0.12)');
+    sun.addColorStop(0.5, 'rgba(255,244,190,0)');
+    sun.addColorStop(1, dark ? 'rgba(10,20,40,0.12)' : 'rgba(20,40,80,0.10)');
+    g.fillStyle = sun; g.fillRect(gx0, gy0, gw, gh);
+    g.restore();
+  }
+  function ensureBoard() {
+    const key = mapIndex + '|' + W + 'x' + H + '|' + ts + '|' + ox + ',' + oy;
+    if (boardCache && boardKey === key) return;
+    boardKey = key;
+    try {
+      boardDpr = Math.min(2, (window.devicePixelRatio || 1));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(W * boardDpr));
+      c.height = Math.max(1, Math.round(H * boardDpr));
+      const g = c.getContext('2d');
+      g.setTransform(boardDpr, 0, 0, boardDpr, 0, 0);
+      g.fillStyle = theme().bg; g.fillRect(0, 0, W, H);
+      for (let c2 = 0; c2 < COLS; c2++) for (let r = 0; r < ROWS; r++) {
+        if (!road[c2][r]) drawGrassCell(g, c2, r);
+      }
+      paintBoardTexture(g);
+      drawRoadTexture(g);
+      boardCache = c;
+    } catch (e) { boardCache = null; }
+    // colour grade + vignette gradients, rebuilt with the board (same key)
+    postGrade = ctx.createLinearGradient(0, 0, W, H);
+    postGrade.addColorStop(0, 'rgba(255,210,140,0.08)');
+    postGrade.addColorStop(0.5, 'rgba(0,0,0,0)');
+    postGrade.addColorStop(1, 'rgba(60,60,140,0.10)');
+    postVig = ctx.createRadialGradient(W / 2, H / 2, H * 0.42, W / 2, H / 2, H * 0.95);
+    postVig.addColorStop(0, 'rgba(20,12,40,0)');
+    postVig.addColorStop(1, 'rgba(20,12,40,0.2)');
   }
 
   // ---- cosmetics: castle skins (challenge-trophy set 'tower-defense.castle'). Stone renders
@@ -1309,91 +1535,560 @@
   };
   function castleSkin() { const id = (KIT && KIT.cosmetics) ? KIT.cosmetics.selected('tower-defense.castle') : null; return CASTLE_SKINS[id] || CASTLE_SKINS['tower-defense.castle.stone']; }
 
-  // Castle / keep at end
+  // Castle / keep at end — texture pass: per-stone jitter, AO, lit edge, warm gate
   function drawKeep(x, y, s) {
     const hw = s * 0.38, hh = s * 0.36, sk = castleSkin();
-    // main body
-    ctx.fillStyle = sk.body;
+    // soft cast shadow along the shared sun direction
+    ctx.save();
+    ctx.translate(x + s * 0.16, y + hh + s * 0.06); ctx.rotate(0.1);
+    for (let p = 0; p < 2; p++) {
+      ctx.globalAlpha = 0.24 * (0.6 - p * 0.2);
+      ctx.fillStyle = 'rgb(12,25,20)';
+      ctx.beginPath(); ctx.ellipse(0, 0, hw * 1.5 * (1 + p * 0.2), s * 0.13 * (1 + p * 0.25), 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore(); ctx.globalAlpha = 1;
+    // main body — form-shaded toward the light
+    const bg = ctx.createLinearGradient(x - hw, 0, x + hw, 0);
+    bg.addColorStop(0, tint(sk.body, 18)); bg.addColorStop(0.5, sk.body); bg.addColorStop(1, tint(sk.body, -20));
+    ctx.fillStyle = bg;
     ctx.fillRect(x - hw, y - hh, hw * 2, hh * 2);
-    // wall shading
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
-    ctx.fillRect(x + hw * 0.3, y - hh, hw * 0.7, hh * 2);
-    // battlements
-    ctx.fillStyle = sk.batt;
+    // per-stone jitter courses
+    for (let row = 0; row < 4; row++) {
+      for (let b = 0; b < 3; b++) {
+        const bx = x - hw + s * 0.04 + b * hw * 0.62 + (row % 2 ? hw * 0.31 : 0);
+        if (bx + hw * 0.56 > x + hw - s * 0.02) continue;
+        const j = h01(row * 31 + b * 7 + 8000);
+        const lit = 1 - (bx - (x - hw)) / (2 * hw);
+        ctx.fillStyle = tint(sk.body, lit * 14 + (j - 0.5) * 16, 0.5);
+        ctx.beginPath(); ctx.roundRect(bx, y - hh + s * 0.05 + row * hh * 0.47, hw * 0.56, hh * 0.38, 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(20,16,30,0.3)'; ctx.lineWidth = 1; ctx.stroke();
+      }
+    }
+    // base ambient occlusion + lit sun edge
+    const ao = ctx.createLinearGradient(0, y + hh * 0.4, 0, y + hh);
+    ao.addColorStop(0, 'rgba(15,12,25,0)'); ao.addColorStop(1, 'rgba(15,12,25,0.35)');
+    ctx.fillStyle = ao; ctx.fillRect(x - hw, y + hh * 0.4, hw * 2, hh * 0.6);
+    ctx.fillStyle = 'rgba(255,240,200,0.3)'; ctx.fillRect(x - hw, y - hh, s * 0.03, hh * 2);
+    // battlements — lit face toward the sun
     const bw = s * 0.14, bh = s * 0.16, gap = s * 0.16;
     for (let i = -1; i <= 1; i++) {
-      ctx.fillRect(x + i * gap - bw / 2, y - hh - bh, bw, bh);
+      ctx.fillStyle = tint(sk.batt, (0 - i) * 8);
+      ctx.beginPath(); ctx.roundRect(x + i * gap - bw / 2, y - hh - bh, bw, bh, s * 0.02); ctx.fill();
+      ctx.fillStyle = 'rgba(255,240,220,0.25)';
+      ctx.fillRect(x + i * gap - bw / 2, y - hh - bh, bw * 0.3, bh);
     }
-    // gate arch
+    // gate arch with a warm inner glow
     ctx.fillStyle = sk.gate;
     ctx.beginPath();
     ctx.arc(x, y + hh * 0.15, s * 0.12, Math.PI, 0, false);
     ctx.rect(x - s * 0.12, y + hh * 0.15, s * 0.24, s * 0.25);
     ctx.fill();
-    // flag
-    ctx.fillStyle = '#cc3333';
+    const glow = ctx.createRadialGradient(x, y + hh * 0.35, 0, x, y + hh * 0.35, s * 0.16);
+    glow.addColorStop(0, 'rgba(255,190,90,0.5)'); glow.addColorStop(1, 'rgba(255,190,90,0)');
+    ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.moveTo(x, y - hh - bh - s * 0.28);
-    ctx.lineTo(x + s * 0.18, y - hh - bh - s * 0.18);
-    ctx.lineTo(x, y - hh - bh - s * 0.08);
+    ctx.arc(x, y + hh * 0.15, s * 0.1, Math.PI, 0, false);
+    ctx.rect(x - s * 0.1, y + hh * 0.15, s * 0.2, s * 0.23);
     ctx.fill();
+    // flag — shaded fold on a wooden pole
     ctx.strokeStyle = '#4a3220'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.moveTo(x, y - hh - bh); ctx.lineTo(x, y - hh - bh - s * 0.3); ctx.stroke();
+    const fg = ctx.createLinearGradient(x, y - hh - bh - s * 0.28, x + s * 0.18, y - hh - bh - s * 0.14);
+    fg.addColorStop(0, '#e04848'); fg.addColorStop(1, '#a02424');
+    ctx.fillStyle = fg;
+    ctx.beginPath();
+    ctx.moveTo(x, y - hh - bh - s * 0.28);
+    ctx.quadraticCurveTo(x + s * 0.12, y - hh - bh - s * 0.26, x + s * 0.18, y - hh - bh - s * 0.18);
+    ctx.quadraticCurveTo(x + s * 0.1, y - hh - bh - s * 0.12, x, y - hh - bh - s * 0.08);
+    ctx.fill();
   }
 
-  // Tower shapes per type
+  // ---- drawn towers (texture pass): a shared stone base that GROWS with the upgrade
+  //      level (flagstone ring → brick drum → battlement crown) + a per-type turret.
+  //      Emoji stay in the build bar / panels; the board shows real assets. ----
+  const TIER_TRIM = ['#cd7f32', '#c0c0c0', '#e0b25a']; // bronze, silver, gold (kept from the old rims)
+  function towerShadow(x, y, r, hgt) {
+    ctx.save();
+    ctx.translate(x + (r + hgt) * 0.3, y + r * 0.42); ctx.rotate(0.5);
+    for (let p = 0; p < 2; p++) {
+      ctx.globalAlpha = 0.26 * (0.6 - p * 0.2);
+      ctx.fillStyle = 'rgb(12,30,25)';
+      ctx.beginPath(); ctx.ellipse(0, 0, (r + hgt * 0.7) * (1 + p * 0.18), r * 0.5 * (1 + p * 0.25), 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+  // paints the base; returns the Y of the platform surface the turret stands on
+  function stoneBase(x, y, s, lvl) {
+    const R = s * (0.44 + lvl * 0.045), ery = R * 0.4;
+    const baseY = y + s * 0.22;                      // platform centre, low in the cell
+    towerShadow(x, baseY, R, s * (0.16 + lvl * 0.2));
+    // ground ring + slab side
+    ctx.fillStyle = '#46425a';
+    ctx.beginPath(); ctx.ellipse(x, baseY + s * 0.07, R, ery, 0, 0, Math.PI * 2); ctx.fill();
+    const sg = ctx.createLinearGradient(x - R, 0, x + R, 0);
+    sg.addColorStop(0, '#a8a4b8'); sg.addColorStop(0.5, '#807c94'); sg.addColorStop(1, '#5e5a72');
+    ctx.fillStyle = sg;
+    ctx.beginPath(); ctx.ellipse(x, baseY, R, ery, 0, 0, Math.PI * 2); ctx.fill();
+    // flagstone top with joints, all inside the top ellipse
+    const tg = ctx.createRadialGradient(x - R * 0.25, baseY - ery * 0.4, 1, x, baseY, R);
+    tg.addColorStop(0, '#c4c0d4'); tg.addColorStop(1, '#8e8aa2');
+    ctx.fillStyle = tg;
+    ctx.beginPath(); ctx.ellipse(x, baseY - s * 0.03, R * 0.86, ery * 0.82, 0, 0, Math.PI * 2); ctx.fill();
+    for (let i = 0; i < 5; i++) {
+      const a = h01(i * 7 + 200) * Math.PI * 2, d = 0.2 + h01(i * 7 + 201) * 0.45;
+      ctx.fillStyle = 'hsla(252,8%,' + (56 + h01(i + 202) * 14) + '%,0.7)';
+      ctx.beginPath();
+      ctx.ellipse(x + Math.cos(a) * d * R * 0.6, baseY - s * 0.03 + Math.sin(a) * d * ery * 0.55, R * 0.15, R * 0.075, a, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // tier trim ring on the platform edge (bronze → silver → gold, the old tier language)
+    ctx.strokeStyle = TIER_TRIM[lvl - 1]; ctx.lineWidth = Math.max(2, s * 0.06);
+    ctx.beginPath(); ctx.ellipse(x, baseY - s * 0.03, R * 0.86, ery * 0.82, 0, 0, Math.PI * 2); ctx.stroke();
+    let py = baseY - s * 0.06;
+    if (lvl >= 2) {   // raised brick drum
+      const dR = R * 0.74, dery = dR * 0.36, dh = s * 0.18;
+      const dg = ctx.createLinearGradient(x - dR, 0, x + dR, 0);
+      dg.addColorStop(0, '#9a96ac'); dg.addColorStop(0.5, '#7c7890'); dg.addColorStop(1, '#5a5670');
+      ctx.fillStyle = dg;
+      ctx.beginPath();
+      ctx.moveTo(x - dR, py - dh); ctx.lineTo(x - dR, py);
+      ctx.ellipse(x, py, dR, dery, 0, Math.PI, 0, true);
+      ctx.lineTo(x + dR, py - dh);
+      ctx.ellipse(x, py - dh, dR, dery, 0, 0, Math.PI, false);
+      ctx.closePath(); ctx.fill();
+      for (let b = 0; b < 4; b++) {   // brick jitter kept inside the drum face
+        const j = h01(b * 13 + 300);
+        const bx = x - dR * 0.72 + b * dR * 0.42;
+        const lit = 1 - (bx - (x - dR)) / (2 * dR);
+        ctx.fillStyle = 'hsla(' + (251 + j * 12) + ',9%,' + (42 + lit * 20 + (j - 0.5) * 10) + '%,0.55)';
+        ctx.beginPath(); ctx.roundRect(bx, py - dh * (b % 2 ? 0.42 : 0.78), dR * 0.34, dh * 0.32, 2); ctx.fill();
+      }
+      ctx.fillStyle = 'rgba(255,238,190,0.3)'; ctx.fillRect(x - dR + 1, py - dh, Math.max(1.5, s * 0.04), dh);
+      const dtg = ctx.createLinearGradient(x - dR, 0, x + dR, 0);
+      dtg.addColorStop(0, '#c8c4d8'); dtg.addColorStop(1, '#928ea6');
+      ctx.fillStyle = dtg;
+      ctx.beginPath(); ctx.ellipse(x, py - dh, dR, dery, 0, 0, Math.PI * 2); ctx.fill();
+      py = py - dh;
+      if (lvl >= 3) {   // battlement crown standing ON the drum rim
+        for (let i = 0; i < 6; i++) {
+          const a = i / 6 * Math.PI * 2 + 0.5;
+          const mx = x + Math.cos(a) * dR * 0.92, my = py + Math.sin(a) * dery * 0.92;
+          const lit = Math.cos(a) < 0 ? 14 : 0;
+          ctx.fillStyle = 'hsl(254,12%,' + ((Math.sin(a) < 0 ? 46 : 56) + lit) + '%)';
+          ctx.beginPath(); ctx.roundRect(mx - s * 0.045, my - s * 0.09, s * 0.09, s * 0.1, 1.5); ctx.fill();
+          ctx.fillStyle = 'rgba(255,240,220,0.3)';
+          ctx.fillRect(mx - s * 0.045, my - s * 0.09, s * 0.026, s * 0.1);
+        }
+      }
+    }
+    return py;
+  }
+  const TURRETS = {
+    archer(x, y, s, lvl) {
+      const py = stoneBase(x, y, s, lvl);
+      // wooden post
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = '#5e3c1c'; ctx.lineWidth = s * 0.09;
+      ctx.beginPath(); ctx.moveTo(x, py); ctx.lineTo(x, py - s * (0.3 + lvl * 0.08)); ctx.stroke();
+      ctx.strokeStyle = '#9a6a38'; ctx.lineWidth = s * 0.05;
+      ctx.beginPath(); ctx.moveTo(x - s * 0.008, py - s * 0.02); ctx.lineTo(x - s * 0.008, py - s * (0.29 + lvl * 0.08)); ctx.stroke();
+      const bowY = py - s * (0.32 + lvl * 0.08), bowR = s * (0.2 + lvl * 0.05);
+      if (lvl >= 2) {   // quiver on the post
+        ctx.fillStyle = '#7a5230';
+        ctx.beginPath(); ctx.roundRect(x + s * 0.14, bowY + s * 0.12, s * 0.1, s * 0.22, s * 0.04); ctx.fill();
+        ctx.strokeStyle = '#cfd8e8'; ctx.lineWidth = Math.max(1, s * 0.016);
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath(); ctx.moveTo(x + s * (0.165 + i * 0.025), bowY + s * 0.13); ctx.lineTo(x + s * (0.185 + i * 0.025), bowY + s * 0.04); ctx.stroke();
+        }
+      }
+      // side-view bow aiming right: limbs bulge right, string pulled left
+      const c = TOWERS.archer.color;
+      ctx.strokeStyle = tint(c, -14); ctx.lineWidth = s * (0.045 + lvl * 0.01);
+      ctx.beginPath(); ctx.arc(x, bowY, bowR, -Math.PI * 0.42, Math.PI * 0.42); ctx.stroke();
+      const tipTX = x + Math.cos(-Math.PI * 0.42) * bowR, tipTY = bowY + Math.sin(-Math.PI * 0.42) * bowR;
+      const tipBX = x + Math.cos(Math.PI * 0.42) * bowR, tipBY = bowY + Math.sin(Math.PI * 0.42) * bowR;
+      ctx.strokeStyle = 'rgba(240,240,255,0.75)'; ctx.lineWidth = Math.max(1, s * 0.014);
+      ctx.beginPath(); ctx.moveTo(tipTX, tipTY); ctx.lineTo(x - bowR * 0.28, bowY); ctx.lineTo(tipBX, tipBY); ctx.stroke();
+      // nocked arrow
+      ctx.strokeStyle = '#e8dcc0'; ctx.lineWidth = Math.max(1, s * 0.02);
+      ctx.beginPath(); ctx.moveTo(x - bowR * 0.28, bowY); ctx.lineTo(x + bowR * 0.8, bowY); ctx.stroke();
+      ctx.fillStyle = '#cfd8e8';
+      ctx.beginPath(); ctx.moveTo(x + bowR * 0.8, bowY - s * 0.03); ctx.lineTo(x + bowR, bowY); ctx.lineTo(x + bowR * 0.8, bowY + s * 0.03); ctx.closePath(); ctx.fill();
+      if (lvl >= 3) {   // pennant above
+        ctx.strokeStyle = '#6a4a28'; ctx.lineWidth = s * 0.028;
+        ctx.beginPath(); ctx.moveTo(x, bowY - bowR - s * 0.02); ctx.lineTo(x, bowY - bowR - s * 0.18); ctx.stroke();
+        ctx.fillStyle = c;
+        ctx.beginPath(); ctx.moveTo(x, bowY - bowR - s * 0.18); ctx.lineTo(x + s * 0.15, bowY - bowR - s * 0.135); ctx.lineTo(x, bowY - bowR - s * 0.09); ctx.closePath(); ctx.fill();
+      }
+    },
+    cannon(x, y, s, lvl) {
+      const py = stoneBase(x, y, s, lvl);
+      // carriage + wheels
+      ctx.fillStyle = '#6a4423';
+      ctx.beginPath(); ctx.roundRect(x - s * 0.2, py - s * 0.1, s * 0.4, s * 0.1, s * 0.03); ctx.fill();
+      for (const wx of [-0.14, 0.14]) {
+        ctx.fillStyle = '#4e3418'; ctx.beginPath(); ctx.arc(x + wx * s, py - s * 0.02, s * (0.07 + lvl * 0.008), 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#8a5c30'; ctx.beginPath(); ctx.arc(x + wx * s - s * 0.01, py - s * 0.026, s * (0.048 + lvl * 0.008), 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#4e3418'; ctx.beginPath(); ctx.arc(x + wx * s - s * 0.01, py - s * 0.026, s * 0.016, 0, Math.PI * 2); ctx.fill();
+      }
+      // barrel — angled up-right, grows per level, iron bands from lv2
+      const bl = s * (0.26 + lvl * 0.07), bw = s * (0.085 + lvl * 0.018);
+      ctx.save();
+      ctx.translate(x - s * 0.03, py - s * 0.16); ctx.rotate(-0.5);
+      const bg = ctx.createLinearGradient(0, -bw, 0, bw);
+      bg.addColorStop(0, '#8a8a98'); bg.addColorStop(0.4, '#55555f'); bg.addColorStop(1, '#2e2e36');
+      ctx.fillStyle = bg;
+      ctx.beginPath(); ctx.roundRect(-bl * 0.3, -bw, bl, bw * 2, bw); ctx.fill();
+      ctx.fillStyle = '#232329';
+      ctx.beginPath(); ctx.ellipse(bl * 0.68, 0, bw * 0.46, bw * 0.9, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#0e0e12';
+      ctx.beginPath(); ctx.ellipse(bl * 0.68, 0, bw * 0.28, bw * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+      if (lvl >= 2) {
+        ctx.fillStyle = '#8a6a40';
+        for (const bx of [bl * 0.08, bl * 0.34]) ctx.fillRect(bx, -bw - s * 0.006, s * 0.035, bw * 2 + s * 0.012);
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.beginPath(); ctx.roundRect(-bl * 0.26, -bw * 0.85, bl * 0.8, bw * 0.38, bw * 0.19); ctx.fill();
+      ctx.restore();
+      if (lvl >= 2) {   // cannonball stack beside the carriage
+        for (const [ox2, oy2] of [[-0.27, -0.03], [-0.21, -0.03], [-0.24, -0.085]]) {
+          ctx.fillStyle = '#2e2e36';
+          ctx.beginPath(); ctx.arc(x + ox2 * s, py + oy2 * s, s * 0.032, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = 'rgba(255,255,255,0.2)';
+          ctx.beginPath(); ctx.arc(x + ox2 * s - s * 0.008, py + oy2 * s - s * 0.01, s * 0.01, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      if (lvl >= 3) {   // powder keg
+        ctx.fillStyle = '#8a5c30';
+        ctx.beginPath(); ctx.roundRect(x + s * 0.17, py - s * 0.23, s * 0.12, s * 0.14, s * 0.03); ctx.fill();
+        ctx.strokeStyle = '#5e3c1c'; ctx.lineWidth = Math.max(1, s * 0.014);
+        ctx.beginPath(); ctx.moveTo(x + s * 0.17, py - s * 0.185); ctx.lineTo(x + s * 0.29, py - s * 0.185); ctx.stroke();
+      }
+    },
+    frost(x, y, s, lvl) {
+      const py = stoneBase(x, y, s, lvl);
+      const c = TOWERS.frost.color;
+      // crystal cluster — count + height grow with level
+      const spikes = lvl === 1 ? [[0, 0.38, 0.09]]
+        : lvl === 2 ? [[-0.11, 0.3, 0.07], [0.01, 0.46, 0.1], [0.12, 0.26, 0.06]]
+        : [[-0.16, 0.3, 0.07], [-0.05, 0.5, 0.1], [0.07, 0.6, 0.11], [0.18, 0.32, 0.07]];
+      for (const [ox2, hgt, wd] of spikes) {
+        const bx = x + ox2 * s;
+        const grd = ctx.createLinearGradient(bx - wd * s, py, bx + wd * s, py - hgt * s);
+        grd.addColorStop(0, tint(c, 26)); grd.addColorStop(0.5, c); grd.addColorStop(1, tint(c, -22));
+        ctx.fillStyle = grd;
+        ctx.beginPath();
+        ctx.moveTo(bx - wd * s, py); ctx.lineTo(bx - wd * s * 0.3, py - hgt * s * 0.85);
+        ctx.lineTo(bx, py - hgt * s); ctx.lineTo(bx + wd * s * 0.5, py - hgt * s * 0.7); ctx.lineTo(bx + wd * s, py);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = Math.max(1, s * 0.014);
+        ctx.beginPath(); ctx.moveTo(bx - wd * s * 0.3, py - s * 0.02); ctx.lineTo(bx - wd * s * 0.1, py - hgt * s * 0.8); ctx.stroke();
+      }
+      if (lvl >= 2) {   // cold ground mist on the platform
+        const ag = ctx.createRadialGradient(x, py, 0, x, py, s * 0.42);
+        ag.addColorStop(0, 'rgba(170,228,255,0.28)'); ag.addColorStop(1, 'rgba(170,228,255,0)');
+        ctx.fillStyle = ag; ctx.beginPath(); ctx.ellipse(x, py, s * 0.42, s * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      if (lvl >= 3) {   // inner glow
+        const gl = ctx.createRadialGradient(x, py - s * 0.35, 0, x, py - s * 0.35, s * 0.4);
+        gl.addColorStop(0, 'rgba(190,235,255,0.3)'); gl.addColorStop(1, 'rgba(190,235,255,0)');
+        ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, py - s * 0.35, s * 0.4, 0, Math.PI * 2); ctx.fill();
+      }
+    },
+    mage(x, y, s, lvl) {
+      const py = stoneBase(x, y, s, lvl);
+      const c = TOWERS.mage.color;
+      // carved obelisk stand
+      const og = ctx.createLinearGradient(x - s * 0.08, 0, x + s * 0.08, 0);
+      og.addColorStop(0, '#8e8aa2'); og.addColorStop(1, '#55516a');
+      ctx.fillStyle = og;
+      ctx.beginPath(); ctx.moveTo(x - s * 0.08, py); ctx.lineTo(x - s * 0.045, py - s * (0.24 + lvl * 0.05));
+      ctx.lineTo(x + s * 0.045, py - s * (0.24 + lvl * 0.05)); ctx.lineTo(x + s * 0.08, py); ctx.closePath(); ctx.fill();
+      if (lvl >= 2) {   // glowing runes on the stand
+        ctx.fillStyle = 'hsla(280,70%,72%,0.9)';
+        for (let i = 0; i < lvl; i++) { ctx.beginPath(); ctx.arc(x, py - s * (0.07 + i * 0.075), Math.max(1, s * 0.016), 0, Math.PI * 2); ctx.fill(); }
+      }
+      // the orb — grows per level, with glow, gloss and orbiters
+      const oy2 = py - s * (0.3 + lvl * 0.07), orb = s * (0.09 + lvl * 0.024);
+      const gl = ctx.createRadialGradient(x, oy2, 0, x, oy2, orb * 2.4);
+      gl.addColorStop(0, 'hsla(280,70%,66%,0.45)'); gl.addColorStop(1, 'hsla(280,70%,66%,0)');
+      ctx.fillStyle = gl; ctx.beginPath(); ctx.arc(x, oy2, orb * 2.4, 0, Math.PI * 2); ctx.fill();
+      const og2 = ctx.createRadialGradient(x - orb * 0.35, oy2 - orb * 0.4, 0.5, x, oy2, orb * 1.15);
+      og2.addColorStop(0, '#e8c8ff'); og2.addColorStop(0.45, c); og2.addColorStop(1, '#4a2260');
+      ctx.fillStyle = og2; ctx.beginPath(); ctx.arc(x, oy2, orb, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      ctx.beginPath(); ctx.ellipse(x - orb * 0.35, oy2 - orb * 0.42, orb * 0.28, orb * 0.17, -0.5, 0, Math.PI * 2); ctx.fill();
+      if (lvl >= 2) {
+        ctx.fillStyle = 'hsl(290,80%,76%)';
+        for (let i = 0; i < lvl; i++) {
+          const a = i / lvl * Math.PI * 2 + 0.8;
+          ctx.beginPath(); ctx.arc(x + Math.cos(a) * orb * 1.7, oy2 + Math.sin(a) * orb * 0.65, Math.max(1, s * 0.018), 0, Math.PI * 2); ctx.fill();
+        }
+      }
+      if (lvl >= 3) {
+        ctx.strokeStyle = 'hsla(285,70%,72%,0.5)'; ctx.lineWidth = Math.max(1, s * 0.018);
+        ctx.beginPath(); ctx.ellipse(x, oy2, orb * 1.8, orb * 0.7, -0.3, 0, Math.PI * 2); ctx.stroke();
+      }
+    },
+    bard(x, y, s, lvl) {
+      const py = stoneBase(x, y, s, lvl);
+      const c = TOWERS.bard.color;
+      // the harp — frame grows, strings multiply (aura rings stay kit-drawn in render)
+      const hh = s * (0.3 + lvl * 0.075);
+      ctx.save(); ctx.translate(x, py);
+      ctx.lineCap = 'round';
+      const fg = ctx.createLinearGradient(-s * 0.18, -hh, s * 0.18, 0);
+      fg.addColorStop(0, tint(c, 22)); fg.addColorStop(0.5, c); fg.addColorStop(1, tint(c, -20));
+      ctx.strokeStyle = fg; ctx.lineWidth = s * 0.045;
+      ctx.beginPath(); ctx.moveTo(-s * 0.14, 0); ctx.quadraticCurveTo(-s * 0.2, -hh * 0.9, s * 0.03, -hh); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-s * 0.14, 0); ctx.lineTo(s * 0.12, -s * 0.035); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s * 0.12, -s * 0.035); ctx.quadraticCurveTo(s * 0.16, -hh * 0.6, s * 0.03, -hh); ctx.stroke();
+      const strings = 3 + lvl;
+      ctx.strokeStyle = 'rgba(255,245,220,0.8)'; ctx.lineWidth = Math.max(0.8, s * 0.011);
+      for (let i = 1; i <= strings; i++) {
+        const t2 = i / (strings + 1);
+        ctx.beginPath(); ctx.moveTo(-s * 0.14 + t2 * s * 0.26, -s * 0.02 - t2 * s * 0.015);
+        ctx.lineTo(-s * 0.09 + t2 * s * 0.14, -hh * (0.55 + t2 * 0.38)); ctx.stroke();
+      }
+      ctx.restore();
+      // floating notes — more per level
+      ctx.fillStyle = tint(c, 30);
+      ctx.font = Math.round(s * (0.11 + lvl * 0.018)) + 'px Georgia,serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+      const notes = lvl === 1 ? ['♪'] : lvl === 2 ? ['♪', '♫'] : ['♪', '♫', '♬'];
+      notes.forEach((n2, i) => {
+        ctx.globalAlpha = 0.9 - i * 0.22;
+        ctx.fillText(n2, x + s * (0.2 + i * 0.11), py - hh - s * (0.04 + i * 0.09));
+      });
+      ctx.globalAlpha = 1;
+      if (lvl >= 3) {   // gold pennant
+        ctx.strokeStyle = '#6a4a28'; ctx.lineWidth = s * 0.024;
+        ctx.beginPath(); ctx.moveTo(x - s * 0.2, py); ctx.lineTo(x - s * 0.2, py - hh - s * 0.12); ctx.stroke();
+        ctx.fillStyle = c;
+        ctx.beginPath(); ctx.moveTo(x - s * 0.2, py - hh - s * 0.12); ctx.lineTo(x - s * 0.06, py - hh - s * 0.08); ctx.lineTo(x - s * 0.2, py - hh - s * 0.04); ctx.closePath(); ctx.fill();
+      }
+    },
+  };
+  // Tower shapes per type — drawn assets; the emoji lives on in the UI (build bar, panels)
   function drawTowerShape(t) {
-    const x = t.x, y = t.y, s = ts * 0.5;
-    const tierColors = ['#cd7f32', '#c0c0c0', '#e0b25a']; // bronze, silver, gold
-    const tc = tierColors[t.lvl - 1];
-
-    // subtle base pad: tinted disc in the tower's colour + a tier-coloured rim (readability)
-    ctx.fillStyle = '#3a2a17';
-    ctx.beginPath(); ctx.arc(x, y, s * 0.78, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = TOWERS[t.type].color + '55';
-    ctx.beginPath(); ctx.arc(x, y, s * 0.66, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = tc; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(x, y, s * 0.66, 0, Math.PI * 2); ctx.stroke();
-
-    // the tower's emoji ICON IS the body, centred and filling most of the cell (TASK 1)
-    const ic = TOWER_ICON[t.type];
-    if (ic) {
-      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.font = Math.round(ts * 0.62) + 'px Georgia,serif';
-      ctx.fillText(ic, x, y + ts * 0.02);
-    }
-
-    // tier pips
-    for (let i = 0; i < t.lvl - 1; i++) {
-      ctx.fillStyle = '#e0b25a';
-      ctx.beginPath(); ctx.arc(x - 5 + i * 6, y + s * 0.78 + 3, 3, 0, Math.PI * 2); ctx.fill();
-    }
+    const painter = TURRETS[t.type];
+    if (painter) painter(t.x, t.y - ts * 0.06, ts * 0.84, t.lvl);
   }
 
-  // Enemies: a creature emoji centred on the mob, scaled to its radius (TASK 2).
+  // ---- drawn enemies (texture pass): 1:1 species mapping with the old emoji
+  //      (🐀🦇🧌🐉🐢🐜) — silhouette-first, gradient-shaded, glossy eyes ----
+  function critterShadow(x, y, s, a) {
+    ctx.save(); ctx.translate(x + s * 0.28, y); ctx.rotate(0.5);
+    ctx.globalAlpha = a || 0.22; ctx.fillStyle = 'rgb(12,30,25)';
+    ctx.beginPath(); ctx.ellipse(0, 0, s * 1.05, s * 0.4, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore(); ctx.globalAlpha = 1;
+  }
+  function critterEyes(x, y, s, dx, r, iris) {
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(x - dx * s, y, r * s, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + dx * s, y, r * s, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = iris || '#222';
+    ctx.beginPath(); ctx.arc(x - dx * s + r * s * 0.25, y + r * s * 0.1, r * s * 0.55, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + dx * s + r * s * 0.25, y + r * s * 0.1, r * s * 0.55, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath(); ctx.arc(x - dx * s - r * s * 0.25, y - r * s * 0.3, r * s * 0.28, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x + dx * s - r * s * 0.25, y - r * s * 0.3, r * s * 0.28, 0, Math.PI * 2); ctx.fill();
+  }
+  function critterGrad(x, y, s, col) {
+    const grd = ctx.createRadialGradient(x - s * 0.25, y - s * 0.3, 1, x, y, s * 1.15);
+    grd.addColorStop(0, tint(col, 20)); grd.addColorStop(0.55, col); grd.addColorStop(1, tint(col, -20));
+    return grd;
+  }
+  function critterRim(x, y, rx, ry) {
+    ctx.strokeStyle = 'rgba(255,244,200,0.45)'; ctx.lineWidth = Math.max(1, rx * 0.07);
+    ctx.beginPath(); ctx.ellipse(x, y, rx * 0.95, ry * 0.93, 0, Math.PI * 1.05, Math.PI * 1.55); ctx.stroke();
+  }
+  const CRITTERS = {
+    grunt(x, y, s, c) {           // 🐀 rat — hunched blob, big ears, pink tail
+      ctx.strokeStyle = '#d89aa0'; ctx.lineWidth = Math.max(1.5, s * 0.1); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x - s * 0.66, y + s * 0.26); ctx.quadraticCurveTo(x - s * 1.08, y + s * 0.08, x - s * 0.9, y - s * 0.26); ctx.stroke();
+      for (const ex of [-0.05, 0.55]) {
+        ctx.fillStyle = tint(c, -8);
+        ctx.beginPath(); ctx.arc(x + ex * s, y - s * 0.5, s * 0.22, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#d89aa0';
+        ctx.beginPath(); ctx.arc(x + ex * s, y - s * 0.48, s * 0.12, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = critterGrad(x, y, s, c);
+      ctx.beginPath(); ctx.ellipse(x, y, s * 0.76, s * 0.6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = tint(c, 26);
+      ctx.beginPath(); ctx.ellipse(x + s * 0.1, y + s * 0.26, s * 0.4, s * 0.24, 0, 0, Math.PI * 2); ctx.fill();
+      critterRim(x, y, s * 0.76, s * 0.6);
+      critterEyes(x + s * 0.28, y - s * 0.16, s, 0.17, 0.11);
+      ctx.fillStyle = '#5e3c2c';
+      ctx.beginPath(); ctx.arc(x + s * 0.66, y + s * 0.02, s * 0.07, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(240,230,220,0.55)'; ctx.lineWidth = Math.max(0.8, s * 0.022);
+      for (const wy of [-0.02, 0.08]) {
+        ctx.beginPath(); ctx.moveTo(x + s * 0.58, y + wy * s); ctx.lineTo(x + s * 0.92, y + (wy - 0.05) * s); ctx.stroke();
+      }
+    },
+    runner(x, y, s, c) {          // 🦇 bat — membrane wings, position-phased flap
+      const flap = Math.sin((x + y) * 0.11) * 0.22;
+      for (const side of [-1, 1]) {
+        const wg = ctx.createLinearGradient(x, y - s * 0.3, x + side * s, y);
+        wg.addColorStop(0, tint(c, -2)); wg.addColorStop(1, tint(c, -26));
+        ctx.fillStyle = wg;
+        ctx.beginPath();
+        ctx.moveTo(x + side * s * 0.18, y - s * 0.08);
+        ctx.quadraticCurveTo(x + side * s * 0.7, y - s * (0.56 + flap), x + side * s * 1.05, y - s * (0.26 + flap));
+        ctx.quadraticCurveTo(x + side * s * 0.85, y - s * 0.02, x + side * s * 0.72, y + s * 0.06);
+        ctx.quadraticCurveTo(x + side * s * 0.55, y - s * 0.06, x + side * s * 0.42, y + s * 0.12);
+        ctx.quadraticCurveTo(x + side * s * 0.3, y + s * 0.02, x + side * s * 0.18, y + s * 0.12);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = tint(c, -34, 0.7); ctx.lineWidth = Math.max(0.8, s * 0.03);
+        ctx.beginPath(); ctx.moveTo(x + side * s * 0.18, y - s * 0.04);
+        ctx.quadraticCurveTo(x + side * s * 0.58, y - s * (0.28 + flap), x + side * s * 0.98, y - s * (0.24 + flap)); ctx.stroke();
+      }
+      ctx.fillStyle = critterGrad(x, y, s * 0.6, c);
+      ctx.beginPath(); ctx.ellipse(x, y, s * 0.36, s * 0.44, 0, 0, Math.PI * 2); ctx.fill();
+      for (const ex of [-0.17, 0.17]) {
+        ctx.fillStyle = c;
+        ctx.beginPath(); ctx.moveTo(x + ex * s - s * 0.08, y - s * 0.34); ctx.lineTo(x + ex * s, y - s * 0.64); ctx.lineTo(x + ex * s + s * 0.08, y - s * 0.36); ctx.closePath(); ctx.fill();
+      }
+      critterRim(x, y, s * 0.36, s * 0.44);
+      critterEyes(x, y - s * 0.08, s, 0.14, 0.1, '#5a2814');
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.moveTo(x - s * 0.08, y + s * 0.16); ctx.lineTo(x - s * 0.05, y + s * 0.26); ctx.lineTo(x - s * 0.02, y + s * 0.16); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x + s * 0.02, y + s * 0.16); ctx.lineTo(x + s * 0.05, y + s * 0.26); ctx.lineTo(x + s * 0.08, y + s * 0.16); ctx.closePath(); ctx.fill();
+    },
+    brute(x, y, s, c) {           // 🧌 troll — heavy slab, brow, tusks, club
+      ctx.strokeStyle = '#6a4423'; ctx.lineWidth = Math.max(2, s * 0.15); ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x + s * 0.32, y + s * 0.1); ctx.lineTo(x + s * 0.8, y - s * 0.58); ctx.stroke();
+      ctx.fillStyle = '#7a5230';
+      ctx.beginPath(); ctx.ellipse(x + s * 0.84, y - s * 0.64, s * 0.18, s * 0.24, 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = critterGrad(x, y, s, c);
+      ctx.beginPath();
+      ctx.moveTo(x - s * 0.58, y + s * 0.46);
+      ctx.quadraticCurveTo(x - s * 0.74, y - s * 0.1, x - s * 0.38, y - s * 0.44);
+      ctx.quadraticCurveTo(x, y - s * 0.64, x + s * 0.38, y - s * 0.44);
+      ctx.quadraticCurveTo(x + s * 0.7, y - s * 0.08, x + s * 0.54, y + s * 0.46);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = tint(c, -12);
+      ctx.beginPath(); ctx.roundRect(x - s * 0.36, y - s * 0.36, s * 0.72, s * 0.13, s * 0.05); ctx.fill();
+      critterRim(x, y - s * 0.05, s * 0.64, s * 0.56);
+      critterEyes(x, y - s * 0.15, s, 0.19, 0.09, '#3a1c10');
+      ctx.fillStyle = tint(c, -18);
+      ctx.beginPath(); ctx.roundRect(x - s * 0.28, y + s * 0.12, s * 0.56, s * 0.18, s * 0.07); ctx.fill();
+      ctx.fillStyle = '#e8e0d0';
+      ctx.beginPath(); ctx.moveTo(x - s * 0.2, y + s * 0.13); ctx.lineTo(x - s * 0.15, y + s * 0.0); ctx.lineTo(x - s * 0.1, y + s * 0.13); ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(x + s * 0.1, y + s * 0.13); ctx.lineTo(x + s * 0.15, y + s * 0.0); ctx.lineTo(x + s * 0.2, y + s * 0.13); ctx.closePath(); ctx.fill();
+    },
+    boss(x, y, s, c) {            // 🐉 dragon — low wings, long snout, horn crown
+      for (const side of [-1, 1]) {
+        ctx.fillStyle = tint(c, -18);
+        ctx.beginPath();
+        ctx.moveTo(x + side * s * 0.26, y + s * 0.02);
+        ctx.quadraticCurveTo(x + side * s * 0.9, y - s * 0.5, x + side * s * 1.02, y + s * 0.1);
+        ctx.quadraticCurveTo(x + side * s * 0.66, y + s * 0.22, x + side * s * 0.3, y + s * 0.26);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = tint(c, -34, 0.8); ctx.lineWidth = Math.max(1, s * 0.03);
+        ctx.beginPath(); ctx.moveTo(x + side * s * 0.34, y + s * 0.08);
+        ctx.quadraticCurveTo(x + side * s * 0.74, y - s * 0.28, x + side * s * 0.95, y + s * 0.04); ctx.stroke();
+      }
+      ctx.fillStyle = critterGrad(x, y, s, c);
+      ctx.beginPath(); ctx.ellipse(x, y, s * 0.62, s * 0.58, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#e8c887';
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath(); ctx.ellipse(x, y + s * (0.2 + i * 0.13), s * (0.32 - i * 0.07), s * 0.075, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      for (const hx of [-0.26, 0, 0.26]) {
+        ctx.fillStyle = '#e8dcc0';
+        ctx.beginPath(); ctx.moveTo(x + hx * s - s * 0.065, y - s * 0.48);
+        ctx.lineTo(x + hx * s + (hx === 0 ? 0 : hx * s * 0.25), y - s * (hx === 0 ? 0.84 : 0.7));
+        ctx.lineTo(x + hx * s + s * 0.065, y - s * 0.48); ctx.closePath(); ctx.fill();
+      }
+      critterRim(x, y, s * 0.62, s * 0.58);
+      critterEyes(x, y - s * 0.16, s, 0.19, 0.1, '#c8901a');
+      // long snout with flared nostrils + a smoke wisp
+      ctx.fillStyle = tint(c, -12);
+      ctx.beginPath(); ctx.roundRect(x - s * 0.2, y + s * 0.04, s * 0.4, s * 0.24, s * 0.1); ctx.fill();
+      ctx.fillStyle = tint(c, -26);
+      ctx.beginPath(); ctx.roundRect(x - s * 0.14, y + s * 0.16, s * 0.28, s * 0.1, s * 0.05); ctx.fill();
+      ctx.fillStyle = 'rgba(20,10,10,0.75)';
+      ctx.beginPath(); ctx.arc(x - s * 0.07, y + s * 0.12, Math.max(0.8, s * 0.028), 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + s * 0.07, y + s * 0.12, Math.max(0.8, s * 0.028), 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = 'rgba(200,200,210,0.4)'; ctx.lineWidth = Math.max(1, s * 0.035);
+      ctx.beginPath(); ctx.moveTo(x + s * 0.1, y + s * 0.02); ctx.quadraticCurveTo(x + s * 0.28, y - s * 0.1, x + s * 0.24, y - s * 0.24); ctx.stroke();
+    },
+    armored(x, y, s, c) {         // 🐢 turtle — plated shell with a riveted steel band
+      ctx.fillStyle = tint(c, -6);
+      ctx.beginPath(); ctx.ellipse(x + s * 0.6, y + s * 0.05, s * 0.25, s * 0.21, 0, 0, Math.PI * 2); ctx.fill();
+      critterEyes(x + s * 0.64, y - s * 0.03, s * 0.9, 0.11, 0.09);
+      ctx.fillStyle = tint(c, -16);
+      for (const [fx, fy] of [[-0.48, 0.36], [-0.04, 0.44], [0.38, 0.4]]) {
+        ctx.beginPath(); ctx.ellipse(x + fx * s, y + fy * s, s * 0.12, s * 0.075, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      const sg = ctx.createRadialGradient(x - s * 0.28, y - s * 0.32, 1, x - s * 0.04, y - s * 0.04, s * 0.9);
+      sg.addColorStop(0, tint(c, 24)); sg.addColorStop(0.55, tint(c, -6)); sg.addColorStop(1, tint(c, -30));
+      ctx.fillStyle = sg;
+      ctx.beginPath(); ctx.ellipse(x - s * 0.04, y - s * 0.04, s * 0.66, s * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = tint(c, -36, 0.6); ctx.lineWidth = Math.max(1, s * 0.035);
+      ctx.beginPath(); ctx.ellipse(x - s * 0.04, y - s * 0.04, s * 0.42, s * 0.3, 0, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 6; i++) {
+        const a = i / 6 * Math.PI * 2 + 0.3;
+        ctx.beginPath(); ctx.moveTo(x - s * 0.04 + Math.cos(a) * s * 0.4, y - s * 0.04 + Math.sin(a) * s * 0.28);
+        ctx.lineTo(x - s * 0.04 + Math.cos(a) * s * 0.64, y - s * 0.04 + Math.sin(a) * s * 0.48); ctx.stroke();
+      }
+      ctx.fillStyle = '#c8ccd4';
+      ctx.beginPath(); ctx.ellipse(x - s * 0.04, y + s * 0.28, s * 0.64, s * 0.11, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#7e848e';
+      for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.arc(x - s * 0.04 + i * s * 0.25, y + s * 0.28, Math.max(0.8, s * 0.028), 0, Math.PI * 2); ctx.fill(); }
+      critterRim(x - s * 0.04, y - s * 0.04, s * 0.66, s * 0.5);
+    },
+    swarm(x, y, s, c) {           // 🐜 ant — three beads, thin legs, antennae
+      ctx.strokeStyle = tint(c, -26); ctx.lineWidth = Math.max(0.8, s * 0.05); ctx.lineCap = 'round';
+      for (const [lx, dir] of [[-0.28, -1], [0, -1], [0.28, -1], [-0.28, 1], [0, 1], [0.28, 1]]) {
+        ctx.beginPath(); ctx.moveTo(x + lx * s, y + s * 0.06);
+        ctx.lineTo(x + lx * s + s * 0.13 * dir, y + s * 0.26);
+        ctx.lineTo(x + lx * s + s * 0.2 * dir, y + s * 0.38); ctx.stroke();
+      }
+      for (const [bx, br] of [[-0.4, 0.3], [0, 0.23], [0.38, 0.32]]) {
+        ctx.fillStyle = critterGrad(x + bx * s, y, s * br * 2.2, c);
+        ctx.beginPath(); ctx.ellipse(x + bx * s, y, s * br, s * br * 0.85, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.strokeStyle = tint(c, -20); ctx.lineWidth = Math.max(0.8, s * 0.04);
+      ctx.beginPath(); ctx.moveTo(x + s * 0.46, y - s * 0.18); ctx.quadraticCurveTo(x + s * 0.6, y - s * 0.44, x + s * 0.76, y - s * 0.46); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x + s * 0.4, y - s * 0.22); ctx.quadraticCurveTo(x + s * 0.46, y - s * 0.5, x + s * 0.58, y - s * 0.56); ctx.stroke();
+      critterEyes(x + s * 0.44, y - s * 0.05, s * 0.8, 0.11, 0.1);
+    },
+  };
   function drawEnemy(e) {
     const rr = e.rr * ts;
+    // grounded shadow (does NOT bob), then the bobbing body
+    critterShadow(e.x, e.y + rr * 0.5, rr, e.type === 'runner' ? 0.16 : 0.24);
+    const bob = e.type === 'runner' ? 0 : Math.sin((e.x + e.y) * 0.09) * rr * 0.07;
     ctx.save();
-
-    // soft body disc behind the glyph (tinted by type colour) so it reads on any terrain
-    ctx.fillStyle = e.color + '66';
-    ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
-
-    // chilled/frozen tint: cool halo when slowed (status readability)
+    ctx.translate(0, bob);
+    (CRITTERS[e.type] || CRITTERS.grunt)(e.x, e.y, rr, e.color);
+    // chilled/frozen: frosted body wash + ice shards gripping from below + frost motes
     if (e.slow > 0) {
-      ctx.fillStyle = 'rgba(150,230,255,0.30)';
-      ctx.beginPath(); ctx.arc(e.x, e.y, rr + 2, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = 'rgba(150,230,255,0.85)'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(e.x, e.y, rr + 3, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = 'rgba(150,230,255,0.22)';
+      ctx.beginPath(); ctx.arc(e.x, e.y, rr, 0, Math.PI * 2); ctx.fill();
+      for (let i = 0; i < 3; i++) {
+        const sx2 = e.x + (i - 1) * rr * 0.55 + (i === 1 ? rr * 0.1 : 0);
+        const sy2 = e.y + rr * 0.45;
+        const sh = rr * (0.34 + (i === 1 ? 0.18 : 0)), sw = rr * 0.16;
+        const ig = ctx.createLinearGradient(sx2 - sw, sy2, sx2 + sw, sy2 - sh);
+        ig.addColorStop(0, '#bfe8ff'); ig.addColorStop(1, '#5ab0e0');
+        ctx.fillStyle = ig;
+        ctx.beginPath(); ctx.moveTo(sx2 - sw, sy2); ctx.lineTo(sx2 + (i - 1) * sw * 0.4, sy2 - sh); ctx.lineTo(sx2 + sw, sy2); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.7)'; ctx.lineWidth = Math.max(0.8, rr * 0.04);
+        ctx.beginPath(); ctx.moveTo(sx2 - sw * 0.5, sy2 - sh * 0.12); ctx.lineTo(sx2 + (i - 1) * sw * 0.3, sy2 - sh * 0.85); ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(255,255,255,0.9)';
+      for (let i = 0; i < 2; i++) {
+        const tw = 0.5 + 0.5 * Math.sin(vtick * 0.14 + (e.x + e.y) * 0.07 + i * 2.6);
+        ctx.globalAlpha = tw * 0.8;
+        ctx.beginPath();
+        ctx.arc(e.x + (i ? -rr * 0.5 : rr * 0.45), e.y - rr * (0.3 + i * 0.25), Math.max(0.8, rr * 0.07 * tw), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
     }
-
-    const ic = ENEMY_ICON[e.type] || '🐀';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.font = Math.round(rr * 2.0) + 'px Georgia,serif';
-    if (e.slow > 0) ctx.globalAlpha = 0.85; // frosted look
-    ctx.fillText(ic, e.x, e.y + rr * 0.05);
-    ctx.globalAlpha = 1;
-
     ctx.restore();
 
     // health bar — green → yellow → red
@@ -1433,19 +2128,20 @@
   }
 
   let hoverCell = null;
+  let vtick = 0;   // render-frame counter for view-only effects (buff notes, frost twinkle)
 
   function render() {
-    // background (themed)
-    ctx.fillStyle = theme().bg;
-    ctx.fillRect(0, 0, W, H);
-
-    // grass cells
-    for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
-      if (!road[c][r]) drawGrassCell(c, r);
+    // static board from the texture-pass cache (terrain + micro-texture + road)
+    ensureBoard();
+    if (boardCache) ctx.drawImage(boardCache, 0, 0, W, H);
+    else {
+      ctx.fillStyle = theme().bg;
+      ctx.fillRect(0, 0, W, H);
+      for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) {
+        if (!road[c][r]) drawGrassCell(ctx, c, r);
+      }
+      drawRoadTexture(ctx);
     }
-
-    // road
-    drawRoadTexture();
 
     // keep
     drawKeep(cx(WP[WP.length - 1][0]), cy(WP[WP.length - 1][1]), ts);
@@ -1486,13 +2182,29 @@
       ctx.beginPath(); ctx.arc(t.x, t.y, auraRadius(t), 0, Math.PI * 2); ctx.fill();
     }
 
-    // towers — emoji icon centred ON the cell as the body (TASK 1)
-    for (const t of towers) drawTowerShape(t);
-    // buffed glow on towers within an aura
+    // towers — drawn assets, painted back-to-front so tall turrets layer correctly
+    for (const t of [...towers].sort((a, b) => a.y - b.y)) drawTowerShape(t);
+    // bard-buffed towers: golden sparkles orbit the platform + a looping note drifts up
+    // (vtick is view-only — never touches game state)
+    vtick++;
     for (const t of towers) {
       if (!t.buffed) continue;
-      ctx.strokeStyle = 'rgba(255,220,120,0.7)'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(t.x, t.y, ts * 0.4, 0, Math.PI * 2); ctx.stroke();
+      const ph = vtick * 0.04 + t.c * 7 + t.r * 13;
+      ctx.fillStyle = '#ffe08a';
+      for (let i = 0; i < 3; i++) {
+        const a = ph + i * 2.09;
+        ctx.globalAlpha = 0.35 + 0.45 * (0.5 + 0.5 * Math.sin(ph * 2 + i * 2.1));
+        ctx.beginPath();
+        ctx.arc(t.x + Math.cos(a) * ts * 0.34, t.y + ts * 0.14 + Math.sin(a) * ts * 0.13, Math.max(1.2, ts * 0.024), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      const k = (vtick * 0.011 + ((t.c * 31 + t.r * 17) % 10) / 10) % 1;
+      ctx.globalAlpha = k < 0.15 ? k / 0.15 : Math.max(0, 1 - (k - 0.15) / 0.75);
+      ctx.fillStyle = '#ffd166';
+      ctx.font = Math.round(ts * 0.2) + 'px Georgia,serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('♪', t.x + ts * 0.26 + Math.sin(k * 9) * ts * 0.04, t.y - ts * (0.28 + k * 0.38));
+      ctx.globalAlpha = 1;
     }
 
     // enemies
@@ -1501,38 +2213,71 @@
     // shots
     for (const s of shots) drawShot(s);
 
-    // drops (clickable bonuses) — pulse + fade in the last second
+    // drops (clickable bonuses) — texture pass: grounded, shaded pickups with a glint
     for (const d of drops) {
       const pr = ts * 0.3 * (1 + 0.12 * Math.sin(d.pulse));
       ctx.globalAlpha = d.life < 60 ? Math.max(0.2, d.life / 60) : 1;
+      // soft contact shadow grounds every pickup on the board
+      ctx.fillStyle = 'rgba(12,30,25,0.3)';
+      ctx.beginPath(); ctx.ellipse(d.x + pr * 0.15, d.y + pr * 1.05, pr * 0.95, pr * 0.3, 0, 0, Math.PI * 2); ctx.fill();
       if (d.event) {
+        // event sigil: a shaded bronze medallion carrying the event icon
         const ev = EVENTS[d.event];
-        ctx.fillStyle = 'rgba(255,255,255,0.18)';
-        ctx.beginPath(); ctx.arc(d.x, d.y, pr * 1.8, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = ev.col; ctx.lineWidth = 2;
+        const hg = ctx.createRadialGradient(d.x, d.y, pr * 0.4, d.x, d.y, pr * 2);
+        hg.addColorStop(0, 'rgba(255,240,200,0.3)'); hg.addColorStop(1, 'rgba(255,240,200,0)');
+        ctx.fillStyle = hg; ctx.beginPath(); ctx.arc(d.x, d.y, pr * 2, 0, Math.PI * 2); ctx.fill();
+        const mg2 = ctx.createRadialGradient(d.x - pr * 0.5, d.y - pr * 0.6, 1, d.x, d.y, pr * 1.6);
+        mg2.addColorStop(0, '#e8d8b0'); mg2.addColorStop(0.55, '#b89868'); mg2.addColorStop(1, '#7a5c34');
+        ctx.fillStyle = mg2; ctx.beginPath(); ctx.arc(d.x, d.y, pr * 1.5, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = ev.col; ctx.lineWidth = 2.5;
         ctx.beginPath(); ctx.arc(d.x, d.y, pr * 1.5, 0, Math.PI * 2); ctx.stroke();
+        ctx.strokeStyle = 'rgba(255,255,255,0.5)'; ctx.lineWidth = 1.2;
+        ctx.beginPath(); ctx.arc(d.x, d.y, pr * 1.28, Math.PI * 1.05, Math.PI * 1.6); ctx.stroke();
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        ctx.font = Math.round(pr * 2) + 'px Georgia,serif';
+        ctx.font = Math.round(pr * 1.7) + 'px Georgia,serif';
         ctx.fillText(ev.icon, d.x, d.y + 1);
         ctx.globalAlpha = 1;
         continue;
       }
       // glow halo
-      ctx.fillStyle = 'rgba(255,224,102,0.25)';
+      ctx.fillStyle = d.kind === 'gold' ? 'rgba(255,224,102,0.25)' : 'rgba(180,130,255,0.22)';
       ctx.beginPath(); ctx.arc(d.x, d.y, pr * 1.7, 0, Math.PI * 2); ctx.fill();
       if (d.kind === 'gold') {
-        ctx.fillStyle = '#e0b25a'; ctx.beginPath(); ctx.arc(d.x, d.y, pr, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#fff0c0'; ctx.lineWidth = 2; ctx.stroke();
-        ctx.fillStyle = '#7a5a20'; ctx.font = 'bold ' + Math.round(pr * 1.1) + 'px Georgia,serif';
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', d.x, d.y + 1);
+        // a minted coin: edge, face gradient, embossed $, travelling glint
+        ctx.fillStyle = '#8a6a2a';
+        ctx.beginPath(); ctx.arc(d.x, d.y + pr * 0.1, pr, 0, Math.PI * 2); ctx.fill();
+        const cg2 = ctx.createRadialGradient(d.x - pr * 0.4, d.y - pr * 0.45, 1, d.x, d.y, pr * 1.2);
+        cg2.addColorStop(0, '#ffe9a8'); cg2.addColorStop(0.55, '#e0b25a'); cg2.addColorStop(1, '#a87c30');
+        ctx.fillStyle = cg2; ctx.beginPath(); ctx.arc(d.x, d.y, pr, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = 'rgba(122,90,32,0.8)'; ctx.lineWidth = Math.max(1, pr * 0.09);
+        ctx.beginPath(); ctx.arc(d.x, d.y, pr * 0.78, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = '#7a5a20'; ctx.font = 'bold ' + Math.round(pr * 1.05) + 'px Georgia,serif';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText('$', d.x + pr * 0.04, d.y + pr * 0.1);
+        ctx.fillStyle = 'rgba(255,250,230,0.9)'; ctx.font = 'bold ' + Math.round(pr * 1.05) + 'px Georgia,serif';
+        ctx.fillText('$', d.x, d.y);
+        const gk = 0.5 + 0.5 * Math.sin(d.pulse * 1.7);   // travelling glint
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.25 + gk * 0.45) + ')'; ctx.lineWidth = Math.max(1, pr * 0.1);
+        ctx.beginPath(); ctx.arc(d.x, d.y, pr * 0.88, Math.PI * (1.1 + gk * 0.15), Math.PI * (1.45 + gk * 0.15)); ctx.stroke();
       } else {
-        ctx.fillStyle = '#9b6fe0'; ctx.beginPath(); ctx.arc(d.x, d.y, pr, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#e6c0ff'; ctx.lineWidth = 2; ctx.stroke();
-        ctx.fillStyle = '#fff0c0';
+        // haste orb: glassy purple sphere with a white-hot bolt
+        ctx.fillStyle = '#4a2a70';
+        ctx.beginPath(); ctx.arc(d.x, d.y + pr * 0.08, pr, 0, Math.PI * 2); ctx.fill();
+        const og2 = ctx.createRadialGradient(d.x - pr * 0.4, d.y - pr * 0.45, 1, d.x, d.y, pr * 1.2);
+        og2.addColorStop(0, '#dcc0ff'); og2.addColorStop(0.5, '#9b6fe0'); og2.addColorStop(1, '#54308a');
+        ctx.fillStyle = og2; ctx.beginPath(); ctx.arc(d.x, d.y, pr, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.beginPath(); ctx.ellipse(d.x - pr * 0.35, d.y - pr * 0.42, pr * 0.26, pr * 0.15, -0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffe9a0';   // bolt with a warm core
         ctx.beginPath();
-        ctx.moveTo(d.x - pr * 0.2, d.y - pr * 0.5); ctx.lineTo(d.x + pr * 0.25, d.y - pr * 0.05);
-        ctx.lineTo(d.x, d.y - pr * 0.05); ctx.lineTo(d.x + pr * 0.2, d.y + pr * 0.5);
-        ctx.lineTo(d.x - pr * 0.25, d.y + pr * 0.05); ctx.lineTo(d.x, d.y + pr * 0.05);
+        ctx.moveTo(d.x - pr * 0.18, d.y - pr * 0.5); ctx.lineTo(d.x + pr * 0.27, d.y - pr * 0.05);
+        ctx.lineTo(d.x + pr * 0.02, d.y - pr * 0.05); ctx.lineTo(d.x + pr * 0.18, d.y + pr * 0.5);
+        ctx.lineTo(d.x - pr * 0.27, d.y + pr * 0.05); ctx.lineTo(d.x - pr * 0.02, d.y + pr * 0.05);
+        ctx.closePath(); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath();
+        ctx.moveTo(d.x - pr * 0.1, d.y - pr * 0.34); ctx.lineTo(d.x + pr * 0.14, d.y - pr * 0.05);
+        ctx.lineTo(d.x - pr * 0.02, d.y - pr * 0.05); ctx.lineTo(d.x + pr * 0.1, d.y + pr * 0.3);
+        ctx.lineTo(d.x - pr * 0.12, d.y + pr * 0.02); ctx.lineTo(d.x + pr * 0.02, d.y + pr * 0.02);
         ctx.closePath(); ctx.fill();
       }
       ctx.globalAlpha = 1;
@@ -1578,6 +2323,11 @@
       ctx.fillText(f.txt, f.x, f.y);
     }
     ctx.globalAlpha = 1;
+    // texture pass: colour grade + vignette (gradients cached with the board)
+    if (postGrade) {
+      ctx.fillStyle = postGrade; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = postVig; ctx.fillRect(0, 0, W, H);
+    }
   }
 
   function step() {
