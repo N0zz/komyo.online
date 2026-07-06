@@ -221,15 +221,42 @@
       g.fillStyle = '#fff'; for (let s = 0; s < 50; s++) { g.globalAlpha = .5; g.fillRect((s * 97 + 13) % w, (s * 53 + 7) % (h * .7), (s % 3) ? 1.5 : 2.3, (s % 3) ? 1.5 : 2.3); } g.globalAlpha = 1;
       g.fillStyle = 'rgba(240,235,200,.9)'; g.beginPath(); g.arc(w * .82, h * .16, 22, 0, 7); g.fill(); g.fillStyle = 'rgba(30,40,80,.35)'; g.beginPath(); g.arc(w * .82 + 9, h * .16 - 7, 22, 0, 7); g.fill();
     } else { mGrad(g, w, h, [[0, '#c8eeff'], [1, '#e8f8d0']]);
-      g.fillStyle = 'rgba(255,255,255,.82)'; [[w * .25, h * .2, 26], [w * .6, h * .12, 20], [w * .85, h * .28, 22]].forEach(c => { g.beginPath(); g.arc(c[0], c[1], c[2], 0, 7); g.arc(c[0] + c[2] * .8, c[1] + 3, c[2] * .7, 0, 7); g.arc(c[0] - c[2] * .8, c[1] + 4, c[2] * .6, 0, 7); g.fill(); });
+      const sun2 = g.createRadialGradient(w * .14, h * .12, 0, w * .14, h * .12, h * .5);
+      sun2.addColorStop(0, 'rgba(255,246,200,.4)'); sun2.addColorStop(1, 'rgba(255,246,200,0)');
+      g.fillStyle = sun2; g.fillRect(0, 0, w, h * .7);
+      [[w * .25, h * .2, 26], [w * .6, h * .12, 20], [w * .85, h * .28, 22]].forEach(c => {
+        g.fillStyle = 'rgba(120,160,200,.15)';
+        g.beginPath(); g.arc(c[0] + c[2] * .14, c[1] + c[2] * .26, c[2], 0, 7); g.arc(c[0] + c[2] * .9, c[1] + c[2] * .38, c[2] * .7, 0, 7); g.fill();
+        g.fillStyle = 'rgba(255,255,255,.85)';
+        g.beginPath(); g.arc(c[0], c[1], c[2], 0, 7); g.arc(c[0] + c[2] * .8, c[1] + 3, c[2] * .7, 0, 7); g.arc(c[0] - c[2] * .8, c[1] + 4, c[2] * .6, 0, 7); g.fill();
+        g.fillStyle = 'rgba(150,180,215,.22)';
+        g.beginPath(); g.ellipse(c[0], c[1] + c[2] * .45, c[2] * 1.25, c[2] * .3, 0, 0, 7); g.fill();
+        g.fillStyle = 'rgba(255,255,255,.95)';
+        g.beginPath(); g.arc(c[0] - c[2] * .2, c[1] - c[2] * .32, c[2] * .48, 0, 7); g.fill();
+      });
     }
     const hills = night ? ['#101830', '#0c1428', '#141c34'] : ['#a8d870', '#90cc60', '#b0dc80'], hy = [h * .62, h * .68, h * .72], hr = [w * .28, w * .22, w * .32];
-    for (let k = 0; k < 3; k++) { g.fillStyle = hills[k]; for (let hx = -hr[k]; hx < w + hr[k]; hx += hr[k] * 1.4) { g.beginPath(); g.arc(hx + k * 40, hy[k] + hr[k], hr[k], Math.PI, 0); g.fill(); } }
+    const hazeCols = night ? ['rgba(26,32,64,.4)', 'rgba(26,32,64,.22)', null] : ['rgba(200,230,245,.32)', 'rgba(200,230,245,.16)', null];
+    for (let k = 0; k < 3; k++) {
+      for (let hx = -hr[k]; hx < w + hr[k]; hx += hr[k] * 1.4) {
+        g.fillStyle = hills[k];
+        g.beginPath(); g.arc(hx + k * 40, hy[k] + hr[k], hr[k], Math.PI, 0); g.fill();
+        if (hazeCols[k]) { g.fillStyle = hazeCols[k]; g.beginPath(); g.arc(hx + k * 40, hy[k] + hr[k], hr[k], Math.PI, 0); g.fill(); }
+      }
+    }
     g.fillStyle = night ? '#0e1a10' : '#7ec850'; g.fillRect(0, h - 28, w, 28); g.fillStyle = night ? '#162010' : '#5a9e30'; g.fillRect(0, h - 28, w, 5);
     const pipes = [w * .22, w * .62], pw = 52;
     pipes.forEach((px, idx) => { const gy = h * .42 + idx * 30, gap = 104;
       const pg = g.createLinearGradient(px, 0, px + pw, 0); if (night) { pg.addColorStop(0, '#2a4060'); pg.addColorStop(.5, '#3a5880'); pg.addColorStop(1, '#1a2840'); } else { pg.addColorStop(0, '#7ec850'); pg.addColorStop(.5, '#9ed870'); pg.addColorStop(1, '#5a9e30'); }
       g.fillStyle = pg; g.fillRect(px, 0, pw, gy - gap / 2); g.fillRect(px, gy + gap / 2, pw, h - (gy + gap / 2) - 28); g.fillRect(px - 5, gy - gap / 2 - 14, pw + 10, 14); g.fillRect(px - 5, gy + gap / 2, pw + 10, 14);
+      const mlit = night ? 'rgba(180,210,255,.2)' : 'rgba(255,255,235,.35)', mdk = night ? 'rgba(5,10,25,.35)' : 'rgba(20,60,15,.22)', mrib = night ? 'rgba(10,20,40,.35)' : 'rgba(40,90,20,.22)';
+      for (const [ry0, rh] of [[0, gy - gap / 2], [gy + gap / 2, h - (gy + gap / 2) - 28]]) {
+        if (rh <= 4) continue;
+        g.fillStyle = mlit; g.fillRect(px + 1, ry0 + 2, 3, rh - 4);
+        g.fillStyle = mdk; g.fillRect(px + pw - 4, ry0 + 2, 3, rh - 4);
+        g.strokeStyle = mrib; g.lineWidth = 2;
+        g.beginPath(); g.moveTo(px + pw * .42, ry0 + 3); g.lineTo(px + pw * .42, ry0 + rh - 3); g.stroke();
+      }
       [gy - gap / 2, gy + gap / 2].forEach(fy => { g.fillStyle = night ? '#a080e0' : '#f9c0c0'; for (let p = 0; p < 5; p++) { const an = p / 5 * 6.28; g.beginPath(); g.ellipse(px + pw / 2 + Math.cos(an) * 11, fy + Math.sin(an) * 9, 5, 4, an, 0, 7); g.fill(); } g.fillStyle = night ? '#c0a0ff' : '#f9e080'; g.beginPath(); g.arc(px + pw / 2, fy, 4, 0, 7); g.fill(); });
     });
     if (night) { // fireflies — mirror the in-game look/behaviour (see drawFireflies): scattered start
@@ -263,6 +290,15 @@
     else if (selectedBird.id === 'raven') { g.shadowColor = 'rgba(170,200,255,0.55)'; g.shadowBlur = 11; }
     drawBirdModel(g, selectedBird, Math.sin(frame * 0.18) * 3.5 + 2);
     g.restore();
+    // the same grade + vignette as in-game
+    const mgd = g.createLinearGradient(0, 0, w, h);
+    if (night) { mgd.addColorStop(0, 'rgba(140,170,255,.06)'); mgd.addColorStop(.5, 'rgba(0,0,0,0)'); mgd.addColorStop(1, 'rgba(10,20,60,.14)'); }
+    else { mgd.addColorStop(0, 'rgba(255,220,150,.1)'); mgd.addColorStop(.5, 'rgba(0,0,0,0)'); mgd.addColorStop(1, 'rgba(60,80,140,.08)'); }
+    g.fillStyle = mgd; g.fillRect(0, 0, w, h);
+    const mvg = g.createRadialGradient(w / 2, h / 2, h * .45, w / 2, h / 2, h * .95);
+    mvg.addColorStop(0, 'rgba(20,12,40,0)');
+    mvg.addColorStop(1, night ? 'rgba(5,8,20,.28)' : 'rgba(20,12,40,.15)');
+    g.fillStyle = mvg; g.fillRect(0, 0, w, h);
   }
   let flappyHandle = null;
   function showStartMenu() {
@@ -484,15 +520,28 @@
 
   // ---- Render helpers ----
   function drawCloud(x, y, r) {
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x + r * 0.75, y + r * 0.2, r * 0.68, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(x - r * 0.65, y + r * 0.25, r * 0.6, 0, Math.PI * 2); ctx.fill();
+    // texture pass: soft sky shadow behind, white body, sunlit cap, shaded underside
+    ctx.fillStyle = 'rgba(120,160,200,0.16)';
+    ctx.beginPath(); ctx.arc(x + r * 0.14, y + r * 0.24, r, 0, Math.PI * 2);
+    ctx.arc(x + r * 0.89, y + r * 0.44, r * 0.68, 0, Math.PI * 2);
+    ctx.arc(x - r * 0.51, y + r * 0.49, r * 0.6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.86)';
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.arc(x + r * 0.75, y + r * 0.2, r * 0.68, 0, Math.PI * 2);
+    ctx.arc(x - r * 0.65, y + r * 0.25, r * 0.6, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(150,180,215,0.24)';
+    ctx.beginPath(); ctx.ellipse(x + r * 0.05, y + r * 0.48, r * 1.2, r * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath(); ctx.arc(x - r * 0.22, y - r * 0.32, r * 0.5, 0, Math.PI * 2); ctx.fill();
   }
 
-  function drawHill(x, r, col) {
+  function drawHill(x, r, col, haze) {
     ctx.fillStyle = col;
     ctx.beginPath(); ctx.arc(x, H, r, 0, Math.PI, true); ctx.closePath(); ctx.fill();
+    if (haze) {   // atmospheric depth: far hills sit in sky-tinted haze
+      ctx.fillStyle = haze;
+      ctx.beginPath(); ctx.arc(x, H, r, 0, Math.PI, true); ctx.closePath(); ctx.fill();
+    }
   }
   // wrap a hill's center over a period that includes its FULL diameter — a fixed
   // ±150px margin made wide hills vanish while still half on screen
@@ -540,8 +589,9 @@
     const botY = o.gapY + (o.gap || GAP_H);
     const botH = H - botY;
 
+    const night = mode === 'night';
     let grad, petalCol, centerCol;
-    if (mode === 'night') {
+    if (night) {
       grad = ctx.createLinearGradient(o.x, 0, o.x + OBS_W, 0);
       grad.addColorStop(0, '#2a4060');
       grad.addColorStop(0.5, '#3a5880');
@@ -559,23 +609,54 @@
 
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.roundRect(o.x + 6, 0, OBS_W - 12, topH - 6, [0, 0, 8, 8]); ctx.fill();
-    ctx.fillStyle = petalCol;
-    for (let a = 0; a < 5; a++) {
-      const ang = (a / 5) * Math.PI * 2;
-      ctx.beginPath(); ctx.ellipse(o.x + OBS_W / 2 + Math.cos(ang) * 14, topH - 8 + Math.sin(ang) * 10, 10, 8, ang, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.fillStyle = centerCol;
-    ctx.beginPath(); ctx.arc(o.x + OBS_W / 2, topH - 8, 10, 0, Math.PI * 2); ctx.fill();
-
     ctx.fillStyle = grad;
     ctx.beginPath(); ctx.roundRect(o.x + 6, botY + 6, OBS_W - 12, botH - 6, [8, 8, 0, 0]); ctx.fill();
-    ctx.fillStyle = petalCol;
-    for (let a = 0; a < 5; a++) {
-      const ang = (a / 5) * Math.PI * 2;
-      ctx.beginPath(); ctx.ellipse(o.x + OBS_W / 2 + Math.cos(ang) * 14, botY + 8 + Math.sin(ang) * 10, 10, 8, ang, 0, Math.PI * 2); ctx.fill();
+
+    // texture pass: stem ribs, a lit rim + shaded edge, and leaf collars at the gap mouths
+    const ribCol = night ? 'rgba(10,20,40,0.35)' : 'rgba(40,90,20,0.22)';
+    const litCol = night ? 'rgba(180,210,255,0.20)' : 'rgba(255,255,235,0.35)';
+    const dkCol = night ? 'rgba(5,10,25,0.35)' : 'rgba(20,60,15,0.22)';
+    for (const [ry0, rh] of [[0, topH - 6], [botY + 6, botH - 6]]) {
+      if (rh <= 4) continue;
+      ctx.fillStyle = litCol; ctx.fillRect(o.x + 7, ry0 + 2, 3, rh - 4);
+      ctx.fillStyle = dkCol; ctx.fillRect(o.x + OBS_W - 10, ry0 + 2, 3, rh - 4);
+      ctx.strokeStyle = ribCol; ctx.lineWidth = 2;
+      for (const rx of [0.4, 0.62]) {
+        ctx.beginPath(); ctx.moveTo(o.x + OBS_W * rx, ry0 + 3); ctx.lineTo(o.x + OBS_W * rx, ry0 + rh - 3); ctx.stroke();
+      }
     }
-    ctx.fillStyle = centerCol;
-    ctx.beginPath(); ctx.arc(o.x + OBS_W / 2, botY + 8, 10, 0, Math.PI * 2); ctx.fill();
+    const leaf = (lx, ly, ang) => {
+      ctx.save(); ctx.translate(lx, ly); ctx.rotate(ang);
+      ctx.fillStyle = night ? '#2f4a72' : '#5fae38';
+      ctx.beginPath(); ctx.ellipse(0, 0, 13, 5.5, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = night ? 'rgba(150,190,240,0.28)' : 'rgba(240,255,210,0.4)';
+      ctx.beginPath(); ctx.ellipse(-2, -1.5, 8, 2.6, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    };
+    leaf(o.x + 4, topH - 20, 0.6); leaf(o.x + OBS_W - 4, topH - 22, -0.6);
+    leaf(o.x + 4, botY + 22, -0.6); leaf(o.x + OBS_W - 4, botY + 20, 0.6);
+
+    // the flowers at both gap mouths — shadowed petals + a highlighted heart
+    for (const fy of [topH - 8, botY + 8]) {
+      ctx.fillStyle = 'rgba(30,20,40,0.16)';
+      ctx.beginPath(); ctx.ellipse(o.x + OBS_W / 2 + 2, fy + 4, 20, 10, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = petalCol;
+      for (let a = 0; a < 5; a++) {
+        const ang = (a / 5) * Math.PI * 2;
+        ctx.beginPath(); ctx.ellipse(o.x + OBS_W / 2 + Math.cos(ang) * 14, fy + Math.sin(ang) * 10, 10, 8, ang, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = night ? 'rgba(60,40,120,0.35)' : 'rgba(200,120,120,0.3)';
+      for (let a = 0; a < 5; a++) {
+        const ang = (a / 5) * Math.PI * 2;
+        ctx.beginPath(); ctx.ellipse(o.x + OBS_W / 2 + Math.cos(ang) * 17, fy + Math.sin(ang) * 12.5, 4.5, 3, ang, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = centerCol;
+      ctx.beginPath(); ctx.arc(o.x + OBS_W / 2, fy, 10, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(120,80,20,0.35)';
+      ctx.beginPath(); ctx.arc(o.x + OBS_W / 2 + 1.5, fy + 1.5, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.beginPath(); ctx.arc(o.x + OBS_W / 2 - 3, fy - 3, 2.6, 0, Math.PI * 2); ctx.fill();
+    }
   }
 
   // ---- per-bird models — ONE renderer feeds the in-game bird, the menu icons AND the menu
@@ -583,9 +664,11 @@
   // objects): the menu icons also render in the headless harness where those don't exist.
   function drawBirdModel(g, b, flapOff) {
     const R = BIRD_R;
-    const eye = (x, y, r) => {
-      g.fillStyle = '#3a2a17'; g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
-      g.fillStyle = 'white'; g.beginPath(); g.arc(x + r * 0.35, y - r * 0.4, r * 0.4, 0, Math.PI * 2); g.fill();
+    const eye = (x, y, r) => {   // glossy: sclera ring, iris, double catchlight (flat shapes only)
+      g.fillStyle = 'rgba(255,255,255,0.92)'; g.beginPath(); g.arc(x, y, r * 1.3, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#3a2a17'; g.beginPath(); g.arc(x + r * 0.12, y + r * 0.08, r, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'white'; g.beginPath(); g.arc(x + r * 0.35, y - r * 0.4, r * 0.42, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.55)'; g.beginPath(); g.arc(x - r * 0.35, y + r * 0.4, r * 0.2, 0, Math.PI * 2); g.fill();
     };
     const body = (col, rx, ry) => { g.fillStyle = col; g.beginPath(); g.ellipse(0, 0, rx || R, ry || R * 0.8, 0, 0, Math.PI * 2); g.fill(); };
     const clipBody = () => { g.save(); g.beginPath(); g.ellipse(0, 0, R, R * 0.8, 0, 0, Math.PI * 2); g.clip(); };
@@ -771,6 +854,55 @@
     } else {
       body(b.body); wings(b.wing); beak('#e07030'); eye(R * 0.55, -2, 3);
     }
+    // finishing pass for EVERY flyer: soft form shading + a sunlit rim, flat shapes only
+    // (the menu icons render in the headless harness where gradient objects don't exist)
+    g.save();
+    g.beginPath(); g.ellipse(0, 0, R, R * 0.8, 0, 0, Math.PI * 2); g.clip();
+    g.fillStyle = 'rgba(30,20,50,0.13)';
+    g.beginPath(); g.ellipse(R * 0.1, R * 0.45, R * 1.05, R * 0.5, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,245,0.14)';
+    g.beginPath(); g.ellipse(-R * 0.15, -R * 0.42, R * 0.8, R * 0.4, 0, 0, Math.PI * 2); g.fill();
+    g.restore();
+    g.strokeStyle = 'rgba(255,250,225,0.45)'; g.lineWidth = 1.6;
+    g.beginPath(); g.ellipse(0, 0, R * 0.93, R * 0.73, 0, Math.PI * 1.1, Math.PI * 1.6); g.stroke();
+  }
+
+  // small two-tone tufts along the ground strip (deterministic, scrolls with the hills)
+  function drawGroundTufts(col) {
+    const gy = H - 24;
+    ctx.strokeStyle = col; ctx.lineWidth = 1.4; ctx.lineCap = 'round';
+    const period = W + 20;
+    for (let i = 0; i < W / 26; i++) {
+      const s = Math.sin(i * 12.9898) * 43758.5453, j = s - Math.floor(s);
+      const x = (((i * 26 + j * 14 - hillScroll * 0.8) % period) + period) % period - 10;
+      const tl = 4 + j * 3;
+      for (let b = -1; b <= 1; b++) {
+        ctx.beginPath(); ctx.moveTo(x, gy + 6);
+        ctx.quadraticCurveTo(x + b * tl * 0.2, gy + 6 - tl * 0.55, x + b * tl * 0.5, gy + 6 - tl * (b === 0 ? 1 : 0.7));
+        ctx.stroke();
+      }
+    }
+  }
+
+  // colour grade + vignette, cached per size × mode
+  let postKey = '', postGrade = null, postVig = null;
+  function ensurePost() {
+    const key = W + 'x' + H + mode;
+    if (postKey === key) return;
+    postKey = key;
+    postGrade = ctx.createLinearGradient(0, 0, W, H);
+    if (mode === 'night') {
+      postGrade.addColorStop(0, 'rgba(140,170,255,0.06)');
+      postGrade.addColorStop(0.5, 'rgba(0,0,0,0)');
+      postGrade.addColorStop(1, 'rgba(10,20,60,0.14)');
+    } else {
+      postGrade.addColorStop(0, 'rgba(255,220,150,0.10)');
+      postGrade.addColorStop(0.5, 'rgba(0,0,0,0)');
+      postGrade.addColorStop(1, 'rgba(60,80,140,0.08)');
+    }
+    postVig = ctx.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 0.95);
+    postVig.addColorStop(0, 'rgba(20,12,40,0)');
+    postVig.addColorStop(1, mode === 'night' ? 'rgba(5,8,20,0.28)' : 'rgba(20,12,40,0.15)');
   }
 
   function drawBird() {
@@ -796,23 +928,28 @@
 
       drawStars();
 
-      // moon
+      // moon with a soft halo
+      const halo = ctx.createRadialGradient(W * 0.82, H * 0.12, 10, W * 0.82, H * 0.12, 110);
+      halo.addColorStop(0, 'rgba(240,235,200,0.28)'); halo.addColorStop(1, 'rgba(240,235,200,0)');
+      ctx.fillStyle = halo;
+      ctx.beginPath(); ctx.arc(W * 0.82, H * 0.12, 110, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgba(240,235,200,0.90)';
       ctx.beginPath(); ctx.arc(W * 0.82, H * 0.12, 28, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = 'rgba(30,40,80,0.35)';
       ctx.beginPath(); ctx.arc(W * 0.82 + 10, H * 0.12 - 8, 22, 0, Math.PI * 2); ctx.fill();
 
-      // night hills
-      drawHill(hillX(120, 0.45, W * 0.28), W * 0.28, '#101830');
-      drawHill(hillX(W * 0.55, 0.6, W * 0.22), W * 0.22, '#0c1428');
+      // night hills — the far two fade into the night haze
+      drawHill(hillX(120, 0.45, W * 0.28), W * 0.28, '#101830', 'rgba(26,32,64,0.4)');
+      drawHill(hillX(W * 0.55, 0.6, W * 0.22), W * 0.22, '#0c1428', 'rgba(26,32,64,0.25)');
       drawHill(hillX(W * 0.8, 0.5, W * 0.32), W * 0.32, '#141c34');
 
-      // ground
+      // ground with sparse tufts
       const groundH = 28;
       ctx.fillStyle = '#0e1a10';
       ctx.fillRect(0, H - groundH, W, groundH);
       ctx.fillStyle = '#162010';
       ctx.fillRect(0, H - groundH, W, 5);
+      drawGroundTufts('rgba(34,58,30,0.9)');
 
       // fireflies live in the meadow BEHIND the flower stems, like the day leaves
       drawFireflies();
@@ -825,23 +962,29 @@
       ctx.fillStyle = skyGrad;
       ctx.fillRect(0, 0, W, H);
 
+      // low sun glow in the upper-left corner
+      const sun = ctx.createRadialGradient(W * 0.14, H * 0.12, 0, W * 0.14, H * 0.12, H * 0.5);
+      sun.addColorStop(0, 'rgba(255,246,200,0.45)'); sun.addColorStop(1, 'rgba(255,246,200,0)');
+      ctx.fillStyle = sun; ctx.fillRect(0, 0, W, H * 0.7);
+
       // clouds
       for (const c of clouds) {
         const cx = ((c.x - cloudScroll * c.s) % (W + 120) + W + 120) % (W + 120) - 60;
         drawCloud(cx, c.y, c.r);
       }
 
-      // hills
-      drawHill(hillX(120, 0.45, W * 0.28), W * 0.28, '#a8d870');
-      drawHill(hillX(W * 0.55, 0.6, W * 0.22), W * 0.22, '#90cc60');
+      // hills — the far two sit in daylight haze for depth
+      drawHill(hillX(120, 0.45, W * 0.28), W * 0.28, '#a8d870', 'rgba(200,230,245,0.32)');
+      drawHill(hillX(W * 0.55, 0.6, W * 0.22), W * 0.22, '#90cc60', 'rgba(200,230,245,0.18)');
       drawHill(hillX(W * 0.8, 0.5, W * 0.32), W * 0.32, '#b0dc80');
 
-      // ground
+      // ground with sparse tufts
       const groundH = 28;
       ctx.fillStyle = '#7ec850';
       ctx.fillRect(0, H - groundH, W, groundH);
       ctx.fillStyle = '#5a9e30';
       ctx.fillRect(0, H - groundH, W, 5);
+      drawGroundTufts('rgba(70,140,45,0.9)');
 
       drawLeaves();
       for (const o of obstacles) drawObstacle(o);
@@ -871,6 +1014,11 @@
     ctx.globalAlpha = 1;
 
     drawBird();
+
+    // texture pass: colour grade + vignette over the whole scene
+    ensurePost();
+    ctx.fillStyle = postGrade; ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = postVig; ctx.fillRect(0, 0, W, H);
   }
 
   // ---- Input ----

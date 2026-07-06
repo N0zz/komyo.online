@@ -150,7 +150,7 @@ window.GAMES = [
     tags: ["CASUAL", "ARCADE"],
     badges: ["pick"],
     added: "2026-06-26",
-    updated: "2026-07-03",
+    updated: "2026-07-06",
   },
   {
     slug: "aim-trainer",
