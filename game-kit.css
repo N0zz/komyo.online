@@ -423,6 +423,10 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 /* a toggle that doesn't apply in the current mode — grayed, keeps its checked state, not clickable */
 .gamekit-menu .gkm-check.gkm-disabled { opacity: 0.4; cursor: not-allowed; }
 .gamekit-menu .gkm-check.gkm-disabled:hover { border-color: var(--gkm-border, rgba(255, 255, 255, 0.16)); box-shadow: none; }
+/* a choice-row group that doesn't apply in the current mode (e.g. difficulty in a no-fail zen mode) —
+   grayed + not clickable, keeps its selected pill; same semantics as the disabled toggle above */
+.gamekit-menu .gkm-choice.gkm-disabled { opacity: 0.4; cursor: not-allowed; }
+.gamekit-menu .gkm-choice.gkm-disabled:hover { border-color: var(--gkm-border, rgba(255, 255, 255, 0.14)); }
 
 /* controls board (🎮 top-bar button → modal) */
 .gamekit-au-ctlbtn { font-size: 15px; }

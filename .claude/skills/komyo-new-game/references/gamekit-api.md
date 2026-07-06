@@ -192,11 +192,14 @@ Notes:
 
 ### Group styles
 
-Each entry in `groups` is `{id, label?, default?, style?, choices:[…]}`. `default` sets the initial
-selected choice id (else the first choice). Style-specific choice fields:
+Each entry in `groups` is `{id, label?, default?, style?, disabled?, choices:[…]}`. `default` sets the
+initial selected choice id (else the first choice). `disabled` (bool | `state→bool`, on the default
+button-row style) grays the whole group out + makes selecting a no-op, re-evaluated on every change —
+use it to switch a knob off in a mode where it does nothing (e.g. difficulty in a no-fail zen mode;
+Frog Bonk + the Bubble Pop timed toggle do this). Style-specific choice fields:
 
 **(default — button row, no `style`)** — `choices: {id, label, desc?}`. Simple selectable buttons;
-`desc` renders as a sub-line.
+`desc` renders as a sub-line. Group-level `disabled` (above) grays + blocks the whole row.
 
 **`style:'cards'`** — rich mode cards. `choices: {id, label, tag?, desc, mech, best, preview,
 pvW?, pvH?}`:

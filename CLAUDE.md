@@ -126,7 +126,8 @@ Games alias the API once: `const KIT = window.gamekit;`.
   `confirmLeave: true|msg|fn` guards mid-run exits (pauses under the confirm); `onPause` wires ⏸.
 - `gamekit.menu` — the declarative three-screen framework: `menu.show(cfg)` / `menu.hide()`.
   cfg: `kind:'start'|'pause'|'end'`, `title`, `score/scoreText/best/newBest/lines`, `groups`
-  (option rows; `style:'cards'` = rich mode cards with a canvas `preview(ctx,w,h,state)`;
+  (option rows — a plain button-row group takes `disabled:(state)=>bool` to gray out + block the
+  whole row in modes where it's moot, e.g. difficulty under zen; `style:'cards'` = rich mode cards with a canvas `preview(ctx,w,h,state)`;
   `style:'shop'` = an action grid for buy/pick — powers the Asteroids+ level-up picker + shop;
   shop opts: `icon:` painter per choice, `cols:3` fixed picker shape, `pickLabel:` → the
   small-screen BUY/TAKE button; on touch the first tap selects (desc shows in a focused-desc
