@@ -25,6 +25,9 @@
   html,body { margin:0; height:100%; overflow:hidden; background:var(--bg); color:var(--fg);
     font-family:'Courier New',Courier,monospace; user-select:none; touch-action:none; }
   #game { display:block; width:100vw; height:100vh; cursor:none; }
+  /* live mouse crosshair as a DOM overlay — tracks the pointer with no game-loop latency (a
+     canvas-drawn cursor is always ≥1 frame behind the OS pointer). Hidden on touch / when paused. */
+  .range-cursor { position:fixed; left:0; top:0; width:50px; height:50px; pointer-events:none; z-index:40; opacity:0; will-change:transform; transition:opacity .1s; }
   /* .gamekit-hud (shared kit) provides center-top placement, pill, wrap + font; keep only item colors. */
   #hud .stat b { color:var(--accent); }
   #hud #hTime.warn { color:#ff3c3c; }
@@ -99,7 +102,7 @@
   let frame = 0, spawnTimer = 0, spawnInterval = SPAWN_INTERVAL_INIT;
   let reticle = { x: -100, y: -100 };
   let hitMarkers = [];
-  let bestReact = Infinity, lastSpawnFrame = 0;
+  let lastSpawnFrame = 0;
   let combo = 0;
   let W = 0, H = 0;
 
@@ -204,8 +207,6 @@
       const t = targets[i];
       const d = Math.hypot(px - t.x, py - t.y);
       if (d <= t.r) {
-        const reactMs = Math.round((frame - t.born) * (1000 / 60));
-        if (reactMs < bestReact) bestReact = reactMs;
         const mult = 1 + Math.floor(combo / 3);
         score += 10 * mult;
         hits++;
@@ -238,7 +239,7 @@
     elapsedFrames = 0;
     targets = []; particles = []; hitMarkers = [];
     frame = 0; spawnTimer = 0; spawnInterval = SPAWN_INTERVAL_INIT;
-    combo = 0; bestReact = Infinity; winHoldFrames = 0;
+    combo = 0; winHoldFrames = 0;
   }
 
   function startGame() {
@@ -339,7 +340,7 @@
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
     const isSprint = mode === 'sprint';
-    const detail = KIT.t('game.aim-trainer.endStats', { acc: acc, hits: hits, misses: misses, def: acc + '% accuracy · ' + hits + ' hits · ' + misses + ' misses' }) + (bestReact < Infinity ? KIT.t('game.aim-trainer.endReact', { ms: bestReact, def: ' · ' + bestReact + 'ms' }) : '');
+    const detail = KIT.t('game.aim-trainer.endStats', { acc: acc, hits: hits, misses: misses, def: acc + '% accuracy · ' + hits + ' hits · ' + misses + ' misses' });
     const cfg = { kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true, title: isSprint ? KIT.t('game.aim-trainer.sprintClear', { def: 'SPRINT CLEAR' }) : KIT.t('game.aim-trainer.timesUp', { def: "TIME'S UP" }), lines: [detail],
       share: { slug: 'aim-trainer', accent: '#ff7a3c', icon: '🎯', title: KIT.t('game.aim-trainer.gameName', { def: 'Range' }), message: () => shareMsg(), params: () => rangeParams() },
       record: { slug: 'aim-trainer', mode: modeLabel(mode, mode === 'sprint' ? SPRINT_TARGET : sessionSeconds), score: score, time: Math.round(elapsedFrames / 60 * 1000), stats: { accuracy: acc } },
@@ -620,7 +621,9 @@
       ctx.globalAlpha = 1;
     }
 
-    if (state === 'playing') drawCrosshair(reticle.x, reticle.y);
+    // touch keeps the canvas reticle (a static last-shot mark); the mouse uses the DOM overlay below
+    if (state === 'playing' && pointerKind === 'touch') drawCrosshair(reticle.x, reticle.y);
+    cursorVis(_inside && pointerKind === 'mouse' && state === 'playing');
   }
 
   // ---- Input ----
@@ -632,11 +635,31 @@
     };
   }
 
-  canvas.addEventListener('pointerdown', e => { const { x, y } = getCanvasPos(e); shoot(x, y); });
+  // DOM crosshair overlay (mouse only): moved straight from pointermove so it never trails the loop.
+  let pointerKind = 'mouse', _inside = false, _curShown = false;
+  const cursorEl = (typeof document !== 'undefined' && document.createElement) ? document.createElement('div') : null;
+  if (cursorEl) {
+    cursorEl.className = 'range-cursor'; cursorEl.setAttribute('aria-hidden', 'true');
+    cursorEl.innerHTML = '<svg width="50" height="50" viewBox="0 0 50 50" fill="none" stroke="#ff7a3c" stroke-width="1.5">'
+      + '<circle cx="25" cy="25" r="12"/><circle cx="25" cy="25" r="1.5" fill="#ff7a3c" stroke="none"/>'
+      + '<line x1="42" y1="25" x2="50" y2="25"/><line x1="8" y1="25" x2="0" y2="25"/>'
+      + '<line x1="25" y1="42" x2="25" y2="50"/><line x1="25" y1="8" x2="25" y2="0"/></svg>';
+    try { if (document.body) document.body.appendChild(cursorEl); } catch (e) {}
+  }
+  function moveCursor(cx, cy) { if (cursorEl) cursorEl.style.transform = 'translate(' + cx + 'px,' + cy + 'px) translate(-50%,-50%)'; }
+  function cursorVis(on) { if (cursorEl && on !== _curShown) { _curShown = on; cursorEl.style.opacity = on ? '1' : '0'; } }
+
+  canvas.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'touch') { pointerKind = 'touch'; _inside = false; cursorVis(false); }
+    const { x, y } = getCanvasPos(e); shoot(x, y);
+  });
   canvas.addEventListener('pointermove', e => {
     if (e.pointerType === 'touch') return; // touch: the crosshair is the last-shot mark only — don't drag it behind the finger
+    pointerKind = 'mouse'; _inside = true;
     const { x, y } = getCanvasPos(e); reticle.x = x; reticle.y = y;
+    moveCursor(e.clientX, e.clientY); // no getCanvasPos scaling — client px match the OS pointer exactly
   });
+  canvas.addEventListener('pointerleave', () => { _inside = false; cursorVis(false); });
   window.addEventListener('keydown', e => { if (e.key === 'Escape' && state === 'playing') { e.preventDefault(); pauseGame(); } });
 
   // ---- mode state (deep-linkable) + top nav (game-kit) ----
