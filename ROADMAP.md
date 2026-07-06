@@ -142,6 +142,14 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
 
 ### Later (non-gating)
 
+- **Render-interpolation for the remaining linear movers** *(noted 2026-07-06)* — `gamekit.loopAlpha()`
+  now cures fixed-step judder; applied where visible: Meadow Flyer (everything), Brick Breaker (ball +
+  power-ups, via its own accumulator), Forcefield (dome sweep + ricochets). Remaining candidates, all
+  LOW visibility (motion is slow, brief, eased or masked): **Keep Defender** walkers (0.4–2 px/step +
+  bob), **Bubble Pop** flying shot (sub-second), **Range** drifting targets (slow), **Asteroids /
+  Asteroids+** (own loops, rotating drift — handle-with-care pair, only touch if someone notices).
+  Pattern + all-or-none layer rule documented in the komyo-new-game skill (`gamekit-api.md`).
+
 - **Score card as the DEFAULT share payload** *(to discuss — parked 2026-07-05, no decision yet)* —
   end-screen share row: can the X/Reddit/native buttons share the score-card IMAGE by default
   instead of text+link? Discussion points when picked up: X/Reddit web intents are URL-only (no

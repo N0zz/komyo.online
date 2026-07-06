@@ -1536,6 +1536,8 @@ window.KOMYO_I18N.it = {
   'cos.frog-bonk.meadow.snow.desc': 'Una nevicata silenziosa sul prato gelato.',
   'challenge.goal.frog-1': 'Fai 800 punti in Colpisci la Rana',
   'challenge.goal.frog-2': 'Fai 2000 punti in Colpisci la Rana',
+  'changelog.e42.title': 'Più fluidità in tutta la sala giochi 🧈',
+  'changelog.e42.b0': 'Fix: la palla di Brick Breaker (e i potenziamenti che cadono) e la cupola di Forcefield ora scivolano perfettamente tra i passi della fisica — la stessa cura anti micro-scatti di Volo nel Prato; si nota su ogni schermo, soprattutto a 120 Hz.',
   'changelog.e41.title': 'Nuovo titolo, fanfara come si deve ✨',
   'changelog.e41.b0': 'Fix: guadagnare un nuovo titolo riaccende il puntino dorato sul pulsante Profilo E ripropone il bagliore «★ NUOVO TITOLO» sulla scheda del profilo all\'apertura — il bagliore si era perso spostando il profilo nel pannello laterale.',
   'changelog.e40.title': 'Volo nel Prato: liscio come il burro 🧈',

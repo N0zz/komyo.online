@@ -1507,6 +1507,8 @@ window.KOMYO_I18N.pl = {
   'changelog.e24.b0': 'Nowość: komyo teraz mówi też po czesku! Cała strona — każda gra, każde menu i ekran — jest przetłumaczona. Wybierz Čeština w ⚙️ Ustawieniach na stronie głównej albo w menu ☰ w każdej grze. Angielski, polski, hiszpański, portugalski, francuski i włoski są też dostępne, a kolejne języki są w drodze.',
   'changelog.e25.title': 'komyo mówi już też po ukraińsku! 🇺🇦',
   'changelog.e25.b0': 'Nowość: komyo teraz mówi też po ukraińsku! Cała strona — każda gra, każde menu i ekran — jest przetłumaczona. Wybierz Українська w ⚙️ Ustawieniach na stronie głównej albo w menu ☰ w każdej grze. Angielski, polski, hiszpański, portugalski, francuski i włoski są też dostępne, a kolejne języki są w drodze.',
+  'changelog.e42.title': 'Płynniej w całym arcade 🧈',
+  'changelog.e42.b0': 'Poprawka: piłka w Brick Breakerze (i spadające bonusy) oraz przesuwająca się kopuła w Forcefield suną teraz idealnie gładko między krokami fizyki — ta sama kuracja na mikro-przycięcia, którą dostał Łąkowy Lot; widać na każdym ekranie, a zwłaszcza przy 120 Hz.',
   'changelog.e41.title': 'Nowy tytuł z fanfarami ✨',
   'changelog.e41.b0': 'Poprawka: zdobycie nowego tytułu znów zapala złotą kropkę na przycisku Profilu ORAZ odtwarza błysk „★ NOWY TYTUŁ" na karcie profilu po jej otwarciu — błysk zaginął przy przenosinach profilu do bocznego panelu.',
   'changelog.e40.title': 'Łąkowy Lot: masło maślane 🧈',

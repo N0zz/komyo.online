@@ -1537,6 +1537,8 @@ window.KOMYO_I18N.es = {
   'cos.frog-bonk.meadow.snow.desc': 'Una nevada silenciosa sobre la pradera helada.',
   'challenge.goal.frog-1': 'Consigue 800 en Golpea Ranas',
   'challenge.goal.frog-2': 'Consigue 2000 en Golpea Ranas',
+  'changelog.e42.title': 'Más fluidez en todo el arcade 🧈',
+  'changelog.e42.b0': 'Arreglo: la bola de Brick Breaker (y los potenciadores que caen) y la cúpula de Forcefield ahora se deslizan perfectamente entre pasos de física — la misma cura de microtirones que recibió Vuelo del Prado; se nota en cualquier pantalla y sobre todo a 120 Hz.',
   'changelog.e41.title': 'Título nuevo, fanfarria como es debido ✨',
   'changelog.e41.b0': 'Arreglo: ganar un título nuevo vuelve a encender el punto dorado en el botón de Perfil Y reproduce el brillo «★ NUEVO TÍTULO» en tu tarjeta al abrirla — el brillo se había perdido al mover el perfil al panel lateral.',
   'changelog.e40.title': 'Vuelo del Prado: suave como mantequilla 🧈',

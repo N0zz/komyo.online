@@ -1536,6 +1536,8 @@ window.KOMYO_I18N.cs = {
   'cos.frog-bonk.meadow.snow.desc': 'Tiché sněžení nad zmrzlou loukou.',
   'challenge.goal.frog-1': 'Získej 800 bodů ve hře Žabí ťuk',
   'challenge.goal.frog-2': 'Získej 2000 bodů ve hře Žabí ťuk',
+  'changelog.e42.title': 'Plynulejší celá herna 🧈',
+  'changelog.e42.b0': 'Oprava: míček v Brick Breakeru (i padající bonusy) a klouzající kupole ve Forcefieldu teď mezi kroky fyziky plují dokonale hladce — stejný lék na mikroškubání, jaký dostal Luční letec; vidět na každé obrazovce, zvlášť při 120 Hz.',
   'changelog.e41.title': 'Nový titul s fanfárami ✨',
   'changelog.e41.b0': 'Oprava: získání nového titulu znovu rozsvítí zlatou tečku na tlačítku Profilu A přehraje záblesk „★ NOVÝ TITUL" na kartě profilu po otevření — záblesk se ztratil při přesunu profilu do bočního panelu.',
   'changelog.e40.title': 'Luční letec: máslově hladký 🧈',
