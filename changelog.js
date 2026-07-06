@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-06', title: 'Smoother arcade all around 🧈', items: [
+    'Fix: Brick Breaker\'s ball (and falling power-ups) and Forcefield\'s sweeping dome now glide perfectly between physics steps — the same micro-hitch cure Meadow Flyer got, visible on any screen and especially 120 Hz.',
+  ] },
   { date: '2026-07-06', title: 'New title, proper fanfare ✨', items: [
     'Fix: earning a new title lights the golden dot on the Profile button again AND replays the "★ NEW TITLE" shine on your profile card when you open it — the shine had been lost when the profile moved to the side panel.',
   ] },

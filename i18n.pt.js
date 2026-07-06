@@ -1536,6 +1536,8 @@ window.KOMYO_I18N.pt = {
   'cos.frog-bonk.meadow.snow.desc': 'Uma neve silenciosa sobre o prado congelado.',
   'challenge.goal.frog-1': 'Faça 800 pontos em Martela Rãs',
   'challenge.goal.frog-2': 'Faça 2000 pontos em Martela Rãs',
+  'changelog.e42.title': 'Mais suavidade no fliperama todo 🧈',
+  'changelog.e42.b0': 'Correção: a bola do Brick Breaker (e os power-ups caindo) e a cúpula do Forcefield agora deslizam perfeitamente entre os passos da física — a mesma cura de micro-engasgos que o Voo na Campina recebeu; nota-se em qualquer tela, principalmente a 120 Hz.',
   'changelog.e41.title': 'Título novo, fanfarra de verdade ✨',
   'changelog.e41.b0': 'Correção: ganhar um título novo volta a acender o ponto dourado no botão de Perfil E reproduz o brilho «★ NOVO TÍTULO» no cartão do perfil ao abri-lo — o brilho tinha se perdido quando o perfil mudou para o painel lateral.',
   'changelog.e40.title': 'Voo na Campina: macio como manteiga 🧈',

@@ -1536,6 +1536,8 @@ window.KOMYO_I18N.fr = {
   'cos.frog-bonk.meadow.snow.desc': 'Une neige silencieuse sur la prairie gelée.',
   'challenge.goal.frog-1': 'Marquez 800 dans Tape la Grenouille',
   'challenge.goal.frog-2': 'Marquez 2000 dans Tape la Grenouille',
+  'changelog.e42.title': 'Plus fluide dans toute l\'arcade 🧈',
+  'changelog.e42.b0': 'Correctif : la balle de Brick Breaker (et les bonus qui tombent) ainsi que le dôme de Forcefield glissent désormais parfaitement entre les pas de physique — le même remède anti micro-saccades que Vol des Prés ; visible sur tout écran, surtout à 120 Hz.',
   'changelog.e41.title': 'Nouveau titre, vraie fanfare ✨',
   'changelog.e41.b0': 'Correctif : décrocher un nouveau titre rallume le point doré sur le bouton Profil ET rejoue l\'éclat « ★ NOUVEAU TITRE » sur la carte de profil à l\'ouverture — l\'éclat s\'était perdu lors du passage du profil au panneau latéral.',
   'changelog.e40.title': 'Vol des Prés : fluide comme du beurre 🧈',
