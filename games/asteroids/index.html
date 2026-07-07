@@ -251,7 +251,7 @@
   // end screen (game over + speedrun complete) — kit-rendered; reuses recordResult + the shared share row.
   function showEnd(win){
     SND.stopMusic(); SND.play(win ? 'level' : 'over'); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
-    const record = { mode: keyLabel(KEY, SPEEDRUN), score: score, time: (SPEEDRUN && win) ? srElapsed : 0, stats: { wave: level } };
+    const record = { mode: keyLabel(KEY, SPEEDRUN), modeText: keyLabelDisplay(KEY, SPEEDRUN), score: score, time: (SPEEDRUN && win) ? srElapsed : 0, stats: { wave: level } };
     let title, scoreText, best=null, newBest=false, lines=[];
     if (SPEEDRUN) {
       if (win) { newBest = saveBest(srElapsed); title=KIT.t('game.asteroids.complete', { def: 'COMPLETE' }); scoreText=fmtTime(srElapsed); best=fmtTime((KIT ? KIT.best('asteroids', keyLabel(KEY, true)).time : 0) || srElapsed); lines=[KIT.t('game.asteroids.pointsReached', { pts: SR_TARGET_SCORE, def: SR_TARGET_SCORE + ' points reached' })]; }

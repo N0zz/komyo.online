@@ -308,7 +308,7 @@
     KIT.menu.show({ kind:'end', theme:MENU_THEME, title: won ? KIT.t('game.bubbles.cleared', { def:'CLEARED! ✨' }) : KIT.t('game.bubbles.gameOver', { def:'GAME OVER' }),
       score: score, best: bestScore, newBest: isBest, lines: [ won ? KIT.t('game.bubbles.wonLine', { level: level, def:'Level ' + level + ' · all levels cleared' }) : KIT.t('game.bubbles.reachedLine', { level: level, def:'Reached level ' + level }) ],
       share: { slug:'bubbles', accent: '#2ee8c8', icon: '🫧', title:KIT.t('game.bubbles.gameName', { def:'Bubble Pop' }), message: ()=>shareMsg(), params: ()=> modeParams({ mode: mode, timed: timeDescent }) },
-      record: { slug:'bubbles', mode: modeLabel(mode), score: score },
+      record: { slug:'bubbles', mode: modeLabel(mode), modeText: modeDisplay(mode), score: score },
       actions:[ {id:'again',label:KIT.t('game.common.playAgain', { def:'PLAY AGAIN' }),primary:true}, {id:'menu',label:KIT.t('game.common.menu', { def:'MENU' })} ],
       onAction:(id)=>{ if(id==='again') startMode(mode); else if(id==='menu') toMenu(); } });
   }

@@ -647,7 +647,7 @@
     if (KIT) KIT.showMenuButton(false);
     if (!KIT) return;
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.tower-defense.endTitle', { def: 'THE KEEP HAS FALLEN' }), backdrop: (g, w, h) => menuMapRender(g, w, h, MAPS[mapIndex]),
-      record: { slug: 'tower-defense', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, score: score, stats: { wave: wave, difficulty: diffLevel } },
+      record: { slug: 'tower-defense', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, modeText: mapModeDisplay(mapIndex, diffLevel), score: score, stats: { wave: wave, difficulty: diffLevel } },
       score: score, best: bestScore, newBest: score >= bestScore && score > 0,
       lines: [KIT.t('game.tower-defense.wavesSurvived', { wave: wave, map: mapName(mapIndex), diff: diffLabel(diffLevel), def: 'Waves survived: ' + wave + ' · ' + MAPS[mapIndex].name + ' · ' + DIFF().label })],
       share: { slug: 'tower-defense', accent: '#e0b25a', icon: '🏰', title: KIT.t('game.tower-defense.name', { def: 'Keep Defender' }), message: () => KIT.shareText({ score: score, game: KIT.t('game.tower-defense.name', { def: 'Keep Defender' }), emoji: '🏰', mode: mapModeDisplay(mapIndex, diffLevel), extra: [KIT.t('game.tower-defense.shareWave', { wave: wave, def: 'wave ' + wave })] }), params: () => ({ map: mapIndex, diff: diffLevel }) },

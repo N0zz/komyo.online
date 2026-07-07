@@ -1705,7 +1705,7 @@
     // those intents just pre-fill text a sharer would rather write themselves, and mobile's native
     // sheet already lists every app. ----
     (function () {
-      const url = 'https://komyo.online/';
+      const url = 'https://komyo.online/?utm_source=catalogue&utm_medium=share'; // GA4 attribution for shared homepage links
       const text = 'Free, self-contained browser games — no ads, plays offline:';
       const K = window.gamekit;
       const canNative = typeof navigator !== 'undefined' && !!navigator.share;

@@ -116,6 +116,8 @@
   function loadOpts() {
     let o = { mode: 'lives', difficulty: 'medium' };
     try { const s = JSON.parse(localStorage.getItem('forcefield_pref') || '{}'); if (MODES.indexOf(s.mode) >= 0) o.mode = s.mode; if (DIFFS.indexOf(s.difficulty) >= 0) o.difficulty = s.difficulty; } catch (e) {}
+    // a shared / QR deep-link (?mode=&difficulty=) wins over the saved preference
+    try { const P = KIT && KIT.param; if (P) { if (MODES.indexOf(P('mode')) >= 0) o.mode = P('mode'); if (DIFFS.indexOf(P('difficulty')) >= 0) o.difficulty = P('difficulty'); } } catch (e) {}
     return o;
   }
   function saveOpts() { try { localStorage.setItem('forcefield_pref', JSON.stringify(opts)); } catch (e) {} }
@@ -618,7 +620,7 @@
     const dbl = opts.mode === 'double';
     const title = isClock() ? T('game.forcefield.timesUp', "TIME'S UP") : T('game.forcefield.generatorDown', 'PLANET LOST');
     const cfg = { kind: 'end', theme: MENU_THEME, title: title, backdrop: menuBackdrop, backdropAnimate: true,
-      record: { slug: SLUG, mode: storeLabel(opts.mode, opts.difficulty), score: score },
+      record: { slug: SLUG, mode: storeLabel(opts.mode, opts.difficulty), modeText: dispLabel(opts.mode, opts.difficulty), score: score },
       score: score, best: best, newBest: isBest,
       lines: [dispLabel(opts.mode, opts.difficulty) + ' · ' + T('game.forcefield.deflectedLine', 'Deflected: {n}', { n: hits })],
       share: { slug: SLUG, accent: '#38bdf8', icon: '🌐', title: T('game.forcefield.title', 'Forcefield'), message: () => shareMsg(), params: () => ({ mode: opts.mode, difficulty: opts.difficulty }) },
