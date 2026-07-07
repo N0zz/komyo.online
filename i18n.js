@@ -115,7 +115,7 @@ window.KOMYO_I18N.en = {
   'shop.siteWide': 'Site-wide',
   'shop.titlesLine': '🏆 Titles unlock automatically as you earn trophies.',
   'shop.seeTitles': 'See titles',
-  'shop.progress': '{owned} / {total} unlocked · {pct}%',
+  'shop.progress': '{spent} / {cost} 🏆 · {pct}%',
   'shop.equipped': '✓ EQUIPPED',
   'shop.equip': 'EQUIP {name}',
   'shop.buy': 'BUY {name} · 🏆 {price}',

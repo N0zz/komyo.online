@@ -600,13 +600,19 @@
     if (setId === 'site.fx') applyCrt(); // selecting the CRT item = enable it; 'off' = disable (shop toggles it)
     return true;
   }
+  // Collection progress is COST-weighted, not item-count: pct = trophies spent / total cost of all
+  // items. Free defaults (price 0) add nothing to either side, so a fresh account reads a true 0%
+  // (a count-based bar showed ~15% from auto-owned defaults), and one expensive skin can't spike a
+  // large pool. owned/total item counts are kept for callers that still want the raw count.
   function cosProgress(game) {
-    var a = cosItems(), total = 0, own = 0;
+    var a = cosItems(), total = 0, own = 0, cost = 0, spent = 0;
     for (var i = 0; i < a.length; i++) {
       if (game != null && a[i].game !== game) continue;
-      total++; if (cosOwned(a[i].id)) own++;
+      var price = +a[i].price || 0;
+      total++; cost += price;
+      if (cosOwned(a[i].id)) { own++; spent += price; }
     }
-    return { owned: own, total: total, pct: total ? own / total : 0 };
+    return { owned: own, total: total, spent: spent, cost: cost, pct: cost ? spent / cost : 0 };
   }
   // menu-group factory: the ONE wiring for a game's start-menu STYLE grid (select + buy-in-place).
   // Games do: groups: [..., KIT.cosmetics.menuGroup('snake.food', { label: 'FOOD' })] and in
@@ -1215,9 +1221,10 @@
       var pr = scopeGame != null ? cosProgress(scopeGame) : cosProgress();
       var pct = Math.round(pr.pct * 100);
       try { barFill.style.width = pct + '%'; } catch (e) {}
-      barTxt.textContent = t('shop.progress', { owned: pr.owned, total: pr.total, pct: pct });
+      barTxt.textContent = t('shop.progress', { spent: fmtT(pr.spent), cost: fmtT(pr.cost), pct: pct });
       try { ring.style.setProperty('--pct', pct); } catch (e) {}
-      ringPct.textContent = pct + '%'; ringSub.textContent = pr.owned + '/' + pr.total;
+      var kf = function (n) { n = +n || 0; return n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n); };
+      ringPct.textContent = pct + '%'; ringSub.textContent = kf(pr.spent) + '/' + kf(pr.cost);
       gameProgEls.forEach(function (fn) { try { fn(); } catch (e) {} });
     }
     // focused item → the desc line + the BUY/EQUIP button. Buying NEVER happens on a plain cell click
@@ -1325,7 +1332,7 @@
         gh.appendChild(gt); gh.appendChild(gp); gh.appendChild(mkEl('span', 'gksp-gline'));
         if (meta.accent && gh.style && gh.style.setProperty) { try { gh.style.setProperty('--acc', meta.accent); } catch (e) {} }
         scroll.appendChild(gh);
-        (function (gm) { gameProgEls.push(function () { var p = cosProgress(gm); gp.textContent = p.owned + '/' + p.total; }); })(game);
+        (function (gm) { gameProgEls.push(function () { var p = cosProgress(gm); gp.textContent = fmtT(p.spent) + '/' + fmtT(p.cost); }); })(game);
         gameSets.forEach(function (setId) {
           var setItems = gameItems.filter(function (it) { return it.set === setId; });
           if (!setItems.length) return;
@@ -2106,7 +2113,7 @@
         if (opts.collection && opts.collection.total) {
           var col = opts.collection, cx0 = 92, cw = W - 184, cy0 = 306, bh = 13;
           x.textAlign = 'left'; x.fillStyle = '#8aa0ba'; x.font = '600 19px ui-monospace, monospace'; x.fillText(t('card.collection'), cx0, cy0);
-          x.textAlign = 'right'; x.fillStyle = accent; x.fillText(col.owned + ' / ' + col.total + ' · ' + Math.round((col.pct || 0) * 100) + '%', W - 92, cy0); x.textAlign = 'left';
+          x.textAlign = 'right'; x.fillStyle = accent; x.fillText(fmtScore(col.spent || 0) + ' / ' + fmtScore(col.cost || 0) + ' 🏆 · ' + Math.round((col.pct || 0) * 100) + '%', W - 92, cy0); x.textAlign = 'left';
           var by = cy0 + 12;
           x.fillStyle = 'rgba(255,255,255,0.09)'; rr(cx0, by, cw, bh, 6); x.fill();
           var fillW = Math.max(bh, cw * (col.pct || 0));

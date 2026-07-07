@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-07', title: 'Truer collection progress 🎨', items: [
+    'Change: your Collection bar now measures trophies spent against the total cost of every skin, instead of counting items — so a brand-new profile starts at a real 0%, and a single pricey unlock no longer jumps the bar.',
+  ] },
   { date: '2026-07-07', title: 'Scan-to-play score cards 📇', items: [
     'New: your score card now carries a scan-to-play QR code — point a phone at a shared (or printed) card and it jumps straight into the game.',
     'Fix: the score card shows the mode and difficulty in your language now, instead of always English.',
