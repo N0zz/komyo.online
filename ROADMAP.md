@@ -147,6 +147,20 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
 
 ### Later (non-gating)
 
+- **Audio v2 — ship the reactive music engine** *(planned 2026-07-07 — ready to build)* — promote the
+  Audio Lab mock's generative "modern" engine into the kit as the **default music for all 11 games**,
+  driven by **gameplay intensity** (score/enemies/speed, eased layer fade-ins), with **music as a
+  cosmetic** (Snake defaults to the remaster; an unlockable Banger track ~100 🏆; **preview before buy**
+  in the Collection). Mock: `plans/audio-lab.html`; linter: `plans/audio-lint.mjs`. Full phased plan
+  (engine port → per-game intensity → music cosmetics → shop preview → tests) in
+  **`plans/audio-ship-plan.md`**. Zero-asset; `.ogg` files stay off.
+
+- **Procedural music — scale to many distinct songs** *(idea — noted 2026-07-07)* — the kit's generative
+  music tops out at ~7–8 truly-distinct "flavors" today (limited by style×kit vocabulary, not
+  progressions). Phased path to *hundreds* of distinct per-game/biome/daily-seed tracks (seed→song +
+  linter-as-selector → synthesis families → rhythm grammar → motif+modes → arrangement) in
+  **`plans/audio-music-plan.md`**. Follows Audio v2 above. Stays zero-asset; `.ogg` files deferred.
+
 - **QR-based save import/export** *(idea — noted 2026-07-07)* — reuse the in-repo `qr.js` encoder to
   turn a player's Export blob (bests / owned cosmetics / selections) into a scannable QR, and add a
   scan-to-import path (camera → decode → apply), so saves move device→device with no account/backend.

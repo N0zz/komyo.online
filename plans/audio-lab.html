@@ -1,0 +1,664 @@
+<meta charset="utf-8">
+<title>komyo · Audio Lab — procedural music explorations</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#141822; --panel2:#1b2130; --ink:#e8ecf4; --muted:#8b93a7;
+    --line:#252c3b; --accent:#6ee7b7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 700px at 50% -10%,#161c2b,var(--bg));
+    color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:0 0 80px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 18px}
+  header{padding:34px 0 10px;text-align:center}
+  h1{margin:0 0 6px;font-size:26px;letter-spacing:.2px}
+  h1 .g{background:linear-gradient(90deg,#6ee7b7,#a78bfa,#ff5fa2);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--muted);max-width:640px;margin:0 auto;font-size:14px}
+  .note{color:var(--muted);font-size:12.5px;max-width:760px;margin:14px auto 0;border:1px solid var(--line);
+    background:var(--panel);border-radius:12px;padding:12px 16px}
+  .note b{color:var(--ink)}
+
+  /* sticky control bar */
+  .bar{position:sticky;top:0;z-index:20;background:rgba(11,13,18,.86);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);padding:12px 0;margin:22px 0 22px}
+  .bar .wrap{display:flex;flex-wrap:wrap;gap:18px 26px;align-items:center}
+  .ctl{display:flex;align-items:center;gap:10px}
+  .ctl label{font-size:12.5px;color:var(--muted);white-space:nowrap}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:5px;border-radius:5px;background:var(--line);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+    background:var(--accent);cursor:pointer;box-shadow:0 0 0 4px rgba(110,231,183,.16)}
+  #master{width:120px}
+  #intensity{width:200px}
+  .presets{display:flex;gap:6px}
+  .presets button,.ramp{border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+    border-radius:9px;padding:6px 12px;font-size:12.5px;cursor:pointer;font-weight:600}
+  .presets button:hover,.ramp:hover{border-color:var(--accent)}
+  .presets button.on{background:var(--accent);color:#0b0d12;border-color:var(--accent)}
+  .ramp.on{background:#a78bfa;color:#0b0d12;border-color:#a78bfa}
+  .meter{width:150px;height:9px;border-radius:9px;background:var(--line);overflow:hidden;position:relative}
+  .meter i{position:absolute;left:0;top:0;bottom:0;width:20%;
+    background:linear-gradient(90deg,#6ee7b7,#a78bfa,#ff5fa2);transition:width .12s linear}
+  #layers{font-size:11.5px;color:var(--muted);min-height:16px;flex:1 1 100%;margin-top:2px}
+  #layers b{color:var(--ink)}
+
+  /* game rows */
+  .row{border:1px solid var(--line);border-radius:16px;background:var(--panel);margin:0 0 16px;overflow:hidden}
+  .row .head{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
+  .dot{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 12px currentColor}
+  .row .head .name{font-weight:700;font-size:16px}
+  .row .head .tag{color:var(--muted);font-size:12px}
+  .cells{display:grid;gap:0}
+  .cells.cols2{grid-template-columns:1fr 1fr}
+  .cells.cols3{grid-template-columns:1fr 1fr 1fr}
+  .cell{padding:18px;border-right:1px solid var(--line);cursor:pointer;transition:background .15s;position:relative}
+  .cell:last-child{border-right:none}
+  .cell:hover{background:var(--panel2)}
+  .cell.playing{background:linear-gradient(180deg,rgba(167,139,250,.14),transparent)}
+  .cell.playing::before{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:var(--rowc,var(--accent))}
+  .cell .k{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;margin-bottom:6px}
+  .cell .play{width:24px;height:24px;border-radius:50%;border:1px solid var(--line);background:var(--panel2);
+    display:grid;place-items:center;font-size:11px;flex:none}
+  .cell.playing .play{background:var(--rowc,var(--accent));color:#0b0d12;border-color:transparent}
+  .cell .d{color:var(--muted);font-size:11.5px;line-height:1.4}
+  .cell.cur .k{color:var(--muted)}
+  .adaptbadge{display:inline-block;margin-top:8px;font-size:10.5px;padding:2px 7px;border-radius:20px;
+    border:1px solid var(--line);color:var(--muted)}
+  .cell:not(.cur) .adaptbadge{color:#a78bfa;border-color:rgba(167,139,250,.4)}
+  @media(max-width:640px){.cells.cols2,.cells.cols3{grid-template-columns:1fr}.cell{border-right:none;border-bottom:1px solid var(--line)}}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:26px}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>komyo · <span class="g">Audio Lab</span></h1>
+    <p class="sub">Every track below is generated live in your browser — pure Web Audio, zero audio files
+      (same shippable constraint as the real kit). Compare today's engine against three richer directions,
+      and use the intensity controls to hear the new engines react like they would in-game.</p>
+    <p class="note"><b>Current vs Modern-produced.</b> Left = today's engine (ported 1:1). Right = a
+      fully-produced take, each game in its <i>own</i> style. <b>Snake has two modern takes to compare</b> —
+      a faithful <i>remaster</i> of today's tune, and a from-scratch electro <i>banger</i>. Asteroids is a
+      pumping space-rave, Breakout half-time synthwave, Keep Defender epic taikos + choir, Meadow lush swells.<br><br>
+      <b>How to listen:</b> click a cell to play (again to stop). On the Modern cell, drag <b>Intensity</b> or
+      hit <b>Build / Peak</b> — it adds &amp; drops layers, opens the filter and changes the beat as intensity
+      rises; <b>Auto-ramp</b> makes it breathe on its own, like a wave ramping up. Current doesn't react.</p>
+  </header>
+</div>
+
+<div class="bar"><div class="wrap">
+  <div class="ctl"><label>Master</label><input type="range" id="master" min="0" max="100" value="70"></div>
+  <div class="ctl"><label>Intensity</label><input type="range" id="intensity" min="0" max="100" value="55">
+    <div class="meter"><i id="meterfill"></i></div></div>
+  <div class="ctl presets" id="presets">
+    <button data-i="20">Calm</button><button data-i="55" class="on">Build</button><button data-i="95">Peak</button>
+  </div>
+  <button class="ramp" id="ramp">⟳ Auto-ramp</button>
+  <div id="layers">Idle — pick a track above.</div>
+</div></div>
+
+<div class="wrap" id="grid"></div>
+
+<footer>komyo audio lab · procedural demo · not a shipped page</footer>
+
+<script>
+(function(){
+  'use strict';
+
+  // ---------------- themes (ported from game-kit THEMES) ----------------
+  var THEMES = {
+    snake:   { label:'Neon',      bpm:122, root:130.81, scale:[0,2,3,5,7,8,10], prog:[0,5,3,4,0,5,6,4], waves:{bass:'square',   lead:'square'},   cutoff:1900, perc:true,  density:0.6 },
+    asteroids:{label:'Space',     bpm:124, root:130.81, scale:[0,2,3,5,7,10],   prog:[0,0,5,3,0,0,4,5], waves:{bass:'sawtooth', lead:'square'},   cutoff:1800, perc:true,  density:0.5, arp:true, zap:true },
+    meadow:  { label:'Meadow',    bpm:90,  root:146.83, scale:[0,2,4,7,9,12],   prog:[0,4,3,4,0,2,4,3], waves:{bass:'triangle', lead:'sine'},     cutoff:2400, perc:false, density:0.5 },
+    breakout:{ label:'Synthwave', bpm:98,  root:110,    scale:[0,3,5,7,10],     prog:[0,4,3,4,2,4,3,0], waves:{bass:'sawtooth', lead:'sawtooth'}, cutoff:1500, perc:true,  density:0.5 },
+    keep:    { label:'Castle',    bpm:86,  root:110,    scale:[0,2,3,5,7,8,12], prog:[0,3,4,0,5,3,6,4], waves:{bass:'triangle', lead:'square'},   cutoff:1700, perc:false, density:0.46 },
+    asteroidsplus:{label:'Space',bpm:124, root:130.81, scale:[0,2,3,5,7,10],   prog:[0,0,5,3,0,0,4,5], waves:{bass:'sawtooth', lead:'square'},   cutoff:1800, perc:true,  density:0.5, arp:true, zap:true },
+    forcefield:{ label:'Neon',    bpm:122, root:130.81, scale:[0,2,3,5,7,8,10], prog:[0,5,3,4,0,5,6,4], waves:{bass:'square',   lead:'square'},   cutoff:1900, perc:true,  density:0.6 },
+    range:   { label:'Tactical',  bpm:126, root:130.81, scale:[0,2,3,7,8,10],   prog:[0,0,3,4,0,5,3,4], waves:{bass:'square',   lead:'sawtooth'}, cutoff:1300, perc:true,  density:0.5 },
+    bubbles: { label:'Candy',     bpm:110, root:174.61, scale:[0,2,4,5,7,9,11], prog:[0,3,5,4,0,5,3,4], waves:{bass:'triangle', lead:'triangle'}, cutoff:2600, perc:true,  density:0.62 },
+    frogbonk:{ label:'Castle',    bpm:86,  root:110,    scale:[0,2,3,5,7,8,12], prog:[0,3,4,0,5,3,6,4], waves:{bass:'triangle', lead:'square'},   cutoff:1700, perc:false, density:0.46 },
+    stacker: { label:'Pastel',    bpm:82,  root:196,    scale:[0,2,4,7,9,12],   prog:[0,3,4,2,0,4,3,4], waves:{bass:'sine',     lead:'triangle'}, cutoff:2000, perc:false, density:0.38 }
+  };
+
+  var GAMES = [
+    { key:'snake',         name:'Neon Snake',    theme:'snake',         color:'#7fffb0' },
+    { key:'asteroids',     name:'Asteroids',     theme:'asteroids',     color:'#9fe8ff' },
+    { key:'asteroidsplus', name:'Asteroids+',    theme:'asteroidsplus', color:'#b98cff' },
+    { key:'forcefield',    name:'Forcefield',    theme:'forcefield',    color:'#38bdf8' },
+    { key:'range',         name:'Range',         theme:'range',         color:'#ff7a3c' },
+    { key:'breakout',      name:'Brick Breaker', theme:'breakout',      color:'#ff5cc8' },
+    { key:'bubbles',       name:'Bubble Pop',    theme:'bubbles',       color:'#2ee8c8' },
+    { key:'frogbonk',      name:'Frog Bonk',     theme:'frogbonk',      color:'#7ed957' },
+    { key:'keep',          name:'Keep Defender', theme:'keep',          color:'#e0b25a' },
+    { key:'stacker',       name:'Stack',         theme:'stacker',       color:'#ff9aa2' },
+    { key:'meadow',        name:'Meadow Flyer',  theme:'meadow',        color:'#8fd3a6' }
+  ];
+
+  // ---- per-game sonic identity (instrument palette + drum kit + production character) ----
+  // This is what keeps the games distinct: kit + timbres + prod persist across all 3 variants.
+  // Modern-proposal overrides: `prog` (+ optional root/bpm/scale/cutoff) make each Modern track its OWN
+  // song so no two reuse the same progression/key. The Current column still uses the real in-game theme.
+  var PALETTES = {
+    snake:    { kit:'electronic', kf0:150, kf1:48, pad:'square',   bass:'square',   lead:'square',   pluck:true,  detune:8,  prod:'dance', groove:'banger', swing:0 },
+    asteroids:{ kit:'epic',                        pad:'sawtooth', bass:'sawtooth', lead:'sawtooth', leadSuper:true, detune:14, choir:true, prod:'epic', swing:0, prog:[0,6,5,3,0,4,6,5] },
+    meadow:   { kit:'soft',                        pad:'triangle', bass:'triangle', lead:'sine',     softLead:true, vibrato:5, prod:'lush', swing:0, prog:[0,4,3,5,0,2,4,5] },
+    breakout: { kit:'synthwave',  kf0:130, kf1:45, pad:'sawtooth', bass:'sawtooth', lead:'sawtooth', leadSuper:true, detune:12, halftime:true, prod:'synthwave', swing:0, prog:[0,3,4,3,5,4,3,0] },
+    keep:     { kit:'epic',                        pad:'triangle', bass:'triangle', lead:'square',   pluck:true, choir:true, prod:'epic', swing:0, prog:[0,3,6,4,0,5,3,6] },
+    asteroidsplus:{ kit:'techno',  kf0:160, kf1:50, pad:'sawtooth', bass:'sawtooth', lead:'sawtooth', bassSuper:true, leadSuper:true, detune:16, prod:'dance', groove:'rave', riser:true, swing:0.03, bpm:126, prog:[0,0,3,6,0,5,3,6] },
+    forcefield:{ kit:'electronic', kf0:150, kf1:48, pad:'sawtooth', bass:'sawtooth', lead:'sawtooth', leadSuper:true, detune:14, prod:'dance', groove:'trance', swing:0, root:164.81, bpm:128, scale:[0,2,4,5,7,9,11], cutoff:2000, prog:[0,4,7,5,0,4,3,5] },
+    range:    { kit:'tactical',    kf0:110, kf1:44, pad:'sawtooth', bass:'square',   lead:'sawtooth', leadSuper:true, detune:12, prod:'tactical', groove:'tactical', swing:0, prog:[0,1,5,4,0,1,3,4] },
+    bubbles:  { kit:'electronic', kf0:150, kf1:52, pad:'triangle', bass:'triangle', lead:'triangle', pluck:true, detune:8, prod:'dance', groove:'banger', swing:0, prog:[0,2,5,4,0,6,2,5] },
+    frogbonk: { kit:'electronic', kf0:130, kf1:50, pad:'triangle', bass:'triangle', lead:'square',   pluck:true, detune:8, prod:'dance', groove:'banger', swing:0.06, prog:[0,6,4,2,0,3,5,2] },
+    stacker:  { kit:'soft',                        pad:'sine',     bass:'sine',     lead:'triangle', softLead:true, vibrato:4, prod:'lush', swing:0, root:220, bpm:96, scale:[0,3,5,7,10,12], prog:[0,4,5,3,0,4,2,3] }
+  };
+
+  // ---------------- variant configs ----------------
+  var VARIANTS = [
+    { id:'current', k:'Current', adapt:false,
+      d:"Today's engine, ported 1:1. One 8-step loop, single lowpass, noise-burst percussion — no adaptive response." },
+    { id:'modern', k:'🎛️ Modern-produced', adapt:true,
+      d:"Each game produced in its own style — Asteroids: epic cinematic · Asteroids+: driving space-rave · Forcefield: uplifting trance · Range: tense/technical · Breakout: half-time synthwave · Keep Defender: epic taikos+choir · Meadow: lush swells." }
+  ];
+  // Snake keeps TWO modern takes to compare: a faithful remaster of today's engine, and a from-scratch banger.
+  var SNAKE_VARIANTS = [
+    VARIANTS[0],
+    { id:'modern', k:'🎛️ Modern · Remaster', adapt:true,
+      d:"Today's neon banger, remastered — the SAME tune, progression & melody, with real drums + sub + stereo + delay layered on." },
+    { id:'banger', k:'🎛️ Modern · Banger', adapt:true,
+      d:"A from-scratch electro banger — rolling octave bass, catchy square arp, electro beat, bright stabs (no sidechain)." }
+  ];
+
+  // variants are DEPTH tiers now — production/atmosphere only. Instruments come from the palette.
+  var STYLES = {
+    faithful:{ tier:'clean',  padGain:0.028, padAttack:0.4, padDur:16, reverb:0.4,  delay:0,    drumsSoft:false },
+    deep:    { tier:'deep',   padGain:0.034, padAttack:1.2, padDur:32, reverb:0.7,  delay:0,    drumsSoft:true, evolving:true, sub:true, wide:true, sparkle:true, vib:true },
+    modern:  { tier:'modern', padGain:0.024, padAttack:0.4, padDur:16, reverb:0.45, delay:0.28, drumsSoft:false }
+  };
+
+  // ---------------- audio graph ----------------
+  var ac, master, comp, reverbIn, reverbWet, delayIn, padBus, drumBus;
+  var masterEl = document.getElementById('master');
+
+  function makeIR(sec,decay){
+    var len=Math.floor(ac.sampleRate*sec), buf=ac.createBuffer(2,len,ac.sampleRate);
+    for(var c=0;c<2;c++){ var d=buf.getChannelData(c); for(var i=0;i<len;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/len,decay); }
+    return buf;
+  }
+  function makePingPong(time,fb){
+    var input=ac.createGain();
+    var dL=ac.createDelay(1), dR=ac.createDelay(1); dL.delayTime.value=time; dR.delayTime.value=time;
+    var fbL=ac.createGain(), fbR=ac.createGain(); fbL.gain.value=fb; fbR.gain.value=fb;
+    var pL=ac.createStereoPanner?ac.createStereoPanner():null, pR=ac.createStereoPanner?ac.createStereoPanner():null;
+    if(pL){pL.pan.value=-0.85;} if(pR){pR.pan.value=0.85;}
+    input.connect(dL);
+    dL.connect(pL||master); if(pL) pL.connect(master);
+    dL.connect(fbL); fbL.connect(dR);
+    dR.connect(pR||master); if(pR) pR.connect(master);
+    dR.connect(fbR); fbR.connect(dL);
+    return input;
+  }
+  function ensureAC(){
+    if(ac) return;
+    try{ ac=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return; }
+    comp=ac.createDynamicsCompressor();  // gentle safety limiter — high threshold + soft knee so kicks don't pump the whole mix
+    comp.threshold.value=-6; comp.ratio.value=3; comp.knee.value=8; comp.attack.value=0.006; comp.release.value=0.12;
+    master=ac.createGain(); master.gain.value=vol(); master.connect(comp); comp.connect(ac.destination);
+    reverbIn=ac.createConvolver(); reverbIn.buffer=makeIR(2.6,2.2);
+    reverbWet=ac.createGain(); reverbWet.gain.value=0.85; reverbIn.connect(reverbWet); reverbWet.connect(master);
+    delayIn=makePingPong(0.26,0.34);
+    padBus=ac.createGain(); padBus.gain.value=1; padBus.connect(master);
+    drumBus=ac.createGain(); drumBus.gain.value=0.5; drumBus.connect(master);  // drums sit UNDER the music
+  }
+  function vol(){ return (parseFloat(masterEl.value)/100)*0.85; }
+
+  // ---------------- synth voices ----------------
+  function connectOut(node,out,o){
+    var last=node;
+    if(o.pan!=null && ac.createStereoPanner){ var p=ac.createStereoPanner(); p.pan.value=o.pan; last.connect(p); last=p; }
+    last.connect(out);
+    if(o.reverb){ var rs=ac.createGain(); rs.gain.value=o.reverb; last.connect(rs); rs.connect(reverbIn); }
+    if(o.delay && delayIn){ var ds=ac.createGain(); ds.gain.value=o.delay; last.connect(ds); ds.connect(delayIn); }
+  }
+  function voice(o){
+    if(!ac) return; o=o||{}; if(o.f==null) return;
+    try{
+      var t=o.t!=null?o.t:ac.currentTime, dur=o.dur||0.2, out=o.out||master;
+      var osc=ac.createOscillator(); osc.type=o.type||'sine'; osc.frequency.setValueAtTime(o.f,t);
+      if(o.slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1,o.slideTo),t+dur);
+      if(o.detune) osc.detune.value=o.detune;
+      if(o.vibrato){ var lfo=ac.createOscillator(), lg=ac.createGain(); lfo.frequency.value=o.vibrato;
+        lg.gain.value=o.vibratoDepth||6; lfo.connect(lg); lg.connect(osc.frequency); lfo.start(t); lfo.stop(t+dur+0.05); }
+      var g=ac.createGain(), peak=o.gain!=null?o.gain:0.2, a=o.attack!=null?o.attack:0.006;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002,peak),t+a);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      var node=osc;
+      if(o.filter){ var bq=ac.createBiquadFilter(); bq.type=o.filter; bq.frequency.setValueAtTime(o.cutoff||1200,t);
+        if(o.cutoffTo) bq.frequency.exponentialRampToValueAtTime(Math.max(40,o.cutoffTo),t+dur); if(o.q) bq.Q.value=o.q;
+        node.connect(bq); node=bq; }
+      node.connect(g); connectOut(g,out,o);
+      osc.start(t); osc.stop(t+dur+0.05);
+    }catch(e){}
+  }
+  function superVoice(o){
+    if(!ac) return; o=o||{}; if(o.f==null) return;
+    try{
+      var t=o.t!=null?o.t:ac.currentTime, dur=o.dur||0.4, out=o.out||master;
+      var g=ac.createGain(), peak=o.gain!=null?o.gain:0.06, a=o.attack!=null?o.attack:0.02;
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002,peak),t+a);
+      g.gain.setValueAtTime(Math.max(0.0002,peak),t+Math.max(a,dur*0.55));
+      g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      var node=g;
+      if(o.filter){ var bq=ac.createBiquadFilter(); bq.type=o.filter; bq.frequency.setValueAtTime(o.cutoff||2000,t);
+        if(o.cutoffTo) bq.frequency.exponentialRampToValueAtTime(Math.max(60,o.cutoffTo),t+dur); if(o.q) bq.Q.value=o.q;
+        g.connect(bq); node=bq; }
+      var n=o.voices||5, spread=o.spread||14;
+      for(var i=0;i<n;i++){ var osc=ac.createOscillator(); osc.type=o.type||'sawtooth'; osc.frequency.value=o.f;
+        osc.detune.value=(i-(n-1)/2)*spread; osc.connect(g); osc.start(t); osc.stop(t+dur+0.05); }
+      connectOut(node,out,o);
+    }catch(e){}
+  }
+  function noiseBurst(o){
+    if(!ac) return; o=o||{};
+    try{
+      var t=o.t!=null?o.t:ac.currentTime, dur=o.dur||0.2, out=o.out||master;
+      var len=Math.max(1,Math.floor(ac.sampleRate*dur)), b=ac.createBuffer(1,len,ac.sampleRate), dt=b.getChannelData(0);
+      for(var i=0;i<len;i++) dt[i]=(Math.random()*2-1)*(1-i/len);
+      var src=ac.createBufferSource(); src.buffer=b;
+      var bq=ac.createBiquadFilter(); bq.type=o.filter||'lowpass'; bq.frequency.setValueAtTime(o.cutoff||900,t);
+      if(o.cutoffTo) bq.frequency.exponentialRampToValueAtTime(Math.max(40,o.cutoffTo),t+dur); if(o.q) bq.Q.value=o.q;
+      var g=ac.createGain(); g.gain.setValueAtTime(o.gain!=null?o.gain:0.2,t); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+      src.connect(bq); bq.connect(g); connectOut(g,out,o); src.start(t);
+    }catch(e){}
+  }
+  // drums
+  // drum voices — timbre is parameterized so each kit sounds different, not just its pattern.
+  function kick(o){
+    if(!ac) return; var t=o.t, dur=o.dur||0.16, out=drumBus||master;
+    try{
+      var osc=ac.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(o.f0||150,t);
+      osc.frequency.exponentialRampToValueAtTime(o.f1||46,t+dur*0.72);
+      var g=ac.createGain(); g.gain.setValueAtTime(o.gain||0.55,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+      osc.connect(g); g.connect(out); osc.start(t); osc.stop(t+dur+0.02);
+      if(o.click!==0) noiseBurst({t:t,dur:0.01,gain:(o.gain||0.5)*(o.click||0.12),filter:'highpass',cutoff:1500,out:out});  // softer, lower click — was poking in the ear's sensitive band
+    }catch(e){}
+  }
+  function snare(t,gain){
+    var out=drumBus||master;
+    voice({f:180,dur:0.1,type:'triangle',gain:(gain||0.08),out:out});
+    noiseBurst({t:t,dur:0.15,gain:(gain||0.08),filter:'highpass',cutoff:1800,reverb:0.12,out:out});
+  }
+  function clap(t,gain){
+    var out=drumBus||master;
+    [0,0.011,0.022].forEach(function(dl){ noiseBurst({t:t+dl,dur:0.08,gain:(gain||0.05),filter:'bandpass',cutoff:1500,q:1.4,reverb:0.18,out:out}); });
+  }
+  function hat(o){
+    noiseBurst({t:o.t,dur:o.open?(o.dur||0.1):0.026,gain:o.gain||0.02,filter:'highpass',cutoff:o.cut||(o.open?7000:9000),pan:o.pan||0,out:drumBus||master});
+  }
+  function duck(t){
+    if(!padBus) return;
+    try{ padBus.gain.cancelScheduledValues(t); padBus.gain.setValueAtTime(0.22,t); padBus.gain.linearRampToValueAtTime(1,t+0.26); }catch(e){}
+  }
+
+  // ---------------- note helpers ----------------
+  var NT=function(root,scale,deg){ if(deg==null) return null; var L=scale.length, oct=Math.floor(deg/L), s=scale[((deg%L)+L)%L]; return root*Math.pow(2,oct)*Math.pow(2,s/12); };
+  var NEAR=function(v,arr){ return arr.reduce(function(a,b){ return Math.abs(b-v)<Math.abs(a-v)?b:a; }); };
+
+  // ---------------- schedulers ----------------
+  var intensity=0.55, mel2=0, melN=0;
+
+  function currentStep(T,step,tt){
+    var spb=60/T.bpm/2, s=step%8, bar=Math.floor(step/8), L=T.scale.length;
+    var chord=T.prog[bar%T.prog.length], nextChord=T.prog[(bar+1)%T.prog.length], phraseEnd=(bar%4===3);
+    var tones=[chord+L,chord+2+L,chord+4+L];
+    if(s===0)[chord,chord+2,chord+4].forEach(function(d){ var f=NT(T.root,T.scale,d); if(f) voice({f:f/2,dur:spb*8.2,type:'sine',gain:0.028,attack:0.25,filter:'lowpass',cutoff:1000,reverb:0.42,t:tt,out:master}); });
+    if(s===0) voice({f:NT(T.root/2,T.scale,chord),dur:spb*2.4,type:T.waves.bass,gain:0.17,filter:'lowpass',cutoff:600,t:tt,out:master});
+    else if(s===4) voice({f:NT(T.root/2,T.scale,phraseEnd?nextChord:chord+4),dur:spb*2.2,type:T.waves.bass,gain:0.14,filter:'lowpass',cutoff:600,t:tt,out:master});
+    else if(T.perc&&s===6) voice({f:NT(T.root/2,T.scale,chord),dur:spb*1.2,type:T.waves.bass,gain:0.09,filter:'lowpass',cutoff:550,t:tt,out:master});
+    if(T.arp){ var at=[chord+L,chord+2+L,chord+4+L,chord+L+L,chord+4+L,chord+2+L],sub=spb/2;
+      for(var k=0;k<2;k++){ var af=NT(T.root,T.scale,at[(step*2+k)%at.length]); voice({f:af,dur:sub*0.9,type:T.waves.lead,gain:0.04,filter:'lowpass',cutoff:T.cutoff,reverb:0.22,t:tt+k*sub,out:master}); } }
+    if(T.zap&&s===0&&bar%4===2) voice({f:1900,slideTo:320,dur:0.2,type:'sawtooth',gain:0.06,filter:'lowpass',cutoff:3000,cutoffTo:520,q:6,reverb:0.25,t:tt,out:master});
+    var dens=T.density+(phraseEnd?0.18:0)+(s===0?0.25:0);
+    if(!T.arp&&Math.random()<dens){
+      if(s===0||Math.random()<0.35) mel2=NEAR(mel2,tones);
+      else{ var steps=[-2,-1,-1,1,1,2]; mel2+=steps[(Math.random()*steps.length)|0]; }
+      mel2=Math.max(L,Math.min(L*2+3,mel2));
+      var lf=NT(T.root,T.scale,mel2), ldur=(Math.random()<0.25?spb*0.55:spb*1.35);
+      voice({f:lf,dur:ldur,type:T.waves.lead,gain:0.085,attack:0.006,filter:'lowpass',cutoff:T.cutoff,reverb:0.3,t:tt,out:master});
+      voice({f:lf,dur:ldur,type:T.waves.lead,gain:0.0425,detune:9,attack:0.006,filter:'lowpass',cutoff:T.cutoff,t:tt,out:master});
+    }
+    if(T.perc){
+      if(s%4===0) voice({f:120,slideTo:45,dur:0.14,type:'sine',gain:T.arp?0.14:0.2,t:tt,out:master});
+      if(s===2||s===6) noiseBurst({dur:0.12,gain:T.arp?0.045:0.07,filter:'highpass',cutoff:1600,reverb:0.12,t:tt,out:master});
+      if(!T.arp&&s%2===1) noiseBurst({dur:0.03,gain:0.028,filter:'highpass',cutoff:7000,t:tt,out:master});
+      if(phraseEnd&&s>=6) noiseBurst({dur:0.04,gain:0.05,filter:'highpass',cutoff:3000,t:tt+spb*0.5,out:master});
+    }
+  }
+
+  // deep resonant tom / taiko hit
+  function tom(o){
+    if(!ac) return; var t=o.t, dur=o.dur||0.3;
+    try{
+      var osc=ac.createOscillator(); osc.type='sine'; osc.frequency.setValueAtTime(o.f0||180,t);
+      osc.frequency.exponentialRampToValueAtTime(o.f1||100,t+dur*0.8);
+      var g=ac.createGain(); g.gain.setValueAtTime(o.gain||0.4,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+      osc.connect(g); g.connect(drumBus||master); osc.start(t); osc.stop(t+dur+0.02);
+      noiseBurst({t:t,dur:0.03,gain:(o.gain||0.4)*0.2,filter:'lowpass',cutoff:400,out:drumBus||master});
+    }catch(e){}
+  }
+  // per-game drum kit — the single biggest differentiator between games
+  function perc(PAL,dance,s,phraseEnd,tt,I,soft){
+    var K=PAL.kit, DB=drumBus||master;
+    if(K==='electronic'){                                    // Snake — tight & bright: snappy short kick, crisp hats
+      if(I>=0.25 && (s===0||(I>=0.45&&s===8)||(dance&&I>=0.55&&s%4===0))){ kick({t:tt,gain:soft?0.32:0.44,f0:150,f1:48,dur:0.13,click:0.14}); if(dance) duck(tt); }
+      if(I>=0.45){ if(s===4||s===12){ if(soft) noiseBurst({t:tt,dur:0.12,gain:0.03,filter:'bandpass',cutoff:1400,q:1,reverb:0.25,out:DB}); else clap(tt,0.045); } if(s%2===0) hat({t:tt,open:false,gain:soft?0.012:0.018,cut:9500,pan:0.12}); }
+      if(I>=0.65){ if(s%2===1) hat({t:tt,open:false,gain:0.013,cut:9500,pan:-0.12}); if(s===6||s===14) hat({t:tt,open:true,gain:0.018,cut:8200,dur:0.07}); }
+      if(I>=0.85&&phraseEnd&&s>=12) noiseBurst({t:tt,dur:0.06,gain:0.03,filter:'highpass',cutoff:2600+(s-12)*700,out:DB});
+    } else if(K==='techno'){                                 // Asteroids — deep round kick (little click), airy open hats
+      if(I>=0.35 && s%4===0){ kick({t:tt,gain:soft?0.34:0.46,f0:172,f1:42,dur:0.24,click:0.07}); if(dance) duck(tt); }
+      if(I>=0.5 && (s===2||s===6||s===10||s===14)) hat({t:tt,open:true,gain:soft?0.014:0.022,cut:6500,dur:0.11});
+      if(I>=0.65 && s%2===0) hat({t:tt,open:false,gain:0.012,cut:7500,pan:(s%4?0.1:-0.1)});
+      if(I>=0.55 && s===12) noiseBurst({t:tt,dur:0.09,gain:0.028,filter:'highpass',cutoff:2400,reverb:0.15,out:DB});
+      if(I>=0.8 && phraseEnd && s>=8 && s%2===0) noiseBurst({t:tt,dur:0.04,gain:0.018,filter:'highpass',cutoff:3200,out:DB});
+    } else if(K==='soft'){                                    // Meadow — airy shaker + woodblock, barely-there kick
+      if(s%2===0) noiseBurst({t:tt,dur:0.05,gain:0.01+I*0.016,filter:'highpass',cutoff:6800,pan:(s%4?0.2:-0.2),out:DB});
+      if(I>=0.5 && (s===4||s===12)) voice({f:920,dur:0.05,type:'triangle',gain:0.04,out:DB,t:tt});
+      if(I>=0.8 && s===0) kick({t:tt,gain:0.2,f0:100,f1:58,dur:0.18,click:0});
+    } else if(K==='synthwave'){                               // Breakout — boomy long kick, dark hats, big gated snare
+      if(I>=0.3 && s===0) kick({t:tt,gain:soft?0.34:0.44,f0:120,f1:40,dur:0.26,click:0.07});
+      if(I>=0.6 && s===8) kick({t:tt,gain:0.38,f0:120,f1:40,dur:0.24,click:0.07});
+      if(I>=0.45 && s===8){ snare(tt,0.075); noiseBurst({t:tt,dur:0.32,gain:0.04,filter:'highpass',cutoff:1400,reverb:0.8,out:DB}); }
+      if(I>=0.6 && (s===4||s===12)) hat({t:tt,open:false,gain:0.016,cut:5800});
+      if(I>=0.8 && phraseEnd && s>=12){ for(var k=0;k<3;k++) tom({t:tt+k*0.06,f0:210-k*30,f1:110,dur:0.18,gain:0.07}); }
+    } else if(K==='epic'){                                    // Keep Defender — martial taikos, no hats
+      if(I>=0.25 && (s===0||s===8)) tom({t:tt,f0:135,f1:72,dur:0.38,gain:0.34});
+      if(I>=0.5 && (s===4||s===6||s===12||s===14)) tom({t:tt,f0:190,f1:110,dur:0.22,gain:0.17});
+      if(I>=0.7 && phraseEnd && s>=8) noiseBurst({t:tt,dur:0.1,gain:0.03,filter:'bandpass',cutoff:1800,q:0.7,reverb:0.3,out:DB});
+      if(I>=0.85 && phraseEnd && s>=12) tom({t:tt,f0:240,f1:120,dur:0.15,gain:0.18});
+    } else if(K==='tactical'){                               // Range — tense/technical: tight kick, marching snare, ticking hats
+      if(I>=0.3 && (s===0||s===8)) kick({t:tt,gain:0.4,f0:110,f1:44,dur:0.16,click:0.12});
+      if(I>=0.4 && (s===4||s===12)) snare(tt,0.09);
+      if(I>=0.45 && s%2===0) hat({t:tt,open:false,gain:0.014,cut:8500,pan:(s%4?0.1:-0.1)});
+      if(I>=0.65 && s%2===1) hat({t:tt,open:false,gain:0.01,cut:9000});
+      if(I>=0.6 && (s===7||s===11)) noiseBurst({t:tt,dur:0.04,gain:0.03,filter:'highpass',cutoff:3200,out:DB});
+      if(I>=0.8 && phraseEnd && s>=12){ for(var kk=0;kk<4;kk++) noiseBurst({t:tt+kk*0.04,dur:0.035,gain:0.045,filter:'highpass',cutoff:2400,out:DB}); }
+    }
+  }
+  function enhStep(T,style,PAL,step,tt){
+    var I=intensity, spb=60/T.bpm/4, s=step%16, bar=Math.floor(step/16), L=T.scale.length;
+    var chord=T.prog[bar%T.prog.length], nextChord=T.prog[(bar+1)%T.prog.length], phraseEnd=(bar%4===3);
+    var cutoff=T.cutoff*(0.55+0.75*I);
+    var modern=style.tier==='modern', deep=style.tier==='deep';
+    var rave=modern && PAL.groove==='rave';         // Asteroids — driving space-rave
+    var banger=modern && PAL.groove==='banger';     // Snake / Bubble / Frog — electro banger
+    var trance=modern && PAL.groove==='trance';     // Forcefield — uplifting trance (rolling offbeat bass)
+    var tactical=modern && PAL.groove==='tactical'; // Range — tense military / minimal
+    var pump=rave||trance;                          // rave + trance sidechain their pads
+    var padOut=pump?padBus:master;
+    var soft=style.drumsSoft;
+    var swing=(s%2===1)?spb*(PAL.swing||0)*4:0;
+
+    // pads (palette wave; banger uses short bright stabs instead of long pads)
+    if(s===0){
+      var pDur=banger?spb*2.5:(tactical?spb*3:spb*style.padDur), pGain=banger?0.045:(tactical?0.03:style.padGain), pAtk=banger?0.005:(tactical?0.01:style.padAttack);
+      var vs=[chord,chord+2,chord+4]; if(style.wide||style.evolving) vs.push(chord+7);
+      vs.forEach(function(d,idx){ var f=NT(T.root,T.scale,d); if(!f) return;
+        voice({f:f,dur:pDur,type:PAL.pad,gain:pGain,attack:pAtk,
+          filter:'lowpass',cutoff:cutoff*(banger?1:0.75),cutoffTo:style.evolving?cutoff*1.35:undefined,
+          reverb:banger?0.16:style.reverb,pan:style.wide?(idx%2?0.45:-0.45):0,out:padOut,t:tt}); });
+      if(style.sub){ var sf=NT(T.root/4,T.scale,chord); if(sf) voice({f:sf,dur:spb*16,type:'sine',gain:0.14,attack:0.3,filter:'lowpass',cutoff:200,out:master,t:tt}); }
+      if(modern && PAL.choir) [chord,chord+2,chord+4].forEach(function(d,i){ var cf=NT(T.root,T.scale,d+L); if(cf) superVoice({f:cf,dur:spb*10,type:'sine',gain:0.03,voices:3,spread:8,attack:0.6,filter:'lowpass',cutoff:2200,reverb:0.75,pan:(i-1)*0.4,out:master,t:tt}); });
+      if(modern && PAL.prod==='lush'){ var wf=NT(T.root,T.scale,chord+4+L); if(wf) voice({f:wf,dur:spb*14,type:'sine',gain:0.03,attack:2.2,filter:'lowpass',cutoff:3200,reverb:0.7,delay:0.3,out:master,t:tt}); }
+    }
+    // banger: off-beat chord stab for bounce
+    if(banger && I>=0.5 && (s===6||s===14)){ [chord,chord+2,chord+4].forEach(function(d){ var f=NT(T.root,T.scale,d+L); if(f) voice({f:f,dur:spb*1.3,type:PAL.pad,gain:0.03,attack:0.004,filter:'lowpass',cutoff:cutoff,reverb:0.12,pan:0.1,out:master,t:tt}); }); }
+
+    // bass — per groove: banger octave-bounce · trance rolling offbeat · tactical drone+pulse · else sustained root
+    if(banger){
+      if(s%2===0){ var hi=((s/2)%2===1); var deg=(s===8?(phraseEnd?nextChord:chord):chord)+(hi?L:0);
+        var bbf=NT(T.root/2,T.scale,deg); if(bbf) voice({f:bbf,dur:spb*1.7,type:PAL.bass,gain:0.15,filter:'lowpass',cutoff:520+I*540,q:5,out:master,t:tt}); }
+    } else if(trance){
+      if(s%8===0){ var abf=NT(T.root/2,T.scale,chord); if(abf) voice({f:abf,dur:spb*1.2,type:PAL.bass,gain:0.09,filter:'lowpass',cutoff:420,out:master,t:tt}); }
+      if(s%4!==0){ var rbf=NT(T.root/2,T.scale,(s>=8&&phraseEnd)?nextChord:chord); if(rbf) voice({f:rbf,dur:spb*0.9,type:PAL.bass,gain:0.12,filter:'lowpass',cutoff:480+I*520,q:6,out:master,t:tt}); }
+    } else if(tactical){
+      // moving ostinato (not a static root pulse) + a brief low anchor at the bar — no constant drone
+      var bpat=[0,0,4,0,0,3,4,2];
+      if(s%2===0){ var bd=chord+bpat[(s/2)%8]; var pbf=NT(T.root/2,T.scale,bd); if(pbf) voice({f:pbf,dur:spb*0.7,type:PAL.bass,gain:0.11,filter:'lowpass',cutoff:460+I*340,q:6,out:master,t:tt}); }
+      if(s===0){ var laf=NT(T.root/2,T.scale,chord); if(laf) voice({f:laf,dur:spb*2.5,type:'sawtooth',gain:0.05,attack:0.04,filter:'lowpass',cutoff:300,out:master,t:tt}); }
+    } else {
+      if(s%4===0){
+        var bd=(s===0)?chord:(s===8?(phraseEnd?nextChord:chord+4):chord);
+        var bf=NT(T.root/2,T.scale,bd);
+        if(bf){
+          if(PAL.bassSuper && (modern||I>=0.6)) superVoice({f:bf,dur:spb*3.2,type:PAL.bass,gain:0.10,voices:3,spread:9,filter:'lowpass',cutoff:430+I*320,q:6,out:padOut,t:tt});
+          else voice({f:bf,dur:spb*(PAL.halftime?3.6:3.2),type:PAL.bass,gain:0.16,filter:'lowpass',cutoff:500+I*380,q:4,out:padOut,t:tt});
+        }
+      }
+      if(rave&&I>=0.65&&(s===6||s===14)){ var bf2=NT(T.root/2,T.scale,chord); if(bf2) voice({f:bf2,dur:spb*1.4,type:PAL.bass,gain:0.09,filter:'lowpass',cutoff:640,out:padOut,t:tt}); }
+    }
+
+    // percussion — the game's own kit (pump = four-floor + sidechain, rave only)
+    perc(PAL,pump,s,phraseEnd,tt,I,soft);
+
+    // lead / arp
+    if(banger && I>=0.45){
+      // Snake's signature: catchy octave-spanning square arp
+      var shape=[0,2,4,7,4,2,7,4];
+      var baf=NT(T.root,T.scale,chord+L+shape[step%shape.length]);
+      if(baf){
+        voice({f:baf,dur:spb*1.1,type:PAL.lead,gain:0.075,filter:'lowpass',cutoff:cutoff+500,reverb:0.15,delay:style.delay,pan:(step%2?0.14:-0.14),t:tt,out:master});
+        if(I>=0.7) voice({f:baf*2,dur:spb*0.5,type:'square',gain:0.016,filter:'lowpass',cutoff:6500,pan:0.2,t:tt,out:master});
+      }
+    } else if(rave && I>=0.5){
+      var at=[chord+L,chord+2+L,chord+4+L,chord+2+L];
+      var af=NT(T.root,T.scale,at[step%at.length]+(I>=0.7&&(step%8>=4)?L:0));
+      if(af){
+        if(PAL.leadSuper) superVoice({f:af,dur:spb*1.4,type:PAL.lead,gain:0.05,voices:5,spread:PAL.detune||16,filter:'lowpass',cutoff:cutoff,q:3,reverb:0.2,delay:style.delay,pan:(step%2?0.25:-0.25),t:tt+swing,out:master});
+        else voice({f:af,dur:spb*1.2,type:PAL.lead,gain:0.055,filter:'lowpass',cutoff:cutoff,reverb:0.25,delay:style.delay,pan:(step%2?0.2:-0.2),t:tt+swing,out:master});
+      }
+    } else if(trance && I>=0.45){
+      // Forcefield: uplifting octave-spanning supersaw arp, big space
+      var tshape=[0,2,4,7,9,7,4,2];
+      var taf=NT(T.root,T.scale,chord+L+tshape[step%tshape.length]);
+      if(taf) superVoice({f:taf,dur:spb*1.6,type:PAL.lead,gain:0.05,voices:5,spread:PAL.detune||14,filter:'lowpass',cutoff:cutoff+300,q:2,reverb:0.35,delay:0.3,pan:(step%2?0.22:-0.22),t:tt+swing,out:master});
+    } else if(tactical && I>=0.45){
+      // Range: dry, staccato, technical motif ostinato + a rising phrase-end alarm (no lush reverb)
+      var mshape=[0,3,0,4,0,3,0,5];
+      if(s%2===0){ var saf=NT(T.root,T.scale,chord+L+mshape[step%mshape.length]);
+        if(saf) voice({f:saf,dur:spb*0.55,type:'sawtooth',gain:0.05,attack:0.003,filter:'lowpass',cutoff:cutoff,q:5,reverb:0.08,pan:(step%2?0.1:-0.1),t:tt,out:master}); }
+      if(phraseEnd && I>=0.7 && s===12){ var r1=NT(T.root,T.scale,chord+L), r2=NT(T.root,T.scale,chord+L+5);
+        if(r1&&r2) voice({f:r1,slideTo:r2,dur:spb*3,type:'sawtooth',gain:0.04,filter:'lowpass',cutoff:1400,cutoffTo:3400,q:7,reverb:0.2,out:master,t:tt}); }
+    } else if(I>=0.45){
+      if(PAL.pluck ? (s%2===0) : (s%4===0)){
+        var tones=[chord+L,chord+2+L,chord+4+L];
+        if(s===0||Math.random()<0.4) melN=NEAR(melN,tones);
+        else{ var stp=[-2,-1,-1,1,1,2]; melN+=stp[(Math.random()*stp.length)|0]; }
+        melN=Math.max(L,Math.min(L*2+4,melN));
+        var chance=PAL.pluck?(0.4+I*0.5):(0.5+I*0.4);
+        if(Math.random()<chance){
+          var lf=NT(T.root,T.scale,melN);
+          var base=PAL.pluck?spb*1.5:spb*4;
+          var ldur=base*(deep?(2+Math.random()*2):1)*(PAL.softLead?1.6:1);
+          var atk=PAL.pluck?0.004:(deep?0.25:(PAL.softLead?0.12:0.02));
+          if(PAL.leadSuper && (modern||deep)) superVoice({f:lf,dur:ldur,type:PAL.lead,gain:0.06,voices:4,spread:PAL.detune||14,filter:'lowpass',cutoff:cutoff,reverb:style.reverb,delay:style.delay,pan:0.1,out:master,t:tt+swing});
+          else{
+            voice({f:lf,dur:ldur,type:PAL.lead,gain:0.085,attack:atk,filter:'lowpass',cutoff:cutoff,reverb:style.reverb*0.8,delay:style.delay,vibrato:(PAL.vibrato&&(deep||style.vib))?PAL.vibrato:0,vibratoDepth:5,pan:0.08,out:master,t:tt+swing});
+            voice({f:lf,dur:ldur,type:PAL.lead,gain:0.04,detune:PAL.pluck?6:9,attack:atk,filter:'lowpass',cutoff:cutoff,pan:-0.08,out:master,t:tt+swing});
+          }
+        }
+      }
+    }
+    // sparkle (deep)
+    if(style.sparkle&&Math.random()<0.06){ var kf=NT(T.root,T.scale,chord+L+(Math.random()<0.5?4:7)); if(kf) voice({f:kf,dur:spb*6,type:'sine',gain:0.04,attack:0.02,filter:'lowpass',cutoff:6000,reverb:0.7,delay:0.3,pan:(Math.random()*1.2-0.6),t:tt+Math.random()*spb*2,out:master}); }
+    // riser (Asteroids modern, into the drop)
+    if(modern && PAL.riser && phraseEnd && s===8) voice({f:400,slideTo:2400,dur:spb*8,type:'sawtooth',gain:0.03,filter:'lowpass',cutoff:1000,cutoffTo:6000,q:4,reverb:0.4,out:master,t:tt});
+  }
+
+  // Snake "modern" = the CURRENT neon engine, remastered. Same 8-step grid, same progression,
+  // same square bass movement, same random-walk melody — just real drums + sub + stereo + delay,
+  // gated by intensity. It is deliberately NOT the generic enhStep path.
+  function snakeModern(step,tt){
+    var T=THEMES.snake, I=intensity;
+    var spb=60/T.bpm/2, s=step%8, bar=Math.floor(step/8), L=T.scale.length;
+    var chord=T.prog[bar%T.prog.length], nextChord=T.prog[(bar+1)%T.prog.length], phraseEnd=(bar%4===3);
+    var cutoff=1900*(0.7+0.5*I);
+    var tones=[chord+L,chord+2+L,chord+4+L];
+
+    // pad bed (same sine pad as current) + a sub reinforcement
+    if(s===0){
+      [chord,chord+2,chord+4].forEach(function(d){ var f=NT(T.root,T.scale,d); if(f) voice({f:f/2,dur:spb*8.2,type:'sine',gain:0.026,attack:0.25,filter:'lowpass',cutoff:1100,reverb:0.4,out:master,t:tt}); });
+      var sf=NT(T.root/4,T.scale,chord); if(sf) voice({f:sf,dur:spb*8,type:'sine',gain:0.09,attack:0.2,filter:'lowpass',cutoff:220,out:master,t:tt});
+    }
+    // bass — IDENTICAL movement to current (root / chord+4 / chord), just fuller & filter opens with intensity
+    if(s===0) voice({f:NT(T.root/2,T.scale,chord),dur:spb*2.4,type:'square',gain:0.16,filter:'lowpass',cutoff:600+I*320,q:3,out:master,t:tt});
+    else if(s===4) voice({f:NT(T.root/2,T.scale,phraseEnd?nextChord:chord+4),dur:spb*2.2,type:'square',gain:0.14,filter:'lowpass',cutoff:600+I*320,q:3,out:master,t:tt});
+    else if(s===6) voice({f:NT(T.root/2,T.scale,chord),dur:spb*1.2,type:'square',gain:0.09,filter:'lowpass',cutoff:560,out:master,t:tt});
+
+    // drums — SAME groove as current (kick on beats, hats on offbeats, snare-ish on 2&6) but real voices, mixed low
+    if(I>=0.2 && s%4===0) kick({t:tt,gain:0.42,f0:150,f1:48,dur:0.14,click:0.14});
+    if(I>=0.45 && (s===2||s===6)) clap(tt,0.038);
+    if(I>=0.35 && s%2===1) hat({t:tt,open:false,gain:0.015,cut:9500,pan:(s%4===1?0.12:-0.12)});
+    if(I>=0.7 && s===7) hat({t:tt,open:true,gain:0.018,cut:8000,dur:0.07});
+    if(I>=0.8 && phraseEnd && s>=6) noiseBurst({t:tt,dur:0.05,gain:0.028,filter:'highpass',cutoff:3000,out:drumBus||master});
+
+    // LEAD — the current random-walk square melody verbatim (the banger's soul), + stereo/delay + an octave sparkle
+    var dens=(T.density+(phraseEnd?0.18:0)+(s===0?0.25:0))*(0.5+0.6*I);
+    if(Math.random()<dens){
+      if(s===0||Math.random()<0.35) melN=NEAR(melN,tones);
+      else{ var steps=[-2,-1,-1,1,1,2]; melN+=steps[(Math.random()*steps.length)|0]; }
+      melN=Math.max(L,Math.min(L*2+3,melN));
+      var lf=NT(T.root,T.scale,melN), ldur=(Math.random()<0.25?spb*0.55:spb*1.35);
+      voice({f:lf,dur:ldur,type:'square',gain:0.10,attack:0.006,filter:'lowpass',cutoff:cutoff,reverb:0.28,delay:0.14,pan:0.1,out:master,t:tt});
+      voice({f:lf,dur:ldur,type:'square',gain:0.045,detune:9,attack:0.006,filter:'lowpass',cutoff:cutoff,pan:-0.1,out:master,t:tt});
+      if(I>=0.75) voice({f:lf*2,dur:ldur*0.8,type:'square',gain:0.02,attack:0.006,filter:'lowpass',cutoff:6000,pan:0.25,out:master,t:tt});
+    }
+  }
+
+  // ---------------- transport ----------------
+  var active=null, timer=null, stepN=0, nextT=0;
+  function tick(){
+    if(!ac||!active) return;
+    if(ac.state!=='running'){ nextT=ac.currentTime+0.05; return; }
+    var baseT=THEMES[active.theme], guard=0;
+    var isCurrent=active.variant==='current';
+    var snakeRemaster=active.game==='snake' && active.variant==='modern';
+    // Modern tracks may override the theme (unique progression / key / tempo) so no two reuse the same song
+    var Teff=baseT;
+    if(!isCurrent && !snakeRemaster){
+      var P=PALETTES[active.game]; Teff={}; for(var k in baseT) Teff[k]=baseT[k];
+      if(P.root!=null)Teff.root=P.root; if(P.bpm!=null)Teff.bpm=P.bpm; if(P.scale)Teff.scale=P.scale; if(P.prog)Teff.prog=P.prog; if(P.cutoff!=null)Teff.cutoff=P.cutoff;
+    }
+    var eightGrid=isCurrent || snakeRemaster;   // 8-step feel for current + snake remaster
+    var stepDur=eightGrid?60/Teff.bpm/2:60/Teff.bpm/4;
+    while(nextT<ac.currentTime+0.2 && guard++<128){
+      if(isCurrent) currentStep(baseT,stepN,nextT);
+      else if(snakeRemaster) snakeModern(stepN,nextT);
+      else enhStep(Teff,STYLES[active.variant]||STYLES.modern,PALETTES[active.game],stepN,nextT);
+      stepN++; nextT+=stepDur;
+    }
+  }
+  function stop(){
+    if(timer){ clearInterval(timer); timer=null; }
+    active=null;
+    if(padBus){ try{ padBus.gain.cancelScheduledValues(ac.currentTime); padBus.gain.setValueAtTime(1,ac.currentTime); }catch(e){} }
+    document.querySelectorAll('.cell.playing').forEach(function(c){ c.classList.remove('playing'); });
+    updateLayers();
+  }
+  function play(game, variant, cell){
+    ensureAC(); if(!ac) return;
+    if(ac.state==='suspended'){ try{ ac.resume(); }catch(e){} }
+    var same=active && active.game===game.key && active.variant===variant;
+    stop();
+    if(same) return;
+    var T=THEMES[game.theme];
+    active={ game:game.key, theme:game.theme, variant:variant };
+    stepN=0; mel2=T.scale.length+3; melN=T.scale.length+3;
+    nextT=ac.currentTime+0.08;
+    timer=setInterval(tick,25);
+    cell.classList.add('playing');
+    updateLayers();
+  }
+
+  // ---------------- adaptive UI ----------------
+  var intensityEl=document.getElementById('intensity'), meterFill=document.getElementById('meterfill'),
+      layersEl=document.getElementById('layers'), rampBtn=document.getElementById('ramp'),
+      presetsEl=document.getElementById('presets');
+  var rampOn=false, rampTimer=null, rampT=0;
+
+  function setIntensity(v,fromRamp){
+    intensity=Math.max(0,Math.min(1,v));
+    intensityEl.value=Math.round(intensity*100);
+    meterFill.style.width=(6+intensity*94)+'%';
+    if(!fromRamp){ rampOn=false; rampBtn.classList.remove('on'); if(rampTimer){clearInterval(rampTimer);rampTimer=null;} }
+    presetsEl.querySelectorAll('button').forEach(function(b){ b.classList.toggle('on', !rampOn && Math.abs(parseInt(b.dataset.i,10)/100-intensity)<0.03); });
+    updateLayers();
+  }
+  function activeLayers(){
+    if(!active) return 'Idle — pick a track above.';
+    if(active.variant==='current') return "<b>Current engine</b> — fixed loop, no adaptive response (that's the comparison point).";
+    if(active.game==='snake' && active.variant==='modern'){
+      var Is=intensity, ons=['Pad+sub','Square bass'];
+      if(Is>=0.2) ons.push('Kick'); if(Is>=0.35) ons.push('Hats');
+      if(Is>=0.45) ons.push('Clap','Neon lead'); if(Is>=0.75) ons.push('Octave sparkle');
+      return "neon square kit, remastered · Intensity <b>"+Math.round(Is*100)+"%</b> · layers: <b>"+ons.join('</b> · <b>')+"</b>";
+    }
+    var PAL=PALETTES[active.game], st=STYLES[active.variant], I=intensity;
+    var rave=PAL.groove==='rave', banger=PAL.groove==='banger', trance=PAL.groove==='trance', tactical=PAL.groove==='tactical';
+    var kitName={electronic:banger?'electro-banger kit':(trance?'trance kit':'electronic kit'),techno:'techno kit',tactical:'military kit',soft:'soft shaker perc',synthwave:'gated synthwave kit',epic:'epic taiko kit'}[PAL.kit];
+    var on=[tactical?'Dark pads':(banger?'Stabs':'Pads'), banger?'Rolling bass':(trance?'Rolling bass':(tactical?'Drone bass':'Bass'))]; if(st.sub) on.push('Sub');
+    if(I>=0.25) on.push(PAL.kit==='soft'?'Shaker':(PAL.kit==='epic'?'Taikos':'Kick'));
+    if(I>=0.45) on.push(banger?'Square arp':(rave?'Supersaw arp':(trance?'Uplift arp':(tactical?'Tense stabs':(PAL.pluck?'Pluck lead':'Lead')))), PAL.kit==='soft'?'Woodblock':(PAL.kit==='synthwave'?'Gated snare':(PAL.kit==='epic'?'Tom hits':(PAL.kit==='tactical'?'March snare':(banger?'Clap+hats':'Snare/hats')))));
+    if(I>=0.65 && PAL.kit!=='soft' && PAL.kit!=='epic' && PAL.kit!=='tactical') on.push('Open hats');
+    if(I>=0.65) on.push(rave?'Off-beat bass':(banger?'Octave doubles':(trance?'16th roll':(tactical?'Snare ghosts':'Lead doubles'))));
+    if(I>=0.85) on.push('Phrase fills');
+    return kitName+' · Intensity <b>'+Math.round(I*100)+'%</b> · layers: <b>'+on.join('</b> · <b>')+'</b>';
+  }
+  function updateLayers(){ layersEl.innerHTML=activeLayers(); }
+
+  intensityEl.addEventListener('input',function(){ setIntensity(parseFloat(intensityEl.value)/100,false); });
+  presetsEl.addEventListener('click',function(e){ var b=e.target.closest('button'); if(!b) return; setIntensity(parseInt(b.dataset.i,10)/100,false); });
+  masterEl.addEventListener('input',function(){ if(master) master.gain.value=vol(); });
+  rampBtn.addEventListener('click',function(){
+    rampOn=!rampOn; rampBtn.classList.toggle('on',rampOn);
+    if(rampTimer){ clearInterval(rampTimer); rampTimer=null; }
+    if(rampOn){ rampT=0; rampTimer=setInterval(function(){
+      rampT+=0.24;   // 2× ramp speed
+      // ease 0.08..1 over ~22s, with a quick drop to simulate a wave clearing
+      var phase=(rampT%22)/22, e;
+      if(phase<0.7) e=0.08+0.92*(phase/0.7);           // ramp up
+      else e=1-0.92*((phase-0.7)/0.3);                 // drop back
+      setIntensity(e,true);
+      presetsEl.querySelectorAll('button').forEach(function(b){b.classList.remove('on');});
+    },400); }
+  });
+
+  // ---------------- render grid ----------------
+  var grid=document.getElementById('grid');
+  GAMES.forEach(function(g){
+    var row=document.createElement('div'); row.className='row'; row.style.setProperty('--rowc',g.color);
+    var T=THEMES[g.theme];
+    var head='<div class="head"><span class="dot" style="color:'+g.color+'"></span>'+
+      '<span class="name">'+g.name+'</span>'+
+      '<span class="tag">'+T.label+' · '+T.bpm+' BPM</span></div>';
+    var vlist=(g.key==='snake')?SNAKE_VARIANTS:VARIANTS;
+    var cells='<div class="cells cols'+vlist.length+'">';
+    vlist.forEach(function(v){
+      cells+='<div class="cell'+(v.id==='current'?' cur':'')+'" data-game="'+g.key+'" data-var="'+v.id+'">'+
+        '<div class="k"><span class="play">▶</span>'+v.k+'</div>'+
+        '<div class="d">'+v.d+'</div>'+
+        (v.adapt?'<span class="adaptbadge">↕ reacts to intensity</span>':'<span class="adaptbadge">fixed loop</span>')+
+        '</div>';
+    });
+    cells+='</div>';
+    row.innerHTML=head+cells;
+    grid.appendChild(row);
+  });
+  grid.addEventListener('click',function(e){
+    var cell=e.target.closest('.cell'); if(!cell) return;
+    var g=GAMES.filter(function(x){return x.key===cell.dataset.game;})[0];
+    play(g, cell.dataset.var, cell);
+  });
+
+  setIntensity(0.55,false);
+})();
+</script>
