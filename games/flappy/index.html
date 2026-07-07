@@ -448,6 +448,17 @@
   // ---- Update ----
   function update() {
     frame++;
+    // reactive music: calm base 0.3, rises with score/distance + current scroll speed (gentle-leaning)
+    if (KIT && KIT.music) {
+      let mi = 0.3;
+      if (state === 'playing') {
+        const spd = currentSpeed();
+        const scoreT = Math.min(1, score / 60);
+        const speedT = Math.max(0, Math.min(1, (spd - OBS_SPEED_DAY) / (OBS_SPEED_NIGHT + SPEED_CREEP - OBS_SPEED_DAY)));
+        mi = 0.3 + 0.4 * scoreT + 0.15 * speedT;
+      }
+      KIT.music.intensity(Math.max(0, Math.min(1, mi)));
+    }
     if (state !== 'playing') return;
 
     obsSpeed = currentSpeed();

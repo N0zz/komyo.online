@@ -376,7 +376,7 @@
       if (winHoldFrames >= SPRINT_WIN_HOLD) endGame();
       return;
     }
-    if (state !== 'playing') return;
+    if (state !== 'playing') { if (KIT && KIT.music) KIT.music.intensity(0.3); return; }
     frame++;
     elapsedFrames++;
 
@@ -411,6 +411,13 @@
     for (let i = hitMarkers.length - 1; i >= 0; i--) {
       hitMarkers[i].life -= 0.06;
       if (hitMarkers[i].life <= 0) hitMarkers.splice(i, 1);
+    }
+
+    // gameplay-driven music intensity: rest ≈ 0.35, hot streak / final seconds → ~0.9
+    if (KIT && KIT.music) {
+      let mi = 0.35 + Math.min(combo / 12, 1) * 0.5;
+      if (mode === 'timed' && timeLeft <= 6) mi += (1 - timeLeft / 6) * 0.2;
+      KIT.music.intensity(Math.max(0, Math.min(1, mi)));
     }
 
     updateHud(); // was only refreshed on shoot() — the on-screen clock/elapsed HUD now ticks live

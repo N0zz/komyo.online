@@ -488,6 +488,22 @@
 
   // ---- Update ----
   function update() {
+    if (KIT && KIT.music) {
+      let mi = 0.3;                                 // calm base on menu / game-over
+      if (state === 'playing') {
+        if (gameMode === 'zen') mi = Math.min(0.4, 0.25 + frogs.length * 0.02);  // gentle, capped
+        else {
+          // waves: escalate by wave #. endless: `wave` never moves, so ramp with the shrinking spawn gap (132→27).
+          const wv = gameMode === 'endless'
+            ? Math.min(1, (132 - endlessGap) / (132 - 27))
+            : Math.min(1, (wave - 1) / (WAVE_MAX - 1));
+          const en = Math.min(1, frogs.length / 8);
+          const cb = Math.min(1, combo / 8);
+          mi = Math.min(1, 0.35 + wv * 0.25 + en * 0.18 + cb * 0.12);
+        }
+      }
+      KIT.music.intensity(mi);
+    }
     if (state !== 'playing') return;
     steps++;
     if (comboT > 0 && --comboT === 0) combo = 0;

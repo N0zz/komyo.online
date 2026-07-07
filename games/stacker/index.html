@@ -358,7 +358,7 @@
 
   // ---- Update ----
   function update() {
-    if (state !== 'playing') return;
+    if (state !== 'playing') { if (KIT && KIT.music) KIT.music.intensity(0.3); return; }
 
     // Move mover — clamped to play column bounds
     mover.x += mover.dir * mover.speed;
@@ -400,6 +400,14 @@
       comboEl.textContent = KIT.t('game.stacker.combo', { n: combo, def: combo + 'x COMBO!' });
     } else {
       comboEl.style.opacity = '0';
+    }
+
+    // Music intensity — rises with tower height + mover speed (gentle, this is a calm game)
+    if (KIT && KIT.music) {
+      const cfg = MODE_CFG[mode];
+      const hN = Math.min((blocks.length - 1) / 30, 1);
+      const sN = Math.max(0, (mover.speed - cfg.initSpeed) / Math.max(1, cfg.speedCap - cfg.initSpeed));
+      KIT.music.intensity(Math.min(1, 0.3 + 0.35 * hN + 0.2 * sN));
     }
   }
 

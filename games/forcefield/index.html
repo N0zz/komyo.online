@@ -201,7 +201,23 @@
     fire(l);
   }
 
+  // gameplay-driven music intensity: difficulty ramp + how imminent the next shot is, spiking as
+  // shields run low; calm base on the menu / game-over.
+  function musicIntensity() {
+    if (state !== 'playing') return 0.3;
+    let ramp = 0, urg = 0; const span = diff.speedMax - diff.speed0 || 1;
+    for (let i = 0; i < lanes.length; i++) {
+      const l = lanes[i];
+      ramp = Math.max(ramp, (l.speed - diff.speed0) / span);
+      if (l.charge0) urg = Math.max(urg, l.chargeT / l.charge0);
+    }
+    let v = 0.35 + 0.4 * ramp + 0.15 * urg;
+    if (opts.mode === 'lives') v += 0.35 * (1 - lives / LIVES_START);
+    return Math.max(0, Math.min(1, v));
+  }
+
   function update() {
+    if (KIT && KIT.music) KIT.music.intensity(musicIntensity());
     if (state !== 'playing') return;
     tick++;
     if (isClock()) {
@@ -664,7 +680,7 @@
       mouse: [[T('game.common.click', 'Click'), T('game.forcefield.ctrlStop', 'Lock the dome')], [T('game.forcefield.ctrlHalves', 'Left / right half'), T('game.forcefield.ctrlStopHalf', 'Defend that planet (Double)')]],
       keyboard: [[T('game.common.spaceEnter', 'Space · Enter'), T('game.forcefield.ctrlStop', 'Lock the dome')], [T('game.forcefield.ctrlAL', 'A · L (or ← · →)'), T('game.forcefield.ctrlStopHalf', 'Defend that planet (Double)')], [T('game.common.esc', 'Esc'), T('game.common.pause', 'Pause')]],
       touch: [[T('game.common.tap', 'Tap'), T('game.forcefield.ctrlStop', 'Lock the dome')], [T('game.forcefield.ctrlHalves', 'Left / right half'), T('game.forcefield.ctrlStopHalf', 'Defend that planet (Double)')]] } });
-  KIT.music.play('neon');
+  KIT.music.play('forcefield');
   // ==================================================================================
 
   // ==================================================================================
