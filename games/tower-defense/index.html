@@ -1312,6 +1312,19 @@
       refreshToolbar();
     }
     updateHud();
+
+    // reactive music: louder with enemies on the board, higher waves and a low keep;
+    // calm base off-wave / menu / game-over (the kit smooths the target).
+    if (KIT && KIT.music) {
+      let mv = 0.35;
+      if (state === 'wave') {
+        const en = Math.min(enemies.length / 10, 1); // enemy pressure
+        const wv = Math.min(wave / 12, 1);           // wave escalation
+        const danger = 1 - Math.max(0, hp) / 30;     // low keep HP = danger
+        mv = 0.4 + 0.35 * en + 0.15 * wv + 0.25 * danger;
+      }
+      KIT.music.intensity(Math.max(0, Math.min(1, mv)));
+    }
   }
 
   function killEnemy(e) {

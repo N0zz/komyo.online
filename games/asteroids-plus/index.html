@@ -180,7 +180,7 @@
   // SFX + music both run through the shared game-kit engine now (kit owns the driving 'space' track).
   const SND = {
     play(n){ if(KIT) KIT.sound.play(n); },
-    startMusic(){ if(KIT) KIT.music.play('space'); },
+    startMusic(){ if(KIT) KIT.music.play('asteroidsplus'); },
     stopMusic(){ /* music persists across menu/pause — one continuous menu + in-game bed */ },
   };
   function fmtTime(ms){ const m=Math.floor(ms/60000), s=Math.floor((ms%60000)/1000), cs=Math.floor((ms%1000)/10); return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0')+'.'+String(cs).padStart(2,'0'); }
@@ -788,6 +788,12 @@
     for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vx*=0.96; p.vy*=0.96; p.life-=p.decay; if(p.life<=0) particles.splice(i,1); }
     // kamikaze blast rings (visual only — the damage was applied at detonation)
     for(let i=blasts.length-1;i>=0;i--){ const bl=blasts[i]; bl.r+=5; if(bl.r>=bl.max) blasts.splice(i,1); }
+
+    // reactive music: intensity rises with wave depth + on-screen enemies, spikes on boss waves
+    if(KIT && KIT.music){ let mi=0.35;
+      if(state==='playing'){ const depth=Math.min(1,(wave-1)/(RUN_END_WAVE-1)); const crowd=Math.min(1,enemiesLeft()/14);
+        mi=0.4+depth*0.3+crowd*0.2+(bosses.length?0.15:0); }
+      KIT.music.intensity(Math.max(0,Math.min(1,mi))); }
   }
 
   // ---- Render ----

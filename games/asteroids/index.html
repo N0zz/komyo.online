@@ -320,6 +320,12 @@
       if(state==='playing' && invuln===0){ for(let j=0;j<asteroids.length;j++){ const a=asteroids[j]; if(Math.hypot(a.x-ship.x,a.y-ship.y)<a.r+ship.r*0.7){ hitAsteroid(j); killShip(); break; } } }
       for(let i=particles.length-1;i>=0;i--){ const p=particles[i]; p.x+=p.vx; p.y+=p.vy; p.vx*=0.96; p.vy*=0.96; p.life-=p.decay; if(p.life<=0) particles.splice(i,1); }
     }
+    // music intensity: calm base off-play; in a run rises with rocks on screen + wave, spikes when one is close.
+    if(KIT && KIT.music){ let mi=0.35;
+      if(state==='playing'){ const load=Math.min(1, asteroids.length/20*0.7 + (level-1)/10*0.5); let near=0;
+        if(ship) for(const a of asteroids){ if(Math.hypot(a.x-ship.x,a.y-ship.y)-a.r < 120){ near=0.15; break; } }
+        mi=0.35+0.55*load+near; }
+      KIT.music.intensity(Math.max(0,Math.min(1,mi))); }
   }
 
   function drawStars(){ const crt=isCRT(); for(const s of stars){ s.tw+=s.ts; const a=s.a*(0.6+0.4*Math.sin(s.tw)); ctx.fillStyle=crt?('rgba(120,255,140,'+a+')'):('rgba(200,225,255,'+a+')'); ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill(); } }
