@@ -1433,7 +1433,9 @@
   function recordResult(slug, data) {
     if (!slug) return null;
     data = data || {};
-    var rec = { mode: (data.mode != null ? String(data.mode) : ''), score: (+data.score || 0), time: (+data.time || 0), stats: (data.stats || {}), ts: nowMs() };
+    // mode = language-STABLE key (best-store grouping); modeText = LOCALIZED display (score card / profile),
+    // falling back to mode when a game doesn't provide it.
+    var rec = { mode: (data.mode != null ? String(data.mode) : ''), modeText: (data.modeText != null ? String(data.modeText) : (data.mode != null ? String(data.mode) : '')), score: (+data.score || 0), time: (+data.time || 0), stats: (data.stats || {}), ts: nowMs() };
     lsSet('gamekit_result_' + slug, JSON.stringify(rec));
     try {
       var key = 'gamekit_played_' + utcDateStr();
@@ -1832,6 +1834,14 @@
   }
 
   function enc(s) { return (typeof encodeURIComponent === 'function') ? encodeURIComponent(s) : String(s); }
+  // Append UTM tags so GA4 can attribute shared traffic (a QR scan has no referrer → otherwise it's
+  // filed as "direct"). Short + kept AFTER any deep-link params (mode/diff), so a shared link still
+  // opens the exact mode. source = where it was shared from, medium = the channel (qr | share | discord).
+  function withUtm(url, source, medium) {
+    if (!url) return url;
+    var sep = url.indexOf('?') >= 0 ? '&' : '?';
+    return url + sep + 'utm_source=' + source + '&utm_medium=' + medium;
+  }
   function shareUrls(url, message) {
     return {
       x: 'https://twitter.com/intent/tweet?text=' + enc(message) + '&url=' + enc(url),
@@ -1851,6 +1861,53 @@
       for (i = 16; i >= 0; i -= 8) m |= Math.round(((pa >> i & 255) * (1 - t)) + ((pb >> i & 255) * t)) << i;
       return '#' + ('00000' + m.toString(16)).slice(-6);
     } catch (e) { return a; }
+  }
+  // Lazy-load the reusable QR encoder (qr.js) on first use — it's only needed when a score card is
+  // built (share), so it stays out of the atomic <head> and loads on demand (cached by the root SW
+  // SHELL for offline). Resolves window.KOMYO_QR or null (never throws / blocks the card).
+  var _qrLib = null;
+  function ensureQR() {
+    if (typeof window !== 'undefined' && window.KOMYO_QR) return Promise.resolve(window.KOMYO_QR);
+    if (_qrLib) return _qrLib;
+    _qrLib = new Promise(function (res) {
+      try {
+        if (typeof document === 'undefined' || !document.createElement) return res(null);
+        var onGame = (typeof location !== 'undefined' && (location.pathname || '').indexOf('/games/') >= 0);
+        var s = document.createElement('script'); s.src = onGame ? '../../qr.js' : 'qr.js';
+        s.onload = function () { res(window.KOMYO_QR || null); };
+        s.onerror = function () { res(null); };
+        (document.head || document.body || document.documentElement).appendChild(s);
+      } catch (e) { res(null); }
+    });
+    return _qrLib;
+  }
+  // Draw a themed, scannable QR (a KOMYO_QR matrix) onto the score card: light panel + accent-tinted
+  // dark modules (high luminance contrast = scans) + accent rounded finder eyes (themed flair).
+  // Centered under the KOMYO GAMES wordmark, above the ▶ play-on CTA.
+  function drawCardQR(x, rr, qr, accent) {
+    // NO box: the QR code FILLS its footprint (max module size = best scan), right-anchored at the card
+    // margin (W-82). The quiet zone is the card itself — we repaint the card's own gradient over the
+    // footprint + a margin so the grid/sparkles can't sit in the quiet zone, but it's invisible (same
+    // gradient) so there's no visible panel. Bright accent modules on that dark field = inverted QR.
+    var n = qr.size, mods = qr.modules, box = 272, bx = 1200 - 82 - box, by = 190; // centered between wordmark & url
+    var cell = box / n, q = Math.round(4 * cell);
+    var modC = mixHex(accent, '#ffffff', 0.16), eye = mixHex(accent, '#ffffff', 0.32), gap = mixHex('#0a0f17', accent, 0.10);
+    var qg = x.createLinearGradient(0, 0, 1200, 630); qg.addColorStop(0, '#0a0f17'); qg.addColorStop(1, '#121a28');
+    // clean quiet field = the card's own gradient, ROUNDED corners so the patch looks intentional (the
+    // corners are far from the finder patterns, so rounding doesn't affect scanning)
+    x.fillStyle = qg; rr(bx - q, by - q, box + 2 * q, box + 2 * q, 26); x.fill();
+    // integer, gapless module grid — shared pixel edges, no anti-aliased seams
+    var mx = function (i) { return Math.round(bx + i * cell); }, my = function (i) { return Math.round(by + i * cell); };
+    var inFinder = function (r, c) { return (r < 7 && c < 7) || (r < 7 && c >= n - 7) || (r >= n - 7 && c < 7); };
+    x.fillStyle = modC;
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) { if (mods[r][c] && !inFinder(r, c)) { var X = mx(c), Y = my(r); x.fillRect(X, Y, mx(c + 1) - X, my(r + 1) - Y); } }
+    var eyeAt = function (fr, fc) { // square (crisp) finder eyes — standard shape scans most reliably
+      var X = mx(fc), Y = my(fr);
+      x.fillStyle = eye; x.fillRect(X, Y, mx(fc + 7) - X, my(fr + 7) - Y);                                     // bright outer 7×7
+      x.fillStyle = gap; x.fillRect(mx(fc + 1), my(fr + 1), mx(fc + 6) - mx(fc + 1), my(fr + 6) - my(fr + 1));  // dark gap ring
+      x.fillStyle = eye; x.fillRect(mx(fc + 2), my(fr + 2), mx(fc + 5) - mx(fc + 2), my(fr + 5) - my(fr + 2));  // bright 3×3 centre
+    };
+    eyeAt(0, 0); eyeAt(0, n - 7); eyeAt(n - 7, 0);
   }
   // Score-card PNG (1200×630) — "neon marquee": themed by the game's accent (top glow, perspective
   // grid floor, glowing frame, white→accent gradient score, baked sparkles), the game's icon emoji
@@ -1926,15 +1983,12 @@
         noFx(); x.fillStyle = sg; x.fillText(scoreText, sbx, sby);
         // player
         x.fillStyle = '#cdd9e8'; x.font = '600 36px system-ui, sans-serif'; x.fillText('— ' + who, 86, H - 62);
-        // ▶ play-on CTA, bottom-right (triangle drawn, not an emoji — consistent everywhere)
+        // www.komyo.online stays bottom-right (unchanged)
         x.textAlign = 'right';
         x.fillStyle = '#dfe9f5'; x.font = '700 40px ui-monospace, monospace'; x.fillText('www.komyo.online', W - 82, H - 60);
-        x.fillStyle = '#67788f'; x.font = '600 27px ui-monospace, monospace'; lsp('7.5px');
-        var playOn = t('card.playOn');
-        var cy = H - 132; x.fillText(playOn, W - 82, cy); var pw = x.measureText(playOn).width; lsp('0px');
-        x.fillStyle = accent; x.beginPath(); var tx = W - 82 - pw - 30, ty = cy - 10;
-        x.moveTo(tx, ty - 15); x.lineTo(tx, ty + 15); x.lineTo(tx + 24, ty); x.closePath(); x.fill();
         x.textAlign = 'left';
+        // (the ▶ play-on CTA is drawn LATER, after the QR — see the async block — so the QR's
+        // quiet-zone gradient repaint can't paint over it)
         // async art: the game's own icon (top-left) + the mascot logo & stacked wordmark (top-right)
         var loadImg = function (src) {
           return new Promise(function (res) {
@@ -1964,7 +2018,11 @@
               g2.clip(); g2.drawImage(c, 0, 0);
               out = c2;
             } catch (e) {}
+            // opts.target: draw the finished card straight onto a caller-supplied canvas (used by the
+            // headless PNG render — captures a canvas reliably, unlike a blob→<img> under virtual time)
+            try { if (opts.target && opts.target.getContext) { opts.target.width = W; opts.target.height = H; opts.target.getContext('2d').drawImage(out, 0, 0); } } catch (e) {}
             if (!out.toBlob) return resolve(null);
+            if (opts.png) { out.toBlob(function (b) { resolve(b); }, 'image/png'); return; } // lossless (print / hi-res render)
             out.toBlob(function (b) {
               if (b && b.type === 'image/webp') return resolve(b);
               out.toBlob(function (b2) { resolve(b2 || b || null); }, 'image/jpeg', 0.85);
@@ -1972,13 +2030,41 @@
           } catch (e) { resolve(null); }
         };
         if (opts.icon) { x.shadowColor = accent; x.font = '120px system-ui, sans-serif'; x.globalAlpha = 0.9; x.shadowBlur = 26; x.fillText(String(opts.icon), 84, 158); noFx(); }
-        loadImg(opts.mascot || '../../favicon.svg').then(function (logo) {
+        Promise.all([
+          loadImg(opts.mascot || '../../mascot-head.svg'),
+          (opts.url || opts.qrUrl) ? ensureQR() : Promise.resolve(null)
+        ]).then(function (parts) {
+          var logo = parts[0], QRlib = parts[1];
           try {
-            var lx = W - 82 - 250;
-            if (logo) x.drawImage(logo, lx, 54, 100, 100);
-            else { x.font = '86px system-ui, sans-serif'; x.fillText('🦊', lx, 134); }
-            x.fillStyle = accent; x.font = '800 36px system-ui, sans-serif'; lsp('5px');
-            x.fillText('KOMYO', lx + 122, 95); x.fillText('GAMES', lx + 122, 139); lsp('0px');
+            // wordmark right-aligned to the card's right margin (W-82) so its right edge lines up with
+            // www.komyo.online + the QR; the logo sits just left of it.
+            var RX = W - 82;
+            x.fillStyle = accent; x.font = '800 36px system-ui, sans-serif'; lsp('5px'); x.textAlign = 'right';
+            x.fillText('KOMYO', RX, 95); x.fillText('GAMES', RX, 139);
+            var wmW = Math.max(x.measureText('KOMYO').width, x.measureText('GAMES').width);
+            x.textAlign = 'left'; lsp('0px');
+            var logoX = RX - wmW - 20 - 100;
+            if (logo) x.drawImage(logo, logoX, 54, 100, 100);
+            else { x.font = '86px system-ui, sans-serif'; x.fillText('🦊', logoX, 134); }
+          } catch (e) {}
+          // scan-to-play QR of the share URL (game link only; short → fewer modules → scans small)
+          try { var qsrc = opts.qrUrl || opts.url, qr = (QRlib && qsrc) ? (QRlib.encode(qsrc) || QRlib.encode(qsrc.split('&utm_')[0])) : null; if (qr) drawCardQR(x, rr, qr, accent); } catch (e) {}
+          // ▶ play-on CTA — drawn AFTER the QR so its quiet-zone repaint can't cover it. With a QR it's
+          // centered under it (QR bottom ~440); otherwise bottom-right above the url.
+          try {
+            var playOn = t('card.playOn');
+            x.fillStyle = '#8ea2ba'; x.font = '600 27px ui-monospace, monospace'; lsp('7.5px');
+            if (opts.url) {
+              var cxQ = W - 82 - 136, ctaY = 496; // centered group: QR bottom ~462, play-on below, above the url
+              var pwc = x.measureText(playOn).width, gp = 10, gx = cxQ - (24 + gp + pwc) / 2, tyc = ctaY - 10;
+              x.fillStyle = accent; x.beginPath(); x.moveTo(gx, tyc - 15); x.lineTo(gx, tyc + 15); x.lineTo(gx + 24, tyc); x.closePath(); x.fill();
+              x.fillStyle = '#8ea2ba'; x.textAlign = 'left'; x.fillText(playOn, gx + 24 + gp, ctaY); lsp('0px');
+            } else {
+              x.textAlign = 'right'; var cy = H - 132; x.fillText(playOn, W - 82, cy); var pw = x.measureText(playOn).width; lsp('0px');
+              x.fillStyle = accent; x.beginPath(); var tx = W - 82 - pw - 30, ty = cy - 10;
+              x.moveTo(tx, ty - 15); x.lineTo(tx, ty + 15); x.lineTo(tx + 24, ty); x.closePath(); x.fill();
+              x.textAlign = 'left';
+            }
           } catch (e) {}
           finish();
         });
@@ -2168,8 +2254,10 @@
         title: o.title || 'Komyo Games', slug: o.slug,
         accent: extra.accent || o.accent, mascot: extra.mascot || o.mascot, icon: extra.icon || o.icon,
         score: score, scoreText: (typeof score === 'number' && score.toLocaleString) ? score.toLocaleString() : String(score),
-        sub: (extra.sub != null) ? extra.sub : (lr.mode || ''),
-        url: getUrl(), text: getMsg(), // the native share attaches the image AND the link/text together
+        sub: (extra.sub != null) ? extra.sub : (lr.modeText || lr.mode || ''), // localized display, not the stable store key
+        // the shareable link keeps the mode/diff deep-link; the QR drops them (shorter URL = fewer QR
+        // modules = bigger, easier to scan when printed small). Source 'sc' (scorecard), kept short too.
+        url: withUtm(getUrl(), 'sc', 'share'), qrUrl: withUtm(base, 'sc', 'qr'), text: getMsg(),
       };
       // speedrun/sprint modes: the record IS the time (same rule as the profile) → TIME card
       if (/speedrun|sprint/i.test(String(opts.sub)) && extra.score == null && lr.time > 0) { opts.label = 'TIME'; opts.scoreText = fmtMs(lr.time); }
@@ -2211,8 +2299,9 @@
         // post the score card image (downscaled 50% for chat); text line = fallback if the render fails
         var opts = cardOpts(); opts.player = who;
         buildScoreCard(opts).then(function (b) {
-          if (!b) return postDiscord('**' + who + '** — ' + msg, getUrl());
-          shrinkBlob(b, 0.5).then(function (s) { postDiscord('', getUrl(), s); });
+          var durl = withUtm(getUrl(), 'sc', 'discord');
+          if (!b) return postDiscord('**' + who + '** — ' + msg, durl);
+          shrinkBlob(b, 0.5).then(function (s) { postDiscord('', durl, s); });
         });
       };
       if (typeof setTimeout === 'function') setTimeout(maybePost, 0);   // already-visible (built at game-over)
@@ -3173,7 +3262,7 @@
   if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('fullscreenchange', fsEmit);
   var fullscreen = { supported: fsSupported, active: fsActive, toggle: fsToggle, onChange: function (cb) { if (typeof cb === 'function') _fsSubs.push(cb); } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
