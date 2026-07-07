@@ -314,6 +314,17 @@
     };
   }
 
+  // waveform swatch for music tracks
+  function wavePainter(col) {
+    return function (g, w, h) {
+      g.fillStyle = '#0a1018'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = col; g.lineWidth = Math.max(1.5, w * 0.03); g.lineJoin = 'round';
+      g.shadowColor = col; g.shadowBlur = w * 0.08;
+      g.beginPath();
+      for (var i = 0; i <= 32; i++) { var x = (i / 32) * w, y = h / 2 + Math.sin(i * 0.9) * h * 0.28 * (0.4 + 0.6 * Math.abs(Math.sin(i * 0.35))); if (i) g.lineTo(x, y); else g.moveTo(x, y); }
+      g.stroke(); g.shadowBlur = 0;
+    };
+  }
   var items = [];
   function add(game, set, key, name, price, desc, painter) {
     items.push({ id: (game || 'site') + '.' + set + '.' + key, game: game, set: (game || 'site') + '.' + set, name: name, desc: desc, price: price, painter: painter });
@@ -346,6 +357,10 @@
   add('snake', 'food', 'gem',     'Gem',          25,  'A cut jewel worth chasing.', gem);
   add('snake', 'food', 'star',    'Star Fruit',   50,  'A five-pointed snack from space.', star('#ffe066', '#ffd166'));
   add('snake', 'food', 'rainbow', 'Rainbow Orb',  100, 'Cycles through every neon colour.', rainbowOrb);
+
+  // ---- 🐍 Neon Snake — music tracks (preview + unlock in the shop; `music` = kit track id) ----
+  items.push({ id: 'snake.track.remaster', game: 'snake', set: 'snake.track', name: 'Neon (Remaster)', desc: 'The classic neon banger, remastered — richer drums, sub bass and stereo.', price: 0, painter: wavePainter('#7fffb0'), music: 'snake' });
+  items.push({ id: 'snake.track.banger', game: 'snake', set: 'snake.track', name: 'Neon Banger', desc: 'A pumped-up electro remix — rolling bassline and a catchy square-wave hook.', price: 100, painter: wavePainter('#39ff14'), music: 'snakebanger' });
 
   // ---- 🧱 Brick Breaker — paddle + ball skins ----
   add('breakout', 'paddle', 'synthwave', 'Synthwave',    0,   'The original cyan glow.', paddle(['#00ffff', '#0088aa'], '#00ffff'));
@@ -451,6 +466,7 @@
       'site.cursor':          { label: 'Cursor skins', note: 'desktop only' },
       'site.fx':              { label: 'Display mode', note: 'site-wide' },
       'snake.food':           { label: 'Food skins' },
+      'snake.track':          { label: 'Music' },
       'breakout.paddle':      { label: 'Paddle skins' },
       'breakout.ball':        { label: 'Ball skins' },
       'tower-defense.castle': { label: 'Castle skins' },

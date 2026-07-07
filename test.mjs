@@ -1064,7 +1064,7 @@ function testCosmetics() {
     ok(cos.select('snake.food', 'snake.food.star') === false, 'cannot select an unowned item');
     ok(cos.select('snake.food', 'snake.food.golden') === true && cos.selected('snake.food') === 'snake.food.golden', 'select an owned item persists');
     const pr = cos.progress('snake');
-    ok(pr.owned === 2 && pr.total === 6, 'progress(game) counts defaults + purchases (got ' + pr.owned + '/' + pr.total + ')');
+    ok(pr.owned === 3 && pr.total === 8, 'progress(game) counts defaults + purchases (got ' + pr.owned + '/' + pr.total + ')');
     const all = cos.progress();
     ok(all.total >= 60 && all.owned >= 14, 'progress() spans the whole catalogue incl. free defaults (got ' + all.owned + '/' + all.total + ')');
   }
