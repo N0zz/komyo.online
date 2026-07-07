@@ -34,6 +34,9 @@ analytics.js    GA4 loader, consent-gated (see "Analytics")
 version.js      build stamp {sha, built} — 'dev' locally, stamped by the Pages deploy workflow
 game-kit.js     SHARED game shell — see "Shared kit" (nav, menus, sound, loop, layout, best store, PWA)
 game-kit.css    shared shell styles (nav/menus/HUD/share row)
+qr.js           REUSABLE QR encoder (no deps) — window.KOMYO_QR.encode(text)→{size,modules} | null
+                (byte mode, EC-M, versions 1–6). LAZY-loaded by game-kit on score-card render (not in
+                the atomic head); cached in the root sw.js SHELL for offline. Use for any future QR need.
 sw-core.js      service-worker engine — the ONE root sw.js sets SCOPE/VERSION/SHELL and imports it
 plans/          PUBLIC design docs & mocks (komyo.online/plans/<name>.html — transparency by intent);
                 new plans/designs go here (not ~/), and get sitemap.xml (priority 0.2) + llms.txt entries
@@ -191,7 +194,8 @@ Games alias the API once: `const KIT = window.gamekit;`.
   **+** the link/text together, plus Copy image / Download). No X/Reddit/copy-link buttons — a link
   web-intent can't carry the card, and mobile's native sheet already lists every app. `message` is a
   fn → a standalone sentence (no url), evaluated at click time; `gamekit.scoreCard/profileCard/
-  shareCard` render + share the neon card images; the Discord auto-post is consent-tiered
+  shareCard` render + share the neon card images (the score card embeds a themed **scan-to-play QR**
+  of the share URL via `qr.js`); the Discord auto-post is consent-tiered
   (`gamekit.discordTier()`: no consent → nothing, consent → anonymous, Settings toggle → named).
   (The catalogue's own site share is a single adaptive button — native sheet on mobile, copy-link on
   desktop — not this row.)
@@ -331,6 +335,13 @@ When the change is visual/interactive, offer the user this local URL to verify b
   banner's *Accept* (stored in `localStorage.gamekit_consent`, shared across the origin so per-game
   pages track too). Footer tag: **"built for fun · free forever · no ads · no accounts · kid-safe ·
   every game works offline"** (the key-strengths one-liner — keep it in sync with reality).
+  **Shared links carry UTM tags** for attribution (`gamekit.withUtm(url, source, medium)`, source
+  `sc`=scorecard): native/copy share = `medium=share`, Discord auto-post = `medium=discord`, catalogue
+  Share button = `utm_source=catalogue&utm_medium=share`. The **score-card QR** is special: it drops
+  the mode/diff deep-link (QR = `?utm_source=sc&utm_medium=qr`, links to the game only) so the URL is
+  SHORT — fewer QR modules = bigger modules = scannable when printed small (a v6 dense QR at ~15–18mm
+  didn't scan; dropping to v5 + the code filling its footprint fixed it). The shareable/copy link
+  still keeps mode/diff. A QR scan has no referrer, so without UTM it'd read as "direct".
 - **OG/Twitter** meta + `og-image.png` (1200×675, a 16:9 page screenshot). Regenerate it on
   rebrands and bump `?v=` so scrapers refetch; re-scrape via the FB Sharing Debugger.
 - **Newsletter:** Kit. The inline Subscribe modal POSTs to Kit form **9615603**; sending domain

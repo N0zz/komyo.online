@@ -147,6 +147,15 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
 
 ### Later (non-gating)
 
+- **QR-based save import/export** *(idea — noted 2026-07-07)* — reuse the in-repo `qr.js` encoder to
+  turn a player's Export blob (bests / owned cosmetics / selections) into a scannable QR, and add a
+  scan-to-import path (camera → decode → apply), so saves move device→device with no account/backend.
+  **Blocker:** our encoder tops out at **QR v6 (~106 bytes)**; an export blob is far bigger (hundreds
+  of bytes+), so this needs (a) extending `qr.js` to high versions (v7+ = version-info blocks +
+  multiple alignment patterns) and likely (b) compressing the blob first — and a **decoder** (camera
+  scan), which we don't have. Non-trivial; park until there's demand. (The score-card QR shipped
+  2026-07-07 only needs a short URL, so it stays on v1–6.)
+
 - **Render-interpolation for the remaining linear movers** *(noted 2026-07-06)* — `gamekit.loopAlpha()`
   now cures fixed-step judder; applied where visible: Meadow Flyer (everything), Brick Breaker (ball +
   power-ups, via its own accumulator), Forcefield (dome sweep + ricochets). Remaining candidates, all

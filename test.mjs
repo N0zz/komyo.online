@@ -1234,6 +1234,29 @@ function testServiceWorkers() {
   ok(badReg.length === 0, "every live game calls pwa('../../sw.js')" + (badReg.length ? ' — off: ' + badReg.join(', ') : ''));
 }
 
+// ---------------- qr.js (reusable QR encoder) ----------------
+function testQR() {
+  section('qr.js (QR encoder)');
+  const src = fs.readFileSync(path.join(DIR, 'qr.js'), 'utf8');
+  const sb = { window: {} }; sb.globalThis = sb;
+  vm.runInNewContext(src, sb, { filename: 'qr.js' });
+  const QR = sb.window.KOMYO_QR;
+  ok(QR && typeof QR.encode === 'function', 'qr.js exposes KOMYO_QR.encode');
+  const url = 'https://komyo.online/games/forcefield/?mode=lives&diff=hard';
+  const r = QR.encode(url);
+  ok(r && r.size === 33 && r.version === 4, 'encodes a ~59-char URL as version 4 / 33×33 (got ' + (r && r.size) + ')');
+  const finder = (R, C) => { for (let dr = 0; dr < 7; dr++) for (let dc = 0; dc < 7; dc++) { const dark = (dr === 0 || dr === 6 || dc === 0 || dc === 6 || (dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4)); if (r.modules[R + dr][C + dc] !== (dark ? 1 : 0)) return false; } return true; };
+  ok(finder(0, 0) && finder(0, r.size - 7) && finder(r.size - 7, 0), 'all three finder patterns are correct');
+  let tim = true; for (let c = 8; c < r.size - 8; c++) if (r.modules[6][c] !== (c % 2 === 0 ? 1 : 0)) tim = false;
+  ok(tim, 'horizontal timing pattern alternates');
+  let dark = 0; for (let R = 0; R < r.size; R++) for (let C = 0; C < r.size; C++) dark += r.modules[R][C];
+  const pct = dark * 100 / (r.size * r.size);
+  ok(pct > 40 && pct < 60, 'dark-module ratio in the healthy 40–60% band (got ' + pct.toFixed(1) + '%)');
+  ok(JSON.stringify(QR.encode(url).modules) === JSON.stringify(r.modules), 'encoding is deterministic');
+  ok((QR.encode('x') || {}).version === 1, 'a tiny string uses version 1');
+  ok(QR.encode('x'.repeat(400)) === null, 'over-long input returns null (no throw)');
+}
+
 console.log('Running arcade tests…');
 testCatalogue();
 testTD();
@@ -1247,4 +1270,5 @@ testI18nCoverage();
 testChallenges();
 testCosmetics();
 testServiceWorkers();
+testQR();
 summary();
