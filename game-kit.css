@@ -664,6 +664,7 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   display: flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1;
   color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); }
 .gamekit-shoppanel .gksp-crt-caret:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-shoppanel .gksp-pv { color: var(--gkm-accent, #9fe8ff); font-size: 11px; }
 /* anchored CRT colour dropdown (fixed-positioned near the caret; lives at body level, so unscoped) */
 .gksp-crt-dd { display: flex; flex-direction: column; gap: 3px; min-width: 152px; padding: 6px;
   background: var(--gkm-bg, rgba(16, 22, 34, 0.98)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.18));
