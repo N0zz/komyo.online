@@ -1592,4 +1592,8 @@ window.KOMYO_I18N.pl = {
   'changelog.e46.title': 'Range: celniej i płynniej 🎯',
   'changelog.e46.b0': 'Poprawka: w Range celownik podąża teraz za myszą natychmiast, zamiast opóźniać się o klatkę — celowanie jest ostre i responsywne.',
   'changelog.e46.b1': 'Zmiana: ekran końcowy pozbył się mylącej dodatkowej liczby czasu — pokazuje teraz tylko celność, trafienia i pudła.',
+  'changelog.e47.title': 'Karty wyniku do zeskanowania 📇',
+  'changelog.e47.b0': 'Nowość: Twoja karta wyniku ma teraz kod QR „zeskanuj i graj” — skieruj telefon na udostępnioną (lub wydrukowaną) kartę, a przeniesie Cię prosto do gry.',
+  'changelog.e47.b1': 'Poprawka: karta wyniku pokazuje teraz tryb i poziom trudności w Twoim języku, zamiast zawsze po angielsku.',
+  'changelog.e47.b2': 'Poprawka: Forcefield otwiera dokładnie ten tryb, na który wskazuje udostępniony link — tryb/trudność z linku były wcześniej ignorowane przy wczytywaniu.',
 };

@@ -1590,4 +1590,8 @@ window.KOMYO_I18N.cs = {
   'changelog.e46.title': 'Range: svižnější míření 🎯',
   'changelog.e46.b0': 'Oprava: v Range zaměřovač teď sleduje myš okamžitě, místo aby se opožďoval o snímek — míření je ostré a svižné.',
   'changelog.e46.b1': 'Změna: koncová obrazovka vypustila matoucí časový údaj — ukazuje teď jen přesnost, zásahy a minutí.',
+  'changelog.e47.title': 'Skóre karty ke skenování 📇',
+  'changelog.e47.b0': 'Novinka: tvoje karta se skóre teď nese QR kód „naskenuj a hraj“ — namiř telefon na sdílenou (nebo vytištěnou) kartu a skočíš rovnou do hry.',
+  'changelog.e47.b1': 'Oprava: karta se skóre teď ukazuje režim a obtížnost v tvém jazyce, místo vždy anglicky.',
+  'changelog.e47.b2': 'Oprava: Forcefield otevře přesně ten režim, na který míří sdílený odkaz — režim/obtížnost z odkazu se při načtení ignorovaly.',
 };
