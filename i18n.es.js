@@ -1591,4 +1591,8 @@ window.KOMYO_I18N.es = {
   'changelog.e46.title': 'Range: puntería más ágil 🎯',
   'changelog.e46.b0': 'Arreglo: en Range la mira ahora sigue el ratón al instante en lugar de ir un fotograma por detrás — apuntar se siente preciso y con respuesta.',
   'changelog.e46.b1': 'Cambio: la pantalla final quitó un número de tiempo confuso — ahora muestra solo precisión, aciertos y fallos.',
+  'changelog.e47.title': 'Tarjetas de puntuación escaneables 📇',
+  'changelog.e47.b0': 'Nuevo: tu tarjeta de puntuación ahora lleva un código QR de "escanea y juega" — apunta el móvil a una tarjeta compartida (o impresa) y salta directo al juego.',
+  'changelog.e47.b1': 'Arreglo: la tarjeta de puntuación ahora muestra el modo y la dificultad en tu idioma, en vez de siempre en inglés.',
+  'changelog.e47.b2': 'Arreglo: Forcefield abre exactamente el modo al que apunta un enlace compartido — el modo/dificultad del enlace se ignoraba al cargar.',
 };

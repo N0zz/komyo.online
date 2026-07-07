@@ -1590,4 +1590,8 @@ window.KOMYO_I18N.pt = {
   'changelog.e46.title': 'Range: mira mais ágil 🎯',
   'changelog.e46.b0': 'Correção: no Range a mira agora acompanha o mouse na hora, em vez de ficar um quadro atrás — mirar fica preciso e responsivo.',
   'changelog.e46.b1': 'Mudança: a tela final tirou um número de tempo confuso — agora mostra só precisão, acertos e erros.',
+  'changelog.e47.title': 'Cards de pontuação escaneáveis 📇',
+  'changelog.e47.b0': 'Novo: seu card de pontuação agora traz um QR code "escaneie e jogue" — aponte o celular para um card compartilhado (ou impresso) e vá direto para o jogo.',
+  'changelog.e47.b1': 'Correção: o card de pontuação agora mostra o modo e a dificuldade no seu idioma, em vez de sempre em inglês.',
+  'changelog.e47.b2': 'Correção: o Forcefield abre exatamente o modo para o qual um link compartilhado aponta — o modo/dificuldade do link era ignorado ao carregar.',
 };

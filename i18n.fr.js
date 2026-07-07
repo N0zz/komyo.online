@@ -1590,4 +1590,8 @@ window.KOMYO_I18N.fr = {
   'changelog.e46.title': 'Range : visée plus vive 🎯',
   'changelog.e46.b0': 'Correctif : dans Range, le réticule suit désormais la souris instantanément au lieu d\'accuser une image de retard — la visée est nette et réactive.',
   'changelog.e46.b1': 'Changement : l\'écran de fin a retiré un chiffre de temps déroutant — il n\'affiche plus que la précision, les touches et les ratés.',
+  'changelog.e47.title': 'Cartes de score à scanner 📇',
+  'changelog.e47.b0': 'Nouveau : ta carte de score porte désormais un QR code « scanne et joue » — vise une carte partagée (ou imprimée) avec ton téléphone et tu sautes directement dans le jeu.',
+  'changelog.e47.b1': 'Correctif : la carte de score affiche maintenant le mode et la difficulté dans ta langue, au lieu de toujours en anglais.',
+  'changelog.e47.b2': 'Correctif : Forcefield ouvre exactement le mode indiqué par un lien partagé — le mode/la difficulté du lien étaient ignorés au chargement.',
 };

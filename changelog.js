@@ -4,6 +4,11 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-07', title: 'Scan-to-play score cards 📇', items: [
+    'New: your score card now carries a scan-to-play QR code — point a phone at a shared (or printed) card and it jumps straight into the game.',
+    'Fix: the score card shows the mode and difficulty in your language now, instead of always English.',
+    'Fix: Forcefield opens the exact mode a shared link points to — the mode/difficulty in the link was being ignored on load.',
+  ] },
   { date: '2026-07-06', title: 'Range: snappier aim 🎯', items: [
     'Fix: in Range the crosshair now tracks your mouse instantly instead of trailing a frame behind — aiming feels tight and responsive.',
     'Change: the end screen dropped a confusing extra timing number — it now shows just accuracy, hits and misses.',

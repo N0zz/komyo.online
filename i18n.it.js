@@ -1590,4 +1590,8 @@ window.KOMYO_I18N.it = {
   'changelog.e46.title': 'Range: mira più scattante 🎯',
   'changelog.e46.b0': 'Fix: in Range il mirino ora segue il mouse all\'istante invece di restare indietro di un fotogramma — mirare è preciso e reattivo.',
   'changelog.e46.b1': 'Modifica: la schermata finale ha tolto un numero di tempo confuso — ora mostra solo precisione, colpi e mancati.',
+  'changelog.e47.title': 'Card punteggio da scansionare 📇',
+  'changelog.e47.b0': 'Novità: la tua card punteggio ora ha un QR code "scansiona e gioca" — inquadra con il telefono una card condivisa (o stampata) e salti dritto nel gioco.',
+  'changelog.e47.b1': 'Fix: la card punteggio ora mostra modalità e difficoltà nella tua lingua, invece che sempre in inglese.',
+  'changelog.e47.b2': 'Fix: Forcefield apre esattamente la modalità indicata da un link condiviso — modalità/difficoltà del link venivano ignorate al caricamento.',
 };
