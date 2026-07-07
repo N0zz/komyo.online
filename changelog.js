@@ -4,6 +4,12 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-07', title: 'Music that builds with the action 🎵', items: [
+    'New: every game now has richer, produced music that rises and falls with the moment — more enemies, higher speed and bigger stakes bring the beat and extra layers in, then it eases back when things calm down.',
+    'New: each game has its own distinct track and mood — no two games share the same tune anymore.',
+    'New: Neon Snake’s music is richer and fuller now, and you can unlock an alternate “Neon Banger” take in the Collection (🏆 100).',
+    'New: preview any music track in the Collection before you spend on it — tap ▶ to hear it first.',
+  ] },
   { date: '2026-07-07', title: 'How the Collection bar works 🎨', items: [
     'Clarification: the Collection bar measures progress by trophies spent against the total cost of every skin — so pricier skins move it more, in proportion to their cost, and a brand-new profile sits at a true 0%.',
   ] },

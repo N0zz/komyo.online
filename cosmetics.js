@@ -359,7 +359,7 @@
   add('snake', 'food', 'rainbow', 'Rainbow Orb',  100, 'Cycles through every neon colour.', rainbowOrb);
 
   // ---- 🐍 Neon Snake — music tracks (preview + unlock in the shop; `music` = kit track id) ----
-  items.push({ id: 'snake.track.remaster', game: 'snake', set: 'snake.track', name: 'Neon (Remaster)', desc: 'The classic neon banger, remastered — richer drums, sub bass and stereo.', price: 0, painter: wavePainter('#7fffb0'), music: 'snake' });
+  items.push({ id: 'snake.track.remaster', game: 'snake', set: 'snake.track', name: 'Neon', desc: 'The classic neon track — punchy drums, sub bass and stereo.', price: 0, painter: wavePainter('#7fffb0'), music: 'snake' });
   items.push({ id: 'snake.track.banger', game: 'snake', set: 'snake.track', name: 'Neon Banger', desc: 'A pumped-up electro remix — rolling bassline and a catchy square-wave hook.', price: 100, painter: wavePainter('#39ff14'), music: 'snakebanger' });
 
   // ---- 🧱 Brick Breaker — paddle + ball skins ----
