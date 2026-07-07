@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Score card + QR — preview</title>
+<!-- loads the REAL kit so this renders exactly what players get. qr.js is loaded explicitly here
+     because this preview lives in /plans/ — the kit's on-demand loader only resolves qr.js from the
+     site root or /games/<slug>/, which is correct in production but not for this page. -->
+<script src="../i18n.js"></script>
+<script src="../qr.js"></script>
+<script src="../game-kit.js"></script>
+<style>
+  body { margin:0; background:#0b0e14; color:#e8eef7; font:15px/1.5 system-ui,sans-serif; padding:26px 18px 60px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p { color:#8fa0b6; margin:0 0 20px; max-width:820px; }
+  .card-wrap { max-width:720px; }
+  img { display:block; width:100%; height:auto; border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,.5); }
+  .row { display:flex; gap:10px; align-items:center; margin:16px 0 8px; flex-wrap:wrap; }
+  code { background:#141a24; border:1px solid #2a3446; border-radius:6px; padding:2px 7px; font-size:13px; color:#9fe8ff; }
+  .note { font-size:13px; color:#8fa0b6; margin-top:14px; }
+</style>
+</head>
+<body>
+  <h1>Score card + scan-to-play QR — preview</h1>
+  <p>Rendered by the real kit (<code>gamekit.scoreCard</code>). Test run:
+  <b>Forcefield · Lives · Hard · 390 · Fiddly Horse</b>. The QR encodes the deep-link share URL
+  (the same one the Discord games-log posts). Scan it with your phone to confirm it works.</p>
+  <div class="row">QR encodes: <code id="url"></code></div>
+  <div class="card-wrap"><img id="card" alt="score card"></div>
+  <p class="note">No box — the code fills its footprint (bigger modules = easier scan) on the card's own
+  dark gradient as the quiet zone. The QR links to the <b>game</b> (mode/diff dropped so the URL is
+  short → fewer modules); the shareable/copy link still keeps the exact mode. Inverted (bright-on-dark),
+  encoder verified byte-identical to a reference QR lib.</p>
+  <script>
+    (function () {
+      var K = window.gamekit;
+      var qrUrl = 'https://komyo.online/games/forcefield/?utm_source=sc&utm_medium=qr'; // what the QR encodes (short)
+      document.getElementById('url').textContent = qrUrl;
+      K.scoreCard({ title: 'Forcefield', slug: 'forcefield', accent: '#38bdf8', icon: '🌐',
+        sub: 'Lives · Hard', score: 390, scoreText: '390', player: 'Fiddly Horse',
+        url: 'https://komyo.online/games/forcefield/?mode=lives&difficulty=hard&utm_source=sc&utm_medium=share',
+        qrUrl: qrUrl, mascot: 'mascot-head.svg' })
+        .then(function (blob) { var el = document.getElementById('card'); if (blob) el.src = URL.createObjectURL(blob); else el.alt = 'render failed'; });
+    })();
+  </script>
+</body>
+</html>
