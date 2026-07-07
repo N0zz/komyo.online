@@ -378,23 +378,24 @@ plays them itself, so an override self-recurses into silence.
 
 ### `KIT.music` — optional
 
-The Music channel: a procedural generative engine, kit-owned (settings key `gamekit_music_muted` /
-`_vol`, routed through `musicGain`).
+The Music channel: a reactive procedural engine, kit-owned (settings `gamekit_music_muted` / `_vol`,
+routed through `musicGain`). Each game plays a per-game **track** from the `TRACKS` registry and feeds
+**intensity** so the music builds with the action. See `references/audio.md` for authoring a track.
 
-- `music.play(themeKey)` — start/swap a theme (seamless swap if already running). Theme keys live in
-  `music.themes`: `space, neon, synthwave, meadow, candy, pastel, tactical, castle`, plus the Keep
-  Defender per-map set (`kd_grass, kd_ice, kd_lava, kd_desert, kd_dungeon, kd_marsh`).
-- `music.stop()` — stop and clear the theme.
-- `music.current()` → the current theme key (or `null`).
-- `music.themes` — the theme registry object.
-- `music.gain()` → the effective gain (0 when muted).
-- `music.isMuted()` / `music.setMuted(m)` / `music.toggle()` / `music.volume(v?)` — channel controls.
-- `music.subscribe(cb)` — for a game with its OWN engine (asteroids): `cb({muted, volume, gain})`
-  fires now + on every change so you can `applyGain(s.gain)`.
+- `music.play(trackId)` — start/seamless-swap a track. Track ids are per-game (`snake, snakebanger,
+  asteroids, asteroidsplus, forcefield, range, breakout, bubbles, frogbonk, keep, meadow, stacker` +
+  `kd_*` biomes); **old theme names alias** to a game track (`neon→snake`, `space→asteroids`,
+  `synthwave→breakout`, `candy→bubbles`, `pastel→stacker`, `tactical→range`, `castle→keep`).
+- `music.intensity(v)` — set the 0..1 target (kit smooths + eases layers in/out). `music.intensity()`
+  reads the current smoothed value. **Drive this from gameplay every frame** — see audio.md §3.
+- `music.preview(trackId)` / `music.stopPreview()` — play a track on demand (shop preview; audible
+  even if the channel is muted) without losing the game's current track.
+- `music.stop()` · `music.current()` → track id or `null` · `music.tracks` — the registry.
+- `music.gain()` → effective gain (0 when muted) · `music.isMuted()/setMuted(m)/toggle()/volume(v?)`.
+- `music.subscribe(cb)` — for a game with its OWN engine (asteroids): `cb({muted, volume, gain})`.
 
-**Gotcha:** music only starts after the first user gesture (browsers keep the AudioContext suspended
-until then — the tap-to-play splash is that gesture). Pass `music: true` to `nav()` to show the ♪
-slider.
+**Gotcha:** music only starts after the first user gesture (the tap-to-play splash). Pass
+`music: true` to `nav()` to show the ♪ slider.
 
 ---
 

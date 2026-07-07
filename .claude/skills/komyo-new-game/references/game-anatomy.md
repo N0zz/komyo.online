@@ -273,11 +273,15 @@ KIT.nav({ slug: 'breakout', music: true, home: '../../', theme: MENU_THEME,
     mouse: [[KIT.t('game.breakout.ctrlMove', { def: 'Move' }), KIT.t('game.breakout.ctrlSlidePaddle', { def: 'Slide paddle' })], [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.breakout.ctrlLaunch', { def: 'Launch' })]],
     keyboard: [['← →', KIT.t('game.breakout.ctrlMovePaddle', { def: 'Move paddle' })], [KIT.t('game.common.spaceEnter', { def: 'Space · Enter' }), KIT.t('game.breakout.ctrlLaunch', { def: 'Launch' })], [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })]],
     touch: [[KIT.t('game.breakout.ctrlHoldSide', { def: 'Hold L / R side' }), KIT.t('game.breakout.ctrlSlidePaddle', { def: 'Slide paddle' })], [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.breakout.ctrlLaunch', { def: 'Launch' })]] } });
-KIT.music.play('synthwave');
+KIT.music.play('breakout');   // your own track id (see references/audio.md §2); old theme names still alias
 ```
 
 (Controls labels are player-facing too — key glyphs like `'← →'` stay literal, everything worded
 goes through `KIT.t`, exactly as breakout does.)
+
+**Reactive music (required).** In `update()`, feed gameplay intensity so the track builds:
+`if (KIT && KIT.music) KIT.music.intensity(v);` where `v` is 0..1 from your game's tension (enemies,
+speed, score, board fill…); calm base ~0.3 on menu/over, zen modes low. See `references/audio.md` §3.
 
 **i. The main loop — `KIT.loop`.** New games use the kit's fixed-timestep accumulator (60 Hz at any
 refresh rate, kit-pause built in). It never ticks headlessly — tests drive `__test.step(n)`.

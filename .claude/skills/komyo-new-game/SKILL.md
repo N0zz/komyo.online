@@ -83,8 +83,9 @@ screenshot-driven, unless its identity is deliberately flat/glow.
   price 0), a `sets` label, and a `games` meta entry; read the selected skin in
   render via `KIT.cosmetics.selected('<slug>.<set>')`. Do NOT add a per-game style
   grid to the start menu — the 🎨 modal owns selection.
-- **Audio:** `SND.define(...)` for SFX, `KIT.music.play('<theme>')` for ambience.
-  See `references/audio.md`.
+- **Audio:** `SND.define(...)` for SFX; add a per-game **track** to the `TRACKS` registry and
+  `KIT.music.play('<slug>')`, then feed `KIT.music.intensity(v)` from gameplay so the music builds
+  with the action (required). See `references/audio.md`.
 - **Icons:** `node scripts/gen-icon.mjs <emoji> '<background-css>' games/<slug>`
   (macOS + Chrome + `sips`; if unavailable, tell the user to generate the two PNGs
   manually).
@@ -199,7 +200,8 @@ frame-rate-dependent game, a reset that wipes another game). The generated
 - `references/registration.md` — every shared file a game touches (games.js,
   challenges.js, cosmetics.js, the root sw.js GAME_SLUGS, manifest, icons, sitemap,
   llms, changelog), exact shapes + the ordered checklist. Read at stages 6–7.
-- `references/audio.md` — SFX voice recipes + music theme keys.
+- `references/audio.md` — SFX voice recipes + the reactive music engine (track registry, kits/grooves,
+  gameplay-driven `music.intensity`, music cosmetics, the distinctness linter).
 - `references/genres.md` — genre → mechanic starter map + the repo's genre bias;
   points to `~/arcade/game-design-knobs.md`.
 - `references/i18n.md` — string handling. **i18n is live: emit `KIT.t(key, {def})` for
