@@ -302,7 +302,7 @@
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.breakout.gameOver', { def: 'GAME OVER' }), backdrop: menuBackdrop,
-      record: { slug: 'breakout', mode: modeLabel(gameMode), score: score },
+      record: { slug: 'breakout', mode: modeLabel(gameMode), modeText: modeDisplay(gameMode), score: score },
       score: score, best: best, newBest: score >= best && score > 0, lines: [KIT.t('game.breakout.endLine', { mode: gameMode.toUpperCase(), level: level, def: gameMode.toUpperCase() + ' · level ' + level })],
       share: { slug: 'breakout', accent: '#ff5cc8', icon: '🧱', title: KIT.t('game.breakout.title', { def: 'Brick Breaker' }), message: () => shareMsg(), params: () => modeParams({ mode: gameMode, speed2x: speedMult === 2 }) },
       actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],

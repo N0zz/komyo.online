@@ -1953,7 +1953,7 @@
     else lines.push(t('game.frog-bonk.endZen', { kills, def: '{kills} happy bonks. See you next time.' }));
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: won ? t('game.frog-bonk.victory', { def: 'VICTORY!' }) : (gameMode === 'zen' ? t('game.frog-bonk.zenDone', { def: 'NICE SESSION' }) : t('game.common.gameOver', { def: 'GAME OVER' })),
-      record: { slug: SLUG, mode: modeLabel(), score, stats: { wave, kills } },
+      record: { slug: SLUG, mode: modeLabel(), modeText: (gameMode === 'zen' ? modeDisplay('zen') : modeDisplay(gameMode) + ' · ' + diffDisplay(diff)), score, stats: { wave, kills } },
       score, best, newBest: isBest, lines,
       share: { slug: SLUG, accent: '#7ed957', icon: '🐸', title: t('game.frog-bonk.title', { def: 'Frog Bonk' }), message: () => shareMsg(won), params: () => urlParams({ mode: gameMode, diff }) },
       actions: [ { id: 'again', label: t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true }, { id: 'menu', label: t('game.common.menu', { def: 'MENU' }) } ],

@@ -329,7 +329,7 @@
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: reason === 'time' ? KIT.t('game.stacker.endTitleTime', { def: "TIME'S UP!" }) : KIT.t('game.stacker.endTitle', { def: 'OOPS!' }), backdrop: menuBackdrop,
-      record: { slug: 'stacker', mode: MODE_CFG[mode].label, score: score },
+      record: { slug: 'stacker', mode: MODE_CFG[mode].label, modeText: modeName(mode), score: score },
       score: score, best: currentBest(), newBest: isBest, lines: [modeName(mode)],
       share: { slug: 'stacker', accent: '#ff9aa2', icon: '🧊', title: KIT.t('game.stacker.title', { def: 'Stack' }), message: () => shareMsg(), params: () => menuParams({ mode: mode, theme: theme }) },
       actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'Play Again' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'Menu' }) } ],

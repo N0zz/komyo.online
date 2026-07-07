@@ -414,7 +414,7 @@
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.snake.gameOver', { def: 'GAME OVER' }), backdrop: menuBackdrop, backdropAnimate: true,
       score: score, best: best, newBest: newBest, lines: [KIT.t('game.snake.lengthWord', { def: 'Length' }) + ' ' + (snake ? snake.length : 1) + ' · ' + SPD_LABEL[opts.speed] + ' · ' + SZ_LABEL[opts.size] + ' · ' + (opts.walls === 'wrap' ? KIT.t('game.snake.wrapShort', { def: 'Wrap' }) : KIT.t('game.snake.solidShort', { def: 'Solid' }))],
       share: { slug: 'snake', accent: '#7fffb0', icon: '🐍', title: KIT.t('game.snake.title', { def: 'Neon Snake' }), message: () => shareMsg(), params: () => ({ walls: opts.walls, speed: opts.speed, size: opts.size }) },
-      record: { slug: 'snake', mode: modeLabel(opts), score: score, stats: { length: snake ? snake.length : 1 } },
+      record: { slug: 'snake', mode: modeLabel(opts), modeText: modeDisplay(opts), score: score, stats: { length: snake ? snake.length : 1 } },
       actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
   }
