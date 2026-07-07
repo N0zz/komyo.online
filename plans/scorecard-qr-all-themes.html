@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Score-card QR — every game theme</title>
+<script src="../i18n.js"></script>
+<script src="../qr.js"></script>
+<script src="../game-kit.js"></script>
+<style>
+  body { margin:0; background:#0b0e14; color:#e8eef7; font:15px/1.5 system-ui,sans-serif; padding:24px 16px 60px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p { color:#8fa0b6; margin:0 0 20px; max-width:900px; }
+  /* cards must render big enough that the QR is scannable: the QR is ~224/1200 of the card width, so
+     a ~660px card → ~120px QR on screen. Narrower than that and phones can't lock on. */
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,660px),1fr)); gap:24px; }
+  .cell { }
+  .cell h2 { font-size:14px; margin:0 0 6px; font-family:ui-monospace,monospace; }
+  .cell .sw { display:inline-block; width:11px; height:11px; border-radius:3px; vertical-align:middle; margin-right:6px; }
+  img { display:block; width:100%; height:auto; border-radius:12px; box-shadow:0 12px 34px rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+  <h1>Score-card QR — every live game's theme</h1>
+  <p>Each card uses the game's real accent + icon and a scannable deep-link
+  (<code>?utm_source=scorecard&utm_medium=qr</code>). Scan each one to confirm the themed (inverted,
+  bright-on-dark) QR reads reliably across pale, mid-tone and saturated accents. Any that struggle,
+  tell me the game and I'll tune that contrast (or flip that range of hues).</p>
+  <div class="grid" id="grid"></div>
+  <script>
+    (function () {
+      var K = window.gamekit;
+      var GAMES = [
+        { slug:'asteroids', title:'Asteroids', icon:'🛸', accent:'#9fe8ff', sub:'Classic' },
+        { slug:'asteroids-plus', title:'Asteroids+', icon:'☄️', accent:'#b98cff', sub:'Level-up' },
+        { slug:'tower-defense', title:'Keep Defender', icon:'🏰', accent:'#e0b25a', sub:'Meadow · Hard' },
+        { slug:'forcefield', title:'Forcefield', icon:'🌐', accent:'#38bdf8', sub:'Lives · Hard' },
+        { slug:'bubbles', title:'Bubble Pop', icon:'🫧', accent:'#2ee8c8', sub:'Arcade' },
+        { slug:'frog-bonk', title:'Frog Bonk', icon:'🐸', accent:'#7ed957', sub:'Waves · Medium' },
+        { slug:'breakout', title:'Brick Breaker', icon:'🧱', accent:'#ff5cc8', sub:'Classic' },
+        { slug:'stacker', title:'Stack', icon:'🗼', accent:'#ff9aa2', sub:'Endless' },
+        { slug:'flappy', title:'Meadow Flyer', icon:'🐤', accent:'#8fd3a6', sub:'Day' },
+        { slug:'aim-trainer', title:'Range', icon:'🎯', accent:'#ff7a3c', sub:'30s Timed' },
+        { slug:'snake', title:'Neon Snake', icon:'🐍', accent:'#7fffb0', sub:'Classic' }
+      ];
+      var grid = document.getElementById('grid');
+      GAMES.forEach(function (g) {
+        var cell = document.createElement('div'); cell.className = 'cell';
+        cell.innerHTML = '<h2><span class="sw" style="background:' + g.accent + '"></span>' + g.title + ' · ' + g.accent + '</h2>';
+        var img = document.createElement('img'); cell.appendChild(img); grid.appendChild(cell);
+        var url = 'https://komyo.online/games/' + g.slug + '/?utm_source=scorecard&utm_medium=qr';
+        K.scoreCard({ title:g.title, slug:g.slug, accent:g.accent, icon:g.icon, sub:g.sub,
+          score:1234, scoreText:'1,234', player:'Fiddly Horse', url:url, mascot:'../favicon.svg' })
+          .then(function (b) { if (b) img.src = URL.createObjectURL(b); else img.alt = 'render failed'; });
+      });
+    })();
+  </script>
+</body>
+</html>

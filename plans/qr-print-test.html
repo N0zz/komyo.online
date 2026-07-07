@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QR print test — physical size</title>
+<script src="../qr.js"></script>
+<style>
+  body { margin:0; background:#fff; color:#111; font:14px/1.5 system-ui,sans-serif; padding:20px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .hint { color:#555; max-width:760px; }
+  .hint b { color:#c0392b; }
+  .row { display:flex; flex-wrap:wrap; gap:26px; align-items:flex-end; margin:22px 0; }
+  .item { text-align:center; }
+  .item .lbl { font:600 12px ui-monospace,monospace; color:#333; margin-top:6px; }
+  canvas { display:block; }
+  /* ruler-free scale check: a real bank/credit card is exactly 85.6 x 53.98 mm (ISO/IEC 7810 ID-1,
+     same worldwide). Print, lay your card on the outline — if it matches, the scale is 100%. */
+  .card-ref { width:85.6mm; height:53.98mm; border:1.5px dashed #111; border-radius:3.18mm;
+              display:flex; align-items:center; justify-content:center; text-align:center;
+              font:600 12px ui-monospace,monospace; color:#666; }
+  .ruler-wrap { margin:10px 0 26px; }
+  .ruler-wrap .lbl { font:600 12px ui-monospace,monospace; }
+  @media print { .hint, .noprint { display:none; } body { padding:0; } }
+</style>
+</head>
+<body>
+  <h1 class="noprint">QR test — real size on YOUR screen (24″ 1080p ≈ 92 DPI)</h1>
+  <p class="hint noprint">These are sized for your monitor (<b>AOC 24″ at 1920×1080 ≈ 3.61 px/mm</b>) at
+  <b>100% browser zoom</b> — so the label <b>is</b> the real physical size on screen. Scan each straight
+  off the monitor and note the smallest that reads. All encode the same Forcefield deep-link (densest
+  ~100-char URL = worst case), themed like the card (dark field, bright accent modules, square eyes),
+  <b>no box</b>. <b>Caveat:</b> a backlit screen scans <i>easier</i> than paper — if 18 mm is shaky even
+  here, it won't survive print; if it's solid here, print one to be sure. (Zoom off? Tell me and I'll
+  recompute.) <span class="noprint">[Printing instead? then use 100%/Actual-size.]</span></p>
+
+  <div class="row" id="row"></div>
+
+  <script>
+    (function () {
+      var QR = window.KOMYO_QR;
+      var url = 'https://komyo.online/games/forcefield/?utm_source=sc&utm_medium=qr'; // production QR URL (short, v5)
+      var accent = '#38bdf8';
+      function mix(a, b, t) { var pa = parseInt(a.slice(1),16), pb = parseInt(b.slice(1),16), m=0;
+        for (var i=16;i>=0;i-=8) m |= Math.round(((pa>>i&255)*(1-t))+((pb>>i&255)*t))<<i; return '#'+('00000'+m.toString(16)).slice(-6); }
+      var bg = mix('#0a0f17', accent, 0.10), modC = mix(accent, '#ffffff', 0.16), eye = mix(accent, '#ffffff', 0.32);
+      var m = QR.encode(url), n = m.size, mods = m.modules, quiet = 4, N = n + quiet * 2;
+      var PPMM = 1920 / 531.3; // 24" 16:9 1080p panel ≈ 531 mm wide → 3.61 device px per mm at 100% zoom
+      function make(mm) {
+        // mm = the CODE size (n modules). The 4-module quiet zone extends beyond it, so the canvas is
+        // (N/n) larger — this labels the honest scannable size, not "code + margin".
+        var cellPx = 12, cv = document.createElement('canvas'); cv.width = cv.height = N * cellPx;
+        var px = Math.round(mm * (N / n) * PPMM); cv.style.width = cv.style.height = px + 'px'; // code = mm on this monitor
+        var g = cv.getContext('2d');
+        g.fillStyle = bg; g.fillRect(0, 0, cv.width, cv.height);
+        var ox = quiet * cellPx;
+        var inF = function (r,c){ return (r<7&&c<7)||(r<7&&c>=n-7)||(r>=n-7&&c<7); };
+        g.fillStyle = modC;
+        for (var r=0;r<n;r++) for (var c=0;c<n;c++) if (mods[r][c] && !inF(r,c)) g.fillRect(ox+c*cellPx, ox+r*cellPx, cellPx, cellPx);
+        function eyeAt(fr,fc){ var X=ox+fc*cellPx, Y=ox+fr*cellPx, S=7*cellPx;
+          g.fillStyle=eye; g.fillRect(X,Y,S,S); g.fillStyle=bg; g.fillRect(X+cellPx,Y+cellPx,S-2*cellPx,S-2*cellPx);
+          g.fillStyle=eye; g.fillRect(X+2*cellPx,Y+2*cellPx,3*cellPx,3*cellPx); }
+        eyeAt(0,0); eyeAt(0,n-7); eyeAt(n-7,0);
+        var box = document.createElement('div'); box.className='item';
+        box.appendChild(cv); var l=document.createElement('div'); l.className='lbl'; l.textContent='code '+mm+' mm (v'+m.version+')'; box.appendChild(l);
+        return box;
+      }
+      var row = document.getElementById('row');
+      [18, 15, 20, 25].forEach(function (mm) { row.appendChild(make(mm)); });
+    })();
+  </script>
+</body>
+</html>

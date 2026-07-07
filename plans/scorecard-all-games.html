@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Score cards — all games, real size</title>
+<script src="../i18n.js"></script>
+<script src="../qr.js"></script>
+<script src="../game-kit.js"></script>
+<style>
+  body { margin:0; background:#0b0e14; color:#e8eef7; font:14px/1.5 system-ui,sans-serif; padding:22px 16px 60px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  p { color:#8fa0b6; max-width:900px; margin:0 0 20px; }
+  .grid { display:flex; flex-wrap:wrap; gap:22px 26px; align-items:flex-start; }
+  .cell { }
+  .cell .lbl { font:600 11px ui-monospace,monospace; color:#7c8ba0; margin-top:5px; }
+  /* IRL size: card printed to credit-card width (85.6 mm). On a 24" 1080p panel (~3.61 px/mm at 100%
+     zoom) that's ~309 px wide; the QR inside comes out ~19 mm — the print scenario, so you can scan it. */
+  img { display:block; width:309px; height:auto; border-radius:8px; box-shadow:0 8px 22px rgba(0,0,0,.5); }
+</style>
+</head>
+<body>
+  <h1>Every game's score card — real (credit-card) size</h1>
+  <p>Shown at <b>credit-card width (85.6 mm)</b> for your 24″ 1080p screen at <b>100% zoom</b> — so
+  it's true physical size and the QR is ~19 mm (scannable). Scores are set just above each game's
+  good-run bar, randomized. QR links to the game (<code>?utm_source=sc&utm_medium=qr</code>).
+  If your browser zoom or OS scale isn't 100%, sizes will be off — tell me and I'll adjust.</p>
+  <div class="grid" id="grid"></div>
+  <script>
+    (function () {
+      var K = window.gamekit;
+      var GAMES = [
+        { slug:'asteroids', title:'Asteroids', icon:'🛸', accent:'#9fe8ff', good:8000, sub:'Classic' },
+        { slug:'asteroids-plus', title:'Asteroids+', icon:'☄️', accent:'#b98cff', good:30000, sub:'Level-up' },
+        { slug:'tower-defense', title:'Keep Defender', icon:'🏰', accent:'#e0b25a', good:2000, sub:'Meadow · Hard' },
+        { slug:'forcefield', title:'Forcefield', icon:'🌐', accent:'#38bdf8', good:500, sub:'Lives · Hard' },
+        { slug:'bubbles', title:'Bubble Pop', icon:'🫧', accent:'#2ee8c8', good:5000, sub:'Arcade' },
+        { slug:'frog-bonk', title:'Frog Bonk', icon:'🐸', accent:'#7ed957', good:2000, sub:'Waves · Medium' },
+        { slug:'breakout', title:'Brick Breaker', icon:'🧱', accent:'#ff5cc8', good:1500, sub:'Classic' },
+        { slug:'stacker', title:'Stack', icon:'🗼', accent:'#ff9aa2', good:50, sub:'Endless' },
+        { slug:'flappy', title:'Meadow Flyer', icon:'🐤', accent:'#8fd3a6', good:50, sub:'Day' },
+        { slug:'aim-trainer', title:'Range', icon:'🎯', accent:'#ff7a3c', good:600, sub:'30s Timed' },
+        { slug:'snake', title:'Neon Snake', icon:'🐍', accent:'#7fffb0', good:300, sub:'Classic' }
+      ];
+      var NAMES = ['Fiddly Horse', 'Neon Otter', 'Pixel Fox', 'Turbo Snail', 'Groovy Yak', 'Wobbly Crane',
+                   'Jolly Moth', 'Sly Heron', 'Dizzy Lark', 'Cosmic Vole', 'Peppy Newt'];
+      function scoreFor(good) {
+        var bump = good * (0.03 + Math.random() * 0.19);           // 3–22% over the bar
+        var step = good < 100 ? 1 : good < 1000 ? 5 : good < 10000 ? 25 : 100;
+        return Math.round((good + bump) / step) * step;
+      }
+      var grid = document.getElementById('grid');
+      GAMES.forEach(function (g, i) {
+        var score = scoreFor(g.good), player = NAMES[i % NAMES.length];
+        var cell = document.createElement('div'); cell.className = 'cell';
+        var img = document.createElement('img'); cell.appendChild(img);
+        var l = document.createElement('div'); l.className = 'lbl';
+        l.textContent = g.title + ' · ' + score.toLocaleString() + ' (bar ' + g.good.toLocaleString() + ')';
+        cell.appendChild(l); grid.appendChild(cell);
+        K.scoreCard({ title:g.title, slug:g.slug, accent:g.accent, icon:g.icon, sub:g.sub,
+          score:score, scoreText:score.toLocaleString(), player:player,
+          qrUrl:'https://komyo.online/games/' + g.slug + '/?utm_source=sc&utm_medium=qr',
+          url:'https://komyo.online/games/' + g.slug + '/?utm_source=sc&utm_medium=share',
+          mascot:'mascot-head.svg' })
+          .then(function (b) { if (b) img.src = URL.createObjectURL(b); else img.alt = 'render failed'; });
+      });
+    })();
+  </script>
+</body>
+</html>
