@@ -1590,6 +1590,8 @@ window.KOMYO_I18N.pt = {
   'changelog.e46.title': 'Range: mira mais ágil 🎯',
   'changelog.e46.b0': 'Correção: no Range a mira agora acompanha o mouse na hora, em vez de ficar um quadro atrás — mirar fica preciso e responsivo.',
   'changelog.e46.b1': 'Mudança: a tela final tirou um número de tempo confuso — agora mostra só precisão, acertos e erros.',
+  'changelog.e49.title': 'Como funciona a barra de Coleção 🎨',
+  'changelog.e49.b0': 'Esclarecimento: a barra de Coleção mede o progresso pelos troféus gastos em relação ao custo total de todas as skins — então as skins mais caras a movem mais, proporcionalmente ao seu custo, e um perfil novinho fica num 0% real.',
   'changelog.e48.title': 'Progresso de coleção mais fiel 🎨',
   'changelog.e48.b0': 'Mudança: a barra de Coleção agora mede os troféus gastos em relação ao custo total de todas as skins, em vez de contar itens — então um perfil novinho começa num 0% real, e um único desbloqueio caro não faz mais a barra saltar.',
   'changelog.e47.title': 'Cards de pontuação escaneáveis 📇',

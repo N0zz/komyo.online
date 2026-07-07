@@ -1590,6 +1590,8 @@ window.KOMYO_I18N.it = {
   'changelog.e46.title': 'Range: mira più scattante 🎯',
   'changelog.e46.b0': 'Fix: in Range il mirino ora segue il mouse all\'istante invece di restare indietro di un fotogramma — mirare è preciso e reattivo.',
   'changelog.e46.b1': 'Modifica: la schermata finale ha tolto un numero di tempo confuso — ora mostra solo precisione, colpi e mancati.',
+  'changelog.e49.title': 'Come funziona la barra della Collezione 🎨',
+  'changelog.e49.b0': 'Chiarimento: la barra della Collezione misura il progresso in base ai trofei spesi rispetto al costo totale di tutte le skin — così le skin più costose la muovono di più, in proporzione al loro costo, e un profilo nuovo di zecca resta a un vero 0%.',
   'changelog.e48.title': 'Progresso della collezione più fedele 🎨',
   'changelog.e48.b0': 'Modifica: la barra della Collezione ora misura i trofei spesi rispetto al costo totale di tutte le skin, invece di contare gli oggetti — così un profilo nuovo di zecca parte da un vero 0% e un singolo sblocco costoso non fa più schizzare la barra.',
   'changelog.e47.title': 'Card punteggio da scansionare 📇',

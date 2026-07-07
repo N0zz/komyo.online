@@ -1590,6 +1590,8 @@ window.KOMYO_I18N.cs = {
   'changelog.e46.title': 'Range: svižnější míření 🎯',
   'changelog.e46.b0': 'Oprava: v Range zaměřovač teď sleduje myš okamžitě, místo aby se opožďoval o snímek — míření je ostré a svižné.',
   'changelog.e46.b1': 'Změna: koncová obrazovka vypustila matoucí časový údaj — ukazuje teď jen přesnost, zásahy a minutí.',
+  'changelog.e49.title': 'Jak funguje pruh Sbírky 🎨',
+  'changelog.e49.b0': 'Upřesnění: pruh Sbírky měří postup podle utracených trofejí vůči celkové ceně všech skinů — takže dražší skiny ho posunou víc, úměrně své ceně, a úplně nový profil je na skutečných 0 %.',
   'changelog.e48.title': 'Přesnější postup sbírky 🎨',
   'changelog.e48.b0': 'Změna: pruh Sbírky teď měří utracené trofeje vůči celkové ceně všech skinů, místo aby počítal položky — takže úplně nový profil začíná na skutečných 0 % a jediné drahé odemčení už pruhem neškubne.',
   'changelog.e47.title': 'Skóre karty ke skenování 📇',

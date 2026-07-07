@@ -1590,6 +1590,8 @@ window.KOMYO_I18N.fr = {
   'changelog.e46.title': 'Range : visée plus vive 🎯',
   'changelog.e46.b0': 'Correctif : dans Range, le réticule suit désormais la souris instantanément au lieu d\'accuser une image de retard — la visée est nette et réactive.',
   'changelog.e46.b1': 'Changement : l\'écran de fin a retiré un chiffre de temps déroutant — il n\'affiche plus que la précision, les touches et les ratés.',
+  'changelog.e49.title': 'Comment fonctionne la barre de Collection 🎨',
+  'changelog.e49.b0': 'Précision : la barre de Collection mesure la progression selon les trophées dépensés par rapport au coût total de tous les skins — ainsi les skins plus chers la font avancer davantage, proportionnellement à leur coût, et un profil tout neuf reste à un vrai 0 %.',
   'changelog.e48.title': 'Progression de collection plus juste 🎨',
   'changelog.e48.b0': 'Changement : la barre de Collection mesure désormais les trophées dépensés par rapport au coût total de tous les skins, au lieu de compter les objets — ainsi un profil tout neuf démarre à un vrai 0 %, et un seul déblocage coûteux ne fait plus bondir la barre.',
   'changelog.e47.title': 'Cartes de score à scanner 📇',

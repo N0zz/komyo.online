@@ -1592,6 +1592,8 @@ window.KOMYO_I18N.pl = {
   'changelog.e46.title': 'Range: celniej i płynniej 🎯',
   'changelog.e46.b0': 'Poprawka: w Range celownik podąża teraz za myszą natychmiast, zamiast opóźniać się o klatkę — celowanie jest ostre i responsywne.',
   'changelog.e46.b1': 'Zmiana: ekran końcowy pozbył się mylącej dodatkowej liczby czasu — pokazuje teraz tylko celność, trafienia i pudła.',
+  'changelog.e49.title': 'Jak działa pasek Kolekcji 🎨',
+  'changelog.e49.b0': 'Doprecyzowanie: pasek Kolekcji mierzy postęp na podstawie wydanych trofeów względem łącznego kosztu wszystkich skórek — więc droższe skórki przesuwają go bardziej, proporcjonalnie do swojej ceny, a zupełnie nowy profil jest na prawdziwym 0%.',
   'changelog.e48.title': 'Wierniejszy postęp kolekcji 🎨',
   'changelog.e48.b0': 'Zmiana: pasek Kolekcji mierzy teraz wydane trofea względem łącznego kosztu wszystkich skórek, zamiast liczyć przedmioty — dzięki temu zupełnie nowy profil zaczyna od prawdziwego 0%, a pojedyncze drogie odblokowanie nie podbija już paska.',
   'changelog.e47.title': 'Karty wyniku do zeskanowania 📇',
