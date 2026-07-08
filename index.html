@@ -271,12 +271,12 @@
   .ditem.ok { color:#7fe0a0; } /* drawer Share item flashes green on "Copied!" (desktop) */
 
   /* feedback modal */
-  #fbModal, #nlModal, #clModal, #aboutModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal, #profileModal, #titlesModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
-  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop, #settingsModal::backdrop, #profileModal::backdrop, #titlesModal::backdrop { background:rgba(5,8,13,0.66); }
+  #fbModal, #nlModal, #clModal, #aboutModal, #promoteModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal, #profileModal, #titlesModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #promoteModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop, #settingsModal::backdrop, #profileModal::backdrop, #titlesModal::backdrop { background:rgba(5,8,13,0.66); }
   #profileModal { width:min(760px,95vw); overflow:visible; }
   /* let the corner close badge (.pf-x) protrude past the rounded edge like the profile modal;
      the wrappers own their own scroll (below) so the dialog itself never needs to clip */
-  #clModal, #aboutModal, #settingsModal, #titlesModal, #faqModal, #legalModal, #dataModal { overflow:visible; }
+  #clModal, #aboutModal, #promoteModal, #settingsModal, #titlesModal, #faqModal, #legalModal, #dataModal { overflow:visible; }
   .about.profile { max-height:88vh; display:flex; flex-direction:column; overflow:hidden; position:relative; padding:20px; }
   .pf-x { position:absolute; top:-13px; right:-13px; z-index:20; width:34px; height:34px; border-radius:50%; background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.45); cursor:pointer; }
   .pf-x:hover { color:#fff; border-color:#9fe8ff; }
@@ -284,6 +284,7 @@
   .pf-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; padding-top:12px; }
   /* about modal */
   #aboutModal { width:min(520px,94vw); }
+  #promoteModal { width:min(520px,94vw); }
   .about { padding:18px 20px 20px; display:flex; flex-direction:column; gap:12px; max-height:90vh; overflow-y:auto; }
   .about p { margin:0; font-size:15.5px; line-height:1.65; color:var(--text); }
   .about-list { margin:0; padding-left:20px; display:flex; flex-direction:column; gap:11px; }
@@ -291,6 +292,19 @@
   .about-list b { color:var(--text); }
   .about-list a { color:#9fe8ff; }
   .about-foot { color:var(--faint); font-size:14px; }
+  /* Promote modal */
+  .promo-cta { display:flex; flex-wrap:wrap; gap:10px; margin-top:2px; }
+  .promo-btn { font:600 13px/1 var(--mono); letter-spacing:.5px; color:#9fe8ff; text-decoration:none; cursor:pointer;
+    padding:10px 14px; border:1px solid var(--border); border-radius:10px; background:rgba(159,232,255,0.06); }
+  .promo-btn:hover { border-color:#9fe8ff; background:rgba(159,232,255,0.12); }
+  .promo-partners-head { margin-top:6px; }
+  .promo-partners { display:flex; flex-direction:column; gap:8px; }
+  .promo-empty { color:var(--faint); font-size:14px; font-style:italic; }
+  .promo-partner { display:flex; flex-direction:column; gap:2px; padding:11px 13px; border:1px solid var(--border);
+    border-radius:10px; text-decoration:none; background:rgba(255,255,255,0.02); }
+  .promo-partner:hover { border-color:#9fe8ff; background:rgba(159,232,255,0.06); }
+  .pp-name { color:var(--text); font-weight:600; font-size:15px; }
+  .pp-blurb { color:var(--muted); font-size:13.5px; line-height:1.5; }
   .setrow { display:flex; align-items:center; gap:12px; padding:12px 0; border-top:1px solid var(--border); }
   .setrow:first-of-type { border-top:0; }
   .setlbl { flex:1; font-size:15px; color:var(--text); display:flex; align-items:center; gap:9px; }
@@ -866,6 +880,7 @@
         <button class="ditem" id="newsletter" type="button"><span class="di">📬</span> <span data-t="drawer.newsletter">Newsletter</span></button>
         <a class="ditem" href="https://discord.gg/hz2fhpD5sz" target="_blank" rel="noopener"><span class="di"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.317 4.369A19.79 19.79 0 0 0 16.558 3.2a.074.074 0 0 0-.079.037c-.34.6-.71 1.39-.97 2.01a18.3 18.3 0 0 0-5.02 0 12.6 12.6 0 0 0-.98-2.01.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C1.533 8.02.943 11.58 1.51 15.09a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.371-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.009c.12.099.245.198.372.292a.077.077 0 0 1-.006.127c-.598.349-1.225.645-1.873.892a.076.076 0 0 0-.04.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-4.06-.838-7.59-3.549-10.695a.06.06 0 0 0-.031-.028zM8.02 12.95c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.956 2.419-2.157 2.419zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z"/></svg></span> Discord</a>
         <button class="ditem" id="embedBtn" type="button"><span class="di">🔗</span> <span data-t="drawer.embed">Embed a game</span></button>
+        <button class="ditem" id="promoteBtn" type="button"><span class="di">🎉</span> <span data-t="drawer.promote">Promote</span></button>
       </div>
       <div class="dgrp">
         <div class="dl" data-t="drawer.about">About</div>
@@ -987,6 +1002,27 @@
         <li data-th="about.li4"><b>Yours to keep.</b> Your scores and progress stay on your device — nothing to sign up for.</li>
       </ul>
       <p class="about-foot" data-t="about.foot">Made for fun. If you enjoy it, share it with a friend 💛</p>
+    </div>
+  </dialog>
+
+  <dialog id="promoteModal">
+    <button type="button" class="pf-x" id="promoteClose" aria-label="Close" data-ta="cat.close">✕</button>
+    <div class="about promote">
+      <div class="cl-head"><h3 data-t="promote.title">🎉 Promote komyo</h3></div>
+      <p data-t="promote.p1">Run a website, blog, app or channel and want free content for your audience? Embed komyo — or any single game — right on your page. It runs there, free, no account, no ads.</p>
+      <p data-th="promote.p2">In return, we'll <b>feature you back</b>: send us your site/app/blog and we'll add a link to it here, in this tab. A friendly cross-promotion swap — you send some players our way, we send some yours.</p>
+      <ul class="about-list">
+        <li data-th="promote.li1"><b>Embed us.</b> Grab an embed snippet from <b>Embed a game</b> (in this menu) and drop it wherever you like.</li>
+        <li data-th="promote.li2"><b>Tell us.</b> Reach out with a link to where you embedded or linked komyo, and where you'd like to be featured.</li>
+        <li data-th="promote.li3"><b>Get featured.</b> We add your site/app/blog to the list below so komyo players can find you.</li>
+      </ul>
+      <div class="promo-cta">
+        <a class="promo-btn" href="https://discord.gg/hz2fhpD5sz" target="_blank" rel="noopener" data-t="promote.discord">Reach out on Discord</a>
+        <button class="promo-btn" id="promoteContact" type="button" data-t="promote.contact">Send us a message</button>
+      </div>
+      <div class="cl-head promo-partners-head"><h3 data-t="promote.partnersTitle">🤝 Featured partners</h3></div>
+      <div class="promo-partners" id="promoPartners"></div>
+      <p class="about-foot" data-t="promote.foot">Be the first — reach out and we'll add you here 💛</p>
     </div>
   </dialog>
 
@@ -2121,6 +2157,45 @@
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
     })();
 
+    // ---- Promote (centered modal) — cross-promotion swap + the featured-partners list ----
+    // PROMO_PARTNERS: append { name, url, blurb } to feature a partner. Empty → the empty-state note.
+    (function () {
+      const PROMO_PARTNERS = [];
+      const modal = document.getElementById('promoteModal'), btn = document.getElementById('promoteBtn'), closeBtn = document.getElementById('promoteClose');
+      if (!modal || !modal.showModal) return;
+      const lock = v => { try { document.body.style.overflow = v ? 'hidden' : ''; } catch (e) {} };
+      const list = document.getElementById('promoPartners');
+      function render() {
+        if (!list) return;
+        if (!PROMO_PARTNERS.length) {
+          const t = (window.gamekit && window.gamekit.t) ? window.gamekit.t('promote.empty', { def: 'No partners yet — this space is waiting for you.' }) : 'No partners yet — this space is waiting for you.';
+          list.innerHTML = '<p class="promo-empty">' + t + '</p>';
+          return;
+        }
+        list.innerHTML = PROMO_PARTNERS.map(p =>
+          '<a class="promo-partner" href="' + encodeURI(p.url) + '" target="_blank" rel="noopener nofollow">'
+          + '<span class="pp-name"></span>' + (p.blurb ? '<span class="pp-blurb"></span>' : '') + '</a>'
+        ).join('');
+        // fill text via textContent to avoid injecting partner-supplied markup
+        list.querySelectorAll('.promo-partner').forEach((el, i) => {
+          el.querySelector('.pp-name').textContent = PROMO_PARTNERS[i].name;
+          const b = el.querySelector('.pp-blurb'); if (b) b.textContent = PROMO_PARTNERS[i].blurb;
+        });
+      }
+      if (btn) btn.addEventListener('click', () => {
+        render();
+        if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'promote' });
+        modal.showModal(); lock(true);
+      });
+      if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
+      modal.addEventListener('close', () => lock(false));
+      modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
+      // open Feedback stacked ON TOP of Promote (native dialogs share the top layer) so closing
+      // Feedback returns here rather than dumping the player back to the catalogue.
+      const contact = document.getElementById('promoteContact');
+      if (contact) contact.addEventListener('click', () => { const fb = document.getElementById('feedback'); if (fb) fb.click(); });
+    })();
+
     // ---- Settings (centered modal) — site-wide SFX + Music, backed by the kit's own channels ----
     (function () {
       const modal = document.getElementById('settingsModal'), btn = document.getElementById('settingsBtn'), closeBtn = document.getElementById('settingsClose');
@@ -2828,10 +2903,10 @@
     // auto-reloads. pwa() also sweeps out legacy per-game scope registrations.
     if (window.gamekit && window.gamekit.pwa) window.gamekit.pwa('sw.js');
 
-    // ---- Deep links: /?m=faq|changelog|about|privacy|embed|data — open that panel + keep it in the URL ----
+    // ---- Deep links: /?m=faq|changelog|about|privacy|embed|promote|feedback|newsletter|data — open that panel + keep it in the URL ----
     (function () {
-      const MAP = { faq: 'faqBtn', changelog: 'changelogBtn', about: 'aboutBtn', privacy: 'legalBtn', embed: 'embedBtn', data: 'dataBtn', settings: 'settingsBtn', profile: 'profileQuick' };
-      const DLG = { faq: 'faqModal', changelog: 'clModal', about: 'aboutModal', privacy: 'legalModal', data: 'dataModal', settings: 'settingsModal', profile: 'profileModal' };
+      const MAP = { faq: 'faqBtn', changelog: 'changelogBtn', about: 'aboutBtn', privacy: 'legalBtn', embed: 'embedBtn', promote: 'promoteBtn', feedback: 'feedback', newsletter: 'newsletter', data: 'dataBtn', settings: 'settingsBtn', profile: 'profileQuick' };
+      const DLG = { faq: 'faqModal', changelog: 'clModal', about: 'aboutModal', privacy: 'legalModal', promote: 'promoteModal', feedback: 'fbModal', newsletter: 'nlModal', data: 'dataModal', settings: 'settingsModal', profile: 'profileModal' };
       const ALIAS = { legal: 'privacy', license: 'privacy', shop: 'cosmetics', store: 'cosmetics' };
       // reflect manual opens/closes in the URL (so it's shareable): trigger click → ?m=key; dialog close → drop it
       Object.keys(MAP).forEach(key => {
