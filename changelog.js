@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-08', title: 'Promote komyo + a friendlier collection bar 🎉', items: [
+    'New: a “🎉 Promote” tab in the menu — run a site, blog, app or channel? Embed komyo (or any game) and we’ll feature a link back to you. Reach out and we’ll add you to the list.',
+    'Change: your Collection bar now counts the free default skins you already own, so a fresh profile shows a real starting % instead of a flat 0%.',
+  ] },
   { date: '2026-07-07', title: 'Music that builds with the action 🎵', items: [
     'New: every game now has richer, produced music that rises and falls with the moment — more enemies, higher speed and bigger stakes bring the beat and extra layers in, then it eases back when things calm down.',
     'New: each game has its own distinct track and mood — no two games share the same tune anymore.',
