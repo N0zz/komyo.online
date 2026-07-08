@@ -786,15 +786,17 @@
     if (setId === 'site.fx') applyCrt(); // selecting the CRT item = enable it; 'off' = disable (shop toggles it)
     return true;
   }
-  // Collection progress is COST-weighted, not item-count: pct = trophies spent / total cost of all
-  // items. Free defaults (price 0) add nothing to either side, so a fresh account reads a true 0%
-  // (a count-based bar showed ~15% from auto-owned defaults), and one expensive skin can't spike a
-  // large pool. owned/total item counts are kept for callers that still want the raw count.
+  // Collection progress is COST-weighted, not item-count: pct = trophies value owned / total value
+  // of all items. Free defaults (price 0) are auto-owned; we weight them at COS_DEFAULT_WEIGHT (25)
+  // so a fresh account that owns only defaults reads a real starting % instead of a flat 0% (the
+  // defaults ARE part of the collection you already hold). They stay free everywhere else — the
+  // weight is progress-math only. owned/total item counts are kept for callers wanting the raw count.
+  var COS_DEFAULT_WEIGHT = 25;
   function cosProgress(game) {
     var a = cosItems(), total = 0, own = 0, cost = 0, spent = 0;
     for (var i = 0; i < a.length; i++) {
       if (game != null && a[i].game !== game) continue;
-      var price = +a[i].price || 0;
+      var price = +a[i].price || COS_DEFAULT_WEIGHT; // defaults (price 0) count as 25 toward the bar
       total++; cost += price;
       if (cosOwned(a[i].id)) { own++; spent += price; }
     }
