@@ -786,21 +786,18 @@
     if (setId === 'site.fx') applyCrt(); // selecting the CRT item = enable it; 'off' = disable (shop toggles it)
     return true;
   }
-  // Collection progress is COST-weighted, not item-count: pct = trophies value owned / total value
-  // of all items. Free defaults (price 0) are auto-owned; we weight them at COS_DEFAULT_WEIGHT (25)
-  // so a fresh account that owns only defaults reads a real starting % instead of a flat 0% (the
-  // defaults ARE part of the collection you already hold). They stay free everywhere else — the
-  // weight is progress-math only. owned/total item counts are kept for callers wanting the raw count.
-  var COS_DEFAULT_WEIGHT = 25;
+  // Collection progress is a plain item COUNT: pct = items owned / total items. Free defaults
+  // (price 0) are auto-owned and count as unlocked, so a fresh account already reads a real
+  // starting fraction (the defaults ARE part of the collection you hold) — no weighting needed.
+  // owned/total are the raw counts the bar shows ("20 / 90 · 22%").
   function cosProgress(game) {
-    var a = cosItems(), total = 0, own = 0, cost = 0, spent = 0;
+    var a = cosItems(), total = 0, own = 0;
     for (var i = 0; i < a.length; i++) {
       if (game != null && a[i].game !== game) continue;
-      var price = +a[i].price || COS_DEFAULT_WEIGHT; // defaults (price 0) count as 25 toward the bar
-      total++; cost += price;
-      if (cosOwned(a[i].id)) { own++; spent += price; }
+      total++;
+      if (cosOwned(a[i].id)) own++;
     }
-    return { owned: own, total: total, spent: spent, cost: cost, pct: cost ? spent / cost : 0 };
+    return { owned: own, total: total, pct: total ? own / total : 0 };
   }
   // menu-group factory: the ONE wiring for a game's start-menu STYLE grid (select + buy-in-place).
   // Games do: groups: [..., KIT.cosmetics.menuGroup('snake.food', { label: 'FOOD' })] and in
@@ -1409,10 +1406,9 @@
       var pr = scopeGame != null ? cosProgress(scopeGame) : cosProgress();
       var pct = Math.round(pr.pct * 100);
       try { barFill.style.width = pct + '%'; } catch (e) {}
-      barTxt.textContent = t('shop.progress', { spent: fmtT(pr.spent), cost: fmtT(pr.cost), pct: pct });
+      barTxt.textContent = t('shop.progress', { owned: pr.owned, total: pr.total, pct: pct });
       try { ring.style.setProperty('--pct', pct); } catch (e) {}
-      var kf = function (n) { n = +n || 0; return n >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n); };
-      ringPct.textContent = pct + '%'; ringSub.textContent = kf(pr.spent) + '/' + kf(pr.cost);
+      ringPct.textContent = pct + '%'; ringSub.textContent = pr.owned + '/' + pr.total;
       gameProgEls.forEach(function (fn) { try { fn(); } catch (e) {} });
     }
     // focused item → the desc line + the BUY/EQUIP button. Buying NEVER happens on a plain cell click
@@ -1527,7 +1523,7 @@
         gh.appendChild(gt); gh.appendChild(gp); gh.appendChild(mkEl('span', 'gksp-gline'));
         if (meta.accent && gh.style && gh.style.setProperty) { try { gh.style.setProperty('--acc', meta.accent); } catch (e) {} }
         scroll.appendChild(gh);
-        (function (gm) { gameProgEls.push(function () { var p = cosProgress(gm); gp.textContent = fmtT(p.spent) + '/' + fmtT(p.cost); }); })(game);
+        (function (gm) { gameProgEls.push(function () { var p = cosProgress(gm); gp.textContent = p.owned + '/' + p.total; }); })(game);
         gameSets.forEach(function (setId) {
           var setItems = gameItems.filter(function (it) { return it.set === setId; });
           if (!setItems.length) return;
@@ -2176,7 +2172,16 @@
         x.fillStyle = '#eef4fc'; x.font = '700 64px system-ui, sans-serif';
         while (title.length > 2 && x.measureText(title).width > 590) title = title.replace(/…?$/, '').slice(0, -1) + '…';
         x.fillText(title, 288, 130);
-        if (opts.sub) { x.fillStyle = '#9fb2c8'; x.font = '600 32px ui-monospace, monospace'; lsp('5px'); x.fillText(String(opts.sub).toUpperCase(), 290, 192); lsp('0px'); }
+        if (opts.sub) {
+          // mode/difficulty — clamped to a width that clears the right-side art (wordmark + QR quiet
+          // zone, whose gradient repaint would otherwise cut it off). Shrink to fit, ellipsize last.
+          var subTxt = String(opts.sub).toUpperCase(), subFs = 32, subMaxW = 480;
+          x.fillStyle = '#9fb2c8'; lsp('5px');
+          while (subFs > 20) { x.font = '600 ' + subFs + 'px ui-monospace, monospace'; if (x.measureText(subTxt).width <= subMaxW) break; subFs -= 2; }
+          x.font = '600 ' + subFs + 'px ui-monospace, monospace';
+          while (subTxt.length > 2 && x.measureText(subTxt).width > subMaxW) subTxt = subTxt.replace(/…?$/, '').slice(0, -1) + '…';
+          x.fillText(subTxt, 290, 192); lsp('0px');
+        }
         // label + gradient score (TIME strings are wider → a step smaller)
         var isTime = (opts.label || '') === 'TIME';
         x.fillStyle = '#67788f'; x.font = '600 30px ui-monospace, monospace'; lsp('9px'); x.fillText(isTime ? t('card.time') : t('card.score'), 88, 268); lsp('0px');
@@ -2315,7 +2320,7 @@
         if (opts.collection && opts.collection.total) {
           var col = opts.collection, cx0 = 92, cw = W - 184, cy0 = 306, bh = 13;
           x.textAlign = 'left'; x.fillStyle = '#8aa0ba'; x.font = '600 19px ui-monospace, monospace'; x.fillText(t('card.collection'), cx0, cy0);
-          x.textAlign = 'right'; x.fillStyle = accent; x.fillText(fmtScore(col.spent || 0) + ' / ' + fmtScore(col.cost || 0) + ' 🏆 · ' + Math.round((col.pct || 0) * 100) + '%', W - 92, cy0); x.textAlign = 'left';
+          x.textAlign = 'right'; x.fillStyle = accent; x.fillText((col.owned || 0) + ' / ' + (col.total || 0) + ' · ' + Math.round((col.pct || 0) * 100) + '%', W - 92, cy0); x.textAlign = 'left';
           var by = cy0 + 12;
           x.fillStyle = 'rgba(255,255,255,0.09)'; rr(cx0, by, cw, bh, 6); x.fill();
           var fillW = Math.max(bh, cw * (col.pct || 0));
