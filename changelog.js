@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-09', title: 'A clearer collection bar 🎨', items: [
+    'Change: your Collection bar now shows how many skins you’ve unlocked out of the total (like 20 / 90), so it’s clear at a glance how much is left to collect — trophies stay just for buying and titles.',
+    'Fix: on shared score cards the game’s mode and difficulty no longer get cut off in languages with longer words — the line shrinks to fit.',
+  ] },
   { date: '2026-07-08', title: 'Promote komyo + a friendlier collection bar 🎉', items: [
     'New: a “🎉 Promote” tab in the menu — run a site, blog, app or channel? Embed komyo (or any game) and we’ll feature a link back to you. Reach out and we’ll add you to the list.',
     'Change: your Collection bar now counts the free default skins you already own, so a fresh profile shows a real starting % instead of a flat 0%.',

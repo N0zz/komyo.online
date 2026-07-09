@@ -1973,7 +1973,7 @@
           if (sp && K && K.player) { const who = K.player(); sp.textContent = (who && who !== 'anonymous') ? who : ''; }
           if (K && K.cosmetics && window.COSMETICS) {
             if (sc) sc.textContent = '🏆 ' + K.cosmetics.lifetime().toLocaleString();
-            if (sk) { const pr = K.cosmetics.progress(); const kf = n => (n = +n || 0) >= 1000 ? (n / 1000).toFixed(n >= 10000 ? 0 : 1).replace(/\.0$/, '') + 'k' : String(n); sk.textContent = kf(pr.spent) + '/' + kf(pr.cost) + ' · ' + Math.round(pr.pct * 100) + '%'; }
+            if (sk) { const pr = K.cosmetics.progress(); sk.textContent = pr.owned + '/' + pr.total + ' · ' + Math.round(pr.pct * 100) + '%'; }
           }
         } catch (e) {}
       };
@@ -2389,7 +2389,7 @@
         // background both make it through; an <i>'s inline width got wiped and collapsed to 0.
         const pctW = Math.round(cos ? cos.pct * 100 : 0);
         const collectBar = cos ? ('<div class="pf-collect" id="pfCollect" role="button" tabindex="0" title="Open the Cosmetics store">'
-          + '<div class="pf-collect-top"><span>🎨 Collection</span><span class="pf-collect-n">' + fmt(cos.spent) + ' / ' + fmt(cos.cost) + ' 🏆 · ' + pctW + '%</span></div>'
+          + '<div class="pf-collect-top"><span>🎨 Collection</span><span class="pf-collect-n">' + cos.owned + ' / ' + cos.total + ' · ' + pctW + '%</span></div>'
           + '<div class="pf-collect-bar" style="background:linear-gradient(90deg,#ffce5c,#ff9a5c) left/' + pctW + '% 100% no-repeat,rgba(255,255,255,0.09)"></div></div>') : '';
         // one list, most-played first: every game with plays, each showing its modes' bests
         const ranked = [];
@@ -2758,7 +2758,7 @@
           collEl.hidden = false;
           const bar = collEl.querySelector('.cbar i'), txt = collEl.querySelector('.cbar-txt');
           if (bar) bar.style.width = pct + '%';
-          if (txt) txt.textContent = window.gamekit.t('chal.collection', { def: '{spent} / {cost} 🏆 · {pct}%', spent: pr.spent.toLocaleString(), cost: pr.cost.toLocaleString(), pct: pct });
+          if (txt) txt.textContent = window.gamekit.t('chal.collection', { def: '{owned} / {total} · {pct}%', owned: pr.owned, total: pr.total, pct: pct });
         }
         if (bonusEl && K.goodRunBonus) {
           const b = K.goodRunBonus();
