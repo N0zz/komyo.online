@@ -129,8 +129,6 @@
     startMusic(){ if(KIT) KIT.music.play('space'); },
     stopMusic(){ /* music persists across menu/pause — one continuous menu + in-game bed */ },
   };
-  { const el=document.getElementById('scoreLabel'); if(el && KIT) el.textContent=KIT.t('game.asteroids.scoreLabel', { def: 'SCORE' }); }
-
   let W,H;
   function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S); buildStars(); }
   (window.gamekit && window.gamekit.layout) ? window.gamekit.layout.on(resize) : window.addEventListener('resize', resize);
@@ -170,6 +168,7 @@
   function shipSkin(){ const id = (KIT && KIT.cosmetics) ? KIT.cosmetics.selected('asteroids.ship') : null; return SHIP_SKINS[id] || SHIP_SKINS['asteroids.ship.cyan']; }
   function isCRT(){ return !!shipSkin().crt; }
 
+  let menuReshow = null; // rebuilds the open menu on a live language switch (labels are baked at show-time)
   // per-game look for ALL asteroids menus (space cyan + violet glow) — structure/behaviour are the kit's.
   const MENU_THEME = { accent:'#9fe8ff', 'accent-soft':'rgba(159,232,255,0.18)', glow:'0 0 18px rgba(120,200,255,0.45)',
     bg:'radial-gradient(circle at 50% 26%, rgba(18,26,48,0.72), rgba(7,9,16,0.82))', border:'rgba(120,200,255,0.30)',
@@ -179,6 +178,7 @@
     srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT){ KIT.showMenuButton(true); KIT.showPauseButton(true); } }
   function pauseGame(){ state='paused'; if(!ENHANCED) SND.stopMusic();
     if(!KIT) return;
+    menuReshow = pauseGame;
     KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:KIT.t('game.common.paused', { def: 'PAUSED' }),
       lines:[ KIT.t('game.common.scoreLine', { score: score, def: 'Score ' + score }) + (ENHANCED ? KIT.t('game.asteroids.waveSuffix', { level: level, def: ' · Wave ' + level }) : '') ],
       actions:[ {id:'resume',label:KIT.t('game.common.resume', { def: 'RESUME (ESC)' }),primary:true}, {id:'menu',label:KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }),danger:true} ],
@@ -218,6 +218,8 @@
   function showStartMenu(){
     state='menu'; SND.startMusic(); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); } overlay.classList.add('hidden');
     if(!KIT) return;
+    // reshow re-seeds the picker from the URL (onChange stamps live picks there) so selection survives
+    menuReshow = () => { const p = new URLSearchParams(location.search); applyMode(p.get('v')==='enh'?'enh':'classic', p.has('speedrun')); showStartMenu(); };
     genMenuRocks();
     const bestScore = k => { const v = KIT ? KIT.bestScore('asteroids', keyLabel(k, false)) : 0; return v > 0 ? v : '—'; };
     const bestTime  = k => { const t = KIT ? KIT.best('asteroids', keyLabel(k, true)).time : 0; return t > 0 ? fmtTime(t) : '—'; };
@@ -251,12 +253,18 @@
   // end screen (game over + speedrun complete) — kit-rendered; reuses recordResult + the shared share row.
   function showEnd(win){
     SND.stopMusic(); SND.play(win ? 'level' : 'over'); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    const newBest = SPEEDRUN ? (win ? saveBest(srElapsed) : false) : saveBestScore(score);
+    showEndMenu(win, newBest);
+  }
+  // menu-only part of the end screen — re-run on a live language switch (no re-save, no stinger)
+  function showEndMenu(win, newBest){
+    menuReshow = () => showEndMenu(win, newBest);
     const record = { mode: keyLabel(KEY, SPEEDRUN), modeText: keyLabelDisplay(KEY, SPEEDRUN), score: score, time: (SPEEDRUN && win) ? srElapsed : 0, stats: { wave: level } };
-    let title, scoreText, best=null, newBest=false, lines=[];
+    let title, scoreText, best=null, lines=[];
     if (SPEEDRUN) {
-      if (win) { newBest = saveBest(srElapsed); title=KIT.t('game.asteroids.complete', { def: 'COMPLETE' }); scoreText=fmtTime(srElapsed); best=fmtTime((KIT ? KIT.best('asteroids', keyLabel(KEY, true)).time : 0) || srElapsed); lines=[KIT.t('game.asteroids.pointsReached', { pts: SR_TARGET_SCORE, def: SR_TARGET_SCORE + ' points reached' })]; }
+      if (win) { title=KIT.t('game.asteroids.complete', { def: 'COMPLETE' }); scoreText=fmtTime(srElapsed); best=fmtTime((KIT ? KIT.best('asteroids', keyLabel(KEY, true)).time : 0) || srElapsed); lines=[KIT.t('game.asteroids.pointsReached', { pts: SR_TARGET_SCORE, def: SR_TARGET_SCORE + ' points reached' })]; }
       else { title=KIT.t('game.asteroids.gameOver', { def: 'GAME OVER' }); scoreText=String(score); lines=[KIT.t('game.asteroids.srFailedLine', { time: fmtTime(srElapsed), def: 'Speedrun — run failed at ' + fmtTime(srElapsed) })]; }
-    } else { newBest = saveBestScore(score); title=KIT.t('game.asteroids.gameOver', { def: 'GAME OVER' }); scoreText=String(score); best=(KIT ? KIT.bestScore('asteroids', keyLabel(KEY, false)) : 0); lines=[KIT.t('game.asteroids.reachedWave', { level: level, def: 'Reached wave ' + level })]; }
+    } else { title=KIT.t('game.asteroids.gameOver', { def: 'GAME OVER' }); scoreText=String(score); best=(KIT ? KIT.bestScore('asteroids', keyLabel(KEY, false)) : 0); lines=[KIT.t('game.asteroids.reachedWave', { level: level, def: 'Reached wave ' + level })]; }
     if(!KIT) return;
     KIT.menu.show({ kind:'end', theme:MENU_THEME, title, backdrop:menuBackdrop, backdropAnimate:true, score:score, scoreText, best, newBest, lines,
       share:{ slug:'asteroids', accent: '#9fe8ff', icon: '🛸', title:KIT.t('game.asteroids.gameName', { def: 'Asteroids' }), message: ()=>shareMsg(score), params: ()=> (SPEEDRUN ? { v: ENHANCED?'enh':'classic', speedrun:'1' } : { v: ENHANCED?'enh':'classic' }) },
@@ -406,8 +414,17 @@
     },
   };
 
-  resize(); spawnWave(4); updateHud(); loop();
+  // boot-baked t() HUD labels, re-applied on a live language switch
+  function i18nHudLabels(){ if(!KIT) return;
+    const el=document.getElementById('scoreLabel'); if(el) el.textContent=KIT.t('game.asteroids.scoreLabel', { def: 'SCORE' });
+    WEAPONS[0].label=KIT.t('game.asteroids.weapon1', { def: 'WEAPON I' }); WEAPONS[1].label=KIT.t('game.asteroids.weapon2', { def: 'WEAPON II — TWIN' }); WEAPONS[2].label=KIT.t('game.asteroids.weapon3', { def: 'WEAPON III — SPREAD' });
+    if(SPEEDRUN && timerGoal) timerGoal.textContent=KIT.t('game.asteroids.timerGoal', { pts: SR_TARGET_SCORE, def: 'GOAL: ' + SR_TARGET_SCORE + ' PTS' });
+    if(modeTagEl) modeTagEl.textContent=keyLabelDisplay(KEY, SPEEDRUN);
+    if(fireBtn) fireBtn.textContent=KIT.t('game.asteroids.fire', { def: 'FIRE' });
+  }
+  resize(); spawnWave(4); i18nHudLabels(); updateHud(); loop();
   applyMode(params.get('v') === 'enh' ? 'enh' : 'classic', params.has('speedrun')); // seed mode from the URL
+  if (KIT) KIT.onLang(() => { i18nHudLabels(); updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
   showStartMenu(); // always open the unified start menu (mode preselected from the URL)
 })();
 </script>

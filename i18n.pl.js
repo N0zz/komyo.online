@@ -1681,6 +1681,8 @@ window.KOMYO_I18N.pl = {
   'changelog.e46.title': 'Range: celniej i płynniej 🎯',
   'changelog.e46.b0': 'Poprawka: w Range celownik podąża teraz za myszą natychmiast, zamiast opóźniać się o klatkę — celowanie jest ostre i responsywne.',
   'changelog.e46.b1': 'Zmiana: ekran końcowy pozbył się mylącej dodatkowej liczby czasu — pokazuje teraz tylko celność, trafienia i pudła.',
+  'changelog.e54.title': 'Menu zmieniają język natychmiast 🌐',
+  'changelog.e54.b0': 'Zmiana: zmiana języka przy otwartym menu gry odświeża je od razu, w każdej grze — koniec z nieaktualnym tekstem do następnego ekranu.',
   'changelog.e53.title': 'Nowa gra: Sudoku 🔢',
   'changelog.e53.b0': 'Nowość: Sudoku — wypełnij siatkę 9×9 tak, by każdy wiersz, kolumna i kwadrat zawierały cyfry 1–9. Cztery prawdziwe poziomy trudności (od Łatwego po Ekspercki, oceniane po logice, jakiej puzzle naprawdę wymagają), codzienna łamigłówka wspólna dla wszystkich oraz spokojny tryb Zen bez czasu i skreśleń.',
   'changelog.e53.b1': 'Nowość: logiczne podpowiedzi, które uczą — dotknij 💡, a gra podświetli, gdzie patrzeć, i wyjaśni rozumowanie (nigdy losowe odkrycie), potem dotknij ponownie, aby ją zastosować.',

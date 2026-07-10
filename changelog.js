@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-10', title: 'Menus switch language instantly 🌐', items: [
+    'Change: switching the language while a game menu is open now updates it on the spot, in every game — no more stale English (or stale anything) until the next screen.',
+  ] },
   { date: '2026-07-09', title: 'New game: Sudoku 🔢', items: [
     'New: Sudoku — fill the 9×9 grid so every row, column and box holds 1–9. Four real difficulties (Easy to Expert, graded by the logic each puzzle actually needs), a Daily puzzle that’s the same for everyone, and a relaxed Zen mode with no timer or strikes.',
     'New: logical hints that teach — tap 💡 and the game highlights where to look and explains the reasoning (never a random reveal), then tap again to apply it.',

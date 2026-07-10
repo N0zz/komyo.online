@@ -279,10 +279,12 @@
   function pvArcade(g,w,h){ pvCard(g,w,h,icChevron,'#2ee8c8'); } // grid descends as you shoot
   function pvEndless(g,w,h){ pvCard(g,w,h,icInfinity,'#b78cff'); } // rows push in forever
   function pvZen(g,w,h){ pvCard(g,w,h,icZzz,'#7ee8ff'); }
-  const MODE_HINT = { arcade:KIT.t('game.bubbles.hintArcade', { def:'Pop groups of 3+; clear the board to advance.' }), endless:KIT.t('game.bubbles.hintEndless', { def:'Rows push in forever — survive and score.' }), zen:KIT.t('game.bubbles.hintZen', { def:'Relax and pop. No fail, no descent.' }) };
+  const MODE_HINT = m => ({ arcade:KIT.t('game.bubbles.hintArcade', { def:'Pop groups of 3+; clear the board to advance.' }), endless:KIT.t('game.bubbles.hintEndless', { def:'Rows push in forever — survive and score.' }), zen:KIT.t('game.bubbles.hintZen', { def:'Relax and pop. No fail, no descent.' }) }[m] || '');
   const modeParams = st => (st.timed && st.mode !== 'zen') ? { mode: st.mode, timed: '1' } : { mode: st.mode };
   function shareMsg(){ return KIT.shareText({ score: score, game:KIT.t('game.bubbles.gameName', { def:'Bubble Pop' }), emoji:'🫧', mode: modeDisplay(mode)+(timeDescent&&mode!=='zen'?KIT.t('game.bubbles.timedShare', { def:' (timed)' }):''), extra:[KIT.t('game.bubbles.shareLevel', { level: level, def:'level '+level })] }); }
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   function showStartMenu(){
+    menuReshow = showStartMenu;
     state = 'ready'; if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (KIT && KIT.music) KIT.music.intensity(0.3);
     if(!KIT) return;
@@ -293,7 +295,7 @@
         { id:'zen',     label:KIT.t('game.bubbles.modeZen', { def:'ZEN' }),     preview:pvZen,     mech:[KIT.t('game.bubbles.mechZen1', { def:'No fail' }),KIT.t('game.bubbles.mechZen2', { def:'No descent' })],              best:()=>bestFor('zen') },
       ]}],
       toggles:[{ id:'timed', label:KIT.t('game.bubbles.timedToggle', { def:'Time-based descent' }), caption:KIT.t('game.bubbles.timedCaption', { def:'— drops on a clock, not per shot' }), default: timeDescent, disabled: st => st.mode === 'zen' }],
-      hint: st => (MODE_HINT[st.mode] || '') + (st.timed && st.mode !== 'zen' ? KIT.t('game.bubbles.timedSuffix', { def:' · timed' }) : ''),
+      hint: st => MODE_HINT(st.mode) + (st.timed && st.mode !== 'zen' ? KIT.t('game.bubbles.timedSuffix', { def:' · timed' }) : ''),
       actions:[{ id:'play', label:KIT.t('game.common.play', { def:'PLAY ▶' }), primary:true }],
       onChange: st => { KIT.stampUrl(modeParams(st)); },
       onPlay: st => { KIT.stampUrl(modeParams(st)); startMode(st.mode, st.timed); },
@@ -307,17 +309,19 @@
     SND.play(won ? 'won' : 'lose');
     if (KIT && KIT.music) KIT.music.intensity(0.3);
     if(!KIT) return;
-    KIT.menu.show({ kind:'end', theme:MENU_THEME, title: won ? KIT.t('game.bubbles.cleared', { def:'CLEARED! ✨' }) : KIT.t('game.bubbles.gameOver', { def:'GAME OVER' }),
+    const show = () => KIT.menu.show({ kind:'end', theme:MENU_THEME, title: won ? KIT.t('game.bubbles.cleared', { def:'CLEARED! ✨' }) : KIT.t('game.bubbles.gameOver', { def:'GAME OVER' }),
       score: score, best: bestScore, newBest: isBest, lines: [ won ? KIT.t('game.bubbles.wonLine', { level: level, def:'Level ' + level + ' · all levels cleared' }) : KIT.t('game.bubbles.reachedLine', { level: level, def:'Reached level ' + level }) ],
       share: { slug:'bubbles', accent: '#2ee8c8', icon: '🫧', title:KIT.t('game.bubbles.gameName', { def:'Bubble Pop' }), message: ()=>shareMsg(), params: ()=> modeParams({ mode: mode, timed: timeDescent }) },
       record: { slug:'bubbles', mode: modeLabel(mode), modeText: modeDisplay(mode), score: score },
       actions:[ {id:'again',label:KIT.t('game.common.playAgain', { def:'PLAY AGAIN' }),primary:true}, {id:'menu',label:KIT.t('game.common.menu', { def:'MENU' })} ],
       onAction:(id)=>{ if(id==='again') startMode(mode); else if(id==='menu') toMenu(); } });
+    menuReshow = show; show();
   }
   function pauseGame(){ if(state!=='playing' || !KIT) return; state='paused';
-    KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:KIT.t('game.common.paused', { def:'PAUSED' }), lines:[KIT.t('game.bubbles.pauseLine', { score: score, level: level, def:'Score '+score+' · Level '+level })],
+    const show = () => KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:KIT.t('game.common.paused', { def:'PAUSED' }), lines:[KIT.t('game.bubbles.pauseLine', { score: score, level: level, def:'Score '+score+' · Level '+level })],
       actions:[ {id:'resume',label:KIT.t('game.common.resume', { def:'RESUME (ESC)' }),primary:true}, {id:'menu',label:KIT.t('game.common.quitToMenu', { def:'QUIT TO MENU' }),danger:true} ],
       onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') toMenu(); }, onEsc: resumeGame });
+    menuReshow = show; show();
   }
   function resumeGame(){ if(state!=='paused') return; state='playing'; if(KIT) KIT.menu.hide(); }
   function toMenu(){ saveBest(); if(KIT) KIT.menu.hide(); showStartMenu(); }
@@ -1211,6 +1215,8 @@
       touch: [ [KIT.t('game.bubbles.ctrlMoveDrag', { def:'Move / drag' }),KIT.t('game.bubbles.ctrlAim', { def:'Aim' })], [KIT.t('game.common.tap', { def:'Tap' }),KIT.t('game.bubbles.ctrlShoot', { def:'Shoot' })] ] } });
   KIT.music.play('candy');
   localizeChrome(); // static HUD/chrome labels (after deep-link mode set)
+  // live language switch: retranslate the HUD + rebuild whichever menu is open
+  KIT.onLang(() => { localizeChrome(); updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
   showStartMenu(); // open the unified start menu (mode preselected from ?mode=)
 
   // ---- __test API ----

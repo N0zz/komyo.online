@@ -116,8 +116,11 @@
   const modeEl = document.getElementById('modeEl');
 
   // HUD labels (i18n; the static HTML holds the English fallback)
-  [['scoreLbl', 'game.snake.hudScore', 'SCORE'], ['bestLbl', 'game.common.best', 'BEST'], ['lenLbl', 'game.snake.hudLength', 'LENGTH'], ['modeLbl', 'game.common.modeLabel', 'MODE']]
-    .forEach(([id, key, def]) => { const el = document.getElementById(id); if (el) el.textContent = KIT.t(key, { def }); });
+  function i18nHudLabels() {
+    [['scoreLbl', 'game.snake.hudScore', 'SCORE'], ['bestLbl', 'game.common.best', 'BEST'], ['lenLbl', 'game.snake.hudLength', 'LENGTH'], ['modeLbl', 'game.common.modeLabel', 'MODE']]
+      .forEach(([id, key, def]) => { const el = document.getElementById(id); if (el) el.textContent = KIT.t(key, { def }); });
+  }
+  i18nHudLabels();
 
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
@@ -385,13 +388,16 @@
     g.fillStyle = '#00ffdc'; g.shadowColor = '#00ffdc'; g.shadowBlur = 8; for (let i = 0; i < 4; i++) g.fillRect(14 + i * 9, h / 2, 7, 7); g.shadowBlur = 0;
     g.fillStyle = '#f0f'; g.beginPath(); g.arc(w - 18, 20, 5, 0, 7); g.fill();
   }
-  const SPD_LABEL = { slow: KIT.t('game.snake.speedSlow', { def: 'Slow' }), normal: KIT.t('game.snake.speedNormal', { def: 'Normal' }), fast: KIT.t('game.snake.speedFast', { def: 'Fast' }) };
-  const SZ_LABEL = { small: KIT.t('game.snake.sizeSmall', { def: 'Small' }), medium: KIT.t('game.snake.sizeMedium', { def: 'Medium' }), large: KIT.t('game.snake.sizeLarge', { def: 'Large' }) };
+  // getters → labels re-resolve on a live language switch (menuReshow re-shows the end menu)
+  const SPD_LABEL = { get slow() { return KIT.t('game.snake.speedSlow', { def: 'Slow' }); }, get normal() { return KIT.t('game.snake.speedNormal', { def: 'Normal' }); }, get fast() { return KIT.t('game.snake.speedFast', { def: 'Fast' }); } };
+  const SZ_LABEL = { get small() { return KIT.t('game.snake.sizeSmall', { def: 'Small' }); }, get medium() { return KIT.t('game.snake.sizeMedium', { def: 'Medium' }); }, get large() { return KIT.t('game.snake.sizeLarge', { def: 'Large' }); } };
   function comboBest(o) { return KIT ? KIT.bestScore('snake', modeLabel(o)) : 0; }
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   function showStartMenu() {
     state = 'ready'; showDpad(false); if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (KIT && KIT.music) KIT.music.intensity(0.3); // calm base on the menu / before start
     if (!KIT) return;
+    menuReshow = showStartMenu;
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.snake.menuTitle', { def: 'NEON SNAKE' }), backdrop: menuBackdrop, backdropAnimate: true,
       groups: [
         { id: 'walls', label: KIT.t('game.snake.wallsLabel', { def: 'WALLS' }), style: 'cards', default: opts.walls, choices: [
@@ -419,6 +425,7 @@
   function showEnd(newBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = () => showEnd(newBest);
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.snake.gameOver', { def: 'GAME OVER' }), backdrop: menuBackdrop, backdropAnimate: true,
       score: score, best: best, newBest: newBest, lines: [KIT.t('game.snake.lengthWord', { def: 'Length' }) + ' ' + (snake ? snake.length : 1) + ' · ' + SPD_LABEL[opts.speed] + ' · ' + SZ_LABEL[opts.size] + ' · ' + (opts.walls === 'wrap' ? KIT.t('game.snake.wrapShort', { def: 'Wrap' }) : KIT.t('game.snake.solidShort', { def: 'Solid' }))],
       share: { slug: 'snake', accent: '#7fffb0', icon: '🐍', title: KIT.t('game.snake.title', { def: 'Neon Snake' }), message: () => shareMsg(), params: () => ({ walls: opts.walls, speed: opts.speed, size: opts.size }) },
@@ -426,7 +433,8 @@
       actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
   }
-  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused'; showDpad(false);
+  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused'; showDpad(false); showPauseMenu(); }
+  function showPauseMenu() { menuReshow = showPauseMenu;
     KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }), lines: [KIT.t('game.common.scoreLine', { score: score, def: 'Score ' + score })],
       actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame }); }
@@ -829,6 +837,8 @@
   best = loadBest();
   if (bestEl) bestEl.textContent = best;
   reset();
+  // live language switch: retranslate the HUD + rebuild whichever menu is open
+  KIT.onLang(() => { i18nHudLabels(); updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
   requestAnimationFrame(loop);
   showStartMenu(); // open the shared start menu (options preselected from ?walls=/?speed=/?size=)
 })();

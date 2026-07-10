@@ -307,9 +307,11 @@
     g.fillStyle = mvg; g.fillRect(0, 0, w, h);
   }
   let flappyHandle = null;
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   function showStartMenu() {
     state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = showStartMenu;
     flappyHandle = KIT.menu.show({ kind: 'start', title: KIT.t('game.flappy.menuTitle', { def: '🌸 Meadow Flyer' }), theme: FLAPPY[mode], backdropAnimate: true,
       backdrop: (g, w, h, st, frame) => menuBackdrop(g, w, h, (st && st.tod) || mode, frame),
       lines: [KIT.t('game.flappy.startLine', { def: 'Guide the flyer through the flower meadow.' })],
@@ -337,6 +339,7 @@
   function showEnd(isBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = () => showEnd(isBest);
     const h = KIT.menu.show({ kind: 'end', title: KIT.t('game.flappy.endTitle', { def: 'Oh no!' }), theme: FLAPPY[mode], backdropAnimate: true, backdrop: (g, w, hh, st, frame) => menuBackdrop(g, w, hh, mode, frame),
       score: score, best: getBest(), newBest: isBest,
       share: { slug: 'flappy', accent: '#8fd3a6', icon: '🐤', title: KIT.t('game.flappy.title', { def: 'Meadow Flyer' }), message: () => shareMsg(), params: () => ({ bird: selectedBird.id, mode: mode }) },
@@ -345,7 +348,8 @@
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
     if (h) setVars(h.el, FLAPPY[mode]);
   }
-  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
+  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused'; showPauseMenu(); }
+  function showPauseMenu() { menuReshow = showPauseMenu;
     const h = KIT.menu.show({ kind: 'pause', theme: FLAPPY[mode], title: KIT.t('game.common.paused', { def: 'PAUSED' }), lines: [KIT.t('game.common.scoreLine', { score: score, def: 'Score ' + score })],
       actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
@@ -1123,6 +1127,8 @@
   };
 
   resize(); updateHud(); KIT.loop(update, render);
+  // live language switch: retranslate the HUD + rebuild whichever menu is open
+  KIT.onLang(() => { updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
   // deep-link ?bird= / ?mode= → preselect before opening the menu
   { const P = KIT && KIT.param; if (P) { const pb = P('bird'); if (pb && BIRDS.some(b => b.id === pb) && selectBird(pb)) selectedBird = getSelectedBird(); const pm = P('mode'); if (pm === 'day' || pm === 'night') { mode = pm; saveMode(mode); } } }
   showStartMenu(); // open the shared start menu (bird/day-night preselected from the URL)

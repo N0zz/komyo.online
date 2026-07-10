@@ -280,9 +280,11 @@
     g.fillStyle = '#00ffff'; g.fillRect(w / 2 - 14, h - 10, 28, 5); g.beginPath(); g.arc(w / 2, h - 20, 4, 0, 7); g.fill(); }
   function setSpeed(on) { speedMult = on ? 2 : 1; saveSpeedPref(!!on); }
   const modeParams = st => (st.speed2x ? { mode: st.mode, speed2x: '1' } : { mode: st.mode });
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   function showStartMenu() {
     state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = showStartMenu;
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.breakout.menuTitle', { def: 'BRICK BREAKER' }), backdrop: menuBackdrop,
       groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: gameMode, choices: [
         { id: 'classic', label: modeDisplay('classic'), mech: [KIT.t('game.breakout.mechLevels', { def: 'Levels' }), KIT.t('game.breakout.mechClearAdvance', { def: 'Clear to advance' })], best: () => loadBest('classic'), preview: (g, w, h) => pvBrick(g, w, h, 3) },
@@ -301,6 +303,7 @@
   function showEnd() {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = showEnd;
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.breakout.gameOver', { def: 'GAME OVER' }), backdrop: menuBackdrop,
       record: { slug: 'breakout', mode: modeLabel(gameMode), modeText: modeDisplay(gameMode), score: score },
       score: score, best: best, newBest: score >= best && score > 0, lines: [KIT.t('game.breakout.endLine', { mode: gameMode.toUpperCase(), level: level, def: gameMode.toUpperCase() + ' · level ' + level })],
@@ -308,7 +311,8 @@
       actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
       onAction: id => { if (id === 'again') startMode(gameMode); else if (id === 'menu') toMenu(); } });
   }
-  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
+  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused'; showPauseMenu(); }
+  function showPauseMenu() { menuReshow = showPauseMenu;
     KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }), lines: [KIT.t('game.breakout.pauseLine', { score: score, level: level, def: 'Score ' + score + ' · level ' + level })],
       actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
@@ -880,6 +884,8 @@
   resize();
   i18nHudLabels();
   updateHud();
+  // live language switch: retranslate the HUD + rebuild whichever menu is open
+  if (KIT) KIT.onLang(() => { i18nHudLabels(); updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
   loop2();
   showStartMenu(); // open the shared start menu (mode/speed preselected from ?mode= / ?speed2x=)
 })();
