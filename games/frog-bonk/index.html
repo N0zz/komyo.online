@@ -1914,7 +1914,9 @@
   }
 
   const urlParams = st => ({ mode: st.mode, diff: st.diff });
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   function showStartMenu() {
+    menuReshow = showStartMenu;
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     KIT.music.play('castle');
@@ -1963,6 +1965,7 @@
   function showEnd(won, isBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = () => showEnd(won, isBest);   // re-show is safe: the kit's record guard is idempotent per run
     const lines = [];
     if (gameMode === 'waves') lines.push(won ? t('game.frog-bonk.endWavesWon', { def: 'All 15 waves held — the meadow is safe!' }) : t('game.frog-bonk.endWavesLost', { wave, def: 'The castle fell on wave {wave}.' }));
     else if (gameMode === 'endless') lines.push(t('game.frog-bonk.endEndless', { time: fmtTime(Math.floor(steps / 60)), kills, def: 'Held out {time} · {kills} frogs bonked.' }));
@@ -1978,13 +1981,16 @@
   function pauseGame() {
     if (state !== 'playing' || !KIT) return;
     state = 'paused';
-    const acts = [{ id: 'resume', label: t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }];
-    if (gameMode === 'zen') acts.push({ id: 'finish', label: t('game.frog-bonk.finishSave', { def: 'FINISH & SAVE' }) });
-    acts.push({ id: 'menu', label: t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true });
-    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: t('game.common.paused', { def: 'PAUSED' }),
-      lines: [t('game.common.scoreLine', { score, def: 'Score {score}' })],
-      actions: acts,
-      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'finish') finishZen(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
+    const show = () => {
+      const acts = [{ id: 'resume', label: t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }];
+      if (gameMode === 'zen') acts.push({ id: 'finish', label: t('game.frog-bonk.finishSave', { def: 'FINISH & SAVE' }) });
+      acts.push({ id: 'menu', label: t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true });
+      KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: t('game.common.paused', { def: 'PAUSED' }),
+        lines: [t('game.common.scoreLine', { score, def: 'Score {score}' })],
+        actions: acts,
+        onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'finish') finishZen(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
+    };
+    menuReshow = show; show();
   }
   function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
   function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
@@ -2010,6 +2016,7 @@
   function openShop() {
     state = 'shop';
     if (!KIT) return;
+    menuReshow = openShop;   // re-show only re-renders: flies/wave/upg untouched, costs read live state
     KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: t('game.frog-bonk.shopTitle', { wave, def: 'WAVE {wave} CLEARED!' }),
       banner: () => '🪰 ' + t('game.frog-bonk.fliesBanner', { flies, def: '{flies} flies' }),
       hint: () => t('game.frog-bonk.shopHint', { def: 'Spend flies on the castle, then sound the horn.' }),
@@ -2110,6 +2117,8 @@
   resize();
   i18nHudLabels();
   updateHud();
+  // live language switch: retranslate the HUD + rebuild whichever menu is open
+  KIT.onLang(() => { i18nHudLabels(); if (KIT.menu.current() && menuReshow) menuReshow(); });
   KIT.loop(update, render);
   showStartMenu();
 })();

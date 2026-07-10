@@ -626,9 +626,11 @@
     vig.addColorStop(0, 'rgba(20,12,40,0)'); vig.addColorStop(1, 'rgba(20,12,40,.2)');
     g.fillStyle = vig; g.fillRect(0, 0, W2, H2);
   }
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   function showStartMenu() {
     state = 'menu'; if (KIT) { KIT.showMenuButton(false); KIT.music.play('castle'); } // stately menu bed
     if (!KIT) return;
+    menuReshow = showStartMenu;
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.tower-defense.title', { def: 'KEEP DEFENDER' }),
       backdrop: (g, w, h, st) => menuMapRender(g, w, h, MAPS[parseInt((st && st.map) || mapIndex, 10) || 0]),
       groups: [
@@ -646,6 +648,7 @@
   function showEnd() {
     if (KIT) KIT.showMenuButton(false);
     if (!KIT) return;
+    menuReshow = showEnd;
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.tower-defense.endTitle', { def: 'THE KEEP HAS FALLEN' }), backdrop: (g, w, h) => menuMapRender(g, w, h, MAPS[mapIndex]),
       record: { slug: 'tower-defense', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, modeText: mapModeDisplay(mapIndex, diffLevel), score: score, stats: { wave: wave, difficulty: diffLevel } },
       score: score, best: bestScore, newBest: score >= bestScore && score > 0,
@@ -659,6 +662,7 @@
   let pausedMenu = false;
   function showPauseMenu() {
     pausedMenu = true;
+    menuReshow = showPauseMenu;
     KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
       lines: [KIT.t('game.tower-defense.pauseLine', { wave: wave, score: score, gold: gold, def: 'Wave ' + wave + ' · Score ' + score + ' · ' + gold + 'g' })],
       actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
@@ -2543,14 +2547,19 @@
     towerInfo(i) { const t = towers[i]; return t ? placedTowerStatsHtml(t) : null; },
   };
 
-  // Localize the static build-toolbar button labels (name + short tag) once at boot.
+  // Localize the static build-toolbar button labels (name + short tag) — at boot + on language switch.
   const TOWER_TAG = { archer: 'fast · single', cannon: 'slow · splash', frost: 'slows nearby', mage: 'arc · magic', bard: 'buffs nearby' };
-  document.querySelectorAll('.tbtn[data-t]').forEach(b => {
-    const type = b.dataset.t;
-    const nEl = b.querySelector('.n'); if (nEl) nEl.textContent = towerName(type);
-    const dEl = b.querySelector('.d'); if (dEl && TOWER_TAG[type]) dEl.textContent = KIT.t('game.tower-defense.tower.' + type + '.tag', { def: TOWER_TAG[type] });
-  });
+  function initToolbarLabels() {
+    document.querySelectorAll('.tbtn[data-t]').forEach(b => {
+      const type = b.dataset.t;
+      const nEl = b.querySelector('.n'); if (nEl) nEl.textContent = towerName(type);
+      const dEl = b.querySelector('.d'); if (dEl && TOWER_TAG[type]) dEl.textContent = KIT.t('game.tower-defense.tower.' + type + '.tag', { def: TOWER_TAG[type] });
+    });
+  }
+  initToolbarLabels();
   initHudLabels();
+  // live language switch: retranslate the HUD + rebuild whichever menu is open
+  KIT.onLang(() => { initHudLabels(); initToolbarLabels(); updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
   resize(); loadBest(); applyMap(mapIndex); loadDiff(); setDiff(diffLevel); updateHud();
   KIT.loop(step, render, { mult: () => gameSpeed });
   // deep-link ?map= / ?diff= → preselect before opening the menu

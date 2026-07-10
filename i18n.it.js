@@ -1707,4 +1707,6 @@ window.KOMYO_I18N.it = {
   'game.sudoku.clearConfirm': 'Eliminare TUTTE le griglie non finite, inclusa quella attuale?',
   'game.sudoku.deleteConfirm': 'Eliminare questa griglia? ({board})',
   'game.sudoku.deleteYes': 'Elimina',
+  'changelog.e54.title': 'I menu cambiano lingua all\'istante 🌐',
+  'changelog.e54.b0': 'Modifica: cambiare lingua con un menu di gioco aperto ora lo aggiorna subito, in ogni gioco — basta testo obsoleto fino alla schermata successiva.',
 };

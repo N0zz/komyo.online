@@ -1707,4 +1707,6 @@ window.KOMYO_I18N.cs = {
   'game.sudoku.clearConfirm': 'Smazat VŠECHNY rozehrané desky, včetně té aktuální?',
   'game.sudoku.deleteConfirm': 'Smazat tuto desku? ({board})',
   'game.sudoku.deleteYes': 'Smazat',
+  'changelog.e54.title': 'Menu přepínají jazyk okamžitě 🌐',
+  'changelog.e54.b0': 'Změna: přepnutí jazyka při otevřeném herním menu ho aktualizuje na místě, v každé hře — už žádný zastaralý text do další obrazovky.',
 };

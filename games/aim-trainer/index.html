@@ -301,10 +301,12 @@
       : KIT.shareText({ score: score, game: KIT.t('game.aim-trainer.gameName', { def: 'Range' }), emoji: '🎯', mode: KIT.t('game.aim-trainer.shareModeTimed', { n: sessionSeconds, def: sessionSeconds + 's Timed' }), extra: [KIT.t('game.aim-trainer.shareAccuracy', { pct: acc, def: acc + '% accuracy' }), mv] });
   }
   let rangeLastMode = null;
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   function showStartMenu(m) {
     m = m || selectedMode || 'timed'; selectedMode = m; rangeLastMode = m;
     state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = () => showStartMenu(m);
     const amounts = m === 'sprint'
       ? [{ id: '10', label: '10' }, { id: '50', label: '50' }, { id: '100', label: '100' }]
       : [{ id: '10', label: '10s' }, { id: '30', label: '30s' }, { id: '60', label: '60s' }];
@@ -339,6 +341,7 @@
   function showEnd(acc, isBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = () => showEnd(acc, isBest);
     const isSprint = mode === 'sprint';
     const detail = KIT.t('game.aim-trainer.endStats', { acc: acc, hits: hits, misses: misses, def: acc + '% accuracy · ' + hits + ' hits · ' + misses + ' misses' });
     const cfg = { kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true, title: isSprint ? KIT.t('game.aim-trainer.sprintClear', { def: 'SPRINT CLEAR' }) : KIT.t('game.aim-trainer.timesUp', { def: "TIME'S UP" }), lines: [detail],
@@ -361,7 +364,8 @@
     else { cfg.score = score; cfg.best = loadBest('timed', sessionSeconds); cfg.newBest = isBest; }
     KIT.menu.show(cfg);
   }
-  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
+  function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused'; showPauseMenu(); }
+  function showPauseMenu() { menuReshow = showPauseMenu;
     KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
       actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame }); }
@@ -748,6 +752,8 @@
 
   resize();
   updateHud();
+  // live language switch: retranslate the HUD + rebuild whichever menu is open
+  KIT.onLang(() => { updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
   KIT.loop(update, render);
   showStartMenu(selectedMode); // open the shared start menu (mode/amount/moving preselected from the URL)
 })();

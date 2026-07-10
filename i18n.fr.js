@@ -1707,4 +1707,6 @@ window.KOMYO_I18N.fr = {
   'game.sudoku.clearConfirm': 'Supprimer TOUTES les grilles inachevées, y compris la grille en cours ?',
   'game.sudoku.deleteConfirm': 'Supprimer cette grille ? ({board})',
   'game.sudoku.deleteYes': 'Supprimer',
+  'changelog.e54.title': 'Les menus changent de langue instantanément 🌐',
+  'changelog.e54.b0': 'Changement : changer de langue avec un menu de jeu ouvert le met désormais à jour immédiatement, dans tous les jeux — fini le texte périmé jusqu\'à l\'écran suivant.',
 };

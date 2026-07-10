@@ -305,7 +305,9 @@
     if (variant === 'zen') { g.fillStyle = (((st && st.theme) || theme) === 'dark') ? '#a8e878' : '#6a3fa8'; g.font = '700 15px system-ui'; g.fillText('z', w - 20, 20); g.font = '700 11px system-ui'; g.fillText('z', w - 13, 14); }
   }
   const menuParams = st => (st.theme && st.theme !== 'light') ? { mode: st.mode, theme: st.theme } : { mode: st.mode };
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   function showStartMenu() {
+    menuReshow = showStartMenu;
     state = 'ready'; if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.stacker.menuTitle', { def: 'STACK' }), backdrop: menuBackdrop,
@@ -328,6 +330,7 @@
   function showEnd(reason, isBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = () => showEnd(reason, isBest);   // re-show is safe: the kit's record guard is idempotent per run
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: reason === 'time' ? KIT.t('game.stacker.endTitleTime', { def: "TIME'S UP!" }) : KIT.t('game.stacker.endTitle', { def: 'OOPS!' }), backdrop: menuBackdrop,
       record: { slug: 'stacker', mode: MODE_CFG[mode].label, modeText: modeName(mode), score: score },
       score: score, best: currentBest(), newBest: isBest, lines: [modeName(mode)],
@@ -336,9 +339,10 @@
       onAction: id => { if (id === 'again') startGameMode(mode); else if (id === 'menu') toMenu(); } });
   }
   function pauseGame() { if (state !== 'playing' || !KIT) return; state = 'paused';
-    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }), lines: [KIT.t('game.common.scoreLine', { score: score, def: 'Score ' + score })],
+    const show = () => KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }), lines: [KIT.t('game.common.scoreLine', { score: score, def: 'Score ' + score })],
       actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
+    menuReshow = show; show();
   }
   function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
   function toMenu() { saveBest(); if (KIT) KIT.menu.hide(); showStartMenu(); }
@@ -586,6 +590,8 @@
 
   resize();
   updateHud();
+  // live language switch: retranslate the HUD (mode stat) + rebuild whichever menu is open
+  KIT.onLang(() => { updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
   KIT.loop(update, render);
   showStartMenu(); // open the shared start menu (mode/theme preselected from ?mode= / ?theme=)
 })();

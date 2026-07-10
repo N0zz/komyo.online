@@ -588,10 +588,12 @@
 
   function comboBest(m, d) { return KIT ? KIT.bestScore(SLUG, storeLabel(m, d)) : 0; }
 
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   function showStartMenu() {
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = showStartMenu;
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: T('game.forcefield.menuTitle', 'FORCEFIELD'), backdrop: menuBackdrop, backdropAnimate: true,
       lines: [T('game.forcefield.intro1', 'A battle station is charging its cannon at your planet.'),
               T('game.forcefield.intro2', 'Sweep your dome over the target and lock it before it fires.')],
@@ -633,6 +635,7 @@
   function showEnd(isBest) {
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    menuReshow = () => showEnd(isBest);
     const dbl = opts.mode === 'double';
     const title = isClock() ? T('game.forcefield.timesUp', "TIME'S UP") : T('game.forcefield.generatorDown', 'PLANET LOST');
     const cfg = { kind: 'end', theme: MENU_THEME, title: title, backdrop: menuBackdrop, backdropAnimate: true,
@@ -649,6 +652,9 @@
   function pauseGame() {
     if (state !== 'playing' || !KIT) return;
     state = 'paused';
+    showPauseMenu();
+  }
+  function showPauseMenu() { menuReshow = showPauseMenu;
     KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: T('game.common.paused', 'PAUSED'), backdrop: menuBackdrop, backdropAnimate: true, lines: [T('game.common.scoreLine', 'Score {score}', { score: score })],
       actions: [{ id: 'resume', label: T('game.common.resume', 'RESUME (ESC)'), primary: true }, { id: 'menu', label: T('game.common.quitToMenu', 'QUIT TO MENU'), danger: true }],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
@@ -731,6 +737,8 @@
   resize();
   setHudLabels();
   updateHud();
+  // live language switch: retranslate the HUD + rebuild whichever menu is open
+  KIT.onLang(() => { setHudLabels(); if (KIT.menu.current() && menuReshow) menuReshow(); });
   KIT.loop(update, render);
   showStartMenu();
 })();

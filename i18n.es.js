@@ -1708,4 +1708,6 @@ window.KOMYO_I18N.es = {
   'game.sudoku.clearConfirm': '¿Borrar TODOS los tableros sin terminar, incluido el actual?',
   'game.sudoku.deleteConfirm': '¿Borrar este tablero? ({board})',
   'game.sudoku.deleteYes': 'Borrar',
+  'changelog.e54.title': 'Los menús cambian de idioma al instante 🌐',
+  'changelog.e54.b0': 'Cambio: cambiar el idioma con un menú de juego abierto ahora lo actualiza al momento, en todos los juegos — se acabó el texto desactualizado hasta la siguiente pantalla.',
 };

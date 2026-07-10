@@ -344,11 +344,13 @@
     for(let i=0;i<menuEnemies.length;i++){ const k=menuEnemies[i]; const x=((k.base*w - frame*k.sp)%(w+80)+w+80)%(w+80)-40, y=k.y*h+Math.sin(frame*0.012+k.wob)*14, rot=frame*0.01*k.spin+k.off;
       g.save(); g.translate(x,y); g.rotate(rot); mbEnemy(g,k.t,k.r); g.restore(); } }
 
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   // set the runtime mode + storage keys + HUD (menu Play calls this before starting a run — no reload)
   function applyProgression(prog, sr){ PROGRESSION = (prog==='milestones'||prog==='shop') ? prog : 'levelup'; SPEEDRUN = !!sr; applyModeHud(); }
   function startGame(){ if(KIT) KIT.menu.hide(); resetRun(); startWave(1); state='playing'; overlay.classList.add('hidden');
     srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT){ KIT.showMenuButton(true); KIT.showPauseButton(true); } applyModeHud(); updateHud(); }
   function pauseGame(){ state='paused'; if(!KIT) return;
+    menuReshow = pauseGame;
     KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:t('game.common.paused',{def:'PAUSED'}), lines:[ t('game.asteroids-plus.pauseLine',{wave:wave,score:score,def:'Wave '+wave+' · Score '+score}) ],
       actions:[ {id:'resume',label:t('game.common.resume',{def:'RESUME (ESC)'}),primary:true}, {id:'menu',label:t('game.common.quitToMenu',{def:'QUIT TO MENU'}),danger:true} ],
       onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') quitToMenu(); }, onEsc: resumeGame }); }
@@ -418,6 +420,7 @@
   function showStartMenu(){
     state='menu'; SND.startMusic(); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); } overlay.classList.add('hidden');
     if(!KIT) return;
+    menuReshow = showStartMenu;
     genMenuRocks();
     const bestScore = k => { const v = KIT ? KIT.bestScore('asteroids-plus', progLabel(k, false)) : 0; return v > 0 ? v : '—'; };
     const bestTime  = k => { const t = KIT ? KIT.best('asteroids-plus', progLabel(k, true)).time : 0; return t > 0 ? fmtTime(t) : '—'; };
@@ -445,9 +448,12 @@
     KIT.stampUrl(modeParams({ mode: PROGRESSION, speedrun: SPEEDRUN }));
   }
   // end screen (game over / speedrun clear / victory) — kit-rendered; kit does recordResult + the share row.
-  function showEnd(o){
+  // mk is a THUNK (()=>opts) so a language-switch re-show rebuilds the baked title/lines in the new language.
+  function showEnd(mk){
+    const o = mk();
     SND.stopMusic(); if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); } overlay.classList.add('hidden');
     if(!KIT) return;
+    menuReshow = () => showEnd(mk);
     KIT.menu.show({ kind:'end', theme:MENU_THEME, title:o.title, backdrop:menuBackdrop, backdropAnimate:true,
       score:score, scoreText:o.scoreText, best:o.best, newBest:o.newBest, lines:o.lines,
       share:{ slug:'asteroids-plus', accent: '#b98cff', icon: '☄️', title:t('game.asteroids-plus.title',{def:'Asteroids+'}), message:()=>shareMsg(score, o.won), params:()=> (SPEEDRUN ? { prog:PROGRESSION, speedrun:'1' } : { prog:PROGRESSION }) },
@@ -593,18 +599,18 @@
   }
   function die(){ state='dead'; if(SPEEDRUN) srDone=true; burst(ship.x,ship.y,'255,160,120',50,5); SND.play('over');
     let newBest=false; if(!SPEEDRUN && KIT){ newBest = KIT.saveBest('asteroids-plus', progLabel(PROGRESSION, false), { score: score, stats: { wave: wave } }).isBest; }
-    showEnd({ title:t('game.asteroids-plus.gameOver',{def:'GAME OVER'}), scoreText:String(score), best: SPEEDRUN ? null : (KIT ? KIT.bestScore('asteroids-plus', progLabel(PROGRESSION, false)) : 0), newBest,
+    showEnd(() => ({ title:t('game.asteroids-plus.gameOver',{def:'GAME OVER'}), scoreText:String(score), best: SPEEDRUN ? null : (KIT ? KIT.bestScore('asteroids-plus', progLabel(PROGRESSION, false)) : 0), newBest,
       lines: SPEEDRUN ? [t('game.asteroids-plus.lineFailed',{time:fmtTime(srElapsed),def:'Speedrun — run failed at '+fmtTime(srElapsed)})] : [t('game.asteroids-plus.reachedWave',{wave:wave,def:'Reached wave '+wave})],
-      won:false, mode: SPEEDRUN?'speedrun':'', time: SPEEDRUN?srElapsed:0 }); }
+      won:false, mode: SPEEDRUN?'speedrun':'', time: SPEEDRUN?srElapsed:0 })); }
   function winRun(){ srDone=true; state='won'; SND.play('level'); const newBest=saveBest(srElapsed);
-    showEnd({ title:t('game.asteroids-plus.waveClearedTitle',{wave:SR_TARGET_WAVE,def:'WAVE '+SR_TARGET_WAVE+' CLEARED'}), scoreText:fmtTime(srElapsed), best:fmtTime((KIT ? KIT.best('asteroids-plus', progLabel(PROGRESSION, true)).time : 0) || srElapsed), newBest,
-      lines:[t('game.asteroids-plus.lineScore',{score:score,def:'score '+score})], won:false, mode:'speedrun', time:srElapsed }); }
+    showEnd(() => ({ title:t('game.asteroids-plus.waveClearedTitle',{wave:SR_TARGET_WAVE,def:'WAVE '+SR_TARGET_WAVE+' CLEARED'}), scoreText:fmtTime(srElapsed), best:fmtTime((KIT ? KIT.best('asteroids-plus', progLabel(PROGRESSION, true)).time : 0) || srElapsed), newBest,
+      lines:[t('game.asteroids-plus.lineScore',{score:score,def:'score '+score})], won:false, mode:'speedrun', time:srElapsed })); }
   // beat the wave-30 dual-boss finale (non-speedrun) → the run is won and over
   function victoryRun(){ state='won'; SND.play('level'); burst(ship.x,ship.y,'255,220,150',60,5);
     const newBest = KIT ? KIT.saveBest('asteroids-plus', progLabel(PROGRESSION, false), { score: score, stats: { wave: wave } }).isBest : false;
-    showEnd({ title:t('game.asteroids-plus.victory',{def:'VICTORY'}), scoreText:String(score), best: (KIT ? KIT.bestScore('asteroids-plus', progLabel(PROGRESSION, false)) : 0), newBest,
+    showEnd(() => ({ title:t('game.asteroids-plus.victory',{def:'VICTORY'}), scoreText:String(score), best: (KIT ? KIT.bestScore('asteroids-plus', progLabel(PROGRESSION, false)) : 0), newBest,
       lines:[t('game.asteroids-plus.victoryLine',{waves:RUN_END_WAVE,def:'You cleared all '+RUN_END_WAVE+' waves and broke the dual-boss finale.'})],
-      won:true, mode:({levelup:'Level-up',milestones:'Milestones',shop:'Wave shop'}[PROGRESSION]||'Roguelite'), stats:{wave:wave,victory:1} }); }
+      won:true, mode:({levelup:'Level-up',milestones:'Milestones',shop:'Wave shop'}[PROGRESSION]||'Roguelite'), stats:{wave:wave,victory:1} })); }
 
   // ---- Picker (levelup + milestones) ----
   let pickOptions=[];
@@ -613,7 +619,10 @@
     while(out.length<3 && cp.length){ const i=Math.floor(Math.random()*cp.length); out.push(cp.splice(i,1)[0]); } return out; }
   function openPicker(){ state='levelup'; pickOptions=rollPicks(); selIdx=0;
     if(pickOptions.length===0){ pendingPicks=0; state='playing'; return; }
-    if(!KIT) return;
+    showPicker(); }
+  // renders the already-rolled pickOptions — safe to re-show on a language switch (no re-roll)
+  function showPicker(){ if(!KIT) return;
+    menuReshow = showPicker;
     const ttl = PROGRESSION==='levelup' ? t('game.asteroids-plus.pickerLevel',{level:level,def:'LEVEL '+level}) : t('game.asteroids-plus.chooseUpgrade',{def:'CHOOSE UPGRADE'});
     // no backdrop → the kit menu box sits over the frozen playfield (mid-run); shop-style cards ARE the action
     KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:ttl,
@@ -633,6 +642,7 @@
   function shopCost(u){ const lv=up[u.id]||0; return Math.round(u.price*(1+0.8*lv)); }
   function anyAffordable(){ return pool().some(u=>{ const lv=up[u.id]||0, renew=lv>=u.max&&EXPIRING.has(u.id); return (lv<u.max||renew) && credits>=shopCost(u); }); }
   function openShop(){ state='shop'; selIdx=0; if(!KIT) return;
+    menuReshow = openShop;   // no rolls/credits touched on open — re-show only re-renders
     // kind:'pause' (not 'end') — the shop is mid-run, so it must NOT count as a safe-reload moment
     KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:t('game.asteroids-plus.drydock',{def:'DRYDOCK'}),
       banner: () => t('game.asteroids-plus.creditsBanner',{credits:credits,def:'◈ '+credits+' CREDITS'}),
@@ -953,6 +963,9 @@
   if (KIT) { KIT.nav({ slug: 'asteroids-plus', music: true, home: '../../', theme: MENU_THEME,
     confirmLeave: () => (state==='playing'||state==='paused'||state==='levelup'||state==='shop') ? t('confirm.leave', { def: 'Leave this run? You’ll lose your progress.' }) : false,
     onMenu: () => quitToMenu(), onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); } }); KIT.showMenuButton(false); KIT.showPauseButton(false); KIT.pwa('../../sw.js'); }
+
+  // live language switch: retranslate the HUD + rebuild whichever menu is open
+  if (KIT) KIT.onLang(() => { applyStaticText(); applyModeHud(); updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
 
   resize(); updateHud(); loop();
   showStartMenu(); // always open the unified kit start menu (mode preselected from the URL)

@@ -1707,4 +1707,6 @@ window.KOMYO_I18N.pt = {
   'game.sudoku.clearConfirm': 'Apagar TODOS os tabuleiros inacabados, incluindo o atual?',
   'game.sudoku.deleteConfirm': 'Apagar este tabuleiro? ({board})',
   'game.sudoku.deleteYes': 'Apagar',
+  'changelog.e54.title': 'Os menus trocam de idioma na hora 🌐',
+  'changelog.e54.b0': 'Mudança: trocar o idioma com um menu de jogo aberto agora o atualiza na hora, em todos os jogos — chega de texto desatualizado até a próxima tela.',
 };
