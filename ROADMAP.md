@@ -7,6 +7,13 @@ challenges, tv-controller.
 
 ## ✅ Done
 
+- **Sudoku shipped (2026-07-10).** Technique-graded generator (unique-solution, Easy→Expert by
+  required technique), UTC Daily (weekday-rotating difficulty, per-band bests), Zen, teaching hints
+  (highlight + reasoning, never a reveal), pencil marks/undo/digit counters, in-progress board list
+  (autosave, resume, cap 20), 4 board themes + Ink/Animals/Shapes digit styles, 7 locales.
+  Kit gains along the way: daily-pick freeze (playableSince), disabled menu actions, card corner-🗑,
+  and **live language switch rebuilds open menus in ALL 12 games**. Plan: `plans/sudoku-plan.md`.
+
 - **Knobs audit pass — DONE (2026-06-29).** All 9 games reviewed vs `@game-design-knobs.md` (feel +
   balance). Keep Defender done (difficulty tiers + rebalance). Asteroids+ rebalanced (×10 scale, caps,
   expiry, kamikaze, finite 30-wave finale) — **shipped but still being playtested** (tracked in the
@@ -222,7 +229,7 @@ design knobs (`@game-design-knobs.md`).
 titles, icons and genre tags here match the catalogue. This table is the build queue: effort + notes
 per game. Roughly easiest → hardest within each group.
 
-**▶ Next build order (2026-07-03):** **2048 → Dusk Runner → Minesweeper → Sudoku → a small kids batch**
+**▶ Next build order (2026-07-10):** **2048 → Dusk Runner → Minesweeper → a small kids batch** (Sudoku ✅ shipped 2026-07-10)
 (Balloon Pop / Glow Says / Critter Match). Rationale: all low-tuning + high-recognition = fast to build,
 zero teaching cost, and organically searchable ("2048", "sudoku", "minesweeper", "dino game"); the kids
 batch widens the no-ads/kid-safe lane. This batch is all remakes — per `komyo-market-expansion-discussion`,
@@ -243,7 +250,6 @@ slot **one original-mechanic, shareable game** in after 2048/Dusk Runner (don't 
 | **Pocket Rally** 🏎️ `RACING`+`ARCADE` | med | top-down multi-lane straight — weave the traffic, don't clip a bumper, distance + speed score |
 | **Market Parking** 🅿️ `SKILL`+`RACING` | med | packed lot, too few spots — race rivals to an empty space and park before them; P1–4 (bots fill the solo game) |
 | **Floodgate** 🚰 `LOGIC`+`PUZZLE` | med | pipe-routing — rotate tiles to connect source→drain before the flood; **solvable-by-construction**, leak-plug variant, grid + timer scaling |
-| **Sudoku** 🔢 `LOGIC`+`PUZZLE` | med | grid + notes + hints are low; real work is the **unique-solution generator** (backtracking solver → dig cells) |
 | **Invaders** 👾 `SHOOTER`+`ARCADE` | med | formation movement, descending rows, shields, escalating waves |
 | **Road Hop** 🐸 `ARCADE`+`CASUAL` | med | lane spawns, log-riding, endless scroll |
 | **Trap the Cat** 🐱 `PUZZLE`+`LOGIC` | med | hex grid + cat BFS pathfinding to the nearest edge |
@@ -345,6 +351,13 @@ from day one.
   **where to post** and **what to post**, plus called-out **red flags / crucial points only** (budget
   risk, ToS/spam risk, anything that could backfire). (Feeds Path-to-launch #5 + the Marketing
   sections below.)
+- **Promo content plan — planned (2026-07-09),** `plans/promo-content-plan.md`. The *assets* to post
+  (sibling to marketing_plan.md = *where* to post): a reusable **promo graphic** + a **30–60s trailer**
+  + **9:16 per-game/feature shorts**, all derived from the **score card as the brand visual language**
+  (printed real score cards double as marketing). Capture is **manual, once** (fun game states are a
+  human call — no capture scripting); I build the mocks/templates/copy, we assemble together. Also
+  covers the flyer/sticker print track + QR-at-print-size caveats. Open decisions: site-level accent +
+  flyer dimensions. Sequenced **graphic first** (unblocks Reddit + flyers).
 - **Review local Claude Code memories about komyo** (added 2026-07-02) — audit the Claude memory
   notes for stale komyo entries: plans that shipped, superseded decisions, rebrand leftovers;
   prune/merge so future sessions don't act on outdated context.

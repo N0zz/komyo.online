@@ -32,5 +32,14 @@ Classic 9×9 Sudoku for komyo. `games/sudoku/` · 🔢 · amber `#f0b429` · dra
       root sw.js GAME_SLUGS
 - [x] Register: games.js (`added: 2026-07-09`), sitemap.xml, llms.txt, changelog.js entry
 - [x] i18n: all keys in i18n.pl.js + incremental translate to cs/es/fr/it/pt/uk (61 keys each)
-- [x] Verify: node test.mjs (466) + node games/sudoku/test.mjs (88) green
-- [ ] User playtest + eyeball at http://localhost:8765/games/sudoku/ — then push
+- [x] Verify: node test.mjs (466) + node games/sudoku/test.mjs (102) green
+- [x] User playtest + iteration round (share everywhere incl. zen-time card, ONE in-progress
+      board list with miniature cards + per-entry delete, mode in labels, Animals/Shapes digit
+      styles, live language switch) — shipped 2026-07-10
+
+## Post-launch follow-ups (open)
+
+- Watch Daily engagement (per-band best buckets) and the goodRun bar (1500) — retune with
+  `challenges.js` goal `sudoku-2` in lockstep if needed
+- Possible v2: notes auto-fill option, technique-stats screen ("you needed 3 X-wings"),
+  daily streak counter
