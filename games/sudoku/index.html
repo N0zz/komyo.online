@@ -694,6 +694,7 @@
   }
   function place(d) {
     if (state !== 'playing' || sel < 0 || givens[sel]) return;
+    if (grid[sel] && grid[sel] === solution[sel]) return;   // correct entries lock in — no accidental regression
     clearHint();
     if (pencil) {
       if (grid[sel]) return;
@@ -731,6 +732,7 @@
   }
   function erase() {
     if (state !== 'playing' || sel < 0 || givens[sel]) return;
+    if (grid[sel] && grid[sel] === solution[sel]) return;   // correct entries lock in
     clearHint();
     if (!grid[sel] && !notes[sel]) return;
     pushUndo(sel);

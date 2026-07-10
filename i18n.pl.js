@@ -1681,6 +1681,8 @@ window.KOMYO_I18N.pl = {
   'changelog.e46.title': 'Range: celniej i płynniej 🎯',
   'changelog.e46.b0': 'Poprawka: w Range celownik podąża teraz za myszą natychmiast, zamiast opóźniać się o klatkę — celowanie jest ostre i responsywne.',
   'changelog.e46.b1': 'Zmiana: ekran końcowy pozbył się mylącej dodatkowej liczby czasu — pokazuje teraz tylko celność, trafienia i pudła.',
+  'changelog.e55.title': 'Sudoku: poprawne cyfry się blokują 🔢',
+  'changelog.e55.b0': 'Poprawka: poprawnie wstawiona cyfra w Sudoku blokuje się — koniec z przypadkowym czyszczeniem lub nadpisywaniem jej (i utratą postępu) w trakcie rundy. Błędne wpisy nadal można edytować, a Cofnij dalej działa, jeśli naprawdę tego chcesz.',
   'changelog.e54.title': 'Menu zmieniają język natychmiast 🌐',
   'changelog.e54.b0': 'Zmiana: zmiana języka przy otwartym menu gry odświeża je od razu, w każdej grze — koniec z nieaktualnym tekstem do następnego ekranu.',
   'changelog.e53.title': 'Nowa gra: Sudoku 🔢',

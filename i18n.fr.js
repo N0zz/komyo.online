@@ -1709,4 +1709,6 @@ window.KOMYO_I18N.fr = {
   'game.sudoku.deleteYes': 'Supprimer',
   'changelog.e54.title': 'Les menus changent de langue instantanément 🌐',
   'changelog.e54.b0': 'Changement : changer de langue avec un menu de jeu ouvert le met désormais à jour immédiatement, dans tous les jeux — fini le texte périmé jusqu\'à l\'écran suivant.',
+  'changelog.e55.title': 'Sudoku : les chiffres corrects se verrouillent 🔢',
+  'changelog.e55.b0': 'Correction : un chiffre correct placé dans Sudoku se verrouille — fini de l\'effacer ou de l\'écraser par accident (et de perdre sa progression) en pleine partie. Les entrées erronées restent modifiables, et Annuler fonctionne toujours si vous le voulez vraiment.',
 };
