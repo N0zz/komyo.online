@@ -4,6 +4,12 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-09', title: 'New game: Sudoku 🔢', items: [
+    'New: Sudoku — fill the 9×9 grid so every row, column and box holds 1–9. Four real difficulties (Easy to Expert, graded by the logic each puzzle actually needs), a Daily puzzle that’s the same for everyone, and a relaxed Zen mode with no timer or strikes.',
+    'New: logical hints that teach — tap 💡 and the game highlights where to look and explains the reasoning (never a random reveal), then tap again to apply it.',
+    'New: pencil marks, undo, per-digit counters, and unlockable board themes and numeral styles in the Collection.',
+    'New: step away anytime — unfinished boards are kept under “In progress” (last 50) so you can pick them up later; and two new digit styles in the Collection: Animals and Shapes.',
+  ] },
   { date: '2026-07-09', title: 'A clearer collection bar 🎨', items: [
     'Change: your Collection bar now shows how many skins you’ve unlocked out of the total (like 20 / 90), so it’s clear at a glance how much is left to collect — trophies stay just for buying and titles.',
     'Fix: on shared score cards the game’s mode and difficulty no longer get cut off in languages with longer words — the line shrinks to fit.',

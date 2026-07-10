@@ -448,6 +448,62 @@
   add('frog-bonk', 'meadow', 'rain',    'Rainy Day',  50,  'Soft rain over deep green grass.', meadowSwatch(['#6aa84f', '#457a38', '#2f5e2c'], 'rain'));
   add('frog-bonk', 'meadow', 'snow',    'Winter',     100, 'A quiet snowfall over the frozen meadow.', meadowSwatch(['#dfe8ea', '#b8ccd0', '#9ab4bc'], 'snow'));
 
+  // ---- 🔢 Sudoku — board themes + numeral styles ----
+  function sudokuBoard(card, line, given, entry) {
+    return function (g, w, h) {
+      g.fillStyle = card; g.fillRect(0, 0, w, h);
+      g.strokeStyle = line; g.lineWidth = Math.max(1, w * 0.02);
+      for (let k = 1; k < 3; k++) {
+        g.beginPath(); g.moveTo((w / 3) * k, w * 0.08); g.lineTo((w / 3) * k, h - w * 0.08); g.stroke();
+        g.beginPath(); g.moveTo(w * 0.08, (h / 3) * k); g.lineTo(w - w * 0.08, (h / 3) * k); g.stroke();
+      }
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '700 ' + (w * 0.24) + 'px Georgia, serif';
+      g.fillStyle = given; g.fillText('5', w / 6, h / 6 + h * 0.02);
+      g.fillStyle = entry; g.fillText('3', w / 2, h / 2 + h * 0.02);
+      g.fillStyle = given; g.fillText('9', w * 5 / 6, h * 5 / 6 + h * 0.02);
+    };
+  }
+  function sudokuDigits(family, weight) {
+    // truthful preview: the classic set is numerals in the board's real ink/entry colors
+    return function (g, w, h) {
+      g.fillStyle = '#f2efe8'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = '#b9b3a4'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(w / 2, h * 0.1); g.lineTo(w / 2, h * 0.9); g.stroke();
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = weight + ' ' + (w * 0.5) + 'px ' + family;
+      g.fillStyle = '#23272e'; g.fillText('7', w * 0.27, h / 2 + h * 0.03);
+      g.fillStyle = '#1d6fb8'; g.fillText('3', w * 0.73, h / 2 + h * 0.03);
+    };
+  }
+  function sudokuAnimals(g, w, h) {
+    g.fillStyle = '#f2efe8'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#b9b3a4'; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(w / 2, h * 0.1); g.lineTo(w / 2, h * 0.9); g.stroke();
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = (w * 0.42) + 'px system-ui, sans-serif';
+    g.fillText('🦊', w * 0.27, h / 2 + h * 0.03);
+    g.fillText('🐸', w * 0.73, h / 2 + h * 0.03);
+  }
+  function sudokuShapes(g, w, h) {
+    g.fillStyle = '#f2efe8'; g.fillRect(0, 0, w, h);
+    var r = w * 0.16;
+    g.fillStyle = '#e74c3c'; g.beginPath(); g.arc(w * 0.26, h * 0.32, r, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#3498db'; g.beginPath();
+    for (var k = 0; k < 10; k++) { var rr = k % 2 ? r * 0.45 : r; var a = -Math.PI / 2 + k * Math.PI / 5; g[k ? 'lineTo' : 'moveTo'](w * 0.72 + rr * Math.cos(a), h * 0.36 + rr * Math.sin(a)); }
+    g.closePath(); g.fill();
+    g.fillStyle = '#2ecc71'; g.beginPath();
+    g.moveTo(w * 0.5, h * 0.72 - r); g.lineTo(w * 0.5 + r, h * 0.72); g.lineTo(w * 0.5, h * 0.72 + r); g.lineTo(w * 0.5 - r, h * 0.72);
+    g.closePath(); g.fill();
+  }
+  add('sudoku', 'board', 'paper',     'Paper',     0,   'Clean off-white paper and warm ink.', sudokuBoard('#f2efe8', '#3a3f47', '#2b2f36', '#1d6fb8'));
+  add('sudoku', 'board', 'slate',     'Slate',     25,  'A dark board for late-night solving.', sudokuBoard('#2b323c', '#97a3b4', '#e8e2d4', '#6ad6ff'));
+  add('sudoku', 'board', 'blueprint', 'Blueprint', 50,  'Cyan grid lines on drafting blue.', sudokuBoard('#0e2a42', '#7fd8ff', '#eaf6ff', '#ffd24d'));
+  add('sudoku', 'board', 'pastel',    'Pastel',    100, 'Soft rose paper and plum ink.', sudokuBoard('#fdf2f8', '#b07aa0', '#5a4a58', '#7a5fd0'));
+  add('sudoku', 'digits', 'ink',     'Ink Serif', 0,  'Classic newspaper numerals.', sudokuDigits('Georgia, serif', 700));
+  add('sudoku', 'digits', 'animals', 'Animals',   50, 'Nine little critters instead of numbers.', sudokuAnimals);
+  add('sudoku', 'digits', 'shapes',  'Shapes',    50, 'Nine colorful shapes instead of numbers.', sudokuShapes);
+
   // ---- 🌐 Forcefield — bolt colours + planet skins ----
   add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean golden bolt.', forcefieldMarker('#ffd36b'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
@@ -483,6 +539,8 @@
       'forcefield.planet':         { label: 'Planet skins' },
       'frog-bonk.hammer':    { label: 'Hammer skins' },
       'frog-bonk.meadow':    { label: 'Meadow seasons' },
+      'sudoku.board':        { label: 'Board themes' },
+      'sudoku.digits':       { label: 'Numeral styles' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -498,6 +556,7 @@
       'flappy':         { title: 'Meadow Flyer', icon: '🐤', accent: '#8fd3a6' },
       'forcefield':          { title: 'Forcefield', icon: '🌐', accent: '#38bdf8' },
       'frog-bonk':     { title: 'Frog Bonk', icon: '🐸', accent: '#7ed957' },
+      'sudoku':        { title: 'Sudoku', icon: '🔢', accent: '#f0b429' },
     },
   };
 })();
