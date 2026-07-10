@@ -1,0 +1,1424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Sudoku</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f0b429">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sudoku">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1d232b; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #hud .val { color: #f0b429; }
+  /* number pad — DOM buttons under the board (heights are constants PAD JS relies on) */
+  #pad { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    width: min(96vw, 470px); display: none; flex-direction: column; gap: 6px; z-index: 30; }
+  #pad.show { display: flex; }
+  #pad .row { display: flex; gap: 5px; justify-content: center; }
+  #pad button { flex: 1 1 0; height: 52px; min-width: 0; font: 700 22px system-ui, -apple-system, sans-serif;
+    color: #e8e2d4; background: rgba(51,61,74,.92); border: 1px solid rgba(122,138,160,.28);
+    border-radius: 10px; cursor: pointer; position: relative; padding: 0; touch-action: manipulation; }
+  #pad button:active { background: #f0b429; color: #22262c; }
+  #pad .row.tools button { height: 44px; font-size: 19px; }
+  #pad button.on { background: #f0b429; color: #22262c; border-color: #f0b429; }
+  #pad button.done { opacity: .28; pointer-events: none; }
+  #pad button small { position: absolute; right: 5px; bottom: 3px; font-size: 10px; font-weight: 600; color: #f0b429aa; }
+  #pad button.on small { color: #22262caa; }
+  #hintbar { position: fixed; left: 50%; transform: translateX(-50%);
+    bottom: calc(122px + env(safe-area-inset-bottom, 0px)); width: min(94vw, 460px);
+    background: rgba(30,36,44,.94); border: 1px solid #f0b42966; border-radius: 12px;
+    color: #f5e9c8; font: 500 13px/1.35 system-ui, -apple-system, sans-serif; padding: 8px 12px;
+    text-align: center; display: none; z-index: 31; }
+  #hintbar.show { display: block; }
+  #hintbar b { color: #f0b429; }
+  /* short landscape screens: the pad docks on the right instead of below */
+  #pad.side { width: 172px; left: auto; right: 10px; bottom: 10px; transform: none; }
+  #pad.side .row { flex-wrap: wrap; }
+  #pad.side .row button { flex: 0 0 31%; height: 42px; font-size: 18px; }
+  #pad.side .row.tools button { flex: 0 0 23%; height: 38px; }
+  /* …and the hint bar joins the right column (never over the board) */
+  #hintbar.side { left: auto; right: 10px; bottom: auto; top: 60px; transform: none; width: 172px; font-size: 12px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblTime">TIME</span><span class="val" id="timeEl">0:00</span></div>
+  <div class="stat"><span class="lbl" id="lblMiss">MISTAKES</span><span class="val" id="missEl">0/3</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+</div>
+<div id="hintbar"></div>
+<div id="pad">
+  <div class="row" id="padDigits"></div>
+  <div class="row tools" id="padTools"></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'sudoku';
+  const ACCENT = '#f0b429';
+
+  // ==================================================================================
+  // SFX (never reuse a kit stinger name: levelup, lose, victory, newbest, gameover)
+  const SND = window.gamekit.sound;
+  SND.define({
+    place: (c) => c.voice({ f: 620, slideTo: 660, dur: 0.05, type: 'triangle', gain: 0.09, filter: 'lowpass', cutoff: 2400 }),
+    scribble: (c) => c.voice({ f: 940, dur: 0.03, type: 'triangle', gain: 0.05, filter: 'lowpass', cutoff: 3200 }),
+    wrong: (c) => { c.voice({ f: 220, slideTo: 160, dur: 0.22, type: 'sawtooth', gain: 0.1, filter: 'lowpass', cutoff: 900, cutoffTo: 300 }); c.noiseHit({ dur: 0.08, gain: 0.05, filter: 'lowpass', cutoff: 800 }); },
+    rubber: (c) => c.noiseHit({ dur: 0.07, gain: 0.06, filter: 'lowpass', cutoff: 1400, cutoffTo: 500 }),
+    unitdone: (c) => c.seq([659, 880], 70, f => c.voice({ f, dur: 0.18, type: 'triangle', gain: 0.09, filter: 'lowpass', cutoff: 2800, reverb: 0.25 })),
+    digitdone: (c) => c.seq([523, 659, 784], 60, f => c.voice({ f, dur: 0.2, type: 'triangle', gain: 0.09, filter: 'lowpass', cutoff: 2800, reverb: 0.3 })),
+    lamp: (c) => c.voice({ f: 880, slideTo: 1175, dur: 0.14, type: 'sine', gain: 0.1, reverb: 0.3 }),
+  });
+
+  // ==================================================================================
+  // Generator — seeded, unique-solution, technique-graded (validated standalone in node).
+  function rng(seed) {
+    let s = seed >>> 0;
+    return function () {
+      s = (s + 0x6D2B79F5) >>> 0;
+      let t = s;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  const ROW = i => (i / 9) | 0, COL = i => i % 9, BOX = i => ((ROW(i) / 3) | 0) * 3 + ((COL(i) / 3) | 0);
+  const PEERS = [];
+  for (let i = 0; i < 81; i++) {
+    const s = new Set();
+    for (let j = 0; j < 81; j++) if (j !== i && (ROW(j) === ROW(i) || COL(j) === COL(i) || BOX(j) === BOX(i))) s.add(j);
+    PEERS.push([...s]);
+  }
+  const UNITS = []; // 0-8 rows, 9-17 cols, 18-26 boxes
+  for (let r = 0; r < 9; r++) UNITS.push(Array.from({ length: 9 }, (_, c) => r * 9 + c));
+  for (let c = 0; c < 9; c++) UNITS.push(Array.from({ length: 9 }, (_, r) => r * 9 + c));
+  for (let b = 0; b < 9; b++) {
+    const r0 = ((b / 3) | 0) * 3, c0 = (b % 3) * 3, u = [];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 3; c++) u.push((r0 + r) * 9 + c0 + c);
+    UNITS.push(u);
+  }
+  function candMask(grid, i) {
+    let m = 0x1FF;
+    for (const p of PEERS[i]) if (grid[p]) m &= ~(1 << (grid[p] - 1));
+    return m;
+  }
+  const popcount = m => { let c = 0; while (m) { m &= m - 1; c++; } return c; };
+  function fillGrid(rand) {
+    const grid = new Uint8Array(81);
+    function solve() {
+      let best = -1, bestMask = 0, bestN = 10;
+      for (let i = 0; i < 81; i++) {
+        if (grid[i]) continue;
+        const m = candMask(grid, i), n = popcount(m);
+        if (n === 0) return false;
+        if (n < bestN) { bestN = n; best = i; bestMask = m; if (n === 1) break; }
+      }
+      if (best === -1) return true;
+      const digits = [];
+      for (let d = 0; d < 9; d++) if (bestMask & (1 << d)) digits.push(d + 1);
+      for (let k = digits.length - 1; k > 0; k--) { const j = (rand() * (k + 1)) | 0; [digits[k], digits[j]] = [digits[j], digits[k]]; }
+      for (const d of digits) {
+        grid[best] = d;
+        if (solve()) return true;
+        grid[best] = 0;
+      }
+      return false;
+    }
+    solve();
+    return grid;
+  }
+  function countSolutions(grid, limit) {
+    const g = Uint8Array.from(grid);
+    let count = 0;
+    function solve() {
+      if (count >= limit) return;
+      let best = -1, bestMask = 0, bestN = 10;
+      for (let i = 0; i < 81; i++) {
+        if (g[i]) continue;
+        const m = candMask(g, i), n = popcount(m);
+        if (n === 0) return;
+        if (n < bestN) { bestN = n; best = i; bestMask = m; if (n === 1) break; }
+      }
+      if (best === -1) { count++; return; }
+      for (let d = 0; d < 9; d++) {
+        if (!(bestMask & (1 << d))) continue;
+        g[best] = d + 1;
+        solve();
+        g[best] = 0;
+        if (count >= limit) return;
+      }
+    }
+    solve();
+    return count;
+  }
+  function kCombos(arr, k) {
+    const out = [];
+    const rec = (start, cur) => {
+      if (cur.length === k) { out.push(cur.slice()); return; }
+      for (let i = start; i < arr.length; i++) { cur.push(arr[i]); rec(i + 1, cur); cur.pop(); }
+    };
+    rec(0, []);
+    return out;
+  }
+  // Technique engine. Levels: 1 singles · 2 locked candidates · 3 pairs/triples · 4 X-wing/XY-wing.
+  // makeSolver(g) exposes stepwise techniques over a live candidate model — shared by the
+  // difficulty grader AND the hint engine (one implementation, two consumers).
+  function makeSolver(g) {
+    const cand = new Array(81);
+    for (let i = 0; i < 81; i++) cand[i] = g[i] ? 0 : candMask(g, i);
+    const S = { g, cand, lastPlace: null, lastHidden: null };
+    const place = (i, d) => {
+      g[i] = d; cand[i] = 0;
+      for (const p of PEERS[i]) cand[p] &= ~(1 << (d - 1));
+      S.lastPlace = { i, d };
+    };
+    const eliminate = (i, mask) => { const had = cand[i]; cand[i] &= ~mask; return cand[i] !== had; };
+    S.nakedSingle = (applyAll) => {
+      let did = false;
+      for (let i = 0; i < 81; i++) if (!g[i] && popcount(cand[i]) === 1) {
+        place(i, (Math.log2(cand[i]) + 1) | 0); did = true;
+        if (!applyAll) return true;
+      }
+      return did;
+    };
+    S.hiddenSingle = (applyAll) => {
+      let did = false;
+      for (let u = 0; u < 27; u++) {
+        const unit = UNITS[u];
+        for (let d = 0; d < 9; d++) {
+          const bit = 1 << d;
+          let spot = -1, n = 0;
+          for (const i of unit) { if (g[i] === d + 1) { n = -1; break; } if (!g[i] && (cand[i] & bit)) { spot = i; n++; } }
+          if (n === 1) {
+            // skip cells that are ALSO naked singles — report the sharper technique
+            if (popcount(cand[spot]) === 1 && !applyAll) continue;
+            place(spot, d + 1); S.lastHidden = { unit: u }; did = true;
+            if (!applyAll) return true;
+          }
+        }
+      }
+      return did;
+    };
+    S.locked = () => {
+      let did = false;
+      for (let b = 18; b < 27; b++) {
+        const box = UNITS[b];
+        for (let d = 0; d < 9; d++) {
+          const bit = 1 << d;
+          const spots = box.filter(i => !g[i] && (cand[i] & bit));
+          if (spots.length < 2 || spots.length > 3) continue;
+          const rows = new Set(spots.map(ROW)), cols = new Set(spots.map(COL));
+          if (rows.size === 1) {
+            const r = [...rows][0];
+            for (let c = 0; c < 9; c++) { const i = r * 9 + c; if (!box.includes(i) && !g[i] && eliminate(i, bit)) did = true; }
+          } else if (cols.size === 1) {
+            const c = [...cols][0];
+            for (let r = 0; r < 9; r++) { const i = r * 9 + c; if (!box.includes(i) && !g[i] && eliminate(i, bit)) did = true; }
+          }
+        }
+      }
+      for (let u = 0; u < 18; u++) {
+        const line = UNITS[u];
+        for (let d = 0; d < 9; d++) {
+          const bit = 1 << d;
+          const spots = line.filter(i => !g[i] && (cand[i] & bit));
+          if (spots.length < 2 || spots.length > 3) continue;
+          const boxes = new Set(spots.map(BOX));
+          if (boxes.size === 1) {
+            for (const i of UNITS[18 + [...boxes][0]]) if (!line.includes(i) && !g[i] && eliminate(i, bit)) did = true;
+          }
+        }
+      }
+      return did;
+    };
+    S.sets = () => {
+      let did = false;
+      for (const size of [2, 3]) {
+        for (const u of UNITS) {
+          const empt = u.filter(i => !g[i]);
+          if (empt.length > size) {
+            for (const combo of kCombos(empt.filter(i => popcount(cand[i]) <= size), size)) {
+              let union = 0;
+              for (const i of combo) union |= cand[i];
+              if (popcount(union) !== size) continue;
+              for (const i of empt) if (!combo.includes(i) && eliminate(i, union)) did = true;
+            }
+          }
+          const digits = [];
+          for (let d = 0; d < 9; d++) {
+            const bit = 1 << d;
+            const spots = empt.filter(i => cand[i] & bit);
+            if (spots.length >= 2 && spots.length <= size) digits.push({ d, spots });
+          }
+          for (const combo of kCombos(digits, size)) {
+            const cells = new Set();
+            let mask = 0;
+            for (const it of combo) { mask |= 1 << it.d; for (const i of it.spots) cells.add(i); }
+            if (cells.size !== size) continue;
+            for (const i of cells) if (eliminate(i, ~mask & 0x1FF)) did = true;
+          }
+        }
+      }
+      return did;
+    };
+    S.wings = () => {
+      let did = false;
+      for (const byRow of [true, false]) {
+        for (let d = 0; d < 9; d++) {
+          const bit = 1 << d;
+          const lines = [];
+          for (let a = 0; a < 9; a++) {
+            const spots = [];
+            for (let b2 = 0; b2 < 9; b2++) {
+              const i = byRow ? a * 9 + b2 : b2 * 9 + a;
+              if (!g[i] && (cand[i] & bit)) spots.push(b2);
+            }
+            if (spots.length === 2) lines.push({ a, spots });
+          }
+          for (let x = 0; x < lines.length; x++) for (let y = x + 1; y < lines.length; y++) {
+            if (lines[x].spots[0] !== lines[y].spots[0] || lines[x].spots[1] !== lines[y].spots[1]) continue;
+            for (const b2 of lines[x].spots) {
+              for (let a = 0; a < 9; a++) {
+                if (a === lines[x].a || a === lines[y].a) continue;
+                const i = byRow ? a * 9 + b2 : b2 * 9 + a;
+                if (!g[i] && eliminate(i, bit)) did = true;
+              }
+            }
+          }
+        }
+      }
+      const bi = [];
+      for (let i = 0; i < 81; i++) if (!g[i] && popcount(cand[i]) === 2) bi.push(i);
+      for (const pivot of bi) {
+        const pm = cand[pivot];
+        const wings = bi.filter(w => w !== pivot && PEERS[pivot].includes(w) && popcount(cand[w] & pm) === 1 && (cand[w] & ~pm & 0x1FF));
+        for (let x = 0; x < wings.length; x++) for (let y = x + 1; y < wings.length; y++) {
+          const w1 = wings[x], w2 = wings[y];
+          if ((cand[w1] & pm) === (cand[w2] & pm)) continue;
+          const z = cand[w1] & cand[w2] & ~pm & 0x1FF;
+          if (popcount(z) !== 1) continue;
+          for (const i of PEERS[w1]) if (PEERS[w2].includes(i) && i !== pivot && !g[i] && eliminate(i, z)) did = true;
+        }
+      }
+      return did;
+    };
+    return S;
+  }
+  function gradeSolve(puzzle) {
+    const g = Uint8Array.from(puzzle);
+    const S = makeSolver(g);
+    let maxLevel = 0;
+    const LADDER = [
+      [1, () => S.nakedSingle(true) || S.hiddenSingle(true)],
+      [2, S.locked],
+      [3, S.sets],
+      [4, S.wings],
+    ];
+    for (;;) {
+      if (!g.includes(0)) return { solved: true, level: maxLevel };
+      let progressed = false;
+      for (const [lvl, fn] of LADDER) {
+        if (fn()) { if (lvl > maxLevel) maxLevel = lvl; progressed = true; break; }
+      }
+      if (!progressed) return { solved: false, level: maxLevel };
+    }
+  }
+  function digGraded(solution, rand, band, targetClues) {
+    const puzzle = Uint8Array.from(solution);
+    let clues = 81, level = 0;
+    const tryRemove = (cells) => {
+      const saved = cells.map(i => puzzle[i]);
+      for (const i of cells) puzzle[i] = 0;
+      let keep = countSolutions(puzzle, 2) === 1;
+      if (keep) {
+        const g = gradeSolve(puzzle);
+        keep = g.solved && g.level <= band;   // difficulty never overshoots the band
+        if (keep) level = g.level;
+      }
+      if (!keep) cells.forEach((i, k) => { puzzle[i] = saved[k]; });
+      else clues -= cells.length;
+      return keep;
+    };
+    const shuffled = (n) => {
+      const a = Array.from({ length: n }, (_, i) => i);
+      for (let k = n - 1; k > 0; k--) { const j = (rand() * (k + 1)) | 0; [a[k], a[j]] = [a[j], a[k]]; }
+      return a;
+    };
+    // pass 1: symmetric pairs (i, 80-i); pass 2: single cells fine-tune up to the band
+    for (const i of shuffled(41)) {
+      if (clues <= targetClues && level === band) break;
+      if (!puzzle[i]) continue;
+      tryRemove(i === 80 - i ? [i] : [i, 80 - i]);
+    }
+    if (level < band) {
+      for (const i of shuffled(81)) {
+        if (level === band && clues <= targetClues) break;
+        if (!puzzle[i]) continue;
+        tryRemove([i]);
+      }
+    }
+    return { puzzle, level, clues };
+  }
+  const BAND_CLUES = { 1: 38, 2: 32, 3: 27, 4: 23 };
+  function generate(seed, band) {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const rand = rng(seed + attempt * 7919);
+      const solution = fillGrid(rand);
+      const res = digGraded(solution, rand, band, BAND_CLUES[band]);
+      if (res.level === band) return { puzzle: res.puzzle, solution, level: res.level };
+    }
+    // 30 misses in a row is astronomically unlikely; take the last dig as a safe fallback
+    const rand = rng(seed);
+    const solution = fillGrid(rand);
+    const res = digGraded(solution, rand, band, BAND_CLUES[band]);
+    return { puzzle: res.puzzle, solution, level: res.level };
+  }
+
+  // ==================================================================================
+  // Difficulty / modes / scoring
+  const DIFFS = ['easy', 'medium', 'hard', 'expert'];        // band = index+1
+  const BASE = { 1: 1000, 2: 2000, 3: 3500, 4: 5000 };
+  const PAR = { 1: 600, 2: 900, 3: 1500, 4: 2100 };          // seconds at which score = base
+  const DAILY_BAND = [4, 1, 1, 2, 2, 3, 3];                  // getDay(): Sun→Expert … Sat→Hard
+  const MAX_MISTAKES = 3;
+
+  const diffLabel = b => ['Easy', 'Medium', 'Hard', 'Expert'][b - 1];              // storage — stays English
+  const diffDisplay = b => KIT.t('game.sudoku.diff' + diffLabel(b), { def: diffLabel(b) });
+  // Daily bests are per-band ('Daily · Easy' … 'Daily · Expert') — the daily difficulty rotates by
+  // weekday, so one shared bucket would let Sunday's Expert score block "★ New best!" all week.
+  function modeStorageLabel() {
+    if (gameMode === 'zen') return 'Zen';
+    return gameMode === 'daily' ? 'Daily · ' + diffLabel(band) : diffLabel(band);
+  }
+  function modeDisplayLabel() {
+    if (gameMode === 'zen') return modeDisplay('zen');
+    return gameMode === 'daily' ? modeDisplay('daily') + ' · ' + diffDisplay(band) : diffDisplay(band);
+  }
+  function loadBest() { return KIT ? KIT.bestScore(SLUG, modeStorageLabel()) : 0; }
+
+  function dailySeedAndBand() {
+    // UTC, like every kit daily system — "same for everyone" must hold across timezones
+    const d = new Date();
+    return { seed: d.getUTCFullYear() * 10000 + (d.getUTCMonth() + 1) * 100 + d.getUTCDate(), band: DAILY_BAND[d.getUTCDay()] };
+  }
+  function computeScore() {
+    const t = Math.floor(ticks / 60);
+    let s = BASE[band] * (2 * PAR[band] / (PAR[band] + t));
+    s *= Math.pow(0.9, mistakes) * Math.pow(0.85, hintsUsed);
+    return Math.max(Math.round(BASE[band] * 0.1), Math.round(s));
+  }
+
+  // ==================================================================================
+  // State
+  let W = 0, H = 0, topMargin = 48;
+  let state = 'ready';                 // ready | playing | over
+  let gameMode = 'classic';            // classic | daily | zen
+  let band = 2;                        // difficulty band 1..4
+  let givens = new Uint8Array(81), grid = new Uint8Array(81), solution = new Uint8Array(81);
+  let notes = new Uint16Array(81);
+  let sel = -1, pencil = false;
+  let mistakes = 0, hintsUsed = 0, ticks = 0, lastSec = -1;
+  let best = 0;
+  const undoStack = [];
+  let hintActive = null;               // {type, cell, digit, cells, unit, via, text}
+  const flashes = [];                  // [{cells, t}] unit-complete golden fades (t in ticks)
+  let winFlash = 0;
+
+  // board geometry (all CSS px, JS-computed — the layout getter reports these)
+  const PAD_H = 122;                   // bottom number-pad height + gap the board must clear
+  const HINT_H = 50;                   // hint-bar strip above the pad — reserved so it never covers the board
+  const SIDE_W = 192;                  // right-docked pad width + gap (short landscape screens)
+  let bx = 0, by = 0, bsize = 300, cell = 33, sideMode = false, safeB = 0;
+  function measureSafeB() {
+    // CSS positions the pad with env(safe-area-inset-bottom); JS must reserve the same inset
+    try {
+      const p = document.createElement('div');
+      p.style.cssText = 'position:fixed;left:-9999px;bottom:0;height:0;padding-bottom:env(safe-area-inset-bottom,0px);';
+      document.body.appendChild(p);
+      safeB = p.offsetHeight || 0;
+      document.body.removeChild(p);
+    } catch (e) { safeB = 0; }
+  }
+
+  // ==================================================================================
+  // Cosmetics — board themes + numeral styles
+  const BOARDS = {
+    'sudoku.board.paper': {
+      page0: '#2d3642', page1: '#1d232b', card: '#f2efe8', line: '#b9b3a4', bold: '#2f343c',
+      given: '#23272e', entry: '#1d6fb8', note: '#8a8577', err: '#c0392b',
+      sel: 'rgba(240,180,41,.38)', same: 'rgba(240,180,41,.26)', peer: 'rgba(240,180,41,.11)',
+    },
+    'sudoku.board.slate': {
+      page0: '#1a1f26', page1: '#101419', card: '#2b323c', line: '#4a5566', bold: '#a8b4c4', dark: true,
+      given: '#eee8da', entry: '#6ad6ff', note: '#8a94a4', err: '#ff6b5c',
+      sel: 'rgba(240,180,41,.42)', same: 'rgba(240,180,41,.26)', peer: 'rgba(240,180,41,.12)',
+    },
+    'sudoku.board.blueprint': {
+      page0: '#0c1d30', page1: '#081522', card: '#0e2a42', line: 'rgba(127,216,255,.34)', bold: '#7fd8ff', dark: true,
+      given: '#eaf6ff', entry: '#ffd24d', note: '#7aa8c8', err: '#ff7a6b',
+      sel: 'rgba(127,216,255,.35)', same: 'rgba(127,216,255,.24)', peer: 'rgba(127,216,255,.11)',
+    },
+    'sudoku.board.pastel': {
+      page0: '#2e2637', page1: '#221c29', card: '#fdf2f8', line: '#e0bfd2', bold: '#a06890',
+      given: '#4e3f4c', entry: '#7a5fd0', note: '#b8a0b0', err: '#e05c7a',
+      sel: 'rgba(176,122,160,.40)', same: 'rgba(176,122,160,.28)', peer: 'rgba(176,122,160,.12)',
+    },
+  };
+  const FONTS = {
+    'sudoku.digits.ink': { family: 'Georgia, "Times New Roman", serif', given: 700, entry: 500 },
+  };
+  // Animals / Shapes digit styles — one glyph per digit, colors CONSISTENT per digit everywhere
+  // (board, notes, number pad), so "all the red circles" reads like "all the 1s".
+  const ANIMALS = ['🐭', '🐸', '🦊', '🐻', '🐼', '🐷', '🐮', '🐯', '🐰'];
+  const SHAPE_COLORS = ['#e74c3c', '#f39c12', '#e8c412', '#2ecc71', '#1abc9c', '#3498db', '#9b59b6', '#ff7ac8', '#8a99a8'];
+  const SHAPE_CHARS = ['●', '▲', '■', '◆', '⬟', '★', '♥', '✚', '⬢'];   // DOM pad buttons
+  function digitStyle() {
+    const id = KIT.cosmetics && KIT.cosmetics.selected('sudoku.digits');
+    return id === 'sudoku.digits.animals' ? 'animals' : id === 'sudoku.digits.shapes' ? 'shapes' : 'ink';
+  }
+  function polyPath(g, x, y, r, n, rot) {
+    g.beginPath();
+    for (let k = 0; k < n; k++) { const a = rot + k * 2 * Math.PI / n; g[k ? 'lineTo' : 'moveTo'](x + r * Math.cos(a), y + r * Math.sin(a)); }
+    g.closePath();
+  }
+  function drawShape(g, d, x, y, r) {
+    g.fillStyle = SHAPE_COLORS[d - 1];
+    switch (d) {
+      case 1: g.beginPath(); g.arc(x, y, r * 0.92, 0, Math.PI * 2); break;
+      case 2: polyPath(g, x, y + r * 0.1, r, 3, -Math.PI / 2); break;
+      case 3: g.beginPath(); g.rect(x - r * 0.78, y - r * 0.78, r * 1.56, r * 1.56); break;
+      case 4: polyPath(g, x, y, r, 4, -Math.PI / 2); break;
+      case 5: polyPath(g, x, y, r, 5, -Math.PI / 2); break;
+      case 6: g.beginPath();
+        for (let k = 0; k < 10; k++) { const rr = k % 2 ? r * 0.45 : r; const a = -Math.PI / 2 + k * Math.PI / 5; g[k ? 'lineTo' : 'moveTo'](x + rr * Math.cos(a), y + rr * Math.sin(a)); }
+        g.closePath(); break;
+      case 7: { const s = r * 0.95; g.beginPath(); g.moveTo(x, y + s * 0.75);
+        g.bezierCurveTo(x - s * 1.1, y - s * 0.1, x - s * 0.55, y - s * 0.95, x, y - s * 0.35);
+        g.bezierCurveTo(x + s * 0.55, y - s * 0.95, x + s * 1.1, y - s * 0.1, x, y + s * 0.75);
+        g.closePath(); break; }
+      case 8: { const w = r * 0.34; g.beginPath();
+        g.rect(x - w, y - r * 0.9, w * 2, r * 1.8); g.rect(x - r * 0.9, y - w, r * 1.8, w * 2); break; }
+      case 9: polyPath(g, x, y, r, 6, 0); break;
+    }
+    g.fill();
+    g.strokeStyle = 'rgba(0,0,0,.28)';
+    g.lineWidth = Math.max(1, r * 0.09);
+    g.stroke();
+  }
+  function theme() { const id = KIT.cosmetics && KIT.cosmetics.selected('sudoku.board'); return BOARDS[id] || BOARDS['sudoku.board.paper']; }
+  function font() { const id = KIT.cosmetics && KIT.cosmetics.selected('sudoku.digits'); return FONTS[id] || FONTS['sudoku.digits.ink']; }
+
+  // Cached card layer — paper + deterministic grain + double print-frame. Rebuilt only when
+  // the board size or the selected theme changes (never per frame).
+  let cardCanvas = null, cardCacheKey = '';
+  function cardLayer() {
+    const id = (KIT.cosmetics && KIT.cosmetics.selected('sudoku.board')) || 'sudoku.board.paper';
+    const key = id + '|' + Math.round(bsize);
+    if (cardCanvas && cardCacheKey === key) return cardCanvas;
+    const T = theme();
+    const dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+    let c, g;
+    try {
+      c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(bsize * dpr)); c.height = c.width;
+      g = c.getContext && c.getContext('2d');
+    } catch (e) { g = null; }
+    if (!g || !g.createLinearGradient) return null;   // headless mock — fall back to flat fill
+    g.scale(dpr, dpr);
+    g.fillStyle = T.card;
+    KIT.roundRect(g, 0, 0, bsize, bsize, 12);
+    g.fill();
+    // soft top-light shading (one light direction)
+    const sg = g.createLinearGradient(0, 0, 0, bsize);
+    sg.addColorStop(0, 'rgba(255,255,255,.06)'); sg.addColorStop(1, 'rgba(0,0,0,.07)');
+    g.fillStyle = sg;
+    KIT.roundRect(g, 0, 0, bsize, bsize, 12);
+    g.fill();
+    // deterministic paper grain
+    const r = rng(987654);
+    g.fillStyle = T.dark ? '#ffffff' : '#3a3325';
+    for (let i = 0; i < 1100; i++) {
+      const x = r() * bsize, y = r() * bsize, s = 0.5 + r() * 1.3;
+      g.globalAlpha = 0.015 + r() * 0.035;
+      g.fillRect(x, y, s, s);
+    }
+    g.globalAlpha = 1;
+    // classic double print-frame around the 9×9
+    const o = cell * 0.28;
+    g.strokeStyle = T.bold;
+    g.lineWidth = 1;
+    g.strokeRect(o - 4.5, o - 4.5, 9 * cell + 9, 9 * cell + 9);
+    cardCanvas = c; cardCacheKey = key;
+    return c;
+  }
+
+  // ==================================================================================
+  // Unfinished-board history — ONE list, newest-played first. The board being played IS
+  // entry 0 (upserted by id on every action), so "Continue" = resume history[0], the
+  // modal shows everything incl. the current board, and resuming bubbles a board to the
+  // top (its ts refreshes on the first save). Finishing a board removes its entry.
+  const HIST_KEY = 'sudoku_history', LEGACY_SAVE_KEY = 'sudoku_save', HIST_CAP = 20;
+  let activeId = null;                 // history id of the board being played
+  let histSeq = 0;
+  function newBoardId() { return 'b' + Date.now().toString(36) + '-' + (histSeq++).toString(36); }
+  function lsGetJ(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+  function lsSetJ(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* full/blocked */ } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
+  function snapshot() {
+    return { v: 1, id: activeId, ts: Date.now(), mode: gameMode, band,
+      givens: Array.from(givens).join(''), grid: Array.from(grid).join(''),
+      solution: Array.from(solution).join(''), notes: Array.from(notes),
+      mistakes, hints: hintsUsed, ticks };
+  }
+  function liveProgress() {
+    for (let i = 0; i < 81; i++) { if (grid[i] !== givens[i] || notes[i]) return true; }
+    return false;
+  }
+  function history() { const h = lsGetJ(HIST_KEY); return Array.isArray(h) ? h.filter(s => s && s.v === 1) : []; }
+  function saveCurrent() {
+    if (state !== 'playing' || !activeId || !liveProgress()) return;   // untouched boards never clutter the list
+    const h = history().filter(e => e.id !== activeId);
+    h.unshift(snapshot());
+    lsSetJ(HIST_KEY, h.slice(0, HIST_CAP));
+  }
+  function removeEntry(id) { if (id) lsSetJ(HIST_KEY, history().filter(e => e.id !== id)); }
+  function currentSave() { return history()[0] || null; }
+  // one-time migration from the old two-key layout (current board lived in its own key)
+  (function () {
+    const s = lsGetJ(LEGACY_SAVE_KEY);
+    if (s && s.v === 1 && (s.grid !== s.givens || (s.notes && s.notes.some(n => n))) && s.grid !== s.solution) {
+      const h = history();
+      h.unshift(s);
+      lsSetJ(HIST_KEY, h.slice(0, HIST_CAP));
+    }
+    lsDel(LEGACY_SAVE_KEY);
+    const h = history();
+    let dirty = false;
+    for (const e of h) if (!e.id) { e.id = newBoardId(); dirty = true; }
+    if (dirty) lsSetJ(HIST_KEY, h);
+  })();
+
+  // ==================================================================================
+  // Run lifecycle
+  function beginRunUi() {
+    sel = -1; lastSec = -1;
+    undoStack.length = 0;
+    hintActive = null; flashes.length = 0; winFlash = 0;
+    best = loadBest();
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    setPadVisible(true); hideHintBar(); setPencil(false);
+    updateHud(); refreshPad();
+    saveCurrent();
+  }
+  function newRun(opts) {
+    opts = opts || {};
+    gameMode = opts.mode || gameMode;
+    let seed;
+    if (gameMode === 'daily') { const d = dailySeedAndBand(); seed = d.seed; band = d.band; }
+    else { band = opts.band || band; seed = (opts.seed != null) ? opts.seed : (Math.random() * 0x7fffffff) | 0; }
+    const gen = generate(seed, band);
+    givens = Uint8Array.from(gen.puzzle);
+    grid = Uint8Array.from(gen.puzzle);
+    solution = gen.solution;
+    notes.fill(0);
+    mistakes = 0; hintsUsed = 0; ticks = 0;
+    activeId = newBoardId();             // its history entry appears with the first action
+    beginRunUi();
+  }
+  function resumeSnapshot(s) {
+    if (!s || s.v !== 1) return false;
+    gameMode = s.mode || 'classic';
+    band = s.band || 2;
+    givens = Uint8Array.from(s.givens, ch => +ch);
+    grid = Uint8Array.from(s.grid, ch => +ch);
+    solution = Uint8Array.from(s.solution, ch => +ch);
+    notes.set(Uint16Array.from(s.notes || []));
+    mistakes = s.mistakes || 0; hintsUsed = s.hints || 0; ticks = s.ticks || 0;
+    activeId = s.id || newBoardId();
+    beginRunUi();                        // first save refreshes ts → the board bubbles to the top
+    return true;
+  }
+  function resumeFromHistory(i) { return resumeSnapshot(history()[i]); }
+
+  function isWrong(i) { return grid[i] !== 0 && !givens[i] && grid[i] !== solution[i]; }
+  function placedCount() { let n = 0; for (let i = 0; i < 81; i++) if (grid[i] && grid[i] === solution[i]) n++; return n; }
+
+  function endRun(won) {
+    state = 'over';
+    setPadVisible(false); hideHintBar();
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    removeEntry(activeId); activeId = null;   // finished (won or lost) — no longer resumable
+    const zen = gameMode === 'zen';
+    const score = (won && !zen) ? computeScore() : 0;   // zen is unscored — its record carries 0
+    const prevBest = loadBest();
+    // save ONLY solved runs — a fast loss must never become the stored "best time"
+    if (!zen && won && KIT) KIT.saveBest(SLUG, modeStorageLabel(), { score, time: Math.floor(ticks / 60) });
+    const isBest = !zen && won && score > prevBest;
+    best = loadBest();
+    showEnd(won, score, isBest);
+  }
+
+  function checkWin() {
+    for (let i = 0; i < 81; i++) if (grid[i] !== solution[i]) return false;
+    winFlash = 90;
+    endRun(true);
+    return true;
+  }
+
+  // ==================================================================================
+  // Input actions (place / note / erase / undo)
+  function pushUndo(i, extra) {
+    undoStack.push({ i, v: grid[i], n: notes[i], peers: extra || null });
+    if (undoStack.length > 300) undoStack.shift();
+  }
+  function place(d) {
+    if (state !== 'playing' || sel < 0 || givens[sel]) return;
+    clearHint();
+    if (pencil) {
+      if (grid[sel]) return;
+      pushUndo(sel);
+      notes[sel] ^= 1 << (d - 1);
+      SND.play('scribble');
+      saveCurrent();
+      return;
+    }
+    if (grid[sel] === d) { pushUndo(sel); grid[sel] = 0; refreshPad(); saveCurrent(); return; }   // tap same digit = clear
+    // capture peer notes that will be auto-cleared (full undo support)
+    const peerNotes = [];
+    if (d === solution[sel]) for (const p of PEERS[sel]) if (notes[p] & (1 << (d - 1))) peerNotes.push([p, notes[p]]);
+    pushUndo(sel, peerNotes.length ? peerNotes : null);
+    grid[sel] = d;
+    notes[sel] = 0;
+    if (d === solution[sel]) {
+      SND.play('place');
+      for (const [p] of peerNotes) notes[p] &= ~(1 << (d - 1));
+      celebrateUnits(sel);
+      if (digitDone(d)) SND.play('digitdone');
+      refreshPad();
+      checkWin();
+    } else {
+      SND.play('wrong');
+      if (KIT && navigator.vibrate) try { navigator.vibrate(60); } catch (e) { /* ignore */ }
+      if (gameMode !== 'zen') {
+        mistakes++;
+        updateHud();
+        if (mistakes >= MAX_MISTAKES) endRun(false);
+      }
+      refreshPad();
+    }
+    saveCurrent();   // every action persists immediately (no-op once the run is over)
+  }
+  function erase() {
+    if (state !== 'playing' || sel < 0 || givens[sel]) return;
+    clearHint();
+    if (!grid[sel] && !notes[sel]) return;
+    pushUndo(sel);
+    grid[sel] = 0; notes[sel] = 0;
+    SND.play('rubber');
+    refreshPad();
+    saveCurrent();
+  }
+  function undo() {
+    if (state !== 'playing' || !undoStack.length) return;
+    clearHint();
+    const u = undoStack.pop();
+    grid[u.i] = u.v; notes[u.i] = u.n;
+    if (u.peers) for (const [p, n] of u.peers) notes[p] = n;
+    SND.play('rubber');
+    refreshPad();
+    saveCurrent();
+  }
+  function digitDone(d) {
+    let n = 0;
+    for (let i = 0; i < 81; i++) if (grid[i] === d && grid[i] === solution[i]) n++;
+    return n === 9;
+  }
+  function celebrateUnits(i) {
+    let done = false;
+    for (const u of [UNITS[ROW(i)], UNITS[9 + COL(i)], UNITS[18 + BOX(i)]]) {
+      if (u.every(j => grid[j] && grid[j] === solution[j])) { flashes.push({ cells: u, t: 45 }); done = true; }
+    }
+    if (done) SND.play('unitdone');
+  }
+
+  // ==================================================================================
+  // Logical hint engine — two-step: explain (highlight + banner), then apply.
+  // Reuses the SAME technique solver as the grader; never a magic reveal (the fallback
+  // reveal can only trigger on a grid outside the graded band's ladder, i.e. never).
+  const TECH_NAMES = {
+    locked: () => KIT.t('game.sudoku.techLocked', { def: 'locked candidates' }),
+    sets: () => KIT.t('game.sudoku.techSets', { def: 'pairs & triples' }),
+    wings: () => KIT.t('game.sudoku.techWings', { def: 'X-wing / XY-wing' }),
+  };
+  function unitName(u) {
+    if (u < 9) return KIT.t('game.sudoku.unitRow', { n: u + 1, def: 'row {n}' });
+    if (u < 18) return KIT.t('game.sudoku.unitCol', { n: u - 8, def: 'column {n}' });
+    return KIT.t('game.sudoku.unitBox', { n: u - 17, def: 'box {n}' });
+  }
+  function findHint() {
+    // 1) a wrong entry blocks all logic — point at it first
+    for (let i = 0; i < 81; i++) if (isWrong(i)) {
+      return { type: 'wrong', cell: i, cells: [i],
+        text: KIT.t('game.sudoku.hintWrong', { def: 'This cell is wrong — remove it first.' }) };
+    }
+    // 2) walk the ladder on a copy until a placement pops out
+    const g = Uint8Array.from(grid);
+    const S = makeSolver(g);
+    const via = [];
+    for (let guard = 0; guard < 200; guard++) {
+      if (S.nakedSingle(false)) {
+        const { i, d } = S.lastPlace;
+        return { type: 'place', cell: i, digit: d, cells: [i], via,
+          text: KIT.t('game.sudoku.hintNaked', { digit: d, def: 'Only {digit} can go in this cell.' }) + viaText(via) };
+      }
+      if (S.hiddenSingle(false)) {
+        const { i, d } = S.lastPlace;
+        const u = S.lastHidden.unit;
+        return { type: 'place', cell: i, digit: d, cells: UNITS[u], unit: u, via,
+          text: KIT.t('game.sudoku.hintHidden', { digit: d, unit: unitName(u), def: 'In {unit}, {digit} fits only in this cell.' }) + viaText(via) };
+      }
+      if (S.locked()) { if (!via.includes('locked')) via.push('locked'); continue; }
+      if (S.sets()) { if (!via.includes('sets')) via.push('sets'); continue; }
+      if (S.wings()) { if (!via.includes('wings')) via.push('wings'); continue; }
+      break;
+    }
+    // 3) unreachable on our own puzzles — honest fallback so the button never dead-ends
+    for (let i = 0; i < 81; i++) if (!grid[i]) {
+      return { type: 'place', cell: i, digit: solution[i], cells: [i], via: [],
+        text: KIT.t('game.sudoku.hintReveal', { def: 'Take this one for free.' }) };
+    }
+    return null;
+  }
+  function viaText(via) {
+    if (!via.length) return '';
+    return ' ' + KIT.t('game.sudoku.hintVia', { tech: via.map(v => TECH_NAMES[v]()).join(', '), def: '(needs {tech} first)' });
+  }
+  function hint() {
+    if (state !== 'playing') return;
+    if (hintActive) { applyHint(); return; }
+    hintActive = findHint();
+    if (!hintActive) return;
+    SND.play('lamp');
+    const bar = document.getElementById('hintbar');
+    bar.textContent = '💡 ' + hintActive.text + ' — ' + KIT.t('game.sudoku.hintApply', { def: 'tap 💡 again to apply' });
+    bar.classList.add('show');
+  }
+  function applyHint() {
+    const h = hintActive;
+    if (!h) return;
+    clearHint();
+    if (h.type === 'wrong') {
+      sel = h.cell;
+      pushUndo(sel);
+      grid[sel] = 0; notes[sel] = 0;
+      SND.play('rubber');
+    } else {
+      sel = h.cell;
+      hintsUsed++;
+      const wasPencil = pencil; pencil = false;
+      place(h.digit);
+      pencil = wasPencil; setPencil(wasPencil);
+      updateHud();
+    }
+    refreshPad();
+  }
+  function clearHint() { hintActive = null; hideHintBar(); }
+  function hideHintBar() { document.getElementById('hintbar').classList.remove('show'); }
+
+  // ==================================================================================
+  // HUD / pad DOM
+  function fmtTime(sec) { return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0'); }
+  function updateHud() {
+    const zen = gameMode === 'zen';
+    document.getElementById('timeEl').textContent = fmtTime(Math.floor(ticks / 60));   // zen is timed too
+    document.getElementById('missEl').textContent = zen ? '—' : mistakes + '/' + MAX_MISTAKES;
+    document.getElementById('bestEl').textContent = zen ? '—' : best;
+  }
+
+  const padDigitBtns = [], padDigitCounts = [], padDigitGlyphs = [];
+  let padPencilBtn = null, lastPadStyle = 'ink';
+  function refreshPadGlyphs() {
+    const style = digitStyle();
+    for (let d = 1; d <= 9; d++) {
+      const sp = padDigitGlyphs[d - 1];
+      if (!sp) continue;
+      if (style === 'animals') { sp.textContent = ANIMALS[d - 1]; sp.style.color = ''; }
+      else if (style === 'shapes') { sp.textContent = SHAPE_CHARS[d - 1]; sp.style.color = SHAPE_COLORS[d - 1]; }
+      else { sp.textContent = String(d); sp.style.color = ''; }
+    }
+  }
+  function buildPad() {
+    const digits = document.getElementById('padDigits');
+    const tools = document.getElementById('padTools');
+    for (let d = 1; d <= 9; d++) {
+      const b = document.createElement('button');
+      const g = document.createElement('span');
+      g.textContent = d;
+      b.appendChild(g);
+      const s = document.createElement('small');
+      b.appendChild(s);
+      b.addEventListener('pointerdown', e => { e.preventDefault(); place(d); });
+      digits.appendChild(b);
+      padDigitBtns.push(b);
+      padDigitCounts.push(s);
+      padDigitGlyphs.push(g);
+    }
+    const mk = (label, title, fn) => {
+      const b = document.createElement('button');
+      b.textContent = label;
+      b.title = title;
+      b.addEventListener('pointerdown', e => { e.preventDefault(); fn(); });
+      tools.appendChild(b);
+      return b;
+    };
+    padPencilBtn = mk('✏️', KIT.t('game.sudoku.toolPencil', { def: 'Pencil marks' }), () => setPencil(!pencil));
+    mk('⌫', KIT.t('game.sudoku.toolErase', { def: 'Erase' }), erase);
+    mk('↺', KIT.t('game.sudoku.toolUndo', { def: 'Undo' }), undo);
+    mk('💡', KIT.t('game.sudoku.toolHint', { def: 'Logical hint' }), hint);
+  }
+  function setPencil(v) { pencil = v; if (padPencilBtn) padPencilBtn.classList.toggle('on', pencil); }
+  function refreshPad() {
+    for (let d = 1; d <= 9; d++) {
+      let n = 0;
+      for (let i = 0; i < 81; i++) if (grid[i] === d && grid[i] === solution[i]) n++;   // wrong entries don't gray a digit out
+      const left = 9 - n;
+      padDigitBtns[d - 1].classList.toggle('done', left <= 0);
+      padDigitCounts[d - 1].textContent = left > 0 && left < 9 ? left : '';
+    }
+  }
+  function setPadVisible(v) { document.getElementById('pad').classList.toggle('show', v); }
+
+  // ==================================================================================
+  // update / render
+  function update() {
+    if (state === 'playing') {
+      ticks++;
+      const sec = Math.floor(ticks / 60);
+      if (sec !== lastSec) { lastSec = sec; updateHud(); saveCurrent(); }   // 1 Hz autosave
+      for (let f = flashes.length - 1; f >= 0; f--) if (--flashes[f].t <= 0) flashes.splice(f, 1);
+    }
+    if (winFlash > 0) winFlash--;
+    if (KIT && KIT.music) {
+      let v = 0.3;
+      if (state === 'playing') {
+        v = 0.25 + 0.45 * (placedCount() / 81) + 0.15 * (mistakes / MAX_MISTAKES);
+        if (gameMode === 'zen') v = Math.min(v, 0.4);
+      }
+      KIT.music.intensity(Math.max(0, Math.min(1, v)));
+    }
+  }
+
+  function render() {
+    const T = theme(), F = font();
+    // page
+    const pg = ctx.createRadialGradient(W / 2, -H * 0.1, 0, W / 2, -H * 0.1, Math.max(W, H) * 1.2);
+    pg.addColorStop(0, T.page0); pg.addColorStop(1, T.page1);
+    ctx.fillStyle = pg;
+    ctx.fillRect(0, 0, W, H);
+    // vignette — settles the page around the board
+    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.max(W, H) * 0.78);
+    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.30)');
+    ctx.fillStyle = vg;
+    ctx.fillRect(0, 0, W, H);
+
+    // board card + soft shadow (textured layer cached in cardLayer)
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 24; ctx.shadowOffsetY = 6;
+    const cardImg = cardLayer();
+    if (cardImg) ctx.drawImage(cardImg, bx, by, bsize, bsize);
+    else { ctx.fillStyle = T.card; KIT.roundRect(ctx, bx, by, bsize, bsize, 12); ctx.fill(); }
+    ctx.restore();
+
+    const inset = cell * 0.28;                       // card padding around the 9×9
+    const ox = bx + inset, oy = by + inset;
+    const selRow = sel >= 0 ? ROW(sel) : -1, selCol = sel >= 0 ? COL(sel) : -1, selBox = sel >= 0 ? BOX(sel) : -1;
+    const selDigit = sel >= 0 && grid[sel] && !isWrong(sel) ? grid[sel] : 0;
+
+    // highlights
+    for (let i = 0; i < 81; i++) {
+      const r = ROW(i), c = COL(i);
+      let fill = null;
+      if (i === sel) fill = T.sel;
+      else if (selDigit && grid[i] === selDigit) fill = T.same;
+      else if (sel >= 0 && (r === selRow || c === selCol || BOX(i) === selBox)) fill = T.peer;
+      if (fill) { ctx.fillStyle = fill; ctx.fillRect(ox + c * cell, oy + r * cell, cell, cell); }
+    }
+    // unit-complete golden flashes
+    for (const f of flashes) {
+      ctx.fillStyle = 'rgba(240,180,41,' + (0.35 * (f.t / 45)).toFixed(3) + ')';
+      for (const i of f.cells) ctx.fillRect(ox + COL(i) * cell, oy + ROW(i) * cell, cell, cell);
+    }
+    // hint highlight — the involved cells, with the target cell pulsing
+    if (hintActive) {
+      ctx.fillStyle = 'rgba(240,180,41,.16)';
+      for (const i of hintActive.cells) ctx.fillRect(ox + COL(i) * cell, oy + ROW(i) * cell, cell, cell);
+      const tc = hintActive.cell;
+      const pulse = 0.45 + 0.25 * Math.sin(ticks * 0.15);
+      ctx.strokeStyle = 'rgba(240,180,41,' + pulse.toFixed(3) + ')';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(ox + COL(tc) * cell + 1.5, oy + ROW(tc) * cell + 1.5, cell - 3, cell - 3);
+    }
+
+    // grid lines — thin minor lines, clearly heavier 3×3 walls
+    for (let k = 0; k <= 9; k++) {
+      const bold = k % 3 === 0;
+      ctx.strokeStyle = bold ? T.bold : T.line;
+      ctx.lineWidth = bold ? 2.5 : 1;
+      ctx.beginPath();
+      ctx.moveTo(ox + k * cell, oy); ctx.lineTo(ox + k * cell, oy + 9 * cell);
+      ctx.moveTo(ox, oy + k * cell); ctx.lineTo(ox + 9 * cell, oy + k * cell);
+      ctx.stroke();
+    }
+
+    // digits + notes (style: ink numerals · animals · colored shapes)
+    const style = digitStyle();
+    if (style !== lastPadStyle) { lastPadStyle = style; refreshPadGlyphs(); }
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    for (let i = 0; i < 81; i++) {
+      const x = ox + COL(i) * cell + cell / 2, y = oy + ROW(i) * cell + cell / 2 + cell * 0.03;
+      if (grid[i]) {
+        const given = givens[i] !== 0, wrong = isWrong(i);
+        if (style === 'ink') {
+          ctx.font = (given ? F.given : F.entry) + ' ' + (cell * 0.62) + 'px ' + F.family;
+          ctx.fillStyle = wrong ? T.err : given ? T.given : T.entry;
+          ctx.fillText(String(grid[i]), x, y);
+        } else {
+          if (style === 'animals') {
+            ctx.font = (cell * 0.58) + 'px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif';
+            ctx.fillStyle = '#000';            // color emoji are multiplied by the paint ALPHA — must be opaque
+            ctx.fillText(ANIMALS[grid[i] - 1], x, y);
+          } else {
+            drawShape(ctx, grid[i], x, y, cell * 0.3);
+          }
+          if (wrong) {                                     // glyphs can't turn red — ring + slash
+            ctx.strokeStyle = T.err; ctx.lineWidth = 2.5;
+            ctx.beginPath(); ctx.arc(x, y, cell * 0.4, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x - cell * 0.28, y + cell * 0.28); ctx.lineTo(x + cell * 0.28, y - cell * 0.28); ctx.stroke();
+          } else if (!given) {                             // your entries get a small ink underline
+            ctx.fillStyle = T.entry;
+            ctx.fillRect(x - cell * 0.16, y + cell * 0.34, cell * 0.32, 2);
+          }
+        }
+      } else if (notes[i]) {
+        for (let d = 0; d < 9; d++) {
+          if (!(notes[i] & (1 << d))) continue;
+          const nx = x + ((d % 3) - 1) * cell * 0.28;
+          const ny = y + (((d / 3) | 0) - 1) * cell * 0.28;
+          if (style === 'ink') {
+            ctx.font = '600 ' + (cell * 0.24) + 'px ' + F.family;
+            ctx.fillStyle = (selDigit && d + 1 === selDigit) ? T.bold : T.note;
+            ctx.fillText(String(d + 1), nx, ny);
+          } else if (style === 'animals') {
+            ctx.font = (cell * 0.2) + 'px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", system-ui, sans-serif';
+            ctx.fillStyle = '#000';
+            ctx.fillText(ANIMALS[d], nx, ny);
+          } else {
+            drawShape(ctx, d + 1, nx, ny, cell * 0.1);
+          }
+        }
+      }
+    }
+
+    // win shimmer
+    if (winFlash > 0) {
+      ctx.fillStyle = 'rgba(240,180,41,' + (0.25 * (winFlash / 90)).toFixed(3) + ')';
+      KIT.roundRect(ctx, bx, by, bsize, bsize, 12);
+      ctx.fill();
+    }
+  }
+
+  // ==================================================================================
+  // Menus
+  const MENU_THEME = { accent: ACCENT, title: ACCENT };
+  let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
+  function menuBackdrop(g, w, h) {
+    g.fillStyle = '#1d232b'; g.fillRect(0, 0, w, h);
+    const lg = g.createLinearGradient(0, 0, 0, h);
+    lg.addColorStop(0, 'rgba(45,54,66,.9)'); lg.addColorStop(1, 'rgba(23,28,35,.95)');
+    g.fillStyle = lg; g.fillRect(0, 0, w, h);
+    // faint drafting grid
+    g.strokeStyle = 'rgba(240,180,41,.07)'; g.lineWidth = 1;
+    const s = Math.max(w, h) / 9;
+    for (let k = 0; k <= 9; k++) {
+      g.beginPath(); g.moveTo(k * s, 0); g.lineTo(k * s, h); g.stroke();
+      g.beginPath(); g.moveTo(0, k * s); g.lineTo(w, k * s); g.stroke();
+    }
+    g.strokeStyle = 'rgba(240,180,41,.16)'; g.lineWidth = 2;
+    for (let k = 0; k <= 9; k += 3) {
+      g.beginPath(); g.moveTo(k * s, 0); g.lineTo(k * s, h); g.stroke();
+      g.beginPath(); g.moveTo(0, k * s); g.lineTo(w, k * s); g.stroke();
+    }
+    // translucent digits, seated IN the grid cells (like a half-filled board)
+    const rnd = rng(7);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    const cols = Math.ceil(w / s), rows = Math.ceil(h / s);
+    const used = new Set();
+    for (let i = 0; i < 14; i++) {
+      const cx = (rnd() * cols) | 0, cy = (rnd() * rows) | 0;
+      const key = cx + ',' + cy;
+      if (used.has(key)) continue;
+      used.add(key);
+      const d = 1 + ((rnd() * 9) | 0);
+      g.font = '700 ' + (s * 0.55) + 'px Georgia, serif';
+      g.fillStyle = 'rgba(240,180,41,' + (0.05 + rnd() * 0.07).toFixed(3) + ')';
+      g.fillText(String(d), (cx + 0.5) * s, (cy + 0.5) * s + s * 0.03);
+    }
+  }
+
+  function modeDisplay(m) {
+    return m === 'daily' ? KIT.t('game.sudoku.modeDaily', { def: 'Daily' })
+      : m === 'zen' ? KIT.t('game.sudoku.modeZen', { def: 'Zen' })
+      : KIT.t('game.sudoku.modeClassic', { def: 'Classic' });
+  }
+  function snapShort(s) {
+    if (s.mode === 'daily') return modeDisplay('daily');      // daily's difficulty isn't a choice — don't show it
+    const diff = KIT.t('game.sudoku.diff' + diffLabel(s.band || 2), { def: diffLabel(s.band || 2) });
+    return modeDisplay(s.mode || 'classic') + ' · ' + diff;
+  }
+  function snapDesc(s) {
+    let filled = 0;
+    for (let i = 0; i < 81; i++) if (s.grid[i] !== '0') filled++;
+    let when = '';
+    try {
+      const dt = new Date(s.ts);
+      when = ' · ' + dt.toLocaleDateString() + ' ' + dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch (e) { /* ignore */ }
+    return filled + '/81 · ' + fmtTime(Math.floor((s.ticks || 0) / 60)) + when;
+  }
+  function snapThumb(s) {
+    // miniature of the saved board — givens in ink, your entries in blue
+    return function (g, w, h) {
+      g.fillStyle = '#f2efe8';
+      g.fillRect(0, 0, w, h);
+      const c = w / 9;
+      for (let i = 0; i < 81; i++) {
+        if (s.grid[i] === '0') continue;
+        g.fillStyle = s.givens[i] !== '0' ? '#2b2f36' : '#1d6fb8';
+        g.fillRect(COL(i) * c + c * 0.22, ROW(i) * c + c * 0.22, c * 0.56, c * 0.56);
+      }
+      g.strokeStyle = '#3a3f47';
+      g.lineWidth = 1;
+      for (let k = 0; k <= 3; k++) {
+        const p = Math.max(0.5, Math.min(w - 0.5, k * w / 3));
+        g.beginPath(); g.moveTo(p, 0); g.lineTo(p, h); g.stroke();
+        g.beginPath(); g.moveTo(0, p); g.lineTo(w, p); g.stroke();
+      }
+    };
+  }
+  function showHistoryMenu() {
+    menuReshow = showHistoryMenu;
+    const h = history();
+    if (!h.length) { showStartMenu(); return; }
+    KIT.menu.show({
+      kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: KIT.t('game.sudoku.historyTitle', { def: 'IN PROGRESS' }),
+      hint: () => KIT.t('game.sudoku.historyHint', { def: 'Boards you left mid-solve — pick one to continue.' }),
+      groups: [{
+        id: 'hist', label: '', style: 'cards', default: '0',
+        choices: h.map((s, k) => ({
+          id: String(k), label: snapShort(s), desc: snapDesc(s),
+          preview: (g, w, hh) => snapThumb(s)(g, w, hh),
+          onRemove: () => {
+            KIT.confirm(
+              KIT.t('game.sudoku.deleteConfirm', { board: snapShort(s), def: 'Delete this board? ({board})' }),
+              () => {
+                const h2 = history();
+                const k2 = h2.findIndex(e => e.ts === s.ts && e.givens === s.givens);
+                if (k2 >= 0) { h2.splice(k2, 1); lsSetJ(HIST_KEY, h2); }
+                showHistoryMenu();
+              },
+              KIT.t('game.sudoku.deleteYes', { def: 'Delete' })
+            );
+          },
+        })),
+      }],
+      actions: [
+        { id: 'play', label: KIT.t('game.sudoku.resume', { def: 'RESUME' }), primary: true },
+        { id: 'clear', label: KIT.t('game.sudoku.clearHistory', { def: '🗑 Clear all' }), danger: true,
+          confirm: () => KIT.t('game.sudoku.clearConfirm', { def: 'Delete ALL unfinished boards, including the current one?' }) },
+        { id: 'back', label: KIT.t('game.sudoku.back', { def: '‹ Back' }) },
+      ],
+      onPlay: st => { resumeFromHistory(+st.hist || 0); },
+      onAction: id => {
+        if (id === 'back') showStartMenu();
+        else if (id === 'clear') { lsDel(HIST_KEY); showStartMenu(); }   // one list — Continue goes with it
+      },
+      onEsc: showStartMenu,
+    });
+  }
+  function showStartMenu() {
+    menuReshow = showStartMenu;
+    state = 'ready';
+    setPadVisible(false); hideHintBar();
+    if (!KIT) return;
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    const cur = currentSave();
+    const histN = history().length;
+    const actions = [];
+    if (cur) actions.push({ id: 'continue', label: KIT.t('game.sudoku.continue', { def: 'Continue' }) + ' · ' + snapShort(cur), primary: true });
+    actions.push({ id: 'play', label: cur ? KIT.t('game.sudoku.newGame', { def: 'New game' }) : KIT.t('game.common.play', { def: 'Play' }), primary: !cur });
+    actions.push({ id: 'history', label: KIT.t('game.sudoku.inProgress', { n: histN, def: '📂 In progress ({n})' }), disabled: !histN });
+    KIT.menu.show({
+      kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: KIT.t('game.sudoku.menuTitle', { def: 'SUDOKU' }),
+      groups: [
+        { id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), default: gameMode,
+          choices: ['classic', 'daily', 'zen'].map(m => ({ id: m, label: modeDisplay(m) })) },
+        { id: 'diff', label: KIT.t('game.sudoku.diffLabel', { def: 'DIFFICULTY' }), default: DIFFS[band - 1],
+          disabled: st => st.mode === 'daily',
+          choices: DIFFS.map((d, k) => ({ id: d, label: diffDisplay(k + 1) })) },
+      ],
+      hint: st => {
+        if (st.mode === 'daily') {
+          const d = dailySeedAndBand();
+          return KIT.t('game.sudoku.descDaily', { diff: diffDisplay(d.band), def: "Today's puzzle ({diff}) — the same for everyone, a new one each day." });
+        }
+        if (st.mode === 'zen') return KIT.t('game.sudoku.descZen', { def: 'No timer, no strikes, no score. Just you and the grid.' });
+        return KIT.t('game.sudoku.descClassic', { def: 'Fill every row, column and 3×3 box with 1–9. Three mistakes end the run.' });
+      },
+      actions,
+      onChange: st => { gameMode = st.mode; band = DIFFS.indexOf(st.diff) + 1 || band; KIT.stampUrl({ mode: st.mode, diff: st.diff }); },
+      onPlay: st => { newRun({ mode: st.mode, band: DIFFS.indexOf(st.diff) + 1 || band }); },
+      onAction: id => {
+        if (id === 'continue') { const s = currentSave(); if (s) resumeSnapshot(s); }
+        else if (id === 'history') showHistoryMenu();
+      },
+    });
+  }
+
+  function shareMsg(score) {
+    return KIT.t('game.sudoku.shareMsg', {
+      diff: gameMode === 'daily' ? KIT.t('game.sudoku.modeDaily', { def: 'Daily' }) : diffDisplay(band),
+      time: fmtTime(Math.floor(ticks / 60)), score,
+      def: 'Solved the {diff} Sudoku in {time} — score {score}!',
+    });
+  }
+  function showEnd(won, score, isBest) {
+    if (!KIT) return;
+    menuReshow = () => showEnd(won, score, isBest);
+    const zen = gameMode === 'zen';
+    const statsLine = KIT.t('game.sudoku.endStats', {
+      time: fmtTime(Math.floor(ticks / 60)), mistakes, hints: hintsUsed,
+      def: '⏱ {time} · ✗ {mistakes} · 💡 {hints}',
+    });
+    const cfg = {
+      kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: won ? KIT.t('game.sudoku.solved', { def: 'SOLVED!' }) : KIT.t('game.sudoku.outOfMistakes', { def: 'OUT OF MISTAKES' }),
+      lines: [ (gameMode === 'daily' ? modeDisplay('daily') : diffDisplay(band)) + ' · ' + (zen ? fmtTime(Math.floor(ticks / 60)) : statsLine) ],
+      actions: [
+        { id: 'again', label: won ? KIT.t('game.common.playAgain', { def: 'Play Again' }) : KIT.t('game.sudoku.tryAgain', { def: 'Try Again' }), primary: true },
+        { id: 'menu', label: KIT.t('game.common.menu', { def: 'Menu' }) },
+      ],
+      onAction: id => { if (id === 'again') newRun({}); else if (id === 'menu') showStartMenu(); },
+    };
+    // record ALWAYS (zen too — a completed zen solve still counts as "played today" for the
+    // cross-game challenges); zen just carries no score/best/share.
+    cfg.record = { slug: SLUG, mode: modeStorageLabel(), modeText: modeDisplayLabel(),
+      score, time: won ? Math.floor(ticks / 60) : 0, stats: { mistakes, hints: hintsUsed } };
+    if (!zen) { cfg.score = score; cfg.best = best; cfg.newBest = isBest; }
+    // share on EVERY end screen — win brags the score, loss challenges a friend, zen brags the time
+    cfg.share = { slug: SLUG, accent: ACCENT, icon: '🔢', title: KIT.t('game.sudoku.title', { def: 'Sudoku' }),
+      message: () => zen ? KIT.t('game.sudoku.shareMsgZen', { time: fmtTime(Math.floor(ticks / 60)), def: 'Solved a zen Sudoku in {time} — pure calm.' })
+        : won ? shareMsg(score)
+        : KIT.t('game.sudoku.shareMsgLost', { diff: gameMode === 'daily' ? KIT.t('game.sudoku.modeDaily', { def: 'Daily' }) : diffDisplay(band), def: 'This {diff} Sudoku got the best of me — can you solve it?' }),
+      params: () => ({ mode: gameMode, diff: DIFFS[band - 1] }) };
+    if (zen) cfg.share.card = () => ({ score: fmtTime(Math.floor(ticks / 60)) });   // zen's card headline = the time
+    KIT.menu.show(cfg);
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    menuReshow = pauseGame;
+    KIT.menu.show({
+      kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines: [gameMode === 'zen' ? modeDisplay('zen') : fmtTime(Math.floor(ticks / 60)) + ' · ' + (gameMode === 'daily' ? modeDisplay('daily') : diffDisplay(band))],
+      actions: [
+        { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
+        { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }) },   // safe — the board is autosaved
+      ],
+      onAction: id => { if (id === 'resume') KIT.menu.hide(); else if (id === 'menu') showStartMenu(); },
+      onEsc: () => KIT.menu.hide(),
+    });
+  }
+
+  // ==================================================================================
+  // Resize — square board centered between the HUD and the number pad
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    topMargin = KIT.layout.hudTop();
+    measureSafeB();
+    const availB = H - topMargin - PAD_H - safeB - HINT_H - 12;   // room above pad + hint strip
+    sideMode = availB < 260 && W > H;                // short landscape → dock the pad right
+    if (sideMode) {
+      const availH = H - topMargin - 12;
+      bsize = Math.max(200, Math.min(W - SIDE_W - 20, availH, 640));
+      bx = (W - SIDE_W - bsize) / 2;
+      by = topMargin + Math.max(4, (availH - bsize) / 2);
+    } else {
+      bsize = Math.max(200, Math.min(W - 20, availB, 640));
+      bx = (W - bsize) / 2;
+      // bias toward the HUD — a huge dead gap above the board reads worse than one below
+      by = topMargin + Math.max(6, Math.min(40, (availB - bsize) * 0.25));
+    }
+    cell = (bsize - bsize * 0.062) / 9;              // inset = cell*0.28 on each side ≈ 6.2% total
+    const pad = document.getElementById('pad'), bar = document.getElementById('hintbar');
+    if (pad) pad.classList.toggle('side', sideMode);
+    if (bar) bar.classList.toggle('side', sideMode);
+  }
+  window.gamekit.layout.on(resize);
+
+  // ==================================================================================
+  // Input
+  canvas.addEventListener('pointerdown', e => {
+    if (state !== 'playing') return;
+    const r = canvas.getBoundingClientRect();
+    const x = (e.clientX - r.left) * (W / r.width);
+    const y = (e.clientY - r.top) * (H / r.height);
+    const inset = cell * 0.28;
+    const c = Math.floor((x - bx - inset) / cell), rr = Math.floor((y - by - inset) / cell);
+    if (rr < 0 || rr > 8 || c < 0 || c > 8) { sel = -1; return; }
+    const i = rr * 9 + c;
+    if (hintActive && i === hintActive.cell) { sel = i; applyHint(); return; }
+    clearHint();
+    sel = i;
+  });
+  window.addEventListener('keydown', e => {
+    // any kit overlay (menu, shop 🎨, challenges 🏆, controls 🎮…) blocks board input —
+    // isPaused() covers the non-menu modals which don't intercept plain keys themselves
+    if (state !== 'playing' || (KIT && (KIT.menu.current() || (KIT.isPaused && KIT.isPaused())))) { return; }
+    if (e.key === 'Escape') { e.preventDefault(); pauseGame(); return; }
+    if (e.key >= '1' && e.key <= '9') { place(+e.key); return; }
+    if (e.key === 'Backspace' || e.key === 'Delete') { e.preventDefault(); erase(); return; }
+    if (e.key === 'n' || e.key === 'N' || e.key === 'p' || e.key === 'P') { setPencil(!pencil); return; }
+    if (e.key === 'h' || e.key === 'H') { hint(); return; }
+    if (e.key === 'z' || e.key === 'Z') { undo(); return; }
+    if (e.key.startsWith('Arrow')) {
+      e.preventDefault();
+      if (sel < 0) { sel = 40; return; }
+      const dr = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+      const dc = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      sel = Math.max(0, Math.min(8, ROW(sel) + dr)) * 9 + Math.max(0, Math.min(8, COL(sel) + dc));
+    }
+  });
+
+  window.addEventListener('pagehide', () => saveCurrent());   // closing mid-run keeps the board
+
+  // ==================================================================================
+  // Nav + music
+  KIT.nav({
+    slug: SLUG, music: true, home: '../../', theme: MENU_THEME,
+    onMenu: () => showStartMenu(),
+    onPause: () => { if (state === 'playing') { if (KIT.menu.current()) KIT.menu.hide(); else pauseGame(); } },
+    // no confirmLeave — the board autosaves every second, so leaving loses nothing
+    controls: {
+      title: KIT.t('game.sudoku.controlsTitle', { def: 'Sudoku — Controls' }),
+      mouse: [
+        [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.sudoku.ctrlSelect', { def: 'Select a cell / apply a hint' })],
+        [KIT.t('game.sudoku.ctrlPad', { def: 'Number pad' }), KIT.t('game.sudoku.ctrlPlace', { def: 'Place a digit or pencil mark' })],
+      ],
+      keyboard: [
+        ['1–9', KIT.t('game.sudoku.ctrlPlace', { def: 'Place a digit or pencil mark' })],
+        ['← ↑ → ↓', KIT.t('game.sudoku.ctrlMoveSel', { def: 'Move selection' })],
+        ['N · P', KIT.t('game.sudoku.toolPencil', { def: 'Pencil marks' })],
+        ['H', KIT.t('game.sudoku.toolHint', { def: 'Logical hint' })],
+        ['Z', KIT.t('game.sudoku.toolUndo', { def: 'Undo' })],
+        ['Backspace', KIT.t('game.sudoku.toolErase', { def: 'Erase' })],
+        [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })],
+      ],
+      touch: [
+        [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.sudoku.ctrlSelect', { def: 'Select a cell / apply a hint' })],
+        [KIT.t('game.sudoku.ctrlPad', { def: 'Number pad' }), KIT.t('game.sudoku.ctrlPlace', { def: 'Place a digit or pencil mark' })],
+      ],
+    },
+  });
+  KIT.music.play('sudoku');
+
+  // ==================================================================================
+  // __test hook + layout getter
+  window.__test = {
+    get state() { return state; },
+    get score() { return computeScore(); },
+    get mode() { return gameMode; },
+    get band() { return band; },
+    get mistakes() { return mistakes; },
+    get hintsUsed() { return hintsUsed; },
+    get sel() { return sel; },
+    get pencil() { return pencil; },
+    get grid() { return Array.from(grid); },
+    get givens() { return Array.from(givens); },
+    get solution() { return Array.from(solution); },
+    get notes() { return Array.from(notes); },
+    get hintInfo() { return hintActive; },
+    get layout() {
+      return { W, H, topReserve: topMargin, side: sideMode,
+        board: { x: bx, y: by, size: bsize }, cell,
+        padTop: sideMode ? H : H - PAD_H - safeB - HINT_H, padLeft: sideMode ? W - SIDE_W : W };
+    },
+    newGame(opts) { newRun(opts || {}); },
+    start() { newRun({}); },
+    saveNow() { saveCurrent(); },
+    history() { return history(); },
+    currentSave() { return currentSave(); },
+    resumeHistory(i) { return resumeFromHistory(i); },
+    resumeCurrent() { const s = currentSave(); return s ? resumeSnapshot(s) : false; },
+    select(i) { sel = i; },
+    input(d) { place(d); },
+    erase() { erase(); },
+    undo() { undo(); },
+    setPencil(v) { setPencil(!!v); },
+    hint() { hint(); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    gen(seed, b) { return generate(seed, b); },
+    grade(p) { return gradeSolve(p); },
+    countSolutions(p, lim) { return countSolutions(p, lim || 2); },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+  };
+
+  // ==================================================================================
+  // Boot
+  resize();
+  function i18nHudLabels() {
+    const L = { lblTime: ['game.common.time', 'TIME'], lblMiss: ['game.sudoku.hudMistakes', 'MISTAKES'], lblBest: ['game.common.best', 'BEST'] };
+    for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
+  }
+  i18nHudLabels();
+  buildPad();
+  // live language switch: retranslate the HUD + rebuild whichever menu is open
+  KIT.onLang(() => {
+    i18nHudLabels();
+    if (KIT.menu.current() && menuReshow) menuReshow();
+  });
+  updateHud();
+  KIT.loop(update, render);
+  // deep-link: ?mode=daily / ?diff=hard preselect
+  const pm = KIT.param('mode'), pd = KIT.param('diff');
+  if (pm && ['classic', 'daily', 'zen'].includes(pm)) gameMode = pm;
+  if (pd && DIFFS.includes(pd)) band = DIFFS.indexOf(pd) + 1;
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>

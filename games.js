@@ -89,11 +89,11 @@ window.GAMES = [
   {
     slug: "sudoku",
     title: "Sudoku",
-    blurb: "Fill the 9×9 grid so every row, column and box holds 1–9 — easy to expert, with hints.",
+    blurb: "Fill the 9×9 so every row, column and box holds 1–9 — daily puzzles, hints and zen mode.",
     icon: "🔢",
-    accent: "#7aa2ff",
+    accent: "#f0b429",
     tags: ["LOGIC", "PUZZLE"],
-    soon: true,
+    added: "2026-07-10",
   },
   {
     slug: "crossy",
