@@ -1709,4 +1709,6 @@ window.KOMYO_I18N.cs = {
   'game.sudoku.deleteYes': 'Smazat',
   'changelog.e54.title': 'Menu přepínají jazyk okamžitě 🌐',
   'changelog.e54.b0': 'Změna: přepnutí jazyka při otevřeném herním menu ho aktualizuje na místě, v každé hře — už žádný zastaralý text do další obrazovky.',
+  'changelog.e55.title': 'Sudoku: správné číslice se zamknou 🔢',
+  'changelog.e55.b0': 'Oprava: správně umístěná číslice v Sudoku se zamkne — už žádné nechtěné smazání nebo přepsání (a ztráta postupu) uprostřed kola. Chybné zápisy jde dál upravovat a Zpět stále funguje, pokud to opravdu chceš.',
 };

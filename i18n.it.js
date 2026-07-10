@@ -1709,4 +1709,6 @@ window.KOMYO_I18N.it = {
   'game.sudoku.deleteYes': 'Elimina',
   'changelog.e54.title': 'I menu cambiano lingua all\'istante 🌐',
   'changelog.e54.b0': 'Modifica: cambiare lingua con un menu di gioco aperto ora lo aggiorna subito, in ogni gioco — basta testo obsoleto fino alla schermata successiva.',
+  'changelog.e55.title': 'Sudoku: i numeri corretti si bloccano 🔢',
+  'changelog.e55.b0': 'Correzione: un numero corretto inserito in Sudoku si blocca — basta cancellarlo o sovrascriverlo per sbaglio (perdendo i progressi) a metà partita. Le cifre sbagliate restano modificabili, e Annulla funziona ancora se lo vuoi davvero.',
 };

@@ -1709,4 +1709,6 @@ window.KOMYO_I18N.pt = {
   'game.sudoku.deleteYes': 'Apagar',
   'changelog.e54.title': 'Os menus trocam de idioma na hora 🌐',
   'changelog.e54.b0': 'Mudança: trocar o idioma com um menu de jogo aberto agora o atualiza na hora, em todos os jogos — chega de texto desatualizado até a próxima tela.',
+  'changelog.e55.title': 'Sudoku: números corretos ficam travados 🔢',
+  'changelog.e55.b0': 'Correção: ao colocar um número correto no Sudoku, ele trava — chega de apagá-lo ou sobrescrevê-lo sem querer (e perder progresso) no meio da rodada. Entradas erradas continuam editáveis, e o Desfazer ainda funciona se você realmente quiser.',
 };

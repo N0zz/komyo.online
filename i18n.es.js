@@ -1710,4 +1710,6 @@ window.KOMYO_I18N.es = {
   'game.sudoku.deleteYes': 'Borrar',
   'changelog.e54.title': 'Los menús cambian de idioma al instante 🌐',
   'changelog.e54.b0': 'Cambio: cambiar el idioma con un menú de juego abierto ahora lo actualiza al momento, en todos los juegos — se acabó el texto desactualizado hasta la siguiente pantalla.',
+  'changelog.e55.title': 'Sudoku: los números correctos se bloquean 🔢',
+  'changelog.e55.b0': 'Corrección: al colocar un número correcto en Sudoku, se bloquea — se acabó borrarlo o sobrescribirlo sin querer (y perder progreso) a mitad de ronda. Las entradas erróneas siguen siendo editables, y Deshacer sigue funcionando si de verdad lo quieres.',
 };

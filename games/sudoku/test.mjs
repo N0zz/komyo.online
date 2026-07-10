@@ -68,6 +68,25 @@ section('sudoku: placement + strikes');
   ok(!easy || (!(easy.score > 0) && !(easy.time > 0)), 'loss stores no best score/time (got ' + JSON.stringify(easy) + ')');
 }
 
+section('sudoku: correct entries lock in');
+{
+  const T = runGame().T;
+  T().newGame({ mode: 'classic', band: 1, seed: 47 });
+  const givens = T().givens, sol = T().solution;
+  const i = T().grid.findIndex((v, k) => v === 0 && !givens[k]);
+  T().select(i); T().input(sol[i]);
+  ok(T().grid[i] === sol[i], 'correct digit placed');
+  T().input(sol[i]);
+  ok(T().grid[i] === sol[i], 'retapping the same digit does NOT clear a correct entry');
+  T().input(1 + (sol[i] % 9));
+  ok(T().grid[i] === sol[i], 'a different digit does NOT overwrite a correct entry');
+  ok(T().mistakes === 0, '…and costs no strike');
+  T().erase();
+  ok(T().grid[i] === sol[i], 'erase does NOT remove a correct entry');
+  T().undo();
+  ok(T().grid[i] === 0, 'undo (deliberate) still reverts the placement');
+}
+
 section('sudoku: pencil marks');
 {
   const T = runGame().T;

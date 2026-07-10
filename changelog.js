@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-10', title: 'Sudoku: correct numbers lock in 🔢', items: [
+    'Fix: once you place a correct number in Sudoku, it locks in — no more accidentally clearing or overwriting it (and losing progress) mid-round. Wrong entries stay editable, and Undo still works if you really mean it.',
+  ] },
   { date: '2026-07-10', title: 'Menus switch language instantly 🌐', items: [
     'Change: switching the language while a game menu is open now updates it on the spot, in every game — no more stale English (or stale anything) until the next screen.',
   ] },
