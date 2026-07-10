@@ -226,6 +226,7 @@
     frogbonk:     { kind: 'modern', bpm: 86, root: 110, scale: [0, 2, 3, 5, 7, 8, 12], prog: [0, 6, 4, 2, 0, 3, 5, 2], cutoff: 1700, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, detune: 8, swing: 0.06, kf0: 130, kf1: 50, prod: 'dance' },
     keep:         { kind: 'modern', bpm: 86, root: 110, scale: [0, 2, 3, 5, 7, 8, 12], prog: [0, 3, 6, 4, 0, 5, 3, 6], cutoff: 1700, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },
     stacker:      { kind: 'modern', bpm: 96, root: 220, scale: [0, 3, 5, 7, 10, 12], prog: [0, 4, 5, 3, 0, 4, 2, 3], cutoff: 2000, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'sine', lead: 'triangle', softLead: true, vibrato: 4 },
+    sudoku:       { kind: 'modern', bpm: 80, root: 155.56, scale: [0, 2, 4, 7, 9, 12], prog: [0, 5, 1, 4, 0, 2, 5, 4], cutoff: 2200, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 3 },
     meadow:       { kind: 'modern', bpm: 90, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 5, 0, 2, 4, 5], cutoff: 2400, kit: 'soft', prod: 'lush', pad: 'triangle', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 5 },
     // Keep Defender per-biome (epic palette; each biome keeps its own key/tempo/mode for mood)
     kd_grass:   { kind: 'modern', bpm: 96, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 4, 0, 2, 4, 3], cutoff: 2500, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },
@@ -1126,6 +1127,17 @@
     if (!list || !list.length) return null;
     var d = (day == null) ? utcDayNumber() : day;
     var idx = isWeek ? Math.floor((d - CH_WEEK_ANCHOR) / 7) : d;
+    // FROZEN like the random-pick pool: a goal only joins the rotation once its game was live at
+    // the period's START (playableSince) — so shipping a new game's goals mid-day/mid-week never
+    // re-rolls a pick players have already seen.
+    if (C.playableSince) {
+      var startD = isWeek ? (CH_WEEK_ANCHOR + idx * 7) : d;
+      list = list.filter(function (id) {
+        var g = C.goals[id], a = g && g.slug && C.playableSince[g.slug];
+        return !a || chDayNum(a) <= startD;
+      });
+      if (!list.length) return null;
+    }
     var n = list.length, i = 0;
     if (n >= 2) {
       i = chHash(idx) % n;
@@ -2929,6 +2941,14 @@
           var mech = mkEl('div', 'gkm-card-mech');
           var body = mkEl('div', 'gkm-card-body'); body.appendChild(head); body.appendChild(desc); body.appendChild(mech);
           card.appendChild(pv); card.appendChild(body);
+          // c.onRemove(handle): renders a small 🗑 in the card's corner (delete a save slot etc.);
+          // the click never bubbles into the card's select.
+          if (typeof c.onRemove === 'function') {
+            var rm = mkEl('button', 'gkm-card-rm', '🗑');
+            try { rm.type = 'button'; } catch (e) {}
+            rm.addEventListener('click', function (e) { try { e.stopPropagation(); } catch (e2) {} try { c.onRemove(handle); } catch (e2) {} });
+            card.appendChild(rm);
+          }
           var ref = { el: card, kind: 'choice', grp: g2.id, choice: c.id, locked: false };
           card.addEventListener('click', function () { selectChoice(ref); setFocusEl(card); });
           card.addEventListener('mouseenter', function () { setFocusEl(card); });
@@ -3137,6 +3157,14 @@
       actions.forEach(function (a) {
         var b = mkEl('button', 'gkm-action' + (a.primary ? ' primary' : '') + (a.danger ? ' danger' : ''), a.label);
         try { b.type = 'button'; } catch (e) {}
+        // a.disabled: true|fn() — rendered grayed out, unclickable, out of the focus order
+        var dis = (typeof a.disabled === 'function') ? !!a.disabled() : !!a.disabled;
+        if (dis) {
+          if (b.classList) b.classList.add('gkm-disabled');
+          try { b.disabled = true; } catch (e) {}
+          arow.appendChild(b);
+          return;
+        }
         var ref = { el: b, kind: 'action', action: a };
         b.addEventListener('click', function () { setFocusEl(b); fireAction(a); });
         b.addEventListener('mouseenter', function () { setFocusEl(b); });

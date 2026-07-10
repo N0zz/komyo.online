@@ -212,7 +212,10 @@ function testCatalogue() {
         const slugs = GAMES.filter(x => !x.soon).slice(0, 5).map(x => x.slug);
         g.store['gamekit_played_' + dStr] = JSON.stringify({ slugs, totalScore: 1e9, count: 99, goodRuns: 99 });
       } else if (goal && goal.scope === 'random') {
-        const playable = GAMES.filter(x => x && x.slug && !x.soon).map(x => x.slug);
+        // mirror the evaluator's playableSince freeze — a game whose go-live date is after today
+        // is NOT in today's pool (ISO date strings compare lexically)
+        const playable = GAMES.filter(x => x && x.slug && !x.soon
+          && (!(C.playableSince || {})[x.slug] || C.playableSince[x.slug] <= dStr)).map(x => x.slug);
         const slug = C.randomSlug(day, playable); // today's deterministic pick
         g.store['gamekit_played_' + dStr] = JSON.stringify({ slugs: [slug], totalScore: 1, count: 1 });
       } else if (goal) {
