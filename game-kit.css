@@ -179,6 +179,8 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 .gamekit-menu .gkm-action { width: 100%; cursor: pointer; padding: 13px 22px; border-radius: 11px; font: 700 14px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px;
   color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.25); transition: border-color .12s, background .12s, filter .12s; }
 .gamekit-menu .gkm-action:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-action.gkm-disabled { opacity: 0.38; cursor: not-allowed; }
+.gamekit-menu .gkm-action.gkm-disabled:hover { border-color: rgba(255, 255, 255, 0.25); }
 .gamekit-menu .gkm-action.primary { padding: 16px; font-size: 17px; letter-spacing: 2px; color: var(--gkm-on-accent, #06121a); background: var(--gkm-accent, #9fe8ff); border-color: var(--gkm-accent, #9fe8ff); box-shadow: var(--gkm-glow, none); }
 .gamekit-menu .gkm-action.primary:hover { filter: brightness(1.1); }
 .gamekit-menu .gkm-action.danger { color: #ffb4b4; border-color: rgba(255, 120, 120, 0.5); background: rgba(255, 90, 90, 0.12); }
@@ -257,7 +259,7 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 
 /* ---- mode cards (style:'cards') — preview left, text column right ---- */
 .gamekit-menu .gkm-cards { display: flex; flex-direction: column; gap: 10px; text-align: left; }
-.gamekit-menu .gkm-card { display: grid; grid-template-columns: 92px 1fr; gap: 15px; align-items: center; cursor: pointer;
+.gamekit-menu .gkm-card { position: relative; display: grid; grid-template-columns: 92px 1fr; gap: 15px; align-items: center; cursor: pointer;
   background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 14px;
   padding: 11px 14px; transition: border-color .15s, box-shadow .15s, transform .12s; }
 .gamekit-menu .gkm-card:hover { border-color: var(--gkm-accent, #9fe8ff); transform: translateY(-1px); }
@@ -265,6 +267,9 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 .gamekit-menu .gkm-card.gkm-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
 .gamekit-menu .gkm-card.gkm-locked { opacity: 0.55; cursor: default; }
 .gamekit-menu .gkm-card.gkm-locked:hover { border-color: var(--gkm-border, rgba(255, 255, 255, 0.16)); transform: none; }
+.gamekit-menu .gkm-card-rm { position: absolute; top: 7px; right: 7px; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+  font: 14px/1 system-ui, sans-serif; color: #ffb4b4; border: 1px solid rgba(255, 120, 120, 0.4); background: rgba(255, 90, 90, 0.1); }
+.gamekit-menu .gkm-card-rm:hover { background: rgba(255, 90, 90, 0.28); }
 .gamekit-menu .gkm-card-pv { width: 92px; height: 92px; border-radius: 11px; background: rgba(0, 0, 0, .35); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); display: block; }
 .gamekit-menu .gkm-card.gkm-on .gkm-card-pv { box-shadow: inset 0 0 0 1px var(--gkm-accent, #9fe8ff); }
 .gamekit-menu .gkm-card-body { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
