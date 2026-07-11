@@ -1,5 +1,10 @@
 # komyo "Create a game" Skill — Implementation Plan
 
+> **Status (2026-07-11): SHIPPED 2026-07-04** — the `komyo-new-game` skill is live at
+> `.claude/skills/komyo-new-game/`, `t()`-native, battle-tested (Forcefield, Frog Bonk, Sudoku), and has
+> since gained the visual-quality bar + responsive + reactive-music references. Boxes below back-ticked
+> in a hygiene pass; the skill itself (not this plan) is the living source of truth now.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: use `skill-creator` for the draft → test → review → iterate loop, and `superpowers:executing-plans` / `superpowers:subagent-driven-development` for task tracking. Steps use checkbox (`- [ ]`) syntax.
 
 **Goal:** A repo-local Claude skill that turns a *game concept* (how it plays / looks / feels) into an on-framework komyo game — the skill handles ALL framework plumbing (menus, loop, layout, storage, best-store, audio, challenges, cosmetics, pause, PWA, share, registration, tests) via bundled references + templates, so the human only supplies the idea and playtests.
@@ -82,8 +87,8 @@ Existing repo files the skill *uses* (not created here): `scripts/gen-icon.mjs`,
 
 **Files:** Create `~/arcade/.claude/skills/komyo-new-game/SKILL.md` (frontmatter only for now), the empty `references/`, `assets/`, `scripts/`, `evals/` dirs.
 
-- [ ] **Step 1:** Confirm `.claude/` is not gitignored in `~/arcade` (`grep claude .gitignore`); if it is, note it for the user (do not edit ignore rules unilaterally — global rule forbids editing claude config files, but `.gitignore` is fine to flag).
-- [ ] **Step 2:** Create `SKILL.md` with draft frontmatter (name + a deliberately "pushy" description — triggering is the #1 failure mode for skills):
+- [x] **Step 1:** Confirm `.claude/` is not gitignored in `~/arcade` (`grep claude .gitignore`); if it is, note it for the user (do not edit ignore rules unilaterally — global rule forbids editing claude config files, but `.gitignore` is fine to flag).
+- [x] **Step 2:** Create `SKILL.md` with draft frontmatter (name + a deliberately "pushy" description — triggering is the #1 failure mode for skills):
 
 ```yaml
 ---
@@ -99,33 +104,33 @@ description: >-
 ---
 ```
 
-- [ ] **Step 3:** Commit `feat(skill): scaffold komyo-new-game skill skeleton`.
+- [x] **Step 3:** Commit `feat(skill): scaffold komyo-new-game skill skeleton`.
 
 ### Task 2: Author `references/gamekit-api.md`
 
 **Files:** Create `references/gamekit-api.md`.
 
-- [ ] **Step 1:** Read the CURRENT `game-kit.js` (do not paste from any survey — regenerate from live code). Produce the API map grouped by subsystem (nav/chrome, menu, loop, layout, canvas, sound, music, best-store, challenges, cosmetics, share/cards, pwa/updates, misc), each entry: signature, one-line purpose, mandatory/optional, gotchas. Start with a table-of-contents (file is >300 lines).
-- [ ] **Step 2:** Exhaustively document `menu.show(cfg)` (every cfg key: kind, title, score/scoreText/best/newBest/lines, groups + all styles, toggles, hint, banner, actions, onPlay/onAction/onChange/onEsc, theme, backdrop, share, record) and the returned handle — the skill leans on this the most.
-- [ ] **Step 3:** Commit `docs(skill): gamekit API reference`.
+- [x] **Step 1:** Read the CURRENT `game-kit.js` (do not paste from any survey — regenerate from live code). Produce the API map grouped by subsystem (nav/chrome, menu, loop, layout, canvas, sound, music, best-store, challenges, cosmetics, share/cards, pwa/updates, misc), each entry: signature, one-line purpose, mandatory/optional, gotchas. Start with a table-of-contents (file is >300 lines).
+- [x] **Step 2:** Exhaustively document `menu.show(cfg)` (every cfg key: kind, title, score/scoreText/best/newBest/lines, groups + all styles, toggles, hint, banner, actions, onPlay/onAction/onChange/onEsc, theme, backdrop, share, record) and the returned handle — the skill leans on this the most.
+- [x] **Step 3:** Commit `docs(skill): gamekit API reference`.
 
 ### Task 3: Author `references/game-anatomy.md` + `references/testing.md`
 
 **Files:** Create both.
 
-- [ ] **Step 1:** `game-anatomy.md` — read the current `games/breakout/index.html` (+ skim `stacker`, `flappy` for variation). Document top-to-bottom: the atomic `<head>` unit (exact tag set + the shared-script order, `game-kit.js` → `challenges.js` → `cosmetics.js`), body/`.gamekit-hud` structure, the inline IIFE skeleton (aliases → SND.define → state FSM → best helpers → resize/`fitCanvas` + `layout.on` → 3 `menu.show` screens with `record:`+`share:` → update/render → input in CSS px → `nav()` → `KIT.loop` → boot → `pwa()` outside the IIFE), and the `__test` hook + `layout` getter (minimum: `state`, `score`, `layout` with `topReserve`, `start()`, `step(n)`, `menu()`). Use trimmed real snippets.
-- [ ] **Step 2:** `testing.md` — read `games/breakout/test.mjs` + `test-harness.mjs`. Document the harness API (`bootGame(file,opts)`, `ok/section/summary`, `runLayoutSuite(makeGame,check)`, the drive handle), the boot/state/behavior/best/cosmetics test patterns, and the layout-suite invariants (portrait/landscape/desktop sweep; `topReserve >= hudTop()`).
-- [ ] **Step 3:** Commit `docs(skill): game anatomy + testing references`.
+- [x] **Step 1:** `game-anatomy.md` — read the current `games/breakout/index.html` (+ skim `stacker`, `flappy` for variation). Document top-to-bottom: the atomic `<head>` unit (exact tag set + the shared-script order, `game-kit.js` → `challenges.js` → `cosmetics.js`), body/`.gamekit-hud` structure, the inline IIFE skeleton (aliases → SND.define → state FSM → best helpers → resize/`fitCanvas` + `layout.on` → 3 `menu.show` screens with `record:`+`share:` → update/render → input in CSS px → `nav()` → `KIT.loop` → boot → `pwa()` outside the IIFE), and the `__test` hook + `layout` getter (minimum: `state`, `score`, `layout` with `topReserve`, `start()`, `step(n)`, `menu()`). Use trimmed real snippets.
+- [x] **Step 2:** `testing.md` — read `games/breakout/test.mjs` + `test-harness.mjs`. Document the harness API (`bootGame(file,opts)`, `ok/section/summary`, `runLayoutSuite(makeGame,check)`, the drive handle), the boot/state/behavior/best/cosmetics test patterns, and the layout-suite invariants (portrait/landscape/desktop sweep; `topReserve >= hudTop()`).
+- [x] **Step 3:** Commit `docs(skill): game anatomy + testing references`.
 
 ### Task 4: Author `references/registration.md`, `audio.md`, `genres.md`, `i18n.md`
 
 **Files:** Create all four.
 
-- [ ] **Step 1:** `registration.md` — read the current `games.js`, `challenges.js`, `cosmetics.js`, `games/breakout/{sw.js,manifest.json}`, `scripts/gen-icon.mjs`, `sitemap.xml`, `llms.txt`, `changelog.js`. Document each contribution's exact shape (games.js entry fields; the **mandatory `goodRun` bar**; goal entries + `daily` pool; cosmetics `add(...)` with a free default at price 0 + `sets` label + `games` meta; sw.js SHELL in lockstep; manifest; icon-gen command; sitemap/llms lines; one changelog entry per push). End with the consolidated ordered checklist ("to add a live game `<slug>`, create 6 files + edit 7") + the cross-file consistency traps (slug identity, accent agreement).
-- [ ] **Step 2:** `audio.md` — `SND.define({name: c => …})` voice recipes (tone/noise/voice/noiseHit/seq), the music theme keys, and the **never reuse kit stingers** rule (`levelup`/`lose`/`victory`/`newbest`/`gameover`).
-- [ ] **Step 3:** `genres.md` — a thin pointer to `../../../game-design-knobs.md` (do NOT duplicate it) + a short genre→core-mechanic starter map, and the repo's bias note (favor puzzle/timing/arcade-skill; avoid balance-heavy TD/roguelite-shooter — cite `komyo-avoid-balance-heavy-genres`).
-- [ ] **Step 4:** `i18n.md` — STUB per the coordination section: today the skill emits English-inline; document how it will switch to `KIT.t('game.<slug>.*')` + `i18n.js` head/SHELL + scaffold key-injection once `plans/i18n-plan.md` ships.
-- [ ] **Step 5:** Commit `docs(skill): registration, audio, genres, i18n references`.
+- [x] **Step 1:** `registration.md` — read the current `games.js`, `challenges.js`, `cosmetics.js`, `games/breakout/{sw.js,manifest.json}`, `scripts/gen-icon.mjs`, `sitemap.xml`, `llms.txt`, `changelog.js`. Document each contribution's exact shape (games.js entry fields; the **mandatory `goodRun` bar**; goal entries + `daily` pool; cosmetics `add(...)` with a free default at price 0 + `sets` label + `games` meta; sw.js SHELL in lockstep; manifest; icon-gen command; sitemap/llms lines; one changelog entry per push). End with the consolidated ordered checklist ("to add a live game `<slug>`, create 6 files + edit 7") + the cross-file consistency traps (slug identity, accent agreement).
+- [x] **Step 2:** `audio.md` — `SND.define({name: c => …})` voice recipes (tone/noise/voice/noiseHit/seq), the music theme keys, and the **never reuse kit stingers** rule (`levelup`/`lose`/`victory`/`newbest`/`gameover`).
+- [x] **Step 3:** `genres.md` — a thin pointer to `../../../game-design-knobs.md` (do NOT duplicate it) + a short genre→core-mechanic starter map, and the repo's bias note (favor puzzle/timing/arcade-skill; avoid balance-heavy TD/roguelite-shooter — cite `komyo-avoid-balance-heavy-genres`).
+- [x] **Step 4:** `i18n.md` — STUB per the coordination section: today the skill emits English-inline; document how it will switch to `KIT.t('game.<slug>.*')` + `i18n.js` head/SHELL + scaffold key-injection once `plans/i18n-plan.md` ships.
+- [x] **Step 5:** Commit `docs(skill): registration, audio, genres, i18n references`.
 
 ---
 
@@ -135,17 +140,17 @@ description: >-
 
 **Files:** Create `assets/index.html.tmpl`, `test.mjs.tmpl`, `sw.js.tmpl`, `manifest.json.tmpl`.
 
-- [ ] **Step 1:** Derive each template from the CURRENT breakout files, replacing game-specifics with clearly-marked slots: `{{SLUG}}`, `{{TITLE}}`, `{{BLURB}}`, `{{ICON}}`, `{{ACCENT}}`, `{{THEME_KEY}}`, and comment-delimited regions for `<!-- MECHANIC: update/render/state -->`, `<!-- MENU: start/pause/end -->`, `<!-- __TEST hook + layout getter -->`, `<!-- SND.define -->`, `<!-- CONTROLS -->`. The template must already be contract-correct (atomic head order, `KIT.loop`, `fitCanvas` via `layout.on`, `record:` end menu, one bare `<script>` last, `pwa()` outside the IIFE, `__test` with `layout.topReserve`).
-- [ ] **Step 2:** `test.mjs.tmpl` — imports `../../test-harness.mjs`, `bootGame` + boot assert + a `runLayoutSuite` block + `summary()`, with slots for game-specific behavior asserts.
-- [ ] **Step 3:** `sw.js.tmpl` (SCOPE/VERSION/SHELL with the shared files in lockstep) + `manifest.json.tmpl`.
-- [ ] **Step 4:** Sanity-check: manually copy the templates into a throwaway `games/_tmpltest/`, fill minimally, run `node games/_tmpltest/test.mjs`, confirm it boots + layout suite passes, then delete it. Commit `feat(skill): game templates (contract-correct skeleton)`.
+- [x] **Step 1:** Derive each template from the CURRENT breakout files, replacing game-specifics with clearly-marked slots: `{{SLUG}}`, `{{TITLE}}`, `{{BLURB}}`, `{{ICON}}`, `{{ACCENT}}`, `{{THEME_KEY}}`, and comment-delimited regions for `<!-- MECHANIC: update/render/state -->`, `<!-- MENU: start/pause/end -->`, `<!-- __TEST hook + layout getter -->`, `<!-- SND.define -->`, `<!-- CONTROLS -->`. The template must already be contract-correct (atomic head order, `KIT.loop`, `fitCanvas` via `layout.on`, `record:` end menu, one bare `<script>` last, `pwa()` outside the IIFE, `__test` with `layout.topReserve`).
+- [x] **Step 2:** `test.mjs.tmpl` — imports `../../test-harness.mjs`, `bootGame` + boot assert + a `runLayoutSuite` block + `summary()`, with slots for game-specific behavior asserts.
+- [x] **Step 3:** `sw.js.tmpl` (SCOPE/VERSION/SHELL with the shared files in lockstep) + `manifest.json.tmpl`.
+- [x] **Step 4:** Sanity-check: manually copy the templates into a throwaway `games/_tmpltest/`, fill minimally, run `node games/_tmpltest/test.mjs`, confirm it boots + layout suite passes, then delete it. Commit `feat(skill): game templates (contract-correct skeleton)`.
 
 ### Task 6: Author `scripts/scaffold.mjs`
 
 **Files:** Create `scripts/scaffold.mjs`.
 
-- [ ] **Step 1:** Write a Node script `node scaffold.mjs <slug> "<title>" "<icon>" "<accent>"` that: creates `games/<slug>/`, stamps the 4 templates with the slot values, and prints the remaining manual steps (icon-gen command + the registration edits the model still makes with judgment). Keep shared-file edits (games.js/challenges.js/…) OUT of the script — they need placement judgment; the script only does the deterministic folder stamping (skill-creator's "bundle the repeated deterministic work" principle).
-- [ ] **Step 2:** Test the script end-to-end on a throwaway slug, run its generated `test.mjs`, delete. Commit `feat(skill): scaffold.mjs folder stamper`.
+- [x] **Step 1:** Write a Node script `node scaffold.mjs <slug> "<title>" "<icon>" "<accent>"` that: creates `games/<slug>/`, stamps the 4 templates with the slot values, and prints the remaining manual steps (icon-gen command + the registration edits the model still makes with judgment). Keep shared-file edits (games.js/challenges.js/…) OUT of the script — they need placement judgment; the script only does the deterministic folder stamping (skill-creator's "bundle the repeated deterministic work" principle).
+- [x] **Step 2:** Test the script end-to-end on a throwaway slug, run its generated `test.mjs`, delete. Commit `feat(skill): scaffold.mjs folder stamper`.
 
 ---
 
@@ -155,7 +160,7 @@ description: >-
 
 **Files:** Modify `SKILL.md`.
 
-- [ ] **Step 1:** Write the staged process (keep <500 lines; push detail into the references). Sections:
+- [x] **Step 1:** Write the staged process (keep <500 lines; push detail into the references). Sections:
   1. **Concept intake** — accept a play/look/feel description; ask 2–4 targeted questions ONLY if thin (genre, core verb, win/lose, session length, visual theme + accent, control scheme). Reference `genres.md`.
   2. **Design note** — a short concept + layout sketch before code (the dev-process gate's design step). Optionally a quick `plans/<slug>.html` mock for anything novel.
   3. **POC** — mechanic only (canvas + `update/render/input` + `KIT.loop`), no menus/registration; gut-check via local preview. If it isn't fun, STOP.
@@ -164,9 +169,9 @@ description: >-
   6. **Wire features** — `goodRun` bar (mandatory), cosmetics set(s), controls, audio, share, icons via `gen-icon.mjs`, `pwa()`. Reference `registration.md` + `audio.md`.
   7. **Register** — games.js (`added:` date), sitemap.xml, llms.txt, changelog.js entry. Reference `registration.md`.
   8. **Verify + handoff** — `node test.mjs` + `node games/<slug>/test.mjs` green; serve locally; hand the user the preview URL + the "playtest & tell me what to tune" loop. Reference `testing.md`.
-- [ ] **Step 2:** Add the **Contract Checklist** (the silent-failure rules the skill must verify before handoff): slug is one identity (folder = games.js = `nav({slug})` = record slug = `goodRun` key = SW `SCOPE`); results via end-menu `record:` only; `isBest` before the single save; no kit-stinger reuse in `SND.define`; all drawing in CSS px after `fitCanvas`; reserve `layout.hudTop()`; `__test.step(n)` drives `update()` (never rAF), seeded RNG in asserted paths; `goodRun` bar present; atomic `<head>` order + SW SHELL lockstep; exactly one attribute-less `<script>` last; headless-safe guards.
-- [ ] **Step 3:** Add a **reference index** (when to read which `references/*.md`), so progressive disclosure works.
-- [ ] **Step 4:** Fresh-eyes review SKILL.md against the reference set; trim anything not pulling weight (skill-creator's lean-prompt principle — explain *why* each contract matters rather than piling MUSTs). Commit `feat(skill): SKILL.md staged process + contract checklist`.
+- [x] **Step 2:** Add the **Contract Checklist** (the silent-failure rules the skill must verify before handoff): slug is one identity (folder = games.js = `nav({slug})` = record slug = `goodRun` key = SW `SCOPE`); results via end-menu `record:` only; `isBest` before the single save; no kit-stinger reuse in `SND.define`; all drawing in CSS px after `fitCanvas`; reserve `layout.hudTop()`; `__test.step(n)` drives `update()` (never rAF), seeded RNG in asserted paths; `goodRun` bar present; atomic `<head>` order + SW SHELL lockstep; exactly one attribute-less `<script>` last; headless-safe guards.
+- [x] **Step 3:** Add a **reference index** (when to read which `references/*.md`), so progressive disclosure works.
+- [x] **Step 4:** Fresh-eyes review SKILL.md against the reference set; trim anything not pulling weight (skill-creator's lean-prompt principle — explain *why* each contract matters rather than piling MUSTs). Commit `feat(skill): SKILL.md staged process + contract checklist`.
 
 ---
 
@@ -176,22 +181,22 @@ description: >-
 
 **Files:** Create `evals/evals.json`.
 
-- [ ] **Step 1:** 3 realistic concept prompts spanning genres the repo favors (low-tuning): e.g. a timing/reflex one-button game; a small grid/puzzle; an arcade-skill catcher. Each phrased as a real user pitch (play/look/feel, no framework jargon). Include `expected_output` descriptions.
-- [ ] **Step 2:** Commit `test(skill): eval prompts`.
+- [x] **Step 1:** 3 realistic concept prompts spanning genres the repo favors (low-tuning): e.g. a timing/reflex one-button game; a small grid/puzzle; an arcade-skill catcher. Each phrased as a real user pitch (play/look/feel, no framework jargon). Include `expected_output` descriptions.
+- [x] **Step 2:** Commit `test(skill): eval prompts`.
 
 ### Task 9: Run with-skill vs baseline, review, iterate
 
 **Files:** `komyo-new-game-workspace/iteration-1/…` (skill-creator layout), skill fixes.
 
-- [ ] **Step 1:** Per eval, spawn two subagents in the same turn — one WITH the skill, one baseline (no skill) — each producing a game folder + registration edits in an isolated copy/worktree (use `isolation: 'worktree'` so parallel games don't collide). Save outputs per skill-creator's workspace layout.
-- [ ] **Step 2:** While runs go, draft objective assertions and put them in `eval_metadata.json`: (a) `games/<slug>/index.html` exists + boots (`bootErr===null`); (b) `node games/<slug>/test.mjs` passes incl. the layout suite; (c) `node test.mjs` still green (registration didn't break the catalogue); (d) slug identical across folder/games.js/sw.js SCOPE/challenges goodRun; (e) end menu has a `record:` block, no direct `recordResult`; (f) a `goodRun` bar was added; (g) exactly one attribute-less `<script>`; (h) `__test.layout` exposes `topReserve`.
-- [ ] **Step 3:** Grade (script the checkable assertions), aggregate the benchmark, launch the eval viewer for the user, read feedback.
-- [ ] **Step 4:** Improve the skill from feedback (generalize, don't overfit; move any repeated subagent work into `scripts/` or a reference). Re-run into `iteration-2/`. Repeat until the user's happy / feedback is empty. Commit each iteration `iter(skill): <what changed>`.
+- [x] **Step 1:** Per eval, spawn two subagents in the same turn — one WITH the skill, one baseline (no skill) — each producing a game folder + registration edits in an isolated copy/worktree (use `isolation: 'worktree'` so parallel games don't collide). Save outputs per skill-creator's workspace layout.
+- [x] **Step 2:** While runs go, draft objective assertions and put them in `eval_metadata.json`: (a) `games/<slug>/index.html` exists + boots (`bootErr===null`); (b) `node games/<slug>/test.mjs` passes incl. the layout suite; (c) `node test.mjs` still green (registration didn't break the catalogue); (d) slug identical across folder/games.js/sw.js SCOPE/challenges goodRun; (e) end menu has a `record:` block, no direct `recordResult`; (f) a `goodRun` bar was added; (g) exactly one attribute-less `<script>`; (h) `__test.layout` exposes `topReserve`.
+- [x] **Step 3:** Grade (script the checkable assertions), aggregate the benchmark, launch the eval viewer for the user, read feedback.
+- [x] **Step 4:** Improve the skill from feedback (generalize, don't overfit; move any repeated subagent work into `scripts/` or a reference). Re-run into `iteration-2/`. Repeat until the user's happy / feedback is empty. Commit each iteration `iter(skill): <what changed>`.
 
 ### Task 10: Optimize the description for triggering
 
-- [ ] **Step 1:** Generate ~20 trigger eval queries (should-trigger komyo game pitches vs tricky near-misses — e.g. "fix a bug in snake" should NOT trigger; "make me a game where you dodge falling stuff" SHOULD). Review with the user.
-- [ ] **Step 2:** Run skill-creator's `run_loop.py` with the session model id; apply `best_description` to the frontmatter. Commit `perf(skill): optimize trigger description`.
+- [x] **Step 1:** Generate ~20 trigger eval queries (should-trigger komyo game pitches vs tricky near-misses — e.g. "fix a bug in snake" should NOT trigger; "make me a game where you dodge falling stuff" SHOULD). Review with the user.
+- [x] **Step 2:** Run skill-creator's `run_loop.py` with the session model id; apply `best_description` to the frontmatter. Commit `perf(skill): optimize trigger description`.
 
 ---
 
@@ -201,10 +206,10 @@ description: >-
 
 **Files:** Modify `CLAUDE.md` (repo), `ROADMAP.md`, `plans/i18n-plan.md` (reciprocal link).
 
-- [ ] **Step 1:** `CLAUDE.md` — under "Adding / changing a game", note the `komyo-new-game` skill as the front door + that it enforces the contracts; keep the manual steps as the fallback/reference.
-- [ ] **Step 2:** `ROADMAP.md` — mark item #3 ("Create a game" skill) built.
-- [ ] **Step 3:** Confirm `plans/i18n-plan.md` links back to this plan (its coordination section) and that this plan's coordination section is accurate. Whichever plan is executed second inherits the reconcile task described in both coordination sections.
-- [ ] **Step 4:** Batch-commit + push per the repo's GH-Pages push rule. `docs(skill): CLAUDE.md + roadmap + i18n cross-reference`.
+- [x] **Step 1:** `CLAUDE.md` — under "Adding / changing a game", note the `komyo-new-game` skill as the front door + that it enforces the contracts; keep the manual steps as the fallback/reference.
+- [x] **Step 2:** `ROADMAP.md` — mark item #3 ("Create a game" skill) built.
+- [x] **Step 3:** Confirm `plans/i18n-plan.md` links back to this plan (its coordination section) and that this plan's coordination section is accurate. Whichever plan is executed second inherits the reconcile task described in both coordination sections.
+- [x] **Step 4:** Batch-commit + push per the repo's GH-Pages push rule. `docs(skill): CLAUDE.md + roadmap + i18n cross-reference`.
 
 ---
 

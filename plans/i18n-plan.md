@@ -1,5 +1,10 @@
 # komyo i18n Implementation Plan
 
+> **Status (2026-07-11): SHIPPED 2026-07-05** — all 8 languages live (en/pl/es/pt/fr/it/cs/uk), coverage
+> test enforced; see ROADMAP ✅ Done. Shipped steps below back-ticked in a hygiene pass. Still genuinely
+> OPEN (non-gating): the native translation review + the per-language rendering/mobile QA sweeps — the
+> remaining unticked boxes.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make the entire komyo site (catalogue + shared kit + 9 games + legal pages) translatable, with a live language picker, and ship it in 8 languages: **English, Polish, Spanish (neutral), Portuguese (pt-BR), French, Italian, Czech, Ukrainian**.
@@ -500,8 +505,8 @@ git commit -m "feat(i18n): language picker in the kit ☰ menu + catalogue Setti
 
 **Files:** Modify `i18n.js` (`pl`, `es`, `pt`, `fr` sections). Test: `node test.mjs`.
 
-- [ ] **Step 1:** Extract every key from `i18n.js` `en` (including plural objects). For each of `pl/es/pt/fr`, produce translations. Preserve `{param}` tokens exactly (do not translate token names). Keep brand tokens + emoji verbatim.
-- [ ] **Step 2:** Author **plural forms per language**: `pl` needs `{one, few, many, other}`; `es`/`pt`/`fr` need `{one, other}`. Only the plural keys (`cat.trophies`, `cat.goodRuns`, `cat.plays`, `cat.showMore`, `challenge.goal.play*games`, any "N lives/games") need this — a bounded set (~15 keys).
+- [x] **Step 1:** Extract every key from `i18n.js` `en` (including plural objects). For each of `pl/es/pt/fr`, produce translations. Preserve `{param}` tokens exactly (do not translate token names). Keep brand tokens + emoji verbatim.
+- [x] **Step 2:** Author **plural forms per language**: `pl` needs `{one, few, many, other}`; `es`/`pt`/`fr` need `{one, other}`. Only the plural keys (`cat.trophies`, `cat.goodRuns`, `cat.plays`, `cat.showMore`, `challenge.goal.play*games`, any "N lives/games") need this — a bounded set (~15 keys).
 - [x] **Step 3:** Sanity test: assert no missing keys vs `en` (a small test that iterates `en` keys and checks each lang has them; missing → falls back to `en`, which is acceptable but flag count).
 
 ```js
@@ -515,7 +520,7 @@ section('i18n coverage');
 }
 ```
 
-- [ ] **Step 4:** Run `node test.mjs` → PASS (or a known, logged missing-count). Commit `feat(i18n): populate pl/es/pt/fr translations`.
+- [x] **Step 4:** Run `node test.mjs` → PASS (or a known, logged missing-count). Commit `feat(i18n): populate pl/es/pt/fr translations`.
 
 ### Task 24: Native / careful review pass
 
@@ -542,11 +547,11 @@ section('i18n coverage');
 
 **Files:** Modify `changelog.js` (one new player-facing entry), `CLAUDE.md` (document the i18n system + the `i18n.js` head/SHELL rule + `data-t` convention + "new games must key strings"), `ROADMAP.md` (mark i18n done), `README.md`.
 
-- [ ] **Step 1:** Prepend a `changelog.js` entry (player-facing): "New: play komyo in Polish, Spanish, Portuguese & French — pick your language in Settings / the ☰ menu." (One entry, one push — the Discord poster diffs it.)
-- [ ] **Step 2:** Update `CLAUDE.md`: add `i18n.js` to the atomic head order + SW SHELL list; document `gamekit.t()`/`lang()`/`setLang()`; add to "Adding a game" that new games must key strings via `t()` and that the "Create a game" skill should emit `t()` calls.
-- [ ] **Step 3:** Update `ROADMAP.md` (i18n → Done) and `README.md` (languages supported).
-- [ ] **Step 4:** Run all suites → PASS. Commit `docs(i18n): changelog, CLAUDE.md, roadmap, readme`.
-- [ ] **Step 5:** **Batch push** all commits together (GH Pages soft-limits builds). Hard-refresh to verify live; re-check the picker + a couple of languages on the deployed site.
+- [x] **Step 1:** Prepend a `changelog.js` entry (player-facing): "New: play komyo in Polish, Spanish, Portuguese & French — pick your language in Settings / the ☰ menu." (One entry, one push — the Discord poster diffs it.)
+- [x] **Step 2:** Update `CLAUDE.md`: add `i18n.js` to the atomic head order + SW SHELL list; document `gamekit.t()`/`lang()`/`setLang()`; add to "Adding a game" that new games must key strings via `t()` and that the "Create a game" skill should emit `t()` calls.
+- [x] **Step 3:** Update `ROADMAP.md` (i18n → Done) and `README.md` (languages supported).
+- [x] **Step 4:** Run all suites → PASS. Commit `docs(i18n): changelog, CLAUDE.md, roadmap, readme`.
+- [x] **Step 5:** **Batch push** all commits together (GH Pages soft-limits builds). Hard-refresh to verify live; re-check the picker + a couple of languages on the deployed site.
 
 ---
 
