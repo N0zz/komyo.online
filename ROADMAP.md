@@ -252,11 +252,13 @@ design knobs (`@game-design-knobs.md`).
 titles, icons and genre tags here match the catalogue. This table is the build queue: effort + notes
 per game. Roughly easiest → hardest within each group.
 
-**▶ Next build order (2026-07-10):** **2048 → Dusk Runner → Minesweeper → a small kids batch** (Sudoku ✅ shipped 2026-07-10)
-(Balloon Pop / Glow Says / Critter Match). Rationale: all low-tuning + high-recognition = fast to build,
-zero teaching cost, and organically searchable ("2048", "sudoku", "minesweeper", "dino game"); the kids
-batch widens the no-ads/kid-safe lane. This batch is all remakes — per `komyo-market-expansion-discussion`,
-slot **one original-mechanic, shareable game** in after 2048/Dusk Runner (don't block on it).
+**▶ Next build order (2026-07-11):** **Minesweeper → the kids batch** (Balloon Pop / Glow Says /
+Critter Match) **→ more trivial/easy builds** (2048, Dusk Runner, Pump Stop solo, Mash Dash, Maze
+Pals / Color Pop from the kids table — pick by mood, all trivial–low). (Sudoku ✅ shipped 2026-07-10.)
+Rationale: all low-tuning + high-recognition = fast to build, zero teaching cost, and organically
+searchable ("minesweeper", "2048", "dino game"); the kids batch widens the no-ads/kid-safe lane.
+This batch is all remakes — per `komyo-market-expansion-discussion`, slot **one original-mechanic,
+shareable game** in after Minesweeper + the kids batch (don't block on it).
 
 ### Single player
 
