@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Trap the Cat</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f0a6c8">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Trap the Cat">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1e1218; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #hud .val { color: #f0a6c8; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblMoves">HEDGES</span><span class="val" id="movesEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'trap-the-cat';
+  const ACCENT = '#f0a6c8';
+
+  const SND = window.gamekit.sound;
+  SND.define({
+    plant:  c => { c.voice({ f: 520, slideTo: 380, dur: 0.07, type: 'triangle', gain: 0.1 }); c.noiseHit({ dur: 0.04, gain: 0.04, filter: 'lowpass', cutoff: 1800 }); },
+    hop:    c => c.voice({ f: 700, slideTo: 900, dur: 0.06, type: 'sine', gain: 0.06 }),
+    meowW:  c => { c.voice({ f: 620, slideTo: 880, dur: 0.22, type: 'sawtooth', gain: 0.08, filter: 'lowpass', cutoff: 2200, vibrato: 6, vibratoDepth: 14 });
+                   c.voice({ f: 880, slideTo: 620, dur: 0.2, type: 'sawtooth', gain: 0.06, filter: 'lowpass', cutoff: 2000, t: c.now() + 0.22 }); },
+    meowL:  c => c.voice({ f: 800, slideTo: 1200, dur: 0.35, type: 'sawtooth', gain: 0.1, filter: 'lowpass', cutoff: 2600, vibrato: 7, vibratoDepth: 18 }),
+    trapd:  c => c.play('victory'),
+  });
+
+  const SIZE = 11;                       // 11×11 offset-hex board
+  const DIFFS = { easy: { prefill: 16, base: 60 }, medium: { prefill: 11, base: 90 }, hard: { prefill: 7, base: 120 } };
+  const DIFF_ORDER = ['easy', 'medium', 'hard'];
+  const HOP_DUR = 9;                     // fixed steps per cat hop animation
+
+  let W = 0, H = 0, topMargin = 48;
+  let state = 'ready';                   // ready | playing | over
+  let diff = 'medium';
+  let wall = [];                         // SIZE×SIZE booleans (hedges), wall[y][x]
+  let cat = { x: 5, y: 5 };
+  let clicks = 0, score = 0, best = 0;
+  let won = false, escaped = false;
+  let frame = 0;
+  let hop = null;                        // {fx,fy,tx,ty,t} view-only hop anim
+  let plantFx = null;                    // {x,y,t} wall-plant pop
+  let overFx = 0;
+
+  // layout
+  let r = 20, bx = 0, by = 0, boardW = 0, boardH = 0;
+
+  const inb = (x, y) => x >= 0 && x < SIZE && y >= 0 && y < SIZE;
+  const onEdge = (x, y) => x === 0 || y === 0 || x === SIZE - 1 || y === SIZE - 1;
+  // odd-r offset hex neighbours (odd rows shifted right)
+  function neighbors(x, y) {
+    const odd = y & 1;
+    const d = odd
+      ? [[1, 0], [-1, 0], [0, -1], [1, -1], [0, 1], [1, 1]]
+      : [[1, 0], [-1, 0], [-1, -1], [0, -1], [-1, 1], [0, 1]];
+    const out = [];
+    for (const [dx, dy] of d) { const nx = x + dx, ny = y + dy; if (inb(nx, ny)) out.push([nx, ny]); }
+    return out;
+  }
+
+  const diffLabel = d => { d = d || diff; return d.charAt(0).toUpperCase() + d.slice(1); };
+  const diffDisplay = d => KIT.t('game.trap-the-cat.diff' + diffLabel(d), { def: diffLabel(d) });
+  function loadBest(d) { return KIT ? KIT.bestScore(SLUG, diffLabel(d)) : 0; }
+
+  function newGame(d) {
+    diff = d || diff;
+    wall = Array.from({ length: SIZE }, () => new Array(SIZE).fill(false));
+    cat = { x: 5, y: 5 };
+    clicks = 0; score = 0; won = false; escaped = false;
+    hop = null; plantFx = null; overFx = 0;
+    best = loadBest(diff);
+    // prefill random hedges (never on the cat or its ring-1 neighbours)
+    const forbidden = new Set([cat.x + ',' + cat.y]);
+    for (const [nx, ny] of neighbors(cat.x, cat.y)) forbidden.add(nx + ',' + ny);
+    let placed = 0;
+    while (placed < DIFFS[diff].prefill) {
+      const x = Math.floor(Math.random() * SIZE), y = Math.floor(Math.random() * SIZE);
+      if (wall[y][x] || forbidden.has(x + ',' + y)) continue;
+      wall[y][x] = true; placed++;
+    }
+    layoutBoard(); updateHud();
+  }
+
+  // BFS distance-to-edge over free cells; returns dist map (Infinity where unreachable)
+  function edgeDistances() {
+    const dist = Array.from({ length: SIZE }, () => new Array(SIZE).fill(Infinity));
+    const q = [];
+    for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++)
+      if (onEdge(x, y) && !wall[y][x]) { dist[y][x] = 0; q.push([x, y]); }
+    let head = 0;
+    while (head < q.length) {
+      const [x, y] = q[head++];
+      for (const [nx, ny] of neighbors(x, y)) {
+        if (wall[ny][nx] || dist[ny][nx] !== Infinity) continue;
+        dist[ny][nx] = dist[y][x] + 1; q.push([nx, ny]);
+      }
+    }
+    return dist;
+  }
+
+  function catMove() {
+    const dist = edgeDistances();
+    const opts = neighbors(cat.x, cat.y).filter(([x, y]) => !wall[y][x]);
+    if (!opts.length) { trapped(); return; }
+    let pool = opts;
+    const reachable = opts.filter(([x, y]) => dist[y][x] !== Infinity);
+    if (reachable.length) {
+      const bestD = Math.min(...reachable.map(([x, y]) => dist[y][x]));
+      pool = reachable.filter(([x, y]) => dist[y][x] === bestD);
+    }
+    const [nx, ny] = pool[Math.floor(Math.random() * pool.length)];
+    hop = { fx: cat.x, fy: cat.y, tx: nx, ty: ny, t: HOP_DUR };
+    cat.x = nx; cat.y = ny;
+    SND.play('hop');
+    if (onEdge(nx, ny)) escape();
+  }
+
+  function click(x, y) {
+    if (state !== 'playing' || !inb(x, y)) return false;
+    if (wall[y][x] || (cat.x === x && cat.y === y)) return false;
+    wall[y][x] = true; clicks++;
+    plantFx = { x, y, t: 8 };
+    SND.play('plant');
+    updateHud();
+    catMove();
+    return true;
+  }
+
+  function runScore() { return Math.max(5, DIFFS[diff].base - clicks * 3); }
+
+  function trapped() {
+    won = true; score = runScore(); overFx = frame;
+    SND.play('meowW');
+    endRun();
+  }
+  function escape() {
+    escaped = true; won = false; score = 0; overFx = frame;
+    SND.play('meowL');
+    endRun();
+  }
+  function endRun() {
+    state = 'over';
+    const prev = loadBest(diff);
+    if (KIT) KIT.saveBest(SLUG, diffLabel(diff), { score, stats: { clicks } });
+    const isBest = won && score > prev;
+    best = loadBest(diff);
+    updateHud();
+    setTimeout(() => showEnd(isBest), won ? 700 : 900);
+  }
+
+  // ---- update / render ----
+  function update() {
+    frame++;
+    if (hop && hop.t > 0) hop.t--;
+    if (plantFx && plantFx.t > 0) plantFx.t--;
+    if (KIT && KIT.music) {
+      // tension = how close the cat is to the edge (5 = center, 0 = out)
+      const d = Math.min(cat.x, cat.y, SIZE - 1 - cat.x, SIZE - 1 - cat.y);
+      KIT.music.intensity(state === 'playing' ? Math.min(1, 0.35 + 0.13 * (5 - d)) : 0.3);
+    }
+  }
+
+  function layoutBoard() {
+    const pad = 8;
+    // odd-r offset: total width = (SIZE + 0.5) cells, height = 1 + (SIZE-1)*0.87 cells (hex vertical pitch ×0.87)
+    const availW = W - pad * 2, availH = H - topMargin - pad * 2;
+    const cellW = availW / (SIZE + 0.5);
+    const cellH = availH / (1 + (SIZE - 1) * 0.87);
+    r = Math.floor(Math.min(cellW, cellH) / 2);
+    boardW = (SIZE + 0.5) * r * 2;
+    boardH = (1 + (SIZE - 1) * 0.87) * r * 2;
+    bx = Math.round((W - boardW) / 2);
+    by = Math.round(topMargin + pad + (availH - boardH) / 2);
+  }
+
+  const cellCenter = (x, y) => ({
+    px: bx + r + x * r * 2 + (y & 1 ? r : 0),
+    py: by + r + y * r * 2 * 0.87,
+  });
+
+  // ---- skins (cosmetics: cat colors) ----
+  const SKINS = {
+    'trap-the-cat.cat.noir':   { body: '#2b2530', belly: '#3a3342', ear: '#241f2b', nose: '#f0a6c8' },
+    'trap-the-cat.cat.ginger': { body: '#e08b3d', belly: '#f2b571', ear: '#c9752c', nose: '#e06a6a' },
+    'trap-the-cat.cat.snow':   { body: '#e8e4ea', belly: '#f7f4f8', ear: '#d5cfd8', nose: '#f08aae' },
+  };
+  function catSkin() {
+    const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('trap-the-cat.cat') : null;
+    return SKINS[id] || SKINS['trap-the-cat.cat.noir'];
+  }
+
+  function hexPath(g, px, py, rad) {
+    g.beginPath();
+    for (let k = 0; k < 6; k++) {
+      const a = Math.PI / 6 + k * Math.PI / 3;   // pointy-top
+      const x = px + Math.cos(a) * rad, y = py + Math.sin(a) * rad;
+      k ? g.lineTo(x, y) : g.moveTo(x, y);
+    }
+    g.closePath();
+  }
+
+  function drawHedge(g, px, py, rad, pop) {
+    const s = rad * (pop !== undefined ? 0.75 + 0.25 * pop : 1);
+    // rose bush: leafy blob + 3 roses
+    g.fillStyle = '#3f7a44';
+    g.beginPath(); g.arc(px - s * 0.35, py + s * 0.15, s * 0.45, 0, 7); g.arc(px + s * 0.35, py + s * 0.15, s * 0.45, 0, 7);
+    g.arc(px, py - s * 0.2, s * 0.5, 0, 7); g.fill();
+    g.fillStyle = '#57a05c';
+    g.beginPath(); g.arc(px - s * 0.2, py - s * 0.15, s * 0.32, 0, 7); g.arc(px + s * 0.3, py, s * 0.3, 0, 7); g.fill();
+    const roses = [[-0.35, 0.05], [0.3, -0.2], [0.05, 0.3]];
+    for (const [ox, oy] of roses) {
+      g.fillStyle = '#e06a8e';
+      g.beginPath(); g.arc(px + ox * s, py + oy * s, s * 0.16, 0, 7); g.fill();
+      g.fillStyle = '#f0a6c8';
+      g.beginPath(); g.arc(px + ox * s - s * 0.04, py + oy * s - s * 0.04, s * 0.08, 0, 7); g.fill();
+    }
+  }
+
+  function drawCat(g, px, py, rad, S, mood) {
+    const s = rad * 1.05;
+    const wob = mood === 'trapped' ? Math.sin(frame * 0.35) * s * 0.06 : 0;
+    // tail
+    g.strokeStyle = S.body; g.lineWidth = s * 0.16; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(px + s * 0.45, py + s * 0.35);
+    g.quadraticCurveTo(px + s * 0.85, py + s * 0.3 + wob, px + s * 0.75, py - s * 0.15); g.stroke();
+    // ears
+    g.fillStyle = S.ear;
+    g.beginPath(); g.moveTo(px - s * 0.52, py - s * 0.28); g.lineTo(px - s * 0.38, py - s * 0.78 + wob); g.lineTo(px - s * 0.12, py - s * 0.42); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(px + s * 0.52, py - s * 0.28); g.lineTo(px + s * 0.38, py - s * 0.78 + wob); g.lineTo(px + s * 0.12, py - s * 0.42); g.closePath(); g.fill();
+    // head
+    const grd = g.createRadialGradient(px - s * 0.2, py - s * 0.25, s * 0.1, px, py, s * 0.75);
+    grd.addColorStop(0, S.belly); grd.addColorStop(1, S.body);
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(px, py, s * 0.55, 0, 7); g.fill();
+    // eyes (glossy)
+    const blink = mood !== 'escaped' && (frame % 180) > 172;
+    g.fillStyle = '#1a141c';
+    if (blink) { g.fillRect(px - s * 0.3, py - s * 0.1, s * 0.22, s * 0.05); g.fillRect(px + s * 0.08, py - s * 0.1, s * 0.22, s * 0.05); }
+    else {
+      g.beginPath(); g.arc(px - s * 0.2, py - s * 0.08, s * 0.12, 0, 7); g.arc(px + s * 0.2, py - s * 0.08, s * 0.12, 0, 7); g.fill();
+      g.fillStyle = '#fff';
+      g.beginPath(); g.arc(px - s * 0.235, py - s * 0.12, s * 0.045, 0, 7); g.arc(px + s * 0.165, py - s * 0.12, s * 0.045, 0, 7); g.fill();
+    }
+    // nose + whiskers
+    g.fillStyle = S.nose;
+    g.beginPath(); g.arc(px, py + s * 0.08, s * 0.06, 0, 7); g.fill();
+    g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = Math.max(1, s * 0.03);
+    for (const side of [-1, 1]) for (let k = 0; k < 2; k++) {
+      g.beginPath(); g.moveTo(px + side * s * 0.12, py + s * (0.08 + k * 0.06));
+      g.lineTo(px + side * s * 0.5, py + s * (0.02 + k * 0.12)); g.stroke();
+    }
+    if (mood === 'trapped') { // sweat drop
+      g.fillStyle = '#9fd8ff';
+      g.beginPath(); g.arc(px + s * 0.5, py - s * 0.45 + wob * 2, s * 0.09, 0, 7); g.fill();
+    }
+  }
+
+  function render() {
+    // dusk garden bg
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#241521'); bg.addColorStop(0.6, '#1e1218'); bg.addColorStop(1, '#171016');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    // fireflies
+    for (let k = 0; k < 8; k++) {
+      const fx = ((k * 149 + frame * (0.2 + k * 0.03)) % (W + 40)) - 20;
+      const fy = topMargin + ((k * 97) % (H - topMargin)) + Math.sin(frame * 0.02 + k) * 12;
+      ctx.fillStyle = 'rgba(240,220,140,' + (0.25 + 0.2 * Math.sin(frame * 0.05 + k * 2)) + ')';
+      ctx.beginPath(); ctx.arc(fx, fy, 2, 0, 7); ctx.fill();
+    }
+
+    const S = catSkin();
+    for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
+      const { px, py } = cellCenter(x, y);
+      const edge = onEdge(x, y);
+      hexPath(ctx, px, py, r * 0.92);
+      ctx.fillStyle = edge ? 'rgba(240,166,200,0.10)' : 'rgba(120,90,110,0.22)';
+      ctx.fill();
+      ctx.strokeStyle = edge ? 'rgba(240,166,200,0.28)' : 'rgba(240,166,200,0.13)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      if (wall[y][x]) {
+        const pop = plantFx && plantFx.x === x && plantFx.y === y && plantFx.t > 0 ? 1 - plantFx.t / 8 : undefined;
+        drawHedge(ctx, px, py, r * 0.9, pop);
+      }
+    }
+
+    // cat (hopping between cells while the anim runs)
+    let cx, cy;
+    if (hop && hop.t > 0) {
+      const t = 1 - hop.t / HOP_DUR, e = 1 - Math.pow(1 - t, 2);
+      const f = cellCenter(hop.fx, hop.fy), to = cellCenter(hop.tx, hop.ty);
+      cx = f.px + (to.px - f.px) * e; cy = f.py + (to.py - f.py) * e - Math.sin(t * Math.PI) * r * 0.8;
+    } else { const c = cellCenter(cat.x, cat.y); cx = c.px; cy = c.py; }
+    const mood = state === 'over' ? (won ? 'trapped' : 'escaped') : (clicks > 0 ? 'trapped0' : 'calm');
+    drawCat(ctx, cx, cy, r, S, state === 'over' && won ? 'trapped' : 'calm');
+
+    // win hearts / lose dust
+    if (state === 'over' && overFx) {
+      const t = frame - overFx;
+      if (won) for (let k = 0; k < 6; k++) {
+        const a = k * 1.05 + t * 0.02, rr = r * (1.2 + (t % 60) * 0.03);
+        ctx.fillStyle = 'rgba(240,166,200,' + Math.max(0, 0.7 - (t % 60) * 0.012) + ')';
+        ctx.font = Math.round(r * 0.5) + 'px system-ui'; ctx.textAlign = 'center';
+        ctx.fillText('♥', cx + Math.cos(a) * rr, cy + Math.sin(a) * rr);
+      }
+    }
+
+    // vignette
+    const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.78);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.34)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  }
+
+  function updateHud() {
+    const m = document.getElementById('movesEl'), s = document.getElementById('scoreEl'), b = document.getElementById('bestEl');
+    if (m) m.textContent = clicks;
+    if (s) s.textContent = state === 'over' ? score : runScore();
+    if (b) b.textContent = best;
+  }
+
+  // ---- menus ----
+  const MENU_THEME = { accent: ACCENT, title: ACCENT };
+
+  function startGame(d) {
+    newGame(d);
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+  }
+
+  function menuBackdrop(g, w, h, tt) {
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#241521'); bg.addColorStop(1, '#171016');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const rad = Math.max(22, Math.min(w, h) / 14);
+    g.globalAlpha = 0.55;
+    // a hex ring of hedges with the cat inside — REAL painters
+    const cxp = w / 2, cyp = h * 0.42;
+    for (let k = 0; k < 6; k++) {
+      const a = k * Math.PI / 3 + Math.sin(tt * 0.3) * 0.02;
+      drawHedge(g, cxp + Math.cos(a) * rad * 2.3, cyp + Math.sin(a) * rad * 2.3, rad * 0.9);
+    }
+    drawCat(g, cxp, cyp + Math.sin(tt * 1.4) * 4, rad, catSkin(), 'calm');
+    g.globalAlpha = 1;
+  }
+
+  function pvDiff(prefill) {
+    return (g, w, h) => {
+      const rad = Math.min(w, h) / 9;
+      for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) {
+        const px = w / 2 + (x - 1.5) * rad * 2 + (y & 1 ? rad : 0), py = h / 2 + (y - 1.5) * rad * 1.74;
+        hexPath(g, px, py, rad * 0.9);
+        g.fillStyle = 'rgba(240,166,200,0.14)'; g.fill();
+        if ((x * 7 + y * 5) % 16 < prefill / 2) drawHedge(g, px, py, rad * 0.85);
+      }
+      drawCat(g, w / 2, h / 2, rad * 1.1, catSkin(), 'calm');
+    };
+  }
+
+  function showStartMenu() {
+    state = 'ready';
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: KIT.t('game.trap-the-cat.menuTitle', { def: 'TRAP THE CAT' }),
+      groups: [{ id: 'diff', label: KIT.t('game.common.difficulty', { def: 'DIFFICULTY' }), style: 'cards', default: diff,
+        choices: DIFF_ORDER.map(d => ({ id: d, label: diffDisplay(d),
+          mech: [DIFFS[d].prefill + ' 🌹'],
+          best: () => loadBest(d) || '',
+          preview: (g, w, h) => pvDiff(DIFFS[d].prefill)(g, w, h) })) }],
+      hint: () => KIT.t('game.trap-the-cat.startHint', { def: 'Plant rose hedges to fence the cat in — every hedge lets it hop once. Fewer hedges, bigger score!' }),
+      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
+      onChange: st => { diff = st.diff; KIT.stampUrl({ diff: st.diff }); updateHud(); },
+      onPlay: st => startGame(st.diff),
+    });
+  }
+
+  function shareMsg() {
+    return won
+      ? KIT.t('game.trap-the-cat.shareWin', { score, count: clicks, diff: diffDisplay(diff),
+          def: 'I cornered the cat with {count} hedges ({score} pts, {diff}) — Trap the Cat 🐱' })
+      : KIT.t('game.trap-the-cat.shareLose', { def: 'The cat gave me the slip… — Trap the Cat 🐱' });
+  }
+
+  function showEnd(isBest) {
+    if (!KIT) return;
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: won ? KIT.t('game.trap-the-cat.win', { def: 'CORNERED! 😸' }) : KIT.t('game.trap-the-cat.lose', { def: 'THE CAT ESCAPED!' }),
+      record: { slug: SLUG, mode: diffLabel(diff), score, stats: { clicks } },
+      score, best, newBest: isBest,
+      lines: [ diffDisplay(diff) + ' · ' + KIT.t('game.trap-the-cat.hedgesLine', { count: clicks, def: '{count} hedges planted' }) ],
+      share: { slug: SLUG, accent: ACCENT, icon: '🐱', title: KIT.t('game.trap-the-cat.title', { def: 'Trap the Cat' }),
+               message: () => shareMsg(), params: () => ({ diff }) },
+      actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true },
+                 { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
+      onAction: id => { if (id === 'again') startGame(diff); else if (id === 'menu') toMenu(); } });
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines: [KIT.t('game.trap-the-cat.hedgesLine', { count: clicks, def: '{count} hedges planted' })],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
+                 { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
+      onAction: id => { if (id === 'resume') KIT.menu.hide(); else if (id === 'menu') toMenu(); },
+      onEsc: () => KIT.menu.hide() });
+  }
+  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
+
+  // ---- resize ----
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    topMargin = KIT.layout.hudTop();
+    if (wall.length) layoutBoard();
+  }
+  window.gamekit.layout.on(resize);
+
+  // ---- input ----
+  canvas.addEventListener('pointerup', e => {
+    if (state !== 'playing') return;
+    const rect = canvas.getBoundingClientRect();
+    const px = (e.clientX - rect.left) * (W / rect.width), py = (e.clientY - rect.top) * (H / rect.height);
+    // nearest cell center within a hex radius
+    let bestCell = null, bestD = Infinity;
+    for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
+      const c = cellCenter(x, y);
+      const d = Math.hypot(px - c.px, py - c.py);
+      if (d < bestD) { bestD = d; bestCell = [x, y]; }
+    }
+    if (bestCell && bestD <= r * 0.95) click(bestCell[0], bestCell[1]);
+  });
+  window.addEventListener('keydown', e => {
+    if (state === 'playing' && e.key === 'Escape') { e.preventDefault(); pauseGame(); }
+  });
+
+  // ---- nav + music ----
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); },
+    confirmLeave: () => state === 'playing' && clicks > 0 ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.trap-the-cat.controlsTitle', { def: 'Trap the Cat — Controls' }),
+      mouse: [ [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.trap-the-cat.ctrlPlant', { def: 'Plant a hedge' })] ],
+      keyboard: [ ['Esc', KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.trap-the-cat.ctrlPlant', { def: 'Plant a hedge' })] ] } });
+  KIT.music.play('trapthecat');
+
+  // ---- __test ----
+  window.__test = {
+    get state() { return state; },
+    get score() { return state === 'over' ? score : runScore(); },
+    get diff() { return diff; },
+    get size() { return SIZE; },
+    get cat() { return { x: cat.x, y: cat.y }; },
+    get clicks() { return clicks; },
+    get won() { return won; },
+    get escaped() { return escaped; },
+    wallAt(x, y) { return !!wall[y][x]; },
+    wallCount() { let n = 0; for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) if (wall[y][x]) n++; return n; },
+    click(x, y) { return click(x, y); },
+    setWalls(list) {
+      wall = Array.from({ length: SIZE }, () => new Array(SIZE).fill(false));
+      for (const [x, y] of list) wall[y][x] = true;
+    },
+    setCat(x, y) { cat.x = x; cat.y = y; },
+    neighbors(x, y) { return neighbors(x, y); },
+    get layout() {
+      return { W, H, topReserve: topMargin,
+        board: { x: bx, y: by, w: boardW, h: boardH, r },
+        catPx: (() => { const c = cellCenter(cat.x, cat.y); return { x: c.px, y: c.py }; })() };
+    },
+    start() { startGame('medium'); },
+    startMode(d) { startGame(d); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+  };
+
+  // ---- boot ----
+  resize();
+  if (KIT) {
+    const L = { lblMoves: ['game.trap-the-cat.hudHedges', 'HEDGES'], lblScore: ['game.common.score', 'SCORE'], lblBest: ['game.common.best', 'BEST'] };
+    for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
+    const dl = KIT.param && KIT.param('diff');
+    if (dl && DIFFS[dl]) diff = dl;
+  }
+  newGame(diff); state = 'ready';
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>

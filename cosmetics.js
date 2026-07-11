@@ -548,6 +548,27 @@
   add('2048', 'tiles', 'kraft', 'Kraft', 100, 'Stamped cardboard and moss-green inks.',
     tiles2048([['#e8dcc4', '#d9c9a8', '#4a3a26'], ['#c9a06a', '#b98a50', '#fff8ea'], ['#a05a2e', '#87461e', '#fff8ea'], ['#6b9439', '#527a22', '#fff8ea']]));
 
+  // ---- 🐱 Trap the Cat — cat colours (simple cat-face swatch) ----
+  function catFace(body, belly, nose) {
+    return function (g, w, h) {
+      const s = Math.min(w, h) * 0.4, cx = w / 2, cy = h / 2 + s * 0.08;
+      g.fillStyle = body;
+      g.beginPath(); g.moveTo(cx - s * 0.9, cy - s * 0.4); g.lineTo(cx - s * 0.65, cy - s * 1.25); g.lineTo(cx - s * 0.2, cy - s * 0.7); g.closePath(); g.fill();
+      g.beginPath(); g.moveTo(cx + s * 0.9, cy - s * 0.4); g.lineTo(cx + s * 0.65, cy - s * 1.25); g.lineTo(cx + s * 0.2, cy - s * 0.7); g.closePath(); g.fill();
+      const grd = g.createRadialGradient(cx - s * 0.3, cy - s * 0.4, s * 0.2, cx, cy, s * 1.2);
+      grd.addColorStop(0, belly); grd.addColorStop(1, body);
+      g.fillStyle = grd; g.beginPath(); g.arc(cx, cy, s, 0, 7); g.fill();
+      g.fillStyle = '#1a141c';
+      g.beginPath(); g.arc(cx - s * 0.35, cy - s * 0.12, s * 0.2, 0, 7); g.arc(cx + s * 0.35, cy - s * 0.12, s * 0.2, 0, 7); g.fill();
+      g.fillStyle = '#fff';
+      g.beginPath(); g.arc(cx - s * 0.42, cy - s * 0.2, s * 0.07, 0, 7); g.arc(cx + s * 0.28, cy - s * 0.2, s * 0.07, 0, 7); g.fill();
+      g.fillStyle = nose; g.beginPath(); g.arc(cx, cy + s * 0.18, s * 0.11, 0, 7); g.fill();
+    };
+  }
+  add('trap-the-cat', 'cat', 'noir',   'Noir',   0,   'The classic midnight escape artist.', catFace('#2b2530', '#3a3342', '#f0a6c8'));
+  add('trap-the-cat', 'cat', 'ginger', 'Ginger', 50,  'A marmalade menace on the run.',      catFace('#e08b3d', '#f2b571', '#e06a6a'));
+  add('trap-the-cat', 'cat', 'snow',   'Snow',   100, 'Fluffy, elegant, and slippery.',       catFace('#e8e4ea', '#f7f4f8', '#f08aae'));
+
   // ---- 🌐 Forcefield — bolt colours + planet skins ----
   add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean golden bolt.', forcefieldMarker('#ffd36b'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
@@ -587,6 +608,7 @@
       'sudoku.digits':       { label: 'Numeral styles' },
       'minesweeper.board':   { label: 'Board themes' },
       '2048.tiles':          { label: 'Tile themes' },
+      'trap-the-cat.cat':    { label: 'Cat colours' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -605,6 +627,7 @@
       'sudoku':        { title: 'Sudoku', icon: '🔢', accent: '#f0b429' },
       'minesweeper':   { title: 'Minesweeper', icon: '💣', accent: '#35e0ff' },
       '2048':          { title: '2048', icon: '🧮', accent: '#f2b179' },
+      'trap-the-cat':  { title: 'Trap the Cat', icon: '🐱', accent: '#f0a6c8' },
     },
   };
 })();
