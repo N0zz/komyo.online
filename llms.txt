@@ -18,6 +18,8 @@ Komyo Games is a hobby project. Each game is a single self-contained HTML/Canvas
 - [Forcefield](https://komyo.online/games/forcefield/): Slide your atmosphere dome to block the battle station's fire — solo or 2-player.
 - [Frog Bonk](https://komyo.online/games/frog-bonk/): Whack-a-mole castle defense — bonk invading frogs with the king's soft hammer across Waves, Endless and Zen modes.
 - [Sudoku](https://komyo.online/games/sudoku/): Classic 9×9 Sudoku — technique-graded Easy→Expert difficulties, a shared Daily puzzle, Zen mode and logical hints that explain the reasoning.
+- [Minesweeper](https://komyo.online/games/minesweeper/): The logic classic in a sonar theme — first click always safe, flag/chord support, four board sizes from Easy to Expert.
+- [2048](https://komyo.online/games/2048/): Slide-and-merge number tiles to 2048 — classic 4×4 plus Mini 3×3 and Big 5×5 boards.
 
 ## Optional
 

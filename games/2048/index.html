@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>2048</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#f2b179">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="2048">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #241407; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #hud .val { color: #f2b179; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblTile">TILE</span><span class="val" id="tileEl">2</span></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = '2048';
+  const ACCENT = '#f2b179';
+
+  const SND = window.gamekit.sound;
+  SND.define({
+    whoosh: c => c.noiseHit({ dur: 0.08, gain: 0.05, filter: 'lowpass', cutoff: 2600, cutoffTo: 900 }),
+    pop:    c => c.voice({ f: 440, slideTo: 520, dur: 0.07, type: 'triangle', gain: 0.11, filter: 'lowpass', cutoff: 2400 }),
+    popBig: c => { c.voice({ f: 330, slideTo: 262, dur: 0.14, type: 'triangle', gain: 0.13 }); c.noiseHit({ dur: 0.05, gain: 0.05 }); },
+    spawnT: c => c.voice({ f: 980, dur: 0.03, type: 'sine', gain: 0.045 }),
+    mile:   c => c.seq([523, 659, 784], 60, f => c.voice({ f, dur: 0.18, type: 'triangle', gain: 0.09, reverb: 0.3 })),
+    stuck:  c => c.voice({ f: 180, slideTo: 140, dur: 0.2, type: 'sawtooth', gain: 0.08, filter: 'lowpass', cutoff: 700 }),
+  });
+
+  const MODES = { mini: { n: 3 }, classic: { n: 4 }, big: { n: 5 } };
+  const MODE_ORDER = ['classic', 'mini', 'big'];
+  const ANIM_DUR = 7;   // fixed steps per slide animation
+
+  let W = 0, H = 0, topMargin = 48;
+  let state = 'ready';                 // ready | playing | over
+  let mode = 'classic';
+  let N = 4;
+  let grid = [];                       // grid[y][x], 0 = empty
+  let score = 0, best = 0, maxTile = 2;
+  let reached2048 = false;
+  let frame = 0;
+  let anims = [], animT = 0;           // slide/merge animations (view-only)
+  let spawnAt = null, spawnT = 0;      // spawn pop
+  let shakeT = 0;                      // invalid-move nudge
+
+  let cs = 80, gap = 10, bx = 0, by = 0, boardPx = 0;
+
+  const modeLabel = m => { m = m || mode; return m === 'classic' ? 'Classic' : m === 'mini' ? 'Mini 3×3' : 'Big 5×5'; };
+  const modeDisplay = m => KIT.t('game.2048.mode' + (m || mode), { def: modeLabel(m) });
+  function loadBest(m) { return KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0; }
+
+  // ---- board ----
+  function emptyCells() {
+    const out = [];
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!grid[y][x]) out.push([x, y]);
+    return out;
+  }
+  function addTile() {
+    const empty = emptyCells();
+    if (!empty.length) return;
+    const [x, y] = empty[Math.floor(Math.random() * empty.length)];
+    grid[y][x] = Math.random() < 0.9 ? 2 : 4;
+    spawnAt = { x, y }; spawnT = 6;
+  }
+  function newGame(m) {
+    mode = m || mode; N = MODES[mode].n;
+    grid = Array.from({ length: N }, () => new Array(N).fill(0));
+    score = 0; maxTile = 2; reached2048 = false;
+    anims = []; animT = 0; spawnAt = null; spawnT = 0;
+    best = loadBest(mode);
+    addTile(); addTile();
+    layoutBoard(); updateHud();
+  }
+
+  // slide one line of values; returns {line, gained, moves:[{from,to,v,merged}]}
+  function slideLine(vals) {
+    const n = vals.length, moves = [], out = new Array(n).fill(0);
+    let gained = 0, w = 0, lastMergeable = -1;
+    for (let i = 0; i < n; i++) {
+      const v = vals[i];
+      if (!v) continue;
+      if (lastMergeable >= 0 && out[lastMergeable] === v) {
+        out[lastMergeable] = v * 2; gained += v * 2;
+        moves.push({ from: i, to: lastMergeable, v, merged: true });
+        lastMergeable = -1;
+      } else {
+        out[w] = v;
+        moves.push({ from: i, to: w, v, merged: false });
+        lastMergeable = w; w++;
+      }
+    }
+    return { line: out, gained, moves };
+  }
+
+  // dir: 0=left 1=right 2=up 3=down. Returns true if the board changed.
+  function move(dir) {
+    if (state !== 'playing') return false;
+    const horiz = dir === 0 || dir === 1, rev = dir === 1 || dir === 3;
+    let changed = false, gained = 0; const allAnims = [];
+    for (let k = 0; k < N; k++) {
+      const vals = [];
+      for (let i = 0; i < N; i++) {
+        const li = rev ? N - 1 - i : i;
+        vals.push(horiz ? grid[k][li] : grid[li][k]);
+      }
+      const r = slideLine(vals);
+      gained += r.gained;
+      for (let i = 0; i < N; i++) {
+        const li = rev ? N - 1 - i : i;
+        const x = horiz ? li : k, y = horiz ? k : li;
+        if (grid[y][x] !== r.line[i]) changed = true;
+        grid[y][x] = r.line[i];
+      }
+      for (const mv of r.moves) {
+        if (mv.from === mv.to && !mv.merged) continue;
+        const fi = rev ? N - 1 - mv.from : mv.from, ti = rev ? N - 1 - mv.to : mv.to;
+        allAnims.push({
+          fx: horiz ? fi : k, fy: horiz ? k : fi,
+          tx: horiz ? ti : k, ty: horiz ? k : ti,
+          v: mv.v, merged: mv.merged,
+        });
+      }
+    }
+    if (!changed) { shakeT = 5; SND.play('stuck'); return false; }
+    score += gained;
+    let newMax = maxTile;
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (grid[y][x] > newMax) newMax = grid[y][x];
+    const milestone = newMax > maxTile && newMax >= 256;
+    maxTile = newMax;
+    anims = allAnims; animT = ANIM_DUR;
+    addTile();
+    SND.play('whoosh');
+    if (gained > 0) SND.play(gained >= 128 ? 'popBig' : 'pop'); else SND.play('spawnT');
+    if (milestone) SND.play('mile');
+    updateHud();
+    if (maxTile >= 2048 && !reached2048) { reached2048 = true; win(); return true; }
+    if (!movesAvailable()) gameOver();
+    return true;
+  }
+
+  function movesAvailable() {
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const v = grid[y][x];
+      if (!v) return true;
+      if (x + 1 < N && grid[y][x + 1] === v) return true;
+      if (y + 1 < N && grid[y + 1][x] === v) return true;
+    }
+    return false;
+  }
+
+  function saveRun() {
+    const prev = loadBest(mode);
+    if (KIT) KIT.saveBest(SLUG, modeLabel(mode), { score, stats: { maxTile } });
+    best = loadBest(mode);
+    return score > prev && score > 0;
+  }
+
+  function win() {
+    state = 'over'; const isBest = saveRun();
+    showEnd(true, isBest);
+  }
+  function gameOver() {
+    state = 'over'; const isBest = saveRun();
+    setTimeout(() => showEnd(false, isBest), 500);
+  }
+
+  // ---- update / render ----
+  function update() {
+    frame++;
+    if (animT > 0) animT--;
+    if (spawnT > 0) spawnT--;
+    if (shakeT > 0) shakeT--;
+    if (KIT && KIT.music) {
+      const prog = Math.log2(Math.max(2, maxTile)) / 11;   // 2 → 2048 ⇒ 0.09 → 1
+      KIT.music.intensity(state === 'playing' ? Math.min(1, 0.28 + 0.6 * prog) : 0.3);
+    }
+  }
+
+  function layoutBoard() {
+    const pad = 12;
+    const availW = W - pad * 2, availH = H - topMargin - pad * 2;
+    boardPx = Math.min(availW, availH, 560);
+    gap = Math.max(6, Math.round(boardPx * 0.022));
+    cs = Math.floor((boardPx - gap * (N + 1)) / N);
+    boardPx = cs * N + gap * (N + 1);
+    bx = Math.round((W - boardPx) / 2);
+    by = Math.round(topMargin + pad + (availH - boardPx) / 2);
+  }
+
+  // ---- tile skins (cosmetics) ----
+  const SKINS = {
+    '2048.tiles.honey': {
+      bg0: '#2e1a0a', bg1: '#1a0e05', well: '#3a2412', slot: '#4a2f18',
+      text: (v) => v <= 4 ? '#5a4632' : '#fff7ec',
+      tile: (v) => ({ 2: ['#efe4d2', '#e2d3ba'], 4: ['#eeddb8', '#e0cb9c'], 8: ['#f6b568', '#ee9d4d'], 16: ['#f79b58', '#ef7f3a'],
+        32: ['#f77f5f', '#ef5f3c'], 64: ['#f7623c', '#ea4423'], 128: ['#f2d16a', '#e8bb3f'], 256: ['#f2cc55', '#e8b32b'],
+        512: ['#f2c73f', '#e8ab18'], 1024: ['#f2c22a', '#e8a406'], 2048: ['#ffd75e', '#f2b000'] }[v] || ['#7fe0c3', '#3ec99e']),
+      glow: (v) => v >= 128,
+    },
+    '2048.tiles.neon': {
+      bg0: '#0b0a1e', bg1: '#050510', well: '#151433', slot: '#1e1c44',
+      text: () => '#eafcff',
+      tile: (v) => {
+        const hues = { 2: 200, 4: 220, 8: 260, 16: 290, 32: 320, 64: 345, 128: 25, 256: 45, 512: 65, 1024: 130, 2048: 165 };
+        const h = hues[v] !== undefined ? hues[v] : 180;
+        return ['hsl(' + h + ',85%,62%)', 'hsl(' + h + ',90%,45%)'];
+      }, glow: (v) => v >= 32,
+    },
+    '2048.tiles.kraft': {
+      bg0: '#4a3d2e', bg1: '#2e2418', well: '#5c4c38', slot: '#6b5942',
+      text: (v) => v <= 4 ? '#4a3a26' : '#fff8ea',
+      tile: (v) => ({ 2: ['#e8dcc4', '#d9c9a8'], 4: ['#dcc9a0', '#cdb886'], 8: ['#c9a06a', '#b98a50'], 16: ['#bd8a52', '#a9743c'],
+        32: ['#b0713f', '#985c2c'], 64: ['#a05a2e', '#87461e'], 128: ['#8f9e57', '#75863c'], 256: ['#7d9948', '#63802f'],
+        512: ['#6b9439', '#527a22'], 1024: ['#598f2b', '#417415'], 2048: ['#c9a227', '#a9820e'] }[v] || ['#7a6a9e', '#5c4c85']),
+      glow: (v) => v >= 512,
+    },
+  };
+  function skin() {
+    const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('2048.tiles') : null;
+    return SKINS[id] || SKINS['2048.tiles.honey'];
+  }
+
+  const cellXY = (x, y) => ({ px: bx + gap + x * (cs + gap), py: by + gap + y * (cs + gap) });
+
+  function drawTile(g, px, py, size, v, S) {
+    const cols = S.tile(v);
+    const grd = g.createLinearGradient(px, py, px, py + size);
+    grd.addColorStop(0, cols[0]); grd.addColorStop(1, cols[1]);
+    if (S.glow(v)) { g.shadowColor = cols[0]; g.shadowBlur = size * 0.22; }
+    g.fillStyle = grd;
+    KIT.roundRect(g, px, py, size, size, size * 0.12); g.fill();
+    g.shadowBlur = 0;
+    g.fillStyle = 'rgba(255,255,255,0.14)';
+    KIT.roundRect(g, px, py, size, size * 0.42, size * 0.12); g.fill();
+    g.fillStyle = S.text(v);
+    const digits = String(v).length;
+    g.font = '800 ' + Math.round(size * (digits <= 2 ? 0.46 : digits === 3 ? 0.38 : 0.3)) + 'px system-ui, sans-serif';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillText(v, px + size / 2, py + size / 2 + size * 0.03);
+  }
+
+  function render() {
+    const S = skin();
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, S.bg0); bg.addColorStop(1, S.bg1);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+    let ox = 0;
+    if (shakeT > 0) ox = Math.sin(frame * 1.6) * 3 * (shakeT / 5);
+    ctx.save(); ctx.translate(ox, 0);
+
+    ctx.fillStyle = S.well;
+    KIT.roundRect(ctx, bx, by, boardPx, boardPx, cs * 0.14); ctx.fill();
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const { px, py } = cellXY(x, y);
+      ctx.fillStyle = S.slot;
+      KIT.roundRect(ctx, px, py, cs, cs, cs * 0.1); ctx.fill();
+    }
+
+    const t = animT > 0 ? 1 - animT / ANIM_DUR : 1;
+    const ease = t < 1 ? 1 - Math.pow(1 - t, 3) : 1;
+    const animTargets = new Set();
+    if (animT > 0) for (const a of anims) animTargets.add(a.tx + ',' + a.ty);
+
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const v = grid[y][x];
+      if (!v) continue;
+      if (animT > 0 && animTargets.has(x + ',' + y)) continue;   // drawn by the slide pass
+      if (spawnAt && spawnAt.x === x && spawnAt.y === y && (spawnT > 0 || animT > 0)) {
+        if (animT > 0) continue;                                  // spawn shows after the slide lands
+        const s = cs * (1 - 0.6 * (spawnT / 6));
+        const { px, py } = cellXY(x, y);
+        drawTile(ctx, px + (cs - s) / 2, py + (cs - s) / 2, s, v, S);
+        continue;
+      }
+      const { px, py } = cellXY(x, y);
+      drawTile(ctx, px, py, cs, v, S);
+    }
+    if (animT > 0) for (const a of anims) {
+      const f = cellXY(a.fx, a.fy), to = cellXY(a.tx, a.ty);
+      const px = f.px + (to.px - f.px) * ease, py = f.py + (to.py - f.py) * ease;
+      drawTile(ctx, px, py, cs, a.v, S);
+      if (a.merged && t > 0.85) {
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        KIT.roundRect(ctx, to.px - 3, to.py - 3, cs + 6, cs + 6, cs * 0.12); ctx.fill();
+      }
+    }
+    ctx.restore();
+
+    if (reached2048 && state === 'playing') {
+      ctx.fillStyle = 'rgba(242,177,121,0.9)';
+      ctx.font = '700 13px system-ui'; ctx.textAlign = 'center';
+      ctx.fillText('★ 2048 ★', W / 2, by - 10);
+    }
+
+    const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.5, W / 2, H / 2, Math.max(W, H) * 0.78);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  }
+
+  function updateHud() {
+    const s = document.getElementById('scoreEl'), b = document.getElementById('bestEl'), tl = document.getElementById('tileEl');
+    if (s) s.textContent = score;
+    if (b) b.textContent = Math.max(best, score);
+    if (tl) tl.textContent = maxTile;
+  }
+
+  // ---- menus ----
+  const MENU_THEME = { accent: ACCENT, title: ACCENT };
+
+  function startGame(m) {
+    newGame(m);
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+  }
+  function keepPlaying() {
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+  }
+
+  function menuBackdrop(g, w, h, tt) {
+    const S = skin();
+    const grd = g.createLinearGradient(0, 0, 0, h);
+    grd.addColorStop(0, S.bg0); grd.addColorStop(1, S.bg1);
+    g.fillStyle = grd; g.fillRect(0, 0, w, h);
+    // drifting demo tiles drawn with the REAL tile painter
+    const vals = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048];
+    const s = Math.max(40, Math.min(w, h) / 9);
+    g.globalAlpha = 0.35;
+    for (let k = 0; k < 11; k++) {
+      const px = ((k * 173 + 40) % (w + s * 2)) - s + Math.sin(tt * 0.5 + k) * 8;
+      const py = ((k * 271 + tt * 12) % (h + s * 2)) - s;
+      drawTile(g, px, py, s, vals[k], S);
+    }
+    g.globalAlpha = 1;
+  }
+
+  function pvGrid(n) {
+    return (g, w, h) => {
+      const S = skin();
+      const size = Math.min(w, h) * 0.82, c = (size - 4 * (n + 1)) / n;
+      const ox = (w - size) / 2, oy = (h - size) / 2;
+      g.fillStyle = S.well; g.fillRect(ox, oy, size, size);
+      const demo = [2, 4, 8, 16, 32, 64, 128, 256, 0, 512, 2, 4, 8, 0, 16, 2, 32, 4, 2, 8, 64, 0, 2, 4, 16];
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        const dv = demo[(y * n + x) % demo.length];
+        const px = ox + 4 + x * (c + 4), py = oy + 4 + y * (c + 4);
+        if (!dv) { g.fillStyle = S.slot; g.fillRect(px, py, c, c); }
+        else drawTile(g, px, py, c, dv, S);
+      }
+    };
+  }
+
+  function showStartMenu() {
+    state = 'ready';
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: '2048',
+      groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
+        choices: MODE_ORDER.map(m => ({ id: m, label: modeDisplay(m),
+          mech: [MODES[m].n + '×' + MODES[m].n],
+          best: () => loadBest(m) || '',
+          preview: (g, w, h) => pvGrid(MODES[m].n)(g, w, h) })) }],
+      hint: () => KIT.t('game.2048.startHint', { def: 'Slide the tiles — equal numbers merge and double. Reach 2048!' }),
+      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
+      onChange: st => { mode = st.mode; KIT.stampUrl({ mode: st.mode }); },
+      onPlay: st => startGame(st.mode),
+    });
+  }
+
+  function shareMsg() {
+    return KIT.t('game.2048.share', { score, tile: maxTile,
+      def: 'I merged my way to the {tile} tile ({score} pts) in 2048 🧮' });
+  }
+
+  function showEnd(isWin, isBest) {
+    if (!KIT) return;
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    const actions = [];
+    if (isWin) actions.push({ id: 'continue', label: KIT.t('game.2048.keepGoing', { def: 'KEEP GOING' }), primary: true });
+    actions.push({ id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: !isWin });
+    actions.push({ id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) });
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: isWin ? KIT.t('game.2048.win', { def: 'YOU MADE 2048!' }) : KIT.t('game.common.gameOver', { def: 'GAME OVER' }),
+      record: { slug: SLUG, mode: modeLabel(mode), score, stats: { maxTile } },
+      score, best, newBest: isBest,
+      lines: [modeDisplay(mode) + ' · ' + KIT.t('game.2048.tileLine', { tile: maxTile, def: 'biggest tile {tile}' })],
+      share: { slug: SLUG, accent: ACCENT, icon: '🧮', title: '2048', message: () => shareMsg(), params: () => ({ mode }) },
+      actions,
+      onAction: id => {
+        if (id === 'continue') keepPlaying();
+        else if (id === 'again') startGame(mode);
+        else if (id === 'menu') toMenu();
+      } });
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines: [KIT.t('game.common.scoreLine', { score, def: 'Score {score}' })],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
+                 { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
+      onAction: id => { if (id === 'resume') KIT.menu.hide(); else if (id === 'menu') toMenu(); },
+      onEsc: () => KIT.menu.hide() });
+  }
+  function toMenu() { if (state === 'playing') saveRun(); if (KIT) KIT.menu.hide(); showStartMenu(); }
+
+  // ---- resize ----
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    topMargin = KIT.layout.hudTop();
+    if (grid.length) layoutBoard();
+  }
+  window.gamekit.layout.on(resize);
+
+  // ---- input ----
+  window.addEventListener('keydown', e => {
+    if (state !== 'playing') return;
+    const map = { ArrowLeft: 0, a: 0, ArrowRight: 1, d: 1, ArrowUp: 2, w: 2, ArrowDown: 3, s: 3 };
+    if (e.key === 'Escape') { e.preventDefault(); pauseGame(); return; }
+    if (map[e.key] !== undefined) { e.preventDefault(); move(map[e.key]); }
+  });
+  let swipe = null;
+  canvas.addEventListener('pointerdown', e => {
+    const r = canvas.getBoundingClientRect();
+    swipe = { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) };
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (!swipe || state !== 'playing') { swipe = null; return; }
+    const r = canvas.getBoundingClientRect();
+    const dx = (e.clientX - r.left) * (W / r.width) - swipe.x;
+    const dy = (e.clientY - r.top) * (H / r.height) - swipe.y;
+    swipe = null;
+    const adx = Math.abs(dx), ady = Math.abs(dy);
+    if (Math.max(adx, ady) < 24) return;                      // a tap, not a swipe
+    move(adx > ady ? (dx > 0 ? 1 : 0) : (dy > 0 ? 3 : 2));
+  });
+  canvas.addEventListener('pointercancel', () => { swipe = null; });
+
+  // ---- nav + music ----
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); },
+    confirmLeave: () => state === 'playing' && score > 0 ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.2048.controlsTitle', { def: '2048 — Controls' }),
+      keyboard: [ ['← ↑ → ↓ · WASD', KIT.t('game.2048.ctrlSlide', { def: 'Slide the tiles' })],
+                  ['Esc', KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.common.swipe', { def: 'Swipe' }), KIT.t('game.2048.ctrlSlide', { def: 'Slide the tiles' })] ] } });
+  KIT.music.play('2048');
+
+  // ---- __test ----
+  window.__test = {
+    get state() { return state; },
+    get score() { return score; },
+    get mode() { return mode; },
+    get n() { return N; },
+    get maxTile() { return maxTile; },
+    get reached2048() { return reached2048; },
+    get grid() { return grid.map(row => row.slice()); },
+    setGrid(g2) { N = g2.length; grid = g2.map(r => r.slice()); maxTile = Math.max(2, ...g2.flat().filter(Boolean)); layoutBoard(); },
+    move(dir) { return move({ left: 0, right: 1, up: 2, down: 3 }[dir]); },
+    movesAvailable,
+    get layout() {
+      return { W, H, topReserve: topMargin, board: { x: bx, y: by, w: boardPx, h: boardPx, cell: cs, n: N } };
+    },
+    start() { startGame('classic'); },
+    startMode(m) { startGame(m); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+  };
+
+  // ---- boot ----
+  resize();
+  if (KIT) {
+    const L = { lblScore: ['game.common.score', 'SCORE'], lblBest: ['game.common.best', 'BEST'], lblTile: ['game.2048.hudTile', 'TILE'] };
+    for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
+    const m = KIT.param && KIT.param('mode');
+    if (m && MODES[m]) mode = m;
+  }
+  newGame(mode); state = 'ready';
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>

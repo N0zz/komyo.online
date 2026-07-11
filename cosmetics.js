@@ -526,6 +526,28 @@
   add('minesweeper', 'board', 'retro',  'Retro',  50,  'The beige office classic, pixel bevels and all.', msBoard('#c0c7cf', '#eef2f6', '#b3bac2', '#1c46c8'));
   add('minesweeper', 'board', 'meadow', 'Meadow', 100, 'Dig a sunny field — daisies mark the moles.', msBoard('#3f8a3c', '#63b45a', '#8a6b42', '#ffe066'));
 
+  // ---- 🧮 2048 — tile themes (mini 2×2 swatch of graded value tiles) ----
+  function tiles2048(cols) {
+    return function (g, w, h) {
+      const s = Math.floor(Math.min(w, h) / 2), ox = (w - s * 2) / 2, oy = (h - s * 2) / 2;
+      const vals = ['2', '8', '64', '512'];
+      for (let k = 0; k < 4; k++) {
+        const x = ox + (k % 2) * s, y = oy + Math.floor(k / 2) * s;
+        const grd = g.createLinearGradient(x, y, x, y + s);
+        grd.addColorStop(0, cols[k][0]); grd.addColorStop(1, cols[k][1]);
+        g.fillStyle = grd; g.fillRect(x + 1, y + 1, s - 2, s - 2);
+        g.fillStyle = cols[k][2]; g.font = '800 ' + Math.round(s * 0.42) + 'px system-ui';
+        g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(vals[k], x + s / 2, y + s / 2);
+      }
+    };
+  }
+  add('2048', 'tiles', 'honey', 'Honey', 0,  'Warm cream to amber — the cozy classic.',
+    tiles2048([['#efe4d2', '#e2d3ba', '#5a4632'], ['#f6b568', '#ee9d4d', '#fff7ec'], ['#f7623c', '#ea4423', '#fff7ec'], ['#f2c73f', '#e8ab18', '#fff7ec']]));
+  add('2048', 'tiles', 'neon',  'Neon',  50, 'Glassy glow tiles on midnight blue.',
+    tiles2048([['hsl(200,85%,62%)', 'hsl(200,90%,45%)', '#eafcff'], ['hsl(260,85%,62%)', 'hsl(260,90%,45%)', '#eafcff'], ['hsl(345,85%,62%)', 'hsl(345,90%,45%)', '#eafcff'], ['hsl(65,85%,62%)', 'hsl(65,90%,45%)', '#eafcff']]));
+  add('2048', 'tiles', 'kraft', 'Kraft', 100, 'Stamped cardboard and moss-green inks.',
+    tiles2048([['#e8dcc4', '#d9c9a8', '#4a3a26'], ['#c9a06a', '#b98a50', '#fff8ea'], ['#a05a2e', '#87461e', '#fff8ea'], ['#6b9439', '#527a22', '#fff8ea']]));
+
   // ---- 🌐 Forcefield — bolt colours + planet skins ----
   add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean golden bolt.', forcefieldMarker('#ffd36b'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
@@ -564,6 +586,7 @@
       'sudoku.board':        { label: 'Board themes' },
       'sudoku.digits':       { label: 'Numeral styles' },
       'minesweeper.board':   { label: 'Board themes' },
+      '2048.tiles':          { label: 'Tile themes' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -581,6 +604,7 @@
       'frog-bonk':     { title: 'Frog Bonk', icon: '🐸', accent: '#7ed957' },
       'sudoku':        { title: 'Sudoku', icon: '🔢', accent: '#f0b429' },
       'minesweeper':   { title: 'Minesweeper', icon: '💣', accent: '#35e0ff' },
+      '2048':          { title: '2048', icon: '🧮', accent: '#f2b179' },
     },
   };
 })();
