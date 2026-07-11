@@ -43,6 +43,7 @@ window.GAMES = [
     accent: "#38bdf8",
     tags: ["SKILL", "REFLEX"],
     added: "2026-07-04",
+    updated: "2026-07-11",
   },
 
   {
