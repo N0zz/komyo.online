@@ -602,6 +602,35 @@
   add('glow-says', 'pads', 'stars',  'Stars',        50,  'Twinkly star lanterns.',       glowPad('star'));
   add('glow-says', 'pads', 'hearts', 'Hearts',       100, 'Warm heart-shaped lanterns.',  glowPad('heart'));
 
+  // ---- 🎈 Balloon Pop — balloon styles ----
+  function balloonSwatch(kind) {
+    return function (g, w, h) {
+      const bg = g.createLinearGradient(0, 0, 0, h);
+      bg.addColorStop(0, '#9adcff'); bg.addColorStop(1, '#e2f6e8');
+      g.fillStyle = bg; g.fillRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2, r = Math.min(w, h) * 0.3;
+      const grd = g.createRadialGradient(cx - r * 0.3, cy - r * 0.4, r * 0.1, cx, cy, r * 1.1);
+      grd.addColorStop(0, '#fff'); grd.addColorStop(0.3, '#ff6b8a'); grd.addColorStop(1, '#c23a5a');
+      g.fillStyle = grd;
+      g.beginPath(); g.ellipse(cx, cy, r * 0.92, r, 0, 0, Math.PI * 2); g.fill();
+      if (kind === 'critter') {
+        g.fillStyle = '#c23a5a';
+        g.beginPath(); g.ellipse(cx - r * 0.55, cy - r * 0.8, r * 0.26, r * 0.34, -0.4, 0, 7); g.fill();
+        g.beginPath(); g.ellipse(cx + r * 0.55, cy - r * 0.8, r * 0.26, r * 0.34, 0.4, 0, 7); g.fill();
+        g.fillStyle = '#2b2030';
+        g.beginPath(); g.arc(cx - r * 0.28, cy - r * 0.1, r * 0.09, 0, 7); g.arc(cx + r * 0.28, cy - r * 0.1, r * 0.09, 0, 7); g.fill();
+      } else if (kind === 'planet') {
+        g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = Math.max(2, r * 0.1);
+        g.beginPath(); g.ellipse(cx, cy, r * 1.25, r * 0.32, -0.28, 0, Math.PI * 2); g.stroke();
+      }
+      g.fillStyle = 'rgba(255,255,255,0.5)';
+      g.beginPath(); g.ellipse(cx - r * 0.3, cy - r * 0.4, r * 0.2, r * 0.12, -0.6, 0, 7); g.fill();
+    };
+  }
+  add('balloon-pop', 'balloons', 'classic',  'Classic',  0,   'Bright party balloons.',            balloonSwatch('classic'));
+  add('balloon-pop', 'balloons', 'critters', 'Critters', 50,  'Balloons with little animal ears.', balloonSwatch('critter'));
+  add('balloon-pop', 'balloons', 'planets',  'Planets',  100, 'Ringed balloon planets in the sky.', balloonSwatch('planet'));
+
   // ---- 🌐 Forcefield — bolt colours + planet skins ----
   add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean golden bolt.', forcefieldMarker('#ffd36b'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
@@ -643,6 +672,7 @@
       '2048.tiles':          { label: 'Tile themes' },
       'trap-the-cat.cat':    { label: 'Cat colours' },
       'glow-says.pads':      { label: 'Lantern shapes' },
+      'balloon-pop.balloons': { label: 'Balloon styles' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -663,6 +693,7 @@
       '2048':          { title: '2048', icon: '🧮', accent: '#f2b179' },
       'trap-the-cat':  { title: 'Trap the Cat', icon: '🐱', accent: '#f0a6c8' },
       'glow-says':     { title: 'Glow Says', icon: '🟢', accent: '#7ee787' },
+      'balloon-pop':   { title: 'Balloon Pop', icon: '🎈', accent: '#ff9ec2' },
     },
   };
 })();
