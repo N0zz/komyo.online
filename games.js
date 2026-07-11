@@ -141,7 +141,7 @@ window.GAMES = [
     icon: "🐱",
     accent: "#f0a6c8",
     tags: ["PUZZLE", "LOGIC"],
-    soon: true,
+    added: "2026-07-12",
   },
   {
     slug: "flappy",
