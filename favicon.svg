@@ -1,6 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="13" fill="#0a0c14"/>
   <!-- Komyo Games mascot (matches the hero header logo) -->
+  <!-- shifted +4.5 so the head (y 5-50) centers vertically in the box -->
+  <g transform="translate(0,4.5)">
   <path d="M13 24 L17 5 L31 16 Z" fill="#e8632a"/>
   <path d="M51 24 L47 5 L33 16 Z" fill="#e8632a"/>
   <path d="M17 19 L19 9 L26 15 Z" fill="#ffd9b0"/>
@@ -15,4 +17,5 @@
   <circle cx="20.5" cy="41" r="2.3" fill="#ff9ba0" opacity=".7"/>
   <circle cx="43.5" cy="41" r="2.3" fill="#ff9ba0" opacity=".7"/>
   <path d="M29 43 Q32 46 35 43" stroke="#7a4a2a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+  </g>
 </svg>
