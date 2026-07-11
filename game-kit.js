@@ -469,6 +469,28 @@
   // MODAL — while open it owns the keyboard (_modalOpen gates the menu engine; events are stopped so
   // nothing behind it reacts).
   var _modalOpen = 0;
+  // every _modalOpen change goes through these so the shared pause veil stays in sync
+  function modalInc() { _modalOpen++; syncPauseVeil(); }
+  function modalDec() { _modalOpen = Math.max(0, _modalOpen - 1); syncPauseVeil(); }
+  // ---- the ONE in-play pause veil ----
+  // Whenever gameplay is halted by an open panel/modal (sound, ☰, side stack, controls, challenges,
+  // shop…) the frozen game stays visible under a light "⏸ PAUSED" splash (~30% dim, no blur — the
+  // player can read the field and plan the next input). It sits UNDER whatever caused the pause
+  // (z 30) and never eats clicks, so click-outside-to-close keeps working. Game pages only (nav()
+  // sets _navMounted); kit menus have their own screens, so no veil while one is open.
+  var _navMounted = false, _pauseVeil = null;
+  function syncPauseVeil() {
+    try {
+      var want = _navMounted && !_menuEl && _modalOpen > 0;
+      if (want && !_pauseVeil) {
+        if (typeof document === 'undefined' || !document.body || !document.createElement) return;
+        _pauseVeil = document.createElement('div'); _pauseVeil.className = 'gamekit-pauseveil';
+        _pauseVeil.innerHTML = '<div class="gkpv"><div class="gkpv-ico">⏸</div><div>' + t('pause.paused') + '</div></div>';
+        document.body.appendChild(_pauseVeil);
+      }
+      if (_pauseVeil && _pauseVeil.classList) _pauseVeil.classList.toggle('show', want);
+    } catch (e) {}
+  }
   var _confirmOn = false; // one confirm at a time — repeated clicks must not stack overlays
   function confirmDialog(msg, onYes, yesLabel, onCancel, opts) {
     if (typeof document === 'undefined' || !document.body) { if (onYes) onYes(); return; }
@@ -500,7 +522,7 @@
       }, 50);
     }
     function finish(cb) {
-      if (done) return; done = true; _confirmOn = false; _modalOpen = Math.max(0, _modalOpen - 1);
+      if (done) return; done = true; _confirmOn = false; modalDec();
       stopHold();
       try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
       try { document.removeEventListener('keyup', onKeyUp, true); } catch (e) {}
@@ -540,7 +562,7 @@
     }
     ov.addEventListener('click', function (e) { if (e && e.target === ov) finish(onCancel); });
     paint();
-    _modalOpen++;
+    modalInc();
     if (typeof document.addEventListener === 'function') { document.addEventListener('keydown', onKey, true); document.addEventListener('keyup', onKeyUp, true); }
   }
 
@@ -566,7 +588,7 @@
       + '<textarea class="gamekit-embed-code" readonly rows="4"></textarea>'
       + '<button class="gamekit-embed-copy" type="button">' + t('embed.copyCode') + '</button></div>';
     document.body.appendChild(ov);
-    _modalOpen++; // open overlay → halts the game underneath
+    modalInc(); // open overlay → halts the game underneath
     var sel = ov.querySelector ? ov.querySelector('.gamekit-embed-sel') : null;
     var code = ov.querySelector ? ov.querySelector('.gamekit-embed-code') : null;
     var copy = ov.querySelector ? ov.querySelector('.gamekit-embed-copy') : null;
@@ -574,7 +596,7 @@
     setCode();
     if (sel) sel.addEventListener('change', setCode);
     var closed = false;
-    var close = function () { if (closed) return; closed = true; _modalOpen = Math.max(0, _modalOpen - 1); try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} };
+    var close = function () { if (closed) return; closed = true; modalDec(); try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} };
     var xb = ov.querySelector ? ov.querySelector('.gamekit-embed-x') : null; if (xb) xb.addEventListener('click', close);
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
     if (copy) copy.addEventListener('click', function () {
@@ -605,9 +627,9 @@
       + (cfg.note ? '<p class="gkctl-note">' + cfg.note + '</p>' : '') + '</div></div>';
     if (theme) applyMenuTheme(ov, theme);
     document.body.appendChild(ov);
-    _modalOpen++; // counts as an open overlay → isPaused() halts the game underneath
+    modalInc(); // counts as an open overlay → isPaused() halts the game underneath
     var done = false;
-    function close() { if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} }
+    function close() { if (done) return; done = true; modalDec(); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} }
     function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
     var x = ov.querySelector ? ov.querySelector('.gkctl-x') : null; if (x) x.addEventListener('click', close);
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
@@ -1171,10 +1193,11 @@
     }
     return false;
   }
-  var _chNotifyEl = null, _chNotifySlug = '', _chNotifySeen = false;
+  var _chNotifyEl = null, _chNotifyTabEl = null, _chNotifySlug = '', _chNotifySeen = false;
   function syncChNotify() {
-    if (!_chNotifyEl || !_chNotifyEl.classList) return;
-    _chNotifyEl.classList.toggle('gkm-notify', !_chNotifySeen && chActiveUndone(_chNotifySlug));
+    var on = !_chNotifySeen && chActiveUndone(_chNotifySlug);
+    if (_chNotifyEl && _chNotifyEl.classList) _chNotifyEl.classList.toggle('gkm-notify', on);
+    if (_chNotifyTabEl && _chNotifyTabEl.classList) _chNotifyTabEl.classList.toggle('gkm-notify', on);
   }
   // aggregate the week containing refDay (default: today); a PAST week reads its full Mon–Sun
   // window from whatever played-logs survive retention — the catalogue's weekly back-fill needs it
@@ -1268,11 +1291,11 @@
       + '<p class="gkch-note">' + t('challenges.note') + '</p></div></div>';
     if (opts.theme) applyMenuTheme(ov, opts.theme);
     document.body.appendChild(ov);
-    _modalOpen++;
+    modalInc();
     var shopBtn = ov.querySelector ? ov.querySelector('#gkchShop') : null;
     if (shopBtn) shopBtn.addEventListener('click', function () { shopPanel({ theme: opts.theme }); });
     var done = false;
-    function close() { if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} }
+    function close() { if (done) return; done = true; modalDec(); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} }
     function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
     var x = ov.querySelector ? ov.querySelector('.gkch-x') : null; if (x) x.addEventListener('click', close);
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
@@ -1397,10 +1420,10 @@
         });
         if (opts.theme) applyMenuTheme(pov, opts.theme);
         var phost = document.body; try { var d = document.querySelector && document.querySelector('dialog[open]'); if (d) phost = d; } catch (e) {}
-        phost.appendChild(pov); _modalOpen++;
+        phost.appendChild(pov); modalInc();
         var pdone = false;
         function pclose() {
-          if (pdone) return; pdone = true; _modalOpen = Math.max(0, _modalOpen - 1);
+          if (pdone) return; pdone = true; modalDec();
           try { document.removeEventListener('keydown', pkey, true); } catch (e) {}
           try { if (pov.parentNode) pov.parentNode.removeChild(pov); } catch (e) {}
         }
@@ -1589,10 +1612,10 @@
     var host = document.body;
     try { var dlg = document.querySelector && document.querySelector('dialog[open]'); if (dlg) host = dlg; } catch (e) {}
     host.appendChild(ov);
-    _modalOpen++;
+    modalInc();
     var done = false;
     function close() {
-      if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1);
+      if (done) return; done = true; modalDec();
       try { crt.previewStop(); } catch (e) {} // leaving the shop restores the real CRT state
       stopPv();                               // and stops any music preview
 
@@ -1797,6 +1820,553 @@
   }
 
   // ---------- top-right sound menu (+ optional per-game "reset scores") ----------
+  // ---------- right-edge side stack (Profile / Challenges / Collection) + the profile modal ----------
+  // Ported 1:1 from the catalogue (index.html) — the kit is now the ONE owner of both; the catalogue
+  // mounts them via gamekit.sideStack({...}) and games get them from nav(). Game pages add:
+  // the stack shows at ALL times (auto-tucked when a run starts; the ‹‹ tab re-opens it and the
+  // expanded stack counts as an open overlay → the game pauses underneath). The gutter-measured
+  // default behaves exactly like the home page — on menu screens it measures against the open
+  // menu's box instead of .wrap.
+  var _sideMenuSync = null;   // set by sideStack(); called from menuShow/menuTeardown
+  var _pfMounted = false, _sideMounted = false;
+
+  function mountProfilePanels() {
+    if (_pfMounted || typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function') return;
+    _pfMounted = true;
+    var dlg = document.createElement('dialog'); dlg.id = 'profileModal';
+    dlg.innerHTML = '<button type="button" class="pf-x" id="profileClose" aria-label="' + t('cat.close', { def: 'Close' }) + '">✕</button>'
+      + '<div class="about profile"><div id="profileBody"></div></div>';
+    document.body.appendChild(dlg);
+    var tdlg = document.createElement('dialog'); tdlg.id = 'titlesModal';
+    tdlg.innerHTML = '<button type="button" class="pf-x" id="titlesClose" aria-label="' + t('cat.close', { def: 'Close' }) + '">✕</button>'
+      + '<div class="about titles"><div class="cl-head"><h3>' + t('titles.title', { def: '🏆 Titles' }) + '</h3></div>'
+      + '<p class="tl-sub">' + t('titles.sub', { def: 'Earn trophies to climb the ladder — a new title is worn automatically, but tap any <b>unlocked</b> rank to wear it instead. Titles read <b>lifetime</b> trophies, so spending on your collection never slows you down.' }) + '</p>'
+      + '<div class="tl-list" id="titlesList"></div></div>';
+    document.body.appendChild(tdlg);
+    (function () {
+      const modal = document.getElementById('profileModal'), btn = document.getElementById('profileBtn'), closeBtn = document.getElementById('profileClose'), body = document.getElementById('profileBody');
+      if (!modal || !modal.showModal) return;
+      const K = window.gamekit, GAMES = window.GAMES || [];
+      const T = (k, def) => (window.gamekit && window.gamekit.t) ? window.gamekit.t(k, { def }) : def;
+      const lock = v => { try { document.body.style.overflow = v ? 'hidden' : ''; } catch (e) {} };
+      const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const fmt = n => (typeof n === 'number' && n.toLocaleString) ? n.toLocaleString() : String(n);
+      // speedrun/time bests are stored in ms (canonical) → mm:ss.cs, matching the in-game timer
+      const fmtTime = ms => { ms = Math.max(0, ms | 0); const m = Math.floor(ms / 60000), s = Math.floor((ms % 60000) / 1000), cs = Math.floor((ms % 1000) / 10); return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0') + '.' + String(cs).padStart(2, '0'); };
+      const meta = slug => { for (let i = 0; i < GAMES.length; i++) if (GAMES[i].slug === slug) return GAMES[i]; return null; };
+      const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+      let shareData = null;
+      // Snapshot the profile panel to a PNG that looks exactly like the on-screen modal — no libraries:
+      // clone it, inline computed styles (an SVG <foreignObject> has no access to the page's CSS),
+      // rasterise via an <img>. Falls back (returns null) if the browser taints the canvas (e.g. Safari).
+      // Sizing props are NOT inlined: baked used-widths are razor-tight to live font metrics, and the
+      // rasterizer's fonts can differ slightly (Android) → truncated/wrapped text. The flex/grid props
+      // reflow the same layout at the clone's width instead.
+      const SNAP_SKIP = new Set(['width', 'height', 'inline-size', 'block-size']);
+      function inlineStyles(src, dst) {
+        try { const cs = getComputedStyle(src); let s = ''; for (let i = 0; i < cs.length; i++) { const p = cs[i]; if (SNAP_SKIP.has(p)) continue; s += p + ':' + cs.getPropertyValue(p) + ';'; } dst.style.cssText = s; } catch (e) {}
+        const sc = src.children || [], dc = dst.children || [];
+        for (let i = 0; i < sc.length && i < dc.length; i++) inlineStyles(sc[i], dc[i]);
+      }
+      function snapshot() {
+        return new Promise(resolve => {
+          try {
+            const panel = modal.querySelector('.about.profile');
+            if (!panel || typeof XMLSerializer === 'undefined') return resolve(null);
+            const W = Math.round(panel.getBoundingClientRect().width) || 480;
+            // the earned-title particle canvas isn't DOM (its bitmap won't serialize into the SVG),
+            // so grab the live element + its position now → composite the current frame in afterwards
+            let pfx = null;
+            try { const cv = panel.querySelector('.pf-pfx'); if (cv && cv.toDataURL) { const pr = panel.getBoundingClientRect(), cr = cv.getBoundingClientRect(); pfx = { cv: cv, x: cr.left - pr.left, y: cr.top - pr.top, w: cr.width, h: cr.height }; } } catch (e) {}
+            const clone = panel.cloneNode(true);
+            inlineStyles(panel, clone);                                   // BEFORE removals (indices must align)
+            clone.querySelectorAll('.dx, .pf-share, .pf-tt, .pf-pen').forEach(n => n.remove());
+            const cs = getComputedStyle(modal);
+            clone.style.background = cs.backgroundColor; clone.style.border = '1px solid ' + cs.borderColor;
+            clone.style.borderRadius = '16px'; clone.style.margin = '0'; clone.style.width = W + 'px'; clone.style.boxSizing = 'border-box';
+            clone.style.maxHeight = 'none'; clone.style.overflow = 'visible'; clone.style.height = 'auto'; clone.style.display = 'block';  // capture full content, not the scroll-capped view
+            // inlineStyles copied the flex scroll area's tall pixel height (incl. logical block-size /
+            // flex-basis) → force plain block flow with all sizing cleared so the clone (and the PNG)
+            // crop to the real content height instead of the 88vh scroll box
+            clone.querySelectorAll('#profileBody, .pf-scroll').forEach(n => { n.style.cssText += ';display:block;flex:none;height:auto;min-height:0;max-height:none;block-size:auto;min-block-size:0;max-block-size:none;overflow:visible'; });
+            const foot = document.createElement('div'); foot.textContent = 'komyo.online';
+            foot.style.cssText = 'text-align:right;font:600 13px ui-monospace,monospace;color:#7a8aa0;margin-top:14px;';
+            clone.appendChild(foot);
+            clone.style.position = 'fixed'; clone.style.left = '-9999px'; clone.style.top = '0'; clone.style.bottom = 'auto';
+            document.body.appendChild(clone);
+            const H = Math.ceil(clone.getBoundingClientRect().height);
+            clone.style.position = 'static'; clone.style.left = 'auto'; clone.style.top = 'auto';
+            const xml = new XMLSerializer().serializeToString(clone);
+            document.body.removeChild(clone);
+            const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '">'
+              + '<foreignObject x="0" y="0" width="100%" height="100%"><div xmlns="http://www.w3.org/1999/xhtml">' + xml + '</div></foreignObject></svg>';
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const c = document.createElement('canvas'), s = 2; c.width = W * s; c.height = H * s;
+                const g = c.getContext('2d'); g.scale(s, s);
+                g.fillStyle = cs.backgroundColor || '#12151c'; g.fillRect(0, 0, W, H); g.drawImage(img, 0, 0);
+                if (pfx) { try { g.drawImage(pfx.cv, pfx.x, pfx.y, pfx.w, pfx.h); } catch (e) {} }  // bake the particle frame on top
+                g.getImageData(0, 0, 1, 1);                               // throws if tainted (Safari) → fallback
+                c.toBlob(b => resolve(b), 'image/png');
+              } catch (e) { resolve(null); }
+            };
+            img.onerror = () => resolve(null);
+            img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+          } catch (e) { resolve(null); }
+        });
+      }
+      // lifetime challenge points → EARNED title (highest passed). The WORN title can be any
+      // unlocked one the player picks (gamekit_title_sel); earning a new higher tier auto-switches
+      // to it (gamekit_title_adopted tracks the highest auto-claimed tier), and you can switch back.
+      const TSEL = 'gamekit_title_sel', TADOPT = 'gamekit_title_adopted';
+      function titleFor(pts) { return (window.CHALLENGES && window.CHALLENGES.titleFor) ? window.CHALLENGES.titleFor(pts) : { tier: 0, emoji: '🎖️', title: '' }; }
+      function titleByTier(tier) { const list = (window.CHALLENGES && window.CHALLENGES.titles) || []; for (let i = 0; i < list.length; i++) if (list[i].tier === tier) return list[i]; return list[0] || { tier: 0, emoji: '🎖️', title: '' }; }
+      // rank name → gamekit.t with the challenges.js English as the def fallback (byte-identical until S7)
+      const rankTitle = r => (window.gamekit && window.gamekit.t) ? window.gamekit.t('title.t' + ((r && r.tier) | 0), { def: (r && r.title) || '' }) : ((r && r.title) || '');
+      // pick which title is WORN: read the saved selection, but auto-adopt any newly-earned higher tier
+      function wornTier(earnedTier) {
+        let sel = earnedTier, adopted = -1;
+        try { const s = localStorage.getItem(TSEL); if (s != null && s !== '') sel = parseInt(s, 10); } catch (e) {}
+        try { const a = localStorage.getItem(TADOPT); if (a != null && a !== '') adopted = parseInt(a, 10); } catch (e) {}
+        if (!isFinite(sel)) sel = earnedTier;
+        if (earnedTier > adopted) { sel = earnedTier; try { localStorage.setItem(TSEL, String(sel)); localStorage.setItem(TADOPT, String(earnedTier)); } catch (e) {} } // new higher title → auto-switch
+        return Math.max(0, Math.min(earnedTier, sel));
+      }
+      function setWornTier(tier) { try { localStorage.setItem(TSEL, String(tier)); } catch (e) {} }
+      function titleData() {
+        const who = (K && K.player) ? K.player() : 'anonymous';
+        let chPts = 0;
+        try { const d = JSON.parse(localStorage.getItem('gamekit_done') || '{}'); for (const k in d) chPts += (d[k] | 0); } catch (e) {}
+        const earned = titleFor(chPts), TT = titleByTier(wornTier(earned.tier));
+        return { who, chPts, TT, earnedTier: earned.tier };
+      }
+      // the identity box (title + name, both shined to the tier). Full (profile): particles for
+      // tiers 3+, clickable name (rename), meta column (pts / good runs / since). Compact
+      // (drawer card): just emoji + title + name + chevron. Titles ladder opens from the
+      // challenges drawer's points pill.
+      function titleBarHTML(o) {
+        const TT = o.TT, who = o.who;
+        let h = '<div class="pf-titlebar' + (o.compact ? ' pf-compact' : '') + ' pf-t' + TT.tier + '">'
+          + (TT.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + TT.tier + '"></canvas>' : '')
+          + '<span class="pf-tb-emoji">' + (TT.emoji || '🎖️') + '</span>'
+          + '<div class="pf-tb-main">'
+          + '<span class="pf-tb-label">' + (o.compact ? 'Title' : '<button type="button" class="pf-title-link" id="pfTitleOpen">Title · see ladder ›</button>') + '</span>'
+          + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(rankTitle(TT)) + '">' + esc(rankTitle(TT)) + '</span></span>';
+        h += o.compact
+          ? '<span class="pf-tb-name"><span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span></span>'
+          : '<span class="pf-tb-name"><button type="button" class="pf-name-btn" id="pfNameEdit" aria-label="Change your display name">'
+            + '<span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span>'
+            + '<svg class="pf-pen" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>'
+            + '<span class="pf-tt">Click to change your name</span></button></span>';
+        h += '</div>';
+        if (o.compact) h += '<span class="pf-chev">›</span>';
+        else h += '<div class="pf-tb-meta">'
+          + '<span class="pf-tb-pts">🏆 ' + fmt(o.chPts) + ' <span>' + window.gamekit.t('profile.trophiesEarned', { def: 'TROPHIES EARNED' }) + '</span></span>'
+          + '<span class="pf-tb-mini" title="Runs that cleared a game’s bar">💪 <b>' + fmt(o.goodRuns) + '</b> ' + window.gamekit.t('profile.goodRunsWord', { count: o.goodRuns }) + '</span>'
+          + '<span class="pf-tb-mini">📅 Since <b>' + esc(o.sinceStr || '—') + '</b></span>'
+          + '</div>';
+        return h + '</div>';
+      }
+      window.__titleBar = () => { const d = titleData(); return titleBarHTML({ compact: true, TT: d.TT, who: d.who }); };
+      // worn title (tier + emoji + translated name) for the side stack's Profile button; defined
+      // after the stack's IIFE ran, so nudge its renderer now that real data is available
+      window.__wornTitle = () => { const d = titleData(); return { tier: d.TT.tier | 0, emoji: d.TT.emoji, name: rankTitle(d.TT) }; };
+      if (window.__refreshSideStack) window.__refreshSideStack();
+      function wireNameEdit() {
+        const nb = document.getElementById('pfNameEdit');
+        if (nb) nb.addEventListener('click', () => {
+          if (window.__openNameModal) { window.__openNameModal(); return; }
+          // game pages have no name modal — a plain prompt keeps rename working everywhere
+          try { const cur = (K && K.player) ? K.player() : ''; const nn = (typeof prompt === 'function') ? prompt(T('profile.namePrompt', 'Display name'), cur) : null; if (nn != null && K && K.setName) { K.setName(nn); render(); } } catch (e) {}
+        });
+        // 🎨 collection bar → the Cosmetics store (mounts inside the open profile dialog)
+        const cb = document.getElementById('pfCollect');
+        if (cb) cb.addEventListener('click', () => { if (K && K.shopPanel) K.shopPanel({ onTitles: () => window.__openTitlesLadder && window.__openTitlesLadder(), onClose: render }); });
+        // the title box opens the titles ladder (titles live in the profile + ☰ menu)
+        const to = document.getElementById('pfTitleOpen');
+        if (to) to.addEventListener('click', () => { if (window.__openTitlesLadder) window.__openTitlesLadder(); });
+      }
+      function render() {
+        const p = (K && K.profile) ? K.profile() : null;
+        const { who, chPts, TT } = titleData();
+        let sinceStr = '';
+        if (p && p.since) { try { sinceStr = new Date(p.since).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }); } catch (e) {} }
+        // identity (title + name) is the full-width box at the very top — no separate header;
+        // shown in both empty + populated states
+        const goodRuns = (p && p.goodRuns) ? p.goodRuns : 0;
+        const cos = (K && K.cosmetics && window.COSMETICS) ? K.cosmetics.progress() : null;
+        const tb = titleBarHTML({ TT, who, chPts, goodRuns, sinceStr, cos });
+        // collection progress bar — a real bar (not just a number), tappable → the Cosmetics store
+        // the fill is a background GRADIENT (not a width-sized <i>) so it survives the share
+        // snapshot, whose inlineStyles drops width/height — a min-height div + a computed-style
+        // background both make it through; an <i>'s inline width got wiped and collapsed to 0.
+        const pctW = Math.round(cos ? cos.pct * 100 : 0);
+        const collectBar = cos ? ('<div class="pf-collect" id="pfCollect" role="button" tabindex="0" title="Open the Cosmetics store">'
+          + '<div class="pf-collect-top"><span>🎨 Collection</span><span class="pf-collect-n">' + cos.owned + ' / ' + cos.total + ' · ' + pctW + '%</span></div>'
+          + '<div class="pf-collect-bar" style="background:linear-gradient(90deg,#ffce5c,#ff9a5c) left/' + pctW + '% 100% no-repeat,rgba(255,255,255,0.09)"></div></div>') : '';
+        // one list, most-played first: every game with plays, each showing its modes' bests
+        const ranked = [];
+        if (p) GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm, pg }); });
+        ranked.sort((a, b) => b.pg.plays - a.pg.plays || b.pg.best - a.pg.best);
+        if (!ranked.length) {
+          body.innerHTML = '<div class="pf-scroll">' + tb + collectBar + '<p class="pf-empty">' + window.gamekit.t('profile.noScores', { def: 'No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.' }) + '</p></div>';
+          shareData = null; startTitleFx(); wireNameEdit(); return;
+        }
+        const favGameMeta = meta(p.favGame.slug), accent = (favGameMeta && favGameMeta.accent) || '#9fe8ff';
+        // stat labels pluralize with their count ("1 Day", not "1 Days")
+        const chips = [['profile.statGames', p.gamesPlayed], ['profile.statModes', p.modesPlayed], ['profile.statPlays', p.plays], ['profile.statDays', p.daysPlayed]];
+        let html = '<div class="pf-scroll">' + tb + '<div class="pf-stats">';
+        chips.forEach(s => { const lbl = window.gamekit.t(s[0], { count: s[1] }); html += '<div class="pf-stat"><b>' + esc(fmt(s[1])) + '</b><span>' + esc(lbl) + '</span></div>'; });
+        html += '</div>' + collectBar;
+        // Your games — total plays in the header (its unit shown once), then each mode's best;
+        // a per-mode "×N" appears only when that mode was played more than once (no ×1 noise).
+        const rows = [];
+        html += '<div class="pf-sec">' + window.gamekit.t('profile.yourGames', { def: 'Your games' }) + '</div><div class="pf-games">';
+        ranked.forEach(function (it) {
+          const gm = it.gm, pg = it.pg;
+          const modes = pg.modes.slice().filter(m => m.plays > 0).sort((a, b) => b.plays - a.plays || b.score - a.score);
+          let rowsHtml = '';
+          modes.forEach(m => {
+            // show plays on every mode (even single-mode, where it repeats the header total) for consistency; hide only ×1
+            const x = m.plays > 1 ? ' <i class="pr-x" title="' + fmt(m.plays) + ' plays">×' + fmt(m.plays) + '</i>' : '';
+            // time-primary modes (named "Speedrun"/"Sprint" by convention) show their time (stored ms);
+            // every other mode shows its score. (score modes may also record a run duration we ignore.)
+            const isTimeMode = /speedrun|sprint/i.test(m.mode || '');
+            const val = (isTimeMode && m.time > 0) ? fmtTime(m.time) : (m.score > 0 ? fmt(m.score) : '—');
+            rowsHtml += '<div class="pf-row"><span class="pr-mode">' + esc(m.mode || T('profile.colBest', 'Best')) + x + '</span><span class="pr-val">' + val + '</span></div>';
+          });
+          html += '<div class="pf-game pf-tinted" style="--acc:' + (gm.accent || '#9fe8ff') + '">'
+            + '<div class="pf-gh"><span class="pf-gt">' + (gm.icon || '🎮') + ' ' + esc(gm.title) + '</span>'
+            + '<span class="pf-gp"><b>' + fmt(pg.plays) + '</b> ' + window.gamekit.t('profile.playsWord', { count: pg.plays }) + '</span></div>'
+            + '<div class="pf-rows"><div class="pf-rhead"><span>' + T('profile.colMode', 'Mode') + '</span><span>' + T('profile.colBest', 'Best') + '</span></div>' + rowsHtml + '</div></div>';
+          rows.push({ name: gm.title, best: fmt(pg.best), mode: (modes[0] && modes[0].mode) || '', accent: gm.accent });
+        });
+        html += '</div>'; // close .pf-games
+        html += '</div>'; // close .pf-scroll (the games list scrolls; the share button below stays pinned)
+        html += '<div class="pf-share"><button type="button" id="pfShare">' + window.gamekit.t('profile.share', { def: '📷 Share my profile' }) + '</button></div>';
+        body.innerHTML = html;
+        startTitleFx();
+        wireNameEdit();
+        shareData = { player: who, accent: accent, stats: [{ label: window.gamekit.t('profile.cardGames', { def: 'Games' }), value: p.gamesPlayed }, { label: window.gamekit.t('profile.cardModes', { def: 'Modes' }), value: p.modesPlayed }, { label: window.gamekit.t('profile.cardPlays', { def: 'Plays' }), value: p.plays }, { label: window.gamekit.t('profile.cardDays', { def: 'Days' }), value: p.daysPlayed }], rows: rows, collection: cos };
+        const sh = document.getElementById('pfShare');
+        if (sh) sh.addEventListener('click', () => {
+          if (sh.disabled) return;
+          const orig = window.gamekit.t('profile.share', { def: '📷 Share my profile' });
+          sh.disabled = true; sh.textContent = window.gamekit.t('profile.rendering', { def: 'Rendering…' });
+          const flash = (msg) => { sh.textContent = msg; setTimeout(() => { sh.textContent = orig; sh.disabled = false; }, 1500); };
+          snapshot()
+            .then(b => b || (K && K.profileCard && shareData ? K.profileCard(shareData) : null))   // DOM snapshot, else drawn card
+            .then(b => {
+              if (!(b && K && K.shareCard)) { flash(window.gamekit.t('profile.renderErr', { def: "Couldn't render" })); return; }
+              K.shareCard(b, { slug: 'profile', title: 'My Komyo Games profile' });   // opens the kit share menu (it owns the feedback)
+              sh.textContent = orig; sh.disabled = false;
+            })
+            .catch(() => flash(window.gamekit.t('profile.renderErr', { def: "Couldn't render" })));
+        });
+      }
+      // titles ladder modal — every rank prerendered with its tier shine (same classes as the
+      // profile title box), current one highlighted; points only, no time estimates
+      const tlModal = document.getElementById('titlesModal'), tlList = document.getElementById('titlesList'), tlClose = document.getElementById('titlesClose');
+      // ladder: unlocked ranks are tap-to-equip (wear a previous title if you like it more); the worn
+      // one shows "✓ Worn", locked ones stay locked. `wornT` = worn tier, `earnedT` = highest unlocked.
+      function renderTitles() {
+        if (!tlList || !window.CHALLENGES || !window.CHALLENGES.titles) return;
+        const d = titleData(), wornT = d.TT.tier, earnedT = d.earnedTier;
+        let h = '';
+        window.CHALLENGES.titles.forEach(t => {
+          const unlocked = t.tier <= earnedT, worn = t.tier === wornT;
+          h += '<div class="tl-row pf-t' + t.tier + (worn ? ' tl-cur' : '') + (unlocked ? ' tl-unlocked' : ' tl-locked') + '"'
+            + (unlocked ? ' role="button" tabindex="0" data-tier="' + t.tier + '"' : '') + '>'
+            + (t.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + t.tier + '"></canvas>' : '')
+            + '<span class="tl-emoji">' + (t.emoji || '🎖️') + '</span>'
+            + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(rankTitle(t)) + '">' + esc(rankTitle(t)) + '</span></span>'
+            + '<span class="tl-pts">' + (worn ? '<b class="tl-worn">' + window.gamekit.t('titles.worn', { def: '✓ Worn' }) + '</b>' : (unlocked ? window.gamekit.t('titles.wear', { def: 'Wear' }) : fmt(t.min) + ' 🏆')) + '</span></div>';
+        });
+        tlList.innerHTML = h;
+      }
+      // equip an unlocked title from the ladder → re-render the ladder + the profile + the ☰ id card
+      if (tlList) tlList.addEventListener('click', e => {
+        const row = e.target && e.target.closest ? e.target.closest('.tl-row.tl-unlocked') : null;
+        if (!row) return;
+        const t = parseInt(row.getAttribute('data-tier'), 10);
+        if (!isFinite(t)) return;
+        setWornTier(t); renderTitles(); startTitleFx();
+        try { if (window.__renderProfile) window.__renderProfile(); } catch (e2) {}
+        try { if (window.__refreshSideStack) window.__refreshSideStack(); } catch (e2) {} // worn title drives the stack's Profile icon/tint
+        if (window.gamekitTrack) window.gamekitTrack('title_wear', { tier: t });
+      });
+      // challenges drawer's points pill opens the ladder — points → titles is the payoff
+      window.__openTitlesLadder = () => {
+        if (!tlModal || !tlModal.showModal) return;
+        renderTitles(); tlModal.showModal(); startTitleFx();
+        try { if (window.__setPanelUrl) window.__setPanelUrl('titles'); } catch (e) {}
+        if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'titles' });
+      };
+      if (tlClose) tlClose.addEventListener('click', () => tlModal.close());
+      if (tlModal) tlModal.addEventListener('click', e => { if (e.target === tlModal) tlModal.close(); });
+      if (tlModal) tlModal.addEventListener('close', () => { try { if (window.__closePanelUrl) window.__closePanelUrl('titles'); } catch (e) {} tlList.innerHTML = ''; startTitleFx(); });   // drop the ladder fields, keep the profile-box one running
+      // ☰ dot has two independent sources — a title-unlock moment (crossing a titles-ladder tier
+      // since the last-seen one) and a ready-to-apply site update — ORed into one badge so neither
+      // tracker stomps the other's state. Title "seen" tracking stays scoped to titles only; the
+      // update source is read-only here (gamekit.updates.apply(), from Settings, clears its own state).
+      const TSEEN = 'gamekit_title_seen';
+      const seenTier = () => { try { return parseInt(localStorage.getItem(TSEEN) || '0', 10) || 0; } catch (e) { return 0; } };
+      const titleIsFresh = () => {
+        const cur = titleData().earnedTier; // the dot tracks the highest EARNED title, not the worn one
+        if (cur < seenTier()) { try { localStorage.setItem(TSEEN, String(cur)); } catch (e) {} } // import/reset lowered the tier — resync silently
+        return cur > seenTier();
+      };
+      const updateIsAvailable = () => { try { return !!(window.gamekit && window.gamekit.updates.state().available); } catch (e) { return false; } };
+      function renderMenuDot() {
+        // the UPDATE dot lives on the top-bar ⚙️ Settings button (it hosts "Update now"); a fresh
+        // TITLE dots the side stack's Profile button. The ☰ drawer holds neither → no dot there.
+        const sb = document.getElementById('settingsBtn');
+        if (sb && sb.classList) sb.classList.toggle('tb-notify', updateIsAvailable());
+        if (window.__setStackDot) window.__setStackDot('profileQuick', titleIsFresh());
+      }
+      window.__titleIsFresh = titleIsFresh;
+      window.__markTitleSeen = () => {
+        try { localStorage.setItem(TSEEN, String(titleData().earnedTier)); } catch (e) {}
+        renderMenuDot();
+      };
+      function syncTitleNotify() { const fresh = titleIsFresh(); renderMenuDot(); return fresh; }
+      syncTitleNotify();
+      if (window.gamekit && window.gamekit.updates) window.gamekit.updates.onChange(renderMenuDot);
+      window.__syncTitleNotify = syncTitleNotify;
+      // earned-title particle fields (premium tiers) — ONE engine driving EVERY `.pf-pfx` canvas in
+      // the profile body + titles ladder, so a new title-shine surface only has to include the canvas.
+      // Canvases with no size yet (modal not open / closed) are retried each frame and skipped.
+      let _pfRaf = 0;
+      function stopTitleFx() { if (_pfRaf) { try { cancelAnimationFrame(_pfRaf); } catch (e) {} _pfRaf = 0; } }
+      function startTitleFx() {
+        stopTitleFx();
+        const CFG = { 3: { n: 9, cols: ['#d3deed', '#fff'], sz: [.7, 1.8], v: .13, glow: 5 }, 4: { n: 12, cols: ['#b98cff', '#c9b3ff'], sz: [.7, 2], v: .16, glow: 5 }, 5: { n: 15, cols: ['#b98cff', '#9fe8ff'], sz: [.7, 2.2], v: .18, glow: 6 }, 6: { n: 18, cols: ['#9fe8ff', '#7fe8d0', '#fff'], sz: [.7, 2.4], v: .22, glow: 7 }, 7: { n: 24, cols: ['#ff8ad1', '#b98cff', '#9fe8ff', '#7fffc4'], sz: [.8, 2.6], v: .26, glow: 8 }, 8: { n: 32, cols: ['#ffd76a', '#fff3c0', '#fff', '#ff9ad1'], sz: [.9, 3], v: .32, glow: 10 } };
+        const dpr = Math.min(window.devicePixelRatio || 1, 2), rnd = (a, b) => a + Math.random() * (b - a);
+        const fields = [];
+        const cvs = document.querySelectorAll ? document.querySelectorAll('#profileBody .pf-pfx, #titlesList .pf-pfx') : [];
+        cvs.forEach(cv => {
+          const cfg = CFG[+cv.getAttribute('data-tier')];
+          const ctx = cv.getContext && cv.getContext('2d');
+          if (cfg && ctx) fields.push({ cv, ctx, cfg, W: 0, H: 0, ps: [] });
+        });
+        if (!fields.length) return;
+        const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const raf = (typeof requestAnimationFrame === 'function') ? requestAnimationFrame : null;
+        const spawn = (f, y) => ({ x: rnd(0, f.W), y: y == null ? rnd(0, f.H) : y, r: rnd(f.cfg.sz[0], f.cfg.sz[1]), c: f.cfg.cols[(Math.random() * f.cfg.cols.length) | 0], vy: rnd(f.cfg.v * .6, f.cfg.v * 1.5), sway: rnd(.2, .9), ph: rnd(0, 6.28), tw: rnd(1.5, 3.5) });
+        const size = f => {
+          const r = f.cv.getBoundingClientRect();
+          if (!r.width || !r.height) return false;
+          f.W = r.width; f.H = r.height; f.cv.width = f.W * dpr; f.cv.height = f.H * dpr; f.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          for (let i = 0; i < f.cfg.n; i++) f.ps.push(spawn(f));
+          return true;
+        };
+        const draw = (f, t, moving) => { const ctx = f.ctx; ctx.clearRect(0, 0, f.W, f.H); for (const q of f.ps) { ctx.globalAlpha = moving ? (.35 + .65 * (.5 + .5 * Math.sin(t * (6.28 / q.tw) + q.ph))) : .7; ctx.fillStyle = q.c; ctx.shadowBlur = f.cfg.glow; ctx.shadowColor = q.c; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, 6.28); ctx.fill(); } ctx.globalAlpha = 1; ctx.shadowBlur = 0; };
+        if (!raf) { fields.forEach(f => { if (size(f)) draw(f, 0, false); }); return; }
+        const frame = ms => {
+          const t = ms / 1000;
+          let pending = false;
+          for (const f of fields) {
+            if (!f.W) { if (!size(f)) { pending = true; continue; } if (reduce) { draw(f, 0, false); continue; } }
+            if (reduce) continue;
+            for (const q of f.ps) { q.y -= q.vy; q.x += Math.sin(t * q.sway + q.ph) * .25; if (q.y < -6) { const np = spawn(f, f.H + 6); for (const k in np) q[k] = np[k]; } }
+            draw(f, t, true);
+          }
+          if (reduce && !pending) return;
+          _pfRaf = raf(frame);
+        };
+        _pfRaf = raf(frame);
+      }
+      window.__renderProfile = render; // exposed for tests
+      window.__startTitleFx = startTitleFx;
+      // the profile opens from the side stack (and the ?m=profile deep link) — no drawer card anymore
+      window.__openProfile = () => { render(); modal.showModal(); lock(true); };
+      if (btn) btn.addEventListener('click', window.__openProfile);
+      if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
+      modal.addEventListener('close', () => { lock(false); stopTitleFx(); });
+      modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
+    })();
+  }
+
+  function sideStack(opts) {
+    opts = opts || {};
+    if (_sideMounted || typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function') return;
+    _sideMounted = true;
+    mountProfilePanels();
+    var host = document.createElement('div'); host.className = 'side-stack'; host.id = 'sideStack';
+    host.innerHTML = '<button class="side-tab" id="sideTab" type="button" aria-label="Show quick menu">‹‹</button>'
+      + '<div class="side-clip" id="sideClip"><div class="side-panel" id="sidePanel">'
+      + '<button class="side-btn side-profile" id="profileQuick" type="button" aria-label="' + t('drawer.myProfile', { def: 'My profile' }) + '" data-ta="drawer.myProfile">'
+      + '<span class="ico" id="spIco">🎖️</span><span class="lbl" data-t="cat.profileBtn">' + t('cat.profileBtn', { def: 'Profile' }) + '</span><span class="side-sub" id="spSub"></span></button>'
+      + '<button class="side-btn side-chal" id="chalBtn" aria-label="' + t('cat.openChallenges', { def: 'Open challenges' }) + '" data-ta="cat.openChallenges" aria-haspopup="dialog">'
+      + '<span class="ico">🏆</span><span class="lbl" data-t="cat.challengesBtn">' + t('cat.challengesBtn', { def: 'CHALLENGES' }) + '</span><span class="side-sub" id="scSub"></span></button>'
+      + '<button class="side-btn side-cos" id="collectionQuick" type="button" aria-label="' + t('cat.collectionBtn', { def: 'Collection' }) + '">'
+      + '<span class="ico">🎨</span><span class="lbl" data-t="cat.collectionBtn">' + t('cat.collectionBtn', { def: 'Collection' }) + '</span><span class="side-sub" id="skSub"></span></button>'
+      + '</div></div>';
+    document.body.appendChild(host);
+    (function () {
+      const K = window.gamekit;
+      const stack = document.getElementById('sideStack'), tab = document.getElementById('sideTab');
+      const clip = document.getElementById('sideClip'), panel = document.getElementById('sidePanel');
+      if (!stack || !tab || !clip || !panel) return;
+      // a manual show/hide is REMEMBERED (per device) and always wins; the measured fit is only
+      // the default for players who never touched the tab
+      const STACK_KEY = 'arcade_stack';
+      const storedChoice = () => { try { const v = localStorage.getItem(STACK_KEY); return v === null ? null : v === '1'; } catch (e) { return null; } };
+      let shown = false, lastFits = null, playPause = false;
+      // during live play (game page, no menu) an EXPANDED stack counts as an open overlay →
+      // isPaused() halts the game until it's tucked away again
+      const syncPlayPause = () => { if (!opts.game) return; const want = !!(shown && !_menuEl); if (want !== playPause) { playPause = want; if (want) modalInc(); else modalDec(); } };
+      // per-button notification dots; the tab bubbles "any dot inside" while the drawer is hidden
+      const dots = {};
+      const syncTabDot = () => {
+        const any = Object.keys(dots).some(k => dots[k]);
+        if (tab.classList) tab.classList.toggle('has-dot', any && !shown);
+      };
+      window.__setStackDot = (id, on) => {
+        dots[id] = !!on;
+        const b = document.getElementById(id);
+        if (b && b.classList) b.classList.toggle('has-dot', !!on);
+        syncTabDot();
+      };
+      const applyClip = () => {
+        clip.style.width = (shown ? (panel.offsetWidth || 152) : 0) + 'px';
+        stack.classList.toggle('shown', shown);
+        syncPlayPause();
+        tab.textContent = shown ? '»' : '‹‹';
+        syncTabDot();
+      };
+      const place = () => {
+        // anchor = the open kit menu's box (games) or the catalogue's .wrap — the gutter beside
+        // it decides the DEFAULT state exactly like on the home page
+        let anchor = null;
+        try { anchor = _menuEl && _menuEl.querySelector ? _menuEl.querySelector('.gkm-box') : null; } catch (e) {}
+        if (!anchor && document.querySelector) anchor = document.querySelector('.wrap');
+        if (opts.game && !_menuEl) { shown = false; applyClip(); return; }   // gameplay → tucked (tab stays)
+        if (!anchor || !anchor.getBoundingClientRect || typeof window.innerWidth !== 'number') return;
+        const gutter = window.innerWidth - anchor.getBoundingClientRect().right;
+        const fits = gutter >= (panel.offsetWidth || 152) + 22 + 13; // panel + tab + breathing room
+        if (fits !== lastFits) {
+          lastFits = fits;
+          const choice = storedChoice();
+          shown = choice === null ? fits : choice;
+          applyClip();
+        }
+      };
+      tab.addEventListener('click', () => {
+        shown = !shown;
+        try { localStorage.setItem(STACK_KEY, shown ? '1' : '0'); } catch (e) {}
+        applyClip();
+      });
+      if (window.addEventListener) window.addEventListener('resize', place);
+      place();
+      // quick actions: Profile → the profile modal (via the drawer card's existing wiring, which
+      // also reflects ?m=profile); Collection → the store (window.__openShop reflects ?m=cosmetics)
+      const pq = document.getElementById('profileQuick');
+      if (pq) pq.addEventListener('click', () => {
+        const fresh = window.__titleIsFresh ? window.__titleIsFresh() : false;
+        if (window.__markTitleSeen) window.__markTitleSeen(); // opening the profile counts as "seen the new title"
+        if (window.__openProfile) window.__openProfile();
+        if (fresh) requestAnimationFrame(() => {   // one-shot "★ NEW TITLE" reveal on the freshly rendered titlebar
+          const tb = document.querySelector('#profileModal .pf-titlebar');
+          if (tb) { tb.classList.add('pf-reveal'); setTimeout(() => { try { tb.classList.remove('pf-reveal'); } catch (e) {} }, 2700); }
+        });
+      });
+      const cq = document.getElementById('collectionQuick');
+      if (cq) cq.addEventListener('click', () => {
+        if (opts.onCollection) { opts.onCollection(); return; }
+        if (window.__openShop) { window.__openShop(); return; }
+        shopPanel(opts.game ? { game: opts.slug, theme: opts.theme, allGames: function () { shopPanel({ theme: opts.theme }); } } : {});
+      });
+      // Challenges dot: "a new challenge rotation you haven't looked at yet" — compares today's
+      // daily period + this week's weekly period (the kit's canonical rotation keys) against the
+      // last pair seen; opening the drawer marks both seen.
+      const CH_SEEN = 'arcade_chal_seen';
+      const chPeriods = () => {
+        try {
+          const d = K.challengePick('daily'), w = K.challengePick('weekly');
+          return (d && w) ? { d: d.period, w: w.period } : null;
+        } catch (e) { return null; }
+      };
+      const syncChalDot = () => {
+        const p = chPeriods(); if (!p) return;
+        let s = {}; try { s = JSON.parse(localStorage.getItem(CH_SEEN) || '{}'); } catch (e) {}
+        window.__setStackDot('chalBtn', p.d !== s.d || p.w !== s.w || !!(opts.game && chActiveUndone(opts.slug)));
+      };
+      const cb = document.getElementById('chalBtn');
+      if (cb) cb.addEventListener('click', () => {
+        // open the challenges surface FIRST (drawer on the catalogue via the late-bound hook,
+        // kit panel in games) — the NEW-chip marking below targets the freshly rendered drawer
+        if (opts.onChallenges) opts.onChallenges();
+        else if (opts.game) challengesPanel({ slug: opts.slug, genres: opts.genres, theme: opts.theme });
+        else if (window.__openChalDrawer) window.__openChalDrawer();
+        const p = chPeriods();
+        // badge whichever rotation is NEW inside the freshly-rendered drawer (the drawer-open
+        // listener registered earlier already ran __renderChallenges) — the dot alone said nothing
+        let s = {}; try { s = JSON.parse(localStorage.getItem(CH_SEEN) || '{}'); } catch (e) {}
+        const mark = (id, fresh) => {
+          const box = document.getElementById(id);
+          if (!box || !box.classList) return;
+          box.classList.toggle('ch-new', !!fresh);
+          if (fresh && box.setAttribute) box.setAttribute('data-new', K.t('challenges.newBadge', { def: '★ NEW' }));
+        };
+        if (p) { mark('chalToday', p.d !== s.d); mark('chalWeek', p.w !== s.w); }
+        if (p) { try { localStorage.setItem(CH_SEEN, JSON.stringify(p)); } catch (e) {} }
+        syncChalDot();
+      });
+      syncChalDot();
+      window.__syncChalDot = syncChalDot;
+      // live bits: the Profile button wears your current title (icon + tint + name), Challenges
+      // shows lifetime trophies, Collection shows unlock progress
+      const TIER_TINT = ['rgba(120,130,143,.18)', 'rgba(195,204,216,.16)', 'rgba(208,149,79,.18)', 'rgba(215,224,236,.16)',
+        'rgba(195,156,255,.20)', 'rgba(185,140,255,.20)', 'rgba(159,232,255,.18)', 'rgba(255,138,209,.18)', 'rgba(255,215,106,.20)'];
+      const refreshStack = () => {
+        try {
+          const wt = window.__wornTitle && window.__wornTitle();
+          if (wt) {
+            const ico = document.getElementById('spIco');
+            if (ico) ico.textContent = wt.emoji || '🎖️';
+            if (pq && pq.style && pq.style.setProperty) pq.style.setProperty('--ttbg', TIER_TINT[wt.tier] || TIER_TINT[0]);
+          }
+          // detail sub-lines: player name · lifetime 🏆 · collection progress
+          const K = window.gamekit;
+          const sp = document.getElementById('spSub'), sc = document.getElementById('scSub'), sk = document.getElementById('skSub');
+          if (sp && K && K.player) { const who = K.player(); sp.textContent = (who && who !== 'anonymous') ? who : ''; }
+          if (K && K.cosmetics && window.COSMETICS) {
+            if (sc) sc.textContent = '🏆 ' + K.cosmetics.lifetime().toLocaleString();
+            if (sk) { const pr = K.cosmetics.progress(); sk.textContent = pr.owned + '/' + pr.total + ' · ' + Math.round(pr.pct * 100) + '%'; }
+          }
+        } catch (e) {}
+      };
+      window.__refreshSideStack = refreshStack;
+      refreshStack();
+      // refresh after anything that can change titles/trophies/unlocks closes (cheap, event-driven)
+      [document.getElementById('chalBtn'), pq, cq].forEach(b => { if (b) b.addEventListener('click', () => setTimeout(refreshStack, 400)); });
+      // outside click/tap during live play tucks the stack away → unpauses (same behaviour as the
+      // sound panel); a dismissal is NOT remembered — only deliberate tab toggles persist
+      if (opts.game && typeof document.addEventListener === 'function') document.addEventListener('click', function (e) {
+        if (!shown || _menuEl) return;
+        var tgt = e && e.target;
+        if (tgt && tgt.closest && tgt.closest('#sideStack')) return;
+        shown = false; applyClip();
+      });
+      // ---- game-page glue (no-op on the catalogue) ----
+      _sideMenuSync = function () {
+        if (!opts.game) return;
+        if (_menuEl) { lastFits = null; place(); }        // menu screen → re-apply the measured default / stored choice
+        else { shown = false; applyClip(); }              // a run started → auto-tuck (the ‹‹ tab stays)
+      };
+      // live language switch: re-label the stack buttons (the catalogue's data-t scanner does this
+      // on the home page; game pages re-label here)
+      if (opts.game) onLang(function () {
+        try {
+          var els = { 'cat.profileBtn': 'profileQuick', 'cat.challengesBtn': 'chalBtn', 'cat.collectionBtn': 'collectionQuick' };
+          for (var k in els) { var b = document.getElementById(els[k]); if (b && b.querySelector) { var l = b.querySelector('.lbl'); if (l) l.textContent = t(k); } }
+        } catch (e) {}
+      });
+    })();
+  }
+
   function audioMenu(opts) {
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body) return;
@@ -1807,18 +2377,17 @@
       + '<input class="gamekit-au-slider" id="gamekitMusV" type="range" min="0" max="100" aria-label="' + t('sound.musVol') + '"></div>';
     // ☰ menu panel: version + update status, force refresh, embed, reset — one home for the
     // rarely-needed actions (keeps the button cluster narrow on phones)
-    // ☰ order: Update · Fullscreen · Language (inserted before Embed below) · Embed · Reset.
+    // ☰ order: Update · Language (inserted before Embed below) · Embed · Reset.
+    // (Fullscreen moved OUT to its own top-bar ⛶ button; Challenges/Collection live on the side stack.)
     // The version stamp lives in the catalogue footer/Settings; CRT is bought/toggled in the 🎨 shop.
     var more = '<button class="gamekit-more-item" id="gamekitUpdate" type="button">' + t('update.upToDate') + '</button>'
-      + (fsSupported() ? '<button class="gamekit-more-item" id="gamekitFullscreen" type="button" title="' + t('kit.fullscreenTitle') + '">⛶ ' + t('kit.fullscreen') + '</button>' : '')
       + '<button class="gamekit-more-item" id="gamekitEmbed" type="button" title="' + t('kit.embedTitle') + '">&#x29C9; ' + t('embed.titleThis') + '</button>'
       + (opts.reset ? '<button class="gamekit-more-item gamekit-more-danger" id="gamekitReset" type="button" title="' + t('kit.resetTitle') + '">' + t('kit.reset') + '</button>' : '');
     wrap.innerHTML = '<button class="gamekit-au-btn gamekit-au-pausebtn" id="gamekitPause" type="button" aria-pressed="false" aria-label="' + t('pause.pause') + '" title="' + t('pause.pause') + '">⏸</button>'
       + '<button class="gamekit-au-btn" id="gamekitAudioBtn" type="button" aria-label="' + t('sound.settings') + '" title="' + t('sound.settings') + '">🔊</button>'
       + '<div class="gamekit-au-panel" id="gamekitAudioPanel">' + rows + '</div>'
-      + (opts.challenges ? '<button class="gamekit-au-btn gamekit-au-chbtn" id="gamekitChallenges" type="button" aria-label="' + t('challenges.title') + '" title="' + t('challenges.todayTitle') + '">🏆</button>' : '')
-      + (opts.cosmetics ? '<button class="gamekit-au-btn gamekit-au-cosbtn" id="gamekitCosmetics" type="button" aria-label="' + t('shop.title') + '" title="' + t('shop.cosmeticsTitle') + '">🎨</button>' : '')
       + (opts.controls ? '<button class="gamekit-au-btn gamekit-au-ctlbtn" id="gamekitControls" type="button" aria-label="' + t('controls.title') + '" title="' + t('controls.navTitle') + '">🎮</button>' : '')
+      + (fsSupported() ? '<button class="gamekit-au-btn gamekit-au-fsbtn" id="gamekitFs" type="button" aria-pressed="false" aria-label="' + t('kit.fullscreen') + '" title="' + t('kit.fullscreenTitle') + '">⛶</button>' : '')
       + '<button class="gamekit-au-btn gamekit-au-morebtn" id="gamekitMore" type="button" aria-label="' + t('kit.gameMenu') + '" title="' + t('kit.gameMenu') + '">☰</button>'
       + '<div class="gamekit-au-panel gamekit-more-panel" id="gamekitMorePanel">' + more + '</div>';
     document.body.appendChild(wrap);
@@ -1828,8 +2397,8 @@
     // open/close panels idempotently; an open panel counts as an overlay (halts the game); the two
     // panels (sound / ☰) are mutually exclusive
     var panelOpen = false, moreOpen = false;
-    function setPanel(open) { if (!panel || !panel.classList) return; open = !!open; if (open === panelOpen) return; if (open) setMore(false); panelOpen = open; panel.classList.toggle('open', open); _modalOpen += open ? 1 : -1; }
-    function setMore(open) { if (!morePanel || !morePanel.classList) return; open = !!open; if (open === moreOpen) return; if (open) setPanel(false); moreOpen = open; morePanel.classList.toggle('open', open); _modalOpen += open ? 1 : -1; if (open) { renderMoreVer(); updates.check(); } }
+    function setPanel(open) { if (!panel || !panel.classList) return; open = !!open; if (open === panelOpen) return; if (open) setMore(false); panelOpen = open; panel.classList.toggle('open', open); if (open) modalInc(); else modalDec(); }
+    function setMore(open) { if (!morePanel || !morePanel.classList) return; open = !!open; if (open === moreOpen) return; if (open) setPanel(false); moreOpen = open; morePanel.classList.toggle('open', open); if (open) modalInc(); else modalDec(); if (open) { renderMoreVer(); updates.check(); } }
     if (btn && panel) btn.addEventListener('click', function () { setPanel(!panelOpen); });
     if (moreBtn && morePanel) moreBtn.addEventListener('click', function () { setMore(!moreOpen); });
     // click anywhere outside an open panel closes it
@@ -1892,27 +2461,14 @@
       var m = ((typeof location !== 'undefined' && location.pathname) ? location.pathname : '').match(/games\/([^\/?#]+)/);
       embedModal({ slug: m ? m[1] : '', title: (typeof document !== 'undefined' ? document.title : '') });
     });
-    var fsBtn = document.getElementById('gamekitFullscreen');
+    var fsBtn = document.getElementById('gamekitFs');
     if (fsBtn) {
-      var renderFsBtn = function () { fsBtn.textContent = (fullscreen.active() ? '⛶ ' + t('kit.exitFullscreen') : '⛶ ' + t('kit.fullscreen')); };
+      var renderFsBtn = function () { var on = fullscreen.active(); fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); fsBtn.title = on ? t('kit.exitFullscreen') : t('kit.fullscreenTitle'); };
       renderFsBtn(); fullscreen.onChange(renderFsBtn);
       fsBtn.addEventListener('click', function () { fullscreen.toggle(); });
     }
-    if (opts.challenges) {
-      var chb = document.getElementById('gamekitChallenges');
-      if (chb) {
-        _chNotifyEl = chb; _chNotifySlug = opts.challenges;
-        syncChNotify(); // glow: this game has an active, not-yet-completed challenge
-        chb.addEventListener('click', function () { _chNotifySeen = true; if (chb.classList) chb.classList.remove('gkm-notify'); challengesPanel({ slug: opts.challenges, genres: opts.genres, theme: opts.theme }); });
-      }
-    }
-    if (opts.cosmetics) {
-      var cob = document.getElementById('gamekitCosmetics');
-      if (cob) cob.addEventListener('click', function () {
-        // scoped to this game (+ site-wide cursors); "All games →" opens the full store
-        shopPanel({ game: opts.cosmetics, theme: opts.theme, allGames: function () { shopPanel({ theme: opts.theme }); } });
-      });
-    }
+    _navMounted = true;
+    sideStack({ game: true, slug: opts.challenges || opts.cosmetics || '', genres: opts.genres, theme: opts.theme });
     if (opts.controls) { var ctlb = document.getElementById('gamekitControls'); if (ctlb) ctlb.addEventListener('click', function () { controlsModal(opts.controls, opts.theme); }); }
     var pb = document.getElementById('gamekitPause'); _pauseBtnEl = pb;
     if (pb) {
@@ -2412,7 +2968,7 @@
     host.appendChild(ov);
     var done = false;
     function close() {
-      if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1);
+      if (done) return; done = true; modalDec();
       try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
       try { if (url) URL.revokeObjectURL(url); } catch (e) {}
       try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
@@ -2440,7 +2996,7 @@
     if (bDl) bDl.addEventListener('click', function () { downloadBlob(blob, name); close(); });
     if (bX) bX.addEventListener('click', close);
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
-    _modalOpen++;
+    modalInc();
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
   }
 
@@ -2828,6 +3384,8 @@
     if (_bdResize && typeof window !== 'undefined' && window.removeEventListener) { try { window.removeEventListener('resize', _bdResize); } catch (e) {} } _bdResize = null;
     if (_menuEl) { try { if (_menuEl.parentNode) _menuEl.parentNode.removeChild(_menuEl); } catch (e) {} _menuEl = null; }
     _menuHandle = null; _menuKind = null; _menuArrange = null;
+    try { if (_sideMenuSync) _sideMenuSync(); } catch (e) {}
+    syncPauseVeil();
   }
   // public hide = a game dismissing the menu (a new run starts) → arm the next cfg.record.
   // menuShow's internal rebuild uses menuTeardown directly so a re-shown end menu can't re-record.
@@ -2895,7 +3453,12 @@
     if (cfg.record && _recDone !== _recRun) { _recDone = _recRun; try { recordResult(cfg.record.slug || (cfg.share && cfg.share.slug), cfg.record); } catch (e) {} }
 
     var ov = document.createElement('div'); ov.className = 'gamekit-menu gamekit-menu-' + kind + (hasCards ? ' gkm-wide' : '') + (hasBig ? ' gkm-split' : '');
-    var bdCanvas = (typeof cfg.backdrop === 'function') ? mkEl('canvas', 'gkm-backdrop') : null; // per-game art behind a frosted box
+    // pause screens resume on an outside click/tap (matches every other pause surface); start/end
+    // menus keep requiring an explicit action — only wired when the game gave us an onEsc resume
+    if (kind === 'pause') ov.addEventListener('click', function (e) { if (e && e.target === ov && typeof cfg.onEsc === 'function') cfg.onEsc(); });
+    // pause menus never paint a backdrop: the FROZEN GAME is the backdrop (plan the next move);
+    // start/end menus keep their per-game art behind the frosted box
+    var bdCanvas = (kind !== 'pause' && typeof cfg.backdrop === 'function') ? mkEl('canvas', 'gkm-backdrop') : null;
     if (bdCanvas) ov.appendChild(bdCanvas);
     var box = mkEl('div', 'gkm-box'); ov.appendChild(box);
     function paintBackdrop() {
@@ -3036,7 +3599,7 @@
           var ph = mkEl('div', 'gkm-picker-head'); ph.appendChild(mkEl('h3', null, g2.pickerTitle || t('menu.choose'))); var xb = mkEl('button', 'gkm-picker-x', '×'); try { xb.type = 'button'; } catch (e) {} ph.appendChild(xb);
           var pb = mkEl('div', 'gkm-picker-body'), plist = mkEl('div', 'gkm-picker-list'), pdesc = mkEl('div', 'gkm-picker-desc');
           var closed = false, onKey;
-          var closeP = function () { if (closed) return; closed = true; _modalOpen = Math.max(0, _modalOpen - 1); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (mv.parentNode) mv.parentNode.removeChild(mv); } catch (e) {} };
+          var closeP = function () { if (closed) return; closed = true; modalDec(); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (mv.parentNode) mv.parentNode.removeChild(mv); } catch (e) {} };
           var renderDesc = function (id) { var c = find(id); pdesc.innerHTML = ''; var big = mkEl('canvas'); try { big.width = c.pvW || 210; big.height = c.pvH || 110; } catch (e) {} drawPreview(big, c.preview, state()); pdesc.appendChild(big); pdesc.appendChild(mkEl('h4', null, c.label)); if (c.desc != null) pdesc.appendChild(mkEl('p', null, evalVal(c.desc, state()))); if (c.best != null) pdesc.appendChild(mkEl('div', 'gkm-picker-best', t('menu.bestLabel') + ' ' + fmtScore(evalVal(c.best, state())))); };
           chsP.forEach(function (c) {
             var it = mkEl('div', 'gkm-picker-item' + (c.id === sel[g2.id] ? ' gkm-on' : ''));
@@ -3052,7 +3615,7 @@
           mv.addEventListener('click', function (e) { if (e.target === mv) closeP(); });
           onKey = function (e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.stopImmediatePropagation) e.stopImmediatePropagation(); closeP(); } };
           if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
-          _modalOpen++; document.body.appendChild(mv); renderDesc(sel[g2.id]);
+          modalInc(); document.body.appendChild(mv); renderDesc(sel[g2.id]);
         };
         var pref = { el: trig, kind: 'popup', open: openPicker };
         trig.addEventListener('click', function () { setFocusEl(trig); openPicker(); });
@@ -3201,6 +3764,8 @@
     applyMenuTheme(ov, cfg.theme);
     document.body.appendChild(ov);
     _menuEl = ov; _menuKind = kind;
+    try { if (_sideMenuSync) _sideMenuSync(); } catch (e) {}
+    syncPauseVeil();
     arrange(); // AFTER _menuEl is set — its stale-menu guard would no-op the initial pass otherwise
     if (bdCanvas) {
       _bdFrame = 0;
@@ -3461,10 +4026,10 @@
       + '<h3>🌐 ' + t('lang.header', { def: 'Language' }) + '</h3><div class="gklang-grid">' + cells + '</div></div>';
     if (opts.theme) applyMenuTheme(ov, opts.theme);
     document.body.appendChild(ov);
-    _modalOpen++;
+    modalInc();
     var done = false;
     function close() {
-      if (done) return; done = true; _modalOpen = Math.max(0, _modalOpen - 1);
+      if (done) return; done = true; modalDec();
       try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
       try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
       if (typeof opts.onClose === 'function') { try { opts.onClose(); } catch (e) {} }
@@ -3504,7 +4069,7 @@
   if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('fullscreenchange', fsEmit);
   var fullscreen = { supported: fsSupported, active: fsActive, toggle: fsToggle, onChange: function (cb) { if (typeof cb === 'function') _fsSubs.push(cb); } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

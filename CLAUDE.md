@@ -113,7 +113,8 @@ silently, not loudly.
 
 **The `<head>` unit is atomic** (NOT `defer`, so `window.gamekit` exists before the inline script),
 in this order: `analytics.js` · `game-kit.css` · `version.js` · `game-kit.js` · `challenges.js` ·
-`cosmetics.js` · `i18n.js` (the loader — it document.writes the active `i18n.<code>.js` so `t()`
+`cosmetics.js` · `games.js` (the kit profile modal reads `window.GAMES` for titles/icons) ·
+`i18n.js` (the loader — it document.writes the active `i18n.<code>.js` so `t()`
 is complete before the inline script; the other locales lazy-load after `load`).
 The root `sw.js` SHELL lists the SAME shared files in lockstep — PLUS every `i18n.<code>.js` locale
 file and every live game's files — a missing one silently kills that feature offline (test-enforced).
@@ -121,8 +122,15 @@ Games alias the API once: `const KIT = window.gamekit;`.
 
 - `gamekit.nav({ slug, music, home, theme, onMenu, onPause, confirmLeave, controls, genres })` —
   the whole top chrome: left `‹ Menu · komyo ›` bar + right cluster (⏸ pause, 🔊 sound menu with
-  SFX/♪ Music sliders, 🏆 challenges, 🎮 controls when `controls` given, and the **☰ game menu** —
+  SFX/♪ Music sliders, 🎮 controls when `controls` given, ⛶ fullscreen, and the **☰ game menu** —
   version + an Update button that IS the status, "⧉ Embed this game", "↺ Reset game data").
+  `nav()` also mounts the **kit-owned side stack** (`gamekit.sideStack`) — the SAME right-edge
+  Profile / 🏆 Challenges / 🎨 Collection drawer as the catalogue (identical DOM/CSS/behavior +
+  the full profile & titles modals, all kit-owned; `index.html` mounts the same component via
+  `gamekit.sideStack({})`). In games it's visible at all times: on menu screens the measured
+  gutter (vs the open menu box) picks the default like on the home page; when a run starts it
+  auto-tucks behind the ‹‹ tab, and re-opening it mid-run counts as an open overlay → the game
+  pauses until it's tucked again.
   **`slug` derives the localStorage reset prefix (`slug + '_'`) and the challenges key** — don't
   pass `reset:`/`challenges:` (explicit overrides exist but shouldn't be needed). `onMenu`
   overrides the Menu button's default reload (asteroids: drop `?v`, reshow the picker);
@@ -182,8 +190,7 @@ Games alias the API once: `const KIT = window.gamekit;`.
   `lifetime()/balance()/owned(id)/buy(id)/selected(set)/select(set,id)/progress(game?)`; buying/selecting
   live in `gamekit_owned` + `gamekit_cos_sel` (per-device, in Export/Import). `gamekit.shopPanel(opts)`
   is the store modal (opts: `game` = scope to one game + site-wide cursors; `allGames`, `onTitles`,
-  `theme`); the **top-bar 🎨 button** (added by `nav()` when the registry is loaded) opens it scoped to
-  the current game. Games apply the selected skin in their own render (`const id =
+  `theme`); the side stack's **🎨 Collection button** opens it scoped to the current game. Games apply the selected skin in their own render (`const id =
   KIT.cosmetics.selected('<game>.<set>')`) — do NOT add per-game STYLE grids to the start menu (the 🎨
   modal owns selection/buying). **Good-run trophy trickle:** +5 🏆 per good run, capped 3/day
   (`gamekit.goodRunBonus()` → `{count,cap,per}`; one `gr#YYYY-MM-DD` entry in `gamekit_done`); the end

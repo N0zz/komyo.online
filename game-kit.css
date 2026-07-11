@@ -83,7 +83,7 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 
 /* universal pause overlay */
 .gamekit-pause { position: fixed; inset: 0; z-index: 8500; display: none; align-items: center; justify-content: center;
-  background: rgba(6, 9, 15, 0.78); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+  background: rgba(6, 9, 15, 0.30); }
 .gamekit-pause.show { display: flex; }
 .gamekit-pause-box { display: flex; flex-direction: column; align-items: center; gap: 12px; color: #eaf2fb;
   font: 600 19px system-ui, sans-serif; letter-spacing: 2px; }
@@ -91,6 +91,18 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 .gamekit-pause-resume { font: 600 14px system-ui, sans-serif; letter-spacing: 1px; color: #06121a; background: #9fe8ff;
   border: none; border-radius: 9px; padding: 10px 24px; cursor: pointer; }
 .gamekit-pause-resume:hover { background: #c2f0ff; }
+/* the shared in-play pause veil — shown under ANY pausing panel/modal (sound, ☰, side stack,
+   controls…): light dim + a quiet PAUSED splash; pointer-events none so click-outside-to-close
+   still reaches whatever is open */
+.gamekit-pauseveil { position: fixed; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center;
+  background: rgba(6, 9, 15, 0.30); pointer-events: none; }
+.gamekit-pauseveil.show { display: flex; }
+.gamekit-pauseveil .gkpv { display: flex; flex-direction: column; align-items: center; gap: 10px;
+  color: rgba(234, 242, 251, 0.75); font: 600 19px system-ui, sans-serif; letter-spacing: 2px; }
+.gamekit-pauseveil .gkpv-ico { font-size: 46px; }
+/* pause MENUS use the same light dim (the frozen game is the backdrop — keep it readable);
+   start/end menus keep their theme overlay + per-game art */
+.gamekit-menu.gamekit-menu-pause { background: rgba(6, 9, 15, 0.35); -webkit-backdrop-filter: none; backdrop-filter: none; }
 /* standard center-top HUD — clears the left nav and the right sound menu; wraps when busy */
 .gamekit-hud { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5;
   display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; align-items: center;
@@ -452,12 +464,14 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 .gamekit-controls .gkctl-x { position: absolute; top: 12px; right: 14px; background: none; border: none; color: #9fb2c8; font-size: 17px; line-height: 1; cursor: pointer; padding: 2px; }
 .gamekit-controls .gkctl-x:hover { color: var(--gkm-text, #fff); }
 
-/* in-game challenges board (🏆 top-bar button → modal) + the "active challenge" notify glow */
+/* the "active challenge" notify glow (top-bar buttons; the side stack has its own has-dot system) */
 .gamekit-au-chbtn { font-size: 15px; position: relative; }
 .gamekit-au-btn.gkm-notify { position: relative; animation: gkNotify 1.9s ease-in-out infinite; }
 .gamekit-au-btn.gkm-notify::after { content: ""; position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: #ffd166; box-shadow: 0 0 6px 1px rgba(255, 209, 102, 0.9); }
 @keyframes gkNotify { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 209, 102, 0.5); } 50% { box-shadow: 0 0 0 5px rgba(255, 209, 102, 0); } }
 @media (prefers-reduced-motion: reduce) { .gamekit-au-btn.gkm-notify { animation: none; } }
+
+
 .gamekit-challenges { position: fixed; inset: 0; z-index: 9200; display: flex; align-items: center; justify-content: center; padding: 18px;
   background: var(--gkm-overlay, rgba(6, 9, 15, 0.82)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
 .gamekit-challenges .gkch-box { position: relative; width: min(400px, 100%); overflow: visible; box-sizing: border-box;
@@ -809,3 +823,211 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 .gamekit-shoppanel ::-webkit-scrollbar-thumb:hover, .gamekit-menu ::-webkit-scrollbar-thumb:hover, .gamekit-challenges ::-webkit-scrollbar-thumb:hover,
 .gamekit-controls ::-webkit-scrollbar-thumb:hover, .gamekit-embed ::-webkit-scrollbar-thumb:hover, .gkm-picker-modal ::-webkit-scrollbar-thumb:hover {
   background: var(--gkm-accent, #9fe8ff); }
+
+
+/* ==================================================================================
+   SIDE STACK + PROFILE MODAL + TITLES LADDER — kit-owned, ported 1:1 from the catalogue.
+   The catalogue mounts these via gamekit.sideStack(); games get them from nav(). The
+   :root palette below mirrors the catalogue's — the catalogue re-declares the same
+   values, so both render identically; game pages inherit these defaults. */
+:root {
+  --bg:#0b0f17; --surface:#161c28; --surface-2:#1e2738; --border:#2a3446;
+  --text:#eef2f8; --muted:#aab6c8; --faint:#7d8aa0;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* dialog frames for the two kit-owned dialogs (the catalogue styles its other modals itself) */
+#profileModal, #titlesModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); font-family:var(--sans); }
+#profileModal::backdrop, #titlesModal::backdrop { background:rgba(5,8,13,0.66); }
+#profileModal { width:min(760px,95vw); overflow:visible; }
+#titlesModal { overflow:visible; }
+#profileModal .about, #titlesModal .about { padding:18px 20px 20px; display:flex; flex-direction:column; gap:12px; max-height:90vh; overflow-y:auto; }
+#titlesModal .cl-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+#titlesModal .cl-head h3 { margin:0; font-size:17px; }
+.about.profile { max-height:88vh; display:flex; flex-direction:column; overflow:hidden; position:relative; padding:20px; }
+.pf-x { position:absolute; top:-13px; right:-13px; z-index:20; width:34px; height:34px; border-radius:50%; background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.45); cursor:pointer; }
+.pf-x:hover { color:#fff; border-color:#9fe8ff; }
+#profileBody { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; overflow:hidden; }
+.pf-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; padding-top:12px; }
+
+  /* side stack (Profile / Challenges / Collection). Two modes, decided by measuring the gutter
+     beside .wrap: inline (fits) → a plain fixed column at right:13px; tucked (doesn't fit) → the
+     whole column hides off the right edge behind a ‹‹ pull-tab (its clip window's width toggles
+     0 ↔ the panel's measured width — at 0 the panel is invisible by construction). */
+  /* ONE look at every width: the stack is always the edge drawer (boxed panel + ‹‹/» tab, flush
+     against the screen edge). The measured gutter only decides the DEFAULT state — shown when
+     there's room beside .wrap, hidden when there isn't — and the tab toggles it either way. */
+  .side-stack { position:fixed; top:50%; transform:translateY(-50%); right:0; z-index:40; display:flex; align-items:center; }
+  .side-tab { flex:0 0 auto; width:22px; height:74px; display:flex; align-items:center; justify-content:center;
+    background:var(--surface); border:1px solid var(--border); border-right:none; border-radius:10px 0 0 10px;
+    color:var(--muted); font-size:14px; cursor:pointer; padding:0; box-shadow:-4px 0 14px rgba(0,0,0,.35); }
+  .side-stack.shown .side-tab { color:#9fe8ff; }
+  /* notification dots: any stack button can carry one; while the drawer is HIDDEN the tab mirrors
+     "something inside has a dot" so it's never invisible exactly when it matters */
+  .side-btn { position:relative; }
+  .side-btn.has-dot::after { content:""; position:absolute; top:-3px; right:-3px; width:9px; height:9px;
+    border-radius:50%; background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
+  .side-tab { position:relative; }
+  .side-tab.has-dot::after { content:""; position:absolute; top:7px; left:50%; transform:translateX(-50%);
+    width:8px; height:8px; border-radius:50%; background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
+  /* inside the drawer, the NEW rotation gets a chip + a couple of glow pulses, so the dot that led
+     you here actually points at something (chip text comes from i18n via data-new) */
+  .ch-new { position:relative; }
+  .ch-new::after { content:attr(data-new); position:absolute; top:-9px; right:10px; z-index:2; padding:3px 8px;
+    border-radius:999px; background:#ffd166; color:#1a1405; font:800 10px/1 var(--mono, monospace); letter-spacing:1px;
+    box-shadow:0 0 12px rgba(255,209,102,0.8); animation:chNewIn .5s ease; }
+  .ch-new > * { animation:chNewGlow 1.8s ease-in-out 2; border-radius:12px; }
+  @keyframes chNewGlow { 0%,100% { box-shadow:none; } 50% { box-shadow:0 0 0 1px #ffd166, 0 0 16px rgba(255,209,102,.55); } }
+  @keyframes chNewIn { 0% { opacity:0; transform:translateY(4px) scale(.8); } 100% { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce){ .ch-new::after, .ch-new > * { animation:none; } }
+  .side-clip { overflow:hidden; width:0; transition:width .22s ease; }
+  .side-stack.shown .side-clip { box-shadow:-4px 0 14px rgba(0,0,0,.35); border-radius:14px 0 0 14px; }
+  /* padding also gives the buttons' hover lift/glow headroom against the overflow clip */
+  .side-panel { display:flex; flex-direction:column; gap:8px; max-height:calc(100vh - 80px); overflow-y:auto;
+    padding:10px; width:max-content; background:var(--surface); border:1px solid var(--border);
+    border-right:none; border-radius:14px 0 0 14px; }
+  .side-btn { width:130px; height:112px; flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
+    justify-content:center; gap:8px; border-radius:16px; border:1px solid var(--border); background:var(--surface-2);
+    color:var(--text); cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.42); transition:border-color .12s, transform .12s; font:inherit; padding:0; }
+  .side-btn:hover { border-color:#9fe8ff; transform:translateY(-1px); }
+  .side-btn .ico { font-size:44px; line-height:1; }
+  .side-btn .lbl { font-family:var(--mono); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); white-space:normal; padding:0 4px; }
+  .side-btn .side-sub { font-family:var(--mono); font-size:11px; color:var(--muted); opacity:.8; max-width:120px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 4px; }
+  .side-btn .side-sub:empty { display:none; }
+  .side-chal { background:linear-gradient(160deg, rgba(255,206,92,.16), var(--surface-2)); }
+  .side-cos { background:linear-gradient(160deg, rgba(185,140,255,.18), var(--surface-2)); }
+  .side-profile { background:linear-gradient(160deg, var(--ttbg, rgba(120,130,143,.18)), var(--surface-2)); }
+/* on game pages the kit menu overlay sits at z 60 — lift the stack above it there so it stays
+   clickable on menu screens (the catalogue has no .gamekit-menu, so this never fires at home) */
+body:has(.gamekit-menu) .side-stack { z-index:70; }
+
+  .profile .pf-name { color:var(--muted); font-size:14px; margin:-4px 0 2px; }
+  /* identity row: name (left) + genre · since (right), reusing the modal header line */
+  #pfTitle { display:flex; align-items:baseline; flex:1; min-width:0; gap:8px 14px; flex-wrap:wrap; }
+  #pfTitle .pf-meta { margin-left:auto; font-family:inherit; font-weight:400; font-size:12px; letter-spacing:0; color:var(--faint); white-space:nowrap; }
+  /* the four core counts — a clean centered strip with dividers (understated, not title-flashy) */
+  .pf-stats { display:flex; justify-content:center; flex-wrap:wrap; margin:2px 0 4px; border:1px solid var(--border); border-radius:12px; background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent),var(--surface); overflow:hidden; }
+  .pf-stat { flex:1 1 0; min-width:64px; display:flex; flex-direction:column; align-items:center; gap:1px; padding:7px 8px; text-align:center; }
+  .pf-stat + .pf-stat { border-left:1px solid var(--border); }
+  .pf-stat b { font-size:19px; color:var(--text); font-variant-numeric:tabular-nums; line-height:1.1; }
+  .pf-stat span { font-size:10px; letter-spacing:.07em; text-transform:uppercase; color:var(--faint); }
+  /* collection progress bar (below the stats) — tap to open the Cosmetics store */
+  .pf-collect { display:block; width:100%; margin:8px 0 4px; padding:10px 13px; border:1px solid var(--border); border-radius:12px; background:var(--surface); cursor:pointer; text-align:left; color:var(--muted); }
+  .pf-collect:hover { border-color:#ffce5c; }
+  .pf-collect-top { display:flex; justify-content:space-between; align-items:center; gap:10px; font-family:var(--mono); font-size:11px; letter-spacing:.5px; }
+  .pf-collect-n { color:#e8c069; font-weight:700; font-variant-numeric:tabular-nums; }
+  /* min-height (not just height) so the bar keeps its size in the share snapshot, which strips
+     width/height; the gold fill is a background gradient set inline per render */
+  .pf-collect-bar { display:block; width:100%; height:10px; min-height:10px; margin-top:8px; border-radius:99px; background:rgba(255,255,255,0.09); overflow:hidden; }
+  /* "Title · see ladder ›" link inside the profile title box — a clear accent link (the faint
+     label colour washed out against high-tier title glows) */
+  .pf-title-link { background:none; border:none; padding:0; font:inherit; letter-spacing:inherit; cursor:pointer;
+    color:#bfe6ff; text-decoration:underline; text-underline-offset:2px; text-decoration-color:rgba(159,232,255,0.45); }
+  .pf-title-link:hover { color:#ffce5c; text-decoration-color:#ffce5c; }
+  /* per-card column labels so the value column reads as "best" and the mode column is named */
+  .pf-rhead { display:grid; grid-template-columns:1fr auto; gap:12px; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; color:var(--faint); padding-bottom:5px; margin-bottom:2px; border-bottom:1px solid var(--border); }
+  .pf-rhead span:last-child { text-align:right; }
+  .pf-sec { font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--faint); margin:16px 0 8px; border-top:1px solid var(--border); padding-top:14px; }
+  /* one unified per-game block (most-played first): header = title + total plays, then each mode's best.
+     Tint matches the catalogue tiles (accent radial from the top) so a game reads the same everywhere. */
+  .pf-tinted { border:1px solid color-mix(in srgb, var(--acc,#9fe8ff) 28%, var(--border)); background:radial-gradient(120% 130% at 50% 0%, color-mix(in srgb, var(--acc,#9fe8ff) 20%, var(--surface)), var(--surface) 70%); }
+  .pf-games { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:10px; align-items:stretch; }
+  .pf-game { border-radius:12px; padding:12px 14px; }
+  .pf-gh { display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:9px; }
+  .pf-gt { font-size:14.5px; font-weight:600; color:var(--text); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pf-gp { flex:0 0 auto; font-size:12px; color:var(--faint); font-variant-numeric:tabular-nums; }
+  .pf-gp b { color:var(--text); font-weight:700; font-size:15px; }
+  .pf-rows { display:flex; flex-direction:column; gap:3px; }
+  .pf-row { display:grid; grid-template-columns:1fr auto; align-items:baseline; gap:12px; font-size:14px; }
+  .pf-row .pr-mode { color:var(--muted); min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pf-row .pr-mode .pr-x { color:var(--faint); font-size:12px; margin-left:5px; }
+  .pf-row .pr-val { color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right; }
+  .pf-empty { color:var(--muted); font-size:15px; line-height:1.6; }
+  /* pinned to the bottom of the panel (outside the scroll area) so it's always reachable */
+  .pf-share { flex:0 0 auto; margin:0 -20px -20px; padding:13px 20px 20px; border-top:1px solid var(--border); background:var(--surface); }
+  .pf-share button { width:100%; padding:11px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:600; cursor:pointer; }
+  .pf-share button:hover { border-color:#9fe8ff; }
+  /* ---- earned title (lifetime challenge points) — escalating shine, tier 0→8 ---- */
+  .pf-titlebar { position:relative; overflow:hidden; display:flex; align-items:center; gap:12px; padding:13px 16px; margin-bottom:12px; border:1px solid var(--border); border-radius:13px; background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent),var(--surface); }
+  .pf-tb-emoji { font-size:22px; flex:0 0 auto; position:relative; z-index:2; }
+  .pf-tb-main { position:relative; z-index:2; flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  .pf-tb-label { display:inline-flex; align-items:center; gap:5px; font-size:9px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint); white-space:nowrap; }
+  .pf-title { position:relative; font-size:clamp(15px,4.4vw,19px); line-height:1.15; }
+  .pf-tb-name { position:relative; z-index:2; font-size:13px; color:var(--muted); display:flex; align-items:center; gap:6px; min-width:0; }
+  /* right column: challenge points (emphasised) + good runs + since date */
+  .pf-tb-meta { flex:0 0 auto; position:relative; z-index:2; display:flex; flex-direction:column; align-items:flex-end; gap:8px; text-align:right; }
+  .pf-tb-pts { font-family:var(--mono); font-size:16px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums; white-space:nowrap; line-height:1.2; }
+  .pf-tb-pts span { display:block; font-size:8.5px; font-weight:400; letter-spacing:1px; color:var(--faint); margin-top:2px; }
+  .pf-tb-mini { font-size:12px; color:var(--muted); white-space:nowrap; }
+  .pf-tb-mini b { color:var(--text); font-variant-numeric:tabular-nums; }
+  button.pf-tb-cos { background:none; border:none; padding:0; font:inherit; font-size:12px; cursor:pointer; text-align:right; }
+  button.pf-tb-cos:hover b { color:#ffce5c; }
+  .pf-pfx { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+  /* soft glow behind the title — a blurred rounded block so it covers a wrapped 2-line title
+     (an ellipse only lit the middle line); the per-glyph text-shadow/drop-shadow handles the rest */
+  .pf-halo { position:absolute; inset:-6px -14px; z-index:0; border-radius:14px; filter:blur(15px); opacity:0; pointer-events:none; }
+  .pf-sh { position:relative; z-index:1; display:inline-block; max-width:100%; font-family:var(--mono); font-weight:700; letter-spacing:.5px; }
+  .pf-t0 .pf-sh { color:#78828f; }
+  .pf-t1 .pf-sh { color:#c3ccd8; }
+  .pf-t2 .pf-sh { color:#d0954f; text-shadow:0 0 7px rgba(208,149,79,.4); }
+  .pf-t3 .pf-sh { background-image:linear-gradient(180deg,#7f8b9c,#d7e0ec 42%,#fff 50%,#c2cddb 58%,#74808f); -webkit-background-clip:text; background-clip:text; color:transparent; filter:drop-shadow(0 0 6px rgba(211,222,237,.5)); }
+  .pf-t4 .pf-sh { color:#c39cff; text-shadow:0 0 12px rgba(160,110,255,.85),0 0 26px rgba(160,110,255,.45); }
+  .pf-t5 .pf-sh,.pf-t6 .pf-sh,.pf-t7 .pf-sh,.pf-t8 .pf-sh { color:transparent; -webkit-background-clip:text; background-clip:text; }
+  .pf-t5 .pf-sh { background-image:linear-gradient(90deg,#b98cff,#9fe8ff); filter:drop-shadow(0 0 9px rgba(159,180,255,.6)); }
+  .pf-t6 .pf-sh { background-image:linear-gradient(100deg,#6fe0cf,#9fe8ff 40%,#fff 50%,#9fe8ff 60%,#6fe0cf); background-size:250% 100%; filter:drop-shadow(0 0 10px rgba(159,232,255,.65)); animation:pftSweep 3.4s linear infinite; }
+  .pf-t7 .pf-sh { background-image:linear-gradient(90deg,#ff8ad1,#b98cff,#9fe8ff,#7fffc4,#ff8ad1); background-size:300% 100%; animation:pftHolo 5s linear infinite,pftPulse 2.4s ease-in-out infinite; }
+  .pf-t8 .pf-sh { background-image:linear-gradient(90deg,#ffd76a,#fff3c0,#ff9ad1,#9fe8ff,#ffd76a); background-size:300% 100%; animation:pftHolo 4s linear infinite,pftPulseGold 2s ease-in-out infinite; }
+  .pf-t3 .pf-halo { opacity:1; background:rgba(211,222,237,.22); }
+  .pf-t4 .pf-halo { opacity:1; background:rgba(160,110,255,.32); animation:pftBreathe 3.4s ease-in-out infinite; }
+  .pf-t5 .pf-halo { opacity:1; background:rgba(159,180,255,.34); animation:pftBreathe 3.2s ease-in-out infinite; }
+  .pf-t6 .pf-halo { opacity:1; background:rgba(159,232,255,.38); animation:pftBreathe 3s ease-in-out infinite; }
+  .pf-t7 .pf-halo { opacity:1; background:rgba(185,140,255,.4); animation:pftBreathe 2.6s ease-in-out infinite; }
+  .pf-t8 .pf-halo { opacity:1; background:rgba(255,215,106,.42); animation:pftBreathe 2.2s ease-in-out infinite; }
+  .pf-gl::after { content:attr(data-text); position:absolute; inset:0; width:100%; white-space:normal; z-index:2; pointer-events:none; background-image:linear-gradient(115deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%); background-size:220% 100%; -webkit-background-clip:text; background-clip:text; color:transparent; -webkit-text-fill-color:transparent; animation:pftGlint 3.8s ease-in-out infinite; }
+  .pf-t0 .pf-gl::after, .pf-t1 .pf-gl::after, .pf-t2 .pf-gl::after { display:none; } /* rare shine starts at Knight */
+  .pf-t3 .pf-gl::after { background-image:linear-gradient(115deg,transparent 45%,#fff 50%,transparent 55%); animation-duration:3.1s; }
+  .pf-t6 .pf-gl::after { animation-duration:3.2s; }
+  .pf-t7 .pf-gl::after { animation-duration:2.6s; }
+  .pf-t8 .pf-gl::after { background-image:linear-gradient(115deg,transparent 40%,rgba(255,247,208,1) 50%,transparent 60%); animation-duration:2.1s; }
+  @keyframes pftSweep { to { background-position:-166.667% 0; } } /* one exact tile at size 250% (see badgeShine note) — was 1.5 tiles, jumping each wrap */
+  @keyframes pftHolo { to { background-position:300% 0; } }
+  @keyframes pftPulse { 0%,100%{ filter:drop-shadow(0 0 7px rgba(185,140,255,.55)); } 50%{ filter:drop-shadow(0 0 16px rgba(159,232,255,.95)); } }
+  @keyframes pftPulseGold { 0%,100%{ filter:drop-shadow(0 0 9px rgba(255,215,106,.6)); } 50%{ filter:drop-shadow(0 0 20px rgba(255,215,106,1)); } }
+  @keyframes pftBreathe { 0%,100%{ transform:scale(.92); opacity:.7; } 50%{ transform:scale(1.08); opacity:1; } }
+  @keyframes pftGlint { 0%{ background-position:180% 0; } 42%,100%{ background-position:-90% 0; } }
+  /* titles ladder modal — every rank prerendered with its tier shine, points only */
+  /* clickable display name (rename) with an instant tooltip */
+  .pf-name-btn { position:relative; background:none; border:none; padding:0; cursor:pointer; color:inherit; font:inherit; display:inline-flex; align-items:center; text-align:left; }
+  .pf-name-btn:hover .pf-sh, .pf-name-btn:focus-visible .pf-sh { text-decoration:underline dotted; text-underline-offset:3px; }
+  .pf-tt { position:absolute; bottom:calc(100% + 7px); left:0; z-index:4; background:#0c111c; border:1px solid var(--border); color:var(--muted); font:600 10.5px var(--mono); letter-spacing:.4px; padding:5px 9px; border-radius:7px; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .1s; }
+  .pf-name-btn:hover .pf-tt, .pf-name-btn:focus-visible .pf-tt { opacity:1; }
+  .pf-pen { width:12px; height:12px; margin-left:6px; flex:0 0 auto; fill:var(--faint); }
+  .pf-name-btn:hover .pf-pen, .pf-name-btn:focus-visible .pf-pen { fill:#9fe8ff; }
+  .about.titles { max-height:88vh; overflow-y:auto; }
+  .tl-sub { color:var(--muted); font-size:13.5px; margin:0 0 4px; }
+  .tl-list { display:flex; flex-direction:column; gap:6px; }
+  .tl-row { position:relative; overflow:hidden; display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--border); border-radius:11px; background:var(--surface); }
+  .tl-row .pf-title { font-size:15px; min-width:0; }
+  .tl-emoji { font-size:17px; flex:0 0 auto; }
+  .tl-pts { margin-left:auto; flex:0 0 auto; font-family:var(--mono); font-size:12px; color:var(--faint); font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .tl-cur { border-color:#9fe8ff; }
+  .tl-cur .tl-pts { color:var(--text); }
+  /* unlocked ranks are tap-to-equip; the worn one is highlighted, locked ones dimmed */
+  .tl-unlocked { cursor:pointer; }
+  .tl-unlocked:hover { border-color:#9fe8ff; }
+  .tl-unlocked:not(.tl-cur):hover .tl-pts { color:#9fe8ff; }
+  .tl-locked { opacity:0.62; }
+  .tl-worn { color:#7fe0a0; font-weight:700; }
+  @media (prefers-reduced-motion: reduce) { .pf-sh, .pf-halo, .pf-gl::after { animation:none !important; } .pf-halo { opacity:.8; } }
+
+  /* one-shot "★ NEW TITLE" reveal on the profile modal's titlebar (the side-stack dot leads here) */
+  .pf-titlebar.pf-reveal { animation:idReveal 1.4s cubic-bezier(.2,1.2,.4,1); border-color:#ffd166; overflow:visible; }
+  .pf-titlebar.pf-reveal::after { content:"★ NEW TITLE"; position:absolute; top:-9px; right:10px; z-index:2; padding:3px 8px; border-radius:999px;
+    background:#ffd166; color:#1a1405; font:800 10px/1 var(--mono, monospace); letter-spacing:1px;
+    box-shadow:0 0 12px rgba(255,209,102,0.8); animation:idChip 2.4s ease forwards; }
+  @keyframes idReveal { 0% { transform:scale(.94); filter:brightness(1.7) drop-shadow(0 0 18px rgba(255,209,102,.9)); }
+    45% { transform:scale(1.03); } 100% { transform:scale(1); filter:none; } }
+  @keyframes idChip { 0% { opacity:0; transform:translateY(4px); } 12%,80% { opacity:1; transform:translateY(0); } 100% { opacity:0; } }
+  @media (prefers-reduced-motion: reduce){ .pf-titlebar.pf-reveal { animation:none; } .pf-titlebar.pf-reveal::after { animation:none; } }
