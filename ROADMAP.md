@@ -252,9 +252,10 @@ design knobs (`@game-design-knobs.md`).
 titles, icons and genre tags here match the catalogue. This table is the build queue: effort + notes
 per game. Roughly easiest → hardest within each group.
 
-**▶ Next build order (2026-07-11):** **Minesweeper → the kids batch** (Balloon Pop / Glow Says /
-Critter Match) **→ more trivial/easy builds** (2048, Dusk Runner, Pump Stop solo, Mash Dash, Maze
-Pals / Color Pop from the kids table — pick by mood, all trivial–low). (Sudoku ✅ shipped 2026-07-10.)
+**▶ Next build order (2026-07-12):** **Dusk Runner → Pump Stop solo → Mash Dash → Maze Pals /
+Color Pop** (pick by mood, all trivial–low). *(Shipped in the 2026-07-12 overnight batch — MVPs
+awaiting human playtest + translations + changelog: **Minesweeper ✅ · 2048 ✅ · Trap the Cat ✅ ·
+Glow Says ✅ · Balloon Pop ✅ · Critter Match ✅**. Sudoku ✅ 2026-07-10.)*
 Rationale: all low-tuning + high-recognition = fast to build, zero teaching cost, and organically
 searchable ("minesweeper", "2048", "dino game"); the kids batch widens the no-ads/kid-safe lane.
 This batch is all remakes — per `komyo-market-expansion-discussion`, slot **one original-mechanic,
