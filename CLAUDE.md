@@ -84,6 +84,12 @@ silently, not loudly.
   `gamekit.bestScore(slug, modeLabel)`, no per-game best keys. Compute `isBest` BEFORE the single
   end-of-run save (mid-run saves make "★ New best!" never fire), aim-trainer's `endGame` is the
   reference.
+- **Storage discipline.** localStorage is **~5 MB for the whole ORIGIN** — the kit + every game share
+  one pool, so a single leaking game can throw `QuotaExceededError` and break saves site-wide. The kit
+  stores (`saveBest`/cosmetics/challenges) are already bounded; anything a game persists beyond them
+  must: cap every list (no unbounded histories/logs/replays), write on events with a debounce (never
+  per-frame/per-tick), stay within **~≤10 KB per arcade game** (~≤100 KB for a progress-save game),
+  and carry a versioned schema (`{v:1,…}`) from day one. Watch storage growth while developing.
 - **Main loop = `gamekit.loop(update, render, opts)`** — the kit's fixed-timestep accumulator
   (60 Hz steps at any refresh rate, kit-pause built in). Never `rAF → update()` directly — that
   ships a frame-rate-dependent game. `update()` must stay drivable via `__test.step(n)`.

@@ -156,6 +156,11 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   `perStepVelocity * KIT.loopAlpha()` (view-only; update untouched — flappy is the
   reference). Games with only eased/arced/discrete motion can skip it.
 - **`CHALLENGES.goodRun` bar exists** for the game.
+- **Storage stays bounded** — the origin's ~5 MB localStorage quota is shared by ALL
+  games + the kit; a leak breaks saves site-wide. Any per-game persistence beyond the
+  kit stores caps its lists, writes on events (debounced, never per-frame), keeps the
+  game's total footprint ~≤10 KB (arcade; ~100 KB progress-save), and carries a
+  versioned schema (`{v:1,…}`). See `references/gamekit-api.md` § Storage discipline.
 - **Atomic `<head>` order** (analytics.js · game-kit.css · version.js · game-kit.js
   · challenges.js · cosmetics.js · i18n.js). The ROOT `sw.js` SHELL already carries
   these shared files + every locale; the game's own files are cached by adding the

@@ -430,15 +430,12 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   Export. Also request **`navigator.storage.persist()`** (Safari 15.2+, Chrome grants heuristically)
   as the silent first line of defense on every engaged device. Matters ×10 once the saved-state lane
   (Foxden) ships — sequence it with that lane at the latest.
-- **Storage-usage discipline — write it into every dev surface** *(planned 2026-07-11)* — the
-  localStorage quota is **~5 MB per ORIGIN, shared by all games + the kit**; one leaking game
-  (unbounded history arrays, per-tick logs, replay dumps) can throw `QuotaExceededError` and break
-  saves for the whole site. Write an extensive note everywhere a game gets built or reviewed:
-  CLAUDE.md (game conventions), the **komyo-new-game skill** references, and `game-design-knobs.md`
-  (cross-cutting) — rules: keep an eye on storage growth during development, no unbounded appends
-  (cap every list), write on events not per-frame (debounce autosave), budget ~≤100 KB per
-  progress game / ~≤10 KB per arcade game, versioned saves from day one. Pairs with the save-API
-  guards (Path to launch #5) which enforce the same rules in code + tests.
+- ~~**Storage-usage discipline — write it into every dev surface**~~ *(done 2026-07-11)* — the rules
+  (the ~5 MB quota is per ORIGIN and shared; cap every list, event-driven debounced writes, ~≤10 KB
+  per arcade game / ~≤100 KB per progress game, versioned saves) now live in **CLAUDE.md** (game
+  conventions), **`game-design-knobs.md`** (cross-cutting), and the **komyo-new-game skill**
+  (contract checklist + `gamekit-api.md` § Storage discipline). The save-API guards (Path to
+  launch #5) will enforce the same rules in code + tests.
 - **Backdrop-truth pass (opportunistic)** *(added 2026-07-11)* — three start-menu backdrops still
   IMITATE in-game objects with menu-local code and will drift: **asteroids-plus** (`mbRock` + fake
   enemies), **snake** (menu-local snake/grid), **breakout** (imitation brick wall). When next touching

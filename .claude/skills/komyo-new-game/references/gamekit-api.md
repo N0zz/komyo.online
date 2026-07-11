@@ -445,6 +445,15 @@ favGame, favMode, since, daysPlayed, goodRuns}`.
 
 Clears every localStorage key starting with `prefix` AND drops that game from `gamekit_pb`.
 
+### Storage discipline — the quota is SHARED
+
+localStorage is ~5 MB for the whole origin — the kit + all games share one pool; one leaking game
+can throw `QuotaExceededError` and break saves site-wide. The kit stores above are already bounded.
+If the game persists ANYTHING beyond them: cap every list (no unbounded histories/logs/replays),
+write on events with a debounce (never per-frame/per-tick), stay within ~10 KB total for an arcade
+game (~100 KB for a progress-save game), and version the schema from day one (`{v:1,…}` + a
+migration path). Watch storage growth while developing.
+
 ---
 
 ## challenges
