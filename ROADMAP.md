@@ -141,7 +141,15 @@ quality bar — see the Done entry).
    single adaptive button (native sheet on mobile, copy-link on desktop) — a bare link doesn't need a
    social-icon row. Profile share unchanged (already image-first). Rationale in the
    `plans/share-reorg-mocks.html` mock (option D).
-5. **LAUNCH + marketing campaigns — *started* (reddit groundwork underway, see In flight).** Prep the materials (promo video / montage + Discord preview cuts,
+5. **Kit-owned progress-save API (pre-release, gates the saved-state lane)** *(added 2026-07-11)* —
+   before the first progress-based game ships (Foxden / merge-garden-style): one kit API
+   (`gamekit.progress`-style async load/save per slug) with **guards, limits and tests** — versioned
+   save schema (per `@game-design-knobs.md`), per-game size budget (soft ~100 KB, suite-warned),
+   `QuotaExceededError` handling in ONE place, debounced event-driven writes (never per-frame), and
+   Export/Import coverage. Backend stays localStorage; the API boundary is what makes a later
+   IndexedDB swap (see Parked) invisible to games. Retrofitting 15 progress games onto an API later
+   is far worse than starting with one.
+6. **LAUNCH + marketing campaigns — *started* (reddit groundwork underway, see In flight).** Prep the materials (promo video / montage + Discord preview cuts,
    per-game OG/Twitter cards, story-format share card), then publish everywhere: portals (itch.io, free-to-play
    indexes), news, forums, subreddits, Discord servers, socials. Paid ads considered later.
 
@@ -319,7 +327,8 @@ cheapest proven entry. **Why:** the strongest retention lever — a daily reason
 current arcade games lack; pairs with Challenges + Discord. All `localStorage` (no server), so
 Export/Import matters more. Design for: per-device storage (clearing wipes progress — lean on
 Export/Import), timestamp-based offline accrual (not a live timer), and a **versioned save schema**
-from day one.
+from day one. **Gate: the kit-owned progress-save API (Path to launch #5) ships before the first
+game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit).
 
 ## Product & growth
 
@@ -385,6 +394,28 @@ from day one.
 
 ### Catalogue / kit
 
+- **Safari/iOS data-loss warning: install the PWA or keep backups** *(planned 2026-07-11)* — Safari's
+  ITP evicts ALL script-writable storage (every localStorage save: bests, trophies, cosmetics, game
+  progress) after **7 days of Safari use without visiting the site**; installed home-screen PWAs are
+  exempt. Plan: detect Safari/iOS (weight it up once a player has meaningful progress / any
+  progress-based game state), show a clear, non-nagging notice — "install the app or export a backup,
+  or your progress can be lost after inactivity" — linking straight to the Install flow + Data
+  Export. Also request **`navigator.storage.persist()`** (Safari 15.2+, Chrome grants heuristically)
+  as the silent first line of defense on every engaged device. Matters ×10 once the saved-state lane
+  (Foxden) ships — sequence it with that lane at the latest.
+- **Storage-usage discipline — write it into every dev surface** *(planned 2026-07-11)* — the
+  localStorage quota is **~5 MB per ORIGIN, shared by all games + the kit**; one leaking game
+  (unbounded history arrays, per-tick logs, replay dumps) can throw `QuotaExceededError` and break
+  saves for the whole site. Write an extensive note everywhere a game gets built or reviewed:
+  CLAUDE.md (game conventions), the **komyo-new-game skill** references, and `game-design-knobs.md`
+  (cross-cutting) — rules: keep an eye on storage growth during development, no unbounded appends
+  (cap every list), write on events not per-frame (debounce autosave), budget ~≤100 KB per
+  progress game / ~≤10 KB per arcade game, versioned saves from day one. Pairs with the save-API
+  guards (Path to launch #5) which enforce the same rules in code + tests.
+- **Side-stack v2: Profile in games** *(follow-up, added 2026-07-11)* — the kit side-stack (v1 shipped:
+  🏆 Challenges + 🎨 Collection on menu screens in every game, hidden during live play) should gain the
+  catalogue's Profile entry too. Blocked on porting the profile modal out of `index.html` into the kit;
+  once there, games get the identity card + titles the same way the catalogue does.
 - **Tips & tricks widget** *(idea, added 2026-07-04)* — there are no loading screens, so surface
   rotating tips somewhere on the home page (e.g. bottom-right corner), cycling continuously; dismissable
   and re-openable via a small bubble button. Content: how-to-play nuggets, feature callouts (challenges,
@@ -627,6 +658,14 @@ Play Store via PWA → itch.io. Rest are post-launch or parked.
 
 ## Parked (someday)
 
+- **IndexedDB backend for big saves** *(idea — noted 2026-07-11)* — the ready escape hatch if the
+  ~5 MB shared-origin localStorage quota ever pinches (single saves in the hundreds of KB–MBs: big
+  procedural worlds, replays, binary data). IndexedDB is async (no main-thread jank), stores
+  structured/binary data without stringify, and quota is GB-scale (Chrome up to ~60% of disk,
+  Firefox 10%, Safari ~1 GB+). The move: swap the progress-save API's backend (Path to launch #5)
+  to IDB while localStorage keeps the small hot data (settings, bests, trophies — sync reads at
+  boot). Contained refactor, NOT a rewrite — but only pays once the save API exists and a concrete
+  game actually needs >~200 KB saves. Don't build speculatively.
 - **Live "users online now" count** — not possible client-side on a static site; conflicts with the
   no-server identity. Routes if reconsidered: GA4 Realtime via a relay (approximate) or a small presence
   backend (Cloudflare Worker + Durable Object / WebSocket — accurate but real infra). Empty-room risk on
