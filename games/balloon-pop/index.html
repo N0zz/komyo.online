@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Balloon Pop</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#ff9ec2">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Balloon Pop">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #8fd0f5; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #hud .val { color: #ff5c96; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblScore">POPS</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblTime">TIME</span><span class="val" id="timeEl">—</span></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'balloon-pop';
+  const ACCENT = '#ff9ec2';
+
+  const SND = window.gamekit.sound;
+  SND.define({
+    popHi:  c => { c.voice({ f: 900, slideTo: 1250, dur: 0.06, type: 'triangle', gain: 0.12 }); c.noiseHit({ dur: 0.05, gain: 0.08, filter: 'highpass', cutoff: 1500 }); },
+    popMid: c => { c.voice({ f: 620, slideTo: 860, dur: 0.07, type: 'triangle', gain: 0.12 }); c.noiseHit({ dur: 0.06, gain: 0.08, filter: 'highpass', cutoff: 1100 }); },
+    popLo:  c => { c.voice({ f: 420, slideTo: 580, dur: 0.09, type: 'triangle', gain: 0.13 }); c.noiseHit({ dur: 0.07, gain: 0.09, filter: 'highpass', cutoff: 800 }); },
+    streak: c => c.seq([659, 784, 1047], 55, f => c.voice({ f, dur: 0.16, type: 'triangle', gain: 0.08, reverb: 0.25 })),
+    tickT:  c => c.voice({ f: 1100, dur: 0.03, type: 'sine', gain: 0.05 }),
+  });
+
+  const PARTY_TIME = 60;                      // seconds
+  const COLORS = [
+    ['#ff6b8a', '#c23a5a'], ['#ffd166', '#c89a2a'], ['#6bd6a8', '#2f9a6e'],
+    ['#7ab8ff', '#3a72c8'], ['#c99aff', '#8a5ad0'], ['#ff9d5c', '#c86a2a'],
+  ];
+
+  let W = 0, H = 0, topMargin = 48;
+  let state = 'ready';                        // ready | playing | over
+  let mode = 'party';                         // party | zen
+  let balloons = [];                          // {x,y,r,c,wob,vy,pop:0}
+  let bits = [];                              // pop confetti (view-only, capped)
+  let score = 0, best = 0, combo = 0, comboColor = -1, comboT = 0, bestCombo = 0;
+  let timeLeft = PARTY_TIME, frame = 0, playFrames = 0, spawnT = 0;
+
+  const modeLabel = m => (m || mode) === 'party' ? 'Party' : 'Zen';
+  const modeDisplay = m => KIT.t('game.balloon-pop.mode' + modeLabel(m), { def: modeLabel(m) });
+  function loadBest(m) { return KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0; }
+
+  const scaleR = () => Math.min(W, H) / 560;   // balloon sizes scale with the viewport
+
+  function spawnBalloon(fx, fy, fr, fc) {
+    const s = scaleR();
+    const r = fr !== undefined ? fr : (34 + Math.random() * 30) * s;
+    balloons.push({
+      x: fx !== undefined ? fx : r + Math.random() * Math.max(1, W - r * 2),
+      y: fy !== undefined ? fy : H + r * 1.6,
+      r, c: fc !== undefined ? fc : Math.floor(Math.random() * COLORS.length),
+      wob: Math.random() * Math.PI * 2,
+      vy: (0.55 + Math.random() * 0.5) * (H / 700),
+      pop: 0,
+    });
+  }
+
+  function newGame(m) {
+    mode = m || mode;
+    balloons = []; bits = [];
+    score = 0; combo = 0; comboColor = -1; comboT = 0; bestCombo = 0;
+    timeLeft = PARTY_TIME; playFrames = 0; spawnT = 0;
+    best = loadBest(mode);
+    for (let k = 0; k < 4; k++) spawnBalloon(undefined, H * (0.35 + 0.15 * k) + topMargin);
+    updateHud();
+  }
+
+  function popAt(px, py) {
+    if (state !== 'playing') return false;
+    // topmost balloon under the finger (generous kid-sized hit area)
+    for (let k = balloons.length - 1; k >= 0; k--) {
+      const b = balloons[k];
+      if (b.pop) continue;
+      if (Math.hypot(px - b.x, py - b.y) <= b.r * 1.25) { popBalloon(k); return true; }
+    }
+    return false;
+  }
+
+  function popBalloon(k) {
+    const b = balloons[k];
+    b.pop = 1; b.popT = 6;
+    // combo: same colour within 2 s
+    if (b.c === comboColor && comboT > 0) combo++;
+    else { combo = 1; comboColor = b.c; }
+    comboT = 120;
+    bestCombo = Math.max(bestCombo, combo);
+    score += 1 + Math.max(0, combo - 1);       // streak bonus
+    SND.play(b.r > 52 * scaleR() ? 'popLo' : b.r > 42 * scaleR() ? 'popMid' : 'popHi');
+    if (combo > 1 && combo % 5 === 0) SND.play('streak');
+    if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) {} }
+    for (let i = 0; i < 10 && bits.length < 120; i++) {
+      const a = (i / 10) * Math.PI * 2;
+      bits.push({ x: b.x, y: b.y, vx: Math.cos(a) * (1.5 + Math.random() * 2), vy: Math.sin(a) * (1.5 + Math.random() * 2) - 1, c: b.c, t: 30 });
+    }
+    updateHud();
+  }
+
+  function endRun() {
+    state = 'over';
+    const prev = loadBest(mode);
+    if (KIT) KIT.saveBest(SLUG, modeLabel(mode), { score, stats: { bestCombo } });
+    const isBest = score > prev && score > 0;
+    best = loadBest(mode);
+    updateHud();
+    setTimeout(() => showEnd(isBest), 600);
+  }
+
+  // ---- update / render ----
+  function update() {
+    frame++;
+    if (comboT > 0 && --comboT === 0) { combo = 0; comboColor = -1; }
+    for (let k = bits.length - 1; k >= 0; k--) {
+      const p = bits[k];
+      p.x += p.vx; p.y += p.vy; p.vy += 0.1;
+      if (--p.t <= 0) bits.splice(k, 1);
+    }
+    for (let k = balloons.length - 1; k >= 0; k--) {
+      const b = balloons[k];
+      if (b.pop) { if (--b.popT <= 0) balloons.splice(k, 1); continue; }
+      b.wob += 0.03;
+      b.y -= b.vy;
+      b.x += Math.sin(b.wob) * 0.4;
+      b.x = Math.max(b.r, Math.min(W - b.r, b.x));
+      if (b.y < topMargin - b.r * 2) balloons.splice(k, 1);   // drifted away — no penalty, ever
+    }
+    if (state === 'playing') {
+      playFrames++;
+      // spawn cadence: gently ramps in party, steady in zen
+      if (--spawnT <= 0) {
+        spawnBalloon();
+        const ramp = mode === 'party' ? Math.max(18, 42 - Math.floor(playFrames / 300)) : 38;
+        spawnT = ramp + Math.floor(Math.random() * 12);
+      }
+      if (mode === 'party') {
+        if (playFrames % 60 === 0) {
+          timeLeft--;
+          if (timeLeft <= 5 && timeLeft > 0) SND.play('tickT');
+          updateHud();
+          if (timeLeft <= 0) { endRun(); return; }
+        }
+      }
+      if (KIT && KIT.music) KIT.music.intensity(Math.min(1, 0.35 + 0.04 * combo + (mode === 'party' && timeLeft < 15 ? 0.25 : 0)));
+    } else if (KIT && KIT.music) KIT.music.intensity(0.3);
+  }
+
+  // ---- balloon styles (cosmetics) ----
+  function balloonStyle() {
+    const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('balloon-pop.balloons') : null;
+    return id === 'balloon-pop.balloons.critters' ? 'critter' : id === 'balloon-pop.balloons.planets' ? 'planet' : 'classic';
+  }
+
+  function drawBalloon(g, b, style) {
+    const [c0, c1] = COLORS[b.c];
+    const grd = g.createRadialGradient(b.x - b.r * 0.35, b.y - b.r * 0.4, b.r * 0.15, b.x, b.y, b.r * 1.15);
+    grd.addColorStop(0, '#ffffff'); grd.addColorStop(0.25, c0); grd.addColorStop(1, c1);
+    // string
+    g.strokeStyle = 'rgba(90,70,90,0.5)'; g.lineWidth = Math.max(1, b.r * 0.05);
+    g.beginPath(); g.moveTo(b.x, b.y + b.r);
+    g.quadraticCurveTo(b.x + Math.sin(b.wob * 2) * 6, b.y + b.r * 1.6, b.x + Math.sin(b.wob) * 4, b.y + b.r * 2.1);
+    g.stroke();
+    g.fillStyle = grd;
+    g.beginPath(); g.ellipse(b.x, b.y, b.r * 0.92, b.r, 0, 0, Math.PI * 2); g.fill();
+    // knot
+    g.beginPath(); g.moveTo(b.x, b.y + b.r * 0.96); g.lineTo(b.x - b.r * 0.12, b.y + b.r * 1.14);
+    g.lineTo(b.x + b.r * 0.12, b.y + b.r * 1.14); g.closePath(); g.fill();
+    if (style === 'critter') {
+      // ears + face
+      g.fillStyle = c1;
+      g.beginPath(); g.ellipse(b.x - b.r * 0.55, b.y - b.r * 0.8, b.r * 0.26, b.r * 0.34, -0.4, 0, 7); g.fill();
+      g.beginPath(); g.ellipse(b.x + b.r * 0.55, b.y - b.r * 0.8, b.r * 0.26, b.r * 0.34, 0.4, 0, 7); g.fill();
+      g.fillStyle = '#2b2030';
+      g.beginPath(); g.arc(b.x - b.r * 0.28, b.y - b.r * 0.1, b.r * 0.09, 0, 7); g.arc(b.x + b.r * 0.28, b.y - b.r * 0.1, b.r * 0.09, 0, 7); g.fill();
+      g.fillStyle = '#fff';
+      g.beginPath(); g.arc(b.x - b.r * 0.31, b.y - b.r * 0.14, b.r * 0.035, 0, 7); g.arc(b.x + b.r * 0.25, b.y - b.r * 0.14, b.r * 0.035, 0, 7); g.fill();
+      g.strokeStyle = '#2b2030'; g.lineWidth = Math.max(1, b.r * 0.05);
+      g.beginPath(); g.arc(b.x, b.y + b.r * 0.18, b.r * 0.16, 0.3, Math.PI - 0.3); g.stroke();
+    } else if (style === 'planet') {
+      g.strokeStyle = 'rgba(255,255,255,0.65)'; g.lineWidth = Math.max(2, b.r * 0.09);
+      g.beginPath(); g.ellipse(b.x, b.y + b.r * 0.05, b.r * 1.25, b.r * 0.32, -0.28, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = 'rgba(255,255,255,0.3)';
+      g.beginPath(); g.arc(b.x - b.r * 0.3, b.y + b.r * 0.3, b.r * 0.12, 0, 7); g.arc(b.x + b.r * 0.35, b.y - b.r * 0.25, b.r * 0.09, 0, 7); g.fill();
+    }
+    // shine
+    g.fillStyle = 'rgba(255,255,255,0.55)';
+    g.beginPath(); g.ellipse(b.x - b.r * 0.32, b.y - b.r * 0.42, b.r * 0.2, b.r * 0.12, -0.6, 0, 7); g.fill();
+  }
+
+  function render() {
+    // sunny sky
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#9adcff'); bg.addColorStop(0.7, '#bfe9ff'); bg.addColorStop(1, '#e2f6e8');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    // sun
+    ctx.fillStyle = 'rgba(255,236,150,0.9)';
+    ctx.beginPath(); ctx.arc(W - 70, topMargin + 60, 34, 0, 7); ctx.fill();
+    ctx.fillStyle = 'rgba(255,236,150,0.25)';
+    ctx.beginPath(); ctx.arc(W - 70, topMargin + 60, 54 + Math.sin(frame * 0.03) * 5, 0, 7); ctx.fill();
+    // drifting clouds
+    for (let k = 0; k < 4; k++) {
+      const cxp = ((k * 260 + frame * (0.2 + k * 0.06)) % (W + 260)) - 130;
+      const cyp = topMargin + 40 + k * (H - topMargin) * 0.2;
+      ctx.fillStyle = 'rgba(255,255,255,0.75)';
+      ctx.beginPath();
+      ctx.arc(cxp, cyp, 26, 0, 7); ctx.arc(cxp + 26, cyp + 6, 20, 0, 7); ctx.arc(cxp - 26, cyp + 7, 18, 0, 7);
+      ctx.fill();
+    }
+
+    const style = balloonStyle();
+    for (const b of balloons) {
+      if (b.pop) { // pop flash ring
+        ctx.strokeStyle = COLORS[b.c][0]; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(b.x, b.y, b.r * (1.2 + (6 - b.popT) * 0.15), 0, 7); ctx.stroke();
+        continue;
+      }
+      drawBalloon(ctx, b, style);
+    }
+    for (const p of bits) {
+      ctx.fillStyle = COLORS[p.c][0];
+      ctx.globalAlpha = Math.max(0, p.t / 30);
+      ctx.fillRect(p.x - 3, p.y - 3, 6, 6);
+      ctx.globalAlpha = 1;
+    }
+
+    // combo banner
+    if (combo > 1 && comboT > 0 && state === 'playing') {
+      ctx.font = '900 ' + Math.min(40, 22 + combo * 2) + 'px system-ui';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = COLORS[comboColor][1];
+      ctx.fillText('×' + combo, W / 2, topMargin + 46);
+    }
+  }
+
+  function updateHud() {
+    const s = document.getElementById('scoreEl'), b = document.getElementById('bestEl'), t = document.getElementById('timeEl');
+    if (s) s.textContent = score;
+    if (b) b.textContent = Math.max(best, score);
+    if (t) t.textContent = mode === 'party' ? timeLeft : '∞';
+  }
+
+  // ---- menus ----
+  const MENU_THEME = { accent: ACCENT, title: '#ff5c96' };
+
+  function startGame(m) {
+    newGame(m);
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+  }
+
+  function menuBackdrop(g, w, h, tt) {
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#9adcff'); bg.addColorStop(1, '#e2f6e8');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const style = balloonStyle();
+    for (let k = 0; k < 6; k++) {
+      const r = 26 + (k % 3) * 12;
+      const bb = { x: (k * 167 + 60) % w, y: h - (((k * 211 + tt * 34) % (h + r * 4)) - r * 2), r, c: k % COLORS.length, wob: tt + k, pop: 0 };
+      drawBalloon(g, bb, style);
+    }
+  }
+
+  function pvMode(m) {
+    return (g, w, h) => {
+      const bg = g.createLinearGradient(0, 0, 0, h);
+      bg.addColorStop(0, '#9adcff'); bg.addColorStop(1, '#e2f6e8');
+      g.fillStyle = bg; g.fillRect(0, 0, w, h);
+      const style = balloonStyle();
+      for (let k = 0; k < 3; k++)
+        drawBalloon(g, { x: w * (0.25 + k * 0.25), y: h * (0.62 - k * 0.14), r: Math.min(w, h) * 0.16, c: k + (m === 'zen' ? 3 : 0), wob: k, pop: 0 }, style);
+      if (m === 'party') {
+        g.fillStyle = '#c23a5a'; g.font = '900 ' + Math.round(h * 0.22) + 'px system-ui';
+        g.textAlign = 'center'; g.fillText('60s', w / 2, h * 0.28);
+      }
+    };
+  }
+
+  function showStartMenu() {
+    state = 'ready';
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: KIT.t('game.balloon-pop.menuTitle', { def: 'BALLOON POP' }),
+      groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
+        choices: [
+          { id: 'party', label: modeDisplay('party'), mech: ['60s 🎉'], best: () => loadBest('party') || '', preview: (g, w, h) => pvMode('party')(g, w, h) },
+          { id: 'zen',   label: modeDisplay('zen'),   mech: [KIT.t('game.balloon-pop.noEnd', { def: 'no timer 💚' })], best: () => loadBest('zen') || '', preview: (g, w, h) => pvMode('zen')(g, w, h) },
+        ] }],
+      hint: () => KIT.t('game.balloon-pop.startHint', { def: 'Tap the balloons to pop them! Same colour in a row = bonus pops. You can never lose.' }),
+      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
+      onChange: st => { mode = st.mode; KIT.stampUrl({ mode: st.mode }); },
+      onPlay: st => startGame(st.mode),
+    });
+  }
+
+  function shareMsg() {
+    return KIT.t('game.balloon-pop.share', { score,
+      def: 'I popped {score} balloons in Balloon Pop 🎈' });
+  }
+
+  function showEnd(isBest) {
+    if (!KIT) return;
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: KIT.t('game.balloon-pop.end', { def: 'WHAT A PARTY!' }),
+      record: { slug: SLUG, mode: modeLabel(mode), score, stats: { bestCombo } },
+      score, best, newBest: isBest,
+      lines: [ modeDisplay(mode) + ' · ' + KIT.t('game.balloon-pop.comboLine', { combo: bestCombo, def: 'best streak ×{combo}' }) ],
+      share: { slug: SLUG, accent: ACCENT, icon: '🎈', title: KIT.t('game.balloon-pop.title', { def: 'Balloon Pop' }),
+               message: () => shareMsg(), params: () => ({ mode }) },
+      actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true },
+                 { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
+      onAction: id => { if (id === 'again') startGame(mode); else if (id === 'menu') toMenu(); } });
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines: [KIT.t('game.common.scoreLine', { score, def: 'Score {score}' })],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
+                 { id: 'end', label: KIT.t('game.balloon-pop.finish', { def: 'FINISH & SAVE' }) },
+                 { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
+      onAction: id => { if (id === 'resume') KIT.menu.hide(); else if (id === 'end') { KIT.menu.hide(); endRun(); } else if (id === 'menu') toMenu(); },
+      onEsc: () => KIT.menu.hide() });
+  }
+  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
+
+  // ---- resize ----
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    topMargin = KIT.layout.hudTop();
+    for (const b of balloons) b.x = Math.max(b.r, Math.min(W - b.r, b.x));   // clamp after rotate
+  }
+  window.gamekit.layout.on(resize);
+
+  // ---- input ----
+  canvas.addEventListener('pointerdown', e => {
+    const r = canvas.getBoundingClientRect();
+    popAt((e.clientX - r.left) * (W / r.width), (e.clientY - r.top) * (H / r.height));
+  });
+  window.addEventListener('keydown', e => {
+    if (state === 'playing' && e.key === 'Escape') { e.preventDefault(); pauseGame(); }
+  });
+
+  // ---- nav + music ----
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); },
+    confirmLeave: () => state === 'playing' && score > 0 ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.balloon-pop.controlsTitle', { def: 'Balloon Pop — Controls' }),
+      mouse: [ [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.balloon-pop.ctrlPop', { def: 'Pop a balloon' })] ],
+      keyboard: [ ['Esc', KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.balloon-pop.ctrlPop', { def: 'Pop a balloon' })] ] } });
+  KIT.music.play('balloonpop');
+
+  // ---- __test ----
+  window.__test = {
+    get state() { return state; },
+    get score() { return score; },
+    get mode() { return mode; },
+    get combo() { return combo; },
+    get timeLeft() { return timeLeft; },
+    get balloonCount() { return balloons.filter(b => !b.pop).length; },
+    get balloons() { return balloons.filter(b => !b.pop).map(b => ({ x: b.x, y: b.y, r: b.r, c: b.c })); },
+    spawnAt(x, y, r, c) { spawnBalloon(x, y, r, c); },
+    popAt(x, y) { return popAt(x, y); },
+    endRun() { endRun(); },
+    get layout() {
+      const bs = balloons.filter(b => !b.pop);
+      return { W, H, topReserve: topMargin,
+        minX: bs.length ? Math.min(...bs.map(b => b.x - b.r)) : 0,
+        maxX: bs.length ? Math.max(...bs.map(b => b.x + b.r)) : W };
+    },
+    start() { startGame('party'); },
+    startMode(m) { startGame(m); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+  };
+
+  // ---- boot ----
+  resize();
+  if (KIT) {
+    const L = { lblScore: ['game.balloon-pop.hudPops', 'POPS'], lblBest: ['game.common.best', 'BEST'], lblTime: ['game.common.time', 'TIME'] };
+    for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
+    const m = KIT.param && KIT.param('mode');
+    if (m === 'party' || m === 'zen') mode = m;
+  }
+  newGame(mode); state = 'ready';
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>

@@ -294,7 +294,7 @@ window.GAMES = [
     icon: "🎈",
     accent: "#ff9ec2",
     tags: ["KIDS", "CASUAL"],
-    soon: true,
+    added: "2026-07-12",
   },
   {
     slug: "critter-match",

@@ -22,6 +22,7 @@ Komyo Games is a hobby project. Each game is a single self-contained HTML/Canvas
 - [2048](https://komyo.online/games/2048/): Slide-and-merge number tiles to 2048 — classic 4×4 plus Mini 3×3 and Big 5×5 boards.
 - [Trap the Cat](https://komyo.online/games/trap-the-cat/): Plant rose hedges on a hex garden to corner the cat before it slips off the edge — fewer hedges, bigger score.
 - [Glow Says](https://komyo.online/games/glow-says/): Kid-friendly Simon — watch the glowing lanterns, tap the tune back; Chill mode never fails, Expert adds two lanterns.
+- [Balloon Pop](https://komyo.online/games/balloon-pop/): Tap the floating balloons — colour streak bonuses, confetti, and no way to lose; 60-second Party or endless Zen.
 
 ## Optional
 
