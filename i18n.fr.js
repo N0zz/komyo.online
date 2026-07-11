@@ -1720,4 +1720,9 @@ window.KOMYO_I18N.fr = {
   'changelog.e56.b3': 'Changement : le plein écran ⛶ est maintenant à un geste dans la barre du haut du jeu, au lieu de se cacher dans le menu ☰.',
   'changelog.e56.b4': 'Changement : la pause a le même look et le même comportement partout — le jeu figé reste visible derrière un léger voile « Pause » pour préparer votre prochain coup, et toucher hors d’un panneau reprend la partie.',
   'changelog.e56.b5': 'Correction : la tête de la mascotte est désormais bien centrée dans le logo et le favicon.',
+  // --- changelog e57 (2026-07-11 sudoku rebalance) ---
+  'changelog.e57.title': 'Des difficultés de Sudoku bien étagées 🔢',
+  'changelog.e57.b0': 'Correction : Moyen se jouait presque comme Difficile — les grilles étaient creusées bien au-delà du nombre d’indices prévu. Chaque difficulté garde désormais une fourchette garantie d’indices de départ (Facile ~36, Moyen 30–34, Difficile 26–30, Expert 22–26), l’échelle monte donc vraiment marche par marche.',
+  'changelog.e57.b1': 'Changement : Moyen demande exactement une déduction futée au-delà des bases, et la grille de départ montre chaque chiffre au moins une fois (en Facile aussi) — fini les débuts « mais où sont les 1 ? ».',
+  'changelog.e57.b2': 'Changement : le puzzle du Jour utilise le nouveau calibrage à partir d’aujourd’hui — toujours la même grille pour tout le monde.',
 };

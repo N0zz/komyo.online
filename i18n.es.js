@@ -1721,4 +1721,9 @@ window.KOMYO_I18N.es = {
   'changelog.e56.b3': 'Cambio: la pantalla completa ⛶ está ahora a un toque en la barra superior del juego, en vez de esconderse en el menú ☰.',
   'changelog.e56.b4': 'Cambio: la pausa se ve y funciona igual en todas partes — el juego congelado sigue visible tras un velo ligero de «Pausa» para planear tu próximo movimiento, y tocar fuera de cualquier panel reanuda la partida.',
   'changelog.e56.b5': 'Arreglo: la cabeza de la mascota está ahora bien centrada en el logo y el favicon.',
+  // --- changelog e57 (2026-07-11 sudoku rebalance) ---
+  'changelog.e57.title': 'Dificultades de Sudoku bien escalonadas 🔢',
+  'changelog.e57.b0': 'Arreglo: Media se jugaba casi como Difícil — los tableros se vaciaban mucho más allá de las pistas previstas. Cada dificultad mantiene ahora un rango garantizado de pistas iniciales (Fácil ~36, Media 30–34, Difícil 26–30, Experto 22–26), así que la escalera sube de verdad peldaño a peldaño.',
+  'changelog.e57.b1': 'Cambio: Media requiere exactamente una deducción ingeniosa más allá de lo básico, y el tablero inicial muestra cada dígito al menos una vez (en Fácil también) — se acabaron las aperturas de «¿dónde están los unos?».',
+  'changelog.e57.b2': 'Cambio: el puzle Diario usa la nueva graduación desde hoy — sigue siendo el mismo tablero para todos.',
 };

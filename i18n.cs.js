@@ -1720,4 +1720,9 @@ window.KOMYO_I18N.cs = {
   'changelog.e56.b3': 'Změna: celá obrazovka ⛶ je teď na horní liště hry na jedno ťuknutí, místo aby se schovávala v menu ☰.',
   'changelog.e56.b4': 'Změna: pauza vypadá a funguje všude stejně — zastavená hra zůstává vidět za lehkým závojem „Pauza“, takže si můžeš naplánovat další tah, a ťuknutí mimo panel hru obnoví.',
   'changelog.e56.b5': 'Oprava: hlava maskota je teď v logu i faviconě pořádně vycentrovaná.',
+  // --- changelog e57 (2026-07-11 sudoku rebalance) ---
+  'changelog.e57.title': 'Obtížnosti Sudoku konečně odstupňované 🔢',
+  'changelog.e57.b0': 'Oprava: Střední se hrála skoro jako Těžká — mřížky se vykopávaly daleko za zamýšlený počet nápověd. Každá obtížnost teď drží zaručené rozmezí výchozích nápověd (Lehká ~36, Střední 30–34, Těžká 26–30, Expertní 22–26), takže žebřík opravdu stoupá krok za krokem.',
+  'changelog.e57.b1': 'Změna: Střední vyžaduje přesně jednu chytřejší dedukci nad rámec základů a výchozí mřížka vždy ukazuje každou číslici aspoň jednou (i na Lehké) — konec startů typu „kde jsou jedničky?“.',
+  'changelog.e57.b2': 'Změna: denní puzzle používá nové odstupňování ode dneška — pořád je to stejná mřížka pro všechny.',
 };

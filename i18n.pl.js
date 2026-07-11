@@ -1718,4 +1718,9 @@ window.KOMYO_I18N.pl = {
   'changelog.e56.b3': 'Zmiana: pełny ekran ⛶ jest teraz jednym dotknięciem na górnym pasku gry, zamiast kryć się w menu ☰.',
   'changelog.e56.b4': 'Zmiana: pauza wygląda i działa wszędzie tak samo — zatrzymana gra pozostaje widoczna za delikatną zasłoną „Pauza”, więc możesz zaplanować następny ruch, a dotknięcie poza panelem wznawia grę.',
   'changelog.e56.b5': 'Poprawka: głowa maskotki jest teraz porządnie wyśrodkowana w logo i faviconie.',
+  // --- changelog e57 (2026-07-11 sudoku rebalance) ---
+  'changelog.e57.title': 'Poziomy trudności Sudoku jak należy 🔢',
+  'changelog.e57.b0': 'Poprawka: Średni grał się prawie jak Trudny — plansze były odkopywane daleko poza zamierzoną liczbę odsłoniętych cyfr. Każdy poziom ma teraz gwarantowany przedział podpowiedzi na starcie (Łatwy ~36, Średni 30–34, Trudny 26–30, Ekspert 22–26), więc drabinka trudności naprawdę rośnie krok po kroku.',
+  'changelog.e57.b1': 'Zmiana: Średni wymaga dokładnie jednej sprytniejszej dedukcji ponad podstawy, a na starcie planszy każda cyfra pojawia się co najmniej raz (na Łatwym też) — koniec z otwarciami „gdzie są jedynki?”.',
+  'changelog.e57.b2': 'Zmiana: puzzle Dnia korzystają z nowego stopniowania od dziś — to nadal ta sama plansza dla wszystkich.',
 };
