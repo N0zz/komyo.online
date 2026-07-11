@@ -30,6 +30,17 @@ the score card's design language** for instant brand recognition.
   the **games collage in each tile's own accent** (unmistakably komyo *and* shows the range). Confirm
   vs. a single house color throughout.
 - [ ] **Flyer dimensions** (A6 / A5 / sticker size) — drives the portrait layout; can't guess it.
+- [ ] **TikTok short format + testing** *(idea saved 2026-07-11 — NOT decided)*. Target register:
+  **"simple but pretty"** — not expensive motion graphics, not raw text-over-gameplay. Candidate
+  house style: ~5 fixed elements, high craft, reused every post (real footage full-bleed · ONE
+  display font for hook+captions · chip captions · music with cuts on beats · the branded end
+  card); consistency = the recognizable look. Testing idea: instead of A/B via two TT accounts
+  (cold-account distribution is a lottery, near-duplicate content risks suppression, 2× workload),
+  run ONE account alternating formats ~3 house-style : 1 raw (capture + hook + trending sound);
+  after 10–15 posts compare **median completion rate + profile-link clicks** per format (distinct
+  UTMs, e.g. `utm_medium=short-house` vs `short-raw`), not views. A second account only once the
+  first has traction. POC pipeline lives at `~/komyo-promo/komyo-shorts/` (HyperFrames; trims are
+  `data-media-start`/`data-duration` attrs, QR end card, deterministic fake-snake placeholder).
 
 ## Approach (settled)
 
