@@ -412,6 +412,11 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   (cap every list), write on events not per-frame (debounce autosave), budget ~≤100 KB per
   progress game / ~≤10 KB per arcade game, versioned saves from day one. Pairs with the save-API
   guards (Path to launch #5) which enforce the same rules in code + tests.
+- **Backdrop-truth pass (opportunistic)** *(added 2026-07-11)* — three start-menu backdrops still
+  IMITATE in-game objects with menu-local code and will drift: **asteroids-plus** (`mbRock` + fake
+  enemies), **snake** (menu-local snake/grid), **breakout** (imitation brick wall). When next touching
+  each game visually, fold its backdrop onto the real painters (forcefield's retarget pattern).
+  Don't sweep them for their own sake. See the new backdrop knob in `game-design-knobs.md`.
 - **Side-stack v2: Profile in games** *(follow-up, added 2026-07-11)* — the kit side-stack (v1 shipped:
   🏆 Challenges + 🎨 Collection on menu screens in every game, hidden during live play) should gain the
   catalogue's Profile entry too. Blocked on porting the profile modal out of `index.html` into the kit;
@@ -657,6 +662,10 @@ Play Store via PWA → itch.io. Rest are post-launch or parked.
   identity.
 
 ## Parked (someday)
+
+- **Attract mode behind start menus** — a self-playing demo of the actual game as the menu backdrop
+  (arcade classic; guarantees the menu look matches gameplay by construction). Per-game work: a demo
+  driver + running update/render in a menu-safe mode. Park until a game wants it.
 
 - **IndexedDB backend for big saves** *(idea — noted 2026-07-11)* — the ready escape hatch if the
   ~5 MB shared-origin localStorage quota ever pinches (single saves in the hundreds of KB–MBs: big

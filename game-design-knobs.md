@@ -8,6 +8,9 @@ implementation. This file is referenced from CLAUDE.md via `@game-design-knobs.m
 
 ## Cross-cutting (apply to every game)
 
+- **Menu backdrops reuse the real painters or stay abstract.** Never a hand-drawn COPY of
+  in-game objects — copies drift the moment gameplay art improves (forcefield's menu retargets the
+  actual renderers; frog-bonk shares its painters). Deliberately abstract theme art is fine.
 - **Model is truth, the view only renders it.** Keep game state separate from drawing; never let
   animations *be* the state. Kills the "animation desynced from logic" bug class — and makes the
   rotation **relayout→redraw** pass safe.
