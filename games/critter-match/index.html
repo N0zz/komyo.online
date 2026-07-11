@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Critter Match</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#ffb86b">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Critter Match">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #2e1c10; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #hud .val { color: #ffb86b; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblPairs">PAIRS</span><span class="val" id="pairsEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'critter-match';
+  const ACCENT = '#ffb86b';
+
+  const SND = window.gamekit.sound;
+  SND.define({
+    flipS: c => c.voice({ f: 480, slideTo: 640, dur: 0.06, type: 'triangle', gain: 0.09 }),
+    match: c => c.seq([659, 880], 70, f => c.voice({ f, dur: 0.16, type: 'triangle', gain: 0.1, reverb: 0.25 })),
+    nope:  c => c.voice({ f: 260, slideTo: 210, dur: 0.18, type: 'triangle', gain: 0.08, filter: 'lowpass', cutoff: 1200 }),
+    allD:  c => c.play('victory'),
+  });
+
+  const MODES = { small: { pairs: 6 }, medium: { pairs: 10 }, large: { pairs: 15 } };
+  const MODE_ORDER = ['small', 'medium', 'large'];
+  const PEEK_FRAMES = 50;                    // mismatch stays visible this long
+  const FLIP_FRAMES = 8;
+
+  // critter sets (cosmetics) — emoji-as-text card faces
+  const SETS = {
+    'critter-match.critters.farm':   ['🐮', '🐷', '🐔', '🐑', '🐴', '🐰', '🦆', '🐐', '🐶', '🐱', '🐭', '🦢', '🐸', '🐝', '🐞'],
+    'critter-match.critters.jungle': ['🦁', '🐵', '🦒', '🐘', '🦜', '🐍', '🦓', '🐊', '🐯', '🦍', '🦋', '🐢', '🦩', '🐨', '🦚'],
+    'critter-match.critters.ocean':  ['🐠', '🐙', '🦀', '🐬', '🐳', '🦈', '🐡', '🦞', '🐟', '🦑', '🐚', '🦭', '🐧', '🪼', '⭐'],
+  };
+  function critterSet() {
+    const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('critter-match.critters') : null;
+    return SETS[id] || SETS['critter-match.critters.farm'];
+  }
+
+  let W = 0, H = 0, topMargin = 48;
+  let state = 'ready';                       // ready | playing | over
+  let mode = 'medium';
+  let cards = [];                            // {pair, open, matched, flipT, sparkT}
+  let openA = -1, openB = -1, peekT = 0;
+  let flips = 0, matched = 0, score = 0, best = 0;
+  let frame = 0;
+
+  // layout
+  let cols = 4, rows = 5, cw = 80, chh = 96, bx = 0, by = 0;
+
+  const modeLabel = m => { m = m || mode; return m.charAt(0).toUpperCase() + m.slice(1); };
+  const modeDisplay = m => KIT.t('game.critter-match.mode' + modeLabel(m), { def: modeLabel(m) });
+  function loadBest(m) { return KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0; }
+
+  function runScore() {
+    // perfect play = pairs flips-of-two; each extra flip trims a little. Always positive & kid-kind.
+    const p = MODES[mode].pairs;
+    return Math.max(p * 5, p * 20 - Math.max(0, flips - p * 2) * 2);
+  }
+
+  function newGame(m) {
+    mode = m || mode;
+    const p = MODES[mode].pairs;
+    const deck = [];
+    for (let k = 0; k < p; k++) deck.push(k, k);
+    for (let i = deck.length - 1; i > 0; i--) {          // Fisher–Yates (seeded in tests)
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    cards = deck.map(pair => ({ pair, open: false, matched: false, flipT: 0, sparkT: 0 }));
+    openA = -1; openB = -1; peekT = 0;
+    flips = 0; matched = 0; score = 0;
+    best = loadBest(mode);
+    layoutBoard(); updateHud();
+  }
+
+  function flip(i) {
+    if (state !== 'playing' || peekT > 0) return false;
+    const c = cards[i];
+    if (!c || c.open || c.matched) return false;
+    c.open = true; c.flipT = FLIP_FRAMES; flips++;
+    SND.play('flipS');
+    if (openA < 0) { openA = i; updateHud(); return true; }
+    openB = i;
+    if (cards[openA].pair === c.pair) {
+      cards[openA].matched = c.matched = true;
+      cards[openA].sparkT = c.sparkT = 30;
+      matched++;
+      SND.play('match');
+      openA = openB = -1;
+      if (matched >= MODES[mode].pairs) finish();
+    } else {
+      peekT = PEEK_FRAMES;                                // both stay visible for a moment
+      SND.play('nope');
+    }
+    updateHud();
+    return true;
+  }
+
+  function finish() {
+    state = 'over'; score = runScore();
+    SND.play('allD');
+    const prev = loadBest(mode);
+    if (KIT) KIT.saveBest(SLUG, modeLabel(mode), { score, stats: { flips } });
+    const isBest = score > prev;
+    best = loadBest(mode);
+    updateHud();
+    setTimeout(() => showEnd(isBest), 800);
+  }
+
+  // ---- update / render ----
+  function update() {
+    frame++;
+    for (const c of cards) {
+      if (c.flipT > 0) c.flipT--;
+      if (c.sparkT > 0) c.sparkT--;
+    }
+    if (peekT > 0 && --peekT === 0) {
+      if (openA >= 0) cards[openA].open = false;
+      if (openB >= 0) cards[openB].open = false;
+      openA = openB = -1;
+    }
+    if (KIT && KIT.music) KIT.music.intensity(state === 'playing' ? Math.min(1, 0.32 + 0.5 * (matched / MODES[mode].pairs)) : 0.3);
+  }
+
+  function layoutBoard() {
+    const n = cards.length;
+    // pick cols/rows to fit orientation (cards are 1:1.25 tall)
+    const combos = [];
+    for (let c = 2; c <= n; c++) if (n % c === 0) combos.push([c, n / c]);
+    const pad = 10, gap = 8;
+    const availW = W - pad * 2, availH = H - topMargin - pad * 2;
+    let bestFit = null, bestSize = 0;
+    for (const [c, r] of combos) {
+      const wFit = (availW - gap * (c - 1)) / c;
+      const hFit = ((availH - gap * (r - 1)) / r) / 1.25;
+      const s = Math.min(wFit, hFit);
+      if (s > bestSize) { bestSize = s; bestFit = [c, r]; }
+    }
+    cols = bestFit ? bestFit[0] : 4; rows = bestFit ? bestFit[1] : Math.ceil(n / 4);
+    cw = Math.floor(Math.min(bestSize, 130)); chh = Math.floor(cw * 1.25);
+    const totW = cols * cw + (cols - 1) * gap, totH = rows * chh + (rows - 1) * gap;
+    bx = Math.round((W - totW) / 2);
+    by = Math.round(topMargin + pad + (availH - totH) / 2);
+  }
+  const cardXY = i => ({
+    px: bx + (i % cols) * (cw + 8),
+    py: by + Math.floor(i / cols) * (chh + 8),
+  });
+
+  function render() {
+    // picnic blanket bg
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#3a2415'); bg.addColorStop(1, '#241408');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(255,184,107,0.06)'; ctx.lineWidth = 14;
+    for (let k = -1; k < (W + H) / 70; k++) {
+      ctx.beginPath(); ctx.moveTo(k * 70, 0); ctx.lineTo(k * 70 - H, H); ctx.stroke();
+    }
+
+    const set = critterSet();
+    for (let i = 0; i < cards.length; i++) {
+      const c = cards[i];
+      const { px, py } = cardXY(i);
+      // flip: scale X around the card centre
+      const t = c.flipT > 0 ? c.flipT / FLIP_FRAMES : 0;
+      const sx = Math.abs(1 - t * 2);                    // 1→0→1 flip feel
+      const cxp = px + cw / 2;
+      ctx.save();
+      ctx.translate(cxp, 0); ctx.scale(Math.max(0.06, sx), 1); ctx.translate(-cxp, 0);
+      const showFace = (c.open || c.matched) && t < 0.5;
+      if (showFace) {
+        ctx.fillStyle = c.matched ? '#fff3dd' : '#fff8ec';
+        KIT.roundRect(ctx, px, py, cw, chh, cw * 0.14); ctx.fill();
+        ctx.strokeStyle = c.matched ? '#ffb86b' : '#d9b98a'; ctx.lineWidth = 2.5;
+        KIT.roundRect(ctx, px, py, cw, chh, cw * 0.14); ctx.stroke();
+        ctx.font = Math.round(cw * 0.62) + 'px system-ui';
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText(set[c.pair % set.length], px + cw / 2, py + chh / 2 + cw * 0.04);
+      } else {
+        const grd = ctx.createLinearGradient(px, py, px, py + chh);
+        grd.addColorStop(0, '#e88f4a'); grd.addColorStop(1, '#c56a2b');
+        ctx.fillStyle = grd;
+        KIT.roundRect(ctx, px, py, cw, chh, cw * 0.14); ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        KIT.roundRect(ctx, px + 3, py + 3, cw - 6, chh * 0.4, cw * 0.12); ctx.fill();
+        // paw mark
+        ctx.fillStyle = 'rgba(120,60,20,0.5)';
+        const pcx = px + cw / 2, pcy = py + chh / 2 + cw * 0.05, pr = cw * 0.13;
+        ctx.beginPath(); ctx.ellipse(pcx, pcy + pr * 0.6, pr, pr * 0.8, 0, 0, 7); ctx.fill();
+        for (let k = -1; k <= 1; k++) { ctx.beginPath(); ctx.arc(pcx + k * pr * 0.9, pcy - pr * (k ? 0.5 : 0.8), pr * 0.32, 0, 7); ctx.fill(); }
+      }
+      ctx.restore();
+      // match sparkles
+      if (c.sparkT > 0) {
+        const p = 1 - c.sparkT / 30;
+        for (let k = 0; k < 6; k++) {
+          const a = k * 1.05 + p * 2;
+          ctx.fillStyle = 'rgba(255,220,120,' + (1 - p) + ')';
+          ctx.beginPath();
+          ctx.arc(px + cw / 2 + Math.cos(a) * cw * (0.4 + p * 0.5), py + chh / 2 + Math.sin(a) * cw * (0.4 + p * 0.5), 2.6, 0, 7);
+          ctx.fill();
+        }
+      }
+    }
+
+    // vignette
+    const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.78);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  }
+
+  function updateHud() {
+    const p = document.getElementById('pairsEl'), s = document.getElementById('scoreEl'), b = document.getElementById('bestEl');
+    if (p) p.textContent = matched + '/' + MODES[mode].pairs;
+    if (s) s.textContent = state === 'over' ? score : runScore();
+    if (b) b.textContent = best;
+  }
+
+  // ---- menus ----
+  const MENU_THEME = { accent: ACCENT, title: ACCENT };
+
+  function startGame(m) {
+    newGame(m);
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+  }
+
+  function menuBackdrop(g, w, h, tt) {
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#3a2415'); bg.addColorStop(1, '#241408');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const set = critterSet();
+    const s = Math.max(40, Math.min(w, h) / 8);
+    for (let k = 0; k < 8; k++) {
+      const px = ((k * 199 + 30) % (w + s)) - s / 2;
+      const py = ((k * 293 + tt * 16) % (h + s * 2)) - s;
+      const open = k % 3 === 0;
+      g.globalAlpha = 0.5;
+      if (open) {
+        g.fillStyle = '#fff8ec';
+        KIT.roundRect(g, px, py, s, s * 1.25, s * 0.14); g.fill();
+        g.font = Math.round(s * 0.6) + 'px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(set[k % set.length], px + s / 2, py + s * 0.66);
+      } else {
+        g.fillStyle = '#e88f4a';
+        KIT.roundRect(g, px, py, s, s * 1.25, s * 0.14); g.fill();
+      }
+      g.globalAlpha = 1;
+    }
+  }
+
+  function pvGridCards(pairs) {
+    return (g, w, h) => {
+      const set = critterSet();
+      const c = pairs === 6 ? 3 : pairs === 10 ? 4 : 5;
+      const s = Math.min(w / (c + 0.6), h / (Math.ceil(pairs * 2 / c) * 1.25 + 0.6));
+      const ox = (w - c * s) / 2, oy = (h - Math.ceil(pairs * 2 / c) * s * 1.2) / 2;
+      for (let k = 0; k < pairs * 2 && k < c * 6; k++) {
+        const px = ox + (k % c) * s, py = oy + Math.floor(k / c) * s * 1.2;
+        if (k % 5 === 0) {
+          g.fillStyle = '#fff8ec'; KIT.roundRect(g, px + 1, py + 1, s - 2, s * 1.2 - 2, s * 0.12); g.fill();
+          g.font = Math.round(s * 0.55) + 'px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle';
+          g.fillText(set[k % set.length], px + s / 2, py + s * 0.62);
+        } else {
+          g.fillStyle = '#e88f4a'; KIT.roundRect(g, px + 1, py + 1, s - 2, s * 1.2 - 2, s * 0.12); g.fill();
+        }
+      }
+    };
+  }
+
+  function showStartMenu() {
+    state = 'ready';
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: KIT.t('game.critter-match.menuTitle', { def: 'CRITTER MATCH' }),
+      groups: [{ id: 'mode', label: KIT.t('game.critter-match.boardLabel', { def: 'BOARD' }), style: 'cards', default: mode,
+        choices: MODE_ORDER.map(m => ({ id: m, label: modeDisplay(m),
+          mech: [MODES[m].pairs + ' 🐾'],
+          best: () => loadBest(m) || '',
+          preview: (g, w, h) => pvGridCards(MODES[m].pairs)(g, w, h) })) }],
+      hint: () => KIT.t('game.critter-match.startHint', { def: 'Flip two cards — find the matching critters! Fewer flips, bigger score. You always win.' }),
+      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
+      onChange: st => { mode = st.mode; KIT.stampUrl({ mode: st.mode }); },
+      onPlay: st => startGame(st.mode),
+    });
+  }
+
+  function shareMsg() {
+    return KIT.t('game.critter-match.share', { score, flips,
+      def: 'I matched all the critters in {flips} flips ({score} pts) — Critter Match 🐾' });
+  }
+
+  function showEnd(isBest) {
+    if (!KIT) return;
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: KIT.t('game.critter-match.end', { def: 'ALL FRIENDS FOUND!' }),
+      record: { slug: SLUG, mode: modeLabel(mode), score, stats: { flips } },
+      score, best, newBest: isBest,
+      lines: [ modeDisplay(mode) + ' · ' + KIT.t('game.critter-match.flipsLine', { flips, def: '{flips} flips' }) ],
+      share: { slug: SLUG, accent: ACCENT, icon: '🐾', title: KIT.t('game.critter-match.title', { def: 'Critter Match' }),
+               message: () => shareMsg(), params: () => ({ mode }) },
+      actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true },
+                 { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
+      onAction: id => { if (id === 'again') startGame(mode); else if (id === 'menu') toMenu(); } });
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines: [matched + ' / ' + MODES[mode].pairs],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
+                 { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
+      onAction: id => { if (id === 'resume') KIT.menu.hide(); else if (id === 'menu') toMenu(); },
+      onEsc: () => KIT.menu.hide() });
+  }
+  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
+
+  // ---- resize ----
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    topMargin = KIT.layout.hudTop();
+    if (cards.length) layoutBoard();
+  }
+  window.gamekit.layout.on(resize);
+
+  // ---- input ----
+  canvas.addEventListener('pointerdown', e => {
+    if (state !== 'playing') return;
+    const r = canvas.getBoundingClientRect();
+    const px = (e.clientX - r.left) * (W / r.width), py = (e.clientY - r.top) * (H / r.height);
+    for (let i = 0; i < cards.length; i++) {
+      const { px: cx0, py: cy0 } = cardXY(i);
+      if (px >= cx0 && px <= cx0 + cw && py >= cy0 && py <= cy0 + chh) { flip(i); return; }
+    }
+  });
+  window.addEventListener('keydown', e => {
+    if (state === 'playing' && e.key === 'Escape') { e.preventDefault(); pauseGame(); }
+  });
+
+  // ---- nav + music ----
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); },
+    confirmLeave: () => state === 'playing' && flips > 0 ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.critter-match.controlsTitle', { def: 'Critter Match — Controls' }),
+      mouse: [ [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.critter-match.ctrlFlip', { def: 'Flip a card' })] ],
+      keyboard: [ ['Esc', KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.critter-match.ctrlFlip', { def: 'Flip a card' })] ] } });
+  KIT.music.play('crittermatch');
+
+  // ---- __test ----
+  window.__test = {
+    get state() { return state; },
+    get score() { return state === 'over' ? score : runScore(); },
+    get mode() { return mode; },
+    get flips() { return flips; },
+    get matched() { return matched; },
+    get pairs() { return MODES[mode].pairs; },
+    get cardCount() { return cards.length; },
+    cardPair(i) { return cards[i] ? cards[i].pair : -1; },
+    isOpen(i) { return !!(cards[i] && (cards[i].open || cards[i].matched)); },
+    isMatched(i) { return !!(cards[i] && cards[i].matched); },
+    flip(i) { return flip(i); },
+    setDeck(list) {   // arrange faces deterministically
+      cards = list.map(pair => ({ pair, open: false, matched: false, flipT: 0, sparkT: 0 }));
+      openA = openB = -1; peekT = 0; flips = 0; matched = 0;
+      layoutBoard();
+    },
+    get peeking() { return peekT > 0; },
+    get layout() {
+      const totW = cols * cw + (cols - 1) * 8, totH = rows * chh + (rows - 1) * 8;
+      return { W, H, topReserve: topMargin, board: { x: bx, y: by, w: totW, h: totH, cardW: cw, cardH: chh, cols, rows } };
+    },
+    start() { startGame('medium'); },
+    startMode(m) { startGame(m); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+  };
+
+  // ---- boot ----
+  resize();
+  if (KIT) {
+    const L = { lblPairs: ['game.critter-match.hudPairs', 'PAIRS'], lblScore: ['game.common.score', 'SCORE'], lblBest: ['game.common.best', 'BEST'] };
+    for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
+    const m = KIT.param && KIT.param('mode');
+    if (m && MODES[m]) mode = m;
+  }
+  newGame(mode); state = 'ready';
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>
