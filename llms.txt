@@ -23,6 +23,7 @@ Komyo Games is a hobby project. Each game is a single self-contained HTML/Canvas
 - [Trap the Cat](https://komyo.online/games/trap-the-cat/): Plant rose hedges on a hex garden to corner the cat before it slips off the edge — fewer hedges, bigger score.
 - [Glow Says](https://komyo.online/games/glow-says/): Kid-friendly Simon — watch the glowing lanterns, tap the tune back; Chill mode never fails, Expert adds two lanterns.
 - [Balloon Pop](https://komyo.online/games/balloon-pop/): Tap the floating balloons — colour streak bonuses, confetti, and no way to lose; 60-second Party or endless Zen.
+- [Critter Match](https://komyo.online/games/critter-match/): Kids memory pairs — flip the cards and find matching critters across three board sizes; fewer flips, bigger score, you always win.
 
 ## Optional
 

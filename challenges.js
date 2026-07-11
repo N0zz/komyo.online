@@ -46,6 +46,8 @@ window.CHALLENGES = {
     'glow-2':     { slug: 'glow-says',    title: 'Remember 8 notes in Glow Says',       metric: 'score', target: 8 },
     'bal-pop-1':  { slug: 'balloon-pop',  title: 'Pop 30 in one Balloon Pop party',     metric: 'score', target: 30 },
     'bal-pop-2':  { slug: 'balloon-pop',  title: 'Pop 60 in one Balloon Pop run',       metric: 'score', target: 60 },
+    'critter-1':  { slug: 'critter-match', title: 'Match every critter on a board',      metric: 'score', target: 60 },
+    'critter-2':  { slug: 'critter-match', title: 'Score 160 in Critter Match',          metric: 'score', target: 160 },
     // ---- cross-game / meta (today) ----
     'play2':      { title: 'Play 2 different games today',  scope: 'cross', range: 'day', metric: 'distinctGames',  target: 2 },
     'play3':      { title: 'Play 3 different games today',  scope: 'cross', range: 'day', metric: 'distinctGames',  target: 3 },
@@ -68,7 +70,7 @@ window.CHALLENGES = {
     'play3', 'stk-1', 'astp-1', 'genres2', 'rand-daily', 'snake-2', 'bub-2', 'aim-2',
     'brk-2', 'fly-2', 'stk-2', 'td-wave10', 'astp-2', 'ast-1', 'ast-2', 'forcefield-1', 'forcefield-2',
     'frog-1', 'frog-2', 'sudoku-1', 'sudoku-2', 'mines-1', 'mines-2', '2048-1', '2048-2',
-    'cat-1', 'cat-2', 'glow-1', 'glow-2', 'bal-pop-1', 'bal-pop-2',
+    'cat-1', 'cat-2', 'glow-1', 'glow-2', 'bal-pop-1', 'bal-pop-2', 'critter-1', 'critter-2',
   ],
   weekly: ['wk-distinct5', 'wk-play12', 'rand-weekly', 'wk-genres3', 'wk-good10'],
 };
@@ -83,7 +85,7 @@ window.CHALLENGES.goodRun = {
   snake: 300, bubbles: 5000, breakout: 1500, stacker: 50, flappy: 50,
   'aim-trainer': 600, 'tower-defense': 2000, asteroids: 8000, 'asteroids-plus': 30000,
   forcefield: 500, 'frog-bonk': 2000, sudoku: 1500, minesweeper: 118, '2048': 4500, 'trap-the-cat': 90,
-  'glow-says': 8, 'balloon-pop': 60,
+  'glow-says': 8, 'balloon-pop': 60, 'critter-match': 160,
 };
 
 // THE canonical pool for scope:'random' picks — window.GAMES non-soon slugs in games.js order,
@@ -94,7 +96,7 @@ window.CHALLENGES.goodRun = {
 window.CHALLENGES.playable = [
   'asteroids', 'asteroids-plus', 'tower-defense', 'forcefield', 'bubbles', 'frog-bonk',
   'breakout', 'sudoku', 'stacker', 'trap-the-cat', 'flappy', 'aim-trainer', 'snake', '2048', 'minesweeper',
-  'balloon-pop', 'glow-says',
+  'balloon-pop', 'critter-match', 'glow-says',
 ];
 window.CHALLENGES.playableSince = {
   asteroids: '2026-06-26', 'asteroids-plus': '2026-06-28', 'tower-defense': '2026-06-26',
@@ -102,7 +104,7 @@ window.CHALLENGES.playableSince = {
   sudoku: '2026-07-10',
   stacker: '2026-06-26', flappy: '2026-06-26', 'aim-trainer': '2026-06-26', snake: '2026-06-26',
   minesweeper: '2026-07-11', '2048': '2026-07-12', 'trap-the-cat': '2026-07-12', 'glow-says': '2026-07-12',
-  'balloon-pop': '2026-07-12',
+  'balloon-pop': '2026-07-12', 'critter-match': '2026-07-12',
 };
 
 // Deterministic, same-for-everyone pick for scope:'random' goals — chosen from ALL playable

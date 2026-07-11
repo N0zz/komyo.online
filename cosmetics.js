@@ -631,6 +631,25 @@
   add('balloon-pop', 'balloons', 'critters', 'Critters', 50,  'Balloons with little animal ears.', balloonSwatch('critter'));
   add('balloon-pop', 'balloons', 'planets',  'Planets',  100, 'Ringed balloon planets in the sky.', balloonSwatch('planet'));
 
+  // ---- 🐾 Critter Match — critter card sets ----
+  function critterCard(emoji) {
+    return function (g, w, h) {
+      g.fillStyle = '#3a2415'; g.fillRect(0, 0, w, h);
+      const cw2 = w * 0.52, ch2 = h * 0.68, px = (w - cw2) / 2, py = (h - ch2) / 2;
+      g.fillStyle = '#fff8ec';
+      g.beginPath();
+      if (g.roundRect) g.roundRect(px, py, cw2, ch2, w * 0.08); else g.rect(px, py, cw2, ch2);
+      g.fill();
+      g.strokeStyle = '#d9b98a'; g.lineWidth = 2; g.stroke();
+      g.font = Math.round(w * 0.34) + 'px system-ui';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(emoji, w / 2, h / 2 + w * 0.02);
+    };
+  }
+  add('critter-match', 'critters', 'farm',   'Farm Friends',  0,   'Cows, chicks and fluffy sheep.', critterCard('🐮'));
+  add('critter-match', 'critters', 'jungle', 'Jungle Crew',   50,  'Lions, monkeys and parrots.',    critterCard('🦁'));
+  add('critter-match', 'critters', 'ocean',  'Ocean Pals',    100, 'Fish, octopuses and whales.',    critterCard('🐙'));
+
   // ---- 🌐 Forcefield — bolt colours + planet skins ----
   add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean golden bolt.', forcefieldMarker('#ffd36b'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
@@ -673,6 +692,7 @@
       'trap-the-cat.cat':    { label: 'Cat colours' },
       'glow-says.pads':      { label: 'Lantern shapes' },
       'balloon-pop.balloons': { label: 'Balloon styles' },
+      'critter-match.critters': { label: 'Critter sets' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -694,6 +714,7 @@
       'trap-the-cat':  { title: 'Trap the Cat', icon: '🐱', accent: '#f0a6c8' },
       'glow-says':     { title: 'Glow Says', icon: '🟢', accent: '#7ee787' },
       'balloon-pop':   { title: 'Balloon Pop', icon: '🎈', accent: '#ff9ec2' },
+      'critter-match': { title: 'Critter Match', icon: '🐾', accent: '#ffb86b' },
     },
   };
 })();

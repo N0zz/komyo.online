@@ -303,7 +303,7 @@ window.GAMES = [
     icon: "🐾",
     accent: "#ffb86b",
     tags: ["KIDS", "PUZZLE"],
-    soon: true,
+    added: "2026-07-12",
   },
   {
     slug: "glow-says",
