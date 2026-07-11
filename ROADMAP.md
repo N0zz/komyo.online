@@ -14,6 +14,15 @@ challenges, tv-controller.
   Kit gains along the way: daily-pick freeze (playableSince), disabled menu actions, card corner-🗑,
   and **live language switch rebuilds open menus in ALL 12 games**. Plan: `plans/sudoku-plan.md`.
 
+- **Audio v2 — reactive music engine — DONE (2026-07-07).** The Audio Lab mock's generative "modern"
+  engine shipped into the kit as the default music for all 11 games: gameplay-driven **intensity**
+  (each game feeds 0..1 from its state; layers ease in/out, never pop), the per-game track registry
+  (unique progressions/keys, 6 Keep Defender biome tracks), **music as a cosmetic** (Snake defaults
+  to Remaster; Banger unlockable at 100 🏆) with **▶ preview before buy** in the Collection. Zero-asset.
+  Plan: `plans/audio-ship-plan.md` (all ticked). *Leftover (nice-to-have): point `plans/audio-lint.mjs`
+  at the kit's real track registry instead of the mock.* Follow-up ideas: `plans/audio-music-plan.md`
+  ("Audio v3" — scale to hundreds of seeded tracks, see Later).
+
 - **Knobs audit pass — DONE (2026-06-29).** All 9 games reviewed vs `@game-design-knobs.md` (feel +
   balance). Keep Defender done (difficulty tiers + rebalance). Asteroids+ rebalanced (×10 scale, caps,
   expiry, kamikaze, finite 30-wave finale) — **shipped but still being playtested** (tracked in the
@@ -141,7 +150,9 @@ quality bar — see the Done entry).
    single adaptive button (native sheet on mobile, copy-link on desktop) — a bare link doesn't need a
    social-icon row. Profile share unchanged (already image-first). Rationale in the
    `plans/share-reorg-mocks.html` mock (option D).
-5. **Kit-owned progress-save API (pre-release, gates the saved-state lane)** *(added 2026-07-11)* —
+5. **Kit-owned progress-save API (NOT launch-gating — gates only the saved-state lane)** *(added
+   2026-07-11)* — launch can ship without it; it must merely land **before the first progress-based
+   game** (Foxden / merge-garden-style) —
    before the first progress-based game ships (Foxden / merge-garden-style): one kit API
    (`gamekit.progress`-style async load/save per slug) with **guards, limits and tests** — versioned
    save schema (per `@game-design-knobs.md`), per-game size budget (soft ~100 KB, suite-warned),
@@ -162,19 +173,23 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
 
 ### Later (non-gating)
 
-- **Audio v2 — ship the reactive music engine** *(planned 2026-07-07 — ready to build)* — promote the
-  Audio Lab mock's generative "modern" engine into the kit as the **default music for all 11 games**,
-  driven by **gameplay intensity** (score/enemies/speed, eased layer fade-ins), with **music as a
-  cosmetic** (Snake defaults to the remaster; an unlockable Banger track ~100 🏆; **preview before buy**
-  in the Collection). Mock: `plans/audio-lab.html`; linter: `plans/audio-lint.mjs`. Full phased plan
-  (engine port → per-game intensity → music cosmetics → shop preview → tests) in
-  **`plans/audio-ship-plan.md`**. Zero-asset; `.ogg` files stay off.
-
-- **Procedural music — scale to many distinct songs** *(idea — noted 2026-07-07)* — the kit's generative
+- **3D / three.js — evaluated (initial tl;dr 2026-07-11): stay no-deps for now; deeper eval only if a
+  3D-camera game lane is ever wanted.** Facts (r185, MIT): zero-build IS officially supported
+  (importmap + self-hosted files, no bundler) but costs **~188 KB gz** un-tree-shaken — vendorable
+  in-repo, so "no external deps" would technically survive; **WebGL2 is the hard minimum** (WebGL1
+  dropped r163; WebGL2 ~97 % support incl. iOS 15+). The dealbreaker today: **the renderer can't run
+  in our headless harness** — headless-gl is WebGL1-only/stale, so `__test.step(n)` + the mocked-canvas
+  test contract (our regression net) doesn't carry over; only scene-graph/math is Node-testable.
+  And none of our genres need a true 3D camera — outrun-style pseudo-3D, isometric, sprite-scaling and
+  starfields are canvas-2D tricks we can already do. If a single game ever truly needs 3D: consider
+  **OGL** (~8 KB gz, three-like API, Unlicense) or raw WebGL2 for that ONE game, model-is-truth state
+  fully testable headless with render untested — a deliberate exception, not a kit direction.
+- **Procedural music v3 — scale to many distinct songs** *(idea — noted 2026-07-07)* — the kit's generative
   music tops out at ~7–8 truly-distinct "flavors" today (limited by style×kit vocabulary, not
   progressions). Phased path to *hundreds* of distinct per-game/biome/daily-seed tracks (seed→song +
   linter-as-selector → synthesis families → rhythm grammar → motif+modes → arrangement) in
-  **`plans/audio-music-plan.md`**. Follows Audio v2 above. Stays zero-asset; `.ogg` files deferred.
+  **`plans/audio-music-plan.md`**. Follows Audio v2 (shipped 2026-07-07, see Done). Stays zero-asset;
+  `.ogg` files deferred.
 
 - **QR-based save import/export** *(idea — noted 2026-07-07)* — reuse the in-repo `qr.js` encoder to
   turn a player's Export blob (bests / owned cosmetics / selections) into a scannable QR, and add a
@@ -360,6 +375,18 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   **where to post** and **what to post**, plus called-out **red flags / crucial points only** (budget
   risk, ToS/spam risk, anything that could backfire). (Feeds Path-to-launch #5 + the Marketing
   sections below.)
+- **komyo TikTok account — CREATED (2026-07-11).** The channel for the 9:16 per-game/feature shorts
+  from `plans/promo-content-plan.md` (and the "dedicated TikTok / YT Shorts channel" idea under
+  Integrations). Next: first shorts once the promo-content track produces cuts.
+- **Video tooling — HyperFrames (initial tl;dr 2026-07-11; deeper eval when trailer work starts).**
+  HeyGen's **HyperFrames** (May 2026, Apache-2.0, free, no per-render fees): agent-native
+  "write HTML → render deterministic MP4" — Claude Code writes HTML/CSS/JS with timing attributes,
+  a headless-Chrome + FFmpeg renderer encodes it; CLI (`npx hyperframes …`) + bundled Claude skills;
+  custom sizes handle 9:16. **Fit:** strong for a code-native solo creator — titles, captions,
+  beat-synced cuts, 9:16 crops layered over captured gameplay, scriptable + reproducible. Caveat: it
+  composites/overlays, it's not a timeline editor — rough-cut the raw capture first (FFmpeg trims),
+  pair with CapCut for quick TikTok-native shorts; DaVinci Resolve stays the free full-NLE fallback
+  for the 30–60 s trailer. (Don't confuse with hyperframe.ai — a B2B doc-to-explainer SaaS, not a fit.)
 - **Promo content plan — planned (2026-07-09),** `plans/promo-content-plan.md`. The *assets* to post
   (sibling to marketing_plan.md = *where* to post): a reusable **promo graphic** + a **30–60s trailer**
   + **9:16 per-game/feature shorts**, all derived from the **score card as the brand visual language**
