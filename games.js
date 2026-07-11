@@ -281,9 +281,9 @@ window.GAMES = [
     title: "Minesweeper",
     blurb: "Clear the minefield — flag bombs, read the numbers, deduce the rest. The logic classic.",
     icon: "💣",
-    accent: "#9fb2c8",
+    accent: "#35e0ff",
     tags: ["LOGIC", "PUZZLE", "CLASSIC"],
-    soon: true,
+    added: "2026-07-11",
   },
 
   // ---- coming soon: kids-first (ages 6–10) ----

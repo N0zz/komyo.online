@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Minesweeper</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#35e0ff">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Minesweeper">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #030c14; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #hud .val { color: #35e0ff; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblMines">MINES</span><span class="val" id="minesEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblTime">TIME</span><span class="val" id="timeEl">0:00</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">—</span></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'minesweeper';
+  const ACCENT = '#35e0ff';
+
+  const SND = window.gamekit.sound;
+  SND.define({
+    dig:    c => c.voice({ f: 300, slideTo: 210, dur: 0.06, type: 'triangle', gain: 0.10, filter: 'lowpass', cutoff: 1600 }),
+    ripple: c => c.seq([392, 494, 587, 740], 45, f => c.voice({ f, dur: 0.10, type: 'sine', gain: 0.06, reverb: 0.25 })),
+    buoy:   c => c.voice({ f: 880, dur: 0.05, type: 'square', gain: 0.08, filter: 'lowpass', cutoff: 2400 }),
+    unbuoy: c => c.voice({ f: 620, dur: 0.05, type: 'square', gain: 0.07, filter: 'lowpass', cutoff: 2200 }),
+    ping:   c => c.voice({ f: 1320, slideTo: 1180, dur: 0.16, type: 'sine', gain: 0.07, reverb: 0.35 }),
+    boom:   c => { c.noiseHit({ dur: 0.5, gain: 0.22, filter: 'lowpass', cutoff: 900, cutoffTo: 120 });
+                   c.voice({ f: 90, slideTo: 38, dur: 0.55, type: 'sine', gain: 0.2 }); },
+    sweep:  c => c.play('victory'),
+  });
+
+  // ---- difficulties: a<=b logical board; display swaps with orientation ----
+  const DIFFS = {
+    easy:   { a: 9,  b: 9,  mines: 10 },
+    medium: { a: 12, b: 12, mines: 26 },
+    hard:   { a: 16, b: 16, mines: 44 },
+    expert: { a: 16, b: 24, mines: 85 },
+  };
+  const DIFF_ORDER = ['easy', 'medium', 'hard', 'expert'];
+
+  let W = 0, H = 0, topMargin = 48;
+  let state = 'ready';                 // ready | playing | over
+  let diff = 'easy';
+  let COLS = 9, ROWS = 9, MINES = 10;
+  let mine, num, rev, flg, revT;       // typed arrays; revT = frame stamp for pop anim
+  let minesPlaced = false;
+  let revealed = 0, flags = 0;
+  let won = false, boomAt = -1;        // boomAt = exploded cell idx
+  let frame = 0, playFrames = 0;       // playFrames ticks only after the first reveal
+  let flagMode = false;
+  let winFxT = 0;
+
+  // layout (display coords; flip transposes the logical board in landscape)
+  let cs = 30, bx = 0, by = 0, flip = false, dispC = 9, dispR = 9;
+  let togRect = { x: 0, y: 0, w: 0, h: 0 };
+
+  const idx = (x, y) => y * COLS + x;
+  const inb = (x, y) => x >= 0 && x < COLS && y >= 0 && y < ROWS;
+  function eachN(x, y, fn) { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    if (!dx && !dy) continue; const nx = x + dx, ny = y + dy; if (inb(nx, ny)) fn(nx, ny); } }
+
+  const diffLabel = d => { d = d || diff; return d.charAt(0).toUpperCase() + d.slice(1); }; // English storage label
+  const diffDisplay = d => KIT.t('game.minesweeper.diff' + diffLabel(d), { def: diffLabel(d) });
+  const fmtTime = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const elapsedSec = () => playFrames / 60;
+  function bestTime(d) { const b = KIT ? KIT.best(SLUG, diffLabel(d)) : null; return b && b.time > 0 ? b.time : 0; }
+
+  // ---- board skins (cosmetics) ----
+  const SKINS = {
+    'minesweeper.board.sonar': {
+      bg0: '#04101c', bg1: '#020810', tile: '#0d2a40', tileHi: '#1e4a68', tileLo: '#071a2b',
+      open: '#061420', openLine: '#0c2233', flagC: '#ff9d45', mineC: '#0a0f16', wave: 'rgba(53,224,255,0.05)',
+      nums: ['', '#4fd8ff', '#57e6a8', '#ffd166', '#ff9d45', '#ff6b6b', '#e07bff', '#e8f0ff', '#ff9dd8'], style: 'sonar',
+    },
+    'minesweeper.board.retro': {
+      bg0: '#8f979f', bg1: '#7d858d', tile: '#c0c7cf', tileHi: '#eef2f6', tileLo: '#7a828a',
+      open: '#b3bac2', openLine: '#9aa1a9', flagC: '#e03131', mineC: '#14181d', wave: 'rgba(255,255,255,0.03)',
+      nums: ['', '#1c46c8', '#1d7a2c', '#c22525', '#171a8a', '#7a1616', '#127f80', '#20242a', '#6d6d6d'], style: 'retro',
+    },
+    'minesweeper.board.meadow': {
+      bg0: '#173a1f', bg1: '#0e2814', tile: '#3f8a3c', tileHi: '#63b45a', tileLo: '#2a6329',
+      open: '#8a6b42', openLine: '#75592f', flagC: '#ffe066', mineC: '#3a2a18', wave: 'rgba(255,255,255,0.04)',
+      nums: ['', '#d7f4ff', '#ffe066', '#ffb35c', '#ff8a5c', '#ff6b6b', '#e07bff', '#ffffff', '#ffd1e8'], style: 'meadow',
+    },
+  };
+  function skin() {
+    const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('minesweeper.board') : null;
+    return SKINS[id] || SKINS['minesweeper.board.sonar'];
+  }
+
+  // ---- board setup ----
+  function newBoard(d) {
+    diff = d; const D = DIFFS[d];
+    COLS = D.a; ROWS = D.b; MINES = D.mines;
+    const n = COLS * ROWS;
+    mine = new Uint8Array(n); num = new Uint8Array(n); rev = new Uint8Array(n);
+    flg = new Uint8Array(n); revT = new Float32Array(n);
+    minesPlaced = false; revealed = 0; flags = 0; won = false; boomAt = -1;
+    playFrames = 0; winFxT = 0;
+    layoutBoard(); updateHud();
+  }
+
+  function computeNums() {
+    for (let y = 0; y < ROWS; y++) for (let x = 0; x < COLS; x++) {
+      if (mine[idx(x, y)]) continue;
+      let c = 0; eachN(x, y, (nx, ny) => { if (mine[idx(nx, ny)]) c++; });
+      num[idx(x, y)] = c;
+    }
+  }
+
+  function placeMines(sx, sy) {
+    // first-click safe: exclude the 3x3 around the first reveal (fallback: just the cell)
+    const excl = new Set([idx(sx, sy)]);
+    eachN(sx, sy, (nx, ny) => excl.add(idx(nx, ny)));
+    const n = COLS * ROWS;
+    const excludeAll = n - excl.size >= MINES ? excl : new Set([idx(sx, sy)]);
+    let placed = 0;
+    while (placed < MINES) {
+      const i = Math.floor(Math.random() * n);
+      if (mine[i] || excludeAll.has(i)) continue;
+      mine[i] = 1; placed++;
+    }
+    computeNums(); minesPlaced = true;
+  }
+
+  // ---- actions ----
+  function reveal(x, y, viaChord) {
+    if (state !== 'playing' || !inb(x, y)) return;
+    const i = idx(x, y);
+    if (flg[i] || rev[i]) { if (!viaChord && rev[i]) chord(x, y); return; }
+    if (!minesPlaced) placeMines(x, y);
+    rev[i] = 1; revT[i] = frame;
+    if (mine[i]) { explode(i); return; }
+    revealed++;
+    if (num[i] === 0) flood(x, y);
+    if (!viaChord) SND.play(num[i] === 0 ? 'ripple' : 'dig');
+    updateHud(); checkWin();
+  }
+
+  function flood(x, y) {
+    const q = [[x, y]];
+    while (q.length) {
+      const [cx, cy] = q.pop();
+      eachN(cx, cy, (nx, ny) => {
+        const i = idx(nx, ny);
+        if (rev[i] || flg[i] || mine[i]) return;
+        rev[i] = 1; revT[i] = frame + Math.min(20, Math.abs(nx - x) + Math.abs(ny - y)) ; revealed++;
+        if (num[i] === 0) q.push([nx, ny]);
+      });
+    }
+  }
+
+  function toggleFlag(x, y) {
+    if (state !== 'playing' || !inb(x, y)) return;
+    const i = idx(x, y);
+    if (rev[i]) return;
+    if (!minesPlaced) return; // no flags before the first dig — nothing is known yet
+    flg[i] = flg[i] ? 0 : 1; flags += flg[i] ? 1 : -1;
+    SND.play(flg[i] ? 'buoy' : 'unbuoy');
+    updateHud();
+  }
+
+  function chord(x, y) {
+    const i = idx(x, y);
+    if (!rev[i] || num[i] === 0) return;
+    let fc = 0; eachN(x, y, (nx, ny) => { if (flg[idx(nx, ny)]) fc++; });
+    if (fc !== num[i]) return;
+    SND.play('ping');
+    eachN(x, y, (nx, ny) => { const j = idx(nx, ny); if (!flg[j] && !rev[j]) reveal(nx, ny, true); });
+    updateHud(); if (state === 'playing') checkWin();
+  }
+
+  function explode(i) {
+    boomAt = i; won = false; SND.play('boom');
+    if (navigator.vibrate) { try { navigator.vibrate(120); } catch (e) {} }
+    // reveal every mine for the post-mortem board
+    for (let j = 0; j < mine.length; j++) if (mine[j] && !rev[j]) { rev[j] = 1; revT[j] = frame + (j % 14); }
+    endRun(false);
+  }
+
+  function checkWin() {
+    if (revealed >= COLS * ROWS - MINES) {
+      won = true; winFxT = frame;
+      for (let j = 0; j < mine.length; j++) if (mine[j] && !flg[j]) { flg[j] = 1; flags++; }
+      SND.play('sweep');
+      endRun(true);
+    }
+  }
+
+  function endRun(didWin) {
+    state = 'over';
+    const t = elapsedSec();
+    const prevT = bestTime(diff);
+    if (KIT) KIT.saveBest(SLUG, diffLabel(diff), didWin ? { score: revealed, time: t } : { score: revealed });
+    const isBest = didWin && (prevT === 0 || t < prevT);
+    updateHud();
+    setTimeout(() => showEnd(didWin, isBest, t), didWin ? 500 : 900); // let the board read first
+  }
+
+  // ---- update / render ----
+  function update() {
+    frame++;
+    if (state === 'playing') {
+      if (minesPlaced) playFrames++;
+      if (playFrames % 30 === 1) updateHud();
+      if (KIT && KIT.music) {
+        const total = COLS * ROWS - MINES;
+        KIT.music.intensity(Math.min(1, 0.32 + 0.55 * (revealed / total)));
+      }
+    } else if (KIT && KIT.music) KIT.music.intensity(0.3);
+  }
+
+  function layoutBoard() {
+    flip = W > H && ROWS > COLS ? true : (W > H && COLS === ROWS ? false : false);
+    // transpose whenever the board doesn't match the screen aspect
+    flip = (W > H) !== (COLS >= ROWS) && COLS !== ROWS;
+    dispC = flip ? ROWS : COLS; dispR = flip ? COLS : ROWS;
+    const pad = 10, togH = 62, togGap = 12;
+    const availW = W - pad * 2;
+    const availH = H - topMargin - pad * 2 - togH - togGap;
+    cs = Math.max(12, Math.floor(Math.min(availW / dispC, availH / dispR)));
+    bx = Math.round((W - cs * dispC) / 2);
+    by = Math.round(topMargin + pad + (availH - cs * dispR) / 2);
+    const tw = Math.min(320, W - 40);
+    togRect = { x: (W - tw) / 2, y: by + cs * dispR + togGap, w: tw, h: togH };
+  }
+
+  const dToL = (dx, dy) => flip ? { x: dy, y: dx } : { x: dx, y: dy };
+  const lToD = (x, y) => flip ? { dx: y, dy: x } : { dx: x, dy: y };
+
+  // cached tile sprites (per skin+size): hidden + open
+  let tileCache = { key: '', hid: null, opn: null };
+  function tiles() {
+    const S = skin(); const key = S.style + '_' + cs;
+    if (tileCache.key === key) return tileCache;
+    const mk = () => { const c = document.createElement('canvas'); c.width = c.height = Math.max(2, cs); return c; };
+    const hid = mk(), opn = mk();
+    let g = hid.getContext('2d');
+    if (g) {
+      g.fillStyle = S.tile; g.fillRect(0, 0, cs, cs);
+      g.fillStyle = S.tileHi; g.fillRect(0, 0, cs, 2); g.fillRect(0, 0, 2, cs);          // top-left light
+      g.fillStyle = S.tileLo; g.fillRect(0, cs - 2, cs, 2); g.fillRect(cs - 2, 0, 2, cs); // bottom-right shadow
+      g.strokeStyle = 'rgba(0,0,0,0.25)'; g.strokeRect(0.5, 0.5, cs - 1, cs - 1);
+      if (S.style === 'meadow') { // grass flecks (deterministic)
+        g.fillStyle = 'rgba(255,255,255,0.10)';
+        for (let k = 0; k < 5; k++) { const h = (k * 37) % (cs - 6); g.fillRect(3 + ((k * 53) % (cs - 6)), 3 + h, 2, 2); }
+      }
+    }
+    g = opn.getContext('2d');
+    if (g) {
+      g.fillStyle = S.open; g.fillRect(0, 0, cs, cs);
+      g.strokeStyle = S.openLine; g.strokeRect(0.5, 0.5, cs - 1, cs - 1);
+    }
+    tileCache = { key, hid, opn };
+    return tileCache;
+  }
+
+  function drawMine(g, px, py, s, S, exploded) {
+    const r = s * 0.28, cxp = px + s / 2, cyp = py + s / 2;
+    if (S.style === 'meadow') { // a gopher hole
+      g.fillStyle = exploded ? '#7a1f1f' : S.mineC;
+      g.beginPath(); g.ellipse(cxp, cyp + r * 0.2, r * 1.1, r * 0.75, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(0,0,0,0.45)';
+      g.beginPath(); g.ellipse(cxp, cyp + r * 0.1, r * 0.7, r * 0.45, 0, 0, Math.PI * 2); g.fill();
+      return;
+    }
+    // naval mine: spikes + sphere + gloss
+    g.strokeStyle = exploded ? '#ff6b6b' : (S.style === 'retro' ? '#14181d' : '#274b63');
+    g.lineWidth = Math.max(1.5, s * 0.06);
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      g.beginPath(); g.moveTo(cxp + Math.cos(a) * r * 0.7, cyp + Math.sin(a) * r * 0.7);
+      g.lineTo(cxp + Math.cos(a) * r * 1.45, cyp + Math.sin(a) * r * 1.45); g.stroke();
+    }
+    const grd = g.createRadialGradient(cxp - r * 0.4, cyp - r * 0.4, r * 0.15, cxp, cyp, r * 1.1);
+    grd.addColorStop(0, exploded ? '#ff8f6b' : '#3a5a72'); grd.addColorStop(1, exploded ? '#8f1d1d' : S.mineC);
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(cxp, cyp, r, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.5)';
+    g.beginPath(); g.arc(cxp - r * 0.35, cyp - r * 0.38, r * 0.18, 0, Math.PI * 2); g.fill();
+  }
+
+  function drawFlag(g, px, py, s, S) {
+    const cxp = px + s / 2, base = py + s * 0.78;
+    if (S.style === 'meadow') { // a daisy
+      const cyp = py + s / 2, r = s * 0.14;
+      g.fillStyle = '#fff';
+      for (let k = 0; k < 6; k++) { const a = (k / 6) * Math.PI * 2;
+        g.beginPath(); g.ellipse(cxp + Math.cos(a) * r * 1.2, cyp + Math.sin(a) * r * 1.2, r * 0.8, r * 0.5, a, 0, Math.PI * 2); g.fill(); }
+      g.fillStyle = S.flagC; g.beginPath(); g.arc(cxp, cyp, r * 0.7, 0, Math.PI * 2); g.fill();
+      return;
+    }
+    g.strokeStyle = S.style === 'retro' ? '#14181d' : '#cfe4ef';
+    g.lineWidth = Math.max(1.5, s * 0.07);
+    g.beginPath(); g.moveTo(cxp, base); g.lineTo(cxp, py + s * 0.2); g.stroke();
+    g.fillStyle = S.flagC;
+    g.beginPath(); g.moveTo(cxp, py + s * 0.2); g.lineTo(cxp + s * 0.3, py + s * 0.32); g.lineTo(cxp, py + s * 0.44);
+    g.closePath(); g.fill();
+    g.fillStyle = 'rgba(0,0,0,0.35)';
+    g.beginPath(); g.ellipse(cxp, base + 1, s * 0.16, s * 0.05, 0, 0, Math.PI * 2); g.fill();
+  }
+
+  function drawCellInto(g, x, y, px, py, S, t) {
+    const i = idx(x, y);
+    if (!rev[i]) {
+      g.drawImage(t.hid, px, py);
+      if (flg[i]) drawFlag(g, px, py, cs, S);
+      return;
+    }
+    // reveal pop: brief scale-in
+    const age = frame - revT[i];
+    if (age < 0) { g.drawImage(t.hid, px, py); return; }   // staggered flood reveal still pending
+    g.drawImage(t.opn, px, py);
+    const n = num[i];
+    if (mine[i]) { drawMine(g, px, py, cs, S, i === boomAt); return; }
+    if (n > 0) {
+      const sc = age < 8 ? 0.6 + 0.4 * (age / 8) : 1;
+      g.fillStyle = S.nums[n];
+      g.font = '700 ' + Math.round(cs * 0.52 * sc) + 'px system-ui, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText(n, px + cs / 2, py + cs / 2 + 1);
+    }
+  }
+
+  function drawBoardTo(g) {
+    const S = skin(), t = tiles();
+    for (let dy = 0; dy < dispR; dy++) for (let dx = 0; dx < dispC; dx++) {
+      const L = dToL(dx, dy);
+      drawCellInto(g, L.x, L.y, bx + dx * cs, by + dy * cs, S, t);
+    }
+  }
+
+  function render() {
+    const S = skin();
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, S.bg0); bg.addColorStop(1, S.bg1);
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    // sonar wave rings (subtle, deterministic from frame)
+    ctx.strokeStyle = S.wave; ctx.lineWidth = 2;
+    for (let k = 0; k < 3; k++) {
+      const r = ((frame * 0.7 + k * 140) % 420) + 40;
+      ctx.beginPath(); ctx.arc(W / 2, by + (cs * dispR) / 2, r, 0, Math.PI * 2); ctx.stroke();
+    }
+    if (mine) drawBoardTo(ctx);
+
+    // exploded flash
+    if (boomAt >= 0) {
+      const D = lToD(boomAt % COLS, Math.floor(boomAt / COLS));
+      ctx.fillStyle = 'rgba(255,80,60,0.16)';
+      ctx.fillRect(bx + D.dx * cs - 4, by + D.dy * cs - 4, cs + 8, cs + 8);
+    }
+    // win shimmer sweep
+    if (won && winFxT) {
+      const p = Math.min(1, (frame - winFxT) / 50);
+      ctx.fillStyle = 'rgba(87,230,168,' + (0.14 * (1 - p)) + ')';
+      ctx.fillRect(bx, by, cs * dispC * p, cs * dispR);
+    }
+
+    // flag-mode toggle pill
+    const T = togRect;
+    ctx.fillStyle = 'rgba(6,20,32,0.82)';
+    KIT.roundRect(ctx, T.x, T.y, T.w, T.h, T.h / 2); ctx.fill();
+    ctx.strokeStyle = 'rgba(53,224,255,0.4)'; ctx.lineWidth = 1.5;
+    KIT.roundRect(ctx, T.x, T.y, T.w, T.h, T.h / 2); ctx.stroke();
+    const half = T.w / 2;
+    ctx.fillStyle = ACCENT;
+    KIT.roundRect(ctx, T.x + (flagMode ? half : 0) + 4, T.y + 4, half - 8, T.h - 8, (T.h - 8) / 2);
+    ctx.globalAlpha = 0.22; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.font = '700 ' + Math.round(T.h * 0.34) + 'px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = flagMode ? 'rgba(230,240,250,0.55)' : '#e6f0fa';
+    ctx.fillText('⛏ ' + KIT.t('game.minesweeper.dig', { def: 'DIG' }), T.x + half / 2, T.y + T.h / 2);
+    ctx.fillStyle = flagMode ? '#e6f0fa' : 'rgba(230,240,250,0.55)';
+    ctx.fillText('🚩 ' + KIT.t('game.minesweeper.flag', { def: 'FLAG' }), T.x + half + half / 2, T.y + T.h / 2);
+
+    // grade + vignette
+    const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.75);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.32)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  }
+
+  // ---- HUD ----
+  function updateHud() {
+    const m = document.getElementById('minesEl'), t = document.getElementById('timeEl'), b = document.getElementById('bestEl');
+    if (m) m.textContent = Math.max(0, MINES - flags);
+    if (t) t.textContent = fmtTime(elapsedSec());
+    if (b) { const bt = bestTime(diff); b.textContent = bt > 0 ? fmtTime(bt) : '—'; }
+  }
+
+  // ---- game flow + menus ----
+  const MENU_THEME = { accent: ACCENT, title: ACCENT };
+
+  function startGame(d) {
+    newBoard(d || diff);
+    state = 'playing'; flagMode = false;
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    updateHud();
+  }
+
+  function menuBackdrop(g, w, h, tt) {
+    // backdrop-truth: reuse the REAL painters on a decorative mini board
+    const S = skin();
+    const grd = g.createLinearGradient(0, 0, 0, h);
+    grd.addColorStop(0, S.bg0); grd.addColorStop(1, S.bg1);
+    g.fillStyle = grd; g.fillRect(0, 0, w, h);
+    g.strokeStyle = S.wave; g.lineWidth = 2;
+    for (let k = 0; k < 3; k++) { const r = ((tt * 24 + k * 150) % 460) + 60;
+      g.beginPath(); g.arc(w / 2, h / 2, r, 0, Math.PI * 2); g.stroke(); }
+    const s = Math.max(26, Math.floor(Math.min(w, h) / 12));
+    const c0 = Math.ceil(w / s), r0 = Math.ceil(h / s);
+    const DEMO = [[3, 2, 'f'], [4, 2, 1], [5, 2, 2], [6, 2, 'm'], [3, 3, 0], [4, 3, 1], [5, 3, 3], [2, 4, 'f'], [6, 4, 1]];
+    g.globalAlpha = 0.5;
+    for (let yy = 0; yy < r0; yy++) for (let xx = 0; xx < c0; xx++) {
+      const d = DEMO.find(e => e[0] === xx % 9 && e[1] === yy % 6);
+      const px = xx * s, py = yy * s;
+      if (d === undefined) {
+        g.fillStyle = S.tile; g.fillRect(px, py, s - 1, s - 1);
+        g.fillStyle = S.tileHi; g.fillRect(px, py, s - 1, 2); g.fillRect(px, py, 2, s - 1);
+        g.fillStyle = S.tileLo; g.fillRect(px, py + s - 3, s - 1, 2);
+      } else {
+        g.fillStyle = S.open; g.fillRect(px, py, s - 1, s - 1);
+        if (d[2] === 'f') { g.fillStyle = S.tile; g.fillRect(px, py, s - 1, s - 1); drawFlag(g, px, py, s, S); }
+        else if (d[2] === 'm') drawMine(g, px, py, s, S, false);
+        else if (d[2] > 0) { g.fillStyle = S.nums[d[2]]; g.font = '700 ' + Math.round(s * 0.5) + 'px system-ui';
+          g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(d[2], px + s / 2, py + s / 2); }
+      }
+    }
+    g.globalAlpha = 1;
+  }
+
+  function pvBoard(g, w, h, cols, density) {
+    const s = Math.max(4, Math.floor(Math.min(w / cols, h / cols)));
+    const off = (w - s * cols) / 2, offY = (h - s * cols) / 2;
+    for (let yy = 0; yy < cols; yy++) for (let xx = 0; xx < cols; xx++) {
+      const hidden = ((xx * 7 + yy * 13) % 10) < density * 10;
+      g.fillStyle = hidden ? '#0d2a40' : '#061420';
+      g.fillRect(off + xx * s, offY + yy * s, s - 1, s - 1);
+      if (hidden) { g.fillStyle = '#1e4a68'; g.fillRect(off + xx * s, offY + yy * s, s - 1, 1); }
+    }
+  }
+
+  function showStartMenu() {
+    state = 'ready';
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: KIT.t('game.minesweeper.menuTitle', { def: 'MINESWEEPER' }),
+      groups: [{ id: 'diff', label: KIT.t('game.common.difficulty', { def: 'DIFFICULTY' }), style: 'cards', default: diff,
+        choices: DIFF_ORDER.map(d => ({ id: d, label: diffDisplay(d),
+          mech: [DIFFS[d].a + '×' + DIFFS[d].b + ' · ' + DIFFS[d].mines + ' 💣'],
+          best: () => { const t = bestTime(d); return t > 0 ? fmtTime(t) : ''; },
+          preview: (g, w, h) => pvBoard(g, w, h, Math.min(12, DIFFS[d].a), 0.5 + 0.2 * DIFF_ORDER.indexOf(d)) })) }],
+      hint: () => KIT.t('game.minesweeper.startHint', { def: 'Clear the bay without hitting a mine. First dig is always safe.' }),
+      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
+      onChange: st => { diff = st.diff; KIT.stampUrl({ diff: st.diff }); updateHud(); },
+      onPlay: st => { startGame(st.diff); },
+    });
+  }
+
+  function shareMsg() {
+    return won
+      ? KIT.t('game.minesweeper.shareWin', { time: fmtTime(elapsedSec()), diff: diffDisplay(diff),
+          def: 'I swept a {diff} board in {time} — Minesweeper 💣' })
+      : KIT.t('game.minesweeper.shareLose', { count: revealed,
+          def: 'I uncovered {count} tiles before the boom — Minesweeper 💣' });
+  }
+
+  function showEnd(didWin, isBest, t) {
+    if (!KIT) return;
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: didWin ? KIT.t('game.minesweeper.cleared', { def: 'BAY CLEARED!' }) : KIT.t('game.minesweeper.boom', { def: 'BOOM!' }),
+      record: didWin ? { slug: SLUG, mode: diffLabel(diff), score: revealed, time: t } : { slug: SLUG, mode: diffLabel(diff), score: revealed },
+      scoreText: didWin ? fmtTime(t) : String(revealed),
+      best: didWin ? (bestTime(diff) > 0 ? fmtTime(bestTime(diff)) : '') : (KIT.bestScore(SLUG, diffLabel(diff)) || ''),
+      newBest: !!isBest,
+      lines: [ diffDisplay(diff) + ' · ' + MINES + ' 💣' + (didWin ? '' : ' · ' + KIT.t('game.minesweeper.tilesLine', { count: revealed, def: '{count} tiles uncovered' })) ],
+      share: { slug: SLUG, accent: ACCENT, icon: '💣', title: KIT.t('game.minesweeper.title', { def: 'Minesweeper' }),
+               message: () => shareMsg(), params: () => ({ diff }) },
+      actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true },
+                 { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
+      onAction: id => { if (id === 'again') startGame(diff); else if (id === 'menu') toMenu(); } });
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines: [fmtTime(elapsedSec()) + ' · ' + KIT.t('game.minesweeper.minesLeft', { count: Math.max(0, MINES - flags), def: '{count} mines left' })],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
+                 { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
+      onAction: id => { if (id === 'resume') KIT.menu.hide(); else if (id === 'menu') toMenu(); },
+      onEsc: () => KIT.menu.hide() });
+  }
+  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
+
+  // ---- resize ----
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    topMargin = KIT.layout.hudTop();
+    if (mine) layoutBoard();
+  }
+  window.gamekit.layout.on(resize);
+
+  // ---- input ----
+  function cellAt(px, py) {
+    const dx = Math.floor((px - bx) / cs), dy = Math.floor((py - by) / cs);
+    if (dx < 0 || dy < 0 || dx >= dispC || dy >= dispR) return null;
+    return dToL(dx, dy);
+  }
+  function toCanvas(e, r) { return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) }; }
+
+  let pDown = null, pLong = null, pLongFired = false;
+  canvas.addEventListener('pointerdown', e => {
+    const r = canvas.getBoundingClientRect(); const p = toCanvas(e, r);
+    if (state !== 'playing') return;
+    // toggle pill
+    if (p.x >= togRect.x && p.x <= togRect.x + togRect.w && p.y >= togRect.y && p.y <= togRect.y + togRect.h) {
+      flagMode = p.x >= togRect.x + togRect.w / 2; SND.play('buoy'); pDown = null; return;
+    }
+    pDown = p; pLongFired = false;
+    const c = cellAt(p.x, p.y);
+    if (c && e.pointerType !== 'mouse') {
+      pLong = setTimeout(() => { pLongFired = true; toggleFlag(c.x, c.y);
+        if (navigator.vibrate) { try { navigator.vibrate(30); } catch (err) {} } }, 380);
+    }
+    if (c && e.button === 2) { pLongFired = true; toggleFlag(c.x, c.y); }
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (pLong) { clearTimeout(pLong); pLong = null; }
+    if (!pDown || pLongFired || state !== 'playing') { pDown = null; return; }
+    const r = canvas.getBoundingClientRect(); const p = toCanvas(e, r);
+    if (Math.hypot(p.x - pDown.x, p.y - pDown.y) > cs * 0.8) { pDown = null; return; }  // dragged off
+    const c = cellAt(p.x, p.y);
+    pDown = null;
+    if (!c || e.button === 2) return;
+    if (flagMode && !rev[idx(c.x, c.y)]) toggleFlag(c.x, c.y);
+    else reveal(c.x, c.y);
+  });
+  canvas.addEventListener('pointercancel', () => { if (pLong) { clearTimeout(pLong); pLong = null; } pDown = null; });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  window.addEventListener('keydown', e => {
+    if (state === 'playing') {
+      if (e.key === 'Escape') { e.preventDefault(); pauseGame(); }
+      else if (e.key === 'f' || e.key === 'F') { flagMode = !flagMode; SND.play('buoy'); }
+    }
+  });
+
+  // ---- nav + music ----
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); },
+    confirmLeave: () => state === 'playing' && minesPlaced ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.minesweeper.controlsTitle', { def: 'Minesweeper — Controls' }),
+      mouse: [ [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.minesweeper.ctrlDig', { def: 'Dig (reveal a tile)' })],
+               [KIT.t('game.minesweeper.rightClick', { def: 'Right-click' }), KIT.t('game.minesweeper.ctrlFlag', { def: 'Place / remove a flag' })],
+               [KIT.t('game.minesweeper.clickNumber', { def: 'Click a number' }), KIT.t('game.minesweeper.ctrlChord', { def: 'Chord: open around a satisfied number' })] ],
+      keyboard: [ ['F', KIT.t('game.minesweeper.ctrlFlagMode', { def: 'Toggle flag mode' })],
+                  ['Esc', KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.minesweeper.ctrlDig', { def: 'Dig (reveal a tile)' })],
+               [KIT.t('game.minesweeper.longPress', { def: 'Long-press' }), KIT.t('game.minesweeper.ctrlFlag', { def: 'Place / remove a flag' })],
+               [KIT.t('game.minesweeper.togglePill', { def: '⛏/🚩 switch' }), KIT.t('game.minesweeper.ctrlFlagMode', { def: 'Toggle flag mode' })] ] } });
+  KIT.music.play('minesweeper');
+
+  // ---- __test ----
+  window.__test = {
+    get state() { return state; },
+    get score() { return revealed; },
+    get diff() { return diff; },
+    get cols() { return COLS; }, get rows() { return ROWS; }, get mineCount() { return MINES; },
+    get minesPlaced() { return minesPlaced; },
+    get flags() { return flags; },
+    get won() { return won; },
+    get flagMode() { return flagMode; }, set flagMode(v) { flagMode = !!v; },
+    get timeSec() { return elapsedSec(); },
+    isMine(x, y) { return !!mine[idx(x, y)]; },
+    numAt(x, y) { return num[idx(x, y)]; },
+    isRevealed(x, y) { return !!rev[idx(x, y)]; },
+    isFlagged(x, y) { return !!flg[idx(x, y)]; },
+    reveal(x, y) { reveal(x, y); },
+    flag(x, y) { toggleFlag(x, y); },
+    chord(x, y) { chord(x, y); },
+    // deterministic board control: place mines exactly where the test wants them
+    plantMines(list) {
+      mine.fill(0); num.fill(0);
+      for (const [x, y] of list) mine[idx(x, y)] = 1;
+      MINES = list.length; computeNums(); minesPlaced = true; updateHud();
+    },
+    get layout() {
+      return { W, H, topReserve: topMargin,
+        board: { x: bx, y: by, w: cs * dispC, h: cs * dispR, cell: cs, cols: dispC, rows: dispR },
+        toggle: { x: togRect.x, y: togRect.y, w: togRect.w, h: togRect.h } };
+    },
+    start() { startGame('easy'); },
+    startMode(d) { startGame(d); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+  };
+
+  // ---- boot ----
+  resize();
+  if (KIT) {
+    const L = { lblMines: ['game.minesweeper.hudMines', 'MINES'], lblTime: ['game.common.time', 'TIME'], lblBest: ['game.common.best', 'BEST'] };
+    for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
+    const dl = KIT.param && KIT.param('diff');
+    if (dl && DIFFS[dl]) diff = dl;
+  }
+  newBoard(diff); state = 'ready';
+  updateHud();
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>
