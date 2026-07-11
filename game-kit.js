@@ -227,6 +227,7 @@
     keep:         { kind: 'modern', bpm: 86, root: 110, scale: [0, 2, 3, 5, 7, 8, 12], prog: [0, 3, 6, 4, 0, 5, 3, 6], cutoff: 1700, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },
     stacker:      { kind: 'modern', bpm: 96, root: 220, scale: [0, 3, 5, 7, 10, 12], prog: [0, 4, 5, 3, 0, 4, 2, 3], cutoff: 2000, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'sine', lead: 'triangle', softLead: true, vibrato: 4 },
     sudoku:       { kind: 'modern', bpm: 80, root: 155.56, scale: [0, 2, 4, 7, 9, 12], prog: [0, 5, 1, 4, 0, 2, 5, 4], cutoff: 2200, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 3 },
+    minesweeper:  { kind: 'modern', bpm: 88, root: 130.81, scale: [0, 2, 3, 5, 7, 9, 10], prog: [0, 4, 2, 6, 0, 3, 5, 1], cutoff: 1600, kit: 'techno', groove: 'trance', pad: 'triangle', bass: 'sine', lead: 'sine', softLead: true, detune: 6 },
     meadow:       { kind: 'modern', bpm: 90, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 5, 0, 2, 4, 5], cutoff: 2400, kit: 'soft', prod: 'lush', pad: 'triangle', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 5 },
     // Keep Defender per-biome (epic palette; each biome keeps its own key/tempo/mode for mood)
     kd_grass:   { kind: 'modern', bpm: 96, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 4, 0, 2, 4, 3], cutoff: 2500, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },

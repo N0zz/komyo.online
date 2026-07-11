@@ -504,6 +504,28 @@
   add('sudoku', 'digits', 'animals', 'Animals',   50, 'Nine little critters instead of numbers.', sudokuAnimals);
   add('sudoku', 'digits', 'shapes',  'Shapes',    50, 'Nine colorful shapes instead of numbers.', sudokuShapes);
 
+  // ---- 💣 Minesweeper — board themes (mini 2×2 tile swatch: raised tiles + one open number) ----
+  function msBoard(tile, hi, open, numC) {
+    return function (g, w, h) {
+      const s = Math.floor(Math.min(w, h) / 2);
+      const ox = (w - s * 2) / 2, oy = (h - s * 2) / 2;
+      for (let k = 0; k < 4; k++) {
+        const x = ox + (k % 2) * s, y = oy + Math.floor(k / 2) * s;
+        if (k === 3) {
+          g.fillStyle = open; g.fillRect(x, y, s - 1, s - 1);
+          g.fillStyle = numC; g.font = '700 ' + Math.round(s * 0.6) + 'px system-ui';
+          g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('1', x + s / 2, y + s / 2);
+        } else {
+          g.fillStyle = tile; g.fillRect(x, y, s - 1, s - 1);
+          g.fillStyle = hi; g.fillRect(x, y, s - 1, 2); g.fillRect(x, y, 2, s - 1);
+        }
+      }
+    };
+  }
+  add('minesweeper', 'board', 'sonar',  'Sonar',  0,   'Deep-sea charts and glowing cyan pings.', msBoard('#0d2a40', '#1e4a68', '#061420', '#4fd8ff'));
+  add('minesweeper', 'board', 'retro',  'Retro',  50,  'The beige office classic, pixel bevels and all.', msBoard('#c0c7cf', '#eef2f6', '#b3bac2', '#1c46c8'));
+  add('minesweeper', 'board', 'meadow', 'Meadow', 100, 'Dig a sunny field — daisies mark the moles.', msBoard('#3f8a3c', '#63b45a', '#8a6b42', '#ffe066'));
+
   // ---- 🌐 Forcefield — bolt colours + planet skins ----
   add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean golden bolt.', forcefieldMarker('#ffd36b'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
@@ -541,6 +563,7 @@
       'frog-bonk.meadow':    { label: 'Meadow seasons' },
       'sudoku.board':        { label: 'Board themes' },
       'sudoku.digits':       { label: 'Numeral styles' },
+      'minesweeper.board':   { label: 'Board themes' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -557,6 +580,7 @@
       'forcefield':          { title: 'Forcefield', icon: '🌐', accent: '#38bdf8' },
       'frog-bonk':     { title: 'Frog Bonk', icon: '🐸', accent: '#7ed957' },
       'sudoku':        { title: 'Sudoku', icon: '🔢', accent: '#f0b429' },
+      'minesweeper':   { title: 'Minesweeper', icon: '💣', accent: '#35e0ff' },
     },
   };
 })();
