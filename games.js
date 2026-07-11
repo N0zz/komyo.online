@@ -193,7 +193,7 @@ window.GAMES = [
     icon: "🧮",
     accent: "#f2b179",
     tags: ["PUZZLE", "LOGIC"],
-    soon: true,
+    added: "2026-07-12",
   },
   {
     slug: "keyfall",
