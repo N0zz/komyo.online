@@ -329,6 +329,7 @@
     const g = Uint8Array.from(puzzle);
     const S = makeSolver(g);
     let maxLevel = 0;
+    const steps = [0, 0, 0, 0, 0];   // per-level count of solve steps — [2] = locked-candidate steps etc.
     const LADDER = [
       [1, () => S.nakedSingle(true) || S.hiddenSingle(true)],
       [2, S.locked],
@@ -336,24 +337,31 @@
       [4, S.wings],
     ];
     for (;;) {
-      if (!g.includes(0)) return { solved: true, level: maxLevel };
+      if (!g.includes(0)) return { solved: true, level: maxLevel, steps };
       let progressed = false;
       for (const [lvl, fn] of LADDER) {
-        if (fn()) { if (lvl > maxLevel) maxLevel = lvl; progressed = true; break; }
+        if (fn()) { if (lvl > maxLevel) maxLevel = lvl; steps[lvl]++; progressed = true; break; }
       }
-      if (!progressed) return { solved: false, level: maxLevel };
+      if (!progressed) return { solved: false, level: maxLevel, steps };
     }
   }
-  function digGraded(solution, rand, band, targetClues) {
+  function digGraded(solution, rand, band, range) {
+    const minClues = range[0], maxClues = range[1];
+    // Easy satisfies its technique check immediately, so without an aim it would idle at the
+    // range ceiling (~40 clues) — dig it down near its floor instead; the graded bands already
+    // dig deep chasing their technique, so they keep the ceiling as the stop
+    const aim = band === 1 ? minClues + 1 : maxClues;
     const puzzle = Uint8Array.from(solution);
     let clues = 81, level = 0;
     const tryRemove = (cells) => {
+      if (clues - cells.length < minClues) return false;   // the band's clue FLOOR is hard — density is half the felt difficulty
       const saved = cells.map(i => puzzle[i]);
       for (const i of cells) puzzle[i] = 0;
       let keep = countSolutions(puzzle, 2) === 1;
       if (keep) {
         const g = gradeSolve(puzzle);
-        keep = g.solved && g.level <= band;   // difficulty never overshoots the band
+        keep = g.solved && g.level <= band                  // difficulty never overshoots the band...
+          && !(band === 2 && g.steps[2] > MED_STEP_CAP);    // ...and Medium stays a light touch of its technique
         if (keep) level = g.level;
       }
       if (!keep) cells.forEach((i, k) => { puzzle[i] = saved[k]; });
@@ -365,34 +373,47 @@
       for (let k = n - 1; k > 0; k--) { const j = (rand() * (k + 1)) | 0; [a[k], a[j]] = [a[j], a[k]]; }
       return a;
     };
-    // pass 1: symmetric pairs (i, 80-i); pass 2: single cells fine-tune up to the band
+    // pass 1: symmetric pairs (i, 80-i); pass 2: single cells fine-tune within the band's range
     for (const i of shuffled(41)) {
-      if (clues <= targetClues && level === band) break;
+      if (clues <= aim && level === band) break;
       if (!puzzle[i]) continue;
       tryRemove(i === 80 - i ? [i] : [i, 80 - i]);
     }
-    if (level < band) {
+    if (level < band || clues > aim) {
       for (const i of shuffled(81)) {
-        if (level === band && clues <= targetClues) break;
+        if (level === band && clues <= aim) break;
         if (!puzzle[i]) continue;
         tryRemove([i]);
       }
     }
     return { puzzle, level, clues };
   }
-  const BAND_CLUES = { 1: 38, 2: 32, 3: 27, 4: 23 };
+  // per-band clue RANGE [floor, ceiling] — the felt gradient. MORE clues = easier; the old
+  // ceiling-only targets let Medium dig to ~26 clues (Hard territory) chasing its technique,
+  // which players (rightly) reported as "Medium plays like Hard".
+  const BAND_RANGE = { 1: [36, 40], 2: [30, 34], 3: [26, 30], 4: [22, 26] };
+  const MED_STEP_CAP = 2;
+  // Easy/Medium never ship a board where some digit has ZERO givens — an absent digit plays a
+  // full band harder than the grade suggests
+  function digitsCovered(p) { const c = new Uint8Array(10); for (let i = 0; i < 81; i++) c[p[i]]++; for (let d = 1; d <= 9; d++) if (!c[d]) return false; return true; }
   function generate(seed, band) {
-    for (let attempt = 0; attempt < 30; attempt++) {
+    // Medium's target (locked-candidates REQUIRED at a friendly 30-34 clues, ≤2 such steps) is a
+    // narrow needle — only a few % of digs land it — so it gets a deep attempt budget; digs are
+    // ~1 ms each, so even the worst seed resolves in well under a second.
+    const tries = band === 1 ? 60 : 300;   // Easy hits instantly; the graded bands get depth
+    let best = null, bestScore = -1;
+    for (let attempt = 0; attempt < tries; attempt++) {
       const rand = rng(seed + attempt * 7919);
       const solution = fillGrid(rand);
-      const res = digGraded(solution, rand, band, BAND_CLUES[band]);
-      if (res.level === band) return { puzzle: res.puzzle, solution, level: res.level };
+      const res = digGraded(solution, rand, band, BAND_RANGE[band]);
+      const inRange = res.clues >= BAND_RANGE[band][0] && res.clues <= BAND_RANGE[band][1];
+      const covered = band > 2 || digitsCovered(res.puzzle);
+      if (res.level === band && inRange && covered) return { puzzle: res.puzzle, solution, level: res.level };
+      // rank near-misses so an exhausted budget still ships the closest board, not the last one
+      const score = (res.level === band ? 4 : res.level === band - 1 ? 2 : 0) + (inRange ? 1 : 0);
+      if (score > bestScore) { bestScore = score; best = { puzzle: res.puzzle, solution, level: res.level }; }
     }
-    // 30 misses in a row is astronomically unlikely; take the last dig as a safe fallback
-    const rand = rng(seed);
-    const solution = fillGrid(rand);
-    const res = digGraded(solution, rand, band, BAND_CLUES[band]);
-    return { puzzle: res.puzzle, solution, level: res.level };
+    return best;   // exhausting the budget is astronomically unlikely — ship the closest dig
   }
 
   // ==================================================================================
