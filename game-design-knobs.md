@@ -19,6 +19,11 @@ implementation. This file is referenced from CLAUDE.md via `@game-design-knobs.m
   `update()` — keep it that way.
 - **Versioned saves.** Any persisted state (bests, idle progress, Export/Import blob) carries a
   `version` field + a migration path from day one, so an update never breaks old saves.
+- **Storage budget.** The ~5 MB localStorage quota is per ORIGIN — the kit + every game share one
+  pool, so one leaking game (`QuotaExceededError`) breaks saves for the whole site. Cap every
+  persisted list (no unbounded appends), write on events with a debounce (never per-frame), stay
+  within ~10 KB per arcade game / ~100 KB per progress game, and watch storage growth during
+  development.
 - **Expose the numbers.** Show score/best/lives/wave so the player can plan; clear hit/score
   feedback on every meaningful action.
 
