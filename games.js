@@ -312,7 +312,7 @@ window.GAMES = [
     icon: "🟢",
     accent: "#7ee787",
     tags: ["KIDS", "LOGIC"],
-    soon: true,
+    added: "2026-07-12",
   },
   {
     slug: "color-pop",
