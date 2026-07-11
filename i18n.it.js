@@ -372,6 +372,7 @@ window.KOMYO_I18N.it = {
   'profile.trophiesEarned': 'TROFEI GUADAGNATI',
   'profile.noScores': 'Ancora nessun punteggio — gioca qualche partita e i tuoi record, preferiti e statistiche appariranno qui, ordinati in base a quanto ci giochi. Tutto resta su questo dispositivo.',
   'profile.yourGames': 'I tuoi giochi',
+  'profile.namePrompt': 'Nome visualizzato',
   'profile.share': '📷 Condividi il mio profilo',
   'profile.rendering': 'Rendering…',
   'profile.renderErr': 'Rendering non riuscito',
@@ -1711,4 +1712,12 @@ window.KOMYO_I18N.it = {
   'changelog.e54.b0': 'Modifica: cambiare lingua con un menu di gioco aperto ora lo aggiorna subito, in ogni gioco — basta testo obsoleto fino alla schermata successiva.',
   'changelog.e55.title': 'Sudoku: i numeri corretti si bloccano 🔢',
   'changelog.e55.b0': 'Correzione: un numero corretto inserito in Sudoku si blocca — basta cancellarlo o sovrascriverlo per sbaglio (perdendo i progressi) a metà partita. Le cifre sbagliate restano modificabili, e Annulla funziona ancora se lo vuoi davvero.',
+  // --- changelog e56 (2026-07-11 release) ---
+  'changelog.e56.title': 'Campo di Forza rinnovato + il tuo profilo in ogni gioco 🌐',
+  'changelog.e56.b0': 'Novità: Campo di Forza ora fa la sua figura — la stazione da battaglia ha uno scafo vero, con corazza rotante, luci lampeggianti e un cannone che si carica a vista; i colpi sono raffiche di energia stratificate con vampata di sparo, linea di mira in movimento e un mirino che si stringe quando il colpo si avvicina.',
+  'changelog.e56.b1': 'Novità: le skin del pianeta di Campo di Forza vestono l’intera battaglia — scegli un mondo nella Collezione e cupola, indicatore di carica e stazione si abbinano. In più: stelle che brillano, qualche stella cadente e nuvole che scorrono sul pianeta.',
+  'changelog.e56.b2': 'Novità: il menu rapido della home (Profilo · Sfide · Collezione) ora ti segue in ogni gioco — guarda il profilo o spendi trofei senza uscire; durante una partita si ritira dietro la linguetta ‹‹ e aprirlo mette in pausa il gioco.',
+  'changelog.e56.b3': 'Modifica: lo schermo intero ⛶ è ora a un tocco nella barra in alto del gioco, invece di nascondersi nel menu ☰.',
+  'changelog.e56.b4': 'Modifica: la pausa è uguale ovunque — il gioco congelato resta visibile dietro un velo leggero di «Pausa» così puoi pianificare la prossima mossa, e toccare fuori da un pannello riprende la partita.',
+  'changelog.e56.b5': 'Fix: la testa della mascotte ora è ben centrata nel logo e nella favicon.',
 };

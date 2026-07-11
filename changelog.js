@@ -4,6 +4,14 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-11', title: 'Forcefield glow-up + your profile in every game 🌐', items: [
+    'New: Forcefield looks the part now — the battle station got a proper hull with spinning armor plating, blinking lights and a weapon dish that visibly charges up; shots fire as layered energy bolts with a muzzle flash, a marching targeting line and a lock-on reticle that tightens as the shot nears.',
+    'New: Forcefield planet skins now theme the whole battle — pick a world in the Collection and your dome, the charge meter and the station all match it. Plus twinkling stars, the odd shooting star and clouds drifting over the planet.',
+    'New: the home page’s quick menu (Profile · Challenges · Collection) now rides along in every game — check your profile or spend trophies without leaving; during a run it tucks behind the ‹‹ tab, and opening it pauses the game.',
+    'Change: fullscreen ⛶ is one tap from a game’s top bar now, instead of hiding in the ☰ menu.',
+    'Change: pausing looks and works the same everywhere — the frozen game stays visible behind a light “Paused” veil so you can plan your next move, and tapping outside any panel resumes play.',
+    'Fix: the mascot’s head sits properly centered in the logo and favicon now.',
+  ] },
   { date: '2026-07-10', title: 'Sudoku: correct numbers lock in 🔢', items: [
     'Fix: once you place a correct number in Sudoku, it locks in — no more accidentally clearing or overwriting it (and losing progress) mid-round. Wrong entries stay editable, and Undo still works if you really mean it.',
   ] },

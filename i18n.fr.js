@@ -372,6 +372,7 @@ window.KOMYO_I18N.fr = {
   'profile.trophiesEarned': 'TROPHÉES GAGNÉS',
   'profile.noScores': 'Pas encore de scores — jouez à quelques jeux et vos meilleurs scores, favoris et statistiques apparaîtront ici, triés par temps de jeu. Tout reste sur cet appareil.',
   'profile.yourGames': 'Vos jeux',
+  'profile.namePrompt': 'Nom d\'affichage',
   'profile.share': '📷 Partager mon profil',
   'profile.rendering': 'Génération…',
   'profile.renderErr': 'Impossible de générer',
@@ -1711,4 +1712,12 @@ window.KOMYO_I18N.fr = {
   'changelog.e54.b0': 'Changement : changer de langue avec un menu de jeu ouvert le met désormais à jour immédiatement, dans tous les jeux — fini le texte périmé jusqu\'à l\'écran suivant.',
   'changelog.e55.title': 'Sudoku : les chiffres corrects se verrouillent 🔢',
   'changelog.e55.b0': 'Correction : un chiffre correct placé dans Sudoku se verrouille — fini de l\'effacer ou de l\'écraser par accident (et de perdre sa progression) en pleine partie. Les entrées erronées restent modifiables, et Annuler fonctionne toujours si vous le voulez vraiment.',
+  // --- changelog e56 (2026-07-11 release) ---
+  'changelog.e56.title': 'Champ de Force relooké + votre profil dans chaque jeu 🌐',
+  'changelog.e56.b0': 'Nouveau : Champ de Force a fière allure — la station de combat a désormais une vraie coque, avec blindage tournant, feux clignotants et un canon qui se charge à vue ; les tirs sont des salves d’énergie superposées avec éclair de départ, ligne de visée animée et un réticule qui se resserre à l’approche du tir.',
+  'changelog.e56.b1': 'Nouveau : les skins de planète de Champ de Force habillent toute la bataille — choisissez un monde dans la Collection et votre dôme, la jauge de charge et la station s’accordent. En prime : étoiles scintillantes, étoile filante occasionnelle et nuages dérivant sur la planète.',
+  'changelog.e56.b2': 'Nouveau : le menu rapide de l’accueil (Profil · Défis · Collection) vous suit désormais dans chaque jeu — consultez votre profil ou dépensez vos trophées sans quitter ; en pleine partie il se replie derrière l’onglet ‹‹, et l’ouvrir met le jeu en pause.',
+  'changelog.e56.b3': 'Changement : le plein écran ⛶ est maintenant à un geste dans la barre du haut du jeu, au lieu de se cacher dans le menu ☰.',
+  'changelog.e56.b4': 'Changement : la pause a le même look et le même comportement partout — le jeu figé reste visible derrière un léger voile « Pause » pour préparer votre prochain coup, et toucher hors d’un panneau reprend la partie.',
+  'changelog.e56.b5': 'Correction : la tête de la mascotte est désormais bien centrée dans le logo et le favicon.',
 };
