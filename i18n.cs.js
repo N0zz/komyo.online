@@ -372,6 +372,7 @@ window.KOMYO_I18N.cs = {
   'profile.trophiesEarned': 'ZÍSKANÉ TROFEJE',
   'profile.noScores': 'Zatím žádné výsledky — zahrajte si pár her a vaše rekordy, oblíbené a statistiky se zobrazí zde, seřazené podle toho, jak často je hrajete. Vše zůstává v tomto zařízení.',
   'profile.yourGames': 'Vaše hry',
+  'profile.namePrompt': 'Zobrazované jméno',
   'profile.share': '📷 Sdílet svůj profil',
   'profile.rendering': 'Vykreslování…',
   'profile.renderErr': 'Nepodařilo se vykreslit',
@@ -1711,4 +1712,12 @@ window.KOMYO_I18N.cs = {
   'changelog.e54.b0': 'Změna: přepnutí jazyka při otevřeném herním menu ho aktualizuje na místě, v každé hře — už žádný zastaralý text do další obrazovky.',
   'changelog.e55.title': 'Sudoku: správné číslice se zamknou 🔢',
   'changelog.e55.b0': 'Oprava: správně umístěná číslice v Sudoku se zamkne — už žádné nechtěné smazání nebo přepsání (a ztráta postupu) uprostřed kola. Chybné zápisy jde dál upravovat a Zpět stále funguje, pokud to opravdu chceš.',
+  // --- changelog e56 (2026-07-11 release) ---
+  'changelog.e56.title': 'Silové pole v novém kabátě + profil v každé hře 🌐',
+  'changelog.e56.b0': 'Novinka: Silové pole konečně vypadá, jak má — bojová stanice dostala pořádný trup s otáčejícím se pancířem, blikajícími světly a kanónem, který se viditelně nabíjí; výstřely jsou vrstvené energetické střely se zábleskem, putující zaměřovací linkou a zaměřovačem, který se před výstřelem stahuje.',
+  'changelog.e56.b1': 'Novinka: skiny planet v Silovém poli ladí celou bitvu — vyber si svět ve Sbírce a kupole, ukazatel nabíjení i stanice se barevně přizpůsobí. Navíc: třpytící se hvězdy, občasná padající hvězda a mraky plující nad planetou.',
+  'changelog.e56.b2': 'Novinka: rychlé menu z hlavní stránky (Profil · Výzvy · Sbírka) je teď v každé hře — mrkni na profil nebo utrať trofeje bez odcházení; během hry se schová za záložku ‹‹ a jeho otevření hru pozastaví.',
+  'changelog.e56.b3': 'Změna: celá obrazovka ⛶ je teď na horní liště hry na jedno ťuknutí, místo aby se schovávala v menu ☰.',
+  'changelog.e56.b4': 'Změna: pauza vypadá a funguje všude stejně — zastavená hra zůstává vidět za lehkým závojem „Pauza“, takže si můžeš naplánovat další tah, a ťuknutí mimo panel hru obnoví.',
+  'changelog.e56.b5': 'Oprava: hlava maskota je teď v logu i faviconě pořádně vycentrovaná.',
 };

@@ -293,6 +293,7 @@ window.KOMYO_I18N.es = {
   'profile.trophiesEarned': 'TROFEOS GANADOS',
   'profile.noScores': 'Aún no hay puntuaciones — juega a algunos juegos y tus récords, favoritos y estadísticas aparecerán aquí, ordenados según cuánto juegas. Todo se queda en este dispositivo.',
   'profile.yourGames': 'Tus juegos',
+  'profile.namePrompt': 'Nombre visible',
   'profile.share': '📷 Compartir mi perfil',
   'profile.rendering': 'Renderizando…',
   'profile.renderErr': 'No se pudo generar',
@@ -1712,4 +1713,12 @@ window.KOMYO_I18N.es = {
   'changelog.e54.b0': 'Cambio: cambiar el idioma con un menú de juego abierto ahora lo actualiza al momento, en todos los juegos — se acabó el texto desactualizado hasta la siguiente pantalla.',
   'changelog.e55.title': 'Sudoku: los números correctos se bloquean 🔢',
   'changelog.e55.b0': 'Corrección: al colocar un número correcto en Sudoku, se bloquea — se acabó borrarlo o sobrescribirlo sin querer (y perder progreso) a mitad de ronda. Las entradas erróneas siguen siendo editables, y Deshacer sigue funcionando si de verdad lo quieres.',
+  // --- changelog e56 (2026-07-11 release) ---
+  'changelog.e56.title': 'Campo de Fuerza renovado + tu perfil en cada juego 🌐',
+  'changelog.e56.b0': 'Nuevo: Campo de Fuerza luce como debe — la estación de combate tiene un casco de verdad, con blindaje giratorio, luces parpadeantes y un cañón que se carga a la vista; los disparos son ráfagas de energía en capas con fogonazo, línea de puntería en movimiento y una retícula que se cierra cuando el disparo se acerca.',
+  'changelog.e56.b1': 'Nuevo: las skins de planeta de Campo de Fuerza ambientan toda la batalla — elige un mundo en la Colección y tu cúpula, el medidor de carga y la estación irán a juego. Además: estrellas que titilan, alguna estrella fugaz y nubes que cruzan el planeta.',
+  'changelog.e56.b2': 'Nuevo: el menú rápido de la página principal (Perfil · Desafíos · Colección) ahora te acompaña en todos los juegos — mira tu perfil o gasta trofeos sin salir; durante una partida se recoge tras la pestaña ‹‹ y abrirlo pausa el juego.',
+  'changelog.e56.b3': 'Cambio: la pantalla completa ⛶ está ahora a un toque en la barra superior del juego, en vez de esconderse en el menú ☰.',
+  'changelog.e56.b4': 'Cambio: la pausa se ve y funciona igual en todas partes — el juego congelado sigue visible tras un velo ligero de «Pausa» para planear tu próximo movimiento, y tocar fuera de cualquier panel reanuda la partida.',
+  'changelog.e56.b5': 'Arreglo: la cabeza de la mascota está ahora bien centrada en el logo y el favicon.',
 };

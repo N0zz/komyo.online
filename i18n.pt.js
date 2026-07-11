@@ -293,6 +293,7 @@ window.KOMYO_I18N.pt = {
   'profile.trophiesEarned': 'TROFÉUS GANHOS',
   'profile.noScores': 'Ainda sem resultados — jogue alguns jogos e seus recordes, favoritos e estatísticas vão aparecer aqui, ordenados por quanto você joga. Tudo fica neste dispositivo.',
   'profile.yourGames': 'Seus jogos',
+  'profile.namePrompt': 'Nome de exibição',
   'profile.share': '📷 Compartilhar meu perfil',
   'profile.rendering': 'Renderizando…',
   'profile.renderErr': 'Não foi possível gerar',
@@ -1711,4 +1712,12 @@ window.KOMYO_I18N.pt = {
   'changelog.e54.b0': 'Mudança: trocar o idioma com um menu de jogo aberto agora o atualiza na hora, em todos os jogos — chega de texto desatualizado até a próxima tela.',
   'changelog.e55.title': 'Sudoku: números corretos ficam travados 🔢',
   'changelog.e55.b0': 'Correção: ao colocar um número correto no Sudoku, ele trava — chega de apagá-lo ou sobrescrevê-lo sem querer (e perder progresso) no meio da rodada. Entradas erradas continuam editáveis, e o Desfazer ainda funciona se você realmente quiser.',
+  // --- changelog e56 (2026-07-11 release) ---
+  'changelog.e56.title': 'Campo de Força repaginado + seu perfil em todos os jogos 🌐',
+  'changelog.e56.b0': 'Novo: Campo de Força está à altura — a estação de combate ganhou um casco de verdade, com blindagem giratória, luzes piscando e um canhão que carrega à vista; os tiros agora são feixes de energia em camadas, com clarão de disparo, linha de mira em movimento e uma retícula que se fecha quando o tiro se aproxima.',
+  'changelog.e56.b1': 'Novo: as skins de planeta do Campo de Força dão o tom da batalha inteira — escolha um mundo na Coleção e a cúpula, o medidor de carga e a estação combinam com ele. E mais: estrelas cintilando, uma estrela cadente de vez em quando e nuvens passando pelo planeta.',
+  'changelog.e56.b2': 'Novo: o menu rápido da página inicial (Perfil · Desafios · Coleção) agora acompanha você em todos os jogos — veja seu perfil ou gaste troféus sem sair; durante a partida ele se recolhe atrás da aba ‹‹ e abri-lo pausa o jogo.',
+  'changelog.e56.b3': 'Mudança: a tela cheia ⛶ agora está a um toque na barra superior do jogo, em vez de escondida no menu ☰.',
+  'changelog.e56.b4': 'Mudança: a pausa é igual em todo lugar — o jogo congelado continua visível atrás de um véu leve de «Pausado», para você planejar a próxima jogada, e tocar fora de qualquer painel retoma o jogo.',
+  'changelog.e56.b5': 'Correção: a cabeça do mascote agora está bem centralizada no logo e no favicon.',
 };

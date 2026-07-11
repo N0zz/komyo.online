@@ -293,6 +293,7 @@ window.KOMYO_I18N.pl = {
   'profile.trophiesEarned': 'ZDOBYTE TROFEA',
   'profile.noScores': 'Jeszcze brak wyników — zagraj w kilka gier, a Twoje rekordy, ulubione i statystyki pojawią się tutaj, posortowane według tego, jak często grasz. Wszystko zostaje na tym urządzeniu.',
   'profile.yourGames': 'Twoje gry',
+  'profile.namePrompt': 'Wyświetlana nazwa',
   'profile.share': '📷 Udostępnij mój profil',
   'profile.rendering': 'Renderowanie…',
   'profile.renderErr': 'Nie udało się wygenerować',
@@ -1709,4 +1710,12 @@ window.KOMYO_I18N.pl = {
   'changelog.e47.b0': 'Nowość: Twoja karta wyniku ma teraz kod QR „zeskanuj i graj” — skieruj telefon na udostępnioną (lub wydrukowaną) kartę, a przeniesie Cię prosto do gry.',
   'changelog.e47.b1': 'Poprawka: karta wyniku pokazuje teraz tryb i poziom trudności w Twoim języku, zamiast zawsze po angielsku.',
   'changelog.e47.b2': 'Poprawka: Forcefield otwiera dokładnie ten tryb, na który wskazuje udostępniony link — tryb/trudność z linku były wcześniej ignorowane przy wczytywaniu.',
+  // --- changelog e56 (2026-07-11 release) ---
+  'changelog.e56.title': 'Pole Siłowe w nowej odsłonie + profil w każdej grze 🌐',
+  'changelog.e56.b0': 'Nowość: Pole Siłowe wygląda jak należy — stacja bojowa dostała prawdziwy kadłub z obracającym się pancerzem, migającymi światłami i działem, które widocznie się ładuje; strzały to teraz warstwowe wiązki energii z błyskiem wylotu, wędrującą linią celowania i celownikiem zaciskającym się tuż przed strzałem.',
+  'changelog.e56.b1': 'Nowość: skórki planet w Polu Siłowym zmieniają wygląd całej bitwy — wybierz świat w Kolekcji, a kopuła, pasek ładowania i stacja dopasują się kolorem. Do tego migoczące gwiazdy, spadająca gwiazda od czasu do czasu i chmury sunące nad planetą.',
+  'changelog.e56.b2': 'Nowość: szybkie menu ze strony głównej (Profil · Wyzwania · Kolekcja) jest teraz w każdej grze — zajrzyj do profilu albo wydaj trofea bez wychodzenia; w trakcie rundy chowa się za zakładką ‹‹, a jego otwarcie pauzuje grę.',
+  'changelog.e56.b3': 'Zmiana: pełny ekran ⛶ jest teraz jednym dotknięciem na górnym pasku gry, zamiast kryć się w menu ☰.',
+  'changelog.e56.b4': 'Zmiana: pauza wygląda i działa wszędzie tak samo — zatrzymana gra pozostaje widoczna za delikatną zasłoną „Pauza”, więc możesz zaplanować następny ruch, a dotknięcie poza panelem wznawia grę.',
+  'changelog.e56.b5': 'Poprawka: głowa maskotki jest teraz porządnie wyśrodkowana w logo i faviconie.',
 };
