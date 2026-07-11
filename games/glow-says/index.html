@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Glow Says</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#7ee787">
+<link rel="manifest" href="manifest.json">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Glow Says">
+<link rel="apple-touch-icon" href="icon-192.png">
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #07211a; color: #fff;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #hud .val { color: #7ee787; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblRound">ROUND</span><span class="val" id="roundEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+</div>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'glow-says';
+  const ACCENT = '#7ee787';
+
+  // one clear tone per pad (pentatonic — any order sounds friendly)
+  const PAD_FREQ = [329.63, 392, 440, 523.25, 587.33, 659.25];
+  const SND = window.gamekit.sound;
+  SND.define({
+    pad0: c => c.voice({ f: PAD_FREQ[0], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
+    pad1: c => c.voice({ f: PAD_FREQ[1], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
+    pad2: c => c.voice({ f: PAD_FREQ[2], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
+    pad3: c => c.voice({ f: PAD_FREQ[3], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
+    pad4: c => c.voice({ f: PAD_FREQ[4], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
+    pad5: c => c.voice({ f: PAD_FREQ[5], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
+    oops: c => c.voice({ f: 220, slideTo: 165, dur: 0.35, type: 'triangle', gain: 0.1, filter: 'lowpass', cutoff: 1200 }),
+    yay:  c => c.seq([523, 659, 784, 1047], 70, f => c.voice({ f, dur: 0.2, type: 'triangle', gain: 0.08, reverb: 0.3 })),
+  });
+
+  const MODES = {
+    classic: { pads: 4, lives: 1,        show: 30, gapF: 12 },
+    chill:   { pads: 4, lives: Infinity, show: 36, gapF: 16 },
+    expert:  { pads: 6, lives: 1,        show: 20, gapF: 8 },
+  };
+  const MODE_ORDER = ['classic', 'chill', 'expert'];
+  // pad palettes: [base, glow]
+  const PAD_COLORS = [
+    ['#3fae5a', '#7ee787'], ['#c05a6e', '#ff9db0'], ['#b99b3a', '#ffe07a'],
+    ['#3a6db9', '#8ec1ff'], ['#8a56b9', '#d0a6ff'], ['#3aa9a9', '#8af0ea'],
+  ];
+
+  let W = 0, H = 0, topMargin = 48;
+  let state = 'ready';               // ready | playing | over  (phase below refines 'playing')
+  let phase = 'idle';                // idle | show | input | oops | yay
+  let mode = 'classic';
+  let seq = [], inputAt = 0, round = 0, best = 0;
+  let frame = 0, phaseT = 0, showIdx = 0;
+  let litPad = -1, litT = 0;         // currently glowing pad (playback or press)
+  let wrongPad = -1;
+  let sparkles = [];                 // celebration particles (view-only, capped)
+
+  // layout
+  let pads = [];                     // [{x,y,w,h}] per pad
+  let boardRect = { x: 0, y: 0, w: 0, h: 0 };
+
+  const modeLabel = m => { m = m || mode; return m.charAt(0).toUpperCase() + m.slice(1); };
+  const modeDisplay = m => KIT.t('game.glow-says.mode' + modeLabel(m), { def: modeLabel(m) });
+  function loadBest(m) { return KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0; }
+
+  function newGame(m) {
+    mode = m || mode;
+    seq = []; round = 0; inputAt = 0; showIdx = 0;
+    phase = 'idle'; phaseT = 0; litPad = -1; litT = 0; wrongPad = -1;
+    sparkles = [];
+    best = loadBest(mode);
+    layoutBoard(); updateHud();
+  }
+
+  function nextRound() {
+    seq.push(Math.floor(Math.random() * MODES[mode].pads));
+    round = seq.length - 1;          // completed rounds; score = longest fully repeated
+    inputAt = 0; showIdx = 0;
+    phase = 'show'; phaseT = MODES[mode].gapF;   // small breath before playback
+    updateHud();
+  }
+
+  function padTap(i) {
+    if (state !== 'playing' || phase !== 'input') return false;
+    if (i < 0 || i >= MODES[mode].pads) return false;
+    litPad = i; litT = 10;
+    if (i === seq[inputAt]) {
+      SND.play('pad' + i);
+      inputAt++;
+      if (inputAt >= seq.length) {
+        round = seq.length;
+        burst(pads[i]);
+        phase = 'yay'; phaseT = 26;
+        updateHud();
+      }
+      return true;
+    }
+    // wrong pad
+    wrongPad = seq[inputAt];
+    SND.play('oops');
+    if (navigator.vibrate) { try { navigator.vibrate(80); } catch (e) {} }
+    if (MODES[mode].lives === Infinity) { phase = 'oops'; phaseT = 40; }  // chill: replay the tune
+    else endRun();
+    return false;
+  }
+
+  function endRun() {
+    state = 'over'; phase = 'idle';
+    const prev = loadBest(mode);
+    if (KIT) KIT.saveBest(SLUG, modeLabel(mode), { score: round });
+    const isBest = round > prev && round > 0;
+    best = loadBest(mode);
+    updateHud();
+    setTimeout(() => showEnd(isBest), 700);
+  }
+  function finishChill() {          // chill mode ends by choice — record the streak
+    if (state !== 'playing') return;
+    endRun();
+  }
+
+  function burst(p) {
+    if (!p) return;
+    for (let k = 0; k < 12 && sparkles.length < 80; k++) {
+      const a = (k / 12) * Math.PI * 2;
+      sparkles.push({ x: p.x + p.w / 2, y: p.y + p.h / 2, vx: Math.cos(a) * 2.4, vy: Math.sin(a) * 2.4 - 1, t: 34 });
+    }
+  }
+
+  // ---- update ----
+  function update() {
+    frame++;
+    if (litT > 0 && --litT === 0) litPad = -1;
+    for (let k = sparkles.length - 1; k >= 0; k--) {
+      const s = sparkles[k];
+      s.x += s.vx; s.y += s.vy; s.vy += 0.08;
+      if (--s.t <= 0) sparkles.splice(k, 1);
+    }
+    if (state === 'playing') {
+      if (phaseT > 0) phaseT--;
+      else if (phase === 'show') {
+        if (showIdx < seq.length) {
+          litPad = seq[showIdx]; litT = MODES[mode].show - 6;
+          SND.play('pad' + seq[showIdx]);
+          showIdx++;
+          phaseT = MODES[mode].show + MODES[mode].gapF - Math.min(14, seq.length);  // speeds up as it grows
+        } else { phase = 'input'; inputAt = 0; }
+      }
+      else if (phase === 'yay') { SND.play('yay'); nextRound(); }
+      else if (phase === 'oops') { wrongPad = -1; inputAt = 0; showIdx = 0; phase = 'show'; phaseT = 20; }
+      if (KIT && KIT.music) KIT.music.intensity(Math.min(1, 0.3 + 0.05 * round));
+    } else if (KIT && KIT.music) KIT.music.intensity(0.3);
+  }
+
+  function layoutBoard() {
+    const nPads = MODES[mode].pads;
+    const cols = nPads === 6 ? 2 : 2, rows = nPads === 6 ? 3 : 2;
+    const pad = 14;
+    const availW = W - pad * 2, availH = H - topMargin - pad * 2;
+    const cw = Math.min((availW - pad * (cols - 1)) / cols, 300);
+    const ch = Math.min((availH - pad * (rows - 1)) / rows, 300);
+    const s = Math.min(cw, ch);
+    const totW = cols * s + (cols - 1) * pad, totH = rows * s + (rows - 1) * pad;
+    const ox = (W - totW) / 2, oy = topMargin + pad + (availH - totH) / 2;
+    pads = [];
+    for (let k = 0; k < nPads; k++) {
+      const cx = k % cols, cy = Math.floor(k / cols);
+      pads.push({ x: ox + cx * (s + pad), y: oy + cy * (s + pad), w: s, h: s });
+    }
+    boardRect = { x: ox, y: oy, w: totW, h: totH };
+  }
+
+  // ---- pad shapes (cosmetics) ----
+  function padShape() {
+    const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('glow-says.pads') : null;
+    return id === 'glow-says.pads.stars' ? 'star' : id === 'glow-says.pads.hearts' ? 'heart' : 'orb';
+  }
+  function shapePath(g, cx, cy, rr, shape) {
+    if (shape === 'star') {
+      g.beginPath();
+      for (let k = 0; k < 10; k++) {
+        const a = -Math.PI / 2 + k * Math.PI / 5, rad = k % 2 ? rr * 0.5 : rr;
+        const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
+        k ? g.lineTo(x, y) : g.moveTo(x, y);
+      }
+      g.closePath();
+    } else if (shape === 'heart') {
+      g.beginPath();
+      g.moveTo(cx, cy + rr * 0.85);
+      g.bezierCurveTo(cx - rr * 1.3, cy - rr * 0.15, cx - rr * 0.6, cy - rr, cx, cy - rr * 0.35);
+      g.bezierCurveTo(cx + rr * 0.6, cy - rr, cx + rr * 1.3, cy - rr * 0.15, cx, cy + rr * 0.85);
+      g.closePath();
+    } else {
+      g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2);
+    }
+  }
+
+  function render() {
+    // firefly glade bg
+    const bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0a2a20'); bg.addColorStop(1, '#051710');
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+    for (let k = 0; k < 10; k++) {
+      const fx = ((k * 131 + frame * (0.15 + k * 0.02)) % (W + 30)) - 15;
+      const fy = topMargin + ((k * 83) % Math.max(1, H - topMargin)) + Math.sin(frame * 0.03 + k) * 10;
+      ctx.fillStyle = 'rgba(220,240,160,' + (0.15 + 0.15 * Math.sin(frame * 0.06 + k * 1.7)) + ')';
+      ctx.beginPath(); ctx.arc(fx, fy, 1.8, 0, 7); ctx.fill();
+    }
+
+    const shape = padShape();
+    const nPads = MODES[mode].pads;
+    for (let k = 0; k < nPads && k < pads.length; k++) {
+      const p = pads[k];
+      const lit = litPad === k && litT > 0;
+      const wrong = wrongPad === k && phase === 'oops';
+      const [base, glow] = PAD_COLORS[k];
+      const cx = p.x + p.w / 2, cy = p.y + p.h / 2, rr = p.w * 0.42;
+      // soft pad well
+      ctx.fillStyle = 'rgba(255,255,255,0.05)';
+      KIT.roundRect(ctx, p.x, p.y, p.w, p.h, p.w * 0.18); ctx.fill();
+      // the glowing shape
+      const pulse = wrong ? 1 + Math.sin(frame * 0.7) * 0.05 : lit ? 1.08 : 1;
+      if (lit || wrong) { ctx.shadowColor = glow; ctx.shadowBlur = p.w * 0.25; }
+      const grd = ctx.createRadialGradient(cx - rr * 0.3, cy - rr * 0.3, rr * 0.1, cx, cy, rr * 1.15);
+      grd.addColorStop(0, lit ? '#ffffff' : glow);
+      grd.addColorStop(0.35, lit ? glow : base);
+      grd.addColorStop(1, base);
+      ctx.fillStyle = grd;
+      shapePath(ctx, cx, cy, rr * pulse, shape);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      // glass highlight
+      ctx.fillStyle = 'rgba(255,255,255,' + (lit ? 0.5 : 0.22) + ')';
+      ctx.beginPath(); ctx.ellipse(cx - rr * 0.25, cy - rr * 0.4, rr * 0.32, rr * 0.18, -0.5, 0, 7); ctx.fill();
+    }
+
+    // sparkles
+    for (const s of sparkles) {
+      ctx.fillStyle = 'rgba(255,240,170,' + Math.max(0, s.t / 34) + ')';
+      ctx.beginPath(); ctx.arc(s.x, s.y, 2.4, 0, 7); ctx.fill();
+    }
+
+    // status line under the board — playback vs your turn (visual cue, no reading needed)
+    if (state === 'playing') {
+      ctx.font = '700 15px system-ui'; ctx.textAlign = 'center';
+      ctx.fillStyle = phase === 'input' ? 'rgba(126,231,135,0.95)' : 'rgba(255,255,255,0.55)';
+      const label = phase === 'input' ? KIT.t('game.glow-says.yourTurn', { def: '● YOUR TURN' })
+        : phase === 'oops' ? KIT.t('game.glow-says.tryAgain', { def: 'watch again…' })
+        : KIT.t('game.glow-says.watch', { def: '👀 WATCH' });
+      ctx.fillText(label, W / 2, Math.min(H - 14, boardRect.y + boardRect.h + 28));
+    }
+
+    // vignette
+    const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.78);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.3)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+  }
+
+  function updateHud() {
+    const r = document.getElementById('roundEl'), b = document.getElementById('bestEl');
+    if (r) r.textContent = round;
+    if (b) b.textContent = best;
+  }
+
+  // ---- menus ----
+  const MENU_THEME = { accent: ACCENT, title: ACCENT };
+
+  function startGame(m) {
+    newGame(m);
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    nextRound();
+  }
+
+  function menuBackdrop(g, w, h, tt) {
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#0a2a20'); bg.addColorStop(1, '#051710');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    // four glowing orbs breathing in sequence — the REAL pad look
+    const s = Math.min(w, h) / 6;
+    const lit = Math.floor(tt * 1.2) % 4;
+    for (let k = 0; k < 4; k++) {
+      const cx = w / 2 + (k % 2 ? s * 1.4 : -s * 1.4), cy = h * 0.42 + (k > 1 ? s * 1.4 : -s * 1.4);
+      const [base, glow] = PAD_COLORS[k];
+      const on = k === lit;
+      if (on) { g.shadowColor = glow; g.shadowBlur = s * 0.6; }
+      const grd = g.createRadialGradient(cx - s * 0.2, cy - s * 0.2, s * 0.05, cx, cy, s * 0.9);
+      grd.addColorStop(0, on ? '#fff' : glow); grd.addColorStop(1, base);
+      g.fillStyle = grd;
+      g.beginPath(); g.arc(cx, cy, s * (on ? 0.85 : 0.75), 0, 7); g.fill();
+      g.shadowBlur = 0;
+    }
+  }
+
+  function pvPads(n, litIdx) {
+    return (g, w, h) => {
+      const cols = 2, rows = n === 6 ? 3 : 2;
+      const s = Math.min(w / (cols + 0.8), h / (rows + 0.8));
+      const ox = (w - cols * s) / 2, oy = (h - rows * s) / 2;
+      for (let k = 0; k < n; k++) {
+        const [base, glow] = PAD_COLORS[k];
+        const cx = ox + (k % cols) * s + s / 2, cy = oy + Math.floor(k / cols) * s + s / 2;
+        const on = k === litIdx;
+        g.fillStyle = on ? glow : base;
+        g.beginPath(); g.arc(cx, cy, s * 0.38, 0, 7); g.fill();
+        if (on) { g.fillStyle = 'rgba(255,255,255,0.6)'; g.beginPath(); g.arc(cx, cy, s * 0.2, 0, 7); g.fill(); }
+      }
+    };
+  }
+
+  function showStartMenu() {
+    state = 'ready'; phase = 'idle';
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: KIT.t('game.glow-says.menuTitle', { def: 'GLOW SAYS' }),
+      groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
+        choices: [
+          { id: 'classic', label: modeDisplay('classic'), mech: ['4 🏮'], best: () => loadBest('classic') || '', preview: (g, w, h) => pvPads(4, 0)(g, w, h) },
+          { id: 'chill',   label: modeDisplay('chill'),   mech: [KIT.t('game.glow-says.noFail', { def: 'no fail 💚' })], best: () => loadBest('chill') || '', preview: (g, w, h) => pvPads(4, 2)(g, w, h) },
+          { id: 'expert',  label: modeDisplay('expert'),  mech: ['6 🏮 ⚡'], best: () => loadBest('expert') || '', preview: (g, w, h) => pvPads(6, 4)(g, w, h) },
+        ] }],
+      hint: () => KIT.t('game.glow-says.startHint', { def: 'Watch the lanterns light up, then tap the same tune back. It grows one note each round!' }),
+      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
+      onChange: st => { mode = st.mode; KIT.stampUrl({ mode: st.mode }); },
+      onPlay: st => startGame(st.mode),
+    });
+  }
+
+  function shareMsg() {
+    return KIT.t('game.glow-says.share', { round,
+      def: 'I remembered a {round}-note tune in Glow Says 🏮' });
+  }
+
+  function showEnd(isBest) {
+    if (!KIT) return;
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+      title: round >= 8 ? KIT.t('game.glow-says.endGreat', { def: 'AMAZING MEMORY!' }) : KIT.t('game.glow-says.endNice', { def: 'NICE TUNE!' }),
+      record: { slug: SLUG, mode: modeLabel(mode), score: round },
+      score: round, best, newBest: isBest,
+      lines: [ modeDisplay(mode) + ' · ' + KIT.t('game.glow-says.roundLine', { round, def: '{round} notes remembered' }) ],
+      share: { slug: SLUG, accent: ACCENT, icon: '🏮', title: KIT.t('game.glow-says.title', { def: 'Glow Says' }),
+               message: () => shareMsg(), params: () => ({ mode }) },
+      actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true },
+                 { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
+      onAction: id => { if (id === 'again') startGame(mode); else if (id === 'menu') toMenu(); } });
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines: [KIT.t('game.glow-says.roundLine', { round, def: '{round} notes remembered' })],
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
+                 { id: 'end', label: KIT.t('game.glow-says.finish', { def: 'FINISH & SAVE' }) },
+                 { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
+      onAction: id => { if (id === 'resume') KIT.menu.hide(); else if (id === 'end') { KIT.menu.hide(); finishChill(); } else if (id === 'menu') toMenu(); },
+      onEsc: () => KIT.menu.hide() });
+  }
+  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
+
+  // ---- resize ----
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    topMargin = KIT.layout.hudTop();
+    layoutBoard();
+  }
+  window.gamekit.layout.on(resize);
+
+  // ---- input ----
+  canvas.addEventListener('pointerdown', e => {
+    if (state !== 'playing' || phase !== 'input') return;
+    const r = canvas.getBoundingClientRect();
+    const px = (e.clientX - r.left) * (W / r.width), py = (e.clientY - r.top) * (H / r.height);
+    for (let k = 0; k < MODES[mode].pads && k < pads.length; k++) {
+      const p = pads[k];
+      if (px >= p.x && px <= p.x + p.w && py >= p.y && py <= p.y + p.h) { padTap(k); return; }
+    }
+  });
+  window.addEventListener('keydown', e => {
+    if (state === 'playing' && e.key === 'Escape') { e.preventDefault(); pauseGame(); }
+    // number keys 1-6 tap pads (kid-friendly keyboard access)
+    const n = parseInt(e.key, 10);
+    if (state === 'playing' && n >= 1 && n <= MODES[mode].pads) padTap(n - 1);
+  });
+
+  // ---- nav + music ----
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); },
+    confirmLeave: () => state === 'playing' && round > 0 ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.glow-says.controlsTitle', { def: 'Glow Says — Controls' }),
+      mouse: [ [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.glow-says.ctrlTap', { def: 'Repeat the lantern tune' })] ],
+      keyboard: [ ['1–6', KIT.t('game.glow-says.ctrlKeys', { def: 'Tap the lanterns' })], ['Esc', KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.glow-says.ctrlTap', { def: 'Repeat the lantern tune' })] ] } });
+  KIT.music.play('glowsays');
+
+  // ---- __test ----
+  window.__test = {
+    get state() { return state; },
+    get phase() { return phase; },
+    get score() { return round; },
+    get round() { return round; },
+    get mode() { return mode; },
+    get seq() { return seq.slice(); },
+    get padCount() { return MODES[mode].pads; },
+    forceSeq(list) { seq = list.slice(); round = seq.length - 1; inputAt = 0; showIdx = 0; phase = 'show'; phaseT = 1; },
+    toInput() { phase = 'input'; inputAt = 0; litPad = -1; },
+    tap(i) { return padTap(i); },
+    get layout() {
+      return { W, H, topReserve: topMargin,
+        board: { x: boardRect.x, y: boardRect.y, w: boardRect.w, h: boardRect.h },
+        pads: pads.map(p => ({ x: p.x, y: p.y, w: p.w, h: p.h })) };
+    },
+    start() { startGame('classic'); },
+    startMode(m) { startGame(m); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+  };
+
+  // ---- boot ----
+  resize();
+  if (KIT) {
+    const L = { lblRound: ['game.glow-says.hudRound', 'ROUND'], lblBest: ['game.common.best', 'BEST'] };
+    for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
+    const m = KIT.param && KIT.param('mode');
+    if (m && MODES[m]) mode = m;
+  }
+  newGame(mode); state = 'ready';
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>

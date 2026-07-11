@@ -569,6 +569,39 @@
   add('trap-the-cat', 'cat', 'ginger', 'Ginger', 50,  'A marmalade menace on the run.',      catFace('#e08b3d', '#f2b571', '#e06a6a'));
   add('trap-the-cat', 'cat', 'snow',   'Snow',   100, 'Fluffy, elegant, and slippery.',       catFace('#e8e4ea', '#f7f4f8', '#f08aae'));
 
+  // ---- 🏮 Glow Says — pad shapes ----
+  function glowPad(shape) {
+    return function (g, w, h) {
+      const cx = w / 2, cy = h / 2, rr = Math.min(w, h) * 0.32;
+      g.fillStyle = '#0a2a20'; g.fillRect(0, 0, w, h);
+      g.shadowColor = '#7ee787'; g.shadowBlur = rr * 0.6;
+      const grd = g.createRadialGradient(cx - rr * 0.2, cy - rr * 0.2, rr * 0.1, cx, cy, rr * 1.1);
+      grd.addColorStop(0, '#d8ffdf'); grd.addColorStop(1, '#3fae5a');
+      g.fillStyle = grd;
+      if (shape === 'star') {
+        g.beginPath();
+        for (let k = 0; k < 10; k++) {
+          const a = -Math.PI / 2 + k * Math.PI / 5, rad = k % 2 ? rr * 0.5 : rr;
+          const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
+          k ? g.lineTo(x, y) : g.moveTo(x, y);
+        }
+        g.closePath();
+      } else if (shape === 'heart') {
+        g.beginPath();
+        g.moveTo(cx, cy + rr * 0.85);
+        g.bezierCurveTo(cx - rr * 1.3, cy - rr * 0.15, cx - rr * 0.6, cy - rr, cx, cy - rr * 0.35);
+        g.bezierCurveTo(cx + rr * 0.6, cy - rr, cx + rr * 1.3, cy - rr * 0.15, cx, cy + rr * 0.85);
+        g.closePath();
+      } else {
+        g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2);
+      }
+      g.fill(); g.shadowBlur = 0;
+    };
+  }
+  add('glow-says', 'pads', 'orbs',   'Lantern Orbs', 0,   'Round glowing lanterns.',      glowPad('orb'));
+  add('glow-says', 'pads', 'stars',  'Stars',        50,  'Twinkly star lanterns.',       glowPad('star'));
+  add('glow-says', 'pads', 'hearts', 'Hearts',       100, 'Warm heart-shaped lanterns.',  glowPad('heart'));
+
   // ---- 🌐 Forcefield — bolt colours + planet skins ----
   add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean golden bolt.', forcefieldMarker('#ffd36b'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
@@ -609,6 +642,7 @@
       'minesweeper.board':   { label: 'Board themes' },
       '2048.tiles':          { label: 'Tile themes' },
       'trap-the-cat.cat':    { label: 'Cat colours' },
+      'glow-says.pads':      { label: 'Lantern shapes' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -628,6 +662,7 @@
       'minesweeper':   { title: 'Minesweeper', icon: '💣', accent: '#35e0ff' },
       '2048':          { title: '2048', icon: '🧮', accent: '#f2b179' },
       'trap-the-cat':  { title: 'Trap the Cat', icon: '🐱', accent: '#f0a6c8' },
+      'glow-says':     { title: 'Glow Says', icon: '🟢', accent: '#7ee787' },
     },
   };
 })();
