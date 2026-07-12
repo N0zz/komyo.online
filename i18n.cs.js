@@ -1955,4 +1955,7 @@ window.KOMYO_I18N.cs = {
   'settings.easyPicksHint': 'Označí a předvybere nejmírnější možnost v každé hře · dětské hry nahoře na hlavní stránce',
   'changelog.e62.title': '🐣 Snadné volby pro nejmenší',
   'changelog.e62.b0': 'Novinka: 🐣 Snadné volby — přepínač v Nastavení pro mladší (nebo pohodové) hráče: každá hra označí svůj nejmírnější režim a obtížnost symbolem 🐣 a rovnou je vybere za vás, a dětské hry se přesunou na začátek hlavní stránky. Vypněte ho a vše je zpět v normálu.',
+  'changelog.e63.title': 'Stopky speedrunů na kartách skóre opraveny ⏱️',
+  'changelog.e63.b0': 'Oprava: karty skóre speedrunu ve Zvířecích párech ukazovaly zkomolený čas typu 00:00.01 místo skutečného času dokončení — karta (i rekord v profilu) teď ukazují váš opravdový čas.',
+  'changelog.e63.b1': 'Oprava: dokončení speedrunu v Asteroidech+ teď na sdílenou kartu skóre otiskne váš ČAS, stejně jako klasické Asteroidy — dřív ukazovala skóre.',
 };

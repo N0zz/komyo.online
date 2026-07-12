@@ -1955,4 +1955,7 @@ window.KOMYO_I18N.it = {
   'settings.easyPicksHint': 'Contrassegna e preseleziona l\'opzione più delicata di ogni gioco · i giochi per bambini per primi nella home',
   'changelog.e62.title': '🐣 Scelte facili per i più piccoli',
   'changelog.e62.b0': 'Novità: 🐣 Scelte facili — un interruttore nelle Impostazioni per i giocatori più giovani (o rilassati): ogni gioco contrassegna la modalità e la difficoltà più delicate con un 🐣 e le sceglie per te, e i giochi per bambini salgono in cima alla home. Spegnilo e tutto torna come prima.',
+  'changelog.e63.title': 'Cronometri degli speedrun sistemati sulle carte del punteggio ⏱️',
+  'changelog.e63.b0': 'Fix: le carte del punteggio dello speedrun di Coppie di Animali mostravano un tempo sballato tipo 00:00.01 invece del tuo vero tempo — la carta (e il record nel profilo) ora mostrano il tempo che hai fatto davvero.',
+  'changelog.e63.b1': 'Fix: completare uno speedrun di Asteroidi+ ora imprime il tuo TEMPO sulla carta del punteggio condivisa, come fa Asteroidi classico — prima mostrava il punteggio.',
 };

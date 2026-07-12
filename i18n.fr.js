@@ -1955,4 +1955,7 @@ window.KOMYO_I18N.fr = {
   'settings.easyPicksHint': 'Marque et présélectionne l\'option la plus douce de chaque jeu · les jeux pour enfants en premier sur l\'accueil',
   'changelog.e62.title': '🐣 Choix faciles pour les petits',
   'changelog.e62.b0': 'Nouveau : 🐣 Choix faciles — un interrupteur dans les Réglages pour les jeunes joueurs (ou les détendus) : chaque jeu marque son mode et sa difficulté les plus doux d\'un 🐣 et les choisit pour vous, et les jeux pour enfants remontent en haut de l\'accueil. Désactivez-le et tout redevient normal.',
+  'changelog.e63.title': 'Chronos de speedrun réparés sur les cartes de score ⏱️',
+  'changelog.e63.b0': 'Correctif : les cartes de score du speedrun de Paires d\'Animaux affichaient un temps farfelu du genre 00:00.01 au lieu de votre vrai temps — la carte (et le record du profil) affichent désormais le temps que vous avez réellement réalisé.',
+  'changelog.e63.b1': 'Correctif : terminer un speedrun d\'Astéroïdes+ imprime désormais votre TEMPS sur la carte de score partagée, comme le fait Astéroïdes classique — elle affichait le score auparavant.',
 };
