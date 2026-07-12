@@ -370,7 +370,7 @@
   add('', 'cursor', 'terminal',  'Terminal',      75,  'A blinking block cursor, like an old terminal prompt. Glows in your CRT colour when CRT mode is on.', cursorSwatch(CURSORS.terminal));
   add('', 'cursor', 'sonar',       'Sonar Ping',      25, 'Minesweeper’s cyan sonar ring — sweep as you point.', cursorSwatch(CURSORS.sonar));
   add('', 'cursor', 'reticle',     'Marksman Scope',  50, 'Range’s amber mil-dot reticle for steady aim.', cursorSwatch(CURSORS.reticle));
-  add('', 'cursor', 'starfighter', 'Starfighter Lock', 50, 'Asteroids+ targeting brackets, locked on.', cursorSwatch(CURSORS.starfighter));
+  add('', 'cursor', 'starfighter', 'Lock-On', 50, 'Asteroids+ targeting brackets, locked on.', cursorSwatch(CURSORS.starfighter));
 
   // ---- Site-wide — CRT display mode (ONE unlock; on/off + colour are free preferences after that) ----
   add('', 'fx', 'off', 'Standard', 0, 'No screen filter — the plain look.', function (g, w, h) {

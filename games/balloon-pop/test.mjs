@@ -117,6 +117,7 @@ section('balloon-pop: wind gusts push balloons');
   const moved = T().balloons.find(b => Math.abs(b.y - 400) < 60);
   ok(T().wind.active === false || T().wind.active === true, 'wind state readable');
   ok(moved && moved.x > x0 + 10, 'gust pushes balloons sideways (' + Math.round(x0) + ' → ' + (moved ? Math.round(moved.x) : '?') + ')');
+  ok(T().streakCount > 0, 'the gust spawns visible streak lines (got ' + T().streakCount + ')');
 }
 
 // ---- Zen fireworks ----

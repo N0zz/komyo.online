@@ -203,16 +203,21 @@
       if (windT > 0) {
         windT--; if (windT === 0) wind = 0;
         cloudDrift += wind * 0.4;
-        // spawn the classic wind-streak lines while the gust blows
-        if (frame % 6 === 0 && streaks.length < 14) {
-          streaks.push({ x: wind > 0 ? -40 : W + 40, y: topMargin + 20 + Math.random() * (H - topMargin - 60),
-            v: wind * (3.5 + Math.random() * 2), len: 50 + Math.random() * 70, amp: 4 + Math.random() * 6, ph: Math.random() * 6, t: 0 });
+        // keep the streak lines flowing while the gust blows
+        if (frame % 4 === 0 && streaks.length < 18) {
+          streaks.push({ x: wind > 0 ? -60 : W + 60, y: topMargin + 20 + Math.random() * (H - topMargin - 60),
+            v: wind * (7 + Math.random() * 4), len: 90 + Math.random() * 80, amp: 5 + Math.random() * 7, ph: Math.random() * 6, t: 0 });
         }
       } else if (--windNext <= 0) {
         wind = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 1.1) * (W / 700);
         windT = 80 + Math.floor(Math.random() * 50);
         windNext = 700 + Math.floor(Math.random() * 500);
         SND.play('whoosh');
+        // instant burst ACROSS the screen so the gust reads the moment it starts
+        for (let k = 0; k < 6; k++) {
+          streaks.push({ x: Math.random() * W, y: topMargin + 20 + Math.random() * (H - topMargin - 60),
+            v: wind * (7 + Math.random() * 4), len: 90 + Math.random() * 80, amp: 5 + Math.random() * 7, ph: Math.random() * 6, t: 0 });
+        }
       }
     }
     for (let k = streaks.length - 1; k >= 0; k--) {
@@ -428,20 +433,22 @@
         ctx.fill();
       }
     }
-    // wind streak lines — the visual "whoosh" (wavy speed-lines riding the gust)
+    // wind streak lines — the visual "whoosh": two-tone wavy speed-lines riding the gust
     if (streaks.length) {
-      ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.lineCap = 'round';
       for (const s of streaks) {
-        const fade = Math.min(1, s.t / 10) * (windT > 0 ? 1 : 0.5);
-        ctx.strokeStyle = 'rgba(255,255,255,' + (0.38 * fade) + ')';
-        ctx.beginPath();
+        const fade = Math.min(1, s.t / 8) * (windT > 0 ? 1 : 0.55);
         const dir = s.v > 0 ? -1 : 1;
-        for (let i = 0; i <= 5; i++) {
-          const px = s.x + dir * (s.len * i / 5);
-          const py = s.y + Math.sin(s.ph + i * 0.9 + frame * 0.08) * s.amp;
-          i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+        for (const [w2, col] of [[4.5, 'rgba(90,130,160,' + (0.3 * fade) + ')'], [2, 'rgba(255,255,255,' + (0.75 * fade) + ')']]) {
+          ctx.lineWidth = w2; ctx.strokeStyle = col;
+          ctx.beginPath();
+          for (let i = 0; i <= 5; i++) {
+            const px = s.x + dir * (s.len * i / 5);
+            const py = s.y + Math.sin(s.ph + i * 0.9 + frame * 0.08) * s.amp;
+            i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+          }
+          ctx.stroke();
         }
-        ctx.stroke();
       }
     }
     if (shakeT > 0) { ctx.save(); ctx.translate(Math.sin(frame * 1.7) * 3 * (shakeT / 12), 0); }
@@ -643,6 +650,7 @@
     get popCount() { return popCount; },
     get fireworksSeen() { return fireworksSeen; },
     get wind() { return { strength: wind, active: windT > 0 }; },
+    get streakCount() { return streaks.length; },
     gust(dir, frames) { wind = dir; windT = frames || 60; },
     spawnBeeAt(x, y, vx) { spawnBee(x, y, vx); },
     spawnAt(x, y, r, c) { spawnBalloon(x, y, r, c); },
