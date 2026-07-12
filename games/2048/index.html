@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>2048</title>
+<title>2048 — play the number puzzle free online, no ads | Komyo Games</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#f2b179">
 <link rel="manifest" href="manifest.json">
@@ -12,6 +12,28 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="2048">
 <link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="Play 2048 free in your browser — slide and merge matching tiles to reach the fabled 2048 and beyond. Classic 4×4 plus Mini 3×3 and Big 5×5 boards. No ads.">
+<link rel="canonical" href="https://komyo.online/games/2048/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Komyo Games">
+<meta property="og:title" content="2048 — play the number puzzle free online, no ads">
+<meta property="og:description" content="Play 2048 free in your browser — slide and merge matching tiles to reach the fabled 2048 and beyond. Classic 4×4 plus Mini 3×3 and Big 5×5 boards. No ads.">
+<meta property="og:url" content="https://komyo.online/games/2048/">
+<meta property="og:image" content="https://komyo.online/games/2048/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="2048 — play the number puzzle free online, no ads">
+<meta name="twitter:description" content="Play 2048 free in your browser — slide and merge matching tiles to reach the fabled 2048 and beyond. Classic 4×4 plus Mini 3×3 and Big 5×5 boards. No ads.">
+<meta name="twitter:image" content="https://komyo.online/games/2048/icon-512.png">
+<link rel="alternate" hreflang="en" href="https://komyo.online/games/2048/">
+<link rel="alternate" hreflang="pl" href="https://komyo.online/games/2048/?lang=pl">
+<link rel="alternate" hreflang="es" href="https://komyo.online/games/2048/?lang=es">
+<link rel="alternate" hreflang="pt" href="https://komyo.online/games/2048/?lang=pt">
+<link rel="alternate" hreflang="fr" href="https://komyo.online/games/2048/?lang=fr">
+<link rel="alternate" hreflang="it" href="https://komyo.online/games/2048/?lang=it">
+<link rel="alternate" hreflang="cs" href="https://komyo.online/games/2048/?lang=cs">
+<link rel="alternate" hreflang="uk" href="https://komyo.online/games/2048/?lang=uk">
+<link rel="alternate" hreflang="x-default" href="https://komyo.online/games/2048/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"2048","url":"https://komyo.online/games/2048/","description":"Play 2048 free in your browser — slide and merge matching tiles to reach the fabled 2048 and beyond. Classic 4×4 plus Mini 3×3 and Big 5×5 boards. No ads.","genre":["Puzzle","Logic"],"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"inLanguage":["en","pl","es","pt","fr","it","cs","uk"],"image":"https://komyo.online/games/2048/icon-512.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Komyo Games","url":"https://komyo.online/"}}</script>
 <!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
      exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
 <script src="../../analytics.js" defer></script>
@@ -36,6 +58,19 @@
   <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
   <div class="stat"><span class="lbl" id="lblTile">TILE</span><span class="val" id="tileEl">2</span></div>
 </div>
+<!-- crawlable game description — shown to players via the ☰ "How to play" entry (kit aboutModal) -->
+<section id="gk-about" hidden>
+<h1 data-t="game.2048.title">2048</h1>
+<p data-t="game.2048.blurb">Slide and merge the tiles — double your way up to the fabled 2048.</p>
+<h2 data-t="kit.howto">How to play</h2>
+<p data-t="seo.2048.howto">Swipe or use the arrow keys to slide every tile at once — when two matching numbers collide they merge into their sum. Plan ahead: the board gains a tile per move, and no legal move means game over. Reach 2048 to win, then keep going; Mini 3×3 is a quick puzzle, Big 5×5 a long strategic build.</p>
+<h2 data-t="seo.h.faq">Common questions</h2>
+<p><strong data-t="seo.q.free">Is this game free?</strong> <span data-t="seo.a.free">Yes — every game on Komyo is completely free to play: no ads, no payments, no accounts.</span></p>
+<p><strong data-t="seo.q.offline">Can I play offline?</strong> <span data-t="seo.a.offline">Yes — after your first visit the game works without internet, and you can install it as an app straight from your browser.</span></p>
+<p><strong data-t="seo.q.saves">Where are my scores saved?</strong> <span data-t="seo.a.saves">On your device only — best scores, trophies and cosmetics live in your browser and are never uploaded anywhere.</span></p>
+<h2 data-t="seo.h.more">More free games</h2>
+<p><a href="../sudoku/" data-t="game.sudoku.title">Sudoku</a> · <a href="../minesweeper/" data-t="game.minesweeper.title">Minesweeper</a> · <a href="../trap-the-cat/" data-t="game.trap-the-cat.title">Trap the Cat</a> · <a href="../../" data-t="seo.allGames">All free games at Komyo</a></p>
+</section>
 <script>
 (() => {
   const canvas = document.getElementById('game');

@@ -1261,6 +1261,42 @@ function testServiceWorkers() {
   ok(badReg.length === 0, "every live game calls pwa('../../sw.js')" + (badReg.length ? ' — off: ' + badReg.join(', ') : ''));
 }
 
+// ---------------- per-game SEO head + crawlable about section ----------------
+// Every live game page ships the discoverability unit: keyworded <title>, meta description,
+// canonical, hreflang alternates (one per locale file on disk), VideoGame JSON-LD, OG/Twitter
+// tags, and the static #gk-about section (kit ☰ "How to play" + what crawlers actually read).
+function testSEO() {
+  section('per-game SEO (head unit + #gk-about section)');
+  const gw = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(DIR, 'games.js'), 'utf8'), gw);
+  const live = (gw.window.GAMES || []).filter(x => x && x.slug && !x.soon).map(x => x.slug);
+  const locales = fs.readdirSync(DIR).filter(f => /^i18n\.[a-z-]+\.js$/.test(f)).map(f => f.split('.')[1]);
+  const bad = (label, list) => ok(list.length === 0, label + (list.length ? ' — off: ' + list.join(', ') : ''));
+  const pages = live.map(s => [s, fs.readFileSync(path.join(DIR, 'games', s, 'index.html'), 'utf8')]);
+  bad('every live game has a keyworded <title> ending in "| Komyo Games"',
+    pages.filter(([, h]) => !/<title>[^<]+\| Komyo Games<\/title>/.test(h)).map(([s]) => s));
+  bad('every live game has a meta description',
+    pages.filter(([, h]) => !h.includes('<meta name="description"')).map(([s]) => s));
+  bad('every live game has its canonical URL',
+    pages.filter(([s, h]) => !h.includes('<link rel="canonical" href="https://komyo.online/games/' + s + '/">')).map(([s]) => s));
+  bad('every live game has hreflang alternates for every locale + x-default',
+    pages.filter(([s, h]) => !locales.concat(['x-default']).every(l => h.includes('hreflang="' + l + '"'))
+      || !h.includes('hreflang="en"')).map(([s]) => s));
+  bad('every live game has OG + Twitter card tags',
+    pages.filter(([, h]) => !(h.includes('property="og:title"') && h.includes('property="og:image"') && h.includes('name="twitter:card"'))).map(([s]) => s));
+  const badLD = [];
+  for (const [s, h] of pages) {
+    const m = h.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    try {
+      const ld = JSON.parse(m[1]);
+      if (ld['@type'] !== 'VideoGame' || !ld.name || !ld.description || !ld.url.includes(s) || ld.isAccessibleForFree !== true) badLD.push(s);
+    } catch (e) { badLD.push(s); }
+  }
+  bad('every live game has valid VideoGame JSON-LD', badLD);
+  bad('every live game ships the crawlable #gk-about section (howto key + catalogue link)',
+    pages.filter(([s, h]) => !(h.includes('id="gk-about"') && h.includes('data-t="seo.' + s + '.howto"') && h.includes('href="../../"'))).map(([s]) => s));
+}
+
 // ---------------- qr.js (reusable QR encoder) ----------------
 function testQR() {
   section('qr.js (QR encoder)');
@@ -1297,5 +1333,6 @@ testI18nCoverage();
 testChallenges();
 testCosmetics();
 testServiceWorkers();
+testSEO();
 testQR();
 summary();

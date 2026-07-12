@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Meadow Flyer</title>
+<title>Meadow Flyer — one-tap flying game, free online, no ads | Komyo Games</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#8fd3a6">
 <link rel="manifest" href="manifest.json">
@@ -12,6 +12,28 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Meadow Flyer">
 <link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="A gentle one-tap flyer through a storybook meadow — glide between the stems, ride the day-night sky, chase your best. Free, no ads, works offline.">
+<link rel="canonical" href="https://komyo.online/games/flappy/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Komyo Games">
+<meta property="og:title" content="Meadow Flyer — one-tap flying game, free online, no ads">
+<meta property="og:description" content="A gentle one-tap flyer through a storybook meadow — glide between the stems, ride the day-night sky, chase your best. Free, no ads, works offline.">
+<meta property="og:url" content="https://komyo.online/games/flappy/">
+<meta property="og:image" content="https://komyo.online/games/flappy/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Meadow Flyer — one-tap flying game, free online, no ads">
+<meta name="twitter:description" content="A gentle one-tap flyer through a storybook meadow — glide between the stems, ride the day-night sky, chase your best. Free, no ads, works offline.">
+<meta name="twitter:image" content="https://komyo.online/games/flappy/icon-512.png">
+<link rel="alternate" hreflang="en" href="https://komyo.online/games/flappy/">
+<link rel="alternate" hreflang="pl" href="https://komyo.online/games/flappy/?lang=pl">
+<link rel="alternate" hreflang="es" href="https://komyo.online/games/flappy/?lang=es">
+<link rel="alternate" hreflang="pt" href="https://komyo.online/games/flappy/?lang=pt">
+<link rel="alternate" hreflang="fr" href="https://komyo.online/games/flappy/?lang=fr">
+<link rel="alternate" hreflang="it" href="https://komyo.online/games/flappy/?lang=it">
+<link rel="alternate" hreflang="cs" href="https://komyo.online/games/flappy/?lang=cs">
+<link rel="alternate" hreflang="uk" href="https://komyo.online/games/flappy/?lang=uk">
+<link rel="alternate" hreflang="x-default" href="https://komyo.online/games/flappy/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Meadow Flyer","url":"https://komyo.online/games/flappy/","description":"A gentle one-tap flyer through a storybook meadow — glide between the stems, ride the day-night sky, chase your best. Free, no ads, works offline.","genre":["Casual","Arcade"],"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"inLanguage":["en","pl","es","pt","fr","it","cs","uk"],"image":"https://komyo.online/games/flappy/icon-512.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Komyo Games","url":"https://komyo.online/"}}</script>
 <script src="../../analytics.js" defer></script>
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
@@ -39,6 +61,19 @@
   <div class="score" id="scoreEl">0</div>
   <div class="best"  id="bestEl">BEST 0</div>
 </div>
+<!-- crawlable game description — shown to players via the ☰ "How to play" entry (kit aboutModal) -->
+<section id="gk-about" hidden>
+<h1 data-t="game.flappy.title">Meadow Flyer</h1>
+<p data-t="game.flappy.blurb">One-tap flyer through a soft storybook meadow.</p>
+<h2 data-t="kit.howto">How to play</h2>
+<p data-t="seo.flappy.howto">Tap, click or press space to flap and glide between the flower stems — each gap you pass scores a point, and the meadow slowly speeds up. Touch a stem or the ground and the flight ends. Short hops beat long holds; find a rhythm and ride it.</p>
+<h2 data-t="seo.h.faq">Common questions</h2>
+<p><strong data-t="seo.q.free">Is this game free?</strong> <span data-t="seo.a.free">Yes — every game on Komyo is completely free to play: no ads, no payments, no accounts.</span></p>
+<p><strong data-t="seo.q.offline">Can I play offline?</strong> <span data-t="seo.a.offline">Yes — after your first visit the game works without internet, and you can install it as an app straight from your browser.</span></p>
+<p><strong data-t="seo.q.saves">Where are my scores saved?</strong> <span data-t="seo.a.saves">On your device only — best scores, trophies and cosmetics live in your browser and are never uploaded anywhere.</span></p>
+<h2 data-t="seo.h.more">More free games</h2>
+<p><a href="../stacker/" data-t="game.stacker.title">Stack</a> · <a href="../balloon-pop/" data-t="game.balloon-pop.title">Balloon Pop</a> · <a href="../frog-bonk/" data-t="game.frog-bonk.title">Frog Bonk</a> · <a href="../../" data-t="seo.allGames">All free games at Komyo</a></p>
+</section>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
