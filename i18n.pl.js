@@ -1959,4 +1959,7 @@ window.KOMYO_I18N.pl = {
   'settings.easyPicksHint': 'Oznacza i domyślnie ustawia najłagodniejszą opcję w każdej grze · gry dla dzieci na górze strony głównej',
   'changelog.e62.title': '🐣 Łatwe wybory dla najmłodszych',
   'changelog.e62.b0': 'Nowość: 🐣 Łatwe wybory — przełącznik w Ustawieniach dla młodszych (lub wyluzowanych) graczy: każda gra oznacza swój najłagodniejszy tryb i poziom trudności symbolem 🐣 i wybiera je za Ciebie, a gry dla dzieci przenoszą się na górę strony głównej. Wyłącz — i wszystko wraca do normy.',
+  'changelog.e63.title': 'Zegary speedrunów naprawione na kartach wyniku ⏱️',
+  'changelog.e63.b0': 'Poprawka: karty wyniku speedrunu w Zwierzęcych Parach pokazywały przekłamany czas w rodzaju 00:00.01 zamiast prawdziwego czasu ukończenia — karta (i rekord w profilu) pokazują teraz Twój faktyczny czas.',
+  'changelog.e63.b1': 'Poprawka: ukończenie speedrunu w Asteroidach+ odciska teraz Twój CZAS na udostępnianej karcie wyniku, tak jak w klasycznych Asteroidach — wcześniej pokazywała punkty.',
 };

@@ -1956,4 +1956,7 @@ window.KOMYO_I18N.es = {
   'settings.easyPicksHint': 'Marca y preselecciona la opción más suave de cada juego · los juegos para niños primero en la página principal',
   'changelog.e62.title': '🐣 Opciones fáciles para los más pequeños',
   'changelog.e62.b0': 'Nuevo: 🐣 Opciones fáciles — un interruptor en Ajustes para jugadores jóvenes (o relajados): cada juego marca su modo y dificultad más suaves con un 🐣 y los elige por ti, y los juegos para niños suben a lo alto de la página principal. Apágalo y todo vuelve a la normalidad.',
+  'changelog.e63.title': 'Relojes de speedrun arreglados en las tarjetas de puntuación ⏱️',
+  'changelog.e63.b0': 'Arreglo: las tarjetas de puntuación del speedrun de Parejas de Bichitos mostraban un tiempo descuadrado tipo 00:00.01 en vez de tu tiempo real — la tarjeta (y tu mejor marca del perfil) ahora muestran el tiempo que hiciste de verdad.',
+  'changelog.e63.b1': 'Arreglo: completar un speedrun de Asteroides+ ahora estampa tu TIEMPO en la tarjeta de puntuación compartida, como hace el Asteroides clásico — antes mostraba la puntuación.',
 };
