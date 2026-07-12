@@ -84,6 +84,15 @@ silently, not loudly.
   `gamekit.bestScore(slug, modeLabel)`, no per-game best keys. Compute `isBest` BEFORE the single
   end-of-run save (mid-run saves make "★ New best!" never fire), aim-trainer's `endGame` is the
   reference.
+- **Time records are MILLISECONDS.** Every `time` handed to the kit (`record.time`, `saveBest`'s
+  `{time}`) is ms — the kit renders stored times via `fmtMs` (mm:ss.cs) on the TIME score card and
+  in the profile, so a seconds value shows as `00:00.01` (the critter-match speedrun-card bug).
+  Convert at the store boundary and keep in-game units (frames/seconds) internal. Set `record.time`
+  only in time-primary modes (mode label contains "Speedrun"/"Sprint" — that's what flips the score
+  card to TIME) and only on a CLEARED run — a failed/aborted run records `time: 0`, because the
+  store keeps the MIN and a fast death would beat a real clear forever. Asteroids classic's
+  `endGame` (`time: (SPEEDRUN && win) ? srElapsed : 0`) is the reference; suites assert the ms unit
+  (e.g. step 120 frames → stored `time === 2000`).
 - **Storage discipline.** localStorage is **~5 MB for the whole ORIGIN** — the kit + every game share
   one pool, so a single leaking game can throw `QuotaExceededError` and break saves site-wide. The kit
   stores (`saveBest`/cosmetics/challenges) are already bounded; anything a game persists beyond them
