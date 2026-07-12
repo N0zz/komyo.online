@@ -135,6 +135,13 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   Byte-identical.
 - **Results recorded ONLY via the end menu's `record:` block** — never call
   `gamekit.recordResult` directly (it double-counts; the menu path is idempotent).
+- **`time` is always MILLISECONDS** — `record.time` and `saveBest`'s `{time}` are ms
+  (the kit renders them via `fmtMs` → mm:ss.cs; seconds render as `00:00.01`). Convert
+  at the store boundary (`Math.round(frames / 60 * 1000)`), keep frames/seconds
+  internal. Set `record.time` only in time-primary modes (label contains
+  "Speedrun"/"Sprint" — that flips the score card to TIME) and only on a CLEARED run;
+  fails record `time: 0` (the store keeps the MIN — a fast death would beat a real
+  clear). Add a suite assert for the unit (step N frames → stored ms exact).
 - **Compute `isBest` BEFORE the single end-of-run `saveBest`** — mid-run saves make
   "★ New best!" never fire.
 - **`SND.define` never reuses a kit stinger name** (`levelup`, `lose`, `victory`,
