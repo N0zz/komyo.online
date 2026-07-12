@@ -1955,4 +1955,8 @@ window.KOMYO_I18N.pl = {
   'changelog.e61.title': 'Poziome telefony naprawione 📱',
   'changelog.e61.b0': 'Poprawka: granie na telefonie w poziomie przeszło pełny przegląd — sklep Kolekcji znów się mieści (z porządnym pierścieniem postępu), boczne szybkie menu otwiera się kompaktowo i startuje schowane, gdy brakuje miejsca, a ekrany końca gry pokazują kartę wyniku obok przycisków, zamiast wystawać poza ekran.',
   'changelog.e61.b1': 'Saper: na telefonach w poziomie przełącznik KOP/FLAGA jest teraz przy lewej krawędzi, więc pole minowe zajmuje całą wysokość — wyraźnie większe kafelki.',
+  'settings.easyPicks': 'Łatwe wybory',
+  'settings.easyPicksHint': 'Oznacza i domyślnie ustawia najłagodniejszą opcję w każdej grze · gry dla dzieci na górze strony głównej',
+  'changelog.e62.title': '🐣 Łatwe wybory dla najmłodszych',
+  'changelog.e62.b0': 'Nowość: 🐣 Łatwe wybory — przełącznik w Ustawieniach dla młodszych (lub wyluzowanych) graczy: każda gra oznacza swój najłagodniejszy tryb i poziom trudności symbolem 🐣 i wybiera je za Ciebie, a gry dla dzieci przenoszą się na górę strony głównej. Wyłącz — i wszystko wraca do normy.',
 };

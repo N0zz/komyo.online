@@ -51,8 +51,9 @@ language, not just the original launch set.
   `t('key', ...)`/`T('key', ...)` calls, plus every
   `game.<slug>.title/.blurb`, `cos.<id>.name/.desc`, `cos.set.<id>`, and every
   `changelog.eN.title/.bM`). Every *other* locale must be **empty (not
-  started) or a complete superset matching `pl`'s key set** — no
-  half-translated locale ships. This means: to see the exact, current,
+  started) or carry EXACTLY `pl`'s key set** — no half-translated locale
+  ships, and no stale extra keys linger after a cleanup (the suite flags
+  both directions). This means: to see the exact, current,
   complete key surface for a new language, read `pl` (`i18n.pl.js`), not `en`
   (`en` is sparse — most English text lives as inline `def:` fallbacks in the
   source files, not in `i18n.js`'s `en` dict).
@@ -122,8 +123,9 @@ low-volume edits:
 
 Once every locale is complete, the recurring job is NOT a full translation —
 it's "a new game/feature added N keys to `pl`; add them to every other
-populated locale" (the coverage test requires each populated locale to stay a
-complete superset of `pl`, so this is mandatory, not optional). For that:
+populated locale" (the coverage test requires each populated locale's key set
+to stay exactly EQUAL to `pl`'s, so this is mandatory, not optional — and a
+key REMOVED from `pl` must be removed from every other locale too). For that:
 
 1. Discover the populated locales (snippet above).
 2. Per target locale, extract only what it's missing:
@@ -238,7 +240,7 @@ don't need to; only the *merge mechanics* need automating):
 1. Validate each part file parses as a JS object literal (wrap in `({...})`
    and `vm.runInNewContext`), that no part key falls outside `pl`'s key set +
    the changelog key set (no extras/typos), and that **the target locale's
-   existing keys plus the parts' keys form a complete superset of `pl`** —
+   existing keys plus the parts' keys land exactly on `pl`'s key set** —
    fail loudly if not, before touching `i18n.<code>.js`. (Only a
    from-scratch run reduces to "parts' union === `pl`'s key set"; an
    incremental run's parts cover just the keys the locale was missing.)

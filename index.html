@@ -905,6 +905,11 @@
         <input class="setvol" id="setMusVol" type="range" min="0" max="100" aria-label="Music volume" data-ta="sound.musVol">
       </div>
       <div class="setrow">
+        <span class="setlbl"><span class="di">🐣</span><span><span data-t="settings.easyPicks">Easy picks</span>
+          <small class="sethint" data-t="settings.easyPicksHint">Marks &amp; preselects the gentlest option in every game · kids' games first on the home page</small></span></span>
+        <button class="settoggle" id="setEasyPicks" type="button" role="switch" aria-checked="false">Off</button>
+      </div>
+      <div class="setrow">
         <span class="setlbl"><span class="di">📣</span><span><span data-t="settings.discordName">Nickname in Discord posts</span>
           <small class="sethint" data-t="settings.discordHint">Anonymous unless on · only with cookie consent</small></span></span>
         <button class="settoggle" id="setDiscordName" type="button" role="switch" aria-checked="false">Off</button>
@@ -1334,7 +1339,12 @@
         .filter(Boolean).slice(0, 10);
       if (recent.length) sections.push({ key: 'recent', label: T('cat.recentlyPlayed', 'Recently played'), list: recent, carousel: true });
       // all games (single + multi together — MP tiles keep their 👥 pill; the Type filter still splits)
-      const rest = all.filter(g => !g.soon && !isFav(g));
+      let rest = all.filter(g => !g.soon && !isFav(g));
+      // 🐣 Easy picks lifts KIDS-tagged games to the top (stable — games.js order within each half)
+      if (window.gamekit && window.gamekit.easyPicks && window.gamekit.easyPicks()) {
+        const isKids = g => tagsOf(g).some(t => String(t).toUpperCase() === 'KIDS');
+        rest = rest.filter(isKids).concat(rest.filter(g => !isKids(g)));
+      }
       if (rest.length) sections.push({ key: 'all', label: T('cat.allGames', 'All games'), list: rest });
       const soonList = all.filter(g => g.soon);
       if (soonList.length) sections.push({ key: 'soon', label: T('cat.comingSoonHead', 'Coming soon'), list: soonList });
@@ -1433,6 +1443,7 @@
       fcountUpdate(); render();
     }
     readURL(); render();
+    window.__renderTiles = render; // Settings' 🐣 Easy picks re-sorts the shelf live
     // Back-navigation restores this page from bfcache WITHOUT re-running scripts — but the game
     // just played wrote gamekit_recent / bests / challenge progress. Re-render the grid (Recently
     // played rail + tiles) and resync every notification surface so the catalogue reflects the run.
@@ -1986,6 +1997,15 @@
         musT.addEventListener('click', () => { K.music.toggle(); sync(); });
         sfxV.addEventListener('input', e => { K.sound.volume(((e.target && e.target.value) || 0) / 100); });
         musV.addEventListener('input', e => { K.music.volume(((e.target && e.target.value) || 0) / 100); });
+      }
+      // 🐣 Easy picks — the kit menus read it (marker + gentlest defaults), the tile renderer
+      // lifts KIDS-tagged games; re-render so the sort applies the moment it's flipped
+      const epT = document.getElementById('setEasyPicks');
+      if (epT) {
+        const epSync = () => paint(epT, K.easyPicks && K.easyPicks());
+        epT.addEventListener('click', () => { if (K.setEasyPicks) K.setEasyPicks(!K.easyPicks()); epSync(); if (window.__renderTiles) window.__renderTiles(); });
+        if (btn) btn.addEventListener('click', epSync);
+        epSync();
       }
       // Discord nickname opt-in (gamekit_discord_name) — the kit's discordTier() reads this
       const dnT = document.getElementById('setDiscordName');

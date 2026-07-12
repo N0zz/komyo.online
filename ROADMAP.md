@@ -7,6 +7,12 @@ challenges, tv-controller.
 
 ## ✅ Done
 
+- **🐣 Easy picks — DONE (2026-07-12).** Optional Settings switch for young players: every
+  difficulty-bearing menu group/toggle in every game carries a `kid:` flag — when the switch is on,
+  the kit marks the gentlest option with 🐣 AND makes it the menu default, and KIDS-tagged tiles
+  sort first on the home page. All 18 live games annotated, Settings row translated ×8, kit +
+  catalogue behavior test-enforced; the new-game skill requires the annotation on every future game.
+
 - **Per-game SEO pass (2026-07-12).** Every live game page now ships the full discoverability
   unit: keyworded `<title>` + meta description + canonical + hreflang ×8 + OG/Twitter +
   `VideoGame` JSON-LD, plus a **crawlable `#gk-about` section** (how-to, FAQ, related-game links)
