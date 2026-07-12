@@ -332,9 +332,17 @@ cd ~/arcade && python3 -m http.server 8765    # then open http://localhost:8765/
 - After a redeploy/edit, **hard-refresh** (service workers cache aggressively) or the old build shows.
 - Mobile/touch UX (joysticks, the snake D-pad, rotation): use the browser's device-mode (coarse
   pointer) — touch-only controls don't render on a desktop pointer.
+- **The eyeball pass is THREE viewports, never two: desktop, portrait (~390×780), and landscape
+  (~780×390).** This applies to EVERY player-facing change — kit chrome, modals/drawers, menus, new
+  buttons or text, not just games. Landscape (short-height) is where overlays overflow, fixed-size
+  controls dominate, and rails starve — it's exactly the pass that gets skipped when a change
+  "works on desktop and portrait" (2026-07-12: shop rail, side stack and the minesweeper pill all
+  shipped broken in landscape this way). The headless suites only cover JS-computed game layouts;
+  kit DOM/CSS has NO automated geometry check, so this manual pass is the only landscape gate.
 - Stop the server when done: `lsof -ti:8765 | xargs kill`.
 
-When the change is visual/interactive, offer the user this local URL to verify before pushing.
+When the change is visual/interactive, offer the user this local URL to verify before pushing —
+and name landscape explicitly in what to check.
 
 ## Git & deploy
 
