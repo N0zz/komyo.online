@@ -1923,4 +1923,5 @@ window.KOMYO_I18N.it = {
   'changelog.e59.b0': 'Novità: un 🎁 Regalo di benvenuto ti aspetta in cima alla Collezione — ritira una tantum 100 🏆 per dare il via alla tua collezione con una skin o due.',
   'changelog.e59.b1': 'Novità: ✨ Prova libera — un interruttore in fondo alla Collezione che sblocca ogni cosmetico da provare e indossare, senza spendere trofei. Spegnilo e la tua vera collezione e il tuo saldo sono esattamente come li avevi lasciati; i titoli si guadagnano comunque giocando.',
   'changelog.e59.b2': 'Modifica: il bonus buone partite ⚡ ora è fatto di tre grandi fulmini che si accendono man mano che li guadagni — nel pannello delle Sfide e nel pannello 🏆 in gioco — al posto di una piccola riga contatore.',
+  'changelog.e59.b3': 'Modifica: durante una partita, la linguetta ‹‹ del menu rapido sbiadisce fino a diventare quasi un fantasma per non nascondere nulla dietro di sé (ti vediamo, frutto furbetto del serpente) — torna a piena intensità al passaggio del mouse e nelle schermate dei menu.',
 };

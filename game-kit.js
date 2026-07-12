@@ -776,9 +776,9 @@
   function grbHtml() {
     var b = goodRunBonus(), pips = '';
     for (var i = 0; i < b.cap; i++) pips += '<span class="gk-grb-pip' + (i < b.count ? ' on' : '') + '">⚡</span>';
-    return '<div class="gk-grb"><div class="gk-grb-head">' + t('grb.head') + '</div>'
-      + '<div class="gk-grb-pips">' + pips + '</div>'
-      + '<div class="gk-grb-sub">' + t('grb.sub', { per: b.per, count: b.count, cap: b.cap }) + '</div></div>';
+    return '<div class="gk-grb"><span class="gk-grb-head">' + t('grb.head') + '</span>'
+      + '<span class="gk-grb-pips">' + pips + '</span>'
+      + '<span class="gk-grb-sub">' + t('grb.sub', { per: b.per, count: b.count, cap: b.cap }) + '</span></div>';
   }
   var _grAwarded = false; // did the LAST recorded result earn the trickle? (end-menu receipt)
 
@@ -1384,7 +1384,6 @@
     var head = mkEl('div', 'gksp-head');
     var scopeMeta = scopeGame != null ? (gamesMeta[scopeGame] || { title: scopeGame }) : null;
     head.appendChild(mkEl('span', 'gksp-title', '🎨 ' + (scopeMeta ? t('shop.titleGame', { game: (scopeGame ? t('game.' + scopeGame + '.title', { def: scopeMeta.title }) : scopeMeta.title) }) : t('shop.title'))));
-    var fpBadge = mkEl('span', 'gksp-fp-badge', t('shop.freePlayBadge')); head.appendChild(fpBadge);
     var balEl = mkEl('span', 'gksp-bal'); head.appendChild(balEl);
     box.appendChild(head);
     // one-time welcome gift — a prominent claim row that disappears forever once taken
@@ -1460,7 +1459,6 @@
       try { fpBtn.setAttribute('aria-checked', on ? 'true' : 'false'); } catch (e) {}
       if (fpBtn.classList) fpBtn.classList.toggle('on', on);
       if (ov.classList) ov.classList.toggle('gksp-freeplay', on);
-      try { fpBadge.style.display = on ? '' : 'none'; } catch (e) {}
     }
     fpBtn.addEventListener('click', function () { cosSetFreePlay(!cosFreePlay()); syncFp(); syncCells(); });
     fpRow.appendChild(fpTxt); fpRow.appendChild(fpBtn);
@@ -2310,6 +2308,9 @@
       const applyClip = () => {
         clip.style.width = (shown ? (panel.offsetWidth || 152) : 0) + 'px';
         stack.classList.toggle('shown', shown);
+        // live gameplay (game page, tucked, no menu): fade the tab so it never hides the action
+        // under it (e.g. a snake fruit) — hover/expand restores full opacity
+        stack.classList.toggle('gameplay-dim', !!(opts.game && !shown && !_menuEl));
         syncPlayPause();
         tab.textContent = shown ? '»' : '‹‹';
         syncTabDot();

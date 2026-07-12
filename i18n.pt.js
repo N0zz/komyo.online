@@ -1923,4 +1923,5 @@ window.KOMYO_I18N.pt = {
   'changelog.e59.b0': 'Novo: um 🎁 Presente de boas-vindas espera no topo da Coleção — resgate 100 🏆 (uma única vez) para começar sua coleção com uma skin ou duas.',
   'changelog.e59.b1': 'Novo: ✨ Modo livre — um interruptor no final da Coleção que desbloqueia todos os visuais para experimentar e usar, sem gastar troféus. Desligue e sua coleção e saldo reais ficam exatamente como você deixou; os títulos continuam sendo ganhos jogando.',
   'changelog.e59.b2': 'Mudança: o bônus ⚡ de boas rodadas agora são três raios grandes que acendem conforme você os ganha — na gaveta de desafios e no painel 🏆 dentro do jogo — em vez de uma pequena linha de contador.',
+  'changelog.e59.b3': 'Mudança: durante uma partida, a aba ‹‹ do menu rápido esmaece até virar quase um fantasma para não esconder nada atrás dela (estamos de olho em você, fruta sorrateira da cobrinha) — ela volta à força total ao passar o mouse e nas telas de menu.',
 };

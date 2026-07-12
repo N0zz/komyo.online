@@ -1924,4 +1924,5 @@ window.KOMYO_I18N.es = {
   'changelog.e59.b0': 'Nuevo: un 🎁 Regalo de bienvenida te espera en la parte superior de la Colección — reclama 100 🏆 por única vez para estrenar tu colección con una skin o dos.',
   'changelog.e59.b1': 'Nuevo: ✨ Juego libre — un interruptor al final de la Colección que desbloquea todos los cosméticos para probarlos y llevarlos puestos, sin gastar trofeos. Desactívalo y tu colección real y tu saldo quedan exactamente como los dejaste; los títulos se siguen ganando jugando.',
   'changelog.e59.b2': 'Cambio: la bonificación ⚡ por buena partida ahora son tres rayos grandes que se iluminan a medida que los ganas — en el panel de Desafíos y en el panel 🏆 dentro del juego — en lugar de una pequeña línea con un contador.',
+  'changelog.e59.b3': 'Cambio: durante una partida, la pestaña ‹‹ del menú rápido se atenúa hasta ser casi un fantasma para no tapar nada detrás (te estamos mirando, fruta escurridiza de la serpiente) — vuelve a plena intensidad al pasar el cursor y en las pantallas de menú.',
 };

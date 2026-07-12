@@ -1923,4 +1923,5 @@ window.KOMYO_I18N.fr = {
   'changelog.e59.b0': 'Nouveau : un 🎁 Cadeau de bienvenue vous attend en haut de la Collection — réclamez 100 🏆 une seule fois pour lancer votre collection avec un skin ou deux.',
   'changelog.e59.b1': 'Nouveau : ✨ Essai libre — un interrupteur en bas de la Collection qui débloque tous les cosmétiques pour les essayer et les porter, sans dépenser de trophées. Désactivez-le et votre vraie collection et votre solde sont exactement comme vous les avez laissés ; les titres se gagnent toujours en jouant.',
   'changelog.e59.b2': 'Changement : le bonus ⚡ de bonne partie s\'affiche désormais sous forme de trois grands éclairs qui s\'illuminent au fil de vos bonnes parties — dans le tiroir des défis et le panneau 🏆 en jeu — au lieu d\'une petite ligne de compteur.',
+  'changelog.e59.b3': 'Changement : pendant une partie, l\'onglet ‹‹ du menu rapide s\'estompe en un léger fantôme pour ne rien cacher derrière lui (on vous voit, petit fruit sournois du serpent) — il retrouve toute sa force au survol et sur les écrans de menu.',
 };

@@ -1921,4 +1921,5 @@ window.KOMYO_I18N.pl = {
   'changelog.e59.b0': 'Nowość: 🎁 Prezent na start czeka na górze Kolekcji — odbierz jednorazowe 100 🏆 i rozkręć swoją kolekcję jedną czy dwiema skórkami.',
   'changelog.e59.b1': 'Nowość: ✨ Tryb swobodny — przełącznik na dole Kolekcji, który odblokowuje każdy kosmetyk do przymierzenia i noszenia bez wydawania trofeów. Wyłącz go, a twoja prawdziwa kolekcja i saldo pozostaną dokładnie takie, jak wcześniej; tytuły wciąż zdobywasz grając.',
   'changelog.e59.b2': 'Zmiana: bonus za dobre rundy ⚡ to teraz trzy duże błyskawice, które zapalają się w miarę ich zdobywania — w wysuwanym panelu wyzwań i w panelu 🏆 w grze — zamiast małej linijki z licznikiem.',
+  'changelog.e59.b3': 'Zmiana: podczas gry zakładka ‹‹ szybkiego menu przygasa do delikatnego cienia, żeby nie zasłaniać nic pod sobą (patrzymy na ciebie, sprytny owocku węża) — pełna jasność wraca po najechaniu kursorem i na ekranach menu.',
 };

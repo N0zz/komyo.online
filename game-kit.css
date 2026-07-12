@@ -598,14 +598,15 @@ body.gk-rotate-lock .gamekit-nav { z-index: 9100; }
   border: 1px solid rgba(255, 206, 92, 0.34); border-radius: 999px; padding: 6px 13px; }
 .gamekit-challenges .gkch-pill.gkch-shop { cursor: pointer; }
 .gamekit-challenges .gkch-pill.gkch-shop:hover { border-color: #ffce5c; background: rgba(255, 206, 92, 0.16); color: #ffce5c; }
-/* ---- good-run bonus widget (gamekit.goodRunBonusHtml — challenges drawer + in-game panel) ---- */
-.gk-grb { text-align: center; margin: 4px 0 12px; }
-.gk-grb-head { font: 700 10.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1.6px; text-transform: uppercase; color: #8fa2ba; }
-.gk-grb-pips { display: flex; justify-content: center; gap: 10px; margin: 7px 0 5px; }
-.gk-grb-pip { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 17px;
+/* ---- good-run bonus widget (gamekit.goodRunBonusHtml — challenges drawer + in-game panel):
+   ONE compact centered row — label · bolt pips (light up as earned) · the numbers ---- */
+.gk-grb { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 10px; margin: 4px 0 10px; }
+.gk-grb-head { font: 700 10.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1.4px; text-transform: uppercase; color: #8fa2ba; }
+.gk-grb-pips { display: inline-flex; gap: 6px; }
+.gk-grb-pip { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;
   background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); filter: grayscale(1); opacity: 0.35; }
 .gk-grb-pip.on { filter: none; opacity: 1; color: #ffce5c; background: rgba(255, 206, 92, 0.14);
-  border-color: rgba(255, 206, 92, 0.6); box-shadow: 0 0 14px rgba(255, 206, 92, 0.35); }
+  border-color: rgba(255, 206, 92, 0.6); box-shadow: 0 0 10px rgba(255, 206, 92, 0.35); }
 .gk-grb-sub { font-size: 11px; color: #9fb2c9; }
 
 /* ---- Cosmetics store modal (kit-owned, gamekit.shopPanel) ---- */
@@ -733,8 +734,6 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   background: #cdd8e8; transition: left 0.15s, background 0.15s; }
 .gamekit-shoppanel .gksp-fp-toggle.on { background: rgba(255, 206, 92, 0.30); border-color: #ffce5c; }
 .gamekit-shoppanel .gksp-fp-toggle.on::after { left: 22px; background: #ffce5c; }
-.gamekit-shoppanel .gksp-fp-badge { font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; color: #ffce5c;
-  border: 1px solid rgba(255, 206, 92, 0.5); border-radius: 999px; padding: 3px 8px; }
 .gamekit-shoppanel .gksp-strike { text-decoration: line-through; opacity: 0.65; }
 @media (max-width: 420px) { .gamekit-shoppanel .gksp-grid { grid-template-columns: repeat(2, 1fr); } }
 /* compact progress donut (conic-gradient, no SVG so it's headless-safe) — hidden except in the
@@ -892,7 +891,10 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   /* ONE look at every width: the stack is always the edge drawer (boxed panel + ‹‹/» tab, flush
      against the screen edge). The measured gutter only decides the DEFAULT state — shown when
      there's room beside .wrap, hidden when there isn't — and the tab toggles it either way. */
-  .side-stack { position:fixed; top:50%; transform:translateY(-50%); right:0; z-index:40; display:flex; align-items:center; }
+  .side-stack { position:fixed; top:50%; transform:translateY(-50%); right:0; z-index:40; display:flex; align-items:center; transition:opacity .25s; }
+  /* live gameplay: the tucked ‹‹ tab fades so it can't hide game elements under it — full again on hover/expand */
+  .side-stack.gameplay-dim { opacity:.3; }
+  .side-stack.gameplay-dim:hover, .side-stack.gameplay-dim:focus-within { opacity:1; }
   .side-tab { flex:0 0 auto; width:22px; height:74px; display:flex; align-items:center; justify-content:center;
     background:var(--surface); border:1px solid var(--border); border-right:none; border-radius:10px 0 0 10px;
     color:var(--muted); font-size:14px; cursor:pointer; padding:0; box-shadow:-4px 0 14px rgba(0,0,0,.35); }
