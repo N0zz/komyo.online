@@ -148,8 +148,11 @@ quality bar — see the Done entry).
    (2026-07-06). **Sudoku shipped** (2026-07-10). **Six-game batch shipped** (2026-07-12) — **18 live
    games**. **Bias low-tuning genres**
    (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower defense, roguelite shooters). See
-   `komyo-avoid-balance-heavy-genres`. Slot in **one original-mechanic, shareable game** alongside the remakes
-   (see `komyo-market-expansion-discussion`). More POC prototypes wait on a separate branch. Build order below.
+   `komyo-avoid-balance-heavy-genres`. For acquisition, don't bet on one designed-to-be-viral game —
+   **maximize cheap shots on goal**: a weird-mechanic POC lane + reworks of live games as tickets +
+   the "komyo daily" ritual. See `plans/viral-shots-plan.md` (strategy decided 2026-07-12; grew out of
+   the 2026-07-02 review's §5 flagship-vs-breadth verdict, `~/komyo-review-2026-07.md`). More POC
+   prototypes wait on a separate branch. Build order below.
 3. **Single service worker for the whole site — DONE (2026-07-06).** The pre-launch gate landed:
    ONE root-scope SW caches everything (catalogue + shared files + all locales + every live game —
    `GAME_SLUGS` in `sw.js`, lockstep with games.js test-enforced); the 11 per-game `sw.js` are gone,
@@ -275,9 +278,11 @@ Trap the Cat · Glow Says · Balloon Pop · Critter Match — is fully shipped: 
 changelog'd, deployed. Sudoku ✅ 2026-07-10.)*
 Rationale: all low-tuning + high-recognition = fast to build, zero teaching cost, and organically
 searchable ("minesweeper", "2048", "dino game"); the kids batch widens the no-ads/kid-safe lane.
-That batch was all remakes — per `komyo-market-expansion-discussion`, the **one original-mechanic,
-shareable game** slot is now DUE (Minesweeper + the kids batch shipped); slot it into the next few
-builds (don't block the trivial ones on it).
+That batch was all remakes — for the acquisition side, the old "one original-mechanic flagship" slot
+was replaced (2026-07-12) by the **many-cheap-shots strategy** in `plans/viral-shots-plan.md`:
+weird-mechanic POC batches (kill most, promote the sticky ones), notable reworks of live games as
+extra tickets, and "komyo daily" as the cheapest candidate. Run it alongside the queue builds
+(don't block the trivial ones on it).
 
 ### Single player
 
