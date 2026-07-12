@@ -598,7 +598,15 @@ body.gk-rotate-lock .gamekit-nav { z-index: 9100; }
   border: 1px solid rgba(255, 206, 92, 0.34); border-radius: 999px; padding: 6px 13px; }
 .gamekit-challenges .gkch-pill.gkch-shop { cursor: pointer; }
 .gamekit-challenges .gkch-pill.gkch-shop:hover { border-color: #ffce5c; background: rgba(255, 206, 92, 0.16); color: #ffce5c; }
-.gamekit-challenges .gkch-bonus { font-size: 11px; margin: 0 0 12px; color: #9fb2c9; }
+/* ---- good-run bonus widget (gamekit.goodRunBonusHtml — challenges drawer + in-game panel) ---- */
+.gk-grb { text-align: center; margin: 4px 0 12px; }
+.gk-grb-head { font: 700 10.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1.6px; text-transform: uppercase; color: #8fa2ba; }
+.gk-grb-pips { display: flex; justify-content: center; gap: 10px; margin: 7px 0 5px; }
+.gk-grb-pip { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 17px;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12); filter: grayscale(1); opacity: 0.35; }
+.gk-grb-pip.on { filter: none; opacity: 1; color: #ffce5c; background: rgba(255, 206, 92, 0.14);
+  border-color: rgba(255, 206, 92, 0.6); box-shadow: 0 0 14px rgba(255, 206, 92, 0.35); }
+.gk-grb-sub { font-size: 11px; color: #9fb2c9; }
 
 /* ---- Cosmetics store modal (kit-owned, gamekit.shopPanel) ---- */
 body:has(.gamekit-shoppanel) { overflow: hidden; }
@@ -706,6 +714,28 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   border: none; cursor: pointer; color: var(--gk-shop-ink, #0a1420); background: var(--gkm-new, #ffd166); box-shadow: 0 0 14px rgba(255, 209, 102, 0.35); }
 .gamekit-shoppanel .gksp-buy:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
 .gamekit-shoppanel .gksp-buy.gksp-buy-equip { color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.08); box-shadow: none; border: 1px solid var(--gkm-accent, #9fe8ff); }
+/* welcome gift row (one-time, removed after claiming) */
+.gamekit-shoppanel .gksp-gift { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 0; padding: 9px 12px;
+  border: 1px dashed rgba(255, 206, 92, 0.65); border-radius: 10px; background: rgba(255, 206, 92, 0.08); }
+.gamekit-shoppanel .gksp-gift-t { font-size: 12.5px; color: var(--gkm-text, #eaf2fb); }
+.gamekit-shoppanel .gksp-gift-btn { font: 800 11.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; white-space: nowrap; cursor: pointer;
+  color: #1a1408; background: var(--gkm-new, #ffd166); border: 0; border-radius: 8px; padding: 9px 12px; }
+.gamekit-shoppanel .gksp-gift-btn:hover { filter: brightness(1.1); }
+.gamekit-shoppanel .gksp-gift.claimed { justify-content: center; border-style: solid; }
+/* free-play footer toggle (a settings row, deliberately NOT a shop card) + its header badge */
+.gamekit-shoppanel .gksp-fp { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 9px 2px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.gamekit-shoppanel .gksp-fp-l { font-size: 12px; font-weight: 700; color: var(--gkm-text, #eaf2fb); }
+.gamekit-shoppanel .gksp-fp-s { font-size: 10.5px; color: #8294ac; margin-top: 2px; }
+.gamekit-shoppanel .gksp-fp-toggle { position: relative; flex: 0 0 auto; width: 44px; height: 24px; border-radius: 999px; cursor: pointer; padding: 0;
+  background: rgba(255, 255, 255, 0.10); border: 1px solid rgba(255, 255, 255, 0.22); transition: background 0.15s, border-color 0.15s; }
+.gamekit-shoppanel .gksp-fp-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 50%;
+  background: #cdd8e8; transition: left 0.15s, background 0.15s; }
+.gamekit-shoppanel .gksp-fp-toggle.on { background: rgba(255, 206, 92, 0.30); border-color: #ffce5c; }
+.gamekit-shoppanel .gksp-fp-toggle.on::after { left: 22px; background: #ffce5c; }
+.gamekit-shoppanel .gksp-fp-badge { font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px; white-space: nowrap; color: #ffce5c;
+  border: 1px solid rgba(255, 206, 92, 0.5); border-radius: 999px; padding: 3px 8px; }
+.gamekit-shoppanel .gksp-strike { text-decoration: line-through; opacity: 0.65; }
 @media (max-width: 420px) { .gamekit-shoppanel .gksp-grid { grid-template-columns: repeat(2, 1fr); } }
 /* compact progress donut (conic-gradient, no SVG so it's headless-safe) — hidden except in the
    short-height landscape layout below, where the linear bar is hidden and this takes its place */
@@ -728,15 +758,19 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
     grid-template-columns: 1fr 150px;
     /* header spans the full width (no gap under it); the ring row is the only flexible one, so it
        absorbs slack AND shrinks first — the fixed rail items (search/desc/buy/titles) always fit */
-    grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto auto auto auto;
     grid-template-areas:
       "head    head"
+      "gift    gift"
       "scroll  ctrls"
       "scroll  ring"
       "scroll  focdesc"
       "scroll  buy"
-      "scroll  titles";
+      "scroll  titles"
+      "scroll  fp";
   }
+  .gamekit-shoppanel .gksp-gift { grid-area: gift; margin: 0; padding: 6px 10px; }
+  .gamekit-shoppanel .gksp-fp { grid-area: fp; margin: 0; padding-top: 6px; }
   .gamekit-shoppanel .gksp-head { grid-area: head; }
   .gamekit-shoppanel .gksp-scroll { grid-area: scroll; min-height: 0; margin: 2px -6px 0; }
   /* search + games selector at the TOP of the rail; donut centered in the middle; See titles at the bottom */
