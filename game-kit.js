@@ -2316,8 +2316,9 @@
       const stack = document.getElementById('sideStack'), tab = document.getElementById('sideTab');
       const clip = document.getElementById('sideClip'), panel = document.getElementById('sidePanel');
       if (!stack || !tab || !clip || !panel) return;
-      // a manual show/hide is REMEMBERED (per device) and always wins; the measured fit is only
-      // the default for players who never touched the tab
+      // a manual show/hide is REMEMBERED (per device) and wins WHEN the drawer fits beside the
+      // content; when the gutter can't hold it (phones, landscape) it always starts tucked — a
+      // manual open there is a transient overlay, never the sticky default over the menu/game
       const STACK_KEY = 'arcade_stack';
       const storedChoice = () => { try { const v = localStorage.getItem(STACK_KEY); return v === null ? null : v === '1'; } catch (e) { return null; } };
       let shown = false, lastFits = null, playPause = false;
@@ -2359,7 +2360,7 @@
         if (fits !== lastFits) {
           lastFits = fits;
           const choice = storedChoice();
-          shown = choice === null ? fits : choice;
+          shown = fits ? (choice === null ? true : choice) : false;
           applyClip();
         }
       };
@@ -3561,6 +3562,10 @@
     var sel = {}, tog = {};
     function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
     groups.forEach(function (g2) { sel[g2.id] = (g2['default'] != null ? g2['default'] : (g2.choices && g2.choices[0] ? g2.choices[0].id : null)); if (g2.style === 'cards') hasCards = true; if (BIG_STYLES[g2.style]) hasBig = true; });
+    // end screens with a score card split too: the CARD is the big pane, score lines + actions
+    // form the right rail — stacked, the card overflowed short-landscape viewports
+    var endSplit = kind === 'end' && !!cfg.share;
+    if (endSplit) hasBig = true;
     toggles.forEach(function (t) { tog[t.id] = !!t['default']; });
     function state() { var o = {}, k; for (k in sel) if (has(sel, k)) o[k] = sel[k]; for (k in tog) if (has(tog, k)) o[k] = tog[k]; return o; }
 
@@ -3818,7 +3823,8 @@
     }
     (cfg.lines || []).forEach(function (ln) { scroll.appendChild(mkEl('p', 'gkm-line', ln)); });
     var hintEl = cfg.hint ? mkEl('p', 'gkm-hint') : null; if (hintEl) scroll.appendChild(hintEl);
-    var shareHost = cfg.share ? mkEl('div', 'gkm-share-host') : null; if (shareHost) scroll.appendChild(shareHost);
+    var shareHost = cfg.share ? mkEl('div', 'gkm-share-host') : null;
+    if (shareHost) { scroll.appendChild(shareHost); if (endSplit) bigNodes.push(shareHost); }
     var actionRefs = [];
     if (actions.length || hasShop) {
       var arow = mkEl('div', 'gkm-actions');
