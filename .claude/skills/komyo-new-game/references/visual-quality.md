@@ -73,11 +73,15 @@ Every visual pass gets **two review rounds before hand-off**, both
 screenshot-driven (headless Chrome + a wrapper that clicks past the
 tap-to-play splash and stages entities via `__test`):
 
-1. **Scale & composition round** — desktop AND 390×780 portrait, all
-   themes/skins/modes (day+night, every map). Known failure classes: element
+1. **Scale & composition round** — desktop AND 390×780 portrait AND **780×390
+   landscape** (never skip landscape — every real landscape regression shipped
+   because only desktop + portrait were screenshotted), all themes/skins/modes
+   (day+night, every map). Include every game-owned control (touch pills,
+   toolbars) at the landscape size. Known failure classes: element
    scale ratios drift (tower-defense's first turrets were dwarfed by their
    bases), texture too dense (reads as noise — halve it), menu backdrop
-   invisible under the kit overlay.
+   invisible under the kit overlay, fixed-size touch controls dominating the
+   short landscape viewport (minesweeper's 62px bottom pill).
 2. **Alignment & code round** — re-read the new painters for: overlays
    clipped to their parent shape (an unclipped AO gradient rect = a square
    shadow on the grass), elements anchored to a returned platform/surface Y
