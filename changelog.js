@@ -4,6 +4,16 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-12', title: 'SIX new games! 💣🧮🐱🏮🎈🐾', items: [
+    'New game: Minesweeper 💣 — the logic classic in a sonar theme. Your first dig is always safe, flags and chording work like you remember, four board sizes from Easy to Expert, and a Relaxed option gives you three hearts before the boom.',
+    'New game: 2048 🧮 — slide and merge your way to the fabled tile, then keep going. Classic 4×4 plus Mini 3×3 and Big 5×5 boards, with honey, neon and kraft tile themes in the Collection.',
+    'New game: Trap the Cat 🐱 — fence in the wandering cat with rose hedges on a hex garden; fewer hedges, bigger score. The drowsy Kitten mode (it naps mid-chase!) is made for young players, and the premium Ember and Void cats trail real fire and shadow.',
+    'New game: Glow Says 🏮 — watch the lanterns light up, then tap the tune back. Chill mode never fails you, Hard adds two lanterns, Expert packs nine in a 3×3 grid.',
+    'New game: Balloon Pop 🎈 — happy no-lose popping for the little ones, with colour streaks, confetti, the odd gust of wind and fireworks every 50 pops in Zen. Bees mode dares you NOT to tap the bee.',
+    'New game: Critter Match 🐾 — flip the cards and find matching animal pairs. Three board sizes, Pass & Play for 2–4 players on one screen, and a Speedrun mode against the clock.',
+    'New: the Collection grew everywhere — new cheap skins for every single game, three game-themed crosshair cursors, and a premium tier: the flaming Ember Cat, the wispy Void Cat and an Obsidian Citadel wreathed in nether-fire.',
+    'Fix: the catalogue remembers your filters when you hop into a game and come back.',
+  ] },
   { date: '2026-07-11', title: 'Sudoku difficulties, properly spaced 🔢', items: [
     'Fix: Medium played nearly as hard as Hard — boards were dug far past their intended clue count. Every difficulty now keeps a guaranteed range of starting clues (Easy ~36, Medium 30–34, Hard 26–30, Expert 22–26), so the ladder actually climbs step by step.',
     'Change: Medium needs exactly one clever deduction beyond the basics, and the starting board always shows every digit at least once (Easy too) — no more “where are all the ones?” openings.',
