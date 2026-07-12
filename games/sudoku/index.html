@@ -735,7 +735,7 @@
     const score = (won && !zen) ? computeScore() : 0;   // zen is unscored — its record carries 0
     const prevBest = loadBest();
     // save ONLY solved runs — a fast loss must never become the stored "best time"
-    if (!zen && won && KIT) KIT.saveBest(SLUG, modeStorageLabel(), { score, time: Math.floor(ticks / 60) });
+    if (!zen && won && KIT) KIT.saveBest(SLUG, modeStorageLabel(), { score, time: Math.round(ticks / 60 * 1000) });
     const isBest = !zen && won && score > prevBest;
     best = loadBest();
     showEnd(won, score, isBest);
@@ -1299,7 +1299,7 @@
     // record ALWAYS (zen too — a completed zen solve still counts as "played today" for the
     // cross-game challenges); zen just carries no score/best/share.
     cfg.record = { slug: SLUG, mode: modeStorageLabel(), modeText: modeDisplayLabel(),
-      score, time: won ? Math.floor(ticks / 60) : 0, stats: { mistakes, hints: hintsUsed } };
+      score, time: won ? Math.round(ticks / 60 * 1000) : 0, stats: { mistakes, hints: hintsUsed } };
     if (!zen) { cfg.score = score; cfg.best = best; cfg.newBest = isBest; }
     // share on EVERY end screen — win brags the score, loss challenges a friend, zen brags the time
     cfg.share = { slug: SLUG, accent: ACCENT, icon: '🔢', title: KIT.t('game.sudoku.title', { def: 'Sudoku' }),

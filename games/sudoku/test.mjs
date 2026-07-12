@@ -166,6 +166,7 @@ section('sudoku: win + score + record');
   const gw = runGame();
   const T = gw.T;
   T().newGame({ mode: 'classic', band: 1, seed: 19 });
+  T().step(120);                          // 2 s on the clock → the stored time must be 2000 ms
   const sol = T().solution, givens = T().givens;
   for (let i = 0; i < 81; i++) {
     if (givens[i]) continue;
@@ -177,6 +178,7 @@ section('sudoku: win + score + record');
   // best store received the result via the end menu's record:
   const pb = JSON.parse(gw.store['gamekit_pb'] || '{}');
   ok(pb && pb.sudoku && pb.sudoku.Easy && pb.sudoku.Easy.score > 0, 'best stored under sudoku/Easy');
+  ok(pb.sudoku.Easy.time === 2000, 'win time stored in ms (got ' + pb.sudoku.Easy.time + ', expected 2000)');
 }
 
 // ---- Zen: unscored, but still counts as a play ----
