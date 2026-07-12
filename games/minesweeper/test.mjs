@@ -185,7 +185,14 @@ runLayoutSuite(
     ok(b.x >= 0 && b.x + b.w <= L.W, v.name + ': board within width');
     ok(b.y + b.h <= L.H, v.name + ': board within height');
     ok(L.toggle.y + L.toggle.h <= L.H, v.name + ': flag toggle within height');
-    ok(L.toggle.y >= b.y + b.h, v.name + ': flag toggle sits below the board');
+    if (v.h < 500 && v.w > v.h) {
+      // short landscape: the pill lives in the LEFT gutter (vertical), the board keeps the height
+      ok(L.toggle.x + L.toggle.w <= b.x, v.name + ': side toggle sits left of the board');
+      ok(L.toggle.y >= L.topReserve, v.name + ': side toggle clears the HUD');
+    } else {
+      ok(L.toggle.y >= b.y + b.h, v.name + ': flag toggle sits below the board');
+      ok(L.toggle.h === 62, v.name + ': full-size toggle with room (h ' + L.toggle.h + ')');
+    }
     ok(b.cell >= 12, v.name + ': cells stay tappable (cell ' + b.cell + 'px)');
     // landscape must transpose the 16×24 board to 24×16
     if (v.w > v.h) ok(b.cols > b.rows, v.name + ': board transposes to landscape (' + b.cols + '×' + b.rows + ')');

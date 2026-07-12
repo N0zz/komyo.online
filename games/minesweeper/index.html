@@ -304,14 +304,28 @@
     // transpose whenever the board doesn't match the screen aspect
     flip = (W > H) !== (COLS >= ROWS) && COLS !== ROWS;
     dispC = flip ? ROWS : COLS; dispR = flip ? COLS : ROWS;
-    const pad = 10, togH = 62, togGap = 12;
+    // short landscape (phones): the pill moves into the LEFT gutter as a vertical DIG/FLAG stack
+    // (the side-stack ‹‹ tab owns the right edge) — the board keeps the full height
+    const short = H < 500, side = short && W > H;
+    const pad = 10, togGap = short ? 8 : 12;
+    if (side) {
+      const tw = 118, th = 92;
+      const availW = W - pad * 2 - tw - togGap;
+      const availH = H - topMargin - pad * 2;
+      cs = Math.max(12, Math.floor(Math.min(availW / dispC, availH / dispR)));
+      bx = Math.round(pad + tw + togGap + (availW - cs * dispC) / 2);
+      by = Math.round(topMargin + pad + (availH - cs * dispR) / 2);
+      togRect = { x: pad, y: Math.round(topMargin + (H - topMargin - th) / 2), w: tw, h: th, vert: true };
+      return;
+    }
+    const togH = short ? 44 : 62;
     const availW = W - pad * 2;
     const availH = H - topMargin - pad * 2 - togH - togGap;
     cs = Math.max(12, Math.floor(Math.min(availW / dispC, availH / dispR)));
     bx = Math.round((W - cs * dispC) / 2);
     by = Math.round(topMargin + pad + (availH - cs * dispR) / 2);
-    const tw = Math.min(320, W - 40);
-    togRect = { x: (W - tw) / 2, y: by + cs * dispR + togGap, w: tw, h: togH };
+    const tw = Math.min(short ? 250 : 320, W - 40);
+    togRect = { x: (W - tw) / 2, y: by + cs * dispR + togGap, w: tw, h: togH, vert: false };
   }
 
   const dToL = (dx, dy) => flip ? { x: dy, y: dx } : { x: dx, y: dy };
@@ -456,22 +470,36 @@
       ctx.fillRect(bx, by, cs * dispC * p, cs * dispR);
     }
 
-    // flag-mode toggle pill
+    // flag-mode toggle pill (horizontal bottom pill, or a vertical side stack in short landscape)
     const T = togRect;
+    const rad = (T.vert ? Math.min(T.w, T.h / 2) : T.h) / 2;
     ctx.fillStyle = 'rgba(6,20,32,0.82)';
-    KIT.roundRect(ctx, T.x, T.y, T.w, T.h, T.h / 2); ctx.fill();
+    KIT.roundRect(ctx, T.x, T.y, T.w, T.h, rad); ctx.fill();
     ctx.strokeStyle = 'rgba(53,224,255,0.4)'; ctx.lineWidth = 1.5;
-    KIT.roundRect(ctx, T.x, T.y, T.w, T.h, T.h / 2); ctx.stroke();
-    const half = T.w / 2;
+    KIT.roundRect(ctx, T.x, T.y, T.w, T.h, rad); ctx.stroke();
     ctx.fillStyle = ACCENT;
-    KIT.roundRect(ctx, T.x + (flagMode ? half : 0) + 4, T.y + 4, half - 8, T.h - 8, (T.h - 8) / 2);
-    ctx.globalAlpha = 0.22; ctx.fill(); ctx.globalAlpha = 1;
-    ctx.font = '700 ' + Math.round(T.h * 0.34) + 'px system-ui, sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillStyle = flagMode ? 'rgba(230,240,250,0.55)' : '#e6f0fa';
-    ctx.fillText('⛏ ' + KIT.t('game.minesweeper.dig', { def: 'DIG' }), T.x + half / 2, T.y + T.h / 2);
-    ctx.fillStyle = flagMode ? '#e6f0fa' : 'rgba(230,240,250,0.55)';
-    ctx.fillText('🚩 ' + KIT.t('game.minesweeper.flag', { def: 'FLAG' }), T.x + half + half / 2, T.y + T.h / 2);
+    const dig = '⛏ ' + KIT.t('game.minesweeper.dig', { def: 'DIG' });
+    const flag = '🚩 ' + KIT.t('game.minesweeper.flag', { def: 'FLAG' });
+    if (T.vert) {
+      const half = T.h / 2;
+      KIT.roundRect(ctx, T.x + 4, T.y + (flagMode ? half : 0) + 4, T.w - 8, half - 8, (Math.min(T.w, half) - 8) / 2);
+      ctx.globalAlpha = 0.22; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.font = '700 ' + Math.round(half * 0.34) + 'px system-ui, sans-serif';
+      ctx.fillStyle = flagMode ? 'rgba(230,240,250,0.55)' : '#e6f0fa';
+      ctx.fillText(dig, T.x + T.w / 2, T.y + half / 2);
+      ctx.fillStyle = flagMode ? '#e6f0fa' : 'rgba(230,240,250,0.55)';
+      ctx.fillText(flag, T.x + T.w / 2, T.y + half + half / 2);
+    } else {
+      const half = T.w / 2;
+      KIT.roundRect(ctx, T.x + (flagMode ? half : 0) + 4, T.y + 4, half - 8, T.h - 8, (T.h - 8) / 2);
+      ctx.globalAlpha = 0.22; ctx.fill(); ctx.globalAlpha = 1;
+      ctx.font = '700 ' + Math.round(T.h * 0.34) + 'px system-ui, sans-serif';
+      ctx.fillStyle = flagMode ? 'rgba(230,240,250,0.55)' : '#e6f0fa';
+      ctx.fillText(dig, T.x + half / 2, T.y + T.h / 2);
+      ctx.fillStyle = flagMode ? '#e6f0fa' : 'rgba(230,240,250,0.55)';
+      ctx.fillText(flag, T.x + half + half / 2, T.y + T.h / 2);
+    }
 
     // grade + vignette
     const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.75);
@@ -626,7 +654,8 @@
     if (state !== 'playing') return;
     // toggle pill
     if (p.x >= togRect.x && p.x <= togRect.x + togRect.w && p.y >= togRect.y && p.y <= togRect.y + togRect.h) {
-      flagMode = p.x >= togRect.x + togRect.w / 2; SND.play('buoy'); pDown = null; return;
+      flagMode = togRect.vert ? p.y >= togRect.y + togRect.h / 2 : p.x >= togRect.x + togRect.w / 2;
+      SND.play('buoy'); pDown = null; return;
     }
     pDown = p; pLongFired = false;
     const c = cellAt(p.x, p.y);
