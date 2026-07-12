@@ -302,7 +302,7 @@ window.KOMYO_I18N.es = {
   'profile.cardPlays': 'Partidas',
   'profile.cardDays': 'Días',
   'form.netErr': 'Error de red — inténtalo de nuevo.',
-  'meta.title': 'Komyo Games',
+  'meta.title': 'Komyo Games — juegos de navegador gratis, sin anuncios',
   'meta.desc': 'Un pequeño catálogo de juegos de navegador gratis e independientes — Asteroids, tower defense, disparo de burbujas y más. Sin anuncios, sin cuotas, funciona sin conexión.',
   'meta.ogTitle': 'Komyo Games — juegos de navegador gratis',
   'meta.ogDesc': 'Un pequeño catálogo de juegos de navegador gratis e independientes. Sin anuncios, sin cuotas, funciona sin conexión.',

@@ -381,7 +381,7 @@ window.KOMYO_I18N.it = {
   'profile.cardPlays': 'Partite',
   'profile.cardDays': 'Giorni',
   'form.netErr': 'Errore di rete — riprova.',
-  'meta.title': 'Komyo Games',
+  'meta.title': 'Komyo Games — giochi da browser gratuiti, senza pubblicità',
   'meta.desc': 'Un piccolo catalogo di giochi da browser gratuiti e autonomi — Asteroidi, tower defense, uno shooter di bolle e altro ancora. Niente pubblicità, niente pagamenti, funziona offline.',
   'meta.ogTitle': 'Komyo Games — giochi da browser gratuiti',
   'meta.ogDesc': 'Un piccolo catalogo di giochi da browser gratuiti e autonomi. Niente pubblicità, niente pagamenti, funziona offline.',

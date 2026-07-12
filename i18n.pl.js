@@ -302,7 +302,7 @@ window.KOMYO_I18N.pl = {
   'profile.cardPlays': 'Rozgrywki',
   'profile.cardDays': 'Dni',
   'form.netErr': 'Błąd sieci — spróbuj ponownie.',
-  'meta.title': 'Komyo Games',
+  'meta.title': 'Komyo Games — darmowe gry przeglądarkowe, bez reklam',
   'meta.desc': 'Mały katalog darmowych, samodzielnych gier przeglądarkowych — Asteroids, tower defense, strzelanka bąbelkami i więcej. Bez reklam, bez opłat, działa offline.',
   'meta.ogTitle': 'Komyo Games — darmowe gry przeglądarkowe',
   'meta.ogDesc': 'Mały katalog darmowych, samodzielnych gier przeglądarkowych. Bez reklam, bez opłat, działa offline.',
