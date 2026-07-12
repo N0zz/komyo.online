@@ -464,6 +464,16 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 .gamekit-controls .gkctl-x { position: absolute; top: 12px; right: 14px; background: none; border: none; color: #9fb2c8; font-size: 17px; line-height: 1; cursor: pointer; padding: 2px; }
 .gamekit-controls .gkctl-x:hover { color: var(--gkm-text, #fff); }
 
+/* about / how-to modal (the game's crawlable #gk-about section lifted into a box) */
+.gamekit-about .gkctl-box { width: min(440px, 100%); }
+.gk-about-body { font: 13px/1.55 var(--gkm-font-body, system-ui, sans-serif); color: #aebccd; padding-right: 4px; }
+.gk-about-body h1 { margin: 0 0 4px; font-size: 19px; letter-spacing: 2px; font-family: var(--gkm-font, ui-monospace, monospace); color: var(--gkm-title, var(--gkm-text, #eaf3ff)); text-shadow: var(--gkm-glow, none); }
+.gk-about-body h2 { margin: 16px 0 6px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-family: var(--gkm-font, ui-monospace, monospace); color: #6b7a90; }
+.gk-about-body p { margin: 6px 0; }
+.gk-about-body strong { color: var(--gkm-text, #eaf2fb); }
+.gk-about-body a { color: var(--gkm-accent, #9fe8ff); text-decoration: none; }
+.gk-about-body a:hover { text-decoration: underline; }
+
 /* the "active challenge" notify glow (top-bar buttons; the side stack has its own has-dot system) */
 .gamekit-au-chbtn { font-size: 15px; position: relative; }
 .gamekit-au-btn.gkm-notify { position: relative; animation: gkNotify 1.9s ease-in-out infinite; }

@@ -642,6 +642,37 @@
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
   }
 
+  // ---------- about / how-to board (the game's SEO section → ☰ menu modal) ----------
+  // A game ships a static, crawlable <section id="gk-about" hidden> in its HTML (title, how to
+  // play, FAQ, related-game links) — raw-HTML crawlers read the English source; the kit localizes
+  // it in place for players and rendering crawlers, and lifts a copy into this modal from the
+  // ☰ "ℹ️ How to play" entry. One source of truth for players AND search engines.
+  function aboutSection() { try { return document.getElementById ? document.getElementById('gk-about') : null; } catch (e) { return null; } }
+  function aboutTranslate() {
+    var sec = aboutSection(); if (!sec || !sec.querySelectorAll) return;
+    var els = sec.querySelectorAll('[data-t]');
+    for (var i = 0; i < els.length; i++) {
+      var k = els[i].getAttribute('data-t'), v = k ? t(k) : null;
+      if (v && v !== k) els[i].textContent = v; // untranslated key → keep the English source text
+    }
+  }
+  function aboutModal(theme) {
+    var sec = aboutSection();
+    if (!sec || typeof document === 'undefined' || !document.body) return;
+    var ov = document.createElement('div'); ov.className = 'gamekit-controls gamekit-about';
+    ov.innerHTML = '<div class="gkctl-box"><button class="gkctl-x" type="button" aria-label="' + t('menu.close') + '">&#x2715;</button>'
+      + '<div class="gkctl-scroll gk-about-body">' + sec.innerHTML + '</div></div>';
+    if (theme) applyMenuTheme(ov, theme);
+    document.body.appendChild(ov);
+    modalInc(); // counts as an open overlay → isPaused() halts the game underneath
+    var done = false;
+    function close() { if (done) return; done = true; modalDec(); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} }
+    function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
+    var x = ov.querySelector ? ov.querySelector('.gkctl-x') : null; if (x) x.addEventListener('click', close);
+    ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
+    if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
+  }
+
   // ---------- reset scores (per-game; clears only keys starting with `prefix`) ----------
   function resetScores(prefix) {
     if (!prefix || typeof localStorage === 'undefined' || typeof localStorage.key !== 'function') return;
@@ -2456,10 +2487,12 @@
       + '<input class="gamekit-au-slider" id="gamekitMusV" type="range" min="0" max="100" aria-label="' + t('sound.musVol') + '"></div>';
     // ☰ menu panel: version + update status, force refresh, embed, reset — one home for the
     // rarely-needed actions (keeps the button cluster narrow on phones)
-    // ☰ order: Update · Language (inserted before Embed below) · Embed · Reset.
+    // ☰ order: How to play (when the game ships a #gk-about section) · Update · Language
+    // (inserted before Embed below) · Embed · Reset.
     // (Fullscreen moved OUT to its own top-bar ⛶ button; Challenges/Collection live on the side stack.)
     // The version stamp lives in the catalogue footer/Settings; CRT is bought/toggled in the 🎨 shop.
-    var more = '<button class="gamekit-more-item" id="gamekitUpdate" type="button">' + t('update.upToDate') + '</button>'
+    var more = (aboutSection() ? '<button class="gamekit-more-item" id="gamekitAbout" type="button">ℹ️ ' + t('kit.howto') + '</button>' : '')
+      + '<button class="gamekit-more-item" id="gamekitUpdate" type="button">' + t('update.upToDate') + '</button>'
       + '<button class="gamekit-more-item" id="gamekitEmbed" type="button" title="' + t('kit.embedTitle') + '">&#x29C9; ' + t('embed.titleThis') + '</button>'
       + (opts.reset ? '<button class="gamekit-more-item gamekit-more-danger" id="gamekitReset" type="button" title="' + t('kit.resetTitle') + '">' + t('kit.reset') + '</button>' : '');
     wrap.innerHTML = '<button class="gamekit-au-btn gamekit-au-pausebtn" id="gamekitPause" type="button" aria-pressed="false" aria-label="' + t('pause.pause') + '" title="' + t('pause.pause') + '">⏸</button>'
@@ -2540,6 +2573,9 @@
       var m = ((typeof location !== 'undefined' && location.pathname) ? location.pathname : '').match(/games\/([^\/?#]+)/);
       embedModal({ slug: m ? m[1] : '', title: (typeof document !== 'undefined' ? document.title : '') });
     });
+    var abBtn = document.getElementById('gamekitAbout');
+    if (abBtn) abBtn.addEventListener('click', function () { setMore(false); aboutModal(opts.theme); });
+    aboutTranslate(); onLang(aboutTranslate); // localize the static SEO section in place (see aboutModal)
     var fsBtn = document.getElementById('gamekitFs');
     if (fsBtn) {
       var renderFsBtn = function () { var on = fullscreen.active(); fsBtn.setAttribute('aria-pressed', on ? 'true' : 'false'); fsBtn.title = on ? t('kit.exitFullscreen') : t('kit.fullscreenTitle'); };
