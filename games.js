@@ -283,7 +283,7 @@ window.GAMES = [
     icon: "💣",
     accent: "#35e0ff",
     tags: ["LOGIC", "PUZZLE", "CLASSIC"],
-    added: "2026-07-11",
+    added: "2026-07-12",
   },
 
   // ---- coming soon: kids-first (ages 6–10) ----

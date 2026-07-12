@@ -103,9 +103,12 @@ window.CHALLENGES.playableSince = {
   forcefield: '2026-07-04', bubbles: '2026-06-26', 'frog-bonk': '2026-07-06', breakout: '2026-06-26',
   sudoku: '2026-07-10',
   stacker: '2026-06-26', flappy: '2026-06-26', 'aim-trainer': '2026-06-26', snake: '2026-06-26',
-  minesweeper: '2026-07-11', '2048': '2026-07-12', 'trap-the-cat': '2026-07-12', 'glow-says': '2026-07-12',
+  minesweeper: '2026-07-12', '2048': '2026-07-12', 'trap-the-cat': '2026-07-12', 'glow-says': '2026-07-12',
   'balloon-pop': '2026-07-12', 'critter-match': '2026-07-12',
 };
+// ^ playableSince = the PUBLIC go-live (push) date, never a local build date. The kit admits a
+// game's goals + random-pick slot only from the period AFTER this date, so a mid-day push can't
+// re-roll a daily/weekly pick players have already seen.
 
 // Deterministic, same-for-everyone pick for scope:'random' goals — chosen from ALL playable
 // slugs by the day (daily) or week index. Pure so the catalogue's evalGoal and the tile-badge

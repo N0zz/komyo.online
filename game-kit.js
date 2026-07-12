@@ -1155,14 +1155,15 @@
     if (!list || !list.length) return null;
     var d = (day == null) ? utcDayNumber() : day;
     var idx = isWeek ? Math.floor((d - CH_WEEK_ANCHOR) / 7) : d;
-    // FROZEN like the random-pick pool: a goal only joins the rotation once its game was live at
-    // the period's START (playableSince) — so shipping a new game's goals mid-day/mid-week never
-    // re-rolls a pick players have already seen.
+    // FROZEN like the random-pick pool: a goal only joins the rotation from the period AFTER its
+    // game's go-live date (playableSince, STRICTLY before the period start) — a same-day `<=`
+    // would admit today's launches into TODAY'S pool mid-day and re-roll a pick players already
+    // saw (the 2026-07-12 six-game batch did exactly that).
     if (C.playableSince) {
       var startD = isWeek ? (CH_WEEK_ANCHOR + idx * 7) : d;
       list = list.filter(function (id) {
         var g = C.goals[id], a = g && g.slug && C.playableSince[g.slug];
-        return !a || chDayNum(a) <= startD;
+        return !a || chDayNum(a) < startD;
       });
       if (!list.length) return null;
     }
@@ -1247,7 +1248,7 @@
       var playable = opts.playable || (C && C.playable) || null;
       if (playable && C && C.playableSince) {
         var startD = isWeek ? (CH_WEEK_ANCHOR + idx * 7) : dn;
-        playable = playable.filter(function (s) { var a = C.playableSince[s]; return !a || chDayNum(a) <= startD; });
+        playable = playable.filter(function (s) { var a = C.playableSince[s]; return !a || chDayNum(a) < startD; }); // strictly before the period start — same-day launches wait for the NEXT period
       }
       var slug = (C && C.randomSlug && playable && playable.length) ? C.randomSlug(idx, playable) : '';
       var played = !!slug && ((isWeek ? chWeekAgg(dn) : chDayLog(dStr)).slugs.indexOf(slug) >= 0);
