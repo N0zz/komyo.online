@@ -21,29 +21,43 @@
 A little **catalogue** of self-contained browser games. Each game is its
 own folder of static HTML/Canvas + vanilla JS — no build step, no dependencies, no
 external assets — and gets a tile on the home page plus a top-left **‹ Menu** / **Komyo Games ›**
-nav. Every game follows the same flow: **menu (pick a mode) → play → scoreboard (with share
-buttons)**. The home page groups tiles into **Single player** and **Multiplayer** sections.
+nav. Every game follows the same flow: **menu (pick a mode) → play → scoreboard (with a
+shareable score card)**. The home page groups tiles into **Favorites** (drag to reorder) →
+**Recently played** → **All games** → **Coming soon**.
 
 Cross-game, all on-device (no accounts, no server): **daily/weekly challenges** earn **trophies 🏆**,
 which unlock **titles** and buy **cosmetics** (per-game skins + site-wide cursors) in the 🎨 store — plus
 per-game best scores, a profile card, and optional consent-gated GA4 + a public Discord score post.
 
+The whole site speaks **8 languages** — English, Polski, Español, Português, Français, Italiano,
+Čeština, Українська — and **every game works offline** (one site-wide service worker).
+
 ## Games
 
 | Game | Folder | About |
 | --- | --- | --- |
-| **Asteroids** | `games/asteroids/` | Fly/shoot/survive — classic arcade + roguelite modes, speedruns, mobile controls |
-| **Keep Defender** | `games/tower-defense/` | Fixed-path tower defense — towers, gold, mage/fast-forward/boss telegraph (Castle & Parchment theme) |
-| **Stack** | `games/stacker/` | One-tap tower stacker — slice the overhang, chain perfect drops (pastel-clean theme) |
-| **Neon Snake** | `games/snake/` | Grid snake in glowing neon — arrows/WASD/swipe, deadly walls |
-| **Meadow Flyer** | `games/flappy/` | One-tap flyer through a soft storybook meadow |
-| **Brick Breaker** | `games/breakout/` | Paddle/ball/bricks with power-ups and level progression (synthwave neon) |
-| **Range** | `games/aim-trainer/` | Timed flick-aim target practice with accuracy + combo (tactical theme) |
+| **Asteroids** | `games/asteroids/` | Fly/shoot/survive — Classic + Classic-Enhanced arcade, speedruns, mobile controls |
+| **Asteroids+** | `games/asteroids-plus/` | Roguelite Asteroids — XP, upgrades, bosses and a wave shop |
+| **Keep Defender** | `games/tower-defense/` | Fixed-path tower defense — towers, gold, waves (Castle & Parchment theme) |
+| **Forcefield** | `games/forcefield/` | Slide your atmosphere dome to block the battle station's fire — solo or 2-player |
 | **Bubble Pop** | `games/bubbles/` | Puzzle-Bobble bubble shooter — match 3+, Arcade/Endless/Zen + special shots |
+| **Frog Bonk** | `games/frog-bonk/` | Whack-a-mole castle defense — bonk the invaders with the king's soft hammer |
+| **Brick Breaker** | `games/breakout/` | Paddle/ball/bricks with power-ups and level progression (synthwave neon) |
+| **Sudoku** | `games/sudoku/` | Daily puzzles, hints and zen mode on the classic 9×9 |
+| **Stack** | `games/stacker/` | One-tap tower stacker — slice the overhang, chain perfect drops (pastel-clean theme) |
+| **Trap the Cat** | `games/trap-the-cat/` | Wall off the hex board to corner the cat before it escapes |
+| **Meadow Flyer** | `games/flappy/` | One-tap flyer through a soft storybook meadow |
+| **Range** | `games/aim-trainer/` | Timed flick-aim target practice with accuracy + combo (tactical theme) |
+| **Neon Snake** | `games/snake/` | Grid snake in glowing neon — arrows/WASD/swipe, deadly walls |
+| **2048** | `games/2048/` | Slide and merge the tiles — double your way up to 2048 |
+| **Minesweeper** | `games/minesweeper/` | Flag the bombs, read the numbers, deduce the rest |
+| **Balloon Pop** | `games/balloon-pop/` | Kids — tap the floating balloons, no way to lose |
+| **Critter Match** | `games/critter-match/` | Kids — flip the cards, find the matching animals |
+| **Glow Says** | `games/glow-says/` | Kids — watch the lights, repeat the tune |
 
-More on the way — single-player (Sudoku, Invaders, Road Hop, Icy Tower, Trap the Cat,
-Pulse Dash, Dino Jump, …) and **local multiplayer** (Light Cycles 2–4P, Air Hockey,
-Slime Volleyball).
+More on the way — single-player (Dusk Runner, Pump Stop, Keyfall, Word Hunt, Invaders,
+Road Hop, Floodgate, Icy Tower, …), more **kids games** (Color Pop, Maze Pals, Tap & Learn)
+and **local multiplayer** (Light Cycles 2–4P, Air Hockey, Slime Volleyball, Mash Dash, …).
 
 **Stay updated:** hit **📬 Subscribe** on the home page to get an email when a new
 game ships or something gets fixed (free, no spam, unsubscribe anytime).
@@ -63,17 +77,21 @@ screen (its own icon, opens fullscreen, plays offline). Handy if you only want o
 
 ## Add a game
 
-1. Create `games/<slug>/index.html` — load the shared kit in `<head>`
-   (`game-kit.css` + `game-kit.js`) and use `gamekit.nav()`, `gamekit.sound`, `gamekit.shareRow()`,
-   `gamekit.pwa()` for the nav / sound + mute / share / PWA. Keep game logic inline with a
+1. Create `games/<slug>/index.html` — load the shared `<head>` unit (`analytics.js` ·
+   `game-kit.css` · `version.js` · `game-kit.js` · `challenges.js` · `cosmetics.js` · `games.js` ·
+   `i18n.js`) and build the shell from the kit: `gamekit.nav()`, `gamekit.menu` (start/pause/end),
+   `gamekit.loop()`, `gamekit.fitCanvas()`, `gamekit.pwa()`. Keep game logic inline with a
    `window.__test` hook and the menu → play → scoreboard(+share) flow.
-2. Add one entry to **`games.js`**: `slug`, `title`, `blurb`, `icon`, `accent`, `tag`, and
-   optionally `soon: true` (greyed coming-soon tile), `mp: true` + `players` (e.g. `"2–4P"`,
-   Multiplayer section), `badges: ["new"]`/`["pick"]` (gold/purple tile badge).
-3. Add `games/<slug>/test.mjs` (dependency-free headless harness; **preload `../../game-kit.js`**
-   in the sandbox before the inline script) and keep it green.
+2. Add one entry to **`games.js`**: `slug`, `title`, `blurb`, `icon`, `accent`, `tags`, and
+   optionally `soon: true` (greyed coming-soon tile), `mp: true` + `players` (e.g. `"2–4P"`),
+   `added`/`updated` dates (auto NEW/UPDATED badges). Add the game's strings to the locales
+   (`i18n.js` + each `i18n.<code>.js`), its challenge `goodRun` bar to `challenges.js`, its skins
+   to `cosmetics.js`, and a player-facing entry to `changelog.js`.
+3. Add `games/<slug>/test.mjs` on the shared harness (`test-harness.mjs` — `bootGame()` +
+   game asserts + the layout suite) and keep it green.
 4. Register the game in the root `sw.js`: add its slug to `GAME_SLUGS` (the ONE site-wide service
    worker precaches its HTML/manifest/icons for offline); the game calls `gamekit.pwa('../../sw.js')`.
+   When it goes live, add its URL to `sitemap.xml` and `llms.txt`.
 
 ## Testing
 
@@ -93,12 +111,16 @@ index.html        catalogue (tiles from games.js) + drawers/modals (profile, set
 games.js          catalogue manifest         challenges.js  daily/weekly goals + goodRun bars + titles
 cosmetics.js      cosmetics registry (skins + cursors)   changelog.js  player-facing releases
 analytics.js      consent-gated GA4 loader   version.js    build stamp (sha/date)
+i18n.js           i18n loader + English strings   i18n.<code>.js  one file per locale (pl/es/pt/fr/it/cs/uk)
 game-kit.js      shared game shell (nav, menus, sound+music, loop, layout, challenges, cosmetics, best store, share, PWA)
 game-kit.css     shared shell styles         sw-core.js   service-worker engine (imported by the root sw.js)
+qr.js             dependency-free QR encoder (scan-to-play on score cards)
 favicon.svg       Komyo Games icon           plans/       public design docs/mocks
 manifest.json     PWA manifest      sw.js   the ONE site-wide service worker (offline for catalogue + every game)
+robots.txt sitemap.xml llms.txt   crawler/SEO/LLM site maps
 CNAME             custom domain (komyo.online)   .nojekyll   serve files as-is on GitHub Pages
-test.mjs          catalogue + Keep Defender + kit + cosmetics harness   test-harness.mjs  the shared headless harness
+test.mjs          catalogue + Keep Defender + kit + i18n coverage + boots every live game   test-harness.mjs  the shared headless harness
+scripts/          gen-icon.mjs (game icons) + post-changelog.mjs (Discord changelog action)
 games/<slug>/     each game, standalone (index.html + test.mjs + manifest/icons)
 ```
 
