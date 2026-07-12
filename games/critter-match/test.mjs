@@ -132,6 +132,13 @@ section('critter-match: speedrun clock');
   T().flip(1);
   for (let k = 2; k < 12; k += 2) { T().flip(k); T().flip(k + 1); }
   ok(T().state === 'over', 'speedrun ends when the board clears');
+  // the store + the last-result (what the score card reads) both carry the time in MS, not seconds
+  const pb = JSON.parse(gs.store['gamekit_pb'] || '{}')['critter-match'] || {};
+  const sr = pb['Small · Speedrun'] || {};
+  ok(sr.time === 2000, 'best time stored in ms (got ' + sr.time + ', expected 2000)');
+  T().endMenu(true);                      // the real path defers this behind a no-op headless setTimeout
+  const lr = JSON.parse(gs.store['gamekit_result_critter-match'] || 'null');
+  ok(lr && lr.time === 2000, 'end-menu record time is ms (got ' + (lr && lr.time) + ', expected 2000)');
 }
 
 // ---- Layout ----
