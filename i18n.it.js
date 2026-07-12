@@ -1855,6 +1855,7 @@ window.KOMYO_I18N.it = {
   'game.critter-match.mpHint': 'Passa e gioca: trova una coppia e continua — un errore passa il turno. Vince chi trova più coppie!',
   'game.critter-match.playLabel': 'GIOCATORI',
   'game.critter-match.share': 'Ho abbinato tutti gli animali in {flips} mosse ({score} punti) — Coppie di Animali 🐾',
+  'game.critter-match.shareSpeed': 'Ho abbinato tutti gli animali in {time} ({flips} mosse) — Coppie di Animali, Speedrun 🐾',
   'game.critter-match.solo': 'Solo',
   'game.critter-match.speedHint': 'Svuota tutto il tabellone contro il tempo — vince il TEMPO migliore.',
   'game.critter-match.speedrun': 'Speedrun',
@@ -1958,4 +1959,5 @@ window.KOMYO_I18N.it = {
   'changelog.e63.title': 'Cronometri degli speedrun sistemati sulle carte del punteggio ⏱️',
   'changelog.e63.b0': 'Fix: le carte del punteggio dello speedrun di Coppie di Animali mostravano un tempo sballato tipo 00:00.01 invece del tuo vero tempo — la carta (e il record nel profilo) ora mostrano il tempo che hai fatto davvero.',
   'changelog.e63.b1': 'Fix: completare uno speedrun di Asteroidi+ ora imprime il tuo TEMPO sulla carta del punteggio condivisa, come fa Asteroidi classico — prima mostrava il punteggio.',
+  'changelog.e63.b2': 'Cambio: condividere uno speedrun di Coppie di Animali ora vanta il tuo tempo (con le mosse accanto) invece dei punti — in uno speedrun conta il tempo.',
 };

@@ -433,8 +433,11 @@
   }
 
   function shareMsg() {
-    return KIT.t('game.critter-match.share', { score, flips,
-      def: 'I matched all the critters in {flips} flips ({score} pts) — Critter Match 🐾' });
+    return play === 'speed'
+      ? KIT.t('game.critter-match.shareSpeed', { time: fmtTime(speedFrames / 60), flips,
+          def: 'I matched all the critters in {time} ({flips} flips) — Critter Match Speedrun 🐾' })
+      : KIT.t('game.critter-match.share', { score, flips,
+          def: 'I matched all the critters in {flips} flips ({score} pts) — Critter Match 🐾' });
   }
 
   function showEnd(isBest) {
@@ -534,6 +537,7 @@
     },
     get peeking() { return peekT > 0; },
     endMenu(b) { showEnd(!!b); },          // finish() defers showEnd 800 ms — headless setTimeout is a no-op
+    get shareText() { return shareMsg(); },
 
     get layout() {
       const totW = cols * cw + (cols - 1) * 8, totH = rows * chh + (rows - 1) * 8;

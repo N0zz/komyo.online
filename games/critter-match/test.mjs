@@ -139,6 +139,9 @@ section('critter-match: speedrun clock');
   T().endMenu(true);                      // the real path defers this behind a no-op headless setTimeout
   const lr = JSON.parse(gs.store['gamekit_result_critter-match'] || 'null');
   ok(lr && lr.time === 2000, 'end-menu record time is ms (got ' + (lr && lr.time) + ', expected 2000)');
+  // speedrun share leads with the TIME, not points
+  ok(/0:02/.test(T().shareText) && !/pts/.test(T().shareText),
+    'speedrun share message carries the time (got "' + T().shareText + '")');
 }
 
 // ---- Layout ----

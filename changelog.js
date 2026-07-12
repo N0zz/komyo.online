@@ -7,6 +7,7 @@ window.CHANGELOG = [
   { date: '2026-07-12', title: 'Speedrun clocks fixed on score cards ⏱️', items: [
     'Fix: Critter Match speedrun score cards showed a scrambled time like 00:00.01 instead of your real clear time — the card (and your profile\'s best) now show the time you actually ran.',
     'Fix: clearing an Asteroids+ speedrun now stamps your clear TIME on the shared score card, like Asteroids classic does — it used to show the score instead.',
+    'Change: sharing a Critter Match speedrun now brags about your time (with flips alongside) instead of points — time is what a speedrun is about.',
   ] },
   { date: '2026-07-12', title: '🐣 Easy picks for little players', items: [
     'New: 🐣 Easy picks — a switch in Settings for young (or chill) players: every game marks its gentlest mode and difficulty with a 🐣 and picks them for you, and kids\' games move to the top of the home page. Flip it off and everything is back to normal.',
