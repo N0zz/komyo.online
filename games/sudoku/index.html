@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Sudoku</title>
+<title>Sudoku — free online sudoku puzzles, no ads | Komyo Games</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#f0b429">
 <link rel="manifest" href="manifest.json">
@@ -12,6 +12,28 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Sudoku">
 <link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="Free Sudoku in your browser — technique-graded Easy to Expert boards, a shared Daily puzzle, pencil marks, undo and hints that teach the logic. No ads.">
+<link rel="canonical" href="https://komyo.online/games/sudoku/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Komyo Games">
+<meta property="og:title" content="Sudoku — free online sudoku puzzles, no ads">
+<meta property="og:description" content="Free Sudoku in your browser — technique-graded Easy to Expert boards, a shared Daily puzzle, pencil marks, undo and hints that teach the logic. No ads.">
+<meta property="og:url" content="https://komyo.online/games/sudoku/">
+<meta property="og:image" content="https://komyo.online/games/sudoku/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Sudoku — free online sudoku puzzles, no ads">
+<meta name="twitter:description" content="Free Sudoku in your browser — technique-graded Easy to Expert boards, a shared Daily puzzle, pencil marks, undo and hints that teach the logic. No ads.">
+<meta name="twitter:image" content="https://komyo.online/games/sudoku/icon-512.png">
+<link rel="alternate" hreflang="en" href="https://komyo.online/games/sudoku/">
+<link rel="alternate" hreflang="pl" href="https://komyo.online/games/sudoku/?lang=pl">
+<link rel="alternate" hreflang="es" href="https://komyo.online/games/sudoku/?lang=es">
+<link rel="alternate" hreflang="pt" href="https://komyo.online/games/sudoku/?lang=pt">
+<link rel="alternate" hreflang="fr" href="https://komyo.online/games/sudoku/?lang=fr">
+<link rel="alternate" hreflang="it" href="https://komyo.online/games/sudoku/?lang=it">
+<link rel="alternate" hreflang="cs" href="https://komyo.online/games/sudoku/?lang=cs">
+<link rel="alternate" hreflang="uk" href="https://komyo.online/games/sudoku/?lang=uk">
+<link rel="alternate" hreflang="x-default" href="https://komyo.online/games/sudoku/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Sudoku","url":"https://komyo.online/games/sudoku/","description":"Free Sudoku in your browser — technique-graded Easy to Expert boards, a shared Daily puzzle, pencil marks, undo and hints that teach the logic. No ads.","genre":["Puzzle","Logic"],"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"inLanguage":["en","pl","es","pt","fr","it","cs","uk"],"image":"https://komyo.online/games/sudoku/icon-512.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Komyo Games","url":"https://komyo.online/"}}</script>
 <!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
      exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
 <script src="../../analytics.js" defer></script>
@@ -70,6 +92,19 @@
   <div class="row" id="padDigits"></div>
   <div class="row tools" id="padTools"></div>
 </div>
+<!-- crawlable game description — shown to players via the ☰ "How to play" entry (kit aboutModal) -->
+<section id="gk-about" hidden>
+<h1 data-t="game.sudoku.title">Sudoku</h1>
+<p data-t="game.sudoku.blurb">Fill the 9×9 so every row, column and box holds 1–9 — daily puzzles, hints and zen mode.</p>
+<h2 data-t="kit.howto">How to play</h2>
+<p data-t="seo.sudoku.howto">Fill the 9×9 grid so every row, column and 3×3 box holds the digits 1–9 exactly once. Tap a cell and enter a digit, use pencil marks for candidates, and ask for a hint when stuck — it highlights the reasoning instead of revealing the answer. Daily serves everyone the same puzzle; Zen is untimed practice at any difficulty.</p>
+<h2 data-t="seo.h.faq">Common questions</h2>
+<p><strong data-t="seo.q.free">Is this game free?</strong> <span data-t="seo.a.free">Yes — every game on Komyo is completely free to play: no ads, no payments, no accounts.</span></p>
+<p><strong data-t="seo.q.offline">Can I play offline?</strong> <span data-t="seo.a.offline">Yes — after your first visit the game works without internet, and you can install it as an app straight from your browser.</span></p>
+<p><strong data-t="seo.q.saves">Where are my scores saved?</strong> <span data-t="seo.a.saves">On your device only — best scores, trophies and cosmetics live in your browser and are never uploaded anywhere.</span></p>
+<h2 data-t="seo.h.more">More free games</h2>
+<p><a href="../minesweeper/" data-t="game.minesweeper.title">Minesweeper</a> · <a href="../2048/" data-t="game.2048.title">2048</a> · <a href="../trap-the-cat/" data-t="game.trap-the-cat.title">Trap the Cat</a> · <a href="../../" data-t="seo.allGames">All free games at Komyo</a></p>
+</section>
 <script>
 (() => {
   const canvas = document.getElementById('game');
