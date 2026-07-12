@@ -253,6 +253,10 @@ wraps — but `topReserve` must still be **≥ `hudTop()`**, never less. Don't r
 
 - **START** (`kind:'start'`) — mode/options via `groups` (`style:'cards'` for rich mode cards with a
   canvas `preview`), `toggles`, `actions:[{id:'play',primary:true}]`, `hint`, `onChange`, `onPlay`.
+  **🐣 Easy picks annotation is REQUIRED:** every difficulty-bearing group gets `kid: true` on its
+  gentlest choice, and every difficulty-bearing toggle gets `kid: true|false` (= the easiest STATE).
+  When the player enables 🐣 Easy picks in the catalogue Settings, the kit marks those with 🐣 and
+  uses them as the menu defaults. Purely cosmetic groups (themes, skins, time-of-day) get no flag.
 - **END** (`kind:'end'`) — score + best + `newBest` (computed before save) + `actions` (Play again /
   Menu) + the kit `share:` row + **`record:` — the ONLY way results are recorded** (idempotent per
   run; never call `gamekit.recordResult` directly).

@@ -150,6 +150,10 @@ Games alias the API once: `const KIT = window.gamekit;`.
   small-screen BUY/TAKE button; on touch the first tap selects (desc shows in a focused-desc
   line), the second tap or that button buys — mouse hover+click buys in one go),
   `toggles`, `hint(state)`, `banner(state)`, `actions:[{id,label,primary?,danger?,confirm?}]`,
+  **`kid: true` on a group's gentlest choice / `kid: true|false` on a toggle (= easiest state)** —
+  powers **🐣 Easy picks** (catalogue Settings, `gamekit.easyPicks()`): marks those with 🐣, makes
+  them the menu defaults, and sorts KIDS-tagged tiles first at home. Every difficulty-bearing
+  group/toggle in every game carries the flag (cosmetic groups don't),
   `onPlay/onAction/onChange/onEsc`, `theme` (`--gkm-*` vars), `backdrop` (animated canvas), and
   `share:{slug,accent,icon,title,message,params}` (share row + score card + Discord) +
   **`record:{slug,mode,score,time?,stats?}`** — the kit records it exactly once per run
@@ -295,7 +299,8 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
   test section. `node games/<slug>/test.mjs` — each game's own suite (incl. asteroids).
 - **i18n coverage is enforced** (an `test.mjs` section): the `pl` locale must contain EVERY referenced
   key (literal `t()`/`data-t` keys + each game's `game.<slug>.title`/`.blurb` + all `cos.*` name/desc),
-  and every other locale must be **empty or a complete superset of `pl`** (no half-translated locale);
+  and every other locale must be **empty or carry EXACTLY `pl`'s key set** (no half-translated
+  locale, no stale leftover keys);
   plural keys must exist in `en`. So adding a player-facing string without its Polish translation FAILS
   the suite — that's how "shipped English-only by accident" is caught. `en` is exempt (the `def:` source).
 - `bootGame(file, opts)` preloads the real `game-kit.js` automatically (mirrors the `<head>` load

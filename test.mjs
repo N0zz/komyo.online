@@ -200,6 +200,16 @@ function testCatalogue() {
       'reopening with nothing new shows no NEW badges');
   }
 
+  // 🐣 Easy picks lifts KIDS-tagged games to the top of the All-games shelf
+  {
+    const ge = bootGame('index.html', { preCode: [games, challenges], store: { gamekit_easy: '1' } });
+    const tiles = [];
+    (function walk(el) { if (!el) return; if (String(el.className || '').split(/\s+/).indexOf('tile') >= 0 && el.href) tiles.push(el.href); (el.children || []).forEach(walk); })(ge.getEl('grid'));
+    const kids = (ge.win.GAMES || []).filter(x => !x.soon && (x.tags || []).indexOf('KIDS') >= 0).map(x => 'games/' + x.slug + '/');
+    ok(kids.length >= 3 && tiles.slice(0, kids.length).join(',') === kids.join(','),
+      'easy picks: KIDS games lead All games (got ' + tiles.slice(0, kids.length + 1).join(', ') + ')');
+  }
+
   // challenge history back-fill: a completion is recorded even when detected on a later catalogue
   // load (the old code only awarded "today's" goal lazily, so in-game completions were lost).
   {
@@ -623,6 +633,28 @@ async function testKit() {
     ok(diffCells().every(b => !b.classList.contains('gkm-disabled')) && hd.select('diff', 'easy') && hd.selection().diff === 'easy', 're-enables + selectable when disabled fn goes false');
     hd.hide();
   }
+  // 🐣 Easy picks: kid-flagged choices/toggles become the menu DEFAULTS + carry the marker
+  {
+    const collect = (el, cls, out = []) => { if (!el) return out; if (String(el.className || '').split(/\s+/).indexOf(cls) >= 0) out.push(el); (el.children || []).forEach(c => collect(c, cls, out)); return out; };
+    F.setEasyPicks(true);
+    ok(F.easyPicks() === true, 'setEasyPicks(true) persists and easyPicks() reads it back');
+    const he = F.menu.show({ kind: 'start', groups: [
+      { id: 'mode', label: 'MODE', default: 'run', choices: [{ id: 'run', label: 'Run' }, { id: 'zen', label: 'Zen', kid: true }] },
+      { id: 'diff', label: 'DIFF', default: 'hard', choices: [{ id: 'easy', label: 'Easy', kid: true }, { id: 'hard', label: 'Hard' }] },
+    ], toggles: [{ id: 'relaxed', label: 'Relaxed', default: false, kid: true }, { id: 'turbo', label: 'Turbo', default: true, kid: false }],
+    actions: [{ id: 'play', label: 'Play', primary: true }] });
+    ok(he.selection().mode === 'zen' && he.selection().diff === 'easy', 'easy picks preselects kid choices over the defaults (got ' + JSON.stringify(he.selection()) + ')');
+    ok(he.selection().relaxed === true && he.selection().turbo === false, 'toggles default to their kid state (relaxed on, turbo off)');
+    ok(collect(he.el, 'gkm-choice').some(b => String(b.innerHTML || '').includes('🐣')), 'kid choices carry the 🐣 marker');
+    he.hide();
+    F.setEasyPicks(false);
+    const hn = F.menu.show({ kind: 'start', groups: [
+      { id: 'mode', label: 'MODE', default: 'run', choices: [{ id: 'run', label: 'Run' }, { id: 'zen', label: 'Zen', kid: true }] }],
+    toggles: [{ id: 'turbo', label: 'Turbo', default: true, kid: false }], actions: [{ id: 'play', label: 'Play', primary: true }] });
+    ok(hn.selection().mode === 'run' && hn.selection().turbo === true, 'easy picks OFF: normal defaults win');
+    ok(!collect(hn.el, 'gkm-choice').some(b => String(b.innerHTML || '').includes('🐣')), 'easy picks OFF: no 🐣 markers');
+    hn.hide();
+  }
   // pause: onAction fires by id
   let acted = null;
   const hp = F.menu.show({ kind: 'pause', title: 'Paused', lines: ['score 10'], actions: [{ id: 'resume', label: 'Resume', primary: true }, { id: 'quit', label: 'Quit', danger: true }], onAction: id => { acted = id; } });
@@ -902,8 +934,10 @@ function testI18nCoverage() {
   const plMiss = [...used].filter(k => !(k in (dict.pl || {}))).sort();
   ok(plMiss.length === 0, 'pl has every referenced key' + (plMiss.length ? ` — MISSING ${plMiss.length}: ${plMiss.slice(0, 25).join(', ')}` : ''));
 
-  // 4) each other locale is EMPTY (not started) or a COMPLETE superset of pl — no half-translated
-  // locale. The list is DISCOVERED from i18n.js so a new language is enforced without a test edit.
+  // 4) each other locale is EMPTY (not started) or its key set EQUALS pl's exactly — no
+  // half-translated locale (missing keys) and no stale leftovers (extra keys a code cleanup removed
+  // from pl but not here; 6 dead sudoku keys once hid in every non-pl locale this way). The list is
+  // DISCOVERED from i18n.js so a new language is enforced without a test edit.
   const OTHER_LOCALES = Object.keys(dict).filter(L => L !== 'en' && L !== 'pl');
   ok(OTHER_LOCALES.length >= 6, 'discovered non-en/pl locales from i18n.js: ' + OTHER_LOCALES.join(','));
   const plKeys = Object.keys(dict.pl || {});
@@ -911,7 +945,10 @@ function testI18nCoverage() {
     const d = dict[L] || {}, n = Object.keys(d).length;
     if (n === 0) { ok(true, `${L}: not started (empty) — ok`); continue; }
     const miss = plKeys.filter(k => !(k in d)).sort();
-    ok(miss.length === 0, `${L}: complete (matches pl)` + (miss.length ? ` — MISSING ${miss.length}: ${miss.slice(0, 25).join(', ')}` : ''));
+    const extra = Object.keys(d).filter(k => !(k in (dict.pl || {}))).sort();
+    ok(miss.length === 0 && extra.length === 0, `${L}: complete (key set === pl)`
+      + (miss.length ? ` — MISSING ${miss.length}: ${miss.slice(0, 25).join(', ')}` : '')
+      + (extra.length ? ` — STALE/EXTRA ${extra.length}: ${extra.slice(0, 25).join(', ')}` : ''));
   }
   // 5) plural keys must exist in en too — def: can't express plural forms
   const plural = v => v && typeof v === 'object';

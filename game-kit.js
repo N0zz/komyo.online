@@ -38,6 +38,13 @@
     else rrPath(g, x, y, w, h, r);
   }
 
+  // ---------- 🐣 Easy picks (per-device, Settings-owned) ----------
+  // When on: menus mark `kid: true` choices/toggles with 🐣 AND use them as the defaults, and the
+  // catalogue lifts KIDS-tagged tiles to the top of All games. One key, rides Export/Import.
+  var EASY_KEY = 'gamekit_easy';
+  function easyPicks() { return lsGet(EASY_KEY) === '1'; }
+  function setEasyPicks(on) { lsSet(EASY_KEY, on ? '1' : '0'); }
+
   // ---------- audio state (two channels: SFX kit-played, Music settings-only) ----------
   var SFX_M = 'gamekit_sfx_muted', SFX_V = 'gamekit_sfx_vol', MUS_M = 'gamekit_music_muted', MUS_V = 'gamekit_music_vol';
   var sfxMuted = lsGet(SFX_M) === '1';
@@ -3561,12 +3568,20 @@
     var BIG_STYLES = { cards: 1, grid: 1, shop: 1 }, hasBig = false, bigNodes = [];
     var sel = {}, tog = {};
     function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
-    groups.forEach(function (g2) { sel[g2.id] = (g2['default'] != null ? g2['default'] : (g2.choices && g2.choices[0] ? g2.choices[0].id : null)); if (g2.style === 'cards') hasCards = true; if (BIG_STYLES[g2.style]) hasBig = true; });
+    // 🐣 Easy picks: `kid: true` marks a group's gentlest choice (toggles: `kid` = the easiest
+    // STATE). When the setting is on, those become the menu DEFAULTS and get the 🐣 marker.
+    var EASY = easyPicks();
+    var kidMark = function (c) { return (EASY && c && c.kid) ? ' 🐣' : ''; };
+    groups.forEach(function (g2) {
+      sel[g2.id] = (g2['default'] != null ? g2['default'] : (g2.choices && g2.choices[0] ? g2.choices[0].id : null));
+      if (EASY) { var chs0 = g2.choices || []; for (var ki = 0; ki < chs0.length; ki++) if (chs0[ki] && chs0[ki].kid) { sel[g2.id] = chs0[ki].id; break; } }
+      if (g2.style === 'cards') hasCards = true; if (BIG_STYLES[g2.style]) hasBig = true;
+    });
     // end screens with a score card split too: the CARD is the big pane, score lines + actions
     // form the right rail — stacked, the card overflowed short-landscape viewports
     var endSplit = kind === 'end' && !!cfg.share;
     if (endSplit) hasBig = true;
-    toggles.forEach(function (t) { tog[t.id] = !!t['default']; });
+    toggles.forEach(function (t) { tog[t.id] = (EASY && t.kid != null) ? !!t.kid : !!t['default']; });
     function state() { var o = {}, k; for (k in sel) if (has(sel, k)) o[k] = sel[k]; for (k in tog) if (has(tog, k)) o[k] = tog[k]; return o; }
 
     // record BEFORE building the DOM — the "✓ Good run" line below is the trickle RECEIPT, so the
@@ -3618,7 +3633,7 @@
         (g2.choices || []).forEach(function (c) {
           var card = mkEl('div', 'gkm-card');
           var pv = mkEl('canvas', 'gkm-card-pv'); try { pv.width = c.pvW || 120; pv.height = c.pvH || 120; } catch (e) {}
-          var nm = mkEl('div', 'gkm-card-nm', c.label + (c.tag ? ' <span class="gkm-tag">' + c.tag + '</span>' : ''));
+          var nm = mkEl('div', 'gkm-card-nm', c.label + kidMark(c) + (c.tag ? ' <span class="gkm-tag">' + c.tag + '</span>' : ''));
           var best = mkEl('div', 'gkm-card-best');
           var head = mkEl('div', 'gkm-card-head'); head.appendChild(nm); head.appendChild(best);
           var desc = mkEl('div', 'gkm-card-desc');
@@ -3659,7 +3674,7 @@
         var th = mkEl('div', 'gkm-sl-thumb'); tr.appendChild(th);
         var labs = mkEl('div', 'gkm-sl-labels');
         chs.forEach(function (c) {
-          var sp = mkEl('span', 'gkm-sl-label', c.label);
+          var sp = mkEl('span', 'gkm-sl-label', c.label + kidMark(c));
           var ref = { el: sp, kind: 'choice', grp: g2.id, choice: c.id };
           sp.addEventListener('click', function () { selectChoice(ref); setFocusEl(sp); });
           sp.addEventListener('mouseenter', function () { setFocusEl(sp); });
@@ -3725,7 +3740,7 @@
           chsP.forEach(function (c) {
             var it = mkEl('div', 'gkm-picker-item' + (c.id === sel[g2.id] ? ' gkm-on' : ''));
             var cv = mkEl('canvas', 'gkm-picker-cv'); try { cv.width = 34; cv.height = 24; } catch (e) {} drawPreview(cv, c.preview, state());
-            it.appendChild(cv); it.appendChild(mkEl('span', null, c.label));
+            it.appendChild(cv); it.appendChild(mkEl('span', null, c.label + kidMark(c)));
             it.addEventListener('mouseenter', function () { var kids = plist.childNodes; for (var i = 0; i < kids.length; i++) if (kids[i].classList) kids[i].classList.remove('gkm-hot'); if (it.classList) it.classList.add('gkm-hot'); renderDesc(c.id); });
             it.addEventListener('click', function () { sel[g2.id] = c.id; changed(); closeP(); });
             plist.appendChild(it);
@@ -3742,7 +3757,7 @@
         trig.addEventListener('click', function () { setFocusEl(trig); openPicker(); });
         trig.addEventListener('mouseenter', function () { setFocusEl(trig); });
         popupRefs.push(pref);
-        dynamic.push(function (st) { var c = find(sel[g2.id]); trig.innerHTML = ''; var cv = mkEl('canvas', 'gkm-picker-cv'); try { cv.width = 40; cv.height = 26; } catch (e) {} drawPreview(cv, c.preview, st); trig.appendChild(cv); trig.appendChild(mkEl('span', 'gkm-picker-nm', c.label)); if (c.sub != null || c.best != null) trig.appendChild(mkEl('span', 'gkm-picker-sub', c.sub != null ? evalVal(c.sub, st) : (t('menu.bestWord') + ' ' + fmtScore(evalVal(c.best, st))))); trig.appendChild(mkEl('span', 'gkm-picker-chev', '▾')); });
+        dynamic.push(function (st) { var c = find(sel[g2.id]); trig.innerHTML = ''; var cv = mkEl('canvas', 'gkm-picker-cv'); try { cv.width = 40; cv.height = 26; } catch (e) {} drawPreview(cv, c.preview, st); trig.appendChild(cv); trig.appendChild(mkEl('span', 'gkm-picker-nm', c.label + kidMark(c))); if (c.sub != null || c.best != null) trig.appendChild(mkEl('span', 'gkm-picker-sub', c.sub != null ? evalVal(c.sub, st) : (t('menu.bestWord') + ' ' + fmtScore(evalVal(c.best, st))))); trig.appendChild(mkEl('span', 'gkm-picker-chev', '▾')); });
         scroll.appendChild(trig);
       } else if (g2.style === 'shop') {
         // action grid: each cell BUYS/PICKS on click or Enter (it doesn't hold a selection). sub()/disabled()
@@ -3782,7 +3797,7 @@
       } else {
         var row = mkEl('div', 'gkm-row');
         (g2.choices || []).forEach(function (c) {
-          var b = mkEl('button', 'gkm-choice', c.label + (c.desc ? '<span class="gkm-desc">' + c.desc + '</span>' : ''));
+          var b = mkEl('button', 'gkm-choice', c.label + kidMark(c) + (c.desc ? '<span class="gkm-desc">' + c.desc + '</span>' : ''));
           try { b.type = 'button'; } catch (e) {}
           // grpDisabled: a group-level evaluator (bool | state->bool) — grays the whole row and makes
           // selecting a no-op (same pattern as toggles/shop), re-evaluated on every refresh.
@@ -3800,7 +3815,7 @@
       var rowT = mkEl('div', 'gkm-checkrow');
       var lab = mkEl('label', 'gkm-check');
       lab.appendChild(mkEl('span', 'gkm-check-box'));
-      lab.appendChild(mkEl('span', 'gkm-check-txt', t.label + (t.caption ? ' <span class="cap">' + t.caption + '</span>' : '')));
+      lab.appendChild(mkEl('span', 'gkm-check-txt', t.label + (EASY && t.kid === true ? ' 🐣' : '') + (t.caption ? ' <span class="cap">' + t.caption + '</span>' : '')));
       rowT.appendChild(lab); scroll.appendChild(rowT);
       var ref = { el: lab, kind: 'toggle', id: t.id, cfg: t };
       lab.addEventListener('click', function (e) { if (e && e.preventDefault) e.preventDefault(); toggleOne(ref); setFocusEl(lab); });
@@ -4191,7 +4206,7 @@
   if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('fullscreenchange', fsEmit);
   var fullscreen = { supported: fsSupported, active: fsActive, toggle: fsToggle, onChange: function (cb) { if (typeof cb === 'function') _fsSubs.push(cb); } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
