@@ -13,21 +13,44 @@
 <meta name="apple-mobile-web-app-title" content="Komyo Games">
 <link rel="apple-touch-icon" href="favicon.svg">
 <!-- SEO + link previews (Open Graph / Twitter Card) -->
-<meta name="description" content="A little catalogue of free, self-contained browser games — Asteroids, tower defense, a bubble shooter and more. No ads, no payments, plays offline.">
+<meta name="description" content="Free browser games — no ads, no sign-ups, nothing to buy. Ever. Asteroids, tower defense, Sudoku, a bubble shooter and more — instant play, works offline.">
 <link rel="canonical" href="https://komyo.online/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Komyo Games">
 <meta property="og:title" content="Komyo Games — free browser games">
-<meta property="og:description" content="A little catalogue of free, self-contained browser games. No ads, no payments, plays offline.">
+<meta property="og:description" content="Free browser games — no ads, no sign-ups, nothing to buy. Ever. Instant play, works offline.">
 <meta property="og:url" content="https://komyo.online/">
 <meta property="og:image" content="https://komyo.online/og-image.png?v=5">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="675">
-<meta property="og:image:alt" content="Komyo Games — self-contained browser games">
+<meta property="og:image:alt" content="Komyo Games — free browser games, no ads">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Komyo Games — free browser games">
-<meta name="twitter:description" content="A little catalogue of free, self-contained browser games. No ads, plays offline.">
+<meta name="twitter:description" content="Free browser games — no ads, no sign-ups, nothing to buy. Ever.">
 <meta name="twitter:image" content="https://komyo.online/og-image.png?v=5">
+<script type="application/ld+json">{"@context":"https://schema.org","@graph":[
+  {"@type":"WebSite","name":"Komyo Games","url":"https://komyo.online/","description":"Free browser games — no ads, no sign-ups, nothing to buy. Ever. Instant play, works offline.","inLanguage":["en","pl","es","pt","fr","it","cs","uk"]},
+  {"@type":"ItemList","name":"All games","itemListElement":[
+    {"@type":"ListItem","position":1,"name":"Asteroids","url":"https://komyo.online/games/asteroids/"},
+    {"@type":"ListItem","position":2,"name":"Asteroids+","url":"https://komyo.online/games/asteroids-plus/"},
+    {"@type":"ListItem","position":3,"name":"Keep Defender","url":"https://komyo.online/games/tower-defense/"},
+    {"@type":"ListItem","position":4,"name":"Forcefield","url":"https://komyo.online/games/forcefield/"},
+    {"@type":"ListItem","position":5,"name":"Bubble Pop","url":"https://komyo.online/games/bubbles/"},
+    {"@type":"ListItem","position":6,"name":"Frog Bonk","url":"https://komyo.online/games/frog-bonk/"},
+    {"@type":"ListItem","position":7,"name":"Brick Breaker","url":"https://komyo.online/games/breakout/"},
+    {"@type":"ListItem","position":8,"name":"Sudoku","url":"https://komyo.online/games/sudoku/"},
+    {"@type":"ListItem","position":9,"name":"Stack","url":"https://komyo.online/games/stacker/"},
+    {"@type":"ListItem","position":10,"name":"Trap the Cat","url":"https://komyo.online/games/trap-the-cat/"},
+    {"@type":"ListItem","position":11,"name":"Meadow Flyer","url":"https://komyo.online/games/flappy/"},
+    {"@type":"ListItem","position":12,"name":"Range","url":"https://komyo.online/games/aim-trainer/"},
+    {"@type":"ListItem","position":13,"name":"Neon Snake","url":"https://komyo.online/games/snake/"},
+    {"@type":"ListItem","position":14,"name":"2048","url":"https://komyo.online/games/2048/"},
+    {"@type":"ListItem","position":15,"name":"Minesweeper","url":"https://komyo.online/games/minesweeper/"},
+    {"@type":"ListItem","position":16,"name":"Balloon Pop","url":"https://komyo.online/games/balloon-pop/"},
+    {"@type":"ListItem","position":17,"name":"Critter Match","url":"https://komyo.online/games/critter-match/"},
+    {"@type":"ListItem","position":18,"name":"Glow Says","url":"https://komyo.online/games/glow-says/"}
+  ]}
+]}</script>
 <link rel="alternate" hreflang="en" href="https://komyo.online/">
 <link rel="alternate" hreflang="pl" href="https://komyo.online/?lang=pl">
 <link rel="alternate" hreflang="es" href="https://komyo.online/?lang=es">
@@ -639,7 +662,7 @@
         </svg>
         <h1>Komyo Games</h1>
       </div>
-      <div class="sub" data-t="cat.sub">a catalogue of self-contained browser games</div>
+      <div class="sub" data-t="cat.sub">free browser games — no ads, no sign-ups, nothing to buy. ever.</div>
       <div class="controls">
         <div class="searchbox">🔍 <input id="search" type="search" placeholder="Search…" data-tp="cat.searchPh" aria-label="Search games" data-ta="cat.searchAria" autocomplete="off"><button class="search-help" type="button" aria-label="Search tips" data-ta="cat.searchTipsAria">?<span class="search-tip" data-th="cat.searchTip">Search by <b>game name</b>, <b>genre</b>, or a <b>label</b> — try “arcade”, “puzzle”, “challenge”, or a title like “snake”.</span></button></div>
         <div class="filter-wrap">
@@ -669,7 +692,30 @@
       </div>
     </header>
 
-    <main><div class="grid" id="grid"></div></main>
+    <main><div class="grid" id="grid">
+      <!-- static fallback for crawlers / no-JS (LLM fetchers don't run games.js) — the tile
+           renderer replaces it instantly; lockstep with games.js live games is test-enforced -->
+      <nav class="nojs-games" aria-label="All games">
+        <a href="games/asteroids/">Asteroids</a> ·
+        <a href="games/asteroids-plus/">Asteroids+</a> ·
+        <a href="games/tower-defense/">Keep Defender</a> ·
+        <a href="games/forcefield/">Forcefield</a> ·
+        <a href="games/bubbles/">Bubble Pop</a> ·
+        <a href="games/frog-bonk/">Frog Bonk</a> ·
+        <a href="games/breakout/">Brick Breaker</a> ·
+        <a href="games/sudoku/">Sudoku</a> ·
+        <a href="games/stacker/">Stack</a> ·
+        <a href="games/trap-the-cat/">Trap the Cat</a> ·
+        <a href="games/flappy/">Meadow Flyer</a> ·
+        <a href="games/aim-trainer/">Range</a> ·
+        <a href="games/snake/">Neon Snake</a> ·
+        <a href="games/2048/">2048</a> ·
+        <a href="games/minesweeper/">Minesweeper</a> ·
+        <a href="games/balloon-pop/">Balloon Pop</a> ·
+        <a href="games/critter-match/">Critter Match</a> ·
+        <a href="games/glow-says/">Glow Says</a>
+      </nav>
+    </div></main>
 
     <footer>
       <div class="foot-tag" data-t="cat.footTag">built for fun · free forever · no ads · no accounts · kid-safe · every game works offline</div>

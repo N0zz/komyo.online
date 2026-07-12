@@ -1295,6 +1295,22 @@ function testSEO() {
   bad('every live game has valid VideoGame JSON-LD', badLD);
   bad('every live game ships the crawlable #gk-about section (howto key + catalogue link)',
     pages.filter(([s, h]) => !(h.includes('id="gk-about"') && h.includes('data-t="seo.' + s + '.howto"') && h.includes('href="../../"'))).map(([s]) => s));
+  // homepage: the static no-JS game list + the ItemList JSON-LD (what LLM fetchers / no-JS
+  // crawlers see instead of the JS-rendered tiles) must stay in lockstep with games.js
+  {
+    const idx = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
+    const nav = (idx.match(/<nav class="nojs-games"[\s\S]*?<\/nav>/) || [''])[0];
+    const navSlugs = [...nav.matchAll(/href="games\/([^/]+)\//g)].map(m => m[1]);
+    ok(JSON.stringify(navSlugs) === JSON.stringify(live),
+      'homepage static game list matches games.js live games in order (got: ' + navSlugs.join(', ') + ')');
+    let graph = null;
+    try { graph = JSON.parse((idx.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/) || [])[1])['@graph']; } catch (e) {}
+    ok(Array.isArray(graph) && graph.some(n => n['@type'] === 'WebSite'), 'homepage JSON-LD has a WebSite node');
+    const il = (graph || []).find(n => n['@type'] === 'ItemList');
+    const ilSlugs = ((il && il.itemListElement) || []).map(e => ((e.url || '').match(/games\/([^/]+)\//) || [])[1]);
+    ok(JSON.stringify(ilSlugs) === JSON.stringify(live),
+      'homepage ItemList JSON-LD matches games.js live games in order (got: ' + ilSlugs.join(', ') + ')');
+  }
 }
 
 // ---------------- qr.js (reusable QR encoder) ----------------

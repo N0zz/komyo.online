@@ -293,6 +293,18 @@ missing piece.
 - [Floodgate](https://komyo.online/games/floodgate/): Rotate pipes to route water source-to-drain before the timer floods the board.
 ```
 
+### `index.html` (homepage) — the two crawler surfaces
+
+LLM fetchers / no-JS crawlers never see the JS-rendered tiles, so a live game must also be added
+to BOTH homepage fallbacks in `index.html`, in games.js order (the root `test.mjs` `testSEO`
+enforces lockstep):
+
+1. the static `nojs-games` link list inside `#grid`:
+   `<a href="games/<slug>/">Title</a>`
+2. the `ItemList` JSON-LD in `<head>`:
+   `{"@type":"ListItem","position":N,"name":"Title","url":"https://komyo.online/games/<slug>/"}`
+   (re-number positions if the game isn't appended last).
+
 `robots.txt` needs **no** edit (it allows all crawlers and points at the sitemap already). Any new
 *standalone page* (not a game) also goes in sitemap.xml at low priority (~0.3) — not relevant to a
 game.
@@ -360,7 +372,7 @@ except plural keys, which must exist in the `en` dict in `i18n.js`.
 4. `favicon.svg` (§6).
 5. `icon-192.png` + `icon-512.png` — via `gen-icon.mjs` (§6; counts as one step, two files).
 
-**Edit 9 shared files** at repo root:
+**Edit 10 shared files** at repo root:
 
 0. root `sw.js` — add the slug to `GAME_SLUGS` (§4).
 1. `games.js` — GAMES entry (§1).
@@ -370,8 +382,9 @@ except plural keys, which must exist in the `en` dict in `i18n.js`.
    komyo-i18n-translate skill (incremental mode) for every other populated locale's `i18n.<code>.js`.
 5. `sitemap.xml` — `<url>` at priority 0.8 (§7).
 6. `llms.txt` — Games bullet (§7).
-7. `changelog.js` — prepend one entry (§8).
-8. `test.mjs` (repo root) — it boots every live game, so the new game is auto-covered; confirm it
+7. `index.html` (homepage) — the `nojs-games` static link list + the `ItemList` JSON-LD (§7).
+8. `changelog.js` — prepend one entry (§8).
+9. `test.mjs` (repo root) — it boots every live game, so the new game is auto-covered; confirm it
    picks the game up (no edit usually needed, but verify).
 
 **Then run all suites and keep them green:**
