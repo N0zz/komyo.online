@@ -384,7 +384,7 @@
       share: { slug: 'aim-trainer', accent: '#ff7a3c', icon: '🎯', title: KIT.t('game.aim-trainer.gameName', { def: 'Range' }), message: () => shareMsg(), params: () => rangeParams() },
       record: { slug: 'aim-trainer', mode: modeLabel(mode, mode === 'sprint' ? SPRINT_TARGET : sessionSeconds),
         modeText: (mode === 'sprint' ? KIT.t('game.aim-trainer.modeSprint', { def: 'Sprint' }) + ' · ' + KIT.t('game.aim-trainer.shareTargets', { n: SPRINT_TARGET, def: SPRINT_TARGET + ' targets' }) : KIT.t('game.aim-trainer.modeTimed', { def: 'Timed' }) + ' · ' + sessionSeconds + 's'),
-        score: score, time: Math.round(elapsedFrames / 60 * 1000), stats: { accuracy: acc } },
+        score: score, time: mode === 'sprint' ? Math.round(elapsedFrames / 60 * 1000) : 0, stats: { accuracy: acc } },
       actions: [ { id: 'again', label: KIT.t('game.aim-trainer.fireAgain', { def: 'FIRE AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } };
     if (isSprint) {
