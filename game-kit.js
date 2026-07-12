@@ -778,7 +778,7 @@
     for (var i = 0; i < b.cap; i++) pips += '<span class="gk-grb-pip' + (i < b.count ? ' on' : '') + '">⚡</span>';
     return '<div class="gk-grb"><span class="gk-grb-head">' + t('grb.head') + '</span>'
       + '<span class="gk-grb-pips">' + pips + '</span>'
-      + '<span class="gk-grb-sub">' + t('grb.sub', { per: b.per, count: b.count, cap: b.cap }) + '</span></div>';
+      + '<span class="gk-grb-sub">' + t('grb.sub', { per: b.per }) + '</span></div>';
   }
   var _grAwarded = false; // did the LAST recorded result earn the trickle? (end-menu receipt)
 
