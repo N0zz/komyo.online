@@ -1072,6 +1072,30 @@ function testCosmetics() {
     ok(all.total >= 60 && all.owned >= 14, 'progress() spans the whole catalogue incl. free defaults (got ' + all.owned + '/' + all.total + ')');
   }
 
+  // B2) free play (a reversible LENS — never a purchase) + the one-time welcome gift
+  {
+    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 100 }), gamekit_flappy_migrated: '1' } });
+    g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(cosmetics, 'cosmetics.js');
+    const cos = g.sandbox.gamekit.cosmetics;
+    ok(cos.freePlay() === false, 'free play starts off');
+    ok(cos.owned('flappy.bird.phoenix') === false, 'premium item locked before free play');
+    cos.setFreePlay(true);
+    ok(cos.freePlay() === true && cos.owned('flappy.bird.phoenix') === true, 'free play unlocks everything');
+    ok(cos.ownedReal('flappy.bird.phoenix') === false, 'ownedReal() still reports the real collection');
+    ok(cos.balance() === 100 && g.store.gamekit_owned === undefined, 'free play never spends and never writes gamekit_owned');
+    ok(cos.select('flappy.bird', 'flappy.bird.phoenix') === true && cos.selected('flappy.bird') === 'flappy.bird.phoenix', 'a free-play item is wearable');
+    const fpr = cos.progress('flappy');
+    ok(fpr.owned < fpr.total, 'collection progress counts REAL ownership only (got ' + fpr.owned + '/' + fpr.total + ')');
+    ok(cos.buy('flappy.bird.phoenix') === true && cos.balance() === 100, 'buy under free play is a no-op (no charge)');
+    cos.setFreePlay(false);
+    ok(cos.owned('flappy.bird.phoenix') === false, 'toggling off restores the real collection');
+    ok(cos.selected('flappy.bird') !== 'flappy.bird.phoenix', 'selection falls back off an unowned free-play pick');
+    ok(cos.gift().claimed === false && cos.gift().amount === 100, 'welcome gift starts unclaimed');
+    ok(cos.claimGift() === true && cos.balance() === 200 && cos.lifetime() === 200, 'claiming adds 100 🏆 to lifetime AND balance');
+    ok(JSON.parse(g.store.gamekit_done)['gift#welcome'] === 100, "gift lands as one 'gift#welcome' entry in gamekit_done");
+    ok(cos.claimGift() === false && cos.balance() === 200, 'the gift is strictly one-time');
+  }
+
   // C) good-run trophy trickle: +2 each, capped 3/day, lands in gamekit_done (= spendable)
   {
     const g = makeSandbox({ store: { gamekit_flappy_migrated: '1' } });

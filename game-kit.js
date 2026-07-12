@@ -771,6 +771,15 @@
     } catch (e) { return false; }
   }
   function goodRunBonus() { return { count: grCount(), cap: GR_CAP, per: GR_PER }; }
+  // the good-run bonus as a centered VISUAL widget (bolt pips that light up as they're earned) —
+  // ONE builder shared by the catalogue drawer and the in-game 🏆 panel so they can't drift
+  function grbHtml() {
+    var b = goodRunBonus(), pips = '';
+    for (var i = 0; i < b.cap; i++) pips += '<span class="gk-grb-pip' + (i < b.count ? ' on' : '') + '">⚡</span>';
+    return '<div class="gk-grb"><div class="gk-grb-head">' + t('grb.head') + '</div>'
+      + '<div class="gk-grb-pips">' + pips + '</div>'
+      + '<div class="gk-grb-sub">' + t('grb.sub', { per: b.per, count: b.count, cap: b.cap }) + '</div></div>';
+  }
   var _grAwarded = false; // did the LAST recorded result earn the trickle? (end-menu receipt)
 
   // ---------- cosmetics (registry data in cosmetics.js; the kit owns storage + the economy) ----------
@@ -785,10 +794,32 @@
   function cosLifetime() { var d = chDoneMap(), t = 0; for (var k in d) if (Object.prototype.hasOwnProperty.call(d, k)) t += (d[k] | 0); return t; }
   function cosSpent() { var o = cosOwnedMap(), t = 0; for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) t += ((o[k] && o[k].c) | 0); return t; }
   function cosBalance() { return Math.max(0, cosLifetime() - cosSpent()); }
-  function cosOwned(id) {
+  function cosOwnedReal(id) {
     var item = cosItem(id); if (!item) return false;
     if (!(+item.price)) return true; // free default = pre-owned
     return !!cosOwnedMap()[id];
+  }
+  // Free play = a per-device LENS, never a purchase: owned() reads true for everything while the
+  // flag is on, but gamekit_owned / the derived balance stay untouched — switching it off restores
+  // the real collection exactly. Titles are exempt by design (the earned-only track).
+  function cosFreePlay() { return lsGet('gamekit_freeplay') === '1'; }
+  function cosSetFreePlay(on) {
+    if (on) lsSet('gamekit_freeplay', '1');
+    else { try { if (typeof localStorage !== 'undefined') localStorage.removeItem('gamekit_freeplay'); } catch (e) {} }
+    try { applyCursor(); applyCrt(); } catch (e) {} // site-wide skins re-resolve under the new lens
+    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('shop_freeplay', { on: on ? 1 : 0 }); } catch (e) {}
+  }
+  function cosOwned(id) { return cosOwnedReal(id) || (cosFreePlay() && !!cosItem(id)); }
+  // One-time welcome gift, claimed in the shop: a single 'gift#welcome' entry in gamekit_done, so
+  // lifetime, titles and the spendable balance all pick it up like any earned trophy.
+  var GIFT_AMT = 100, GIFT_KEY = 'gift#welcome';
+  function giftClaimed() { return ((chDoneMap()[GIFT_KEY]) | 0) > 0; }
+  function giftClaim() {
+    if (giftClaimed()) return false;
+    var d = chDoneMap(); d[GIFT_KEY] = GIFT_AMT;
+    lsSet('gamekit_done', JSON.stringify(d));
+    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('shop_gift', { amount: GIFT_AMT }); } catch (e) {}
+    return true;
   }
   function cosBuy(id) {
     var item = cosItem(id); if (!item) return false;
@@ -824,7 +855,7 @@
     for (var i = 0; i < a.length; i++) {
       if (game != null && a[i].game !== game) continue;
       total++;
-      if (cosOwned(a[i].id)) own++;
+      if (cosOwnedReal(a[i].id)) own++; // REAL ownership — free play never inflates the collection %
     }
     return { owned: own, total: total, pct: total ? own / total : 0 };
   }
@@ -1063,9 +1094,11 @@
   })();
   var cosmetics = {
     lifetime: cosLifetime, spent: cosSpent, balance: cosBalance,
-    owned: cosOwned, buy: cosBuy, selected: cosSelected, select: cosSelect,
+    owned: cosOwned, ownedReal: cosOwnedReal, buy: cosBuy, selected: cosSelected, select: cosSelect,
     progress: cosProgress, items: cosItems, item: cosItem, menuGroup: cosMenuGroup,
     goodRunBonus: goodRunBonus,
+    freePlay: cosFreePlay, setFreePlay: cosSetFreePlay,
+    gift: function () { return { claimed: giftClaimed(), amount: GIFT_AMT }; }, claimGift: giftClaim,
   };
 
   // ---------- CRT display mode (site-wide, unlockable via the 'site.fx.crt' cosmetic) ----------
@@ -1287,11 +1320,10 @@
       : '<div class="gkch-empty">' + t('challenges.notLoaded') + '</div>';
     // trophies pill (lifetime) + Cosmetics pill (spendable balance → the store) + the always-on
     // good-run bonus line, so "is one more run worth it?" has an answer before playing
-    var grb = goodRunBonus();
     var pills = '<div class="gkch-pills"><span class="gkch-pill">' + t('chal.lifetime', { count: cosLifetime() }) + '</span>'
       + (cosItems().length ? '<button class="gkch-pill gkch-shop" id="gkchShop" type="button">' + t('challenges.cosmeticsBtn') + '</button>' : '')
       + '</div>'
-      + '<div class="gkch-bonus">' + t('grb.line', { count: grb.count, cap: grb.cap, per: grb.per }) + '</div>';
+      + grbHtml();
     var ov = document.createElement('div'); ov.className = 'gamekit-challenges';
     ov.innerHTML = '<div class="gkch-box"><button class="gkch-x" type="button" aria-label="' + t('menu.close') + '">&#x2715;</button>'
       + '<div class="gkch-scroll"><h3>🏆 ' + t('challenges.title') + '</h3>' + pills + body
@@ -1352,8 +1384,26 @@
     var head = mkEl('div', 'gksp-head');
     var scopeMeta = scopeGame != null ? (gamesMeta[scopeGame] || { title: scopeGame }) : null;
     head.appendChild(mkEl('span', 'gksp-title', '🎨 ' + (scopeMeta ? t('shop.titleGame', { game: (scopeGame ? t('game.' + scopeGame + '.title', { def: scopeMeta.title }) : scopeMeta.title) }) : t('shop.title'))));
+    var fpBadge = mkEl('span', 'gksp-fp-badge', t('shop.freePlayBadge')); head.appendChild(fpBadge);
     var balEl = mkEl('span', 'gksp-bal'); head.appendChild(balEl);
     box.appendChild(head);
+    // one-time welcome gift — a prominent claim row that disappears forever once taken
+    if (!giftClaimed()) {
+      var giftRow = mkEl('div', 'gksp-gift');
+      giftRow.appendChild(mkEl('span', 'gksp-gift-t', t('shop.gift', { n: GIFT_AMT })));
+      var giftBtn = mkEl('button', 'gksp-gift-btn', t('shop.giftClaim', { n: GIFT_AMT })); try { giftBtn.type = 'button'; } catch (e) {}
+      giftBtn.addEventListener('click', function () {
+        if (!giftClaim()) return;
+        try { sound.play('levelup'); } catch (e) {}
+        giftRow.className = 'gksp-gift claimed';
+        giftRow.innerHTML = '';
+        giftRow.appendChild(mkEl('span', 'gksp-gift-t', t('shop.giftClaimed', { n: GIFT_AMT })));
+        setTimeout(function () { try { if (giftRow.parentNode) giftRow.parentNode.removeChild(giftRow); } catch (e) {} }, 2500);
+        syncCells();
+      });
+      giftRow.appendChild(giftBtn);
+      box.appendChild(giftRow);
+    }
     // controls row: search + (full store) a game filter, or (scoped) an "All games →" link
     var ctrls = mkEl('div', 'gksp-ctrls');
     var search = mkEl('input', 'gksp-search'); try { search.type = 'search'; search.placeholder = t('shop.searchPh'); search.setAttribute('aria-label', t('shop.searchAria')); } catch (e) {}
@@ -1398,6 +1448,24 @@
     }
     var buyBtn = mkEl('button', 'gksp-buy'); try { buyBtn.type = 'button'; } catch (e) {}
     box.appendChild(buyBtn);
+    // free-play footer — a quiet settings-ish row, deliberately NOT styled like a shop item
+    var fpRow = mkEl('div', 'gksp-fp');
+    var fpTxt = mkEl('div', 'gksp-fp-txt');
+    fpTxt.appendChild(mkEl('div', 'gksp-fp-l', t('shop.freePlay')));
+    fpTxt.appendChild(mkEl('div', 'gksp-fp-s', t('shop.freePlaySub')));
+    var fpBtn = mkEl('button', 'gksp-fp-toggle');
+    try { fpBtn.type = 'button'; fpBtn.setAttribute('role', 'switch'); fpBtn.setAttribute('aria-label', t('shop.freePlayAria')); } catch (e) {}
+    function syncFp() {
+      var on = cosFreePlay();
+      try { fpBtn.setAttribute('aria-checked', on ? 'true' : 'false'); } catch (e) {}
+      if (fpBtn.classList) fpBtn.classList.toggle('on', on);
+      if (ov.classList) ov.classList.toggle('gksp-freeplay', on);
+      try { fpBadge.style.display = on ? '' : 'none'; } catch (e) {}
+    }
+    fpBtn.addEventListener('click', function () { cosSetFreePlay(!cosFreePlay()); syncFp(); syncCells(); });
+    fpRow.appendChild(fpTxt); fpRow.appendChild(fpBtn);
+    box.appendChild(fpRow);
+    syncFp();
     var cells = [], focused = -1, gameProgEls = [];
     function fmtT(n) { return fmtScore(n | 0); }
     // registry-data display → t() with the cosmetics.js English as the def fallback (byte-identical until S7)
@@ -1469,14 +1537,17 @@
     }
     function syncCells() {
       cells.forEach(function (c2) {
-        var it = c2.item, ownedNow = cosOwned(it.id), isSel = cosSelected(it.set) === it.id;
+        var it = c2.item, ownedNow = cosOwned(it.id), ownedReal = cosOwnedReal(it.id), isSel = cosSelected(it.set) === it.id;
         if (c2.el.classList) {
           c2.el.classList.toggle('gksp-owned', ownedNow);
           c2.el.classList.toggle('gksp-sel', isSel);
           c2.el.classList.toggle('gksp-dim', !ownedNow && cosBalance() < (+it.price || 0));
         }
+        // free-play-unlocked (not really owned): struck-through price, so "what it normally costs" stays visible
         c2.sub.innerHTML = ownedNow
-          ? (isSel ? '<span class="gksp-on">' + t('shop.on') + '</span>' : (+it.price ? t('shop.owned') : t('shop.default')))
+          ? (isSel ? '<span class="gksp-on">' + t('shop.on') + '</span>'
+            : (ownedReal ? (+it.price ? t('shop.owned') : t('shop.default'))
+              : '<span class="gksp-price gksp-strike">🏆 ' + fmtT(it.price) + '</span>'))
           : '<span class="gksp-price">🏆 ' + fmtT(it.price) + '</span>';
       });
       syncHeader(); syncFocus();
@@ -4077,7 +4148,7 @@
   if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('fullscreenchange', fsEmit);
   var fullscreen = { supported: fsSupported, active: fsActive, toggle: fsToggle, onChange: function (cb) { if (typeof cb === 'function') _fsSubs.push(cb); } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack };
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

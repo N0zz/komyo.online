@@ -4,6 +4,11 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-12', title: 'Welcome gift, free play & shinier bonuses 🎁✨', items: [
+    'New: a 🎁 Welcome gift waits at the top of the Collection — claim a one-time 100 🏆 to kick-start your collection with a skin or two.',
+    'New: ✨ Free play — a switch at the bottom of the Collection that unlocks every cosmetic to try on and wear, no trophies spent. Flip it off and your real collection and balance are exactly as you left them; titles are still earned by playing.',
+    'Change: the ⚡ good-run bonus is now three big bolts that light up as you earn them — in the challenges drawer and the in-game 🏆 panel — instead of a small counter line.',
+  ] },
   { date: '2026-07-12', title: 'SIX new games! 💣🧮🐱🏮🎈🐾', items: [
     'New game: Minesweeper 💣 — the logic classic in a sonar theme. Your first dig is always safe, flags and chording work like you remember, four board sizes from Easy to Expert, and a Relaxed option gives you three hearts before the boom.',
     'New game: 2048 🧮 — slide and merge your way to the fabled tile, then keep going. Classic 4×4 plus Mini 3×3 and Big 5×5 boards, with honey, neon and kraft tile themes in the Collection.',

@@ -98,8 +98,9 @@ window.KOMYO_I18N.en = {
   'challenges.playWeek': 'Play {game} this week',
   'challenges.aGame': 'a game',
 
-  // --- good-run bonus line + end-menu receipts ---
-  'grb.line': '⚡ Good-run bonus: {count}/{cap} today · +{per} 🏆 each',
+  // --- good-run bonus widget + end-menu receipts ---
+  'grb.head': 'Good-run bonus',
+  'grb.sub': '+{per} 🏆 each · {count}/{cap} today',
   'grb.receipt': '✓ Good run · +{per} 🏆 ({count}/{cap} today)',
   'grb.maxed': '✓ Good run · daily 🏆 bonus maxed {cap}/{cap}',
   'grb.counts': '✓ Good run — counts toward today’s challenge',
@@ -128,6 +129,13 @@ window.KOMYO_I18N.en = {
   'shop.noMatch': 'No cosmetics match “{q}”.',
   'shop.cosmeticsTitle': 'Collection — skins for this game',
   'shop.styleGroup': 'STYLE',
+  'shop.gift': '🎁 Welcome gift — a one-time {n} 🏆 head start',
+  'shop.giftClaim': 'CLAIM {n} 🏆',
+  'shop.giftClaimed': '🎁 +{n} 🏆 claimed — spend them well!',
+  'shop.freePlay': '✨ Free play — everything unlocked',
+  'shop.freePlaySub': 'Wear any cosmetic without spending trophies. Your balance and collection stay as they are — titles are still earned by playing.',
+  'shop.freePlayBadge': '✨ free play',
+  'shop.freePlayAria': 'Toggle free play',
 
   // --- menu framework (start/pause/end built-in text) ---
   'menu.best': 'Best: {score}',
