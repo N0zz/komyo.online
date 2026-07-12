@@ -11,8 +11,10 @@ The whole page is: atomic `<head>` unit → minimal `<style>` → body (`<canvas
 
 ## 1. The atomic `<head>` unit
 
-Fixed boilerplate. Only **three strings are game-specific** — the `<title>`, the `theme-color`, and
-the `apple-mobile-web-app-title`. Everything else is byte-identical across games.
+Fixed boilerplate plus the **per-game SEO unit** (test-enforced by `testSEO` in the root
+`test.mjs`). Game-specific strings: the keyworded `<title>`, `theme-color`,
+`apple-mobile-web-app-title`, and the whole SEO block (description, canonical, OG/Twitter,
+JSON-LD). Everything else is byte-identical across games.
 
 ```html
 <!DOCTYPE html>
@@ -20,15 +22,34 @@ the `apple-mobile-web-app-title`. Everything else is byte-identical across games
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
-<title>Brick Breaker</title>                                    <!-- GAME-SPECIFIC -->
+<title>Brick Breaker — free online breakout arcade game, no ads | Komyo Games</title> <!-- GAME-SPECIFIC (keyworded: name — genre keywords, "free online", "no ads" | brand) -->
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#ff5cc8">                     <!-- GAME-SPECIFIC (accent) -->
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Brick Breaker"> <!-- GAME-SPECIFIC -->
+<meta name="apple-mobile-web-app-title" content="Brick Breaker"> <!-- GAME-SPECIFIC (short name — the installed-app label) -->
 <link rel="apple-touch-icon" href="icon-192.png">
+<!-- per-game SEO unit (testSEO-enforced) — ~150-char keyworded description; canonical; OG/Twitter
+     reuse title+description, og:image = the game's icon-512; hreflang per locale (?lang=xx) -->
+<meta name="description" content="Classic brick breaker in synthwave neon, free in your browser — …. No ads, works offline.">
+<link rel="canonical" href="https://komyo.online/games/breakout/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Komyo Games">
+<meta property="og:title" content="Brick Breaker — free online breakout arcade game, no ads">
+<meta property="og:description" content="(same as meta description)">
+<meta property="og:url" content="https://komyo.online/games/breakout/">
+<meta property="og:image" content="https://komyo.online/games/breakout/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="(same as og:title)">
+<meta name="twitter:description" content="(same as meta description)">
+<meta name="twitter:image" content="https://komyo.online/games/breakout/icon-512.png">
+<link rel="alternate" hreflang="en" href="https://komyo.online/games/breakout/">
+<link rel="alternate" hreflang="pl" href="https://komyo.online/games/breakout/?lang=pl">
+<!-- …one hreflang line per populated locale (discover the set from i18n.js), then: -->
+<link rel="alternate" hreflang="x-default" href="https://komyo.online/games/breakout/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Brick Breaker","url":"https://komyo.online/games/breakout/","description":"(same as meta description)","genre":["Arcade","Reflex"],"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"inLanguage":["en","pl","…every locale"],"image":"https://komyo.online/games/breakout/icon-512.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Komyo Games","url":"https://komyo.online/"}}</script>
 <script src="../../analytics.js" defer></script>
 <link rel="stylesheet" href="../../game-kit.css">
 <script src="../../version.js"></script>
@@ -58,6 +79,45 @@ that ship with the site and are cached offline by the ROOT `sw.js` SHELL — the
   (via its `GAME_SLUGS` list). A new game = one `GAME_SLUGS` entry, in games.js order
   (test-enforced); the game registers the worker via `window.gamekit.pwa('../../sw.js')` (already
   in the template). A slug missing from `GAME_SLUGS` silently means the game never works offline.
+
+## 1b. The crawlable `#gk-about` section `[MANDATORY — testSEO-enforced]`
+
+Game pages are a full-viewport canvas with zero indexable text — this static section is what
+search engines (and non-rendering LLM crawlers) actually read, and the kit lifts it into the
+☰ "ℹ️ How to play" modal automatically (`aboutModal` — no per-game JS; the entry appears because
+the element exists). Place it in `<body>`, immediately BEFORE the game's single inline `<script>`:
+
+```html
+<!-- crawlable game description — shown to players via the ☰ "How to play" entry (kit aboutModal) -->
+<section id="gk-about" hidden>
+<h1 data-t="game.breakout.title">Brick Breaker</h1>
+<p data-t="game.breakout.blurb">(the games.js blurb)</p>
+<h2 data-t="kit.howto">How to play</h2>
+<p data-t="seo.breakout.howto">(2–4 sentences: goal, controls, modes — natural keyword-bearing English)</p>
+<h2 data-t="seo.h.faq">Common questions</h2>
+<p><strong data-t="seo.q.free">Is this game free?</strong> <span data-t="seo.a.free">Yes — every game on Komyo is completely free to play: no ads, no payments, no accounts.</span></p>
+<p><strong data-t="seo.q.offline">Can I play offline?</strong> <span data-t="seo.a.offline">Yes — after your first visit the game works without internet, and you can install it as an app straight from your browser.</span></p>
+<p><strong data-t="seo.q.saves">Where are my scores saved?</strong> <span data-t="seo.a.saves">On your device only — best scores, trophies and cosmetics live in your browser and are never uploaded anywhere.</span></p>
+<h2 data-t="seo.h.more">More free games</h2>
+<p><a href="../<rel1>/" data-t="game.<rel1>.title">…</a> · <a href="../<rel2>/" data-t="game.<rel2>.title">…</a> · <a href="../<rel3>/" data-t="game.<rel3>.title">…</a> · <a href="../../" data-t="seo.allGames">All free games at Komyo</a></p>
+</section>
+```
+
+Rules:
+
+- The inline English is what raw-HTML crawlers index; the kit's `aboutTranslate()` swaps each
+  `[data-t]`'s text to the active locale at boot (so `?lang=pl` renders Polish for players and
+  rendering crawlers). Only `seo.<slug>.howto` is a NEW key — everything else reuses existing keys
+  (`game.*.title/.blurb`, the shared `seo.*` FAQ set, `kit.howto`).
+- **The new `seo.<slug>.howto` English goes in TWO places, byte-identical:** the section HTML
+  (crawler source) and the `en` dict in `i18n.js` next to the other `seo.*.howto` keys (what
+  `t()` renders for players — a mismatch means English players see the dict text, crawlers the
+  HTML text). Then translate it into `pl` + every populated locale (komyo-i18n-translate,
+  incremental) — the coverage test fails until every locale has it.
+- Related links: 3 sibling games (same genre/audience first) + the catalogue link — these are the
+  page's crawlable internal links; keep them real `<a href>`s.
+- Keep the section BEFORE the inline `<script>` — the test harness extracts the LAST bare
+  `<script>` before `</body>`.
 
 (`flappy` happens to load `challenges.js`/`cosmetics.js` before `game-kit.js`; that ordering works
 because those files defer their kit hookups, but **follow the canonical breakout order for new

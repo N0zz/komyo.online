@@ -156,6 +156,10 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   `perStepVelocity * KIT.loopAlpha()` (view-only; update untouched — flappy is the
   reference). Games with only eased/arced/discrete motion can skip it.
 - **`CHALLENGES.goodRun` bar exists** for the game.
+- **The SEO unit ships with go-live** — keyworded `<title>` + meta description + canonical +
+  hreflang + `VideoGame` JSON-LD in `<head>`, and the crawlable `#gk-about` section (how-to, FAQ,
+  related links) before the inline script; `seo.<slug>.howto` in the `en` dict + every locale.
+  `testSEO` in the root `test.mjs` enforces all of it. See `references/game-anatomy.md` §1/§1b.
 - **Storage stays bounded** — the origin's ~5 MB localStorage quota is shared by ALL
   games + the kit; a leak breaks saves site-wide. Any per-game persistence beyond the
   kit stores caps its lists, writes on events (debounced, never per-frame), keeps the

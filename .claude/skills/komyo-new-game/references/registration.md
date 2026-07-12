@@ -271,6 +271,16 @@ and swap the glyph/color).
 
 ## 7. SEO — on go-live only (not for `soon` tiles) `[MANDATORY at launch]`
 
+### The per-game SEO unit in `index.html` `[testSEO-enforced]`
+
+Every live game page carries: a keyworded `<title>` (`<Name> — <genre keywords>, free online, no
+ads | Komyo Games`), meta description (~150 chars, keywords + the strengths line), canonical,
+OG/Twitter tags (og:image = the game's `icon-512.png`), one `hreflang` alternate per populated
+locale (+ `x-default`), `VideoGame` JSON-LD, **and the crawlable `#gk-about` section** (how-to +
+FAQ + related-game links; the kit auto-adds the ☰ "How to play" entry). Templates + rules:
+`references/game-anatomy.md` §1 + §1b. The root `test.mjs`'s `testSEO` section fails on any
+missing piece.
+
 ### `sitemap.xml` — add a `<url>`, priority **0.8** (games band)
 
 ```xml
@@ -329,6 +339,7 @@ Key families a new game contributes:
 | `game.<slug>.*` in-game strings | every `KIT.t('game.<slug>.…', { def })` call in `index.html` | test-enforced (literal scan) |
 | `cos.<id>.name` / `.desc` | `cosmetics.js` `add(...)` args | test-enforced (derived from registry) |
 | `cos.set.<setId>` | `COSMETICS.sets` label | test-enforced (derived from registry) |
+| `seo.<slug>.howto` | the `#gk-about` section HTML **and** the `en` dict in `i18n.js` (byte-identical — see game-anatomy §1b) | test-enforced (`data-t` scan) |
 | `challenge.goal.<id>` | `challenges.js` goal `title` | **NOT enforced — dynamic key the scanner skips; missing = silent English. Add it yourself.** |
 
 Workflow: add the full key set to `i18n.pl.js` by hand (the failing test lists any you missed —

@@ -7,6 +7,15 @@ challenges, tv-controller.
 
 ## ✅ Done
 
+- **Per-game SEO pass (2026-07-12).** Every live game page now ships the full discoverability
+  unit: keyworded `<title>` + meta description + canonical + hreflang ×8 + OG/Twitter +
+  `VideoGame` JSON-LD, plus a **crawlable `#gk-about` section** (how-to, FAQ, related-game links)
+  that doubles as the new ☰ **"ℹ️ How to play"** panel in every game — static English for
+  raw-HTML/LLM crawlers, kit-localized in place for players and Google (all 8 languages).
+  `testSEO` in `test.mjs` enforces the whole unit; the komyo-new-game skill bakes it into every
+  future game. **Still on the user: Google Search Console + Bing Webmaster verification** (the
+  measuring instrument for whether any of this ranks) + the ongoing Reddit backlink work.
+
 - **Six-game batch SHIPPED (2026-07-12).** Overnight-built MVPs → 2 playtest-feedback rounds →
   fully translated (185 keys × 7 locales) → changelog'd + deployed: **Minesweeper 💣 · 2048 🔢 ·
   Trap the Cat 🐱 · Glow Says 🏮 · Balloon Pop 🎈 · Critter Match 🐾** — catalogue now at **18 live
