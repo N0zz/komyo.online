@@ -95,7 +95,8 @@ screenshot-driven, unless its identity is deliberately flat/glow.
 ### 7 · Register the game
 Edit the shared files (see `references/registration.md` for exact shapes):
 `games.js` (entry with `added: "YYYY-MM-DD"`, no `soon:`), `sitemap.xml`,
-`llms.txt`, prepend one player-facing `changelog.js` entry, and add the game's
+`llms.txt`, the homepage's `nojs-games` list + `ItemList` JSON-LD in
+`index.html`, prepend one player-facing `changelog.js` entry, and add the game's
 keys (title/blurb, in-game strings, `cos.*`, `challenge.goal.*`) to
 **`i18n.pl.js`** (the `pl` reference locale's own file — en defs are inline in
 code as `def:`).
