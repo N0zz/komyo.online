@@ -376,6 +376,7 @@
 
   // ---- 🏰 Keep Defender — castle skins ----
   add('tower-defense', 'castle', 'stone',    'Stone Keep',        0,   'The keep as the masons built it.', castle('#78788a', '#3a2a17'));
+  add('tower-defense', 'castle', 'rose',     'Rose Keep',         10,  'Pink granite, quarried for a princess.', castle('#c88f9c', '#6a3a48'));
   add('tower-defense', 'castle', 'oak',      'Oak Fort',          25,  'Timber walls, frontier spirit.', castle('#a87848', '#6a4a28'));
   add('tower-defense', 'castle', 'sand',     'Sandcastle',        50,  'Bucket-built, surprisingly sturdy.', castle('#e8cc8a', '#c8a45c', '#2a4a66'));
   add('tower-defense', 'castle', 'ice',      'Ice Keep',          50,  'Carved from a glacier, cold to the core.', castle('#cfeaff', '#8ac0e8', '#0e2233'));
@@ -417,6 +418,7 @@
 
   // ---- ☄️ Asteroids+ — hull colours + engine trails ----
   add('asteroids-plus', 'hull', 'violet', 'Violet',    0,   'The roguelite’s signature hull.', ship('#b98cff'));
+  add('asteroids-plus', 'hull', 'copper', 'Copper',    10,  'A workshop-fresh copper shine.', ship('#ff9d5c'));
   add('asteroids-plus', 'hull', 'teal',   'Teal',      25,  'Cool-headed under fire.', ship('#2ee8c8'));
   add('asteroids-plus', 'hull', 'blood',  'Blood Red', 50,  'For pilots who never brake.', ship('#e0304a'));
   add('asteroids-plus', 'hull', 'crt',    'CRT Green', 50,  'The whole run in green phosphor, like 1979.', ship('#3aff5a', '#041008'));
@@ -497,6 +499,7 @@
     g.closePath(); g.fill();
   }
   add('sudoku', 'board', 'paper',     'Paper',     0,   'Clean off-white paper and warm ink.', sudokuBoard('#f2efe8', '#3a3f47', '#2b2f36', '#1d6fb8'));
+  add('sudoku', 'board', 'mint',      'Mint',      10,  'Cool mint paper for fresh mornings.', sudokuBoard('#e6f2ec', '#9ab8aa', '#2c4a3c', '#1a8a5e'));
   add('sudoku', 'board', 'slate',     'Slate',     25,  'A dark board for late-night solving.', sudokuBoard('#2b323c', '#97a3b4', '#e8e2d4', '#6ad6ff'));
   add('sudoku', 'board', 'blueprint', 'Blueprint', 50,  'Cyan grid lines on drafting blue.', sudokuBoard('#0e2a42', '#7fd8ff', '#eaf6ff', '#ffd24d'));
   add('sudoku', 'board', 'pastel',    'Pastel',    100, 'Soft rose paper and plum ink.', sudokuBoard('#fdf2f8', '#b07aa0', '#5a4a58', '#7a5fd0'));
@@ -523,6 +526,8 @@
     };
   }
   add('minesweeper', 'board', 'sonar',  'Sonar',  0,   'Deep-sea charts and glowing cyan pings.', msBoard('#0d2a40', '#1e4a68', '#061420', '#4fd8ff'));
+  add('minesweeper', 'board', 'abyss',  'Abyss',  10,  'Lightless trench charts, violet pings.', msBoard('#1a1430', '#2e2650', '#0c0918', '#b48aff'));
+  add('minesweeper', 'board', 'coral',  'Coral',  25,  'A sunlit reef survey in warm sand.', msBoard('#c8a878', '#e2c898', '#7a5a3a', '#1a8a8a'));
   add('minesweeper', 'board', 'retro',  'Retro',  50,  'The beige office classic, pixel bevels and all.', msBoard('#c0c7cf', '#eef2f6', '#b3bac2', '#1c46c8'));
   add('minesweeper', 'board', 'meadow', 'Meadow', 100, 'Dig a sunny field — daisies mark the moles.', msBoard('#3f8a3c', '#63b45a', '#8a6b42', '#ffe066'));
 
@@ -543,6 +548,10 @@
   }
   add('2048', 'tiles', 'honey', 'Honey', 0,  'Warm cream to amber — the cozy classic.',
     tiles2048([['#efe4d2', '#e2d3ba', '#5a4632'], ['#f6b568', '#ee9d4d', '#fff7ec'], ['#f7623c', '#ea4423', '#fff7ec'], ['#f2c73f', '#e8ab18', '#fff7ec']]));
+  add('2048', 'tiles', 'mint', 'Mint', 10, 'Cool teal-to-lime freshness.',
+    tiles2048([['hsl(165,60%,72%)', 'hsl(165,60%,55%)', '#0e2a20'], ['hsl(150,65%,55%)', 'hsl(150,70%,42%)', '#eafff4'], ['hsl(120,65%,50%)', 'hsl(120,70%,38%)', '#eafff4'], ['hsl(90,70%,48%)', 'hsl(90,75%,36%)', '#eafff4']]));
+  add('2048', 'tiles', 'rose', 'Rose', 25, 'Blush pinks warming into gold.',
+    tiles2048([['hsl(335,70%,80%)', 'hsl(335,60%,66%)', '#4a1a2e'], ['hsl(345,75%,62%)', 'hsl(345,75%,50%)', '#fff0f5'], ['hsl(15,80%,58%)', 'hsl(15,85%,46%)', '#fff0f5'], ['hsl(40,85%,55%)', 'hsl(40,90%,44%)', '#fff8ea']]));
   add('2048', 'tiles', 'neon',  'Neon',  50, 'Glassy glow tiles on midnight blue.',
     tiles2048([['hsl(200,85%,62%)', 'hsl(200,90%,45%)', '#eafcff'], ['hsl(260,85%,62%)', 'hsl(260,90%,45%)', '#eafcff'], ['hsl(345,85%,62%)', 'hsl(345,90%,45%)', '#eafcff'], ['hsl(65,85%,62%)', 'hsl(65,90%,45%)', '#eafcff']]));
   add('2048', 'tiles', 'kraft', 'Kraft', 100, 'Stamped cardboard and moss-green inks.',
@@ -566,6 +575,8 @@
     };
   }
   add('trap-the-cat', 'cat', 'noir',   'Noir',   0,   'The classic midnight escape artist.', catFace('#2b2530', '#3a3342', '#f0a6c8'));
+  add('trap-the-cat', 'cat', 'smoke',  'Smoke',  10,  'A soft grey shadow of a cat.',      catFace('#8a8a96', '#a8a8b4', '#f0a6c8'));
+  add('trap-the-cat', 'cat', 'caramel', 'Caramel', 25, 'Sweet-toothed and sun-warmed.',     catFace('#c89a5a', '#e8c088', '#e06a6a'));
   add('trap-the-cat', 'cat', 'ginger', 'Ginger', 50,  'A marmalade menace on the run.',      catFace('#e08b3d', '#f2b571', '#e06a6a'));
   add('trap-the-cat', 'cat', 'snow',   'Snow',   100, 'Fluffy, elegant, and slippery.',       catFace('#e8e4ea', '#f7f4f8', '#f08aae'));
 
@@ -597,6 +608,14 @@
         g.bezierCurveTo(cx - rr * 1.05, hy + rr * 0.12, cx - rr * 0.92, hy - rr * 0.78, cx, hy - rr * 0.3);
         g.bezierCurveTo(cx + rr * 0.92, hy - rr * 0.78, cx + rr * 1.05, hy + rr * 0.12, cx, hy + rr * 0.78);
         g.closePath();
+      } else if (shape === 'diamond') {
+        g.beginPath();
+        g.moveTo(cx, cy - rr); g.lineTo(cx + rr * 0.72, cy); g.lineTo(cx, cy + rr); g.lineTo(cx - rr * 0.72, cy);
+        g.closePath();
+      } else if (shape === 'moon') {
+        g.beginPath();
+        g.arc(cx, cy, rr, 0, Math.PI * 2);
+        g.arc(cx + rr * 0.5, cy - rr * 0.18, rr * 0.82, 0, Math.PI * 2, true);
       } else {
         g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2);
       }
@@ -604,6 +623,8 @@
     };
   }
   add('glow-says', 'pads', 'orbs',   'Lantern Orbs', 0,   'Round glowing lanterns.',      glowPad('orb'));
+  add('glow-says', 'pads', 'diamonds', 'Diamonds', 10, 'Cut-gem lanterns.',            glowPad('diamond'));
+  add('glow-says', 'pads', 'moons',    'Moons',     25, 'Sleepy crescent lanterns.',    glowPad('moon'));
   add('glow-says', 'pads', 'stars',  'Stars',        50,  'Twinkly star lanterns.',       glowPad('star'));
   add('glow-says', 'pads', 'hearts', 'Hearts',       100, 'Warm heart-shaped lanterns.',  glowPad('heart'));
 
@@ -624,6 +645,18 @@
         g.beginPath(); g.ellipse(cx + r * 0.55, cy - r * 0.8, r * 0.26, r * 0.34, 0.4, 0, 7); g.fill();
         g.fillStyle = '#2b2030';
         g.beginPath(); g.arc(cx - r * 0.28, cy - r * 0.1, r * 0.09, 0, 7); g.arc(cx + r * 0.28, cy - r * 0.1, r * 0.09, 0, 7); g.fill();
+      } else if (kind === 'stripes' || kind === 'dots') {
+        g.save();
+        g.beginPath(); g.ellipse(cx, cy, r * 0.92, r, 0, 0, Math.PI * 2); g.clip();
+        g.fillStyle = 'rgba(255,255,255,0.55)';
+        if (kind === 'stripes') {
+          g.save(); g.translate(cx, cy); g.rotate(-0.5);
+          for (let k = -2; k <= 2; k++) g.fillRect(-r * 1.5, k * r * 0.42 - r * 0.09, r * 3, r * 0.18);
+          g.restore();
+        } else {
+          for (let k = 0; k < 7; k++) { g.beginPath(); g.arc(cx + Math.cos(k * 0.9) * r * 0.55, cy + Math.sin(k * 1.7) * r * 0.6, r * 0.12, 0, 7); g.fill(); }
+        }
+        g.restore();
       } else if (kind === 'planet') {
         g.strokeStyle = 'rgba(255,255,255,0.7)'; g.lineWidth = Math.max(2, r * 0.1);
         g.beginPath(); g.ellipse(cx, cy, r * 1.25, r * 0.32, -0.28, 0, Math.PI * 2); g.stroke();
@@ -633,6 +666,8 @@
     };
   }
   add('balloon-pop', 'balloons', 'classic',  'Classic',  0,   'Bright party balloons.',            balloonSwatch('classic'));
+  add('balloon-pop', 'balloons', 'stripes', 'Stripes', 10, 'Carnival-striped balloons.', balloonSwatch('stripes'));
+  add('balloon-pop', 'balloons', 'dots',    'Dots',    25, 'Cheerful polka-dot balloons.', balloonSwatch('dots'));
   add('balloon-pop', 'balloons', 'critters', 'Critters', 50,  'Balloons with little animal ears.', balloonSwatch('critter'));
   add('balloon-pop', 'balloons', 'planets',  'Planets',  100, 'Ringed balloon planets in the sky.', balloonSwatch('planet'));
 
@@ -652,6 +687,8 @@
     };
   }
   add('critter-match', 'critters', 'farm',   'Farm Friends',  0,   'Cows, chicks and fluffy sheep.', critterCard('🐮'));
+  add('critter-match', 'critters', 'woodland', 'Woodland', 10, 'Foxes, bears and forest friends.', critterCard('🦊'));
+  add('critter-match', 'critters', 'birds',    'Birds',    25, 'Owls, ducks and flamingos.',        critterCard('🦉'));
   add('critter-match', 'critters', 'jungle', 'Jungle Crew',   50,  'Lions, monkeys and parrots.',    critterCard('🦁'));
   add('critter-match', 'critters', 'ocean',  'Ocean Pals',    100, 'Fish, octopuses and whales.',    critterCard('🐙'));
 
@@ -663,6 +700,7 @@
   add('forcefield', 'planet', 'verdant', 'Verdant', 25, 'A lush green world.', planetSwatch('#2f8a5a', '#08210f'));
   add('forcefield', 'planet', 'amber',   'Amber',   50, 'A golden desert world.', planetSwatch('#c39433', '#241706'));
   add('forcefield', 'planet', 'violet',  'Violet',  75, 'A violet gas giant.', planetSwatch('#7a46b8', '#180a2e'));
+  add('forcefield', 'planet', 'nova',    'Nova',    100, 'A blazing rose-red star-world.', planetSwatch('#d84a6a', '#2e0a14'));
 
   window.COSMETICS = {
     version: 1,

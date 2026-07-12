@@ -59,9 +59,11 @@
 
   // critter sets (cosmetics) — emoji-as-text card faces
   const SETS = {
-    'critter-match.critters.farm':   ['🐮', '🐷', '🐔', '🐑', '🐴', '🐰', '🦆', '🐐', '🐶', '🐱', '🐭', '🦢', '🐸', '🐝', '🐞'],
-    'critter-match.critters.jungle': ['🦁', '🐵', '🦒', '🐘', '🦜', '🐍', '🦓', '🐊', '🐯', '🦍', '🦋', '🐢', '🦩', '🐨', '🦚'],
-    'critter-match.critters.ocean':  ['🐠', '🐙', '🦀', '🐬', '🐳', '🦈', '🐡', '🦞', '🐟', '🦑', '🐚', '🦭', '🐧', '🪼', '⭐'],
+    'critter-match.critters.farm':     ['🐮', '🐷', '🐔', '🐑', '🐴', '🐰', '🦆', '🐐', '🐶', '🐱', '🐭', '🦢', '🐸', '🐝', '🐞'],
+    'critter-match.critters.woodland': ['🦊', '🐻', '🐺', '🦝', '🦌', '🐗', '🐿️', '🦔', '🦫', '🐇', '🦉', '🐁', '🦇', '🐢', '🐍'],
+    'critter-match.critters.birds':    ['🐦', '🦉', '🦆', '🦜', '🐧', '🦢', '🦩', '🐔', '🐤', '🦃', '🦅', '🦚', '🐣', '🐓', '🕊️'],
+    'critter-match.critters.jungle':   ['🦁', '🐵', '🦒', '🐘', '🦜', '🐍', '🦓', '🐊', '🐯', '🦍', '🦋', '🐢', '🦩', '🐨', '🦚'],
+    'critter-match.critters.ocean':    ['🐠', '🐙', '🦀', '🐬', '🐳', '🦈', '🐡', '🦞', '🐟', '🦑', '🐚', '🦭', '🐧', '🪼', '⭐'],
   };
   function critterSet() {
     const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('critter-match.critters') : null;

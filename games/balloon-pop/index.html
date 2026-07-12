@@ -260,7 +260,8 @@
   // ---- balloon styles (cosmetics) ----
   function balloonStyle() {
     const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('balloon-pop.balloons') : null;
-    return id === 'balloon-pop.balloons.critters' ? 'critter' : id === 'balloon-pop.balloons.planets' ? 'planet' : 'classic';
+    const key = (id || '').split('.').pop();
+    return { critters: 'critter', planets: 'planet', stripes: 'stripes', dots: 'dots' }[key] || 'classic';
   }
 
   function drawBalloon(g, b, style) {
@@ -280,6 +281,22 @@
     g.lineTo(b.x + b.r * 0.12, b.y + b.r * 1.14); g.closePath(); g.fill();
     if (style === 'critter') drawCritterFace(g, b, c1);
     else if (style === 'planet') drawPlanetFace(g, b, c0, c1);
+    else if (style === 'stripes' || style === 'dots') {
+      g.save();
+      g.beginPath(); g.ellipse(b.x, b.y, b.r * 0.92, b.r, 0, 0, Math.PI * 2); g.clip();
+      g.fillStyle = 'rgba(255,255,255,0.45)';
+      if (style === 'stripes') {
+        g.translate(b.x, b.y); g.rotate(-0.5);
+        for (let k = -2; k <= 2; k++) g.fillRect(-b.r * 1.5, k * b.r * 0.42 - b.r * 0.08, b.r * 3, b.r * 0.16);
+      } else {
+        for (let k = 0; k < 7; k++) {
+          g.beginPath();
+          g.arc(b.x + Math.cos(k * 0.9 + b.c) * b.r * 0.55, b.y + Math.sin(k * 1.7 + b.c) * b.r * 0.6, b.r * 0.12, 0, 7);
+          g.fill();
+        }
+      }
+      g.restore();
+    }
     // shine
     g.fillStyle = 'rgba(255,255,255,0.55)';
     g.beginPath(); g.ellipse(b.x - b.r * 0.32, b.y - b.r * 0.42, b.r * 0.2, b.r * 0.12, -0.6, 0, 7); g.fill();

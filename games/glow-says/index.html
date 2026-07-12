@@ -195,7 +195,8 @@
   // ---- pad shapes (cosmetics) ----
   function padShape() {
     const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('glow-says.pads') : null;
-    return id === 'glow-says.pads.stars' ? 'star' : id === 'glow-says.pads.hearts' ? 'heart' : 'orb';
+    const key = (id || '').split('.').pop();
+    return { stars: 'star', hearts: 'heart', diamonds: 'diamond', moons: 'moon' }[key] || 'orb';
   }
   function shapePath(g, cx, cy, rr, shape) {
     if (shape === 'star') {
@@ -219,6 +220,15 @@
       g.bezierCurveTo(cx - rr * 1.05, hy + rr * 0.12, cx - rr * 0.92, hy - rr * 0.78, cx, hy - rr * 0.3);
       g.bezierCurveTo(cx + rr * 0.92, hy - rr * 0.78, cx + rr * 1.05, hy + rr * 0.12, cx, hy + rr * 0.78);
       g.closePath();
+    } else if (shape === 'diamond') {
+      g.beginPath();
+      g.moveTo(cx, cy - rr); g.lineTo(cx + rr * 0.72, cy); g.lineTo(cx, cy + rr); g.lineTo(cx - rr * 0.72, cy);
+      g.closePath();
+    } else if (shape === 'moon') {
+      // crescent: full disc minus an offset disc (opposite winding)
+      g.beginPath();
+      g.arc(cx, cy, rr, 0, Math.PI * 2);
+      g.arc(cx + rr * 0.5, cy - rr * 0.18, rr * 0.82, 0, Math.PI * 2, true);
     } else {
       g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2);
     }
