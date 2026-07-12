@@ -405,7 +405,7 @@
       groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
         choices: [
           { id: 'classic', label: modeDisplay('classic'), mech: ['4 🏮'], best: () => loadBest('classic') || '', preview: (g, w, h) => pvPads(4, 0)(g, w, h) },
-          { id: 'chill',   label: modeDisplay('chill'),   mech: [KIT.t('game.glow-says.noFail', { def: 'no fail 💚' })], best: () => loadBest('chill') || '', preview: (g, w, h) => pvPads(4, 2)(g, w, h) },
+          { id: 'chill',   kid: true, label: modeDisplay('chill'),   mech: [KIT.t('game.glow-says.noFail', { def: 'no fail 💚' })], best: () => loadBest('chill') || '', preview: (g, w, h) => pvPads(4, 2)(g, w, h) },
           { id: 'hard',    label: modeDisplay('hard'),    mech: ['6 🏮 ⚡'], best: () => loadBest('hard') || '', preview: (g, w, h) => pvPads(6, 4)(g, w, h) },
           { id: 'expert',  label: modeDisplay('expert'),  mech: ['9 🏮 🔥'], best: () => loadBest('expert') || '', preview: (g, w, h) => pvPads(9, 7)(g, w, h) },
         ] }],

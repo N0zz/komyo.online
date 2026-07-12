@@ -489,7 +489,7 @@
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: KIT.t('game.trap-the-cat.menuTitle', { def: 'TRAP THE CAT' }),
       groups: [{ id: 'diff', label: KIT.t('game.common.difficulty', { def: 'DIFFICULTY' }), style: 'cards', default: diff,
-        choices: DIFF_ORDER.map(d => ({ id: d, label: diffDisplay(d),
+        choices: DIFF_ORDER.map(d => ({ id: d, kid: d === 'kitten', label: diffDisplay(d),
           mech: [DIFFS[d].prefill + ' 🌹' + (DIFFS[d].drowsy ? ' 😺💤' : '')],
           best: () => loadBest(d) || '',
           preview: (g, w, h) => pvDiff(DIFFS[d].prefill)(g, w, h) })) }],

@@ -349,7 +349,7 @@
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.aim-trainer.title', { def: 'RANGE' }), backdrop: menuBackdrop, backdropAnimate: true,
       groups: [
         { id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: m, choices: [
-          { id: 'timed', label: KIT.t('game.aim-trainer.modeTimed', { def: 'Timed' }), mech: [KIT.t('game.aim-trainer.mechBeatClock', { def: 'Beat the clock' })], best: st => loadBest('timed', Number(st.amount) || DEFAULT_SESSION), preview: (g, w, h) => pvRange(g, w, h, 'timed') },
+          { id: 'timed', kid: true, label: KIT.t('game.aim-trainer.modeTimed', { def: 'Timed' }), mech: [KIT.t('game.aim-trainer.mechBeatClock', { def: 'Beat the clock' })], best: st => loadBest('timed', Number(st.amount) || DEFAULT_SESSION), preview: (g, w, h) => pvRange(g, w, h, 'timed') },
           { id: 'sprint', label: KIT.t('game.aim-trainer.modeSprint', { def: 'Sprint' }), mech: [KIT.t('game.aim-trainer.mechRace', { def: 'Race to a count' })], best: () => { const t = loadBest('sprint', 0); return t > 0 ? (t / 1000).toFixed(1) + 's' : '--'; }, preview: (g, w, h) => pvRange(g, w, h, 'sprint') },
           { id: 'reaction', label: KIT.t('game.aim-trainer.modeReaction', { def: 'Reaction' }), tag: KIT.t('game.aim-trainer.soon', { def: 'SOON' }), locked: true, mech: [KIT.t('game.aim-trainer.mechPopups', { def: 'Random pop-ups' }), KIT.t('game.aim-trainer.mechAvgReaction', { def: 'Avg reaction ms' })],
             desc: KIT.t('game.aim-trainer.reactionDesc', { def: 'Targets pop up at random moments — your average reaction time is the score.' }),
@@ -357,7 +357,7 @@
         ] },
         { id: 'amount', label: m === 'sprint' ? KIT.t('game.aim-trainer.hudTargets', { def: 'TARGETS' }) : KIT.t('game.aim-trainer.duration', { def: 'DURATION' }), default: m === 'sprint' ? String(SPRINT_TARGET) : String(sessionSeconds), choices: amounts },
       ],
-      toggles: [{ id: 'moving', label: KIT.t('game.aim-trainer.movingToggle', { def: 'Moving targets' }), caption: KIT.t('game.aim-trainer.movingCaption', { def: 'they drift once you warm up' }), default: movingTargets }],
+      toggles: [{ id: 'moving', kid: false, label: KIT.t('game.aim-trainer.movingToggle', { def: 'Moving targets' }), caption: KIT.t('game.aim-trainer.movingCaption', { def: 'they drift once you warm up' }), default: movingTargets }],
       actions: [{ id: 'play', label: KIT.t('game.aim-trainer.readyUp', { def: 'READY UP' }), primary: true }],
       hint: st => st.mode === 'sprint' ? KIT.t('game.aim-trainer.hintSprint', { def: 'Hit the target count as fast as you can.' }) : KIT.t('game.aim-trainer.hintTimed', { def: 'Score as many hits as you can before time runs out.' }),
       onChange: st => {

@@ -439,7 +439,7 @@
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: '2048',
       groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
-        choices: MODE_ORDER.map(m => ({ id: m, label: modeDisplay(m),
+        choices: MODE_ORDER.map(m => ({ id: m, kid: m === 'big', label: modeDisplay(m),
           mech: [MODES[m].n + '×' + MODES[m].n],
           best: () => loadBest(m) || '',
           preview: (g, w, h) => pvGrid(MODES[m].n)(g, w, h) })) }],

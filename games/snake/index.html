@@ -438,13 +438,13 @@
       groups: [
         { id: 'walls', label: KIT.t('game.snake.wallsLabel', { def: 'WALLS' }), style: 'cards', default: opts.walls, choices: [
           { id: 'solid', label: KIT.t('game.snake.solidLabel', { def: 'Solid walls' }), mech: [KIT.t('game.snake.solidMech', { def: 'Classic' })], best: st => comboBest({ walls: 'solid', speed: st.speed, size: st.size }), preview: (g, w, h) => pvWall(g, w, h, false) },
-          { id: 'wrap', label: KIT.t('game.snake.wrapLabel', { def: 'Wrap-around' }), mech: [KIT.t('game.snake.wrapMech', { def: 'No edges' })], best: st => comboBest({ walls: 'wrap', speed: st.speed, size: st.size }), preview: (g, w, h) => pvWall(g, w, h, true) },
+          { id: 'wrap', kid: true, label: KIT.t('game.snake.wrapLabel', { def: 'Wrap-around' }), mech: [KIT.t('game.snake.wrapMech', { def: 'No edges' })], best: st => comboBest({ walls: 'wrap', speed: st.speed, size: st.size }), preview: (g, w, h) => pvWall(g, w, h, true) },
           { id: 'enhanced', label: KIT.t('game.snake.enhancedLabel', { def: 'Enhanced' }), tag: KIT.t('game.snake.enhancedTag', { def: 'SOON' }), locked: true, mech: [KIT.t('game.snake.enhancedMech', { def: 'Wild power-ups' })],
             desc: KIT.t('game.snake.enhancedDesc', { def: 'Crazy pickups — walls off for a while, 2× speed bursts, snake shrink…' }),
             preview: (g, w, h) => { pvWall(g, w, h, false); ['#ffd166', '#ff7ab6', '#7fffc4'].forEach((c, i) => { g.fillStyle = c; g.beginPath(); g.arc(w * 0.3 + i * w * 0.2, h * 0.32, 3, 0, Math.PI * 2); g.fill(); }); } },
         ] },
-        { id: 'speed', label: KIT.t('game.snake.speedLabel', { def: 'SPEED' }), style: 'slider', default: opts.speed, choices: [ { id: 'slow', label: KIT.t('game.snake.speedSlow', { def: 'Slow' }) }, { id: 'normal', label: KIT.t('game.snake.speedNormal', { def: 'Normal' }) }, { id: 'fast', label: KIT.t('game.snake.speedFast', { def: 'Fast' }) } ] },
-        { id: 'size', label: KIT.t('game.snake.boardLabel', { def: 'BOARD' }), default: opts.size, choices: [ { id: 'small', label: KIT.t('game.snake.sizeSmall', { def: 'Small' }) }, { id: 'medium', label: KIT.t('game.snake.sizeMedium', { def: 'Medium' }) }, { id: 'large', label: KIT.t('game.snake.sizeLarge', { def: 'Large' }) } ] },
+        { id: 'speed', label: KIT.t('game.snake.speedLabel', { def: 'SPEED' }), style: 'slider', default: opts.speed, choices: [ { id: 'slow', kid: true, label: KIT.t('game.snake.speedSlow', { def: 'Slow' }) }, { id: 'normal', label: KIT.t('game.snake.speedNormal', { def: 'Normal' }) }, { id: 'fast', label: KIT.t('game.snake.speedFast', { def: 'Fast' }) } ] },
+        { id: 'size', label: KIT.t('game.snake.boardLabel', { def: 'BOARD' }), default: opts.size, choices: [ { id: 'small', label: KIT.t('game.snake.sizeSmall', { def: 'Small' }) }, { id: 'medium', label: KIT.t('game.snake.sizeMedium', { def: 'Medium' }) }, { id: 'large', kid: true, label: KIT.t('game.snake.sizeLarge', { def: 'Large' }) } ] },
       ],
       actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
       hint: () => KIT.t('game.snake.hint', { def: 'Arrows / WASD · swipe · on-screen D-pad on phones.' }),

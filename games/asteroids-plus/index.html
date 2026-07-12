@@ -467,7 +467,7 @@
         { id:'levelup', label:t('game.asteroids-plus.modeLevelup',{def:'LEVEL-UP'}), tag:t('game.asteroids-plus.tagGems',{def:'GEMS'}), preview:pvLevelup,
           mech: st => [t('game.asteroids-plus.mechCollectGems',{def:'Collect XP gems'}),t('game.asteroids-plus.mechPickUpgrades',{def:'Pick upgrades'}), goalChip(st)],
           best: st => st.speedrun ? bestTime('levelup') : bestScore('levelup') },
-        { id:'milestones', label:t('game.asteroids-plus.modeMilestones',{def:'MILESTONES'}), preview:pvMilestones,
+        { id:'milestones', kid:true, label:t('game.asteroids-plus.modeMilestones',{def:'MILESTONES'}), preview:pvMilestones,
           mech: st => [t('game.asteroids-plus.mechScoreThresholds',{def:'Score thresholds'}),t('game.asteroids-plus.mechAutoOffer',{def:'Auto-offer picks'}), goalChip(st)],
           best: st => st.speedrun ? bestTime('milestones') : bestScore('milestones') },
         { id:'shop', label:t('game.asteroids-plus.modeShop',{def:'WAVE SHOP'}), tag:t('game.asteroids-plus.tagCredits',{def:'CREDITS'}), preview:pvShop,

@@ -797,12 +797,12 @@
               T('game.forcefield.intro2', 'Sweep your dome over the target and lock it before it fires.')],
       groups: [
         { id: 'mode', label: T('game.common.modeLabel', 'MODE'), style: 'cards', default: opts.mode, choices: [
-          { id: 'timed', label: modeName('timed'), mech: [T('game.forcefield.modeTimedMech', '60s clock')], best: st => comboBest('timed', st.difficulty), preview: (g, w, h) => pvPlanet(g, w, h, 'h') },
+          { id: 'timed', kid: true, label: modeName('timed'), mech: [T('game.forcefield.modeTimedMech', '60s clock')], best: st => comboBest('timed', st.difficulty), preview: (g, w, h) => pvPlanet(g, w, h, 'h') },
           { id: 'lives', label: modeName('lives'), mech: [T('game.forcefield.modeLivesMech', '3 shields')], best: st => comboBest('lives', st.difficulty), preview: (g, w, h) => pvPlanet(g, w, h, 'h') },
           { id: 'double', label: modeName('double'), mech: [T('game.forcefield.modeDoubleMech', '1–2 players · 60s')], best: st => comboBest('double', st.difficulty), preview: (g, w, h) => pvPlanet(g, w, h, 'v') },
         ] },
         { id: 'difficulty', label: T('game.forcefield.diffLabel', 'DIFFICULTY'), style: 'slider', default: opts.difficulty, choices: [
-          { id: 'easy', label: diffName('easy') }, { id: 'medium', label: diffName('medium') }, { id: 'hard', label: diffName('hard') },
+          { id: 'easy', kid: true, label: diffName('easy') }, { id: 'medium', label: diffName('medium') }, { id: 'hard', label: diffName('hard') },
         ] },
       ],
       onChange: st => { if (st.mode) opts.mode = st.mode; if (st.difficulty) opts.difficulty = st.difficulty; saveOpts(); },

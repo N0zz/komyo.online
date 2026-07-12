@@ -598,7 +598,7 @@
       groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
         choices: [
           { id: 'party', label: modeDisplay('party'), mech: ['60s 🎉'], best: () => loadBest('party') || '', preview: (g, w, h) => pvMode('party')(g, w, h) },
-          { id: 'zen',   label: modeDisplay('zen'),   mech: [KIT.t('game.balloon-pop.noEnd', { def: 'no timer 💚' })], best: () => loadBest('zen') || '', preview: (g, w, h) => pvMode('zen')(g, w, h) },
+          { id: 'zen',   kid: true, label: modeDisplay('zen'),   mech: [KIT.t('game.balloon-pop.noEnd', { def: 'no timer 💚' })], best: () => loadBest('zen') || '', preview: (g, w, h) => pvMode('zen')(g, w, h) },
           { id: 'bees',  label: modeDisplay('bees'),  mech: ['60s 🐝!'], best: () => loadBest('bees') || '', preview: (g, w, h) => pvMode('bees')(g, w, h) },
         ] }],
       hint: st => (st && st.mode) === 'bees'
