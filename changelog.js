@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-12', title: 'Every game explains itself 📖', items: [
+    'New: every game now has an ℹ️ "How to play" entry in its ☰ menu — what the game is, how it plays, and quick answers: is it free (yes), does it work offline (yes), where do your scores live (on your device). In all 8 languages.',
+  ] },
   { date: '2026-07-12', title: 'Welcome gift, free play & shinier bonuses 🎁✨', items: [
     'New: a 🎁 Welcome gift waits at the top of the Collection — claim a one-time 100 🏆 to kick-start your collection with a skin or two.',
     'New: ✨ Free play — a switch at the bottom of the Collection that unlocks every cosmetic to try on and wear, no trophies spent. Flip it off and your real collection and balance are exactly as you left them; titles are still earned by playing.',
