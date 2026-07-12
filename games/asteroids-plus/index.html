@@ -493,7 +493,7 @@
     KIT.menu.show({ kind:'end', theme:MENU_THEME, title:o.title, backdrop:menuBackdrop, backdropAnimate:true,
       score:score, scoreText:o.scoreText, best:o.best, newBest:o.newBest, lines:o.lines,
       share:{ slug:'asteroids-plus', accent: '#b98cff', icon: '☄️', title:t('game.asteroids-plus.title',{def:'Asteroids+'}), message:()=>shareMsg(score, o.won), params:()=> (SPEEDRUN ? { prog:PROGRESSION, speedrun:'1' } : { prog:PROGRESSION }) },
-      record:{ slug:'asteroids-plus', mode:progLabel(PROGRESSION, SPEEDRUN), modeText:progLabelDisplay(PROGRESSION, SPEEDRUN), score:score, time:0, stats:o.stats||{wave:wave} },
+      record:{ slug:'asteroids-plus', mode:progLabel(PROGRESSION, SPEEDRUN), modeText:progLabelDisplay(PROGRESSION, SPEEDRUN), score:score, time:o.time||0, stats:o.stats||{wave:wave} },
       actions:[ {id:'again',label:t('game.common.playAgain',{def:'PLAY AGAIN'}),primary:true}, {id:'menu',label:t('game.common.menu',{def:'MENU'})} ],
       onAction:(id)=>{ if(id==='again') startGame(); else if(id==='menu') quitToMenu(); } });
   }
@@ -637,7 +637,7 @@
     let newBest=false; if(!SPEEDRUN && KIT){ newBest = KIT.saveBest('asteroids-plus', progLabel(PROGRESSION, false), { score: score, stats: { wave: wave } }).isBest; }
     showEnd(() => ({ title:t('game.asteroids-plus.gameOver',{def:'GAME OVER'}), scoreText:String(score), best: SPEEDRUN ? null : (KIT ? KIT.bestScore('asteroids-plus', progLabel(PROGRESSION, false)) : 0), newBest,
       lines: SPEEDRUN ? [t('game.asteroids-plus.lineFailed',{time:fmtTime(srElapsed),def:'Speedrun — run failed at '+fmtTime(srElapsed)})] : [t('game.asteroids-plus.reachedWave',{wave:wave,def:'Reached wave '+wave})],
-      won:false, mode: SPEEDRUN?'speedrun':'', time: SPEEDRUN?srElapsed:0 })); }
+      won:false, mode: SPEEDRUN?'speedrun':'', time: 0 })); }   // failed speedrun records no time — the store keeps the MIN, a fast death must never beat a real clear
   function winRun(){ srDone=true; state='won'; SND.play('level'); const newBest=saveBest(srElapsed);
     showEnd(() => ({ title:t('game.asteroids-plus.waveClearedTitle',{wave:SR_TARGET_WAVE,def:'WAVE '+SR_TARGET_WAVE+' CLEARED'}), scoreText:fmtTime(srElapsed), best:fmtTime((KIT ? KIT.best('asteroids-plus', progLabel(PROGRESSION, true)).time : 0) || srElapsed), newBest,
       lines:[t('game.asteroids-plus.lineScore',{score:score,def:'score '+score})], won:false, mode:'speedrun', time:srElapsed })); }

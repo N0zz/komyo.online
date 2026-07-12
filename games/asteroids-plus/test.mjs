@@ -169,6 +169,10 @@ function testSpeedrunWin(file, prog) {
   ok(T().state === 'won', file + ' clearing wave-5 boss wins the speedrun (got ' + T().state + ')');
   const best = pbTime(g.store, plabel(prog, true));
   ok(best > 0, file + ' best time saved (' + best + ')');
+  // the end-menu record carries the clear time (ms) — that's what the TIME score card reads
+  const lr = JSON.parse(g.store['gamekit_result_asteroids-plus'] || 'null');
+  ok(lr && lr.time > 0 && Math.abs(lr.time - best) < 2,
+    file + ' end-menu record carries the clear time in ms (got ' + (lr && lr.time) + ' vs best ' + best + ')');
   // a cleared speedrun shares the TIME as the result, not the score or a Roguelite/Victory line
   const sm = T().shareMsg();
   ok(/Speedrun/.test(sm) && /\d\d:\d\d\.\d\d/.test(sm) && !/VICTORY|Roguelite|Level-up/.test(sm),
