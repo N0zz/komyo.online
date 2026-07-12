@@ -2817,7 +2817,8 @@
             }, 'image/webp', 0.85);
           } catch (e) { resolve(null); }
         };
-        if (opts.icon) { x.shadowColor = accent; x.font = '120px system-ui, sans-serif'; x.globalAlpha = 0.9; x.shadowBlur = 26; x.fillText(String(opts.icon), 84, 158); noFx(); }
+        // icon centers on the title+mode BLOCK (title alone when there's no mode row)
+        if (opts.icon) { x.shadowColor = accent; x.font = '120px system-ui, sans-serif'; x.globalAlpha = 0.9; x.shadowBlur = 26; x.fillText(String(opts.icon), 84, opts.sub ? 182 : 158); noFx(); }
         Promise.all([
           loadImg(opts.mascot || '../../mascot-head.svg'),
           (opts.url || opts.qrUrl) ? ensureQR() : Promise.resolve(null)

@@ -76,16 +76,18 @@ section('glow-says: taps ignored outside the input phase');
   ok(T().tap(0) === false, 'taps during playback are ignored');
 }
 
-// ---- Expert ----
-section('glow-says: expert mode');
+// ---- Hard + Expert ----
+section('glow-says: hard and expert modes');
 {
   const gs = runGame();
   const T = gs.T;
+  T().startMode('hard');
+  ok(T().padCount === 6, 'hard uses 6 pads');
   T().startMode('expert');
-  ok(T().padCount === 6, 'expert uses 6 pads');
-  T().forceSeq([4, 5]);
+  ok(T().padCount === 9, 'expert uses 9 pads (3×3)');
+  T().forceSeq([7, 8]);
   T().toInput();
-  ok(T().tap(4) === true && T().tap(5) === true, 'pads 5 and 6 are tappable');
+  ok(T().tap(7) === true && T().tap(8) === true, 'pads 8 and 9 are tappable');
   ok(T().round === 2, 'expert banks the round');
 }
 
@@ -117,7 +119,7 @@ runLayoutSuite(
     ok(L.board.y >= L.topReserve, v.name + ': pads clear the HUD');
     ok(L.board.x >= 0 && L.board.x + L.board.w <= L.W, v.name + ': pads within width');
     ok(L.board.y + L.board.h <= L.H, v.name + ': pads within height');
-    ok(L.pads.length === 6, v.name + ': six pads laid out');
+    ok(L.pads.length === 9, v.name + ': nine pads laid out');
     ok(L.pads.every(p => p.w >= 60), v.name + ': pads stay kid-big (min ' + Math.round(Math.min(...L.pads.map(p => p.w))) + 'px)');
   }
 );

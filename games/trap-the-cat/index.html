@@ -54,9 +54,16 @@
     trapd:  c => c.play('victory'),
   });
 
-  const SIZE = 11;                       // 11×11 offset-hex board
-  const DIFFS = { easy: { prefill: 16, base: 60 }, medium: { prefill: 11, base: 90 }, hard: { prefill: 7, base: 120 } };
-  const DIFF_ORDER = ['easy', 'medium', 'hard'];
+  // kitten = the kids tier: smaller board, lots of hedges, and a DROWSY cat that sometimes
+  // wanders (not BFS-optimal) or naps a turn — genuinely winnable by a 7-year-old.
+  const DIFFS = {
+    kitten: { size: 9,  prefill: 18, base: 45,  drowsy: true },
+    easy:   { size: 11, prefill: 16, base: 60 },
+    medium: { size: 11, prefill: 11, base: 90 },
+    hard:   { size: 11, prefill: 7,  base: 120 },
+  };
+  const DIFF_ORDER = ['kitten', 'easy', 'medium', 'hard'];
+  let SIZE = 11;                         // per-difficulty offset-hex board size
   const HOP_DUR = 9;                     // fixed steps per cat hop animation
 
   let W = 0, H = 0, topMargin = 48;
@@ -70,6 +77,7 @@
   let hop = null;                        // {fx,fy,tx,ty,t} view-only hop anim
   let plantFx = null;                    // {x,y,t} wall-plant pop
   let overFx = 0;
+  let napT = 0;                          // kitten nap 💤 indicator
 
   // layout
   let r = 20, bx = 0, by = 0, boardW = 0, boardH = 0;
@@ -93,10 +101,12 @@
 
   function newGame(d) {
     diff = d || diff;
+    SIZE = DIFFS[diff].size;
+    const mid = Math.floor(SIZE / 2);
     wall = Array.from({ length: SIZE }, () => new Array(SIZE).fill(false));
-    cat = { x: 5, y: 5 };
+    cat = { x: mid, y: mid };
     clicks = 0; score = 0; won = false; escaped = false;
-    hop = null; plantFx = null; overFx = 0;
+    hop = null; plantFx = null; overFx = 0; napT = 0;
     best = loadBest(diff);
     // prefill random hedges (never on the cat or its ring-1 neighbours)
     const forbidden = new Set([cat.x + ',' + cat.y]);
@@ -128,14 +138,18 @@
   }
 
   function catMove() {
-    const dist = edgeDistances();
     const opts = neighbors(cat.x, cat.y).filter(([x, y]) => !wall[y][x]);
     if (!opts.length) { trapped(); return; }
+    const drowsy = !!DIFFS[diff].drowsy;
+    if (drowsy && Math.random() < 0.12) { napT = 45; return; }        // 💤 skips the turn
     let pool = opts;
-    const reachable = opts.filter(([x, y]) => dist[y][x] !== Infinity);
-    if (reachable.length) {
-      const bestD = Math.min(...reachable.map(([x, y]) => dist[y][x]));
-      pool = reachable.filter(([x, y]) => dist[y][x] === bestD);
+    if (!(drowsy && Math.random() < 0.35)) {                          // drowsy cat sometimes wanders
+      const dist = edgeDistances();
+      const reachable = opts.filter(([x, y]) => dist[y][x] !== Infinity);
+      if (reachable.length) {
+        const bestD = Math.min(...reachable.map(([x, y]) => dist[y][x]));
+        pool = reachable.filter(([x, y]) => dist[y][x] === bestD);
+      }
     }
     const [nx, ny] = pool[Math.floor(Math.random() * pool.length)];
     hop = { fx: cat.x, fy: cat.y, tx: nx, ty: ny, t: HOP_DUR };
@@ -182,6 +196,7 @@
     frame++;
     if (hop && hop.t > 0) hop.t--;
     if (plantFx && plantFx.t > 0) plantFx.t--;
+    if (napT > 0) napT--;
     if (KIT && KIT.music) {
       // tension = how close the cat is to the edge (5 = center, 0 = out)
       const d = Math.min(cat.x, cat.y, SIZE - 1 - cat.x, SIZE - 1 - cat.y);
@@ -320,13 +335,19 @@
       const f = cellCenter(hop.fx, hop.fy), to = cellCenter(hop.tx, hop.ty);
       cx = f.px + (to.px - f.px) * e; cy = f.py + (to.py - f.py) * e - Math.sin(t * Math.PI) * r * 0.8;
     } else { const c = cellCenter(cat.x, cat.y); cx = c.px; cy = c.py; }
-    const mood = state === 'over' ? (won ? 'trapped' : 'escaped') : (clicks > 0 ? 'trapped0' : 'calm');
     drawCat(ctx, cx, cy, r, S, state === 'over' && won ? 'trapped' : 'calm');
+    // kitten nap bubble
+    if (napT > 0) {
+      ctx.font = '700 ' + Math.round(r * 0.8) + 'px system-ui'; ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(200,220,255,' + Math.min(1, napT / 20) + ')';
+      ctx.fillText('💤', cx + r * 0.9, cy - r * 0.9 - Math.sin(frame * 0.1) * 3);
+    }
 
-    // win hearts / lose dust
+    // win hearts / lose dust (kitten gets a bigger celebration)
     if (state === 'over' && overFx) {
       const t = frame - overFx;
-      if (won) for (let k = 0; k < 6; k++) {
+      const heartN = DIFFS[diff].drowsy ? 12 : 6;
+      if (won) for (let k = 0; k < heartN; k++) {
         const a = k * 1.05 + t * 0.02, rr = r * (1.2 + (t % 60) * 0.03);
         ctx.fillStyle = 'rgba(240,166,200,' + Math.max(0, 0.7 - (t % 60) * 0.012) + ')';
         ctx.font = Math.round(r * 0.5) + 'px system-ui'; ctx.textAlign = 'center';
@@ -393,7 +414,7 @@
       title: KIT.t('game.trap-the-cat.menuTitle', { def: 'TRAP THE CAT' }),
       groups: [{ id: 'diff', label: KIT.t('game.common.difficulty', { def: 'DIFFICULTY' }), style: 'cards', default: diff,
         choices: DIFF_ORDER.map(d => ({ id: d, label: diffDisplay(d),
-          mech: [DIFFS[d].prefill + ' 🌹'],
+          mech: [DIFFS[d].prefill + ' 🌹' + (DIFFS[d].drowsy ? ' 😺💤' : '')],
           best: () => loadBest(d) || '',
           preview: (g, w, h) => pvDiff(DIFFS[d].prefill)(g, w, h) })) }],
       hint: () => KIT.t('game.trap-the-cat.startHint', { def: 'Plant rose hedges to fence the cat in — every hedge lets it hop once. Fewer hedges, bigger score!' }),

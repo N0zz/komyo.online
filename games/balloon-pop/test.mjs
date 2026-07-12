@@ -82,6 +82,54 @@ section('balloon-pop: zen mode');
   ok(T().state === 'over', 'FINISH & SAVE banks a zen session');
 }
 
+// ---- Bees mode ----
+section('balloon-pop: bees sting');
+{
+  const gs = runGame();
+  const T = gs.T;
+  T().startMode('bees');
+  ok(T().timeLeft === 60, 'bees mode runs on the 60 s clock');
+  T().spawnAt(150, 500, 40, 0); T().popAt(150, 500);
+  T().spawnAt(150, 500, 40, 0); T().popAt(150, 500);
+  const before = T().score;
+  T().spawnBeeAt(300, 400, 1.5);
+  ok(T().beeCount === 1, 'a bee is buzzing');
+  ok(T().popAt(300, 400) === true, 'tapping the bee registers');
+  ok(T().score === Math.max(0, before - 5), 'a sting costs 5 pops (got ' + T().score + ')');
+  ok(T().beeStings === 1, 'sting counted');
+  ok(T().combo === 0, 'a sting resets the streak');
+  // score never goes negative
+  T().spawnBeeAt(300, 400, 1.5);
+  T().popAt(300, 400);
+  ok(T().score >= 0, 'score floors at 0');
+}
+
+// ---- Wind gust ----
+section('balloon-pop: wind gusts push balloons');
+{
+  const gs = runGame();
+  const T = gs.T;
+  T().startMode('zen');
+  T().spawnAt(200, 400, 40, 0);
+  T().gust(2, 60);
+  const x0 = T().balloons[0].x;
+  T().step(30);
+  const moved = T().balloons.find(b => Math.abs(b.y - 400) < 60);
+  ok(T().wind.active === false || T().wind.active === true, 'wind state readable');
+  ok(moved && moved.x > x0 + 10, 'gust pushes balloons sideways (' + Math.round(x0) + ' → ' + (moved ? Math.round(moved.x) : '?') + ')');
+}
+
+// ---- Zen fireworks ----
+section('balloon-pop: zen milestone fireworks');
+{
+  const gs = runGame();
+  const T = gs.T;
+  T().startMode('zen');
+  for (let k = 0; k < 50; k++) { T().spawnAt(200, 400, 40, k % 6); T().popAt(200, 400); }
+  ok(T().popCount === 50, 'fifty pops banked');
+  ok(T().fireworksSeen === 1, 'the 50th pop launches fireworks (got ' + T().fireworksSeen + ')');
+}
+
 // ---- Layout: balloons live inside the viewport ----
 section('balloon-pop: layout fits the screen');
 runLayoutSuite(

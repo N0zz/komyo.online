@@ -86,6 +86,54 @@ section('critter-match: gentle scoring');
   ok(mid >= 6 * 5, 'score never drops below the kid-kind floor');
 }
 
+// ---- Pass & Play ----
+section('critter-match: pass & play turns');
+{
+  const gs = runGame();
+  const T = gs.T;
+  T().play = 'p2';
+  T().startMode('small');
+  ok(T().players === 2, 'two players seated');
+  ok(T().curPlayer === 0, 'P1 starts');
+  T().setDeck([0, 0, 1, 2, 1, 2, 3, 3, 4, 4, 5, 5]);
+  T().flip(0); T().flip(1);            // P1 finds a pair
+  ok(T().pScores[0] === 1, 'P1 banks the pair');
+  ok(T().curPlayer === 0, 'a match means P1 goes AGAIN');
+  T().flip(2); T().flip(3);            // P1 misses
+  T().step(60);                        // peek ends
+  ok(T().curPlayer === 1, 'a miss hands the turn to P2');
+  T().flip(6); T().flip(7);            // P2 pairs the 3s
+  ok(T().pScores[1] === 1 && T().curPlayer === 1, 'P2 scores and keeps the turn');
+  T().flip(8); T().flip(9);            // P2 pairs the 4s
+  T().flip(10); T().flip(11);          // P2 pairs the 5s
+  ok(T().pScores[1] === 3, 'P2 is on 3 pairs');
+  T().flip(2); T().flip(3);            // 1 vs 2 — P2 finally misses
+  T().step(60);
+  ok(T().curPlayer === 0, 'turn back to P1');
+  T().flip(2); T().flip(4);            // P1 pairs the 1s
+  T().flip(3); T().flip(5);            // P1 pairs the 2s — board clears
+  ok(T().state === 'over', 'board cleared ends the match');
+  ok(T().pScores[0] === 3 && T().pScores[1] === 3, 'a 3–3 tie is recorded (' + T().pScores.join('–') + ')');
+}
+
+// ---- Speedrun ----
+section('critter-match: speedrun clock');
+{
+  const gs = runGame();
+  const T = gs.T;
+  T().play = 'speed';
+  T().startMode('small');
+  T().step(120);
+  ok(T().speedSec === 0, 'clock waits for the first flip');
+  T().setDeck([0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5]);
+  T().flip(0);
+  T().step(120);
+  ok(Math.abs(T().speedSec - 2) < 0.05, 'clock ticks after the first flip (got ' + T().speedSec + ')');
+  T().flip(1);
+  for (let k = 2; k < 12; k += 2) { T().flip(k); T().flip(k + 1); }
+  ok(T().state === 'over', 'speedrun ends when the board clears');
+}
+
 // ---- Layout ----
 section('critter-match: layout fits the screen');
 runLayoutSuite(

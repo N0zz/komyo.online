@@ -44,15 +44,12 @@
   const ACCENT = '#7ee787';
 
   // one clear tone per pad (pentatonic — any order sounds friendly)
-  const PAD_FREQ = [329.63, 392, 440, 523.25, 587.33, 659.25];
+  const PAD_FREQ = [329.63, 392, 440, 523.25, 587.33, 659.25, 784, 880, 1046.5];
   const SND = window.gamekit.sound;
+  const padDefs = {};
+  PAD_FREQ.forEach((f, i) => { padDefs['pad' + i] = c => c.voice({ f, dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }); });
+  SND.define(padDefs);
   SND.define({
-    pad0: c => c.voice({ f: PAD_FREQ[0], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
-    pad1: c => c.voice({ f: PAD_FREQ[1], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
-    pad2: c => c.voice({ f: PAD_FREQ[2], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
-    pad3: c => c.voice({ f: PAD_FREQ[3], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
-    pad4: c => c.voice({ f: PAD_FREQ[4], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
-    pad5: c => c.voice({ f: PAD_FREQ[5], dur: 0.28, type: 'triangle', gain: 0.12, reverb: 0.2 }),
     oops: c => c.voice({ f: 220, slideTo: 165, dur: 0.35, type: 'triangle', gain: 0.1, filter: 'lowpass', cutoff: 1200 }),
     yay:  c => c.seq([523, 659, 784, 1047], 70, f => c.voice({ f, dur: 0.2, type: 'triangle', gain: 0.08, reverb: 0.3 })),
   });
@@ -60,13 +57,15 @@
   const MODES = {
     classic: { pads: 4, lives: 1,        show: 30, gapF: 12 },
     chill:   { pads: 4, lives: Infinity, show: 36, gapF: 16 },
-    expert:  { pads: 6, lives: 1,        show: 20, gapF: 8 },
+    hard:    { pads: 6, lives: 1,        show: 20, gapF: 8 },
+    expert:  { pads: 9, lives: 1,        show: 24, gapF: 9 },   // more pads but a touch more flash time
   };
-  const MODE_ORDER = ['classic', 'chill', 'expert'];
+  const MODE_ORDER = ['classic', 'chill', 'hard', 'expert'];
   // pad palettes: [base, glow]
   const PAD_COLORS = [
     ['#3fae5a', '#7ee787'], ['#c05a6e', '#ff9db0'], ['#b99b3a', '#ffe07a'],
     ['#3a6db9', '#8ec1ff'], ['#8a56b9', '#d0a6ff'], ['#3aa9a9', '#8af0ea'],
+    ['#c07a3a', '#ffbe85'], ['#5a7ac0', '#a6c1ff'], ['#b95a9a', '#ffa6df'],
   ];
 
   let W = 0, H = 0, topMargin = 48;
@@ -177,7 +176,7 @@
 
   function layoutBoard() {
     const nPads = MODES[mode].pads;
-    const cols = nPads === 6 ? 2 : 2, rows = nPads === 6 ? 3 : 2;
+    const cols = nPads === 9 ? 3 : 2, rows = nPads === 9 ? 3 : nPads === 6 ? 3 : 2;
     const pad = 14;
     const availW = W - pad * 2, availH = H - topMargin - pad * 2;
     const cw = Math.min((availW - pad * (cols - 1)) / cols, 300);
@@ -200,18 +199,25 @@
   }
   function shapePath(g, cx, cy, rr, shape) {
     if (shape === 'star') {
+      // plump 5-point star: soft quadratic valleys between the spikes
       g.beginPath();
-      for (let k = 0; k < 10; k++) {
-        const a = -Math.PI / 2 + k * Math.PI / 5, rad = k % 2 ? rr * 0.5 : rr;
-        const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
-        k ? g.lineTo(x, y) : g.moveTo(x, y);
+      for (let k = 0; k < 5; k++) {
+        const a = -Math.PI / 2 + k * (Math.PI * 2 / 5);
+        const nx = -Math.PI / 2 + (k + 1) * (Math.PI * 2 / 5);
+        const mid = (a + nx) / 2;
+        const ox = cx + Math.cos(a) * rr, oy = cy + Math.sin(a) * rr;
+        if (k === 0) g.moveTo(ox, oy); else g.lineTo(ox, oy);
+        g.quadraticCurveTo(cx + Math.cos(mid) * rr * 0.32, cy + Math.sin(mid) * rr * 0.32,
+          cx + Math.cos(nx) * rr, cy + Math.sin(nx) * rr);
       }
       g.closePath();
     } else if (shape === 'heart') {
+      // plump symmetric heart — lobes meet in a gentle dip, rounded tip
+      const hy = cy - rr * 0.08;
       g.beginPath();
-      g.moveTo(cx, cy + rr * 0.85);
-      g.bezierCurveTo(cx - rr * 1.3, cy - rr * 0.15, cx - rr * 0.6, cy - rr, cx, cy - rr * 0.35);
-      g.bezierCurveTo(cx + rr * 0.6, cy - rr, cx + rr * 1.3, cy - rr * 0.15, cx, cy + rr * 0.85);
+      g.moveTo(cx, hy + rr * 0.78);
+      g.bezierCurveTo(cx - rr * 1.05, hy + rr * 0.12, cx - rr * 0.92, hy - rr * 0.78, cx, hy - rr * 0.3);
+      g.bezierCurveTo(cx + rr * 0.92, hy - rr * 0.78, cx + rr * 1.05, hy + rr * 0.12, cx, hy + rr * 0.78);
       g.closePath();
     } else {
       g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2);
@@ -317,7 +323,7 @@
 
   function pvPads(n, litIdx) {
     return (g, w, h) => {
-      const cols = 2, rows = n === 6 ? 3 : 2;
+      const cols = n === 9 ? 3 : 2, rows = n === 9 ? 3 : n === 6 ? 3 : 2;
       const s = Math.min(w / (cols + 0.8), h / (rows + 0.8));
       const ox = (w - cols * s) / 2, oy = (h - rows * s) / 2;
       for (let k = 0; k < n; k++) {
@@ -341,7 +347,8 @@
         choices: [
           { id: 'classic', label: modeDisplay('classic'), mech: ['4 🏮'], best: () => loadBest('classic') || '', preview: (g, w, h) => pvPads(4, 0)(g, w, h) },
           { id: 'chill',   label: modeDisplay('chill'),   mech: [KIT.t('game.glow-says.noFail', { def: 'no fail 💚' })], best: () => loadBest('chill') || '', preview: (g, w, h) => pvPads(4, 2)(g, w, h) },
-          { id: 'expert',  label: modeDisplay('expert'),  mech: ['6 🏮 ⚡'], best: () => loadBest('expert') || '', preview: (g, w, h) => pvPads(6, 4)(g, w, h) },
+          { id: 'hard',    label: modeDisplay('hard'),    mech: ['6 🏮 ⚡'], best: () => loadBest('hard') || '', preview: (g, w, h) => pvPads(6, 4)(g, w, h) },
+          { id: 'expert',  label: modeDisplay('expert'),  mech: ['9 🏮 🔥'], best: () => loadBest('expert') || '', preview: (g, w, h) => pvPads(9, 7)(g, w, h) },
         ] }],
       hint: () => KIT.t('game.glow-says.startHint', { def: 'Watch the lanterns light up, then tap the same tune back. It grows one note each round!' }),
       actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
