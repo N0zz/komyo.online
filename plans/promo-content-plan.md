@@ -1,7 +1,8 @@
 # Promo Content Plan — marketing assets (graphics · video · flyers)
 
-Status: **planning** (decided the approach 2026-07-09; execution waits on the weekly token reset +
-a capture session). Sibling to `plans/marketing_plan.md` (that one = *where/what to post*; this one =
+Status: **in progress** (approach decided 2026-07-09; **HyperFrames shorts pipeline POC'ed
+2026-07-12** — `~/komyo-promo/komyo-shorts/`, see the TikTok item below; asset production waits on
+a capture session + the two open decisions). Sibling to `plans/marketing_plan.md` (that one = *where/what to post*; this one =
 *the assets to post*). Feeds Path-to-launch #5 (LAUNCH + marketing) in `ROADMAP.md`.
 
 Audience anchor: **parents / families / teachers** (per the marketing re-aim) — so every asset leads

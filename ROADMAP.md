@@ -7,6 +7,13 @@ challenges, tv-controller.
 
 ## ✅ Done
 
+- **Six-game batch SHIPPED (2026-07-12).** Overnight-built MVPs → 2 playtest-feedback rounds →
+  fully translated (185 keys × 7 locales) → changelog'd + deployed: **Minesweeper 💣 · 2048 🔢 ·
+  Trap the Cat 🐱 · Glow Says 🏮 · Balloon Pop 🎈 · Critter Match 🐾** — catalogue now at **18 live
+  games**, kids lane open (3 kids-first titles). Rode along: cosmetics price-tier sweep (every game
+  2+ cheap skins, new premium tier), 🎁 Welcome gift (one-time 100 🏆) + ✨ Free play try-on mode,
+  catalogue filter persistence + hold-to-clear, the ⚡ good-run widget.
+
 - **Sudoku shipped (2026-07-10).** Technique-graded generator (unique-solution, Easy→Expert by
   required technique), UTC Daily (weekday-rotating difficulty, per-band bests), Zen, teaching hints
   (highlight + reasoning, never a reveal), pencil marks/undo/digit counters, in-progress board list
@@ -129,7 +136,8 @@ quality bar — see the Done entry).
    across languages × orientations. See `plans/i18n-plan.md`.
 2. **Build more games — *in progress*.** Toward the content bar; each via the dev-process gate (design+mock →
    POC → MVP → iterate). **Forcefield shipped** (first pull from the POC branch). **Frog Bonk shipped**
-   (2026-07-06). **Bias low-tuning genres**
+   (2026-07-06). **Sudoku shipped** (2026-07-10). **Six-game batch shipped** (2026-07-12) — **18 live
+   games**. **Bias low-tuning genres**
    (puzzle / timing / arcade-skill), **avoid balance-heavy** (tower defense, roguelite shooters). See
    `komyo-avoid-balance-heavy-genres`. Slot in **one original-mechanic, shareable game** alongside the remakes
    (see `komyo-market-expansion-discussion`). More POC prototypes wait on a separate branch. Build order below.
@@ -253,21 +261,20 @@ titles, icons and genre tags here match the catalogue. This table is the build q
 per game. Roughly easiest → hardest within each group.
 
 **▶ Next build order (2026-07-12):** **Dusk Runner → Pump Stop solo → Mash Dash → Maze Pals /
-Color Pop** (pick by mood, all trivial–low). *(Shipped in the 2026-07-12 overnight batch — MVPs
-awaiting human playtest + translations + changelog: **Minesweeper ✅ · 2048 ✅ · Trap the Cat ✅ ·
-Glow Says ✅ · Balloon Pop ✅ · Critter Match ✅**. Sudoku ✅ 2026-07-10.)*
+Color Pop** (pick by mood, all trivial–low). *(The 2026-07-12 six-game batch — Minesweeper · 2048 ·
+Trap the Cat · Glow Says · Balloon Pop · Critter Match — is fully shipped: playtested, translated,
+changelog'd, deployed. Sudoku ✅ 2026-07-10.)*
 Rationale: all low-tuning + high-recognition = fast to build, zero teaching cost, and organically
 searchable ("minesweeper", "2048", "dino game"); the kids batch widens the no-ads/kid-safe lane.
-This batch is all remakes — per `komyo-market-expansion-discussion`, slot **one original-mechanic,
-shareable game** in after Minesweeper + the kids batch (don't block on it).
+That batch was all remakes — per `komyo-market-expansion-discussion`, the **one original-mechanic,
+shareable game** slot is now DUE (Minesweeper + the kids batch shipped); slot it into the next few
+builds (don't block the trivial ones on it).
 
 ### Single player
 
 | Game | Effort | Build notes |
 | --- | --- | --- |
-| **2048** 🔢 `PUZZLE`+`LOGIC` | trivial–low | classic slide-and-merge grid (swipe/arrows); well-known rules = zero teaching cost; undo?, board-size variants 3×3/5×5 |
 | **Dusk Runner** 🦖 `ARCADE`+`REFLEX` | low | Chrome offline-dino style — mono line-art, ground runner, jump/duck, obstacle spawner, speed ramp, day→night palette shift |
-| **Minesweeper** 💣 `LOGIC`+`PUZZLE` | low–med | classic grid — reveal / flag / chord; **first-click-safe** board gen (never lose on tile 1) + flood-fill reveal; difficulty = size + mine density; no balance tuning |
 | **Pump Stop** ⛽ `SKILL` (+`STRATEGY` manager) | trivial–low (solo) · med (manager) | Solo: hold to pump, **stop at the target** with momentum/overrun, scored by closeness. **Tolerance is tight (~1%):** $20 off by 20¢ = fine, by 50¢ = too far under. **Manager expansion (idea, discuss later):** run **4 pumps** — cars arrive with a paid limit, stop each near its limit. Over = free-gas penalty (costs the station); tiny-under = fine; a car left under-served/unattended → patience runs out → it **blocks the pump**; **all 4 blocked = game over**. Attention is the scarce resource → triage is the game. **Open decisions:** (a) cars **auto-fill and you only tap _stop_** vs you actively **_pump_** each; (b) **one active pump at a time** vs **all at once**; (c) tolerance band (~1%? scales with difficulty?). Tension: a tight ~1% band is hard to hit while juggling 4 pumps — (a)/(b) set how forgiving it must be. |
 | **Keyfall** ⌨️ `TYPING`+`SKILL` | low–med | falling words — type each before it lands; speed ramp, combos, WPM. Opens a wider WORD/TYPING lane (more later: anagram, spelling, Wordle-style guesser) |
 | **Word Hunt** 🔍 `WORD`+`PUZZLE` | low–med | letter-grid word search — drag to circle, timer, themed packs; word-placement generator |
@@ -278,7 +285,6 @@ shareable game** in after Minesweeper + the kids batch (don't block on it).
 | **Floodgate** 🚰 `LOGIC`+`PUZZLE` | med | pipe-routing — rotate tiles to connect source→drain before the flood; **solvable-by-construction**, leak-plug variant, grid + timer scaling |
 | **Invaders** 👾 `SHOOTER`+`ARCADE` | med | formation movement, descending rows, shields, escalating waves |
 | **Road Hop** 🐸 `ARCADE`+`CASUAL` | med | lane spawns, log-riding, endless scroll |
-| **Trap the Cat** 🐱 `PUZZLE`+`LOGIC` | med | hex grid + cat BFS pathfinding to the nearest edge |
 | **Arcane** 🔮 `ACTION`+`SHOOTER` | med–high | spell variety + wave AI (scope-dependent) |
 | **Icy Tower** 🧗 `PLATFORMER`+`ARCADE` | high | momentum + variable jump + wall-bounce + combos + rising floor |
 | **Pulse Dash** 🔺 `RHYTHM`+`REFLEX` | high | obstacles authored to a beat + generate/sync a track |
@@ -308,15 +314,13 @@ Not yet tiles (lane/genre ideas, added 2026-07-03 — a game gets a tile once it
 ### Kids-first (ages 6–10)
 
 Built *for* young kids: one-tap / big-target controls, no reading required, gentle/no fail-state,
-celebratory feedback. The **`KIDS` genre tag now exists** (all six carry it, so the filter is already
-wired) — still want to fold the gentle existing games into it (Stack, Bubble Pop, a slow Snake,
-gentle Meadow). The no-ads / no-payments / no-chat / offline story is the parent pitch.
+celebratory feedback. The **`KIDS` lane is live** (Balloon Pop 🎈 · Glow Says 🏮 · Critter Match 🐾
+shipped 2026-07-12; the genre filter is wired) — still want to fold the gentle existing games into
+it (Stack, Bubble Pop, a slow Snake, gentle Meadow). The no-ads / no-payments / no-chat / offline
+story is the parent pitch.
 
 | Game | Effort | Build notes |
 | --- | --- | --- |
-| **Balloon Pop** 🎈 | trivial–low | tap big floating balloons; combos/colors; no fail. Kid-safe tap game (distinct from Sky Sling) |
-| **Critter Match** 🐾 | low | flip cards to match animal pairs; grid sizes scale by age |
-| **Glow Says** 🟢 | low | Simon — repeat the growing color/tone sequence |
 | **Color Pop** 🎨 | low | tap regions to fill color; no fail, screenshot-shareable |
 | **Tap & Learn** 🔠 | low–med | early-learning taps (count the ducks, tap the letter A) — *educational*, pairs with the WORD lane |
 | **Maze Pals** 🐭 | low | guide the mouse to the goal; big tiles, no timer |
@@ -352,11 +356,8 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
 
 ### In flight / near-term
 
-- **Discord changelog posts get cut mid-sentence** *(bug, added 2026-07-05)* — Discord caps message
-  length (2000 chars; webhook embeds have their own caps) and `scripts/post-changelog.mjs` doesn't
-  split/trim to it, so long releases truncate mid-sentence. Fix: split a long entry into multiple
-  messages on bullet boundaries (never mid-sentence), or post title + first bullets + a "full
-  changelog →" link.
+- ~~**Discord changelog posts get cut mid-sentence**~~ *(fixed 2026-07-12)* — long entries now split
+  into multiple messages on bullet boundaries (never mid-sentence).
 - **UI overlap audit** *(added 2026-07-05)* — systematically hunt element collisions across
   resolutions/orientations: the in-game top bar vs the score pill (worst offender), kit menus that
   don't fit under the top bar on small/weird viewports, drawers vs the side stack, etc. The headless
@@ -381,7 +382,11 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
 - **komyo TikTok account — CREATED (2026-07-11).** The channel for the 9:16 per-game/feature shorts
   from `plans/promo-content-plan.md` (and the "dedicated TikTok / YT Shorts channel" idea under
   Integrations). Next: first shorts once the promo-content track produces cuts.
-- **Video tooling — HyperFrames (initial tl;dr 2026-07-11; deeper eval when trailer work starts).**
+- **Video tooling — HyperFrames — POC DONE (2026-07-12).** Working shorts pipeline at
+  `~/komyo-promo/komyo-shorts/` (trims via `data-media-start`/`data-duration`, QR end card,
+  deterministic placeholder footage) — the fit is confirmed; next step is real templates
+  (9:16 shorts + trailer overlays) fed by a gameplay-capture session (`plans/promo-content-plan.md`).
+  Original eval:
   HeyGen's **HyperFrames** (May 2026, Apache-2.0, free, no per-render fees): agent-native
   "write HTML → render deterministic MP4" — Claude Code writes HTML/CSS/JS with timing attributes,
   a headless-Chrome + FFmpeg renderer encodes it; CLI (`npx hyperframes …`) + bundled Claude skills;
@@ -444,10 +449,8 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   enemies), **snake** (menu-local snake/grid), **breakout** (imitation brick wall). When next touching
   each game visually, fold its backdrop onto the real painters (forcefield's retarget pattern).
   Don't sweep them for their own sake. See the new backdrop knob in `game-design-knobs.md`.
-- **Side-stack v2: Profile in games** *(follow-up, added 2026-07-11)* — the kit side-stack (v1 shipped:
-  🏆 Challenges + 🎨 Collection on menu screens in every game, hidden during live play) should gain the
-  catalogue's Profile entry too. Blocked on porting the profile modal out of `index.html` into the kit;
-  once there, games get the identity card + titles the same way the catalogue does.
+- ~~**Side-stack v2: Profile in games**~~ *(shipped 2026-07-11)* — the profile modal + side stack are
+  kit-owned; every game now carries Profile + Challenges + Collection identically to the catalogue.
 - **Tips & tricks widget** *(idea, added 2026-07-04)* — there are no loading screens, so surface
   rotating tips somewhere on the home page (e.g. bottom-right corner), cycling continuously; dismissable
   and re-openable via a small bubble button. Content: how-to-play nuggets, feature callouts (challenges,
