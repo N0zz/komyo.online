@@ -45,3 +45,14 @@ jobs:
           path: .
       - id: deployment
         uses: actions/deploy-pages@v4
+
+      # IndexNow (Bing/Yandex — feeds ChatGPT-via-Bing): ping every sitemap URL after each deploy.
+      # The key is public by design — ownership is proven by serving <key>.txt at the site root.
+      - name: Ping IndexNow with the sitemap URLs
+        run: |
+          KEY="dbe2858eedf5f5dcc7adbe01db6b120d"
+          URLS=$(grep -o '<loc>[^<]*</loc>' sitemap.xml | sed 's/<[^>]*>//g' | jq -R . | jq -sc .)
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" -X POST "https://api.indexnow.org/indexnow" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d "{\"host\":\"komyo.online\",\"key\":\"${KEY}\",\"urlList\":${URLS}}")
+          echo "IndexNow: HTTP ${HTTP} for $(echo "${URLS}" | jq length) URLs"
