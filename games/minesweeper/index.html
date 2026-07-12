@@ -131,7 +131,7 @@
   const diffDisplay = d => KIT.t('game.minesweeper.diff' + diffLabel(d), { def: diffLabel(d) });
   const fmtTime = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   const elapsedSec = () => playFrames / 60;
-  function bestTime(d) { const b = KIT ? KIT.best(SLUG, runLabel(d)) : null; return b && b.time > 0 ? b.time : 0; }
+  function bestTime(d) { const b = KIT ? KIT.best(SLUG, runLabel(d)) : null; return b && b.time > 0 ? b.time / 1000 : 0; }  // store keeps ms → seconds for display
 
   // ---- board skins (cosmetics) ----
   const SKINS = {
@@ -279,7 +279,7 @@
     state = 'over';
     const t = elapsedSec();
     const prevT = bestTime(diff);
-    if (KIT) KIT.saveBest(SLUG, runLabel(diff), didWin ? { score: revealed, time: t } : { score: revealed });
+    if (KIT) KIT.saveBest(SLUG, runLabel(diff), didWin ? { score: revealed, time: Math.round(t * 1000) } : { score: revealed });
     const isBest = didWin && (prevT === 0 || t < prevT);
     updateHud();
     setTimeout(() => showEnd(didWin, isBest, t), didWin ? 500 : 900); // let the board read first
@@ -608,7 +608,7 @@
     KIT.showMenuButton(false); KIT.showPauseButton(false);
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: didWin ? KIT.t('game.minesweeper.cleared', { def: 'BAY CLEARED!' }) : KIT.t('game.minesweeper.boom', { def: 'BOOM!' }),
-      record: didWin ? { slug: SLUG, mode: runLabel(diff), score: revealed, time: t } : { slug: SLUG, mode: runLabel(diff), score: revealed },
+      record: didWin ? { slug: SLUG, mode: runLabel(diff), score: revealed, time: Math.round(t * 1000) } : { slug: SLUG, mode: runLabel(diff), score: revealed },
       scoreText: didWin ? fmtTime(t) : String(revealed),
       best: didWin ? (bestTime(diff) > 0 ? fmtTime(bestTime(diff)) : '') : (KIT.bestScore(SLUG, runLabel(diff)) || ''),
       newBest: !!isBest,

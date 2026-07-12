@@ -93,12 +93,15 @@ section('minesweeper: clearing all safe tiles wins');
   const T = gs.T;
   T().start();
   T().plantMines([[0, 0], [8, 8]]);
+  T().step(180);                          // 3 s on the clock → the stored time must be 3000 ms
   for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++)
     if (!T().isMine(x, y) && T().state === 'playing') T().reveal(x, y);
   ok(T().state === 'over', 'all safe cells revealed → over');
   ok(T().won, 'clearing the board is a win');
   ok(T().isFlagged(0, 0) && T().isFlagged(8, 8), 'win auto-flags the remaining mines');
   ok(T().score === 79, 'win revealed all 79 safe cells (got ' + T().score + ')');
+  const pb = JSON.parse(gs.store['gamekit_pb'] || '{}').minesweeper || {};
+  ok(pb.Easy && pb.Easy.time === 3000, 'win time stored in ms (got ' + (pb.Easy && pb.Easy.time) + ', expected 3000)');
 }
 
 // ---- Relaxed ♥♥♥ ----
