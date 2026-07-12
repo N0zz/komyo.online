@@ -99,8 +99,8 @@ window.KOMYO_I18N.en = {
   'challenges.aGame': 'a game',
 
   // --- good-run bonus widget + end-menu receipts ---
-  'grb.head': 'Good-run bonus',
-  'grb.sub': '+{per} 🏆 each · {count}/{cap} today',
+  'grb.head': 'Good-run daily bonus',
+  'grb.sub': '+{per} 🏆 each',
   'grb.receipt': '✓ Good run · +{per} 🏆 ({count}/{cap} today)',
   'grb.maxed': '✓ Good run · daily 🏆 bonus maxed {cap}/{cap}',
   'grb.counts': '✓ Good run — counts toward today’s challenge',
