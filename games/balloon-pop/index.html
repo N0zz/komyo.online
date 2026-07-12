@@ -73,6 +73,8 @@
   let popCount = 0, fireworksSeen = 0, beeStings = 0;
   let timeLeft = PARTY_TIME, frame = 0, playFrames = 0, spawnT = 0, beeT = 0;
   let wind = 0, windT = 0, windNext = 900;    // rare gusts: strength (±), active frames, next-gust timer
+  let cloudDrift = 0;                         // accumulated so clouds don't snap when a gust ends
+  let streaks = [];                           // visible wind streak lines
   let shakeT = 0;
 
   const modeLabel = m => { m = m || mode; return m === 'party' ? 'Party' : m === 'zen' ? 'Zen' : 'Bees'; };
@@ -198,13 +200,25 @@
     if (shakeT > 0) shakeT--;
     // rare wind gusts (all modes) — balloons lean, strings swirl
     if (state === 'playing') {
-      if (windT > 0) { windT--; if (windT === 0) wind = 0; }
-      else if (--windNext <= 0) {
+      if (windT > 0) {
+        windT--; if (windT === 0) wind = 0;
+        cloudDrift += wind * 0.4;
+        // spawn the classic wind-streak lines while the gust blows
+        if (frame % 6 === 0 && streaks.length < 14) {
+          streaks.push({ x: wind > 0 ? -40 : W + 40, y: topMargin + 20 + Math.random() * (H - topMargin - 60),
+            v: wind * (3.5 + Math.random() * 2), len: 50 + Math.random() * 70, amp: 4 + Math.random() * 6, ph: Math.random() * 6, t: 0 });
+        }
+      } else if (--windNext <= 0) {
         wind = (Math.random() < 0.5 ? -1 : 1) * (1 + Math.random() * 1.1) * (W / 700);
         windT = 80 + Math.floor(Math.random() * 50);
         windNext = 700 + Math.floor(Math.random() * 500);
         SND.play('whoosh');
       }
+    }
+    for (let k = streaks.length - 1; k >= 0; k--) {
+      const s = streaks[k];
+      s.x += s.v; s.t++;
+      if (s.x < -s.len - 60 || s.x > W + s.len + 60) streaks.splice(k, 1);
     }
     for (let k = bits.length - 1; k >= 0; k--) {
       const p = bits[k];
@@ -404,14 +418,30 @@
       ctx.beginPath(); ctx.arc(W - 70, topMargin + 60, 34, 0, 7); ctx.fill();
       ctx.fillStyle = 'rgba(255,236,150,0.25)';
       ctx.beginPath(); ctx.arc(W - 70, topMargin + 60, 54 + Math.sin(frame * 0.03) * 5, 0, 7); ctx.fill();
-      // drifting clouds (wind speeds them up)
+      // drifting clouds (the gust drift ACCUMULATES so they never snap back when it ends)
       for (let k = 0; k < 4; k++) {
-        const cxp = ((k * 260 + frame * (0.2 + k * 0.06) + (windT > 0 ? frame * wind * 0.4 : 0)) % (W + 260) + (W + 260)) % (W + 260) - 130;
+        const cxp = ((k * 260 + frame * (0.2 + k * 0.06) + cloudDrift * (0.8 + k * 0.15)) % (W + 260) + (W + 260)) % (W + 260) - 130;
         const cyp = topMargin + 40 + k * (H - topMargin) * 0.2;
         ctx.fillStyle = 'rgba(255,255,255,0.75)';
         ctx.beginPath();
         ctx.arc(cxp, cyp, 26, 0, 7); ctx.arc(cxp + 26, cyp + 6, 20, 0, 7); ctx.arc(cxp - 26, cyp + 7, 18, 0, 7);
         ctx.fill();
+      }
+    }
+    // wind streak lines — the visual "whoosh" (wavy speed-lines riding the gust)
+    if (streaks.length) {
+      ctx.lineWidth = 2; ctx.lineCap = 'round';
+      for (const s of streaks) {
+        const fade = Math.min(1, s.t / 10) * (windT > 0 ? 1 : 0.5);
+        ctx.strokeStyle = 'rgba(255,255,255,' + (0.38 * fade) + ')';
+        ctx.beginPath();
+        const dir = s.v > 0 ? -1 : 1;
+        for (let i = 0; i <= 5; i++) {
+          const px = s.x + dir * (s.len * i / 5);
+          const py = s.y + Math.sin(s.ph + i * 0.9 + frame * 0.08) * s.amp;
+          i ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+        }
+        ctx.stroke();
       }
     }
     if (shakeT > 0) { ctx.save(); ctx.translate(Math.sin(frame * 1.7) * 3 * (shakeT / 12), 0); }
@@ -484,14 +514,16 @@
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
   }
 
-  function menuBackdrop(g, w, h, tt) {
+  function menuBackdrop(g, w, h, st, frame) {
+    const tt = (frame || 0) / 60;
     const bg = g.createLinearGradient(0, 0, 0, h);
     bg.addColorStop(0, '#9adcff'); bg.addColorStop(1, '#e2f6e8');
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
     const style = balloonStyle();
-    for (let k = 0; k < 6; k++) {
-      const r = 26 + (k % 3) * 12;
-      const bb = { x: (k * 167 + 60) % w, y: h - (((k * 211 + tt * 34) % (h + r * 4)) - r * 2), r, c: k % COLORS.length, wob: tt + k, pop: 0 };
+    for (let k = 0; k < 9; k++) {
+      const r = 30 + (k % 3) * 14;
+      const bb = { x: ((k * 149 + 50) % Math.max(1, w - r * 2)) + r + Math.sin(tt * 0.7 + k) * 10,
+        y: h + r * 2 - (((k * 223 + tt * 46) % (h + r * 5))), r, c: k % COLORS.length, wob: tt + k, pop: 0 };
       drawBalloon(g, bb, style);
     }
   }
@@ -519,7 +551,7 @@
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: KIT.t('game.balloon-pop.menuTitle', { def: 'BALLOON POP' }),
       groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
         choices: [
@@ -544,7 +576,7 @@
   function showEnd(isBest) {
     if (!KIT) return;
     KIT.showMenuButton(false); KIT.showPauseButton(false);
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: KIT.t('game.balloon-pop.end', { def: 'WHAT A PARTY!' }),
       record: { slug: SLUG, mode: modeLabel(mode), score, stats: { bestCombo, beeStings } },
       score, best, newBest: isBest,

@@ -465,7 +465,8 @@
     updateHud();
   }
 
-  function menuBackdrop(g, w, h, tt) {
+  function menuBackdrop(g, w, h, st, frame) {
+    const tt = (frame || 0) / 60;
     // backdrop-truth: reuse the REAL painters on a decorative mini board
     const S = skin();
     const grd = g.createLinearGradient(0, 0, 0, h);
@@ -511,7 +512,7 @@
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: KIT.t('game.minesweeper.menuTitle', { def: 'MINESWEEPER' }),
       groups: [{ id: 'diff', label: KIT.t('game.common.difficulty', { def: 'DIFFICULTY' }), style: 'cards', default: diff,
         choices: DIFF_ORDER.map(d => ({ id: d, label: diffDisplay(d),
@@ -521,7 +522,12 @@
       toggles: [{ id: 'relaxed', label: '♥♥♥ ' + KIT.t('game.minesweeper.relaxed', { def: 'Relaxed — 3 lives' }), default: relaxed }],
       hint: () => KIT.t('game.minesweeper.startHint', { def: 'Clear the bay without hitting a mine. First dig is always safe.' }),
       actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
-      onChange: st => { diff = st.diff; relaxed = !!st.relaxed; KIT.stampUrl({ diff: st.diff }); updateHud(); },
+      onChange: st => {
+        const prevRelaxed = relaxed;
+        diff = st.diff; relaxed = !!st.relaxed; KIT.stampUrl({ diff: st.diff }); updateHud();
+        // difficulty cards show per-variant best times — a Relaxed toggle must re-render them
+        if (relaxed !== prevRelaxed) showStartMenu();
+      },
       onPlay: st => { relaxed = !!st.relaxed; startGame(st.diff); },
     });
   }
@@ -537,7 +543,7 @@
   function showEnd(didWin, isBest, t) {
     if (!KIT) return;
     KIT.showMenuButton(false); KIT.showPauseButton(false);
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: didWin ? KIT.t('game.minesweeper.cleared', { def: 'BAY CLEARED!' }) : KIT.t('game.minesweeper.boom', { def: 'BOOM!' }),
       record: didWin ? { slug: SLUG, mode: runLabel(diff), score: revealed, time: t } : { slug: SLUG, mode: runLabel(diff), score: revealed },
       scoreText: didWin ? fmtTime(t) : String(revealed),

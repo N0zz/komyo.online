@@ -1556,13 +1556,22 @@
     'tower-defense.castle.oak':      { body: '#a87848', batt: '#8a5e34', gate: '#4a2e18' },
     'tower-defense.castle.sand':     { body: '#e8cc8a', batt: '#d8b968', gate: '#8a6a3a' },
     'tower-defense.castle.ice':      { body: '#cfeaff', batt: '#a8d4f0', gate: '#5a7a9a' },
-    'tower-defense.castle.obsidian': { body: '#2a2c38', batt: '#3a3d4e', gate: '#0e0f16' },
+    'tower-defense.castle.obsidian': { body: '#2a2c38', batt: '#3a3d4e', gate: '#0e0f16', nether: '#a06aff' },
   };
+  let netherT = 0; // nether-glow FX clock (view-only, ticks when the obsidian keep draws)
   function castleSkin() { const id = (KIT && KIT.cosmetics) ? KIT.cosmetics.selected('tower-defense.castle') : null; return CASTLE_SKINS[id] || CASTLE_SKINS['tower-defense.castle.stone']; }
 
   // Castle / keep at end — texture pass: per-stone jitter, AO, lit edge, warm gate
   function drawKeep(x, y, s) {
     const hw = s * 0.38, hh = s * 0.36, sk = castleSkin();
+    // Obsidian Citadel: a nether aura pulses behind the keep before anything else draws
+    if (sk.nether) {
+      netherT++;
+      const ng = ctx.createRadialGradient(x, y, s * 0.1, x, y, s * (0.75 + 0.08 * Math.sin(netherT * 0.05)));
+      ng.addColorStop(0, 'rgba(160,106,255,0.30)'); ng.addColorStop(1, 'rgba(160,106,255,0)');
+      ctx.fillStyle = ng;
+      ctx.beginPath(); ctx.arc(x, y, s * 0.9, 0, Math.PI * 2); ctx.fill();
+    }
     // soft cast shadow along the shared sun direction
     ctx.save();
     ctx.translate(x + s * 0.16, y + hh + s * 0.06); ctx.rotate(0.1);
@@ -1626,6 +1635,21 @@
     ctx.quadraticCurveTo(x + s * 0.12, y - hh - bh - s * 0.26, x + s * 0.18, y - hh - bh - s * 0.18);
     ctx.quadraticCurveTo(x + s * 0.1, y - hh - bh - s * 0.12, x, y - hh - bh - s * 0.08);
     ctx.fill();
+    // Obsidian Citadel: violet nether sparks drift up the glass walls + the gate glow shifts violet
+    if (sk.nether) {
+      for (let k = 0; k < 6; k++) {
+        const cyc = (netherT * (0.7 + (k % 3) * 0.3) + k * 37) % 70;
+        const px = x + Math.sin(k * 2.1 + netherT * 0.03) * hw * 0.9;
+        const py = y + hh - cyc * hh * 0.032;
+        const a = Math.max(0, 1 - cyc / 70);
+        ctx.fillStyle = 'rgba(160,106,255,' + (0.55 * a) + ')';
+        ctx.beginPath(); ctx.arc(px, py, s * 0.028 * (0.6 + a * 0.7), 0, Math.PI * 2); ctx.fill();
+      }
+      const vg = ctx.createRadialGradient(x, y + hh * 0.3, 0, x, y + hh * 0.3, s * 0.18);
+      vg.addColorStop(0, 'rgba(160,106,255,0.45)'); vg.addColorStop(1, 'rgba(160,106,255,0)');
+      ctx.fillStyle = vg;
+      ctx.fillRect(x - s * 0.18, y + hh * 0.05, s * 0.36, s * 0.4);
+    }
   }
 
   // ---- drawn towers (texture pass): a shared stone base that GROWS with the upgrade

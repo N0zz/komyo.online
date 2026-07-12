@@ -200,35 +200,36 @@
   }
   function shapePath(g, cx, cy, rr, shape) {
     if (shape === 'star') {
-      // plump 5-point star: soft quadratic valleys between the spikes
+      // classic clean 5-point star (screenshot-verified in the shape lab)
       g.beginPath();
-      for (let k = 0; k < 5; k++) {
-        const a = -Math.PI / 2 + k * (Math.PI * 2 / 5);
-        const nx = -Math.PI / 2 + (k + 1) * (Math.PI * 2 / 5);
-        const mid = (a + nx) / 2;
-        const ox = cx + Math.cos(a) * rr, oy = cy + Math.sin(a) * rr;
-        if (k === 0) g.moveTo(ox, oy); else g.lineTo(ox, oy);
-        g.quadraticCurveTo(cx + Math.cos(mid) * rr * 0.32, cy + Math.sin(mid) * rr * 0.32,
-          cx + Math.cos(nx) * rr, cy + Math.sin(nx) * rr);
+      for (let k = 0; k < 10; k++) {
+        const a = -Math.PI / 2 + k * Math.PI / 5, rad = k % 2 ? rr * 0.42 : rr;
+        const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
+        k ? g.lineTo(x, y) : g.moveTo(x, y);
       }
       g.closePath();
     } else if (shape === 'heart') {
-      // plump symmetric heart — lobes meet in a gentle dip, rounded tip
-      const hy = cy - rr * 0.08;
+      // canonical canvas heart, drawn in the 2rr box
+      const w = rr * 2, h = rr * 2, x0 = cx - rr, y0 = cy - rr;
       g.beginPath();
-      g.moveTo(cx, hy + rr * 0.78);
-      g.bezierCurveTo(cx - rr * 1.05, hy + rr * 0.12, cx - rr * 0.92, hy - rr * 0.78, cx, hy - rr * 0.3);
-      g.bezierCurveTo(cx + rr * 0.92, hy - rr * 0.78, cx + rr * 1.05, hy + rr * 0.12, cx, hy + rr * 0.78);
+      g.moveTo(x0 + w / 2, y0 + h * 0.32);
+      g.bezierCurveTo(x0 + w / 2, y0 + h * 0.24, x0 + w * 0.42, y0 + h * 0.06, x0 + w * 0.26, y0 + h * 0.06);
+      g.bezierCurveTo(x0 + w * 0.02, y0 + h * 0.06, x0, y0 + h * 0.35, x0, y0 + h * 0.35);
+      g.bezierCurveTo(x0, y0 + h * 0.55, x0 + w * 0.2, y0 + h * 0.76, x0 + w / 2, y0 + h * 0.94);
+      g.bezierCurveTo(x0 + w * 0.8, y0 + h * 0.76, x0 + w, y0 + h * 0.55, x0 + w, y0 + h * 0.35);
+      g.bezierCurveTo(x0 + w, y0 + h * 0.35, x0 + w * 0.98, y0 + h * 0.06, x0 + w * 0.74, y0 + h * 0.06);
+      g.bezierCurveTo(x0 + w * 0.58, y0 + h * 0.06, x0 + w / 2, y0 + h * 0.24, x0 + w / 2, y0 + h * 0.32);
       g.closePath();
     } else if (shape === 'diamond') {
       g.beginPath();
       g.moveTo(cx, cy - rr); g.lineTo(cx + rr * 0.72, cy); g.lineTo(cx, cy + rr); g.lineTo(cx - rr * 0.72, cy);
       g.closePath();
     } else if (shape === 'moon') {
-      // crescent: full disc minus an offset disc (opposite winding)
+      // exact crescent: outer arc of the rr disc + inner arc of an offset cutter — stays inside the box
       g.beginPath();
-      g.arc(cx, cy, rr, 0, Math.PI * 2);
-      g.arc(cx + rr * 0.5, cy - rr * 0.18, rr * 0.82, 0, Math.PI * 2, true);
+      g.arc(cx, cy, rr, 0.829, -0.829, false);
+      g.arc(cx + rr * 0.42, cy, rr * 0.78, -1.237, 1.237, true);
+      g.closePath();
     } else {
       g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2);
     }
@@ -311,22 +312,35 @@
     nextRound();
   }
 
-  function menuBackdrop(g, w, h, tt) {
+  function menuBackdrop(g, w, h, st, fframe) {
+    const tt = (fframe || 0) / 60;
     const bg = g.createLinearGradient(0, 0, 0, h);
     bg.addColorStop(0, '#0a2a20'); bg.addColorStop(1, '#051710');
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    // four glowing orbs breathing in sequence — the REAL pad look
-    const s = Math.min(w, h) / 6;
-    const lit = Math.floor(tt * 1.2) % 4;
-    for (let k = 0; k < 4; k++) {
-      const cx = w / 2 + (k % 2 ? s * 1.4 : -s * 1.4), cy = h * 0.42 + (k > 1 ? s * 1.4 : -s * 1.4);
+    // fireflies drift the whole glade
+    for (let k = 0; k < 12; k++) {
+      const fx = ((k * 131 + tt * 10 * (1 + k * 0.08)) % (w + 30)) - 15;
+      const fy = ((k * 83) % h) + Math.sin(tt * 1.6 + k) * 10;
+      g.fillStyle = 'rgba(220,240,160,' + (0.15 + 0.15 * Math.sin(tt * 3.5 + k * 1.7)) + ')';
+      g.beginPath(); g.arc(fx, fy, 1.8, 0, 7); g.fill();
+    }
+    // lantern columns hug the LEFT and RIGHT edges (the menu box owns the centre),
+    // breathing in sequence with the current pad shape — the REAL painters
+    const s = Math.max(30, Math.min(w, h) / 9);
+    const shape = padShape();
+    const lit = Math.floor(tt * 1.4) % 6;
+    for (let k = 0; k < 6; k++) {
+      const side = k % 2;                            // alternate left / right
+      const cx = side ? w - s * 0.95 : s * 0.95;
+      const cy = h * (0.14 + Math.floor(k / 2) * 0.34) + Math.sin(tt * 1.1 + k) * 5;
       const [base, glow] = PAD_COLORS[k];
       const on = k === lit;
-      if (on) { g.shadowColor = glow; g.shadowBlur = s * 0.6; }
+      if (on) { g.shadowColor = glow; g.shadowBlur = s * 0.7; }
       const grd = g.createRadialGradient(cx - s * 0.2, cy - s * 0.2, s * 0.05, cx, cy, s * 0.9);
       grd.addColorStop(0, on ? '#fff' : glow); grd.addColorStop(1, base);
       g.fillStyle = grd;
-      g.beginPath(); g.arc(cx, cy, s * (on ? 0.85 : 0.75), 0, 7); g.fill();
+      shapePath(g, cx, cy, s * (on ? 0.8 : 0.68), shape);
+      g.fill();
       g.shadowBlur = 0;
     }
   }
@@ -351,7 +365,7 @@
     state = 'ready'; phase = 'idle';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: KIT.t('game.glow-says.menuTitle', { def: 'GLOW SAYS' }),
       groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
         choices: [
@@ -375,7 +389,7 @@
   function showEnd(isBest) {
     if (!KIT) return;
     KIT.showMenuButton(false); KIT.showPauseButton(false);
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: round >= 8 ? KIT.t('game.glow-says.endGreat', { def: 'AMAZING MEMORY!' }) : KIT.t('game.glow-says.endNice', { def: 'NICE TUNE!' }),
       record: { slug: SLUG, mode: modeLabel(mode), score: round },
       score: round, best, newBest: isBest,

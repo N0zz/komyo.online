@@ -1196,8 +1196,22 @@
     window.__closePanelUrl = key => { if (openPanel === key) setPanelUrl(null); };
     if (window.gamekit && window.gamekit.sideStack) window.gamekit.sideStack({});
 
-    // live filter state, driven by the search box + the Filter ▾ dropdown
+    // live filter state, driven by the search box + the Filter ▾ dropdown.
+    // Chips/type/soon survive a game visit within the tab (sessionStorage) — "show me NEW,
+    // open a game, come back" keeps the filter. A fresh tab starts clean.
     const FILTER = { q: '', genres: new Set(), badges: new Set(), type: 'all', showSoon: true };
+    try {
+      const sf = JSON.parse(sessionStorage.getItem('komyo_filters') || 'null');
+      if (sf) {
+        (sf.g || []).forEach(x => FILTER.genres.add(x));
+        (sf.b || []).forEach(x => FILTER.badges.add(x));
+        if (sf.t) FILTER.type = sf.t;
+        if (typeof sf.s === 'boolean') FILTER.showSoon = sf.s;
+      }
+    } catch (e) {}
+    function saveFilters() {
+      try { sessionStorage.setItem('komyo_filters', JSON.stringify({ g: [...FILTER.genres], b: [...FILTER.badges], t: FILTER.type, s: FILTER.showSoon })); } catch (e) {}
+    }
     function passes(g) {
       if (!FILTER.showSoon && g.soon) return false;
       if (FILTER.genres.size && !tagsOf(g).some(t => FILTER.genres.has(t))) return false;
@@ -1359,6 +1373,7 @@
       const n = FILTER.genres.size + FILTER.badges.size + (FILTER.type !== 'all' ? 1 : 0) + (FILTER.showSoon ? 0 : 1);
       const b = document.getElementById('fcount');
       if (b) { if (n) { b.textContent = n; b.hidden = false; } else { b.hidden = true; } }
+      saveFilters();
     }
     function clearFilters() {
       FILTER.q = ''; FILTER.genres.clear(); FILTER.badges.clear(); FILTER.type = 'all'; FILTER.showSoon = true;

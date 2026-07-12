@@ -244,6 +244,36 @@
     rainbow: function (g) { var cols = ['#ff5b5b', '#ffd166', '#7fe0a0', '#7fd0ff', '#b98cff']; for (var i = 0; i < cols.length; i++) { g.strokeStyle = cols[i]; g.lineWidth = 2.2; g.beginPath(); g.moveTo(-12 + i * 1.4, 12 - i * 1.4); g.lineTo(5 + i * 0.4, -5 - i * 0.4); g.stroke(); } g.fillStyle = '#fff'; g.beginPath(); g.arc(7, -7, 3.4, 0, 7); g.fill(); },
     // terminal: a phosphor block (the live cursor is a blinking follower — see gamekit startTermCursor)
     terminal: function (g) { g.fillStyle = '#33ff88'; g.shadowColor = '#33ff88'; g.shadowBlur = 5; g.fillRect(-4, -9, 8, 17); g.shadowBlur = 0; },
+    // game-themed crosshairs
+    sonar: function (g) { // Minesweeper's cyan sonar ping
+      g.strokeStyle = '#35e0ff'; g.lineWidth = 1.6;
+      g.beginPath(); g.arc(0, 0, 11, 0, 7); g.stroke();
+      g.globalAlpha = 0.5; g.beginPath(); g.arc(0, 0, 6.5, 0, 7); g.stroke(); g.globalAlpha = 1;
+      g.beginPath();
+      [[0, -14, 0, -9], [0, 9, 0, 14], [-14, 0, -9, 0], [9, 0, 14, 0]].forEach(function (l) { g.moveTo(l[0], l[1]); g.lineTo(l[2], l[3]); });
+      g.stroke();
+      g.fillStyle = '#35e0ff'; g.beginPath(); g.arc(0, 0, 1.8, 0, 7); g.fill();
+    },
+    reticle: function (g) { // Range's amber mil-dot scope
+      g.strokeStyle = '#ffb35c'; g.lineWidth = 1.8;
+      g.beginPath(); g.arc(0, 0, 10, 0, 7); g.stroke();
+      g.beginPath(); g.moveTo(0, -15); g.lineTo(0, 15); g.moveTo(-15, 0); g.lineTo(15, 0); g.stroke();
+      g.fillStyle = '#ffb35c';
+      [[-6, 0], [6, 0], [0, -6], [0, 6]].forEach(function (p) { g.beginPath(); g.arc(p[0], p[1], 1.2, 0, 7); g.fill(); });
+    },
+    starfighter: function (g) { // Asteroids+ violet targeting brackets
+      g.strokeStyle = '#b98cff'; g.lineWidth = 2; g.lineCap = 'round';
+      for (var q = 0; q < 4; q++) {
+        var a = Math.PI / 4 + q * Math.PI / 2, x1 = Math.cos(a) * 12, y1 = Math.sin(a) * 12;
+        g.beginPath();
+        g.moveTo(x1 - Math.cos(a + Math.PI / 2) * 5, y1 - Math.sin(a + Math.PI / 2) * 5);
+        g.lineTo(x1, y1);
+        g.lineTo(x1 - Math.cos(a - Math.PI / 2) * 5, y1 - Math.sin(a - Math.PI / 2) * 5);
+        g.stroke();
+      }
+      g.fillStyle = '#e8dcff'; g.shadowColor = '#b98cff'; g.shadowBlur = 5;
+      g.beginPath(); g.arc(0, 0, 2, 0, 7); g.fill(); g.shadowBlur = 0;
+    },
   };
 
   // forcefield marker swatch — a glowing needle + triangle head over a faint track
@@ -338,6 +368,9 @@
   add('', 'cursor', 'comet',     'Neon Comet',    50,  'A glowing comet head with a neon tail.', cursorSwatch(CURSORS.comet, -1.5708));
   add('', 'cursor', 'rainbow',   'Rainbow Trail', 100, 'Leaves a shimmering rainbow wake as you move.', cursorSwatch(CURSORS.rainbow, -1.5708));
   add('', 'cursor', 'terminal',  'Terminal',      75,  'A blinking block cursor, like an old terminal prompt. Glows in your CRT colour when CRT mode is on.', cursorSwatch(CURSORS.terminal));
+  add('', 'cursor', 'sonar',       'Sonar Ping',      25, 'Minesweeper’s cyan sonar ring — sweep as you point.', cursorSwatch(CURSORS.sonar));
+  add('', 'cursor', 'reticle',     'Marksman Scope',  50, 'Range’s amber mil-dot reticle for steady aim.', cursorSwatch(CURSORS.reticle));
+  add('', 'cursor', 'starfighter', 'Starfighter Lock', 50, 'Asteroids+ targeting brackets, locked on.', cursorSwatch(CURSORS.starfighter));
 
   // ---- Site-wide — CRT display mode (ONE unlock; on/off + colour are free preferences after that) ----
   add('', 'fx', 'off', 'Standard', 0, 'No screen filter — the plain look.', function (g, w, h) {
@@ -380,7 +413,7 @@
   add('tower-defense', 'castle', 'oak',      'Oak Fort',          25,  'Timber walls, frontier spirit.', castle('#a87848', '#6a4a28'));
   add('tower-defense', 'castle', 'sand',     'Sandcastle',        50,  'Bucket-built, surprisingly sturdy.', castle('#e8cc8a', '#c8a45c', '#2a4a66'));
   add('tower-defense', 'castle', 'ice',      'Ice Keep',          50,  'Carved from a glacier, cold to the core.', castle('#cfeaff', '#8ac0e8', '#0e2233'));
-  add('tower-defense', 'castle', 'obsidian', 'Obsidian Citadel',  100, 'Black glass walls that drink the light.', castle('#22242e', '#0e0f16', '#1a1230'));
+  add('tower-defense', 'castle', 'obsidian', 'Obsidian Citadel',  200, 'Black glass walls wreathed in nether-fire.', castle('#22242e', '#0e0f16', '#1a1230'));
 
   // ---- 🫧 Bubble Pop — pop effects + shooter bases ----
   add('bubbles', 'pop', 'classic',   'Classic',   0,   'A clean, satisfying pop.', popDots('#9fe8ff'));
@@ -558,9 +591,10 @@
     tiles2048([['#e8dcc4', '#d9c9a8', '#4a3a26'], ['#c9a06a', '#b98a50', '#fff8ea'], ['#a05a2e', '#87461e', '#fff8ea'], ['#6b9439', '#527a22', '#fff8ea']]));
 
   // ---- 🐱 Trap the Cat — cat colours (simple cat-face swatch) ----
-  function catFace(body, belly, nose) {
+  function catFace(body, belly, nose, glow) {
     return function (g, w, h) {
       const s = Math.min(w, h) * 0.4, cx = w / 2, cy = h / 2 + s * 0.08;
+      if (glow) { g.shadowColor = glow; g.shadowBlur = s * 0.5; }
       g.fillStyle = body;
       g.beginPath(); g.moveTo(cx - s * 0.9, cy - s * 0.4); g.lineTo(cx - s * 0.65, cy - s * 1.25); g.lineTo(cx - s * 0.2, cy - s * 0.7); g.closePath(); g.fill();
       g.beginPath(); g.moveTo(cx + s * 0.9, cy - s * 0.4); g.lineTo(cx + s * 0.65, cy - s * 1.25); g.lineTo(cx + s * 0.2, cy - s * 0.7); g.closePath(); g.fill();
@@ -579,6 +613,8 @@
   add('trap-the-cat', 'cat', 'caramel', 'Caramel', 25, 'Sweet-toothed and sun-warmed.',     catFace('#c89a5a', '#e8c088', '#e06a6a'));
   add('trap-the-cat', 'cat', 'ginger', 'Ginger', 50,  'A marmalade menace on the run.',      catFace('#e08b3d', '#f2b571', '#e06a6a'));
   add('trap-the-cat', 'cat', 'snow',   'Snow',   100, 'Fluffy, elegant, and slippery.',       catFace('#e8e4ea', '#f7f4f8', '#f08aae'));
+  add('trap-the-cat', 'cat', 'ember',  'Ember Cat', 250, 'Wreathed in living flame — sparks follow every hop.', catFace('#3a1408', '#c8451a', '#ffd166', '#ff7a2a'));
+  add('trap-the-cat', 'cat', 'void',   'Void Cat',  500, 'A hole in the night, trailing violet wisps.',         catFace('#0c0a14', '#241c38', '#b48aff', '#8a5cff'));
 
   // ---- 🏮 Glow Says — pad shapes ----
   function glowPad(shape) {
@@ -591,22 +627,22 @@
       g.fillStyle = grd;
       if (shape === 'star') {
         g.beginPath();
-        for (let k = 0; k < 5; k++) {
-          const a = -Math.PI / 2 + k * (Math.PI * 2 / 5);
-          const nx = -Math.PI / 2 + (k + 1) * (Math.PI * 2 / 5);
-          const mid = (a + nx) / 2;
-          const ox = cx + Math.cos(a) * rr, oy = cy + Math.sin(a) * rr;
-          if (k === 0) g.moveTo(ox, oy); else g.lineTo(ox, oy);
-          g.quadraticCurveTo(cx + Math.cos(mid) * rr * 0.32, cy + Math.sin(mid) * rr * 0.32,
-            cx + Math.cos(nx) * rr, cy + Math.sin(nx) * rr);
+        for (let k = 0; k < 10; k++) {
+          const a = -Math.PI / 2 + k * Math.PI / 5, rad = k % 2 ? rr * 0.42 : rr;
+          const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
+          k ? g.lineTo(x, y) : g.moveTo(x, y);
         }
         g.closePath();
       } else if (shape === 'heart') {
-        const hy = cy - rr * 0.08;
+        const w2 = rr * 2, h2 = rr * 2, x0 = cx - rr, y0 = cy - rr;
         g.beginPath();
-        g.moveTo(cx, hy + rr * 0.78);
-        g.bezierCurveTo(cx - rr * 1.05, hy + rr * 0.12, cx - rr * 0.92, hy - rr * 0.78, cx, hy - rr * 0.3);
-        g.bezierCurveTo(cx + rr * 0.92, hy - rr * 0.78, cx + rr * 1.05, hy + rr * 0.12, cx, hy + rr * 0.78);
+        g.moveTo(x0 + w2 / 2, y0 + h2 * 0.32);
+        g.bezierCurveTo(x0 + w2 / 2, y0 + h2 * 0.24, x0 + w2 * 0.42, y0 + h2 * 0.06, x0 + w2 * 0.26, y0 + h2 * 0.06);
+        g.bezierCurveTo(x0 + w2 * 0.02, y0 + h2 * 0.06, x0, y0 + h2 * 0.35, x0, y0 + h2 * 0.35);
+        g.bezierCurveTo(x0, y0 + h2 * 0.55, x0 + w2 * 0.2, y0 + h2 * 0.76, x0 + w2 / 2, y0 + h2 * 0.94);
+        g.bezierCurveTo(x0 + w2 * 0.8, y0 + h2 * 0.76, x0 + w2, y0 + h2 * 0.55, x0 + w2, y0 + h2 * 0.35);
+        g.bezierCurveTo(x0 + w2, y0 + h2 * 0.35, x0 + w2 * 0.98, y0 + h2 * 0.06, x0 + w2 * 0.74, y0 + h2 * 0.06);
+        g.bezierCurveTo(x0 + w2 * 0.58, y0 + h2 * 0.06, x0 + w2 / 2, y0 + h2 * 0.24, x0 + w2 / 2, y0 + h2 * 0.32);
         g.closePath();
       } else if (shape === 'diamond') {
         g.beginPath();
@@ -614,8 +650,9 @@
         g.closePath();
       } else if (shape === 'moon') {
         g.beginPath();
-        g.arc(cx, cy, rr, 0, Math.PI * 2);
-        g.arc(cx + rr * 0.5, cy - rr * 0.18, rr * 0.82, 0, Math.PI * 2, true);
+        g.arc(cx, cy, rr, 0.829, -0.829, false);
+        g.arc(cx + rr * 0.42, cy, rr * 0.78, -1.237, 1.237, true);
+        g.closePath();
       } else {
         g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2);
       }

@@ -179,6 +179,22 @@ Every `cfg` key:
 | `backdrop` | fn(ctx,w,h,state,frame) | Animated/painted canvas behind a frosted box. `theme.scrim`/`theme.overlay` dims it. |
 | `backdropAnimate` | bool | Run `backdrop` every rAF frame (respects `prefers-reduced-motion` → static frame only). |
 
+**Backdrop contract (get these three right or the backdrop silently looks broken/missing):**
+
+1. **Signature is `(ctx, w, h, STATE, FRAME)`** — the 4th arg is the menu's selection state
+   object, NOT a time value. Doing math on it yields `NaN` coordinates and the painter draws
+   *nothing* (no error — canvas skips NaN geometry). Derive time from the 5th arg:
+   `const t = (frame || 0) / 60;` (seconds).
+2. **Pass `backdropAnimate: true`** on every `menu.show` that has a `backdrop` (start AND end)
+   or you get a single static frame. Pause menus take no backdrop at all (the frozen game is
+   the backdrop).
+3. **The menu box covers the CENTER of the screen** (~min(92vw, 560px) wide, most of the
+   height on desktop). Anything painted in the middle is invisible. Either TILE the whole
+   canvas (patterns, drifting objects across full w×h — minesweeper/2048 style) or hug the
+   LEFT/RIGHT EDGES with the hero content (glow-says lantern columns, trap-the-cat corner
+   cats). Screenshot at 1280×800 to verify — portrait phones show almost no backdrop, desktop
+   shows the sides.
+
 Notes:
 
 - `state` passed to callbacks = each group's current selection id merged with each toggle's boolean.
