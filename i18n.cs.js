@@ -381,7 +381,7 @@ window.KOMYO_I18N.cs = {
   'profile.cardPlays': 'Kola',
   'profile.cardDays': 'Dny',
   'form.netErr': 'Chyba sítě — zkuste to prosím znovu.',
-  'meta.title': 'Komyo Games',
+  'meta.title': 'Komyo Games — bezplatné webové hry, bez reklam',
   'meta.desc': 'Malý katalog bezplatných, samostatných webových her — Asteroids, tower defense, bublinová střílečka a další. Bez reklam, bez plateb, funguje offline.',
   'meta.ogTitle': 'Komyo Games — bezplatné webové hry',
   'meta.ogDesc': 'Malý katalog bezplatných, samostatných webových her. Bez reklam, bez plateb, funguje offline.',
