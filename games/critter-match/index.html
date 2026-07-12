@@ -318,17 +318,18 @@
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
   }
 
-  function menuBackdrop(g, w, h, tt) {
+  function menuBackdrop(g, w, h, st, frame) {
+    const tt = (frame || 0) / 60;
     const bg = g.createLinearGradient(0, 0, 0, h);
     bg.addColorStop(0, '#3a2415'); bg.addColorStop(1, '#241408');
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
     const set = critterSet();
-    const s = Math.max(40, Math.min(w, h) / 8);
-    for (let k = 0; k < 8; k++) {
-      const px = ((k * 199 + 30) % (w + s)) - s / 2;
-      const py = ((k * 293 + tt * 16) % (h + s * 2)) - s;
+    const s = Math.max(44, Math.min(w, h) / 7);
+    for (let k = 0; k < 12; k++) {
+      const px = ((k * 173 + 20) % Math.max(1, w - s)) + Math.sin(tt * 0.4 + k) * 6;
+      const py = ((k * 293 + tt * 30) % (h + s * 2)) - s;
       const open = k % 3 === 0;
-      g.globalAlpha = 0.5;
+      g.globalAlpha = 0.65;
       if (open) {
         g.fillStyle = '#fff8ec';
         KIT.roundRect(g, px, py, s, s * 1.25, s * 0.14); g.fill();
@@ -365,7 +366,7 @@
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: KIT.t('game.critter-match.menuTitle', { def: 'CRITTER MATCH' }),
       groups: [
         { id: 'mode', label: KIT.t('game.critter-match.boardLabel', { def: 'BOARD' }), style: 'cards', default: mode,
@@ -386,7 +387,12 @@
           ? KIT.t('game.critter-match.mpHint', { def: 'Pass & play: find a pair and go again — a miss hands the turn over. Most pairs wins!' })
           : KIT.t('game.critter-match.startHint', { def: 'Flip two cards — find the matching critters! Fewer flips, bigger score. You always win.' }),
       actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
-      onChange: st => { mode = st.mode; play = st.play || play; KIT.stampUrl({ mode: st.mode, play }); },
+      onChange: st => {
+        const prevPlay = play;
+        mode = st.mode; play = st.play || play; KIT.stampUrl({ mode: st.mode, play });
+        // the board cards show per-variant bests — a play-mode switch must re-render them
+        if (play !== prevPlay) showStartMenu();
+      },
       onPlay: st => { play = st.play || play; startGame(st.mode); },
     });
   }
@@ -408,7 +414,7 @@
         : KIT.t('game.critter-match.winner', { p: winners[0], def: 'Player {p} wins! 🏆' }));
       mpLines.push(pScores.map((s, i) => 'P' + (i + 1) + ' ' + s + '🐾').join(' · '));
     }
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: players > 1 ? KIT.t('game.critter-match.endMp', { def: 'ALL PAIRS FOUND!' }) : KIT.t('game.critter-match.end', { def: 'ALL FRIENDS FOUND!' }),
       record: { slug: SLUG, mode: runLabel(mode), score, time: play === 'speed' ? speedFrames / 60 : undefined, stats: { flips } },
       score: players > 1 ? undefined : score,

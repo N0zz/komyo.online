@@ -363,18 +363,19 @@
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
   }
 
-  function menuBackdrop(g, w, h, tt) {
+  function menuBackdrop(g, w, h, st, frame) {
+    const tt = (frame || 0) / 60;
     const S = skin();
     const grd = g.createLinearGradient(0, 0, 0, h);
     grd.addColorStop(0, S.bg0); grd.addColorStop(1, S.bg1);
     g.fillStyle = grd; g.fillRect(0, 0, w, h);
-    // drifting demo tiles drawn with the REAL tile painter
-    const vals = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048];
-    const s = Math.max(40, Math.min(w, h) / 9);
-    g.globalAlpha = 0.35;
-    for (let k = 0; k < 11; k++) {
-      const px = ((k * 173 + 40) % (w + s * 2)) - s + Math.sin(tt * 0.5 + k) * 8;
-      const py = ((k * 271 + tt * 12) % (h + s * 2)) - s;
+    // falling demo tiles drawn with the REAL tile painter, across the whole canvas
+    const vals = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4, 16, 64];
+    const s = Math.max(44, Math.min(w, h) / 8);
+    g.globalAlpha = 0.55;
+    for (let k = 0; k < 14; k++) {
+      const px = ((k * 167 + 30) % Math.max(1, w - s)) + Math.sin(tt * 0.5 + k) * 9;
+      const py = ((k * 331 + tt * 26) % (h + s * 2)) - s;
       drawTile(g, px, py, s, vals[k], S);
     }
     g.globalAlpha = 1;
@@ -400,7 +401,7 @@
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: '2048',
       groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
         choices: MODE_ORDER.map(m => ({ id: m, label: modeDisplay(m),
@@ -426,7 +427,7 @@
     if (isWin) actions.push({ id: 'continue', label: KIT.t('game.2048.keepGoing', { def: 'KEEP GOING' }), primary: true });
     actions.push({ id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: !isWin });
     actions.push({ id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) });
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: isWin ? KIT.t('game.2048.win', { def: 'YOU MADE 2048!' }) : KIT.t('game.common.gameOver', { def: 'GAME OVER' }),
       record: { slug: SLUG, mode: modeLabel(mode), score, stats: { maxTile } },
       score, best, newBest: isBest,

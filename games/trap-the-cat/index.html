@@ -229,6 +229,9 @@
     'trap-the-cat.cat.caramel': { body: '#c89a5a', belly: '#e8c088', ear: '#a87e42', nose: '#e06a6a' },
     'trap-the-cat.cat.ginger': { body: '#e08b3d', belly: '#f2b571', ear: '#c9752c', nose: '#e06a6a' },
     'trap-the-cat.cat.snow':   { body: '#e8e4ea', belly: '#f7f4f8', ear: '#d5cfd8', nose: '#f08aae' },
+    // premium: glow aura + particle FX drawn around the cat (deterministic, frame-driven)
+    'trap-the-cat.cat.ember':  { body: '#3a1408', belly: '#c8451a', ear: '#2a0e05', nose: '#ffd166', glow: '#ff7a2a', fx: 'ember' },
+    'trap-the-cat.cat.void':   { body: '#0c0a14', belly: '#241c38', ear: '#080610', nose: '#b48aff', glow: '#8a5cff', fx: 'void' },
   };
   function catSkin() {
     const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('trap-the-cat.cat') : null;
@@ -337,7 +340,30 @@
       const f = cellCenter(hop.fx, hop.fy), to = cellCenter(hop.tx, hop.ty);
       cx = f.px + (to.px - f.px) * e; cy = f.py + (to.py - f.py) * e - Math.sin(t * Math.PI) * r * 0.8;
     } else { const c = cellCenter(cat.x, cat.y); cx = c.px; cy = c.py; }
+    // premium coats: glow aura + particles (pure functions of frame — no stored state)
+    if (S.glow) { ctx.save(); ctx.shadowColor = S.glow; ctx.shadowBlur = r * 0.6; }
     drawCat(ctx, cx, cy, r, S, state === 'over' && won ? 'trapped' : 'calm');
+    if (S.glow) ctx.restore();
+    if (S.fx === 'ember') {
+      for (let k = 0; k < 8; k++) {
+        const cyc = (frame * (1.1 + (k % 3) * 0.35) + k * 43) % 60;
+        const px = cx + Math.sin(k * 2.4 + frame * 0.05) * r * 0.7;
+        const py = cy + r * 0.5 - cyc * r * 0.035;
+        const a = Math.max(0, 1 - cyc / 60);
+        ctx.fillStyle = k % 2 ? 'rgba(255,122,42,' + (0.7 * a) + ')' : 'rgba(255,209,102,' + (0.6 * a) + ')';
+        ctx.beginPath(); ctx.arc(px, py, r * 0.07 * (0.6 + a * 0.6), 0, 7); ctx.fill();
+      }
+    } else if (S.fx === 'void') {
+      for (let k = 0; k < 6; k++) {
+        const a2 = frame * 0.03 * (k % 2 ? 1 : -1) + k * 1.05;
+        const rr2 = r * (0.95 + 0.18 * Math.sin(frame * 0.04 + k));
+        const px = cx + Math.cos(a2) * rr2, py = cy + Math.sin(a2) * rr2 * 0.7;
+        ctx.fillStyle = 'rgba(138,92,255,' + (0.3 + 0.25 * Math.sin(frame * 0.08 + k * 2)) + ')';
+        ctx.beginPath(); ctx.arc(px, py, r * 0.09, 0, 7); ctx.fill();
+        ctx.fillStyle = 'rgba(180,138,255,0.18)';
+        ctx.beginPath(); ctx.arc(px, py, r * 0.16, 0, 7); ctx.fill();
+      }
+    }
     // kitten nap bubble
     if (napT > 0) {
       ctx.font = '700 ' + Math.round(r * 0.8) + 'px system-ui'; ctx.textAlign = 'center';
@@ -379,19 +405,32 @@
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
   }
 
-  function menuBackdrop(g, w, h, tt) {
+  function menuBackdrop(g, w, h, st, fframe) {
+    const tt = (fframe || 0) / 60;
     const bg = g.createLinearGradient(0, 0, 0, h);
     bg.addColorStop(0, '#241521'); bg.addColorStop(1, '#171016');
     g.fillStyle = bg; g.fillRect(0, 0, w, h);
-    const rad = Math.max(22, Math.min(w, h) / 14);
-    g.globalAlpha = 0.55;
-    // a hex ring of hedges with the cat inside — REAL painters
-    const cxp = w / 2, cyp = h * 0.42;
-    for (let k = 0; k < 6; k++) {
-      const a = k * Math.PI / 3 + Math.sin(tt * 0.3) * 0.02;
-      drawHedge(g, cxp + Math.cos(a) * rad * 2.3, cyp + Math.sin(a) * rad * 2.3, rad * 0.9);
+    // faint hex field tiles the WHOLE canvas (the centre is covered by the menu box —
+    // everything the eye should catch lives near the edges)
+    const rad = Math.max(20, Math.min(w, h) / 16);
+    g.strokeStyle = 'rgba(240,166,200,0.10)'; g.lineWidth = 1;
+    const cols = Math.ceil(w / (rad * 2)) + 1, rows = Math.ceil(h / (rad * 1.74)) + 1;
+    for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++)
+      { hexPath(g, x * rad * 2 + (y & 1 ? rad : 0), y * rad * 1.74, rad * 0.9); g.stroke(); }
+    // fireflies
+    for (let k = 0; k < 10; k++) {
+      const fx = ((k * 149 + tt * 14 * (1 + k * 0.1)) % (w + 30)) - 15;
+      const fy = ((k * 97) % h) + Math.sin(tt * 1.2 + k) * 10;
+      g.fillStyle = 'rgba(240,220,140,' + (0.25 + 0.2 * Math.sin(tt * 3 + k * 2)) + ')';
+      g.beginPath(); g.arc(fx, fy, 2, 0, 7); g.fill();
     }
-    drawCat(g, cxp, cyp + Math.sin(tt * 1.4) * 4, rad, catSkin(), 'calm');
+    // hedge clusters hugging the left and right edges + a cat peeking from each lower corner
+    g.globalAlpha = 0.85;
+    const edgeX = [rad * 1.2, w - rad * 1.2];
+    for (const ex of edgeX) for (let k = 0; k < 4; k++)
+      drawHedge(g, ex + Math.sin(k * 2.1) * rad * 0.5, h * (0.12 + k * 0.24), rad * 0.95);
+    drawCat(g, rad * 2.4, h - rad * 2 + Math.sin(tt * 1.4) * 4, rad * 1.2, catSkin(), 'calm');
+    drawCat(g, w - rad * 2.4, h - rad * 2 + Math.sin(tt * 1.4 + 2) * 4, rad * 1.2, catSkin(), 'calm');
     g.globalAlpha = 1;
   }
 
@@ -412,7 +451,7 @@
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
-    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: KIT.t('game.trap-the-cat.menuTitle', { def: 'TRAP THE CAT' }),
       groups: [{ id: 'diff', label: KIT.t('game.common.difficulty', { def: 'DIFFICULTY' }), style: 'cards', default: diff,
         choices: DIFF_ORDER.map(d => ({ id: d, label: diffDisplay(d),
@@ -436,7 +475,7 @@
   function showEnd(isBest) {
     if (!KIT) return;
     KIT.showMenuButton(false); KIT.showPauseButton(false);
-    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: won ? KIT.t('game.trap-the-cat.win', { def: 'CORNERED! 😸' }) : KIT.t('game.trap-the-cat.lose', { def: 'THE CAT ESCAPED!' }),
       record: { slug: SLUG, mode: diffLabel(diff), score, stats: { clicks } },
       score, best, newBest: isBest,

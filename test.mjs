@@ -1023,8 +1023,8 @@ function testCosmetics() {
     const items = R.items || [];
     ok(items.length >= 60, 'launch catalogue present (' + items.length + ' items)');
     const seen = new Set(), dups = [], bad = [], sets = {};
-    const BANDS = new Set([0, 10, 25, 50, 75, 100, 150, 250, 500]); // 150/250/500 = flagged exceptions (flappy bird tail, site CRT unlock)
-    const OVER100_OK = new Set(['flappy.bird', 'site.fx']); // sets allowed to exceed 🏆100
+    const BANDS = new Set([0, 10, 25, 50, 75, 100, 150, 200, 250, 500]); // >100 = the premium tier (flagged sets only)
+    const OVER100_OK = new Set(['flappy.bird', 'site.fx', 'trap-the-cat.cat', 'tower-defense.castle']); // sets allowed a premium (>🏆100) item
     for (const it of items) {
       if (seen.has(it.id)) dups.push(it.id); seen.add(it.id);
       if (!it.name || !it.desc || typeof it.painter !== 'function') bad.push(it.id + ' (name/desc/painter)');
