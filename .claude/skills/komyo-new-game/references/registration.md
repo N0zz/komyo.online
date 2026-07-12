@@ -115,6 +115,28 @@ the coverage scanner can't see** (built by concatenation in `game-kit.js`), so a
 is *silent English*, not a red test — add `challenge.goal.flood-1` / `challenge.goal.flood-2` keys to
 `i18n.pl.js` (and the other locale files) yourself (§9).
 
+### 2b½. `playable` + `playableSince` `[MANDATORY]` — and the mid-day-push trap
+
+Add the slug to `CHALLENGES.playable` (games.js order, test-enforced) and an entry to
+`CHALLENGES.playableSince`:
+
+```js
+playableSince: { …, floodgate: '2026-07-10' },
+```
+
+**`playableSince` = the PUBLIC go-live date (the day the game is PUSHED), never the local build
+date.** The kit freezes the daily/weekly rotations per period and only admits a game's goals +
+random-pick slot from the period **after** this date (strictly-before comparison in
+`chPickAt`) — that is what stops a mid-day push from re-rolling a daily challenge players
+already saw that morning. Two rules follow:
+
+1. If you build a game one day and push it the next, **update `playableSince` to the push day**
+   before pushing.
+2. New goal ids may be appended to the `daily` pool freely — the since-freeze keeps them out of
+   the current period. (The 2026-07-12 six-game batch shipped with a same-day `<=` comparison
+   and a stale date and swapped everyone's daily mid-morning; the strict `<` + push-date rule is
+   the fix.)
+
 ### 2c. Titles ladder + `randomSlug` `[AUTOMATIC — do not touch]`
 
 `CHALLENGES.titles`, `titleFor`, and `randomSlug` are global machinery. A new game needs **no**

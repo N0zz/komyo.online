@@ -189,7 +189,9 @@ Games alias the API once: `const KIT = window.gamekit;`.
   daily/weekly rotations, **`goodRun` per-game bars (every live game needs one or it silently never
   earns good runs)**, the `titles` ladder, `randomSlug`, and **`playable` + `playableSince`** (the
   canonical random-pick pool, mirrored from games.js — test-enforced; a new live game adds its slug
-  IN games.js ORDER + its `added` date, or random picks desync between game and catalogue).
+  IN games.js ORDER + its **public go-live (push) date** — never a local build date. The kit admits
+  a game's goals/random slot only from the period AFTER `playableSince` (strict `<`), so a mid-day
+  push never re-rolls a daily/weekly pick players already saw).
 - **Cosmetics / trophies (kit-owned, data in `cosmetics.js`):** challenge points are **trophies 🏆**
   everywhere player-facing. TWO metrics: **lifetime** (Σ `gamekit_done`, drives titles) and the
   **spendable balance** (lifetime − Σ owned costs, derived not stored). `gamekit.cosmetics` →
