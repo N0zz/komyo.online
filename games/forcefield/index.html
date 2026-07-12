@@ -296,6 +296,7 @@
     verdant: ['#2f8a5a', '#1a5636', '#08210f', 'rgba(150,255,190,0.32)', '#4ee6a0', '#ffb84d'],
     amber:   ['#c39433', '#7a5a1e', '#241706', 'rgba(255,220,140,0.32)', '#ffd36b', '#ff6ec7'],
     violet:  ['#7a46b8', '#4a2680', '#180a2e', 'rgba(210,160,255,0.34)', '#c99cff', '#4ee6a0'],
+    nova:    ['#d84a6a', '#8a2038', '#2e0a14', 'rgba(255,150,170,0.35)', '#ff6b8f', '#ffd36b'],
   };
   function planetSkin() { const id = KIT.cosmetics ? KIT.cosmetics.selected('forcefield.planet') : null; return PLANET_SKINS[(id || '').split('.').pop()] || PLANET_SKINS.azure; }
   function laneAccent(i) { const sk = planetSkin(); return (isDouble() && i === 1) ? sk[5] : sk[4]; }
