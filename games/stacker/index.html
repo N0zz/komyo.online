@@ -351,7 +351,7 @@
         { id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: selectedMode, choices: [
           { id: 'classic', label: modeName('classic'),    mech: [KIT.t('game.stacker.mech.endless', { def: 'Endless' }), KIT.t('game.stacker.mech.highScore', { def: 'High score' })], best: () => getBest('classic'), preview: (g, w, h, st) => pvMode(g, w, h, 'classic', st) },
           { id: 'time',    label: modeName('time'), mech: [KIT.t('game.stacker.mech.sixtySeconds', { def: '60 seconds' })],            best: () => getBest('time'),    preview: (g, w, h, st) => pvMode(g, w, h, 'time', st) },
-          { id: 'zen',     label: modeName('zen'),         mech: [KIT.t('game.stacker.mech.slow', { def: 'Slow' }), KIT.t('game.stacker.mech.forgiving', { def: 'Forgiving' })],     best: () => getBest('zen'),     preview: (g, w, h, st) => pvMode(g, w, h, 'zen', st) },
+          { id: 'zen',     kid: true, label: modeName('zen'),         mech: [KIT.t('game.stacker.mech.slow', { def: 'Slow' }), KIT.t('game.stacker.mech.forgiving', { def: 'Forgiving' })],     best: () => getBest('zen'),     preview: (g, w, h, st) => pvMode(g, w, h, 'zen', st) },
         ] },
         { id: 'theme', label: KIT.t('game.stacker.themeLabel', { def: 'THEME' }), default: theme, choices: [ { id: 'light', label: KIT.t('game.stacker.themeLight', { def: 'Light' }) }, { id: 'dark', label: KIT.t('game.stacker.themeDark', { def: 'Dark' }) } ] },
       ],

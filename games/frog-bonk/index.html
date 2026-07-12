@@ -1966,14 +1966,14 @@
           { id: 'endless', label: t('game.frog-bonk.modeEndless', { def: 'Endless' }),
             mech: [t('game.frog-bonk.mechRamps', { def: 'Ramps up' }), t('game.frog-bonk.mechScoreChase', { def: 'Score chase' })],
             best: st => loadBest('endless', st.diff), preview: (g, w, h) => pvScene(g, w, h, 9, true) },
-          { id: 'zen', label: t('game.frog-bonk.modeZen', { def: 'Zen' }),
+          { id: 'zen', kid: true, label: t('game.frog-bonk.modeZen', { def: 'Zen' }),
             mech: [t('game.frog-bonk.mechNoLose', { def: 'No losing' }), t('game.frog-bonk.mechChill', { def: 'Chill bonks' })],
             best: () => loadBest('zen'), preview: pvZen },
         ] },
         // Zen ignores difficulty entirely (invulnerable castle, fixed gentle spawn) — gray the
         // selector out there instead of letting the player pick a knob that does nothing.
         { id: 'diff', label: t('game.frog-bonk.diffLabel', { def: 'DIFFICULTY' }), default: diff, disabled: st => st.mode === 'zen', choices: [
-          { id: 'easy', label: diffDisplay('easy') },
+          { id: 'easy', kid: true, label: diffDisplay('easy') },
           { id: 'medium', label: diffDisplay('medium') },
           { id: 'hard', label: diffDisplay('hard') },
         ] },

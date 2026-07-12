@@ -671,8 +671,8 @@
       backdrop: (g, w, h, st) => menuMapRender(g, w, h, MAPS[parseInt((st && st.map) || mapIndex, 10) || 0]),
       groups: [
         { id: 'map', label: KIT.t('game.tower-defense.mapLabel', { def: 'MAP' }), style: 'popup', pickerTitle: KIT.t('game.tower-defense.chooseMap', { def: 'CHOOSE A MAP' }), default: String(mapIndex),
-          choices: MAPS.map((m, i) => ({ id: String(i), label: mapName(i), desc: mapDesc(i), best: st => getMapBest(i, st.diff).score, pvW: 210, pvH: 110, preview: (g, w, h) => menuMapRender(g, w, h, m) })) },
-        { id: 'diff', label: KIT.t('game.tower-defense.diffLabel', { def: 'DIFFICULTY' }), style: 'slider', default: diffLevel, choices: [ { id: 'easy', label: diffLabel('easy') }, { id: 'medium', label: diffLabel('medium') }, { id: 'hard', label: diffLabel('hard') } ] },
+          choices: MAPS.map((m, i) => ({ id: String(i), kid: i === 0, label: mapName(i), desc: mapDesc(i), best: st => getMapBest(i, st.diff).score, pvW: 210, pvH: 110, preview: (g, w, h) => menuMapRender(g, w, h, m) })) },
+        { id: 'diff', label: KIT.t('game.tower-defense.diffLabel', { def: 'DIFFICULTY' }), style: 'slider', default: diffLevel, choices: [ { id: 'easy', kid: true, label: diffLabel('easy') }, { id: 'medium', label: diffLabel('medium') }, { id: 'hard', label: diffLabel('hard') } ] },
       ],
       actions: [{ id: 'play', label: KIT.t('game.tower-defense.defend', { def: 'Defend' }), primary: true }],
       hint: () => KIT.t('game.tower-defense.hint', { def: 'Build towers on grass · tap a tower to upgrade, sell or set targeting.' }),

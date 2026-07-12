@@ -578,11 +578,11 @@
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: KIT.t('game.minesweeper.menuTitle', { def: 'MINESWEEPER' }),
       groups: [{ id: 'diff', label: KIT.t('game.common.difficulty', { def: 'DIFFICULTY' }), style: 'cards', default: diff,
-        choices: DIFF_ORDER.map(d => ({ id: d, label: diffDisplay(d),
+        choices: DIFF_ORDER.map(d => ({ id: d, kid: d === 'easy', label: diffDisplay(d),
           mech: [DIFFS[d].a + '×' + DIFFS[d].b + ' · ' + DIFFS[d].mines + ' 💣'],
           best: () => { const t = bestTime(d); return t > 0 ? fmtTime(t) : ''; },
           preview: (g, w, h) => pvBoard(g, w, h, Math.min(12, DIFFS[d].a), 0.5 + 0.2 * DIFF_ORDER.indexOf(d)) })) }],
-      toggles: [{ id: 'relaxed', label: '♥♥♥ ' + KIT.t('game.minesweeper.relaxed', { def: 'Relaxed — 3 lives' }), default: relaxed }],
+      toggles: [{ id: 'relaxed', kid: true, label: '♥♥♥ ' + KIT.t('game.minesweeper.relaxed', { def: 'Relaxed — 3 lives' }), default: relaxed }],
       hint: () => KIT.t('game.minesweeper.startHint', { def: 'Clear the bay without hitting a mine. First dig is always safe.' }),
       actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
       onChange: st => {

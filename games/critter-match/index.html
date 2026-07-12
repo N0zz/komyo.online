@@ -405,13 +405,13 @@
       title: KIT.t('game.critter-match.menuTitle', { def: 'CRITTER MATCH' }),
       groups: [
         { id: 'mode', label: KIT.t('game.critter-match.boardLabel', { def: 'BOARD' }), style: 'cards', default: mode,
-          choices: MODE_ORDER.map(m => ({ id: m, label: modeDisplay(m),
+          choices: MODE_ORDER.map(m => ({ id: m, kid: m === 'small', label: modeDisplay(m),
             mech: [MODES[m].pairs + ' 🐾'],
             best: () => loadBest(m) || '',
             preview: (g, w, h) => pvGridCards(MODES[m].pairs)(g, w, h) })) },
         { id: 'play', label: KIT.t('game.critter-match.playLabel', { def: 'PLAYERS' }), default: play,
           choices: [
-            { id: 'solo',  label: KIT.t('game.critter-match.solo', { def: 'Solo' }) },
+            { id: 'solo',  kid: true, label: KIT.t('game.critter-match.solo', { def: 'Solo' }) },
             { id: 'p2',    label: '2P' }, { id: 'p3', label: '3P' }, { id: 'p4', label: '4P' },
             { id: 'speed', label: '⏱ ' + KIT.t('game.critter-match.speedrun', { def: 'Speedrun' }) },
           ] },

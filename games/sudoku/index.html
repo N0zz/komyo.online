@@ -1248,10 +1248,10 @@
       title: KIT.t('game.sudoku.menuTitle', { def: 'SUDOKU' }),
       groups: [
         { id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), default: gameMode,
-          choices: ['classic', 'daily', 'zen'].map(m => ({ id: m, label: modeDisplay(m) })) },
+          choices: ['classic', 'daily', 'zen'].map(m => ({ id: m, kid: m === 'zen', label: modeDisplay(m) })) },
         { id: 'diff', label: KIT.t('game.sudoku.diffLabel', { def: 'DIFFICULTY' }), default: DIFFS[band - 1],
           disabled: st => st.mode === 'daily',
-          choices: DIFFS.map((d, k) => ({ id: d, label: diffDisplay(k + 1) })) },
+          choices: DIFFS.map((d, k) => ({ id: d, kid: k === 0, label: diffDisplay(k + 1) })) },
       ],
       hint: st => {
         if (st.mode === 'daily') {

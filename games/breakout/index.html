@@ -323,11 +323,11 @@
     menuReshow = showStartMenu;
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.breakout.menuTitle', { def: 'BRICK BREAKER' }), backdrop: menuBackdrop,
       groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: gameMode, choices: [
-        { id: 'classic', label: modeDisplay('classic'), mech: [KIT.t('game.breakout.mechLevels', { def: 'Levels' }), KIT.t('game.breakout.mechClearAdvance', { def: 'Clear to advance' })], best: () => loadBest('classic'), preview: (g, w, h) => pvBrick(g, w, h, 3) },
+        { id: 'classic', kid: true, label: modeDisplay('classic'), mech: [KIT.t('game.breakout.mechLevels', { def: 'Levels' }), KIT.t('game.breakout.mechClearAdvance', { def: 'Clear to advance' })], best: () => loadBest('classic'), preview: (g, w, h) => pvBrick(g, w, h, 3) },
         { id: 'endless', label: modeDisplay('endless'), mech: [KIT.t('game.breakout.mechRowsDrop', { def: 'Rows drop in' }), KIT.t('game.breakout.mechScoreChase', { def: 'Score chase' })], best: () => loadBest('endless'), preview: (g, w, h) => pvBrick(g, w, h, 4) },
         { id: 'survival', label: modeDisplay('survival'), mech: [KIT.t('game.breakout.mechWallDescends', { def: 'Wall descends' }), KIT.t('game.breakout.mechBeatBack', { def: 'Beat it back' })], best: () => loadBest('survival'), preview: (g, w, h) => pvBrick(g, w, h, 5) },
       ] }],
-      toggles: [{ id: 'speed2x', label: KIT.t('game.breakout.speed2x', { def: '2× speed' }), caption: KIT.t('game.breakout.speed2xCaption', { def: 'faster ball & paddle' }), default: loadSpeedPref() }],
+      toggles: [{ id: 'speed2x', kid: false, label: KIT.t('game.breakout.speed2x', { def: '2× speed' }), caption: KIT.t('game.breakout.speed2xCaption', { def: 'faster ball & paddle' }), default: loadSpeedPref() }],
       actions: [{ id: 'play', label: KIT.t('game.breakout.insertCoin', { def: 'INSERT COIN' }), primary: true }],
       hint: st => { const d = MODE_DESCS[st.mode]; return d ? KIT.t('game.breakout.desc' + modeLabel(st.mode), { def: d }) : ''; },
       onChange: st => { gameMode = st.mode; setSpeed(st.speed2x); KIT.stampUrl(modeParams(st)); },

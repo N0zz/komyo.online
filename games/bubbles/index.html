@@ -328,9 +328,9 @@
       groups:[{ id:'mode', label:KIT.t('game.common.modeLabel', { def:'MODE' }), style:'cards', default: mode, choices:[
         { id:'arcade',  label:KIT.t('game.bubbles.modeArcade', { def:'ARCADE' }),  preview:pvArcade,  mech:[KIT.t('game.bubbles.mechArcade1', { def:'Clear to advance' }),KIT.t('game.bubbles.mechArcade2', { def:'Grid descends' })], best:()=>bestFor('arcade') },
         { id:'endless', label:KIT.t('game.bubbles.modeEndless', { def:'ENDLESS' }), preview:pvEndless, mech:[KIT.t('game.bubbles.mechEndless1', { def:'Endless' }),KIT.t('game.bubbles.mechEndless2', { def:'Rows push in' })],           best:()=>bestFor('endless') },
-        { id:'zen',     label:KIT.t('game.bubbles.modeZen', { def:'ZEN' }),     preview:pvZen,     mech:[KIT.t('game.bubbles.mechZen1', { def:'No fail' }),KIT.t('game.bubbles.mechZen2', { def:'No descent' })],              best:()=>bestFor('zen') },
+        { id:'zen',     kid:true, label:KIT.t('game.bubbles.modeZen', { def:'ZEN' }),     preview:pvZen,     mech:[KIT.t('game.bubbles.mechZen1', { def:'No fail' }),KIT.t('game.bubbles.mechZen2', { def:'No descent' })],              best:()=>bestFor('zen') },
       ]}],
-      toggles:[{ id:'timed', label:KIT.t('game.bubbles.timedToggle', { def:'Time-based descent' }), caption:KIT.t('game.bubbles.timedCaption', { def:'— drops on a clock, not per shot' }), default: timeDescent, disabled: st => st.mode === 'zen' }],
+      toggles:[{ id:'timed', kid:false, label:KIT.t('game.bubbles.timedToggle', { def:'Time-based descent' }), caption:KIT.t('game.bubbles.timedCaption', { def:'— drops on a clock, not per shot' }), default: timeDescent, disabled: st => st.mode === 'zen' }],
       hint: st => MODE_HINT(st.mode) + (st.timed && st.mode !== 'zen' ? KIT.t('game.bubbles.timedSuffix', { def:' · timed' }) : ''),
       actions:[{ id:'play', label:KIT.t('game.common.play', { def:'PLAY ▶' }), primary:true }],
       onChange: st => { KIT.stampUrl(modeParams(st)); },
