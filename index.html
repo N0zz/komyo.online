@@ -466,8 +466,17 @@
   .chip.on { color:var(--text); border-color:var(--c,var(--accent)); background:color-mix(in srgb, var(--c,var(--accent)) 16%, var(--surface-2));
     box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--c,var(--accent)) 45%, transparent); }
   .chip:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-  .filter-clear { display:inline-block; margin-top:10px; font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--faint); }
-  .filter-clear:hover { color:#9fe8ff; }
+  /* Hold-to-clear: a full-width button whose background fills left→right (--p 0..1)
+     while held; releasing early cancels — deliberate friction instead of a confirm modal. */
+  .filter-clear { display:block; width:100%; margin-top:12px; padding:9px 12px; text-align:center;
+    font-family:var(--mono); font-size:11px; letter-spacing:1px; color:var(--faint);
+    background:linear-gradient(90deg, color-mix(in srgb, #ff6b6b 30%, var(--surface-2)) calc(var(--p,0)*100%), var(--surface-2) 0);
+    border:1px solid var(--border); border-radius:10px; cursor:pointer;
+    user-select:none; -webkit-user-select:none; touch-action:manipulation;
+    transition:color .15s, border-color .15s; }
+  .filter-clear:hover { color:#ffb4b4; border-color:color-mix(in srgb, #ff6b6b 45%, var(--border)); }
+  .filter-clear.holding { color:#fff; }
+  .filter-clear:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   /* narrow screens: a 230px panel anchored to the centered button overflows the left edge —
      pin it to the viewport with margins and let the long genre list scroll. */
   @media (max-width: 560px) {
@@ -657,7 +666,7 @@
             <div class="fh" data-t="cat.fhGenre">Genre</div>
             <div id="genreList"></div>
             <label class="fchk"><input type="checkbox" id="showSoon" checked> <span data-t="cat.showSoon">Show coming soon</span></label>
-            <a href="#" class="filter-clear" id="filterClear" data-t="cat.clearFilters">Clear filters</a>
+            <button type="button" class="filter-clear" id="filterClear" data-t="cat.holdClearFilters">Hold to clear filters</button>
           </div>
         </div>
         <button class="ibtn" id="randomBtn" type="button" title="Play a random game (prefers ones you haven't tried)" data-tt="cat.randomTitle" data-t="cat.random">🎲 Random</button>
@@ -1474,7 +1483,29 @@
         }
       } catch (e) {}
       const fc = document.getElementById('filterClear');
-      if (fc) fc.addEventListener('click', e => { e.preventDefault(); clearFilters(); setPop(false); });
+      if (fc) { // hold 1 s to clear — the fill shows progress, releasing early cancels
+        let t0 = 0, raf = 0;
+        const setP = p => fc.style.setProperty('--p', p);
+        const stop = () => { t0 = 0; if (raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf); raf = 0; setP(0); fc.classList.remove('holding'); };
+        const tick = () => {
+          if (!t0) return;
+          const p = Math.min(1, (performance.now() - t0) / 1000);
+          setP(p);
+          if (p >= 1) { stop(); clearFilters(); setPop(false); }
+          else raf = requestAnimationFrame(tick);
+        };
+        const start = e => {
+          e.preventDefault();
+          if (t0 || typeof requestAnimationFrame !== 'function') return;
+          t0 = performance.now(); fc.classList.add('holding');
+          raf = requestAnimationFrame(tick);
+        };
+        fc.addEventListener('pointerdown', start);
+        ['pointerup', 'pointerleave', 'pointercancel'].forEach(ev => fc.addEventListener(ev, stop));
+        fc.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') start(e); });
+        fc.addEventListener('keyup', stop);
+        fc.addEventListener('click', e => e.preventDefault());
+      }
       btn.addEventListener('click', e => { e.stopPropagation(); setPop(!pop.classList.contains('show')); });
       document.addEventListener('click', e => { if (!(e.target.closest && e.target.closest('.filter-wrap'))) setPop(false); });
       // reflect any URL-loaded filter state into the controls
