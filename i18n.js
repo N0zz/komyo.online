@@ -134,7 +134,6 @@ window.KOMYO_I18N.en = {
   'shop.giftClaimed': '🎁 +{n} 🏆 claimed — spend them well!',
   'shop.freePlay': '✨ Free play — everything unlocked',
   'shop.freePlaySub': 'Wear any cosmetic without spending trophies. Your balance and collection stay as they are — titles are still earned by playing.',
-  'shop.freePlayBadge': '✨ free play',
   'shop.freePlayAria': 'Toggle free play',
 
   // --- menu framework (start/pause/end built-in text) ---

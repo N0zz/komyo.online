@@ -1923,4 +1923,5 @@ window.KOMYO_I18N.cs = {
   'changelog.e59.b0': 'Novinka: nahoře ve Sbírce čeká 🎁 uvítací dárek — vyzvedni si jednorázových 100 🏆 a nastartuj svou sbírku skinem nebo dvěma.',
   'changelog.e59.b1': 'Novinka: ✨ Volná hra — přepínač dole ve Sbírce, který odemkne všechny vzhledy k vyzkoušení a nošení bez utracení jediné trofeje. Když ho vypneš, tvá skutečná sbírka i zůstatek jsou přesně tak, jak jsi je nechal — tituly se stále získávají hraním.',
   'changelog.e59.b2': 'Změna: ⚡ bonus za dobrý pokus jsou teď tři velké blesky, které se rozsvěcují, jak je získáváš — v panelu výzev i v herním panelu 🏆 — místo malého řádku s počítadlem.',
+  'changelog.e59.b3': 'Změna: během hry ouško ‹‹ rychlého menu vybledne na jemný stín, aby za sebou nic neschovávalo (díváme se na tebe, vychytralé ovoce hada) — plnou sílu získá zpět po najetí myší a na obrazovkách menu.',
 };

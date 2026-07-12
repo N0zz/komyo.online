@@ -550,11 +550,6 @@
     font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:0.5px; cursor:pointer;
     color:#e8c069; background:rgba(255,206,92,0.10); border:1px solid rgba(255,206,92,0.34); border-radius:999px; padding:6px 13px; }
   .cpills .streak:hover { border-color:#ffce5c; background:rgba(255,206,92,0.16); color:#ffce5c; }
-  .ccollect { display:flex; align-items:center; gap:10px; margin:10px 4px 0; cursor:pointer; }
-  .ccollect:hover .cbar-txt { color:#ffce5c; }
-  .ccollect .cbar { flex:1; height:8px; border-radius:99px; background:rgba(255,255,255,0.09); overflow:hidden; }
-  .ccollect .cbar i { display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,#ffce5c,#ff9a5c); }
-  .ccollect .cbar-txt { font-family:var(--mono); font-size:10.5px; font-weight:700; color:var(--faint); white-space:nowrap; }
   .cbonus { font-size:11.5px; color:var(--muted); margin:8px 4px 0; }
   .csec { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:12px 4px 2px; }
   .cc { margin:6px 0; border:1px solid var(--border); border-radius:12px; padding:12px 13px; background:var(--surface); }
@@ -729,7 +724,6 @@
       <div class="cpills">
         <button class="streak" id="chalStreak" type="button" title="What do trophies get you?">🏆 0 trophies</button>
       </div>
-      <div class="ccollect" id="chalCollect" hidden><div class="cbar"><i></i></div><span class="cbar-txt"></span></div>
       <div class="cbonus" id="chalBonus" hidden></div>
       <div class="csec" data-t="challenges.today">Today</div>
       <div id="chalToday"></div>
@@ -2133,19 +2127,10 @@
           if (window.gamekitTrack) window.gamekitTrack('challenge_shown', { id: p.id, kind });
         } catch (e) {}
       }
-      // collection bar (→ the store) + good-run bonus line — the standalone COSMETICS pill is
-      // gone: the side stack's Collection button owns that entry point now
-      const collEl = document.getElementById('chalCollect'), bonusEl = document.getElementById('chalBonus');
-      if (collEl) collEl.addEventListener('click', openShop);
+      // good-run bonus widget — the collection bar is gone from the drawer (the profile + the
+      // store already show completion; the side stack's Collection button owns that entry point)
+      const bonusEl = document.getElementById('chalBonus');
       function renderCosmetics() {
-        const cos = K.cosmetics;
-        if (cos && window.COSMETICS && collEl) {
-          const pr = cos.progress(), pct = Math.round(pr.pct * 100);
-          collEl.hidden = false;
-          const bar = collEl.querySelector('.cbar i'), txt = collEl.querySelector('.cbar-txt');
-          if (bar) bar.style.width = pct + '%';
-          if (txt) txt.textContent = window.gamekit.t('chal.collection', { def: '{owned} / {total} · {pct}%', owned: pr.owned, total: pr.total, pct: pct });
-        }
         if (bonusEl && K.goodRunBonusHtml) {
           bonusEl.hidden = false;
           bonusEl.innerHTML = K.goodRunBonusHtml(); // the kit's shared ⚡ pips widget (same as the in-game panel)
