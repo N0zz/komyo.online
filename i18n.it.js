@@ -1954,4 +1954,7 @@ window.KOMYO_I18N.it = {
   'seo.glow-says.howto': 'Le lanterne si accendono in sequenza — ripetila toccandole nello stesso ordine, e ogni round aggiunge un passo in più. La modalità Chill non termina mai la partita per una svista, Classic è la prova pura, Hard aggiunge due lanterne in più ed Expert ne stipa nove in una griglia. Il suono aiuta: ogni lanterna canta la propria nota.',
   'changelog.e60.title': 'Ogni gioco si spiega da solo 📖',
   'changelog.e60.b0': 'Novità: ogni gioco ha ora una voce ℹ️ “Come si gioca” nel suo menu ☰ — cos’è il gioco, come si gioca, e risposte rapide: è gratis? (sì), funziona offline? (sì), dove vivono i tuoi punteggi? (sul tuo dispositivo). In tutte le 8 lingue.',
+  'changelog.e61.title': 'Telefoni in orizzontale, sistemati 📱',
+  'changelog.e61.b0': 'Fix: giocare col telefono in orizzontale ha ricevuto una passata completa — il negozio della Collezione torna a starci (con una ciambella di progresso come si deve), il menu laterale rapido si apre compatto e parte ripiegato quando manca spazio, e le schermate di fine partita mostrano la carta del punteggio accanto ai pulsanti invece di uscire dallo schermo.',
+  'changelog.e61.b1': 'Campo Minato: in orizzontale l\'interruttore SCAVA/BANDIERA ora sta sul bordo sinistro, così il campo usa tutta l\'altezza — caselle decisamente più grandi.',
 };

@@ -1952,4 +1952,7 @@ window.KOMYO_I18N.pl = {
   'seo.glow-says.howto': 'Lampiony rozbłyskują w sekwencji — powtórz ją, stukając w nie w tej samej kolejności; każda runda dodaje jeden krok. Tryb Chill nie kończy gry po potknięciu, Classic to czysty test pamięci, Hard dodaje dwa dodatkowe lampiony, a Expert upakowuje dziewięć w siatkę. Warto grać z dźwiękiem: każdy lampion śpiewa własną nutę.',
   'changelog.e60.title': 'Każda gra się przedstawia 📖',
   'changelog.e60.b0': 'Nowość: każda gra ma teraz pozycję ℹ️ „Jak grać” w swoim menu ☰ — czym jest gra, jak się w nią gra, i szybkie odpowiedzi: czy jest darmowa (tak), czy działa offline (tak), gdzie mieszkają twoje wyniki (na twoim urządzeniu). We wszystkich 8 językach.',
+  'changelog.e61.title': 'Poziome telefony naprawione 📱',
+  'changelog.e61.b0': 'Poprawka: granie na telefonie w poziomie przeszło pełny przegląd — sklep Kolekcji znów się mieści (z porządnym pierścieniem postępu), boczne szybkie menu otwiera się kompaktowo i startuje schowane, gdy brakuje miejsca, a ekrany końca gry pokazują kartę wyniku obok przycisków, zamiast wystawać poza ekran.',
+  'changelog.e61.b1': 'Saper: na telefonach w poziomie przełącznik KOP/FLAGA jest teraz przy lewej krawędzi, więc pole minowe zajmuje całą wysokość — wyraźnie większe kafelki.',
 };

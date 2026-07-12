@@ -1954,4 +1954,7 @@ window.KOMYO_I18N.pt = {
   'seo.glow-says.howto': 'As lanternas acendem numa sequência — repita tocando nelas na mesma ordem, e cada rodada adiciona mais um passo. O modo Tranquilo nunca encerra sua partida num escorregão, o Clássico é o teste puro, o Difícil adiciona duas lanternas extras e o Especialista põe nove numa grade. Ajuda jogar com som: cada lanterna canta sua própria nota.',
   'changelog.e60.title': 'Cada jogo se explica sozinho 📖',
   'changelog.e60.b0': 'Novo: cada jogo agora tem uma entrada ℹ️ “Como jogar” no seu menu ☰ — o que é o jogo, como se joga, e respostas rápidas: é grátis? (sim), funciona offline? (sim), onde ficam as suas pontuações? (no seu dispositivo). Em todos os 8 idiomas.',
+  'changelog.e61.title': 'Telefones na horizontal, arrumados 📱',
+  'changelog.e61.b0': 'Correção: jogar com o telefone na horizontal passou por uma revisão completa — a loja da Coleção volta a caber (com uma rosquinha de progresso decente), o menu lateral rápido abre compacto e começa recolhido quando não há espaço, e as telas de fim de jogo mostram o cartão de pontuação ao lado dos botões em vez de vazar da tela.',
+  'changelog.e61.b1': 'Campo Minado: na horizontal o interruptor ESCAVAR/BANDEIRA fica agora na borda esquerda, então o campo usa toda a altura — casas visivelmente maiores.',
 };

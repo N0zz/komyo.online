@@ -1954,4 +1954,7 @@ window.KOMYO_I18N.cs = {
   'seo.glow-says.howto': 'Lampiony se rozsvěcují v sekvenci — zopakuj ji ťukáním ve stejném pořadí; každé kolo přidá jeden krok navíc. Režim Chill ti pokus po uklouznutí neukončí, Classic je čistý test, Hard přidá dva lampiony navíc a Expert jich vměstná devět do mřížky. Zapnutý zvuk pomáhá: každý lampion zpívá vlastní tón.',
   'changelog.e60.title': 'Každá hra se představí sama 📖',
   'changelog.e60.b0': 'Novinka: každá hra má teď v menu ☰ položku ℹ️ „Jak hrát“ — co je to za hru, jak se hraje, a rychlé odpovědi: je zdarma? (ano), funguje offline? (ano), kde bydlí tvoje skóre? (v tvém zařízení). Ve všech 8 jazycích.',
+  'changelog.e61.title': 'Telefony na šířku opraveny 📱',
+  'changelog.e61.b0': 'Oprava: hraní na telefonu na šířku prošlo kompletní revizí — obchod Sbírky se zase vejde (s pořádným prstencem postupu), rychlé boční menu se otevírá kompaktně a začíná schované, když není místo, a obrazovky konce hry ukazují kartu skóre vedle tlačítek, místo aby přetékaly z obrazovky.',
+  'changelog.e61.b1': 'Hledání min: na šířku je přepínač KOPAT/VLAJEČKA nově u levého okraje, takže minové pole využije celou výšku — znatelně větší políčka.',
 };

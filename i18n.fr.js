@@ -1954,4 +1954,7 @@ window.KOMYO_I18N.fr = {
   'seo.glow-says.howto': 'Les lanternes s\'illuminent en séquence — répète-la en les touchant dans le même ordre, et chaque manche ajoute une étape de plus. Le mode Tranquille ne met jamais fin à ta partie sur une erreur, Classique est le test pur, Difficile ajoute deux lanternes de plus et Expert en aligne neuf dans une grille. Le son aide : chaque lanterne chante sa propre note.',
   'changelog.e60.title': 'Chaque jeu s’explique tout seul 📖',
   'changelog.e60.b0': 'Nouveau : chaque jeu a désormais une entrée ℹ️ « Comment jouer » dans son menu ☰ — ce qu’est le jeu, comment on y joue, et des réponses rapides : est-il gratuit ? (oui), fonctionne-t-il hors ligne ? (oui), où vivent vos scores ? (sur votre appareil). Dans les 8 langues.',
+  'changelog.e61.title': 'Téléphones en paysage, réparés 📱',
+  'changelog.e61.b0': 'Correctif : jouer en mode paysage sur téléphone a eu droit à une passe complète — la boutique de la Collection tient à nouveau (avec un vrai anneau de progression), le menu latéral rapide s\'ouvre en version compacte et démarre replié quand la place manque, et les écrans de fin de partie affichent la carte de score à côté des boutons au lieu de déborder de l\'écran.',
+  'changelog.e61.b1': 'Démineur : en paysage, l\'interrupteur CREUSER/DRAPEAU se trouve maintenant sur le bord gauche — le champ de mines occupe toute la hauteur, avec des cases nettement plus grandes.',
 };

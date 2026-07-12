@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-12', title: 'Landscape phones, fixed up 📱', items: [
+    'Fix: playing sideways on a phone got a full pass — the Collection store fits again (with a proper progress donut), the quick side drawer opens compact and starts tucked when there\'s no room, and game end screens now show the score card beside the buttons instead of spilling off the screen.',
+    'Minesweeper: on sideways phones the DIG/FLAG switch sits on the left edge now, so the minefield uses the whole height — noticeably bigger tiles.',
+  ] },
   { date: '2026-07-12', title: 'Every game explains itself 📖', items: [
     'New: every game now has an ℹ️ "How to play" entry in its ☰ menu — what the game is, how it plays, and quick answers: is it free (yes), does it work offline (yes), where do your scores live (on your device). In all 8 languages.',
   ] },

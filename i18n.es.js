@@ -1955,4 +1955,7 @@ window.KOMYO_I18N.es = {
   'seo.glow-says.howto': 'Los farolillos se encienden en secuencia — repítela tocándolos en el mismo orden, y cada ronda añade un paso más. El modo Tranquilo nunca acaba tu partida por un despiste, Clásico es la prueba pura, Difícil añade dos farolillos extra y Experto mete nueve en una cuadrícula. Jugar con sonido ayuda: cada farolillo canta su propia nota.',
   'changelog.e60.title': 'Cada juego se explica solo 📖',
   'changelog.e60.b0': 'Nuevo: cada juego tiene ahora una entrada ℹ️ «Cómo jugar» en su menú ☰ — qué es el juego, cómo se juega, y respuestas rápidas: ¿es gratis? (sí), ¿funciona sin conexión? (sí), ¿dónde viven tus puntuaciones? (en tu dispositivo). En los 8 idiomas.',
+  'changelog.e61.title': 'Teléfonos en horizontal, arreglados 📱',
+  'changelog.e61.b0': 'Arreglo: jugar con el teléfono en horizontal recibió un repaso completo — la tienda de la Colección vuelve a caber (con una rosquilla de progreso como es debido), el menú lateral rápido se abre compacto y empieza recogido cuando no hay sitio, y las pantallas de fin de partida muestran la tarjeta de puntuación junto a los botones en vez de salirse de la pantalla.',
+  'changelog.e61.b1': 'Buscaminas: en horizontal el interruptor EXCAVAR/BANDERA está ahora en el borde izquierdo, así el campo de minas usa toda la altura — casillas notablemente más grandes.',
 };
