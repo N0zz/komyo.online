@@ -1856,6 +1856,7 @@ window.KOMYO_I18N.es = {
   'game.critter-match.mpHint': 'Pasa y juega: encuentra una pareja y repites — si fallas, pasas el turno. ¡Gana quien junte más parejas!',
   'game.critter-match.playLabel': 'JUGADORES',
   'game.critter-match.share': 'Emparejé todos los bichitos en {flips} volteos ({score} pts) — Parejas de Bichitos 🐾',
+  'game.critter-match.shareSpeed': 'Emparejé todos los bichitos en {time} ({flips} volteos) — Parejas de Bichitos, Speedrun 🐾',
   'game.critter-match.solo': 'Solo',
   'game.critter-match.speedHint': 'Limpia todo el tablero contra el reloj — gana el mejor TIEMPO.',
   'game.critter-match.speedrun': 'Speedrun',
@@ -1959,4 +1960,5 @@ window.KOMYO_I18N.es = {
   'changelog.e63.title': 'Relojes de speedrun arreglados en las tarjetas de puntuación ⏱️',
   'changelog.e63.b0': 'Arreglo: las tarjetas de puntuación del speedrun de Parejas de Bichitos mostraban un tiempo descuadrado tipo 00:00.01 en vez de tu tiempo real — la tarjeta (y tu mejor marca del perfil) ahora muestran el tiempo que hiciste de verdad.',
   'changelog.e63.b1': 'Arreglo: completar un speedrun de Asteroides+ ahora estampa tu TIEMPO en la tarjeta de puntuación compartida, como hace el Asteroides clásico — antes mostraba la puntuación.',
+  'changelog.e63.b2': 'Cambio: compartir un speedrun de Parejas de Bichitos ahora presume de tu tiempo (con los volteos al lado) en vez de los puntos — en un speedrun lo que cuenta es el tiempo.',
 };

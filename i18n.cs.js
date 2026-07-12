@@ -1855,6 +1855,7 @@ window.KOMYO_I18N.cs = {
   'game.critter-match.mpHint': 'Střídejte se u jedné obrazovky: najdi pár a hraješ znovu — minela předává tah dál. Vyhrává nejvíc párů!',
   'game.critter-match.playLabel': 'HRÁČI',
   'game.critter-match.share': 'Všechna zvířátka spárována na {flips} otočení ({score} bodů) — Zvířecí páry 🐾',
+  'game.critter-match.shareSpeed': 'Všechna zvířátka spárována za {time} ({flips} otočení) — Zvířecí páry, Speedrun 🐾',
   'game.critter-match.solo': 'Sólo',
   'game.critter-match.speedHint': 'Vyčisti celou desku proti času — vyhrává nejlepší ČAS.',
   'game.critter-match.speedrun': 'Speedrun',
@@ -1958,4 +1959,5 @@ window.KOMYO_I18N.cs = {
   'changelog.e63.title': 'Stopky speedrunů na kartách skóre opraveny ⏱️',
   'changelog.e63.b0': 'Oprava: karty skóre speedrunu ve Zvířecích párech ukazovaly zkomolený čas typu 00:00.01 místo skutečného času dokončení — karta (i rekord v profilu) teď ukazují váš opravdový čas.',
   'changelog.e63.b1': 'Oprava: dokončení speedrunu v Asteroidech+ teď na sdílenou kartu skóre otiskne váš ČAS, stejně jako klasické Asteroidy — dřív ukazovala skóre.',
+  'changelog.e63.b2': 'Změna: sdílení speedrunu ve Zvířecích párech se teď chlubí vaším časem (s počtem otočení vedle) místo bodů — ve speedrunu jde o čas.',
 };

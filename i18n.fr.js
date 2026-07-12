@@ -1855,6 +1855,7 @@ window.KOMYO_I18N.fr = {
   'game.critter-match.mpHint': 'Chacun son tour : trouve une paire et rejoue — un raté passe la main. Le plus de paires gagne !',
   'game.critter-match.playLabel': 'JOUEURS',
   'game.critter-match.share': 'J\'ai associé tous les animaux en {flips} coups ({score} pts) — Paires d\'Animaux 🐾',
+  'game.critter-match.shareSpeed': 'J\'ai associé tous les animaux en {time} ({flips} coups) — Paires d\'Animaux, Speedrun 🐾',
   'game.critter-match.solo': 'Solo',
   'game.critter-match.speedHint': 'Vide tout le plateau contre le chrono — le meilleur TEMPS gagne.',
   'game.critter-match.speedrun': 'Speedrun',
@@ -1958,4 +1959,5 @@ window.KOMYO_I18N.fr = {
   'changelog.e63.title': 'Chronos de speedrun réparés sur les cartes de score ⏱️',
   'changelog.e63.b0': 'Correctif : les cartes de score du speedrun de Paires d\'Animaux affichaient un temps farfelu du genre 00:00.01 au lieu de votre vrai temps — la carte (et le record du profil) affichent désormais le temps que vous avez réellement réalisé.',
   'changelog.e63.b1': 'Correctif : terminer un speedrun d\'Astéroïdes+ imprime désormais votre TEMPS sur la carte de score partagée, comme le fait Astéroïdes classique — elle affichait le score auparavant.',
+  'changelog.e63.b2': 'Changement : partager un speedrun de Paires d\'Animaux met désormais en avant votre temps (avec les coups à côté) plutôt que les points — dans un speedrun, c\'est le temps qui compte.',
 };

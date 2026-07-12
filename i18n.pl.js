@@ -1859,6 +1859,7 @@ window.KOMYO_I18N.pl = {
   'game.critter-match.mpHint': 'Podaj dalej: znajdź parę i graj dalej — pudło oddaje kolejkę. Wygrywa ten, kto ma najwięcej par!',
   'game.critter-match.playLabel': 'GRACZE',
   'game.critter-match.share': 'Wszystkie zwierzątka dopasowane w {flips} odkryciach ({score} pkt) — Zwierzęce Pary 🐾',
+  'game.critter-match.shareSpeed': 'Wszystkie zwierzątka dopasowane w {time} ({flips} odkryć) — Zwierzęce Pary, Speedrun 🐾',
   'game.critter-match.solo': 'Solo',
   'game.critter-match.speedHint': 'Wyczyść całą planszę na czas — wygrywa najlepszy CZAS.',
   'game.critter-match.speedrun': 'Speedrun',
@@ -1962,4 +1963,5 @@ window.KOMYO_I18N.pl = {
   'changelog.e63.title': 'Zegary speedrunów naprawione na kartach wyniku ⏱️',
   'changelog.e63.b0': 'Poprawka: karty wyniku speedrunu w Zwierzęcych Parach pokazywały przekłamany czas w rodzaju 00:00.01 zamiast prawdziwego czasu ukończenia — karta (i rekord w profilu) pokazują teraz Twój faktyczny czas.',
   'changelog.e63.b1': 'Poprawka: ukończenie speedrunu w Asteroidach+ odciska teraz Twój CZAS na udostępnianej karcie wyniku, tak jak w klasycznych Asteroidach — wcześniej pokazywała punkty.',
+  'changelog.e63.b2': 'Zmiana: udostępnianie speedrunu w Zwierzęcych Parach chwali się teraz Twoim czasem (z liczbą odkryć obok) zamiast punktami — w speedrunie liczy się czas.',
 };
