@@ -580,17 +580,22 @@
       g.fillStyle = grd;
       if (shape === 'star') {
         g.beginPath();
-        for (let k = 0; k < 10; k++) {
-          const a = -Math.PI / 2 + k * Math.PI / 5, rad = k % 2 ? rr * 0.5 : rr;
-          const x = cx + Math.cos(a) * rad, y = cy + Math.sin(a) * rad;
-          k ? g.lineTo(x, y) : g.moveTo(x, y);
+        for (let k = 0; k < 5; k++) {
+          const a = -Math.PI / 2 + k * (Math.PI * 2 / 5);
+          const nx = -Math.PI / 2 + (k + 1) * (Math.PI * 2 / 5);
+          const mid = (a + nx) / 2;
+          const ox = cx + Math.cos(a) * rr, oy = cy + Math.sin(a) * rr;
+          if (k === 0) g.moveTo(ox, oy); else g.lineTo(ox, oy);
+          g.quadraticCurveTo(cx + Math.cos(mid) * rr * 0.32, cy + Math.sin(mid) * rr * 0.32,
+            cx + Math.cos(nx) * rr, cy + Math.sin(nx) * rr);
         }
         g.closePath();
       } else if (shape === 'heart') {
+        const hy = cy - rr * 0.08;
         g.beginPath();
-        g.moveTo(cx, cy + rr * 0.85);
-        g.bezierCurveTo(cx - rr * 1.3, cy - rr * 0.15, cx - rr * 0.6, cy - rr, cx, cy - rr * 0.35);
-        g.bezierCurveTo(cx + rr * 0.6, cy - rr, cx + rr * 1.3, cy - rr * 0.15, cx, cy + rr * 0.85);
+        g.moveTo(cx, hy + rr * 0.78);
+        g.bezierCurveTo(cx - rr * 1.05, hy + rr * 0.12, cx - rr * 0.92, hy - rr * 0.78, cx, hy - rr * 0.3);
+        g.bezierCurveTo(cx + rr * 0.92, hy - rr * 0.78, cx + rr * 1.05, hy + rr * 0.12, cx, hy + rr * 0.78);
         g.closePath();
       } else {
         g.beginPath(); g.arc(cx, cy, rr, 0, Math.PI * 2);

@@ -71,17 +71,26 @@
   let W = 0, H = 0, topMargin = 48;
   let state = 'ready';                       // ready | playing | over
   let mode = 'medium';
+  let play = 'solo';                         // solo | p2 | p3 | p4 | speed
   let cards = [];                            // {pair, open, matched, flipT, sparkT}
   let openA = -1, openB = -1, peekT = 0;
   let flips = 0, matched = 0, score = 0, best = 0;
   let frame = 0;
+  let players = 1, cur = 0, pScores = [0];   // pass & play state
+  let turnAdvance = false;                   // mismatch → next player when the peek ends
+  let speedFrames = 0;                       // speedrun clock (starts on the first flip)
+  const P_COLORS = ['#ff6b8a', '#7ab8ff', '#6bd6a8', '#ffd166'];
+  const fmtTime = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
 
   // layout
   let cols = 4, rows = 5, cw = 80, chh = 96, bx = 0, by = 0;
 
   const modeLabel = m => { m = m || mode; return m.charAt(0).toUpperCase() + m.slice(1); };
+  // storage label carries the play variant so solo / MP / speedrun bests never mix
+  const runLabel = m => modeLabel(m) + (play === 'speed' ? ' · Speedrun' : play !== 'solo' ? ' · ' + players + 'P' : '');
   const modeDisplay = m => KIT.t('game.critter-match.mode' + modeLabel(m), { def: modeLabel(m) });
-  function loadBest(m) { return KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0; }
+  function loadBest(m) { return KIT ? KIT.bestScore(SLUG, runLabel(m)) : 0; }
+  function bestTime(m) { const b = KIT ? KIT.best(SLUG, runLabel(m)) : null; return b && b.time > 0 ? b.time : 0; }
 
   function runScore() {
     // perfect play = pairs flips-of-two; each extra flip trims a little. Always positive & kid-kind.
@@ -101,6 +110,8 @@
     cards = deck.map(pair => ({ pair, open: false, matched: false, flipT: 0, sparkT: 0 }));
     openA = -1; openB = -1; peekT = 0;
     flips = 0; matched = 0; score = 0;
+    players = play === 'p2' ? 2 : play === 'p3' ? 3 : play === 'p4' ? 4 : 1;
+    cur = 0; pScores = new Array(players).fill(0); turnAdvance = false; speedFrames = 0;
     best = loadBest(mode);
     layoutBoard(); updateHud();
   }
@@ -117,11 +128,13 @@
       cards[openA].matched = c.matched = true;
       cards[openA].sparkT = c.sparkT = 30;
       matched++;
+      pScores[cur]++;                                     // pass & play: a match = the finder keeps the turn
       SND.play('match');
       openA = openB = -1;
       if (matched >= MODES[mode].pairs) finish();
     } else {
       peekT = PEEK_FRAMES;                                // both stay visible for a moment
+      turnAdvance = players > 1;                          // mismatch hands the turn over (after the peek)
       SND.play('nope');
     }
     updateHud();
@@ -129,11 +142,25 @@
   }
 
   function finish() {
-    state = 'over'; score = runScore();
+    state = 'over';
     SND.play('allD');
-    const prev = loadBest(mode);
-    if (KIT) KIT.saveBest(SLUG, modeLabel(mode), { score, stats: { flips } });
-    const isBest = score > prev;
+    let isBest = false;
+    const t = speedFrames / 60;
+    if (play === 'speed') {
+      score = runScore();
+      const prevT = bestTime(mode);
+      if (KIT) KIT.saveBest(SLUG, runLabel(mode), { score, time: t, stats: { flips } });
+      isBest = prevT === 0 || t < prevT;
+    } else if (players > 1) {
+      score = Math.max(...pScores);           // the winner's pairs
+      if (KIT) KIT.saveBest(SLUG, runLabel(mode), { score, stats: { flips } });
+      isBest = false;                          // MP is social — no "new best" banner
+    } else {
+      score = runScore();
+      const prev = loadBest(mode);
+      if (KIT) KIT.saveBest(SLUG, runLabel(mode), { score, stats: { flips } });
+      isBest = score > prev;
+    }
     best = loadBest(mode);
     updateHud();
     setTimeout(() => showEnd(isBest), 800);
@@ -146,10 +173,15 @@
       if (c.flipT > 0) c.flipT--;
       if (c.sparkT > 0) c.sparkT--;
     }
+    if (state === 'playing' && play === 'speed' && flips > 0) {
+      speedFrames++;
+      if (speedFrames % 30 === 0) updateHud();
+    }
     if (peekT > 0 && --peekT === 0) {
       if (openA >= 0) cards[openA].open = false;
       if (openB >= 0) cards[openB].open = false;
       openA = openB = -1;
+      if (turnAdvance) { turnAdvance = false; cur = (cur + 1) % players; updateHud(); }
     }
     if (KIT && KIT.music) KIT.music.intensity(state === 'playing' ? Math.min(1, 0.32 + 0.5 * (matched / MODES[mode].pairs)) : 0.3);
   }
@@ -235,6 +267,29 @@
       }
     }
 
+    // pass & play: player chips under the board (active player glows)
+    if (players > 1 && state === 'playing') {
+      const chipW = Math.min(120, (W - 40) / players - 8), chipH = 34;
+      const totW = players * chipW + (players - 1) * 8;
+      const ox = (W - totW) / 2, oy = Math.min(H - chipH - 8, by + rows * (chh + 8) + 6);
+      for (let p = 0; p < players; p++) {
+        const px = ox + p * (chipW + 8);
+        const active = p === cur;
+        if (active) { ctx.shadowColor = P_COLORS[p]; ctx.shadowBlur = 14; }
+        ctx.fillStyle = active ? P_COLORS[p] : 'rgba(255,255,255,0.12)';
+        KIT.roundRect(ctx, px, oy, chipW, chipH, chipH / 2); ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = active ? '#2b1608' : '#e8d9c4';
+        ctx.font = '800 15px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('P' + (p + 1) + ' · ' + pScores[p] + ' 🐾', px + chipW / 2, oy + chipH / 2 + 1);
+      }
+    }
+    // speedrun clock
+    if (play === 'speed' && state === 'playing') {
+      ctx.fillStyle = '#ffb86b'; ctx.font = '800 22px ui-monospace, monospace'; ctx.textAlign = 'center';
+      ctx.fillText('⏱ ' + fmtTime(speedFrames / 60), W / 2, Math.min(H - 16, by + rows * (chh + 8) + 26));
+    }
+
     // vignette
     const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.45, W / 2, H / 2, Math.max(W, H) * 0.78);
     v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.3)');
@@ -244,8 +299,12 @@
   function updateHud() {
     const p = document.getElementById('pairsEl'), s = document.getElementById('scoreEl'), b = document.getElementById('bestEl');
     if (p) p.textContent = matched + '/' + MODES[mode].pairs;
-    if (s) s.textContent = state === 'over' ? score : runScore();
-    if (b) b.textContent = best;
+    if (s) {
+      if (play === 'speed') s.textContent = fmtTime(speedFrames / 60);
+      else if (players > 1) s.textContent = 'P' + (cur + 1);
+      else s.textContent = state === 'over' ? score : runScore();
+    }
+    if (b) { const bt = play === 'speed' ? bestTime(mode) : 0; b.textContent = play === 'speed' ? (bt > 0 ? fmtTime(bt) : '—') : best; }
   }
 
   // ---- menus ----
@@ -306,15 +365,27 @@
     if (!KIT) return;
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop,
       title: KIT.t('game.critter-match.menuTitle', { def: 'CRITTER MATCH' }),
-      groups: [{ id: 'mode', label: KIT.t('game.critter-match.boardLabel', { def: 'BOARD' }), style: 'cards', default: mode,
-        choices: MODE_ORDER.map(m => ({ id: m, label: modeDisplay(m),
-          mech: [MODES[m].pairs + ' 🐾'],
-          best: () => loadBest(m) || '',
-          preview: (g, w, h) => pvGridCards(MODES[m].pairs)(g, w, h) })) }],
-      hint: () => KIT.t('game.critter-match.startHint', { def: 'Flip two cards — find the matching critters! Fewer flips, bigger score. You always win.' }),
+      groups: [
+        { id: 'mode', label: KIT.t('game.critter-match.boardLabel', { def: 'BOARD' }), style: 'cards', default: mode,
+          choices: MODE_ORDER.map(m => ({ id: m, label: modeDisplay(m),
+            mech: [MODES[m].pairs + ' 🐾'],
+            best: () => loadBest(m) || '',
+            preview: (g, w, h) => pvGridCards(MODES[m].pairs)(g, w, h) })) },
+        { id: 'play', label: KIT.t('game.critter-match.playLabel', { def: 'PLAYERS' }), default: play,
+          choices: [
+            { id: 'solo',  label: KIT.t('game.critter-match.solo', { def: 'Solo' }) },
+            { id: 'p2',    label: '2P' }, { id: 'p3', label: '3P' }, { id: 'p4', label: '4P' },
+            { id: 'speed', label: '⏱ ' + KIT.t('game.critter-match.speedrun', { def: 'Speedrun' }) },
+          ] },
+      ],
+      hint: st => (st && st.play || play) === 'speed'
+        ? KIT.t('game.critter-match.speedHint', { def: 'Clear the whole board against the clock — best TIME wins.' })
+        : (st && st.play || play) !== 'solo'
+          ? KIT.t('game.critter-match.mpHint', { def: 'Pass & play: find a pair and go again — a miss hands the turn over. Most pairs wins!' })
+          : KIT.t('game.critter-match.startHint', { def: 'Flip two cards — find the matching critters! Fewer flips, bigger score. You always win.' }),
       actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
-      onChange: st => { mode = st.mode; KIT.stampUrl({ mode: st.mode }); },
-      onPlay: st => startGame(st.mode),
+      onChange: st => { mode = st.mode; play = st.play || play; KIT.stampUrl({ mode: st.mode, play }); },
+      onPlay: st => { play = st.play || play; startGame(st.mode); },
     });
   }
 
@@ -326,11 +397,24 @@
   function showEnd(isBest) {
     if (!KIT) return;
     KIT.showMenuButton(false); KIT.showPauseButton(false);
+    const mpLines = [];
+    if (players > 1) {
+      const top = Math.max(...pScores);
+      const winners = pScores.map((s, i) => s === top ? i + 1 : 0).filter(Boolean);
+      mpLines.push(winners.length > 1
+        ? KIT.t('game.critter-match.tie', { def: "It's a tie! 🤝" })
+        : KIT.t('game.critter-match.winner', { p: winners[0], def: 'Player {p} wins! 🏆' }));
+      mpLines.push(pScores.map((s, i) => 'P' + (i + 1) + ' ' + s + '🐾').join(' · '));
+    }
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
-      title: KIT.t('game.critter-match.end', { def: 'ALL FRIENDS FOUND!' }),
-      record: { slug: SLUG, mode: modeLabel(mode), score, stats: { flips } },
-      score, best, newBest: isBest,
-      lines: [ modeDisplay(mode) + ' · ' + KIT.t('game.critter-match.flipsLine', { flips, def: '{flips} flips' }) ],
+      title: players > 1 ? KIT.t('game.critter-match.endMp', { def: 'ALL PAIRS FOUND!' }) : KIT.t('game.critter-match.end', { def: 'ALL FRIENDS FOUND!' }),
+      record: { slug: SLUG, mode: runLabel(mode), score, time: play === 'speed' ? speedFrames / 60 : undefined, stats: { flips } },
+      score: players > 1 ? undefined : score,
+      scoreText: play === 'speed' ? fmtTime(speedFrames / 60) : undefined,
+      best: play === 'speed' ? (bestTime(mode) > 0 ? fmtTime(bestTime(mode)) : '') : (players > 1 ? undefined : best),
+      newBest: isBest,
+      lines: mpLines.length ? mpLines
+        : [ modeDisplay(mode) + ' · ' + KIT.t('game.critter-match.flipsLine', { flips, def: '{flips} flips' }) ],
       share: { slug: SLUG, accent: ACCENT, icon: '🐾', title: KIT.t('game.critter-match.title', { def: 'Critter Match' }),
                message: () => shareMsg(), params: () => ({ mode }) },
       actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true },
@@ -387,6 +471,11 @@
     get state() { return state; },
     get score() { return state === 'over' ? score : runScore(); },
     get mode() { return mode; },
+    get play() { return play; }, set play(v) { play = v; },
+    get players() { return players; },
+    get curPlayer() { return cur; },
+    get pScores() { return pScores.slice(); },
+    get speedSec() { return speedFrames / 60; },
     get flips() { return flips; },
     get matched() { return matched; },
     get pairs() { return MODES[mode].pairs; },
@@ -418,6 +507,8 @@
     for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
     const m = KIT.param && KIT.param('mode');
     if (m && MODES[m]) mode = m;
+    const pl = KIT.param && KIT.param('play');
+    if (pl && ['solo', 'p2', 'p3', 'p4', 'speed'].includes(pl)) play = pl;
   }
   newGame(mode); state = 'ready';
   KIT.loop(update, render);

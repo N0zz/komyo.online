@@ -33,6 +33,7 @@
 <canvas id="game"></canvas>
 <div id="hud" class="gamekit-hud">
   <div class="stat"><span class="lbl" id="lblMines">MINES</span><span class="val" id="minesEl">0</span></div>
+  <div class="stat" id="livesStat" style="display:none"><span class="lbl" id="lblLives">LIVES</span><span class="val" id="livesEl">♥♥♥</span></div>
   <div class="stat"><span class="lbl" id="lblTime">TIME</span><span class="val" id="timeEl">0:00</span></div>
   <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">—</span></div>
 </div>
@@ -53,6 +54,8 @@
     ping:   c => c.voice({ f: 1320, slideTo: 1180, dur: 0.16, type: 'sine', gain: 0.07, reverb: 0.35 }),
     boom:   c => { c.noiseHit({ dur: 0.5, gain: 0.22, filter: 'lowpass', cutoff: 900, cutoffTo: 120 });
                    c.voice({ f: 90, slideTo: 38, dur: 0.55, type: 'sine', gain: 0.2 }); },
+    ouch:   c => { c.noiseHit({ dur: 0.18, gain: 0.12, filter: 'lowpass', cutoff: 700 });
+                   c.voice({ f: 240, slideTo: 170, dur: 0.22, type: 'triangle', gain: 0.1 }); },
     sweep:  c => c.play('victory'),
   });
 
@@ -76,6 +79,8 @@
   let frame = 0, playFrames = 0;       // playFrames ticks only after the first reveal
   let flagMode = false;
   let winFxT = 0;
+  let relaxed = false, lives = 3;      // Relaxed ♥♥♥ — a mine costs a heart, not the run
+  let heartFx = null;                  // {i, t} 💔 pop where a life was lost
 
   // layout (display coords; flip transposes the logical board in landscape)
   let cs = 30, bx = 0, by = 0, flip = false, dispC = 9, dispR = 9;
@@ -87,10 +92,11 @@
     if (!dx && !dy) continue; const nx = x + dx, ny = y + dy; if (inb(nx, ny)) fn(nx, ny); } }
 
   const diffLabel = d => { d = d || diff; return d.charAt(0).toUpperCase() + d.slice(1); }; // English storage label
+  const runLabel = d => diffLabel(d) + (relaxed ? ' · Relaxed' : '');  // relaxed bests never mix with pure runs
   const diffDisplay = d => KIT.t('game.minesweeper.diff' + diffLabel(d), { def: diffLabel(d) });
   const fmtTime = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
   const elapsedSec = () => playFrames / 60;
-  function bestTime(d) { const b = KIT ? KIT.best(SLUG, diffLabel(d)) : null; return b && b.time > 0 ? b.time : 0; }
+  function bestTime(d) { const b = KIT ? KIT.best(SLUG, runLabel(d)) : null; return b && b.time > 0 ? b.time : 0; }
 
   // ---- board skins (cosmetics) ----
   const SKINS = {
@@ -123,7 +129,7 @@
     mine = new Uint8Array(n); num = new Uint8Array(n); rev = new Uint8Array(n);
     flg = new Uint8Array(n); revT = new Float32Array(n);
     minesPlaced = false; revealed = 0; flags = 0; won = false; boomAt = -1;
-    playFrames = 0; winFxT = 0;
+    playFrames = 0; winFxT = 0; lives = 3; heartFx = null;
     layoutBoard(); updateHud();
   }
 
@@ -198,6 +204,16 @@
   }
 
   function explode(i) {
+    if (relaxed && lives > 1) {
+      // Relaxed: the mine costs a heart, gets auto-flagged, and the run continues
+      lives--;
+      rev[i] = 0; flg[i] = 1; flags++;
+      heartFx = { i, t: 45 };
+      SND.play('ouch');
+      if (navigator.vibrate) { try { navigator.vibrate(60); } catch (e) {} }
+      updateHud(); checkWin();
+      return;
+    }
     boomAt = i; won = false; SND.play('boom');
     if (navigator.vibrate) { try { navigator.vibrate(120); } catch (e) {} }
     // reveal every mine for the post-mortem board
@@ -218,7 +234,7 @@
     state = 'over';
     const t = elapsedSec();
     const prevT = bestTime(diff);
-    if (KIT) KIT.saveBest(SLUG, diffLabel(diff), didWin ? { score: revealed, time: t } : { score: revealed });
+    if (KIT) KIT.saveBest(SLUG, runLabel(diff), didWin ? { score: revealed, time: t } : { score: revealed });
     const isBest = didWin && (prevT === 0 || t < prevT);
     updateHud();
     setTimeout(() => showEnd(didWin, isBest, t), didWin ? 500 : 900); // let the board read first
@@ -227,6 +243,7 @@
   // ---- update / render ----
   function update() {
     frame++;
+    if (heartFx && heartFx.t > 0) heartFx.t--;
     if (state === 'playing') {
       if (minesPlaced) playFrames++;
       if (playFrames % 30 === 1) updateHud();
@@ -370,6 +387,17 @@
     }
     if (mine) drawBoardTo(ctx);
 
+    // relaxed life-loss 💔 pop
+    if (heartFx && heartFx.t > 0) {
+      const D = lToD(heartFx.i % COLS, Math.floor(heartFx.i / COLS));
+      const px = bx + D.dx * cs + cs / 2, py = by + D.dy * cs + cs / 2;
+      ctx.fillStyle = 'rgba(255,90,90,' + (0.12 * Math.min(1, heartFx.t / 20)) + ')';
+      ctx.fillRect(bx, by, cs * dispC, cs * dispR);
+      ctx.font = '700 ' + Math.round(cs * 0.9) + 'px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.globalAlpha = Math.min(1, heartFx.t / 25);
+      ctx.fillText('💔', px, py - (45 - heartFx.t) * 0.5);
+      ctx.globalAlpha = 1;
+    }
     // exploded flash
     if (boomAt >= 0) {
       const D = lToD(boomAt % COLS, Math.floor(boomAt / COLS));
@@ -412,6 +440,9 @@
     if (m) m.textContent = Math.max(0, MINES - flags);
     if (t) t.textContent = fmtTime(elapsedSec());
     if (b) { const bt = bestTime(diff); b.textContent = bt > 0 ? fmtTime(bt) : '—'; }
+    const ls = document.getElementById('livesStat'), lv = document.getElementById('livesEl');
+    if (ls) ls.style.display = relaxed ? '' : 'none';
+    if (lv) lv.textContent = '♥'.repeat(Math.max(0, lives)) + '♡'.repeat(Math.max(0, 3 - lives));
   }
 
   // ---- game flow + menus ----
@@ -477,10 +508,11 @@
           mech: [DIFFS[d].a + '×' + DIFFS[d].b + ' · ' + DIFFS[d].mines + ' 💣'],
           best: () => { const t = bestTime(d); return t > 0 ? fmtTime(t) : ''; },
           preview: (g, w, h) => pvBoard(g, w, h, Math.min(12, DIFFS[d].a), 0.5 + 0.2 * DIFF_ORDER.indexOf(d)) })) }],
+      toggles: [{ id: 'relaxed', label: '♥♥♥ ' + KIT.t('game.minesweeper.relaxed', { def: 'Relaxed — 3 lives' }), default: relaxed }],
       hint: () => KIT.t('game.minesweeper.startHint', { def: 'Clear the bay without hitting a mine. First dig is always safe.' }),
       actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
-      onChange: st => { diff = st.diff; KIT.stampUrl({ diff: st.diff }); updateHud(); },
-      onPlay: st => { startGame(st.diff); },
+      onChange: st => { diff = st.diff; relaxed = !!st.relaxed; KIT.stampUrl({ diff: st.diff }); updateHud(); },
+      onPlay: st => { relaxed = !!st.relaxed; startGame(st.diff); },
     });
   }
 
@@ -497,9 +529,9 @@
     KIT.showMenuButton(false); KIT.showPauseButton(false);
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop,
       title: didWin ? KIT.t('game.minesweeper.cleared', { def: 'BAY CLEARED!' }) : KIT.t('game.minesweeper.boom', { def: 'BOOM!' }),
-      record: didWin ? { slug: SLUG, mode: diffLabel(diff), score: revealed, time: t } : { slug: SLUG, mode: diffLabel(diff), score: revealed },
+      record: didWin ? { slug: SLUG, mode: runLabel(diff), score: revealed, time: t } : { slug: SLUG, mode: runLabel(diff), score: revealed },
       scoreText: didWin ? fmtTime(t) : String(revealed),
-      best: didWin ? (bestTime(diff) > 0 ? fmtTime(bestTime(diff)) : '') : (KIT.bestScore(SLUG, diffLabel(diff)) || ''),
+      best: didWin ? (bestTime(diff) > 0 ? fmtTime(bestTime(diff)) : '') : (KIT.bestScore(SLUG, runLabel(diff)) || ''),
       newBest: !!isBest,
       lines: [ diffDisplay(diff) + ' · ' + MINES + ' 💣' + (didWin ? '' : ' · ' + KIT.t('game.minesweeper.tilesLine', { count: revealed, def: '{count} tiles uncovered' })) ],
       share: { slug: SLUG, accent: ACCENT, icon: '💣', title: KIT.t('game.minesweeper.title', { def: 'Minesweeper' }),
@@ -598,6 +630,8 @@
     get flags() { return flags; },
     get won() { return won; },
     get flagMode() { return flagMode; }, set flagMode(v) { flagMode = !!v; },
+    get relaxed() { return relaxed; }, set relaxed(v) { relaxed = !!v; },
+    get lives() { return lives; },
     get timeSec() { return elapsedSec(); },
     isMine(x, y) { return !!mine[idx(x, y)]; },
     numAt(x, y) { return num[idx(x, y)]; },

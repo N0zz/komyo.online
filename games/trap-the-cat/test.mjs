@@ -26,6 +26,26 @@ section('trap-the-cat: start + prefilled hedges');
   ok(T().wallCount() === 7, 'hard prefills 7 hedges');
 }
 
+// ---- Kitten (kids) difficulty ----
+section('trap-the-cat: kitten difficulty');
+{
+  const gs = runGame();
+  const T = gs.T;
+  T().startMode('kitten');
+  ok(T().size === 9, 'kitten board is 9×9 (got ' + T().size + ')');
+  ok(T().wallCount() === 18, 'kitten prefills 18 hedges');
+  ok(T().cat.x === 4 && T().cat.y === 4, 'cat starts at the 9×9 centre');
+  T().setWalls([]);
+  T().setCat(4, 4);
+  T().click(0, 0);
+  const c = T().cat;
+  const stayedOrHopped = (c.x === 4 && c.y === 4) ||
+    T().neighbors(4, 4).some(([x, y]) => x === c.x && y === c.y);
+  ok(stayedOrHopped, 'drowsy cat naps in place or hops one hex (at ' + c.x + ',' + c.y + ')');
+  T().startMode('easy');
+  ok(T().size === 11, 'easy returns to the 11×11 board');
+}
+
 // ---- Hex neighbours (odd-r offset) ----
 section('trap-the-cat: hex neighbourhood');
 {

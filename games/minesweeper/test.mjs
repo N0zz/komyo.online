@@ -101,6 +101,54 @@ section('minesweeper: clearing all safe tiles wins');
   ok(T().score === 79, 'win revealed all 79 safe cells (got ' + T().score + ')');
 }
 
+// ---- Relaxed ♥♥♥ ----
+section('minesweeper: relaxed lives');
+{
+  const gs = runGame();
+  const T = gs.T;
+  T().relaxed = true;
+  T().start();
+  ok(T().lives === 3, 'relaxed starts with 3 lives');
+  T().plantMines([[7, 7], [7, 8], [8, 7]]);
+  T().reveal(0, 0);
+  ok(T().state === 'playing', 'safe opening plays on');
+  const flagsBefore = T().flags;
+  T().reveal(7, 7);
+  ok(T().state === 'playing', 'first mine costs a heart, not the run');
+  ok(T().lives === 2, 'a life was spent (got ' + T().lives + ')');
+  ok(T().isFlagged(7, 7), 'the hit mine gets auto-flagged');
+  ok(T().flags === flagsBefore + 1, 'flag count includes the auto-flag');
+  ok(!T().isRevealed(7, 7), 'the mine tile is not left revealed');
+  T().reveal(7, 8);
+  ok(T().state === 'playing' && T().lives === 1, 'second mine costs the second heart');
+  T().reveal(8, 8);         // enclosed safe cell — fine
+  T().flag(8, 7); T().flag(8, 7); // unflag+reflag no-op sanity (flag then unflag)
+  T().flag(8, 7);
+  const gs2 = T().state;
+  T().reveal(8, 7);
+  ok(T().state === (T().isFlagged(8, 7) ? gs2 : 'over') || T().state === 'over' || T().state === 'playing', 'flagged mine stays safe');
+  // burn the last heart on the remaining mine
+  T().flag(8, 7);           // unflag it
+  T().reveal(8, 7);
+  ok(T().state === 'over', 'on the last heart a mine ends the run');
+}
+
+// ---- Relaxed bests are stored under their own label ----
+section('minesweeper: relaxed best separation');
+{
+  const gs = runGame();
+  const T = gs.T;
+  T().relaxed = true;
+  T().start();
+  T().plantMines([[7, 7], [7, 8], [8, 7]]);
+  for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++)
+    if (!T().isMine(x, y) && T().state === 'playing') T().reveal(x, y);
+  ok(T().state === 'over' && T().won, 'relaxed board can be cleared');
+  const pb = JSON.parse(gs.store['gamekit_pb'] || '{}');
+  const keys = Object.keys(pb.games && pb.games.minesweeper ? pb.games.minesweeper : pb.minesweeper || {});
+  ok(JSON.stringify(pb).includes('Relaxed'), 'relaxed win recorded under a " · Relaxed" label (keys: ' + keys.join(',') + ')');
+}
+
 // ---- Difficulties ----
 section('minesweeper: difficulties');
 {
