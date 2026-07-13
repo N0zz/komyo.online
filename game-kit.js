@@ -1826,6 +1826,7 @@
     // aggregate, consent-gated: which games/modes actually get played to completion
     try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('game_play', { slug: slug, mode: rec.mode || '(default)' }); } catch (e) {}
     try { syncChNotify(); } catch (e) {} // this run may have just completed the active challenge
+    try { if (typeof window !== 'undefined' && window.__syncTitleNotify) window.__syncTitleNotify(); } catch (e) {} // …or crossed a titles-ladder tier → dot the Profile button
     return rec;
   }
   function lastResult(slug) { try { return JSON.parse(lsGet('gamekit_result_' + slug) || 'null'); } catch (e) { return null; } }
@@ -2458,6 +2459,9 @@
       };
       window.__refreshSideStack = refreshStack;
       refreshStack();
+      // apply the title-unlock dot now that __setStackDot is wired — mountProfilePanels' own
+      // sync ran before this plumbing existed (no-op), so without this the Profile dot never lit in games
+      if (window.__syncTitleNotify) window.__syncTitleNotify();
       // refresh after anything that can change titles/trophies/unlocks closes (cheap, event-driven)
       [document.getElementById('chalBtn'), pq, cq].forEach(b => { if (b) b.addEventListener('click', () => setTimeout(refreshStack, 400)); });
       // outside click/tap during live play tucks the stack away → unpauses (same behaviour as the
