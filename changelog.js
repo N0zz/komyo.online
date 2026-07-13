@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-13', title: 'Mobile Asteroids: classic button controls 🕹️', items: [
+    'New: both Asteroids games now offer classic button controls on phones — ◀ ▶ to turn, a 🚀 thrust button and FIRE — so you can turn in place then boost forward like the original arcade cabinet. Turn it on with "Button controls" on the start screen; the aim-and-go joystick is still the default.',
+  ] },
   { date: '2026-07-12', title: 'Speedrun clocks fixed on score cards ⏱️', items: [
     'Fix: Critter Match speedrun score cards showed a scrambled time like 00:00.01 instead of your real clear time — the card (and your profile\'s best) now show the time you actually ran.',
     'Fix: clearing an Asteroids+ speedrun now stamps your clear TIME on the shared score card, like Asteroids classic does — it used to show the score instead.',
