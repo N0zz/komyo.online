@@ -11,7 +11,7 @@ window.GAMES = [
     accent: "#9fe8ff",
     tags: ["ARCADE", "SHOOTER"],
     added: "2026-06-26",
-    updated: "2026-07-03",
+    updated: "2026-07-13",
   },
   {
     slug: "asteroids-plus",
@@ -21,7 +21,7 @@ window.GAMES = [
     accent: "#b98cff",
     tags: ["ROGUELIKE", "SHOOTER"],
     added: "2026-06-28",
-    updated: "2026-07-03",
+    updated: "2026-07-13",
   },
   {
     slug: "tower-defense",
