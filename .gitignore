@@ -4,3 +4,6 @@
 
 # Generated marketing score-card PNG renders (regenerate: node scripts/render-scorecards.mjs)
 plans/scorecards/
+
+# Portal (itch.io / Newgrounds) zip builds (regenerate: node scripts/package-game.mjs <slug>)
+dist-portal/

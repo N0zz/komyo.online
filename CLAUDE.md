@@ -43,6 +43,7 @@ plans/          PUBLIC design docs & mocks (komyo.online/plans/<name>.html — t
 test.mjs        top-level suite: catalogue + Keep Defender + live-games boot + game-kit test
 test-harness.mjs  the ONE shared headless harness (sandbox/bootGame/runLayoutSuite) all suites import
 scripts/        post-changelog.mjs (Discord changelog action) + gen-icon.mjs (icon generation) + bench.sh
+                + package-game.mjs (<slug> → dist-portal/<slug>.zip: self-contained portal build for itch/Newgrounds)
 sw.js           the ONE site-wide service worker (root scope) — SHELL covers the catalogue, the shared
                 head files, every locale AND every live game (slug list in games.js order, test-enforced)
 manifest.json favicon.svg og-image.png logo-*.png   CNAME .nojekyll .gitignore
