@@ -902,13 +902,17 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 #profileModal { width:min(760px,95vw); overflow:visible; }
 #titlesModal { overflow:visible; }
 #profileModal .about, #titlesModal .about { padding:18px 20px 20px; display:flex; flex-direction:column; gap:12px; max-height:90vh; overflow-y:auto; }
+#profileModal .about.profile { padding-left:4px; padding-right:4px; } /* .pf-scroll owns 16px of the h-inset so its clip leaves room for the title-reveal glow */
 #titlesModal .cl-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 #titlesModal .cl-head h3 { margin:0; font-size:17px; }
 .about.profile { max-height:88vh; display:flex; flex-direction:column; overflow:hidden; position:relative; padding:20px; }
 .pf-x { position:absolute; top:-13px; right:-13px; z-index:20; width:34px; height:34px; border-radius:50%; background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.45); cursor:pointer; }
 .pf-x:hover { color:#fff; border-color:#9fe8ff; }
 #profileBody { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; overflow:hidden; }
-.pf-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; padding-top:12px; }
+/* the scroll region is the innermost clipper (overflow-y:auto clips BOTH axes), so the reveal's
+   chip + glow need room INSIDE it — pad it 22/16 and pull the same 16 off .about.profile below so
+   content stays at 20px from the modal edge */
+.pf-scroll { flex:1 1 auto; min-height:0; overflow-y:auto; padding:22px 16px 0; }
 
   /* side stack (Profile / Challenges / Collection). Two modes, decided by measuring the gutter
      beside .wrap: inline (fits) → a plain fixed column at right:13px; tucked (doesn't fit) → the
@@ -1017,7 +1021,7 @@ body:has(.gamekit-menu) .side-stack { z-index:70; }
   .pf-row .pr-val { color:var(--text); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right; }
   .pf-empty { color:var(--muted); font-size:15px; line-height:1.6; }
   /* pinned to the bottom of the panel (outside the scroll area) so it's always reachable */
-  .pf-share { flex:0 0 auto; margin:0 -20px -20px; padding:13px 20px 20px; border-top:1px solid var(--border); background:var(--surface); }
+  .pf-share { flex:0 0 auto; margin:0 -4px -20px; padding:13px 20px 20px; border-top:1px solid var(--border); background:var(--surface); } /* -4px = the reduced .about.profile h-padding, so the footer still full-bleeds to the modal edge */
   .pf-share button { width:100%; padding:11px; border-radius:10px; border:1px solid var(--border); background:var(--surface); color:var(--text); font-weight:600; cursor:pointer; }
   .pf-share button:hover { border-color:#9fe8ff; }
   /* ---- earned title (lifetime challenge points) — escalating shine, tier 0→8 ---- */
