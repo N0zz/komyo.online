@@ -184,6 +184,13 @@ function testCatalogue() {
     ok(g.getEl('sideTab').classList.contains('has-dot'), 'the hidden drawer bubbles the dot to the ‹‹ tab');
     g.win.__setStackDot('profileQuick', false);
     ok(!g.getEl('profileQuick').classList.contains('has-dot'), 'clearing the source clears the button dot');
+    // load-time: an unseen EARNED title must dot the Profile button at boot, with NO manual
+    // re-sync — mountProfilePanels' sync runs before __setStackDot exists, so sideStack has to
+    // re-sync once its dot plumbing is wired (regression: the dot was silently never applied in games)
+    {
+      const gT = bootGame('index.html', { preCode: [games, challenges], store: { gamekit_done: JSON.stringify({ x: 100 }) } });
+      ok(gT.getEl('profileQuick').classList.contains('has-dot'), 'an unseen earned title dots the Profile button at load (no manual sync)');
+    }
     // Challenges dot: an unseen rotation lights it from boot (it's why the tab is still dotted)
     ok(g.getEl('chalBtn').classList.contains('has-dot'), 'a never-seen challenge rotation lights the Challenges dot');
     ok(g.getEl('sideTab').classList.contains('has-dot'), 'tab still bubbles the remaining challenges dot');
@@ -517,6 +524,14 @@ async function testKit() {
   F.recordResult('bubbles', { score: 100 });
   const pt = F.playedToday();
   ok(pt.slugs.indexOf('snake') >= 0 && pt.slugs.indexOf('bubbles') >= 0 && pt.count === 2 && pt.totalScore === 142, 'activity log tracks distinct games + totals');
+  { // recordResult must resync the side-stack title dot too — a run can cross a titles-ladder tier
+    // live, and the kit already resyncs the challenge dot here; the title dot must not be left stale.
+    let titleSyncs = 0; const prevTS = g.win.__syncTitleNotify;
+    g.win.__syncTitleNotify = () => { titleSyncs++; };
+    F.recordResult('snake', { mode: 'classic', score: 3 });
+    g.win.__syncTitleNotify = prevTS;
+    ok(titleSyncs >= 1, 'recordResult resyncs the title-unlock dot (not just the challenge dot)');
+  }
   // score card (Level 2): headless has no canvas.toBlob → resolves null without throwing
   let cardOk = false; F.scoreCard({ title: 'Neon Snake', score: 42 }).then(b => { cardOk = (b === null); }).catch(() => {});
   ok(typeof F.scoreCard === 'function', 'kit exposes scoreCard builder');
