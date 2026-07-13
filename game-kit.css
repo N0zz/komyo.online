@@ -965,6 +965,19 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   .side-chal { background:linear-gradient(160deg, rgba(255,206,92,.16), var(--surface-2)); }
   .side-cos { background:linear-gradient(160deg, rgba(185,140,255,.18), var(--surface-2)); }
   .side-profile { background:linear-gradient(160deg, var(--ttbg, rgba(120,130,143,.18)), var(--surface-2)); }
+  /* lightweight echo of the profile title box: a tier-scaled glow on the worn emoji + a one-shot
+     pulse when a new title lights the dot. CSS-only on purpose — no particle canvas / holo sweep
+     (rAF-heavy, and this button is on screen the whole session). Premium tiers (3+) only. */
+  .side-profile .ico { filter:var(--ttglow, none); transition:filter .3s ease; }
+  .side-profile[data-tt="3"] { --ttglow:drop-shadow(0 0 5px rgba(211,222,237,.6)); }
+  .side-profile[data-tt="4"] { --ttglow:drop-shadow(0 0 6px rgba(185,140,255,.7)); }
+  .side-profile[data-tt="5"] { --ttglow:drop-shadow(0 0 7px rgba(159,232,255,.8)); }
+  .side-profile[data-tt="6"] { --ttglow:drop-shadow(0 0 8px rgba(127,232,208,.85)); }
+  .side-profile[data-tt="7"] { --ttglow:drop-shadow(0 0 9px rgba(255,138,209,.9)); }
+  .side-profile[data-tt="8"] { --ttglow:drop-shadow(0 0 11px rgba(255,215,106,1)); }
+  @keyframes ttPulse { 0% { transform:none; } 30% { transform:translateY(-1px) scale(1.05); box-shadow:0 4px 14px rgba(0,0,0,.42), 0 0 0 3px rgba(255,209,102,.55), 0 0 22px rgba(255,209,102,.5); } 100% { transform:none; } }
+  .side-profile.tt-pulse { animation:ttPulse .9s ease-out; }
+  @media (prefers-reduced-motion: reduce){ .side-profile.tt-pulse { animation:none; } }
 /* on game pages the kit menu overlay sits at z 60 — lift the stack above it there so it stays
    clickable on menu screens (the catalogue has no .gamekit-menu, so this never fires at home) */
 body:has(.gamekit-menu) .side-stack { z-index:70; }

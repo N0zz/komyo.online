@@ -2335,16 +2335,26 @@
       const syncPlayPause = () => { if (!opts.game) return; const want = !!(shown && !_menuEl); if (want !== playPause) { playPause = want; if (want) modalInc(); else modalDec(); } };
       // per-button notification dots; the tab bubbles "any dot inside" while the drawer is hidden
       const dots = {};
+      // one-shot celebratory pulse on the Profile button — a lightweight echo of the profile reveal.
+      // Fires on BOTH edges of "an unseen title is visible": the dot turning on while the drawer is
+      // open, AND the drawer opening while the dot is already up. Cleared once you open the profile.
+      const pulseProfile = () => { const b = document.getElementById('profileQuick');
+        if (b && b.classList) { b.classList.remove('tt-pulse'); if (typeof b.offsetWidth === 'number') void b.offsetWidth; b.classList.add('tt-pulse'); } };
       const syncTabDot = () => {
         const any = Object.keys(dots).some(k => dots[k]);
         if (tab.classList) tab.classList.toggle('has-dot', any && !shown);
       };
       window.__setStackDot = (id, on) => {
+        const prev = dots[id];
         dots[id] = !!on;
         const b = document.getElementById(id);
-        if (b && b.classList) b.classList.toggle('has-dot', !!on);
+        if (b && b.classList) {
+          b.classList.toggle('has-dot', !!on);
+          if (id === 'profileQuick' && on && !prev && shown) pulseProfile();
+        }
         syncTabDot();
       };
+      let _prevShown = false;
       const applyClip = () => {
         clip.style.width = (shown ? (panel.offsetWidth || 152) : 0) + 'px';
         stack.classList.toggle('shown', shown);
@@ -2353,6 +2363,8 @@
         stack.classList.toggle('gameplay-dim', !!(opts.game && !shown && !_menuEl));
         syncPlayPause();
         tab.textContent = shown ? '»' : '‹‹';
+        if (shown && !_prevShown && dots.profileQuick) pulseProfile(); // opened the drawer with an unseen title
+        _prevShown = shown;
         syncTabDot();
       };
       const place = () => {
@@ -2446,6 +2458,8 @@
             const ico = document.getElementById('spIco');
             if (ico) ico.textContent = wt.emoji || '🎖️';
             if (pq && pq.style && pq.style.setProperty) pq.style.setProperty('--ttbg', TIER_TINT[wt.tier] || TIER_TINT[0]);
+            if (pq && pq.setAttribute) pq.setAttribute('data-tt', String(wt.tier | 0)); // tier drives the CSS emoji glow
+
           }
           // detail sub-lines: player name · lifetime 🏆 · collection progress
           const K = window.gamekit;
