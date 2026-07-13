@@ -143,6 +143,10 @@
   .tc-joy { position:absolute; width:116px; height:116px; border-radius:50%; border:2px solid rgba(120,200,255,0.5); background:rgba(20,30,50,0.4); pointer-events:none; display:none; opacity:0.5; }
   .tc-knob { position:absolute; left:50%; top:50%; width:54px; height:54px; margin:-27px 0 0 -27px; border-radius:50%; background:rgba(159,232,255,0.55); box-shadow:0 0 16px rgba(120,200,255,0.6); }
   .tc-fire { position:absolute; right:24px; bottom:34px; width:96px; height:96px; border-radius:50%; border:2px solid rgba(255,150,150,0.6); background:rgba(80,20,20,0.45); color:#ffc0c0; font:bold 15px "Courier New",monospace; letter-spacing:2px; pointer-events:auto; touch-action:none; display:flex; align-items:center; justify-content:center; opacity:0.5; }
+  /* Classic (button) touch scheme: ◀ ▶ rotate (bottom-left) + 🚀 thrust above FIRE (bottom-right) */
+  .tc-thrust { position:absolute; right:24px; bottom:150px; width:96px; height:96px; border-radius:50%; border:2px solid rgba(130,220,160,0.6); background:rgba(20,55,38,0.45); color:#bff0d0; font:26px "Courier New",monospace; pointer-events:auto; touch-action:none; display:none; align-items:center; justify-content:center; opacity:0.5; }
+  .tc-rot { position:absolute; bottom:34px; width:86px; height:86px; border-radius:50%; border:2px solid rgba(120,200,255,0.6); background:rgba(20,30,50,0.45); color:#cfe8ff; font:bold 28px "Courier New",monospace; pointer-events:auto; touch-action:none; display:none; align-items:center; justify-content:center; opacity:0.5; }
+  .tc-rot-l { left:24px; } .tc-rot-r { left:120px; }
   .tc-pause { position:absolute; right:16px; top:14px; width:46px; height:46px; border-radius:10px; border:1px solid rgba(120,200,255,0.4); background:rgba(10,16,30,0.6); color:#cfe8ff; font:bold 15px "Courier New",monospace; pointer-events:auto; }
   body.touch #xpwrap { bottom: 172px; width: min(420px, 60vw); }
   /* landscape phone: the screen is short, so 172px floats the XP bar mid-playfield — drop it near the bottom */
@@ -474,11 +478,12 @@
           mech: st => [t('game.asteroids-plus.mechEarnCredits',{def:'Earn credits'}),t('game.asteroids-plus.mechBuyBetween',{def:'Buy between waves'}), goalChip(st)],
           best: st => st.speedrun ? bestTime('shop') : bestScore('shop') },
       ]} ],
-      toggles:[ { id:'speedrun', label:t('game.asteroids-plus.speedrun',{def:'SPEEDRUN'}), caption:t('game.asteroids-plus.speedrunCaption',{wave:SR_TARGET_WAVE,def:'— clear wave '+SR_TARGET_WAVE+' (first boss) against the clock'}), default: SPEEDRUN } ],
+      toggles:[ { id:'speedrun', label:t('game.asteroids-plus.speedrun',{def:'SPEEDRUN'}), caption:t('game.asteroids-plus.speedrunCaption',{wave:SR_TARGET_WAVE,def:'— clear wave '+SR_TARGET_WAVE+' (first boss) against the clock'}), default: SPEEDRUN },
+        ...(isTouch ? [{ id:'tscheme', kid:false, label:t('game.common.touchScheme',{def:'Button controls'}), caption:t('game.common.touchSchemeCap',{def:'— tap to rotate, thrust & fire'}), default: touchScheme==='classic' }] : []) ],
       hint: st => st.speedrun ? t('game.asteroids-plus.hintSpeedrun',{wave:SR_TARGET_WAVE,def:'Speedrun — clear wave '+SR_TARGET_WAVE+' as fast as you can.'})
         : ({ levelup:t('game.asteroids-plus.hintLevelup',{def:'Level-up — collect gems, level up, choose upgrades.'}), milestones:t('game.asteroids-plus.hintMilestones',{def:'Milestones — cross score thresholds to pick upgrades.'}), shop:t('game.asteroids-plus.hintShop',{def:'Wave shop — earn credits and spend them between waves.'}) }[st.mode] || t('game.asteroids-plus.hintFallback',{def:'Pick how you power up.'})),
       actions:[ {id:'play',label:t('game.asteroids-plus.play',{def:'PLAY ▶'}),primary:true} ],
-      onChange: st => { KIT.stampUrl(modeParams(st)); },
+      onChange: st => { KIT.stampUrl(modeParams(st)); if(isTouch) setScheme(st.tscheme ? 'classic' : 'aim'); },
       onPlay: st => { applyProgression(st.mode, !!st.speedrun); KIT.stampUrl(modeParams(st)); startGame(); },
     });
     KIT.stampUrl(modeParams({ mode: PROGRESSION, speedrun: SPEEDRUN }));
@@ -969,17 +974,37 @@
   // ---- Touch controls (mobile): aim-and-go joystick + fire; desktop is unaffected ----
   const HAS_PAUSE = false; // no on-screen pause button (it sat behind the kit's top-right buttons); Esc still pauses on desktop
   const isTouch = (typeof matchMedia!=='undefined' && matchMedia('(pointer:coarse)').matches) || ('ontouchstart' in window);
-  let joyActive=false, joyAngle=0, joyMag=0, joyId=null, fireBtn=null;
+  let joyActive=false, joyAngle=0, joyMag=0, joyId=null, fireBtn=null, rotLBtn=null, rotRBtn=null, thrustBtn=null, joyEl=null, zoneEl=null;
+  // two touch schemes: 'aim' = aim-and-go joystick (default); 'classic' = ◀ ▶ rotate + 🚀 thrust + FIRE buttons
+  let touchScheme='aim'; try{ if(localStorage.getItem('asteroids-plus_touchscheme')==='classic') touchScheme='classic'; }catch(e){}
+  let NAV_CONTROLS=null; // the 🎮 controls board config (assigned at nav setup; its touch rows track the scheme)
   function applyTouch(){ if(!isTouch||!ship) return;
-    keys['ArrowLeft']=false; keys['ArrowRight']=false; keys['ArrowUp']=false; // joystick drives the ship directly (aim-and-go)
-    if(joyActive){ ship.angle=joyAngle; const th=0.45; if(joyMag>th){ const acc=(ship.accel||0.16)*Math.min(1,(joyMag-th)/(1-th)); ship.vx+=Math.cos(joyAngle)*acc; ship.vy+=Math.sin(joyAngle)*acc; } }
+    if(touchScheme!=='classic'){ keys['ArrowLeft']=false; keys['ArrowRight']=false; keys['ArrowUp']=false; // joystick drives the ship directly (aim-and-go)
+      if(joyActive){ ship.angle=joyAngle; const th=0.45; if(joyMag>th){ const acc=(ship.accel||0.16)*Math.min(1,(joyMag-th)/(1-th)); ship.vx+=Math.cos(joyAngle)*acc; ship.vy+=Math.sin(joyAngle)*acc; } } }
     if(fireBtn) fireBtn.style.display = ship.auto ? 'none' : 'flex'; }
+  // Classic scheme drives the SAME keys as the keyboard (relative rotation + hold-to-thrust).
+  function mkHoldBtn(cls,label,key){ const b=document.createElement('button'); b.className=cls; b.textContent=label;
+    b.addEventListener('touchstart',e=>{ keys[key]=true; e.preventDefault(); },{passive:false});
+    const up=e=>{ keys[key]=false; if(e&&e.cancelable) e.preventDefault(); };
+    b.addEventListener('touchend',up,{passive:false}); b.addEventListener('touchcancel',up); return b; }
+  function applyScheme(){ if(!isTouch) return; const cls=touchScheme==='classic';
+    if(zoneEl) zoneEl.style.display = cls?'none':'block';
+    if(rotLBtn) rotLBtn.style.display = cls?'flex':'none';
+    if(rotRBtn) rotRBtn.style.display = cls?'flex':'none';
+    if(thrustBtn) thrustBtn.style.display = cls?'flex':'none';
+    if(cls){ joyActive=false; joyId=null; if(joyEl) joyEl.style.display='none'; }
+    else { keys['ArrowLeft']=keys['ArrowRight']=keys['ArrowUp']=false; } }
+  function setScheme(s){ touchScheme = s==='classic'?'classic':'aim'; try{ localStorage.setItem('asteroids-plus_touchscheme', touchScheme); }catch(e){} applyScheme(); if(NAV_CONTROLS) NAV_CONTROLS.touch = touchRefRows(); }
+  function touchRefRows(){ return touchScheme==='classic'
+    ? [ ['◀  ▶', t('game.asteroids.rotate',{def:'Rotate'})], ['🚀', t('game.asteroids.thrust',{def:'Thrust'})], [t('game.asteroids-plus.fire',{def:'FIRE'}), t('game.asteroids.shoot',{def:'Shoot'})] ]
+    : [ [t('game.asteroids.touchDrag',{def:'Drag the left half'}), t('game.asteroids.steerThrust',{def:'Steer & thrust'})], [t('game.asteroids.fireButton',{def:'FIRE button'}), t('game.asteroids.shoot',{def:'Shoot'})] ]; }
   function buildTouch(){
     const wrap=document.createElement('div'); wrap.id='tcontrols';
-    const zone=document.createElement('div'); zone.className='tc-zone';
-    const joy=document.createElement('div'); joy.className='tc-joy'; const knob=document.createElement('div'); knob.className='tc-knob'; joy.appendChild(knob);
+    const zone=document.createElement('div'); zone.className='tc-zone'; zoneEl=zone;
+    const joy=document.createElement('div'); joy.className='tc-joy'; joyEl=joy; const knob=document.createElement('div'); knob.className='tc-knob'; joy.appendChild(knob);
     fireBtn=document.createElement('button'); fireBtn.className='tc-fire'; fireBtn.textContent=t('game.asteroids-plus.fire',{def:'FIRE'});
-    wrap.appendChild(zone); wrap.appendChild(joy); wrap.appendChild(fireBtn);
+    rotLBtn=mkHoldBtn('tc-rot tc-rot-l','◀','ArrowLeft'); rotRBtn=mkHoldBtn('tc-rot tc-rot-r','▶','ArrowRight'); thrustBtn=mkHoldBtn('tc-thrust','🚀','ArrowUp');
+    wrap.appendChild(zone); wrap.appendChild(joy); wrap.appendChild(fireBtn); wrap.appendChild(rotLBtn); wrap.appendChild(rotRBtn); wrap.appendChild(thrustBtn);
     if(HAS_PAUSE){ const pb=document.createElement('button'); pb.className='tc-pause'; pb.textContent=t('game.asteroids-plus.pauseGlyph',{def:'II'}); pb.addEventListener('click',()=>{ if(state==='playing') pauseGame(); else if(state==='paused') resumeGame(); }); wrap.appendChild(pb); }
     document.body.appendChild(wrap);
     const R=58; let ox=0, oy=0;
@@ -993,11 +1018,15 @@
     fireBtn.addEventListener('touchstart',e=>{ keys[' ']=true; e.preventDefault(); },{passive:false});
     fireBtn.addEventListener('touchend',e=>{ keys[' ']=false; e.preventDefault(); },{passive:false});
     fireBtn.addEventListener('touchcancel',()=>{ keys[' ']=false; });
+    applyScheme();
   }
   if(isTouch){ document.body.classList.add('touch'); buildTouch(); }
 
   // game-kit nav: top-left ‹ Menu (quits to the start menu, in-place) + top-right sound menu (SFX + Music + Reset)
-  if (KIT) { KIT.nav({ slug: 'asteroids-plus', music: true, home: '../../', theme: MENU_THEME,
+  // 🎮 controls board — its .touch rows track the active touch scheme (setScheme rewrites them).
+  NAV_CONTROLS = { keyboard: KIT ? [ [t('game.asteroids.keysRotate',{def:'← →  ·  A D'}), t('game.asteroids.rotate',{def:'Rotate'})], [t('game.asteroids.keysThrust',{def:'↑  ·  W'}), t('game.asteroids.thrust',{def:'Thrust'})], [t('game.asteroids.keySpace',{def:'Space'}), t('game.asteroids.shoot',{def:'Shoot'})], [t('game.common.esc',{def:'Esc'}), t('game.common.pause',{def:'Pause'})] ] : [],
+    touch: KIT ? touchRefRows() : [] };
+  if (KIT) { KIT.nav({ slug: 'asteroids-plus', music: true, home: '../../', theme: MENU_THEME, controls: NAV_CONTROLS,
     confirmLeave: () => (state==='playing'||state==='paused'||state==='levelup'||state==='shop') ? t('confirm.leave', { def: 'Leave this run? You’ll lose your progress.' }) : false,
     onMenu: () => quitToMenu(), onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); } }); KIT.showMenuButton(false); KIT.showPauseButton(false); KIT.pwa('../../sw.js'); }
 
