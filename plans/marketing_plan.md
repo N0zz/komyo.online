@@ -62,12 +62,48 @@ Legend for **Status** column (fill in after you check the sub):
 | r/gry (Polish gaming) | General PL gaming discussion | CHECK | | PL-language post | Main Polish gaming sub |
 | r/Polska | General Polish sub, huge | Careful — self-promo generally discouraged | Only works framed as an organic "look what I made" post, not an ad | Casual PL post | Don't lead with the link |
 
+**AI-disclosure playbook (proven 2026-07-13, r/playmygame):** a mod challenged the arcade post
+over AI usage (their Rule 4 "no basic AI creations"). Full upfront disclosure won an explicit
+public approval: no shipped assets at all (code-drawn visuals, procedural audio) + AI-assisted
+coding declared plainly + sole-dev design/playtest ownership + the public repo commit history
+(incl. Claude co-author trailers) offered as receipts. Reuse this exact framing whenever a
+community asks about AI: disclose first, then point at github.com/N0zz/komyo.online/commits/main.
+
 **To research further per subreddit before posting (do this right before, not now):**
 member count, current top-posts style (sort by top/month to see what performs),
 exact self-promo rule text from the wiki, whether flair is required, min karma/account
 age if any.
 
 ---
+
+## 2b. Channel decisions & schedule (locked 2026-07-13, post-launch)
+
+- **TikTok + YT Shorts = the drip.** Two trailers are up; next: a GAME-post template and a
+  FEATURE-post template (from the komyo-shorts/trailer pipeline), then ~1 game + 1 feature post
+  per 2-3 days (1-2 games if no feature to show). Never two uploads same day per platform.
+- **YT full videos:** no more planned for now — game/feature content is shorts-only; full slots
+  are reserved for future trailers only.
+- **Reddit: parked 2-3 days** after the 4 launch posts (SideProject, IndieGaming, playmygame
+  mod-approved, WebGames/Asteroids+). Next: the r/ClaudeCode making-of. Then r/WebGames single
+  games every ~3-4 weeks (per-game repost clock). r/InternetIsBeautiful stays a held one-shot.
+- **Portals decision (settles the viral-shots-plan open item; itch priority DOWNGRADED
+  2026-07-13 → "cheap backlinks" tier, not a discovery engine):** itch.io listings are worth it
+  as BACKLINKS to komyo.online (SEO) + landing pages, NOT for itch browse traffic — generic-tag
+  browse is hopeless (Asteroids+ = 5,001st asteroids clone; wrong first pick). So: **lead with
+  ORIGINALS/weird games, not clones** — Forcefield next, then Frog Bonk / weird-mechanic POCs;
+  clones (asteroids/2048/snake) stay site-only or list last. Asteroids+ still gets published (done,
+  zero marginal cost, real backlink) but expect ~no itch-native traffic from it. Curated shortlist,
+  1-2/week fresh window; pages link back with utm_source=portal. Deploys automated: packager +
+  butler push via GH Action (workflow_dispatch first — add slug to pushed-games list, butler creates
+  the draft, one-time manual page dress-up, auto-updated after). Reusable kit built: package-game.mjs
+  + trailer CONFIG template + image templates (itch-assets/) → next game's listing is ~minutes.
+  Newgrounds DROPPED (manual re-upload labor, lowest value), AlternativeTo (list as no-ads alternative to Coolmath/Poki/CrazyGames/Miniclip — account created 2026-07-13, 7-day age gate: SUBMIT JULY 20+; listing copy ready in the session log / ask Claude). NO to
+  Poki/CrazyGames/GameDistribution — they wrap games in their ad ecosystem, which contradicts
+  the brand. Show HN + Product Hunt = held one-shots, each needs a prepared hook/day.
+- **LinkedIn: series starts ~2026-08-01.** Build-in-public retrospective series (origin story +
+  trailer native upload, then AI workflow, QA/testing solo, i18n, honest marketing numbers).
+  Outline + post #1 drafted in advance; waiting gives the numbers a real trend to show.
+- **IGDB:** skip for now (metadata DB, no traffic for browser games).
 
 ## 3. Facebook groups
 

@@ -1,9 +1,44 @@
 # Promo Content Plan — marketing assets (graphics · video · flyers)
 
-Status: **in progress** (approach decided 2026-07-09; **HyperFrames shorts pipeline POC'ed
-2026-07-12** — `~/komyo-promo/komyo-shorts/`, see the TikTok item below; asset production waits on
-a capture session + the two open decisions). Sibling to `plans/marketing_plan.md` (that one = *where/what to post*; this one =
-*the assets to post*). Feeds Path-to-launch #5 (LAUNCH + marketing) in `ROADMAP.md`.
+Status: **trailers shipped 2026-07-13** (3 versions × 2 formats + an Asteroids+ per-game trailer);
+approach decided 2026-07-09; HyperFrames pipeline POC'ed 2026-07-12. Sibling to
+`plans/marketing_plan.md` (that one = *where/what to post*; this one = *the assets to post*).
+
+## Local promo assets (OUTSIDE the repo — not committed; media lives on disk)
+
+These dirs are NOT in the git repo (big media / work-in-progress). Paths are `~`-relative for the
+project owner's machine. A fresh session won't know these exist unless it reads this section.
+
+```text
+~/Movies/komyo/                         RAW gameplay recordings (1920×1080@60 .mov)
+                                        format: ${intensity}_gameplay_${game}.mov  (+ catalogue.mov,
+                                        collections.mov, asteroids_plus_gameplay.mov)
+~/komyo-promo/komyo-shorts/             the original HyperFrames POC project (2026-07-11)
+~/komyo-promo/komyo-trailer/            MAIN trailer project (HyperFrames). Key contents:
+    variants/                           the 6 editable trailer compositions (v1/v2/v3 × 16:9/9:16)
+                                        + game-asteroids-plus-16x9/9x16 (per-game template)
+    index.html                          scratch slot the CLI checks/renders (copy a variant in)
+    renders/                            FINAL MP4s (v1/v2/v3 × 2 fmts + game-asteroids-plus-*)
+    assets/footage/                     remuxed .mp4 gameplay (+ *_nofooter crop)
+    assets/audio/                       engine-rendered tracks (snakebanger/forcefield/asteroidsplus)
+                                        + *.beats.json bar grids
+    assets/brand/                       logo, mascot, favicon, catalogue-desktop/mobile.png (site screenshots)
+    tools/render-music.mjs              offline music renderer (boots game-kit.js headless → WAV + beats)
+    frame.md · TRAILERS.md · README.md  brand spec · beat sheets · edit→check→render guide
+~/komyo-trailer-v2/ , ~/komyo-trailer-v3/   per-version agent work dirs (finals/ hold the source of truth)
+~/komyo-promo/itch-assets/asteroids-plus/   itch page kit: cover-630x500, banner-960x280, social,
+                                        wide (21:9), logo (transparent), screenshot-1..4
+```
+
+Repo-side helper (IS committed): `scripts/package-game.mjs <slug>` → `dist-portal/<slug>.zip`
+(self-contained portal build; `dist-portal/` gitignored).
+
+**Conventions worth keeping:** trailer cuts land on the music bar grid (V1/V2 122bpm `0.06+n·1.96721`,
+V3 128bpm post-wipe, Asteroids+ 126bpm `0.06+n·1.904762`); per-surface QR/UTM = `tr-v1/tr-v2/tr-v3`
+(trailers), `tr-ap` (Asteroids+), `portal` (itch backlinks); recordings carry a version-tag footer
+bottom-left — crop it (scale/zoom or a `*_nofooter` source). The per-game trailer is a config-block
+template (swap footage + cut list + accent + QR). **9:16 game-trailer framework is deferred** (landscape
+vertical framing is unsolved — roaming subject + sparse dark footage; needs a dedicated pass).
 
 Audience anchor: **parents / families / teachers** (per the marketing re-aim) — so every asset leads
 with the **strengths** pitch (*free · no ads · no accounts · kid-safe · works offline*), NOT feature
@@ -93,6 +128,19 @@ the score card's design language** for instant brand recognition.
 - [ ] Glue mocks + graphics + screenshots + recordings → final flyer, promo graphic, trailer, shorts
 
 ## Trailer (~60s target; also cut a 30s social version)
+
+**Status 2026-07-13: PRODUCED + first review round applied — 3 versions × 2 formats.** Built with
+the HyperFrames pipeline (project `~/komyo-promo/komyo-trailer/`, editable HTML compositions in
+`variants/`, finals in `renders/`): **V1** raw/simple (35.5s + 33.5s 9:16), **V2** cinematic
+score-card-stage (57.2s + 37.5s), **V3** "pain → cure" parody-portal narrative (45.5s + 33.0s).
+Review round folded in: per-version QR UTMs (`utm_source=tr-v1/v2/v3&utm_medium=qr` → GA4
+session-source tells the versions apart), "tiny" dropped from all copy, concrete kid-nag line,
+juddery catalogue recording replaced by synthetic screenshot pans (desktop + real mobile layout,
+`assets/brand/catalogue-*.png`), V2 gameplay-by-2s intro, V3 pain hook cut to 3.5s/3s with the
+thesis line promoted to hero.
+Music = the actual game-kit engine rendered offline (snake banger for V1/V2, forcefield for V3;
+`tools/render-music.mjs`), all cuts beat-synced. Beat sheets in `TRAILERS.md`, brand spec in
+`frame.md`, editing guide in `README.md` there.
 
 **The origin story IS the pitch.** komyo was born from three real, specific frustrations every
 parent/casual player feels — lead with these, they're the strongest asset:

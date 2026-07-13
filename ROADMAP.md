@@ -400,12 +400,33 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   risk, ToS/spam risk, anything that could backfire). (Feeds Path-to-launch #5 + the Marketing
   sections below.)
 - **komyo TikTok account — CREATED (2026-07-11).** The channel for the 9:16 per-game/feature shorts
-  from `plans/promo-content-plan.md` (and the "dedicated TikTok / YT Shorts channel" idea under
-  Integrations). Next: first shorts once the promo-content track produces cuts.
-- **Video tooling — HyperFrames — POC DONE (2026-07-12).** Working shorts pipeline at
-  `~/komyo-promo/komyo-shorts/` (trims via `data-media-start`/`data-duration`, QR end card,
-  deterministic placeholder footage) — the fit is confirmed; next step is real templates
-  (9:16 shorts + trailer overlays) fed by a gameplay-capture session (`plans/promo-content-plan.md`).
+  from `plans/promo-content-plan.md`. **2 trailer cuts posted (2026-07-13)**; per-game shorts drip is
+  the ongoing next step (needs the 9:16 game-trailer template — see Video tooling).
+- **Launch trailers — SHIPPED (2026-07-13).** 3 concepts × 2 formats (16:9 + 9:16), built with the
+  HyperFrames pipeline: **V1** raw/simple · **V2** cinematic score-card-stage (voted best) · **V3**
+  "pain → cure" parody-portal narrative. Music = the game engine's own tracks rendered offline
+  (snakebanger / forcefield). Two review rounds folded in (per-version QR UTMs `tr-v1/v2/v3`, concrete
+  copy, synthetic catalogue scrolls, snake full-board fix, V3 pain-hook trim + thesis-line hero).
+  Renders in `~/komyo-promo/komyo-trailer/renders/`. **Uploaded to YouTube + TikTok; announced on
+  Discord.** Beat sheets `TRAILERS.md`, brand spec `frame.md`, editing guide `README.md` (all in the
+  komyo-trailer dir). See the **Local promo assets** index in `plans/promo-content-plan.md`.
+- **Reddit launch posts — LIVE (2026-07-13).** 4 posts up: r/SideProject (origin story) · r/IndieGaming
+  (trailer, GenAI-declared) · r/playmygame (**mod-approved** after a public AI-transparency reply — the
+  disclose-first-then-repo-receipts playbook, recorded in `plans/marketing_plan.md`) · r/WebGames
+  (Asteroids+ single-game, per P4 rules). Next Reddit: r/ClaudeCode making-of, then r/WebGames drip
+  (originals). Held one-shots: r/InternetIsBeautiful, Show HN, Product Hunt.
+- **itch.io — Asteroids+ listed (2026-07-13); priority DOWNGRADED to "backlinks tier."** Reusable kit
+  built: `scripts/package-game.mjs <slug>` → self-contained portal zip (verified boots standalone) +
+  a per-game trailer CONFIG template + image templates (`~/komyo-promo/itch-assets/`). Decision: itch
+  is worth it as **SEO backlinks + landing pages, NOT browse traffic** (generic-tag browse is hopeless);
+  **lead future listings with ORIGINALS (Forcefield next), not clones.** Deploy automation (butler +
+  GH Action) is designed, not built. AlternativeTo submission gated to **≥ 2026-07-20** (7-day account age).
+- **Video tooling — HyperFrames — IN PRODUCTION (POC 2026-07-12 → trailers shipped 2026-07-13).**
+  Pipeline proven and used for the launch trailers + the Asteroids+ per-game trailer (16:9). Reusable
+  templates live in `~/komyo-promo/komyo-trailer/variants/` (trailer versions + a config-block per-game
+  template). **Deferred:** a proper **9:16 game-trailer framework/template** — landscape-game vertical
+  framing is hard (roaming subject, sparse dark footage); parked for a dedicated template pass. Offline
+  music renderer: `~/komyo-promo/komyo-trailer/tools/render-music.mjs` (boots game-kit headless).
   Original eval:
   HeyGen's **HyperFrames** (May 2026, Apache-2.0, free, no per-render fees): agent-native
   "write HTML → render deterministic MP4" — Claude Code writes HTML/CSS/JS with timing attributes,
