@@ -2,12 +2,13 @@
    Tint the share hover per game by setting --gamekit-accent on the share container. */
 .gamekit-nav { position: fixed; top: 8px; left: 10px; z-index: 80; display: flex; gap: 8px; }
 .gamekit-back { font: 600 12px/1 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; letter-spacing: 1px;
-  color: #fff; text-decoration: none; background: rgba(8, 12, 20, 0.66); border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 8px; padding: 7px 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
-  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  color: #fff; text-decoration: none; background: rgba(6, 10, 16, 0.92); border: 1px solid rgba(159, 232, 255, 0.22);
+  border-radius: 6px; padding: 7px 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   -webkit-user-drag: none; user-select: none; -webkit-user-select: none; touch-action: manipulation;
-  transition: border-color .12s, color .12s, background .12s; }
-.gamekit-back:hover { border-color: #9fe8ff; color: #fff; background: rgba(8, 12, 20, 0.85); }
+  transition: border-color .12s, color .12s, box-shadow .12s; }
+.gamekit-back:hover { border-color: #9fe8ff; color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(159, 232, 255, 0.5), 0 0 16px -3px rgba(159, 232, 255, 0.7); }
 /* The left nav collapses to just "›" ONLY when it would actually overlap the right sound/pause
    cluster — game-kit.js measures the two and toggles .gamekit-nav-tight (no hardcoded breakpoint,
    so portrait phones with room keep the full "Komyo ›" label). */
@@ -17,9 +18,11 @@
 /* top-right sound menu (+ optional reset-scores) */
 .gamekit-audio { position: fixed; top: 8px; right: 10px; z-index: 80; display: flex; flex-direction: row; align-items: flex-start; gap: 6px; }
 .gamekit-au-btn { font-size: 14px; line-height: 0; width: 38px; height: 34px; cursor: pointer; color: #fff;
-  background: rgba(8, 12, 20, 0.66); border: 1px solid rgba(255, 255, 255, 0.28); border-radius: 8px;
-  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); display: inline-flex; align-items: center; justify-content: center; }
-.gamekit-au-btn:hover { border-color: #9fe8ff; }
+  background: rgba(6, 10, 16, 0.92); border: 1px solid rgba(159, 232, 255, 0.22); border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); display: inline-flex; align-items: center; justify-content: center;
+  transition: border-color .12s, box-shadow .12s; }
+.gamekit-au-btn:hover { border-color: #9fe8ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(159, 232, 255, 0.5), 0 0 16px -3px rgba(159, 232, 255, 0.7); }
 .gamekit-au-panel { display: none; position: absolute; top: 42px; right: 0; flex-direction: column; gap: 10px; min-width: 178px; padding: 12px;
   background: rgba(8, 12, 20, 0.92); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px;
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
@@ -926,8 +929,11 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   .side-stack.gameplay-dim { opacity:.3; }
   .side-stack.gameplay-dim:hover, .side-stack.gameplay-dim:focus-within { opacity:1; }
   .side-tab { flex:0 0 auto; width:22px; height:74px; display:flex; align-items:center; justify-content:center;
-    background:var(--surface); border:1px solid var(--border); border-right:none; border-radius:10px 0 0 10px;
-    color:var(--muted); font-size:14px; cursor:pointer; padding:0; box-shadow:-4px 0 14px rgba(0,0,0,.35); }
+    background:rgba(6,10,16,0.92); border:1px solid rgba(159,232,255,0.22); border-right:none; border-radius:10px 0 0 10px;
+    color:var(--muted); font-size:14px; cursor:pointer; padding:0; box-shadow:-4px 0 14px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,0.08);
+    transition:color .12s, border-color .12s, box-shadow .12s; }
+  .side-tab:hover { border-color:#9fe8ff; color:#9fe8ff;
+    box-shadow:-4px 0 14px rgba(0,0,0,.35), 0 0 0 1px rgba(159,232,255,0.5), 0 0 16px -3px rgba(159,232,255,0.7); }
   .side-stack.shown .side-tab { color:#9fe8ff; }
   /* notification dots: any stack button can carry one; while the drawer is HIDDEN the tab mirrors
      "something inside has a dot" so it's never invisible exactly when it matters */
@@ -956,7 +962,8 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   .side-btn { width:130px; height:112px; flex:0 0 auto; display:flex; flex-direction:column; align-items:center;
     justify-content:center; gap:8px; border-radius:16px; border:1px solid var(--border); background:var(--surface-2);
     color:var(--text); cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.42); transition:border-color .12s, transform .12s; font:inherit; padding:0; }
-  .side-btn:hover { border-color:#9fe8ff; transform:translateY(-1px); }
+  .side-btn:hover { border-color:#9fe8ff; transform:translateY(-1px);
+    box-shadow:0 4px 14px rgba(0,0,0,.42), 0 0 0 1px rgba(159,232,255,0.5), 0 0 16px -3px rgba(159,232,255,0.7); }
   .side-btn .ico { font-size:44px; line-height:1; }
   .side-btn .lbl { font-family:var(--mono); font-size:12px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); white-space:normal; padding:0 4px; }
   .side-btn .side-sub { font-family:var(--mono); font-size:11px; color:var(--muted); opacity:.8; max-width:120px;
