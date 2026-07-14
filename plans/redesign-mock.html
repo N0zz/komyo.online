@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>komyo — low-hanging redesign mock</title>
+<style>
+  :root{
+    --bg:#0b0f17; --surface:#161c28; --surface-2:#1e2738; --border:#2a3446;
+    --text:#eef2f8; --muted:#aab6c8; --faint:#7d8aa0;
+    --accent:#9fe8ff; --warm:#ffcf5c;
+    --mono: ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --sans: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
+  a{color:var(--accent)}
+  .page{max-width:1200px;margin:0 auto;padding:22px 20px 120px}
+  h1{font-family:var(--mono);letter-spacing:6px;font-size:26px;margin:0 0 4px;text-transform:uppercase;
+    background:linear-gradient(90deg,#9fe8ff,#e0b25a,#c79bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{color:var(--muted);font-size:14px;margin:0 0 18px;max-width:760px;line-height:1.55}
+  h2{font-family:var(--mono);letter-spacing:2px;text-transform:uppercase;font-size:13px;color:var(--faint);margin:34px 0 12px;border-top:1px solid var(--border);padding-top:16px}
+  .note{font-size:12.5px;color:var(--faint);line-height:1.5;margin:8px 0 0}
+  .note b{color:var(--muted)}
+
+  /* ---------- control bar ---------- */
+  .controls{position:sticky;top:0;z-index:50;background:rgba(11,15,23,0.94);backdrop-filter:blur(8px);
+    border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin:0 0 18px;display:flex;flex-wrap:wrap;gap:18px}
+  .cgroup{display:flex;flex-direction:column;gap:6px}
+  .cgroup .clabel{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint)}
+  .cgroup .opts{display:flex;gap:6px;flex-wrap:wrap}
+  .opt{font-family:var(--mono);font-size:11px;letter-spacing:.5px;color:var(--muted);background:var(--surface);
+    border:1px solid var(--border);border-radius:7px;padding:6px 10px;cursor:pointer;user-select:none}
+  .opt input{display:none}
+  .opt.sel{color:#06121a;background:var(--accent);border-color:var(--accent);font-weight:700}
+
+  /* ---------- faux game viewport (chrome preview) ---------- */
+  .viewport{position:relative;height:280px;border-radius:14px;overflow:hidden;border:1px solid var(--border);
+    background:radial-gradient(120% 90% at 50% -10%,rgba(60,90,140,0.22),rgba(0,0,0,0) 60%),
+      radial-gradient(80% 80% at 80% 110%,rgba(124,92,255,0.12),rgba(0,0,0,0) 60%),#080b12}
+  .viewport::before{content:"game canvas";position:absolute;inset:0;display:grid;place-items:center;
+    font-family:var(--mono);letter-spacing:3px;color:rgba(255,255,255,0.10);font-size:22px;text-transform:uppercase}
+
+  /* nav clusters — base */
+  .gk-nav{position:absolute;top:8px;left:10px;display:flex;gap:8px;z-index:5}
+  .gk-right{position:absolute;top:8px;right:10px;display:flex;gap:6px;z-index:5}
+  .gk-tab{position:absolute;top:50%;right:0;transform:translateY(-50%);z-index:5;writing-mode:vertical-rl;
+    padding:12px 5px;font-family:var(--mono);font-size:12px;letter-spacing:2px;cursor:pointer}
+  .btn{font:600 12px/1 var(--mono);letter-spacing:1px;color:#fff;cursor:pointer;display:inline-flex;
+    align-items:center;justify-content:center;padding:7px 11px;border-radius:8px;transition:.14s}
+  .btn.icon{width:38px;height:34px;padding:0;font-size:15px;letter-spacing:0}
+
+  /* CHROME · current (glass) */
+  .chrome-current .btn,.chrome-current .gk-tab{background:rgba(8,12,20,0.66);border:1px solid rgba(255,255,255,0.28);
+    -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);border-radius:8px}
+  .chrome-current .btn:hover,.chrome-current .gk-tab:hover{border-color:var(--accent);background:rgba(8,12,20,0.85)}
+
+  /* CHROME · console A (flat + cyan edge-glow) */
+  .chrome-consoleA .btn,.chrome-consoleA .gk-tab{background:rgba(6,10,16,0.92);border:1px solid rgba(159,232,255,0.22);
+    border-radius:6px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08)}
+  .chrome-consoleA .btn:hover,.chrome-consoleA .gk-tab:hover{border-color:var(--accent);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 0 0 1px rgba(159,232,255,0.5),0 0 16px -3px rgba(159,232,255,0.7)}
+
+  /* CHROME · console B (terminal readout: scanline + left cyan bar + sharp) */
+  .chrome-consoleB .btn,.chrome-consoleB .gk-tab{background:
+      repeating-linear-gradient(0deg,rgba(159,232,255,0.05) 0 1px,rgba(0,0,0,0) 1px 3px),rgba(5,9,14,0.95);
+    border:1px solid rgba(159,232,255,0.18);border-left:2px solid rgba(159,232,255,0.5);border-radius:4px}
+  .chrome-consoleB .btn:hover,.chrome-consoleB .gk-tab:hover{border-color:var(--accent);border-left-color:var(--accent);
+    box-shadow:0 0 14px -3px rgba(159,232,255,0.7)}
+
+  /* ---------- tiles ---------- */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+  .tile{position:relative;display:flex;flex-direction:column;text-decoration:none;color:inherit;
+    background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;min-height:210px;
+    transition:transform .15s ease,box-shadow .15s ease,border-color .15s ease}
+  .tile .art{position:relative;height:104px;display:flex;align-items:center;justify-content:center;font-size:62px;overflow:hidden;
+    background:radial-gradient(110% 130% at 50% 0%,color-mix(in srgb,var(--accent) 34%,var(--surface)),var(--surface) 72%);
+    border-bottom:1px solid var(--border)}
+  .tile .art .scan{position:absolute;left:0;right:0;height:60%;top:-60%;opacity:0;pointer-events:none;
+    background:linear-gradient(rgba(159,232,255,0) 0%,rgba(159,232,255,0.16) 50%,rgba(159,232,255,0) 100%)}
+  .tile .meta{padding:14px 16px 16px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .tile h3{margin:0;font-size:18px;font-weight:700;letter-spacing:.3px}
+  .tile .tags{display:flex;gap:5px}
+  .tile .tag{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;padding:3px 9px;border-radius:6px;
+    color:color-mix(in srgb,var(--tc,var(--accent)) 60%,#fff);background:rgba(0,0,0,0.28);
+    border:1px solid color-mix(in srgb,var(--tc,var(--accent)) 50%,transparent)}
+  .tile .play{margin-top:auto;font-family:var(--mono);font-size:12px;letter-spacing:1.5px;color:var(--accent);font-weight:700}
+
+  /* the "power-on" charge: edge brightens + glow pulses on, then settles (held while hovered) */
+  @keyframes chargePulse{
+    0%{box-shadow:0 0 0 1px rgba(159,232,255,0.35),inset 0 0 0 0 rgba(159,232,255,0)}
+    45%{box-shadow:0 0 0 1px var(--accent),0 0 32px -3px var(--accent),inset 0 0 46px -16px var(--accent)}
+    100%{box-shadow:0 0 0 1px var(--accent),0 0 16px -7px var(--accent),inset 0 0 40px -22px var(--accent)}}
+  @keyframes sweep{0%{top:-60%;opacity:.9}100%{top:110%;opacity:0}}
+
+  /* TILE · current — PURE LIFT (elevation only, no glow) */
+  .tiles-current .tile:hover{transform:translateY(-6px);border-color:var(--accent);
+    box-shadow:0 16px 36px rgba(0,0,0,0.6)}
+  /* TILE · border-charge — NO lift; the edge lights up */
+  .tiles-charge .tile:hover{border-color:var(--accent);animation:chargePulse .5s ease-out 1 forwards}
+  .tiles-charge .tile:hover .play{color:#dff6ff}
+  /* TILE · charge + scanline sweep */
+  .tiles-scan .tile:hover{border-color:var(--accent);animation:chargePulse .5s ease-out 1 forwards}
+  .tiles-scan .tile:hover .scan{animation:sweep .6s ease-out 1}
+  .tiles-scan .tile:hover .play{color:#dff6ff}
+  /* TILE · lift + charge — BOTH: rises AND the edge charges */
+  .tiles-hybrid .tile:hover{transform:translateY(-6px);border-color:var(--accent);animation:chargePulse .5s ease-out 1 forwards}
+  .tiles-hybrid .tile:hover .play{color:#dff6ff}
+
+  /* ---------- palette: warm secondary (tags are NEVER touched — they carry the per-genre filter colors) ---------- */
+  .pal-warm .tile .play{color:var(--warm)}
+  .pal-warm .cta{background:var(--warm);color:#1a1206;border-color:var(--warm)}
+  .cta{display:inline-block;margin-top:12px;font-family:var(--mono);font-size:12px;letter-spacing:1px;font-weight:700;
+    padding:9px 16px;border-radius:9px;background:var(--accent);color:#06121a;border:1px solid var(--accent);cursor:pointer}
+
+  /* ---------- lift-depth comparison (keeps the real accent border + glow; only rise changes) ---------- */
+  .lift8 .tile:hover{transform:translateY(-8px);border-color:var(--accent);box-shadow:0 18px 40px rgba(0,0,0,0.6),0 0 0 1px var(--accent),0 0 30px -8px var(--accent)}
+  .lift6 .tile:hover{transform:translateY(-6px);border-color:var(--accent);box-shadow:0 14px 34px rgba(0,0,0,0.55),0 0 0 1px var(--accent),0 0 26px -9px var(--accent)}
+  .lift4 .tile:hover{transform:translateY(-4px);border-color:var(--accent);box-shadow:0 10px 26px rgba(0,0,0,0.5),0 0 0 1px var(--accent),0 0 22px -10px var(--accent)}
+
+  /* ---------- side stack (open) — buttons + tuck tab adopt the chrome treatment; panels stay ---------- */
+  .sidestack{position:absolute;top:50%;right:10px;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:6}
+  .ss-btn{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:62px;padding:10px 8px;cursor:pointer;
+    font:700 9px/1 var(--mono);letter-spacing:.6px;color:#fff;text-transform:uppercase;transition:.14s}
+  .ss-btn .ss-ico{font-size:19px;line-height:1}
+  .ss-tuck{align-self:flex-end;font:700 13px/1 var(--mono);color:#fff;padding:6px 8px;cursor:pointer;transition:.14s}
+  .chrome-current .ss-btn,.chrome-current .ss-tuck{background:rgba(8,12,20,0.66);border:1px solid rgba(255,255,255,0.28);border-radius:8px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+  .chrome-current .ss-btn:hover,.chrome-current .ss-tuck:hover{border-color:var(--accent)}
+  .chrome-consoleA .ss-btn,.chrome-consoleA .ss-tuck{background:rgba(6,10,16,0.92);border:1px solid rgba(159,232,255,0.22);border-radius:6px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08)}
+  .chrome-consoleA .ss-btn:hover,.chrome-consoleA .ss-tuck:hover{border-color:var(--accent);box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 0 0 1px rgba(159,232,255,0.5),0 0 16px -3px rgba(159,232,255,0.7)}
+  .chrome-consoleB .ss-btn,.chrome-consoleB .ss-tuck{background:repeating-linear-gradient(0deg,rgba(159,232,255,0.05) 0 1px,rgba(0,0,0,0) 1px 3px),rgba(5,9,14,0.95);border:1px solid rgba(159,232,255,0.18);border-left:2px solid rgba(159,232,255,0.5);border-radius:4px}
+  .chrome-consoleB .ss-btn:hover,.chrome-consoleB .ss-tuck:hover{border-color:var(--accent);box-shadow:0 0 14px -3px rgba(159,232,255,0.7)}
+
+  .reduce-off *{animation:none!important;transition:none!important}
+
+  /* reference columns */
+  .refrow{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .refrow.four{grid-template-columns:repeat(4,1fr)}
+  .refcell{border:1px solid var(--border);border-radius:12px;padding:14px;background:#0a0e16}
+  .refcell .rt{font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--accent);margin-bottom:10px;text-transform:uppercase}
+  .refcell.rec .rt::after{content:" ★ rec";color:var(--warm)}
+  .miniview{position:relative;height:96px;border-radius:8px;overflow:hidden;background:#080b12;margin-bottom:6px}
+  .miniview .gk-right{top:6px;right:6px}
+  @media(max-width:820px){.refrow,.refrow.four{grid-template-columns:1fr 1fr}}
+
+  /* copy table */
+  .copy{border:1px solid var(--border);border-radius:12px;overflow:hidden}
+  .copy .r{display:grid;grid-template-columns:80px 1fr 1fr;gap:0;border-top:1px solid var(--border)}
+  .copy .r:first-child{border-top:none}
+  .copy .c{padding:11px 13px;font-size:13px;line-height:1.5}
+  .copy .k{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);text-transform:uppercase;background:#0a0e16}
+  .copy .was{color:var(--muted);background:rgba(255,90,90,0.05)}
+  .copy .now{color:var(--text);background:rgba(120,224,160,0.06)}
+  .copy .hd{font-family:var(--mono);font-size:10px;letter-spacing:1px;color:var(--faint);text-transform:uppercase}
+  @media(max-width:720px){.copy .r{grid-template-columns:1fr}.copy .k{border-bottom:1px solid var(--border)}}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Low-hanging redesign</h1>
+  <p class="lead">Interactive mock for the 4 quick wins. Use the toggles to mix any <b>chrome × tile-motion × palette</b>
+    combination — <b>hover</b> the tiles and chrome buttons to feel the interaction. Static side-by-side references + the
+    copy before/after are below. Nothing here is wired into the real site.</p>
+
+  <!-- CONTROLS -->
+  <div class="controls" id="controls">
+    <div class="cgroup" data-var="chrome">
+      <span class="clabel">1 · Chrome</span>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="chrome" value="chrome-current">Current (glass)</label>
+        <label class="opt sel"><input type="radio" name="chrome" value="chrome-consoleA" checked>Console A · edge-glow</label>
+        <label class="opt"><input type="radio" name="chrome" value="chrome-consoleB">Console B · readout</label>
+      </div>
+    </div>
+    <div class="cgroup" data-var="tiles">
+      <span class="clabel">2 · Tile motion</span>
+      <div class="opts">
+        <label class="opt"><input type="radio" name="tiles" value="tiles-current">Current (lift)</label>
+        <label class="opt"><input type="radio" name="tiles" value="tiles-charge">Border-charge</label>
+        <label class="opt sel"><input type="radio" name="tiles" value="tiles-scan" checked>Charge + scanline</label>
+        <label class="opt"><input type="radio" name="tiles" value="tiles-hybrid">Lift + charge</label>
+      </div>
+    </div>
+    <div class="cgroup" data-var="pal">
+      <span class="clabel">3 · Palette</span>
+      <div class="opts">
+        <label class="opt sel"><input type="radio" name="pal" value="pal-cyan" checked>Cyan only</label>
+        <label class="opt"><input type="radio" name="pal" value="pal-warm">+ Warm secondary</label>
+      </div>
+    </div>
+    <div class="cgroup" data-var="reduce">
+      <span class="clabel">a11y</span>
+      <div class="opts">
+        <label class="opt"><input type="checkbox" name="reduce" value="reduce-off">Reduced-motion</label>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIVE PREVIEW -->
+  <h2>Live preview — in-game chrome</h2>
+  <div class="viewport" id="pvChrome">
+    <div class="gk-nav"><span class="btn">‹ Menu · komyo ›</span></div>
+    <div class="gk-right">
+      <span class="btn icon" title="Pause">⏸</span>
+      <span class="btn icon" title="Sound">🔊</span>
+      <span class="btn icon" title="Controls">🎮</span>
+      <span class="btn icon" title="Fullscreen">⛶</span>
+      <span class="btn icon" title="Menu">☰</span>
+    </div>
+    <div class="gk-tab btn" title="Side stack">‹‹</div>
+  </div>
+  <p class="note"><b>Right menu:</b> the <b>side-stack tab (‹‹)</b> adopts the chosen chrome treatment for a unified system;
+    the big drawer <b>panels</b> (Profile / 🏆 / 🎨 content) stay as they are — those are modal surfaces, not chrome.</p>
+
+  <h2>Live preview — side stack OPEN (right menu)</h2>
+  <div class="viewport" id="pvStack">
+    <div class="gk-nav"><span class="btn">‹ Menu · komyo ›</span></div>
+    <div class="gk-right">
+      <span class="btn icon" title="Pause">⏸</span>
+      <span class="btn icon" title="Sound">🔊</span>
+      <span class="btn icon" title="Fullscreen">⛶</span>
+      <span class="btn icon" title="Menu">☰</span>
+    </div>
+    <div class="sidestack">
+      <div class="ss-tuck" title="Tuck away">››</div>
+      <div class="ss-btn"><span class="ss-ico">👤</span>Profile</div>
+      <div class="ss-btn"><span class="ss-ico">🏆</span>Goals</div>
+      <div class="ss-btn"><span class="ss-ico">🎨</span>Collect</div>
+    </div>
+  </div>
+  <p class="note">The open stack's <b>buttons + tuck tab (››)</b> take the chosen chrome treatment (edge-glow by default — hover them);
+    the <b>drawer/modal panels</b> those buttons open (profile, challenges, collection) keep their current styling.</p>
+
+  <!-- LIVE PREVIEW TILES -->
+  <h2>Live preview — catalogue tiles</h2>
+  <div class="grid" id="pvTiles">
+    <a class="tile" style="--accent:#9fe8ff"><div class="art"><span>🪨</span><div class="scan"></div></div>
+      <div class="meta"><h3>Asteroids</h3><div class="tags"><span class="tag" style="--tc:#58ccff">ARCADE</span><span class="tag" style="--tc:#5fe07a">SHOOTER</span></div><span class="play">▶ PLAY</span></div></a>
+    <a class="tile" style="--accent:#e0b25a"><div class="art"><span>🏰</span><div class="scan"></div></div>
+      <div class="meta"><h3>Keep Defender</h3><div class="tags"><span class="tag" style="--tc:#e0b25a">STRATEGY</span></div><span class="play">▶ PLAY</span></div></a>
+    <a class="tile" style="--accent:#2ee8c8"><div class="art"><span>🫧</span><div class="scan"></div></div>
+      <div class="meta"><h3>Bubble Pop</h3><div class="tags"><span class="tag" style="--tc:#2ee8c8">PUZZLE</span><span class="tag" style="--tc:#8fd3a6">CASUAL</span></div><span class="play">▶ PLAY</span></div></a>
+    <a class="tile" style="--accent:#7ee0a0"><div class="art"><span>🐸</span><div class="scan"></div></div>
+      <div class="meta"><h3>Frog Bonk</h3><div class="tags"><span class="tag" style="--tc:#ff9aa2">REFLEX</span></div><span class="play">▶ PLAY</span></div></a>
+  </div>
+  <div style="text-align:center"><span class="cta" id="ctaDemo">▶ Play a random game</span></div>
+  <p class="note">Palette toggle recolors the secondary elements (tags · ▶ PLAY · the CTA button). Primary interaction stays cyan.</p>
+
+  <!-- STATIC CHROME REFERENCE -->
+  <h2>Chrome — side by side</h2>
+  <div class="refrow">
+    <div class="refcell chrome-current"><div class="rt">Current · glass</div>
+      <div class="miniview"><div class="gk-right"><span class="btn icon">🔊</span><span class="btn icon">☰</span></div></div>
+      <p class="note">Translucent + blur, border-swap hover. Reads as generic glass icon buttons.</p></div>
+    <div class="refcell chrome-consoleA rec"><div class="rt">Console A · edge-glow</div>
+      <div class="miniview"><div class="gk-right"><span class="btn icon">🔊</span><span class="btn icon">☰</span></div></div>
+      <p class="note">Flat console keys, faint cyan idle border, cyan <b>edge-glow</b> on hover. Same footprint.</p></div>
+    <div class="refcell chrome-consoleB"><div class="rt">Console B · readout</div>
+      <div class="miniview"><div class="gk-right"><span class="btn icon">🔊</span><span class="btn icon">☰</span></div></div>
+      <p class="note">Scanline texture + left cyan bar, sharp 4px. Most "terminal" — busiest.</p></div>
+  </div>
+
+  <!-- STATIC TILE REFERENCE -->
+  <h2>Tile motion — side by side <span style="font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:1px">(hover each)</span></h2>
+  <div class="refrow four">
+    <div class="refcell tiles-current"><div class="rt">Current · lift</div>
+      <a class="tile" style="--tc:#9fe8ff;min-height:150px"><div class="art" style="height:70px;font-size:40px"><span>🪨</span><div class="scan"></div></div><div class="meta"><h3 style="font-size:15px">Lift + glow</h3><span class="play">▶ PLAY</span></div></a></div>
+    <div class="refcell tiles-charge"><div class="rt">Border-charge</div>
+      <a class="tile" style="--tc:#c79bff;min-height:150px"><div class="art" style="height:70px;font-size:40px"><span>🏰</span><div class="scan"></div></div><div class="meta"><h3 style="font-size:15px">No lift</h3><span class="play">▶ PLAY</span></div></a></div>
+    <div class="refcell tiles-scan rec"><div class="rt">Charge + scanline</div>
+      <a class="tile" style="--tc:#ffcf5c;min-height:150px"><div class="art" style="height:70px;font-size:40px"><span>🫧</span><div class="scan"></div></div><div class="meta"><h3 style="font-size:15px">Sweep</h3><span class="play">▶ PLAY</span></div></a></div>
+    <div class="refcell tiles-hybrid"><div class="rt">Lift + charge</div>
+      <a class="tile" style="--tc:#46e0a0;min-height:150px"><div class="art" style="height:70px;font-size:40px"><span>🐸</span><div class="scan"></div></div><div class="meta"><h3 style="font-size:15px">Hybrid</h3><span class="play">▶ PLAY</span></div></a></div>
+  </div>
+
+  <!-- LIFT DEPTH -->
+  <h2>Lift depth — side by side <span style="font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:1px">(hover each)</span></h2>
+  <div class="refrow four">
+    <div class="refcell lift8"><div class="rt">Lift 8px</div>
+      <a class="tile" style="--accent:#9fe8ff;min-height:150px"><div class="art" style="height:70px;font-size:40px"><span>🪨</span><div class="scan"></div></div><div class="meta"><h3 style="font-size:15px">Deep</h3><span class="play">▶ PLAY</span></div></a></div>
+    <div class="refcell lift6"><div class="rt">Lift 6px</div>
+      <a class="tile" style="--accent:#2ee8c8;min-height:150px"><div class="art" style="height:70px;font-size:40px"><span>🫧</span><div class="scan"></div></div><div class="meta"><h3 style="font-size:15px">Medium</h3><span class="play">▶ PLAY</span></div></a></div>
+    <div class="refcell lift4"><div class="rt">Lift 4px</div>
+      <a class="tile" style="--accent:#e0b25a;min-height:150px"><div class="art" style="height:70px;font-size:40px"><span>🏰</span><div class="scan"></div></div><div class="meta"><h3 style="font-size:15px">Shallow</h3><span class="play">▶ PLAY</span></div></a></div>
+  </div>
+  <p class="note">All three keep the real accent border + glow — only the rise distance changes (the live site currently lifts ~5px).
+    Which depth feels right?</p>
+
+  <!-- COPY -->
+  <h2>4 · Pitch / SEO copy — before → after <span style="font-family:var(--mono);font-size:11px;color:var(--faint)">(via i18n flow)</span></h2>
+  <div class="copy">
+    <div class="r"><div class="c k">field</div><div class="c hd">now</div><div class="c hd">proposed</div></div>
+    <div class="r"><div class="c k">Footer</div>
+      <div class="c was">built for fun · free forever · no ads · no accounts · kid-safe · every game works offline</div>
+      <div class="c now">built for fun · games worth mastering · every game works offline · no accounts · no ads</div></div>
+    <div class="r"><div class="c k">&lt;title&gt;</div>
+      <div class="c was">Komyo Games — free browser games, no ads</div>
+      <div class="c now">Komyo — a free browser arcade · works offline, no accounts</div></div>
+    <div class="r"><div class="c k">Meta desc</div>
+      <div class="c was">Free browser games — no ads, no sign-ups, nothing to buy. Ever. Asteroids, tower defense, Sudoku, a bubble shooter and more — instant play, works offline.</div>
+      <div class="c now">A small, hand-picked arcade of polished free browser games — Asteroids, tower defense, Sudoku, a bubble shooter and more. Unlock cosmetics and titles, chase daily challenges. Works offline, no accounts, no ads — fun for all ages.</div></div>
+    <div class="r"><div class="c k">Age signal</div>
+      <div class="c was">kid-safe</div>
+      <div class="c now">family-friendly · fun for all ages (safety facts kept as a trust line in About/FAQ)</div></div>
+  </div>
+  <p class="note">These are translated keys (<b>meta.* · cat.footTag · about.* · faq.*</b>) — shipping them runs the full
+    i18n flow (English def + 8 locales) or the coverage test fails. Approve the wording here; I implement via the translate skill.</p>
+</div>
+
+<script>
+  var pvChrome=document.getElementById('pvChrome'),
+      pvStack=document.getElementById('pvStack'),
+      pvTiles=document.getElementById('pvTiles'),
+      cta=document.getElementById('ctaDemo'),
+      body=document.body;
+  function apply(){
+    var chrome=document.querySelector('input[name=chrome]:checked').value;
+    var tiles=document.querySelector('input[name=tiles]:checked').value;
+    var pal=document.querySelector('input[name=pal]:checked').value;
+    var reduce=document.querySelector('input[name=reduce]:checked')?'reduce-off':'';
+    pvChrome.className='viewport '+chrome+' '+pal+' '+reduce;
+    pvStack.className='viewport '+chrome+' '+pal+' '+reduce;
+    pvTiles.className='grid '+tiles+' '+pal+' '+reduce;
+    // the CTA lives outside pvTiles — palette it directly
+    cta.parentElement.className=pal;
+    // reflect selected pill state
+    document.querySelectorAll('.opt').forEach(function(o){var i=o.querySelector('input');o.classList.toggle('sel',i.checked)});
+  }
+  document.getElementById('controls').addEventListener('change',apply);
+  apply();
+</script>
+</body>
+</html>
