@@ -1971,4 +1971,9 @@ window.KOMYO_I18N.pl = {
   'changelog.e63.b0': 'Poprawka: karty wyniku speedrunu w Zwierzęcych Parach pokazywały przekłamany czas w rodzaju 00:00.01 zamiast prawdziwego czasu ukończenia — karta (i rekord w profilu) pokazują teraz Twój faktyczny czas.',
   'changelog.e63.b1': 'Poprawka: ukończenie speedrunu w Asteroidach+ odciska teraz Twój CZAS na udostępnianej karcie wyniku, tak jak w klasycznych Asteroidach — wcześniej pokazywała punkty.',
   'changelog.e63.b2': 'Zmiana: udostępnianie speedrunu w Zwierzęcych Parach chwali się teraz Twoim czasem (z liczbą odkryć obok) zamiast punktami — w speedrunie liczy się czas.',
+  'settings.offline': 'Graj offline',
+  'settings.offlineHint': 'Zapisz komyo na pendrive — rozpakuj i otwórz index.html. Działa bez internetu.',
+  'settings.download': 'Pobierz',
+  'changelog.e66.title': 'Zabierz komyo offline — pobierz całą kolekcję 📥',
+  'changelog.e66.b0': 'Nowość: ⚙️ Ustawienia → Graj offline pobiera całe komyo jako jeden plik — rozpakuj go na pendrive i otwórz index.html, aby grać we wszystkie gry bez internetu, bez instalacji i bez konta.',
 };

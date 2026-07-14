@@ -1967,4 +1967,9 @@ window.KOMYO_I18N.fr = {
   'changelog.e63.b0': 'Correctif : les cartes de score du speedrun de Paires d\'Animaux affichaient un temps farfelu du genre 00:00.01 au lieu de votre vrai temps — la carte (et le record du profil) affichent désormais le temps que vous avez réellement réalisé.',
   'changelog.e63.b1': 'Correctif : terminer un speedrun d\'Astéroïdes+ imprime désormais votre TEMPS sur la carte de score partagée, comme le fait Astéroïdes classique — elle affichait le score auparavant.',
   'changelog.e63.b2': 'Changement : partager un speedrun de Paires d\'Animaux met désormais en avant votre temps (avec les coups à côté) plutôt que les points — dans un speedrun, c\'est le temps qui compte.',
+  'settings.offline': 'Jouer hors ligne',
+  'settings.offlineHint': 'Enregistrez komyo sur une clé USB — décompressez et ouvrez index.html. Fonctionne sans internet.',
+  'settings.download': 'Télécharger',
+  'changelog.e66.title': 'Emportez komyo hors ligne — téléchargez tout l’arcade 📥',
+  'changelog.e66.b0': 'Nouveau : ⚙️ Paramètres → Jouer hors ligne télécharge tout komyo en un seul fichier — décompressez-le sur une clé USB et ouvrez index.html pour jouer à tous les jeux sans internet, sans installation et sans compte.',
 };

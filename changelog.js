@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-14', title: 'Take komyo offline — download the whole arcade 📥', items: [
+    'New: ⚙️ Settings → Play offline downloads all of komyo as a single file — unzip it onto a USB stick and open index.html to play every game with no internet, no install and no account.',
+  ] },
   { date: '2026-07-13', title: 'Title unlocks, now impossible to miss 🎖️', items: [
     'New: unlock a new title and your Profile button (the right-side menu) now shows it off — a dot, a gentle pulse when you open the menu, and a glow tinted to your title’s tier. It lights up inside games now, not just on the home page.',
     'Fix: the “★ NEW TITLE” celebration inside your profile was getting clipped at the top and sides — it now animates in full.',

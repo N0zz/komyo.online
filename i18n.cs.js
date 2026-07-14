@@ -1967,4 +1967,9 @@ window.KOMYO_I18N.cs = {
   'changelog.e63.b0': 'Oprava: karty skóre speedrunu ve Zvířecích párech ukazovaly zkomolený čas typu 00:00.01 místo skutečného času dokončení — karta (i rekord v profilu) teď ukazují váš opravdový čas.',
   'changelog.e63.b1': 'Oprava: dokončení speedrunu v Asteroidech+ teď na sdílenou kartu skóre otiskne váš ČAS, stejně jako klasické Asteroidy — dřív ukazovala skóre.',
   'changelog.e63.b2': 'Změna: sdílení speedrunu ve Zvířecích párech se teď chlubí vaším časem (s počtem otočení vedle) místo bodů — ve speedrunu jde o čas.',
+  'settings.offline': 'Hrát offline',
+  'settings.offlineHint': 'Uložte komyo na USB flash disk — rozbalte a otevřete index.html. Funguje bez internetu.',
+  'settings.download': 'Stáhnout',
+  'changelog.e66.title': 'Vezměte komyo offline — stáhněte celou arkádu 📥',
+  'changelog.e66.b0': 'Novinka: ⚙️ Nastavení → Hrát offline stáhne celé komyo jako jeden soubor — rozbalte ho na USB flash disk a otevřete index.html, ať si zahrajete všechny hry bez internetu, bez instalace a bez účtu.',
 };
