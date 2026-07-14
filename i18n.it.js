@@ -1967,4 +1967,9 @@ window.KOMYO_I18N.it = {
   'changelog.e63.b0': 'Fix: le carte del punteggio dello speedrun di Coppie di Animali mostravano un tempo sballato tipo 00:00.01 invece del tuo vero tempo — la carta (e il record nel profilo) ora mostrano il tempo che hai fatto davvero.',
   'changelog.e63.b1': 'Fix: completare uno speedrun di Asteroidi+ ora imprime il tuo TEMPO sulla carta del punteggio condivisa, come fa Asteroidi classico — prima mostrava il punteggio.',
   'changelog.e63.b2': 'Cambio: condividere uno speedrun di Coppie di Animali ora vanta il tuo tempo (con le mosse accanto) invece dei punti — in uno speedrun conta il tempo.',
+  'settings.offline': 'Gioca offline',
+  'settings.offlineHint': 'Salva komyo su una chiavetta USB — estrai e apri index.html. Funziona senza internet.',
+  'settings.download': 'Scarica',
+  'changelog.e66.title': 'Porta komyo offline — scarica tutta la sala giochi 📥',
+  'changelog.e66.b0': 'Novità: ⚙️ Impostazioni → Gioca offline scarica tutto komyo in un unico file — estrailo su una chiavetta USB e apri index.html per giocare a tutti i giochi senza internet, senza installazione e senza account.',
 };

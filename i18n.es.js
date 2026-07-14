@@ -1968,4 +1968,9 @@ window.KOMYO_I18N.es = {
   'changelog.e63.b0': 'Arreglo: las tarjetas de puntuación del speedrun de Parejas de Bichitos mostraban un tiempo descuadrado tipo 00:00.01 en vez de tu tiempo real — la tarjeta (y tu mejor marca del perfil) ahora muestran el tiempo que hiciste de verdad.',
   'changelog.e63.b1': 'Arreglo: completar un speedrun de Asteroides+ ahora estampa tu TIEMPO en la tarjeta de puntuación compartida, como hace el Asteroides clásico — antes mostraba la puntuación.',
   'changelog.e63.b2': 'Cambio: compartir un speedrun de Parejas de Bichitos ahora presume de tu tiempo (con los volteos al lado) en vez de los puntos — en un speedrun lo que cuenta es el tiempo.',
+  'settings.offline': 'Jugar sin conexión',
+  'settings.offlineHint': 'Guarda komyo en una memoria USB — descomprime y abre index.html. Funciona sin internet.',
+  'settings.download': 'Descargar',
+  'changelog.e66.title': 'Llévate komyo sin conexión — descarga todo el arcade 📥',
+  'changelog.e66.b0': 'Nuevo: ⚙️ Ajustes → Jugar sin conexión descarga todo komyo en un solo archivo — descomprímelo en una memoria USB y abre index.html para jugar a todos los juegos sin internet, sin instalación y sin cuenta.',
 };

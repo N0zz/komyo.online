@@ -39,6 +39,11 @@ jobs:
           sed -i "s/self.VERSION = 'dev'/self.VERSION = '${SHA_SHORT}'/" sw.js
           echo "Stamped version.js + $(grep -c "self.VERSION = '${SHA_SHORT}'" sw.js) SW → ${SHA_SHORT}"
 
+      # Whole-site offline bundle behind Settings → "Play offline" (built AFTER the stamp so the
+      # zip carries this build's version.js). Lands at komyo.zip in the site root.
+      - name: Build offline bundle (komyo.zip)
+        run: node scripts/package-site.mjs
+
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

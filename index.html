@@ -6,7 +6,10 @@
 <title>Komyo — a free browser arcade · works offline, no accounts</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#0b0f17">
-<link rel="manifest" href="manifest.json">
+<script>/* inject the PWA manifest only over http(s) — on file:// (downloaded/pendrive copy) the browser
+   can't fetch a manifest (CORS from origin "null") and logs a noisy error; there's no install path
+   offline anyway. Runs at parse time, so live PWA install is unaffected. */
+if (location.protocol !== 'file:') { var m = document.createElement('link'); m.rel = 'manifest'; m.href = 'manifest.json'; document.head.appendChild(m); }</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -266,9 +269,37 @@
   .verlink.nolink { pointer-events:none; opacity:.7; }
   .dver { text-align:center; margin:6px 4px 10px; }
   .set-note { color:var(--faint); font-size:12.5px; margin:2px 0 10px; }
+  .set-head { justify-content:flex-start; align-items:baseline; flex-wrap:wrap; gap:4px 10px; }
+  .set-head .set-note { margin:0; }
+  /* height safety net — the box never exceeds the viewport; scrolls inside if it somehow must */
+  dialog#settingsModal .about { max-height:90vh; overflow-y:auto; overflow-x:hidden; }
+  /* wide screens (landscape phones AND desktop): split the 8 rows into two balanced columns,
+     column-first so the order reads sound+play (left) | data+copy (right). Hints + sliders stay
+     visible everywhere. Selector is `dialog#settingsModal` so it outranks the shared modal-width
+     rule regardless of source order (that mismatch is why the box wasn't widening before). */
+  @media (min-width:600px) {
+    dialog#settingsModal { width:min(880px,96vw); }
+    .setgroups { display:grid; grid-template-columns:1fr 1fr; grid-auto-flow:column; grid-template-rows:repeat(4,auto); column-gap:36px; align-items:stretch; }
+    .setgroups > .setrow:nth-child(1), .setgroups > .setrow:nth-child(5) { border-top:0; }
+  }
+  /* short screens (landscape phones + short windows): the wider box already trims hint wrapping;
+     tighten vertical spacing too so all 8 rows + hints fit on one screen without scrolling */
+  @media (max-height:640px) {
+    dialog#settingsModal .about { gap:6px; padding:12px 18px 14px; max-height:96vh; }
+    .setgroups .setrow { padding:7px 0; }
+    .setgroups .sethint { margin-top:2px; line-height:1.3; }
+  }
+  /* very short screens (<360px tall): bound + clip the DIALOG FRAME itself to the viewport so the box
+     fits and its scroll stays inside it; .about scrolls within. The corner ✕ is tucked inside since a
+     clipped frame would cut off the protruding badge. ≥360px is unaffected. */
+  @media (max-height:359px) {
+    dialog#settingsModal { max-height:96vh; overflow:hidden; }
+    dialog#settingsModal .about { max-height:96vh; }
+    dialog#settingsModal .pf-x { top:6px; right:6px; }
+  }
   .sethint { display:block; font-size:11.5px; font-weight:400; color:var(--faint); margin-top:3px; letter-spacing:.2px; }
   .setverv { font-family:var(--mono); font-weight:500; }
-  .drefresh { font:600 12px/1 var(--mono); letter-spacing:.5px; color:var(--muted); cursor:pointer; white-space:nowrap;
+  .drefresh { font:600 12px/1 var(--mono); letter-spacing:.5px; color:var(--muted); cursor:pointer; white-space:nowrap; text-decoration:none; display:inline-block;
     background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.18); border-radius:8px; padding:9px 14px; }
   .drefresh:hover:not(:disabled) { color:#9fe8ff; border-color:#9fe8ff; }
   .drefresh:disabled { opacity:.6; cursor:default; }
@@ -892,42 +923,49 @@
   <dialog id="settingsModal">
     <button type="button" class="pf-x" id="settingsClose" aria-label="Close">✕</button>
     <div class="about">
-      <div class="cl-head"><h3>⚙️ Settings</h3></div>
-      <p class="set-note" data-t="settings.note">Applies to every game · saved on this device</p>
-      <div class="setrow">
-        <span class="setlbl"><span class="di">🔊</span> <span data-t="settings.sfx">Sound effects</span></span>
-        <button class="settoggle" id="setSfxToggle" type="button" role="switch" aria-checked="true">On</button>
-        <input class="setvol" id="setSfxVol" type="range" min="0" max="100" aria-label="Sound effects volume" data-ta="sound.sfxVol">
-      </div>
-      <div class="setrow">
-        <span class="setlbl"><span class="di">🎵</span> <span data-t="settings.music">Music</span></span>
-        <button class="settoggle" id="setMusToggle" type="button" role="switch" aria-checked="true">On</button>
-        <input class="setvol" id="setMusVol" type="range" min="0" max="100" aria-label="Music volume" data-ta="sound.musVol">
-      </div>
-      <div class="setrow">
-        <span class="setlbl"><span class="di">🐣</span><span><span data-t="settings.easyPicks">Easy picks</span>
-          <small class="sethint" data-t="settings.easyPicksHint">Marks &amp; preselects the gentlest option in every game · kids' games first on the home page</small></span></span>
-        <button class="settoggle" id="setEasyPicks" type="button" role="switch" aria-checked="false">Off</button>
-      </div>
-      <div class="setrow">
-        <span class="setlbl"><span class="di">📣</span><span><span data-t="settings.discordName">Nickname in Discord posts</span>
-          <small class="sethint" data-t="settings.discordHint">Anonymous unless on · only with cookie consent</small></span></span>
-        <button class="settoggle" id="setDiscordName" type="button" role="switch" aria-checked="false">Off</button>
-      </div>
-      <div class="setrow">
-        <span class="setlbl"><span class="di">⇄</span><span><span data-t="settings.yourData">Your data</span>
-          <small class="sethint" data-t="settings.yourDataHint">Move scores &amp; progress to another device — nothing is sent to a server</small></span></span>
-        <button class="drefresh" id="dataBtn" type="button" data-t="settings.exportImport">Export / Import</button>
-      </div>
-      <div class="setrow">
-        <span class="setlbl"><span class="di">↺</span><span><span data-t="settings.resetAll">Reset all data</span>
-          <small class="sethint" data-t="settings.resetHint">Clears every game's scores &amp; progress · keeps your name, sound &amp; consent</small></span></span>
-        <button class="drefresh setdanger" id="resetAll" type="button" data-t="settings.reset">Reset</button>
-      </div>
-      <div class="setrow">
-        <span class="setlbl"><span class="di">🧩</span><span><span data-t="settings.version">Version</span>
-          <small class="sethint setverv" id="setVersion"></small></span></span>
-        <button class="drefresh" id="setUpdate" type="button" title="Fetch the newest version of the site and every game" data-tt="settings.updateTitle" data-t="update.upToDate">✓ Up to date</button>
+      <div class="cl-head set-head"><h3>⚙️ Settings</h3><span class="set-note" data-t="settings.note">Applies to every game · saved on this device</span></div>
+
+      <div class="setgroups">
+        <div class="setrow">
+          <span class="setlbl"><span class="di">🔊</span> <span data-t="settings.sfx">Sound effects</span></span>
+          <button class="settoggle" id="setSfxToggle" type="button" role="switch" aria-checked="true">On</button>
+          <input class="setvol" id="setSfxVol" type="range" min="0" max="100" aria-label="Sound effects volume" data-ta="sound.sfxVol">
+        </div>
+        <div class="setrow">
+          <span class="setlbl"><span class="di">🎵</span> <span data-t="settings.music">Music</span></span>
+          <button class="settoggle" id="setMusToggle" type="button" role="switch" aria-checked="true">On</button>
+          <input class="setvol" id="setMusVol" type="range" min="0" max="100" aria-label="Music volume" data-ta="sound.musVol">
+        </div>
+        <div class="setrow">
+          <span class="setlbl"><span class="di">🐣</span><span><span data-t="settings.easyPicks">Easy picks</span>
+            <small class="sethint" data-t="settings.easyPicksHint">Marks &amp; preselects the gentlest option in every game · kids' games first on the home page</small></span></span>
+          <button class="settoggle" id="setEasyPicks" type="button" role="switch" aria-checked="false">Off</button>
+        </div>
+        <div class="setrow">
+          <span class="setlbl"><span class="di">📣</span><span><span data-t="settings.discordName">Nickname in Discord posts</span>
+            <small class="sethint" data-t="settings.discordHint">Anonymous unless on · only with cookie consent</small></span></span>
+          <button class="settoggle" id="setDiscordName" type="button" role="switch" aria-checked="false">Off</button>
+        </div>
+        <div class="setrow">
+          <span class="setlbl"><span class="di">⇄</span><span><span data-t="settings.yourData">Your data</span>
+            <small class="sethint" data-t="settings.yourDataHint">Move scores &amp; progress to another device — nothing is sent to a server</small></span></span>
+          <button class="drefresh" id="dataBtn" type="button" data-t="settings.exportImport">Export / Import</button>
+        </div>
+        <div class="setrow">
+          <span class="setlbl"><span class="di">⬇</span><span><span data-t="settings.offline">Play offline</span>
+            <small class="sethint" data-t="settings.offlineHint">Save komyo to a USB stick — unzip and open index.html. Works with no internet.</small></span></span>
+          <a class="drefresh" id="setDownload" href="komyo.zip" download="komyo.zip" data-t="settings.download">Download</a>
+        </div>
+        <div class="setrow">
+          <span class="setlbl"><span class="di">🧩</span><span><span data-t="settings.version">Version</span>
+            <small class="sethint setverv" id="setVersion"></small></span></span>
+          <button class="drefresh" id="setUpdate" type="button" title="Fetch the newest version of the site and every game" data-tt="settings.updateTitle" data-t="update.upToDate">✓ Up to date</button>
+        </div>
+        <div class="setrow">
+          <span class="setlbl"><span class="di">↺</span><span><span data-t="settings.resetAll">Reset all data</span>
+            <small class="sethint" data-t="settings.resetHint">Clears every game's scores &amp; progress · keeps your name, sound &amp; consent</small></span></span>
+          <button class="drefresh setdanger" id="resetAll" type="button" data-t="settings.reset">Reset</button>
+        </div>
       </div>
     </div>
   </dialog>
@@ -1195,6 +1233,8 @@
     const T = (k, def) => (window.gamekit && window.gamekit.t) ? window.gamekit.t(k, { def }) : def;
     const gameTitle = g => T('game.' + g.slug + '.title', g.title);
     const gameBlurb = g => T('game.' + g.slug + '.blurb', g.blurb);
+    // under file:// (downloaded copy / pendrive) point folder links at index.html; no-op on http(s)
+    const gameHref = slug => (window.gamekit && window.gamekit.localHref) ? window.gamekit.localHref('games/' + slug + '/') : 'games/' + slug + '/';
 
     // catalogue is grouped into sections; favorites pin to the top of their own section.
     // favPos (only passed for tiles rendered within the Favorites strip): { index, count } — drives
@@ -1203,7 +1243,7 @@
       const soon = !!g.soon;
       const el = document.createElement(soon ? 'div' : 'a');
       el.className = 'tile' + (soon ? ' soon' : '') + (isFavTile ? ' fav-tile' : '');
-      if (!soon) el.href = 'games/' + g.slug + '/';
+      if (!soon) el.href = gameHref(g.slug);
       if (el.dataset) el.dataset.slug = g.slug;
       el.style.setProperty('--accent', g.accent || '#9fe8ff');
       el.innerHTML =
@@ -2106,7 +2146,7 @@
         const e = evalGoal(g, undefined, id);
         if (!e) return '';
         const pct = Math.round(e.pct * 100);
-        const play = e.slug ? '<a class="cplay" href="games/' + e.slug + '/">' + T('chal.play', '▶ Play') + '</a>' : '';
+        const play = e.slug ? '<a class="cplay" href="' + gameHref(e.slug) + '">' + T('chal.play', '▶ Play') + '</a>' : '';
         const meta = e.done ? '<span class="cdone">' + T('chal.done', '✓ Done') + '</span>' : ('<span>' + e.val + ' / ' + e.target + '</span>' + play);
         const badge = pts ? '<span class="cpts">+' + pts + ' 🏆</span>' : '';
         return '<div class="cc"><div class="top"><span class="goal">' + e.title + '</span>' + badge + '</div><div class="bar"><i style="width:' + pct + '%' + (e.done ? ';background:#7fe0a0' : '') + '"></i></div><div class="cmeta">' + meta + '</div></div>';
@@ -2381,6 +2421,8 @@
         // when a new build exists; clicking updates the site's single SW (covers all games) and reloads.
         var sv = document.getElementById('setVersion'), su = document.getElementById('setUpdate');
         if (sv) sv.textContent = real ? b.label : 'dev';
+        // stamp the offline bundle's saved filename with the build so a downloaded copy is self-identifying
+        var sd = document.getElementById('setDownload'); if (sd && real && sd.setAttribute) sd.setAttribute('download', 'komyo-' + b.sha + '.zip');
         if (su && K && K.updates) {
           var upLabel = function (st) {
             var busy = st.status === 'refreshing' || st.status === 'checking';
