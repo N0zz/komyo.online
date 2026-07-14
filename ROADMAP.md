@@ -395,25 +395,30 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   don't fit under the top bar on small/weird viewports, drawers vs the side stack, etc. The headless
   layout suite only measures canvas-internal rects (`__test.layout`) — DOM chrome overlaps need
   either real-browser screenshot sweeps or exposing chrome rects to the suite.
-- **Marketing plan: re-aim at where parents & kids are** *(added 2026-07-05)* — fold into the
-  `plans/marketing_plan.md` review: indie-community sharing is likely WEAK for us (those crowds are
-  saturated with indie games and are mostly fellow devs, not players) — shift weight to
-  parent/family/teacher channels (parenting subs & forums, family-friendly app roundups, school
-  holiday activity lists, kid-safe game directories) where "free, no ads, no accounts, kid-safe,
-  works offline" is the actual pitch.
+- **Marketing plan: re-aim channels at teen+parents** *(policy set 2026-07-14 — decided; applies to
+  NEW posts only, not the launch posts already up; execution ongoing).* Fold into
+  `plans/marketing_plan.md`: indie-community sharing is likely WEAK for us (those crowds are saturated
+  with indie games and are mostly fellow devs, not players) — shift weight to family + hobbyist/teen
+  channels (parenting & family-gaming subs/forums, family-friendly app roundups, school-holiday activity
+  lists, kid-safe game directories, plus teen/retro-arcade + web-games spaces). Pitch = **depth · works
+  offline · no accounts · no ads · family-friendly, fun for all ages** (matches the confirmed direction —
+  de-emphasize "kid-safe" as the headline).
 - **Reddit groundwork — STARTED (2026-07-05).** Advertising in some existing threads + actively
   commenting on target subs to build presence/karma; own threads planned within a few days. Feeds
   Path-to-launch #3.
-- **Competitor study + identity direction** *(idea — 2026-07-14, unconfirmed; nothing selected)* —
-  studied 3 sibling AI-built arcades (Skorven, iplay.free, playhive.net). Full notes + copy proposals in
-  `~/komyo-competitor-teardown.md`. Gist: (1) **AI-slop tells to avoid** — the lone 🔊/☰ emoji-glass
-  cluster (our #1 tell), the two off-the-shelf skins (puzzler "Bricolage+orange+glass" / kids
-  "Fredoka+Nunito+candy"), and the boilerplate "no ads/no sign-ups/kid-safe" tagline quad (all four sites
-  recite it). (2) **Identity lean** — all-ages skewing **teen+parents**; keep our terminal/retro look (off
-  both slop skins) but soften it; lead the pitch on **depth + truly offline + no accounts + no ads**, not
-  the safe/free cliché → implies an SEO re-aim. (3) **Cheap first wins** — reskin the 🔊/☰ cluster into a
-  labelled terminal console; a pitch/SEO copy rewrite via the i18n flow; a motion signature vs the default
-  spring-lift. (4) **Games** — the colour+logic pack + retro-arcade lane now in the coming-soon queue.
+- **Competitor study → identity direction CONFIRMED; first changes SHIPPED (2026-07-14).** Studied 3
+  sibling AI-built arcades (Skorven, iplay.free, playhive.net); full notes in
+  `~/komyo-competitor-teardown.md`. **Direction (confirmed):** all-ages skewing **teen+parents**; keep the
+  terminal/retro identity — it's off both AI-slop skins (puzzler "Bricolage+orange+glass" / kids
+  "Fredoka+Nunito+candy") — just soften it; lead the pitch on **depth + truly offline + no accounts + no
+  ads**, not the commodity "no ads/no sign-ups/kid-safe" quad every sibling recites. **Shipped:** the
+  on-page **SEO/pitch copy re-aim** (title/meta/OG/Twitter/JSON-LD/footer, EN + 7 locales) + a chrome
+  polish (terminal-console **cyan edge-glow** on nav / sound-menu / side stack). **Dropped:** palette
+  warm-up (catalogue's already per-game/per-genre colored) + a tile motion-signature (kept the 5px lift).
+  **Still open:** (a) **mascot/logo** — separate session (see the mascot bullet); (b) the **game ideas** to
+  triage — colour+logic pack + retro-arcade lane in the coming-soon queue, saved but not yet selected;
+  (c) **marketing-channel re-aim** — see the bullet above; (d) **og-image.png** — mildly stale (missing the
+  Jul 10–12 games), regenerate manually when convenient (headless auto-capture hangs on the live JS page).
 - ~~**Fable review of recent additions**~~ *(done 2026-07-06)* — komyo-new-game skill, i18n
   implementation and translations reviewed & tested.
 - **Marketing plan (brainstorm + prep) — drafted (2026-07-05),** `plans/marketing_plan.md`.
