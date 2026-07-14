@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>komyo — mascot / logo concepts</title>
+<style>
+  :root{ --bg:#0b0f17; --surface:#161c28; --border:#2a3446; --text:#eef2f8; --muted:#aab6c8; --faint:#7d8aa0;
+    --cyan:#9fe8ff; --gold:#e0b25a; --purple:#c79bff;
+    --mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace; --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--sans)}
+  .page{max-width:1180px;margin:0 auto;padding:22px 20px 90px}
+  h1{font-family:var(--mono);letter-spacing:5px;text-transform:uppercase;font-size:23px;margin:0 0 4px;
+    background:linear-gradient(90deg,#9fe8ff,#e0b25a,#c79bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{color:var(--muted);font-size:14px;line-height:1.55;max-width:820px;margin:0 0 8px}
+  .lead b{color:var(--text)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;margin-top:20px}
+  .card{border:1px solid var(--border);border-radius:16px;background:var(--surface);padding:16px 16px 18px}
+  .card.cur{border-color:#3a4a2a;background:#12160f}
+  .chd{display:flex;align-items:baseline;gap:8px;margin-bottom:12px}
+  .chd .n{font-family:var(--mono);font-size:12px;letter-spacing:1px;color:var(--cyan)}
+  .card.cur .chd .n{color:#b7d36a}
+  .chd .t{font-weight:700;font-size:15px}
+  .hero{display:flex;align-items:center;gap:16px;margin-bottom:14px}
+  .hero .big{width:96px;height:96px;flex:0 0 auto}
+  .desc{font-size:12.5px;line-height:1.5;color:var(--muted);margin:0}
+  /* size / usage strip */
+  .strip{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;margin:4px 0 12px;padding:12px;border-radius:12px;background:#0c1119;border:1px solid #1e2636}
+  .u{display:flex;flex-direction:column;align-items:center;gap:5px}
+  .u .cap{font-family:var(--mono);font-size:9px;letter-spacing:.5px;color:var(--faint);text-transform:uppercase}
+  .tab{display:inline-flex;align-items:center;justify-content:center;border-radius:5px;padding:3px}
+  .tab.dark{background:#20262f}.tab.light{background:#e9edf3}
+  .pwa{width:56px;height:56px;border-radius:13px;overflow:hidden}
+  .disc{width:44px;height:44px;border-radius:50%;overflow:hidden;background:#5865F2;display:grid;place-items:center}
+  .disc svg{width:44px;height:44px}
+  .lock{display:inline-flex;align-items:center;gap:8px}
+  .lock .wm{font-family:var(--mono);font-weight:800;font-size:22px;letter-spacing:1px;
+    background:linear-gradient(90deg,#9fe8ff,#e0b25a,#c79bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  svg.mark{display:block}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>Mascot / logo concepts</h1>
+  <p class="lead">Vector concepts to pick a <b>direction</b> — the winner gets refined into final art against a frozen
+    spec (gen-AI or artist). These are deliberately <b>simple</b>: each is one self-contained mark shown at every real
+    use — <b>favicon 16 &amp; 32px on light + dark tabs, PWA install tile, Discord avatar, and the wordmark lockup</b> —
+    so you can judge legibility where it actually ships. All derive from the fox so the logo stays recognizable.
+    Row 0 is the <b>current</b> mark for reference.</p>
+  <div class="grid" id="grid"></div>
+</div>
+
+<svg width="0" height="0" style="position:absolute"><defs>
+  <linearGradient id="komyoGrad" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#9fe8ff"/><stop offset=".5" stop-color="#e0b25a"/><stop offset="1" stop-color="#c79bff"/>
+  </linearGradient>
+  <linearGradient id="warmGrad" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffb066"/><stop offset="1" stop-color="#e8552f"/>
+  </linearGradient>
+  <filter id="neonGlow" x="-40%" y="-40%" width="180%" height="180%">
+    <feGaussianBlur stdDeviation="1.6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <clipPath id="foxClip"><path d="M13 28.5 L17 9.5 L31 20.5 Z M51 28.5 L47 9.5 L33 20.5 Z M12 39.5 Q12 17.5 32 17.5 Q52 17.5 52 39.5 L52 49.5 Q52 45.5 48 45.5 L16 45.5 Q12 45.5 12 49.5 Z"/></clipPath>
+</defs></svg>
+
+<script>
+// ---- fox builders (64x64 viewBox); return BARE markup (no dark tile) ----
+// base chibi fox — refined from the current favicon, with options.
+function foxBase(o){ o=o||{};
+  const earF=o.earFill||'#e8632a', headF=o.headFill||'#f0712f', faceF=o.faceFill||'#ffe3c8',
+        fringeF=o.fringeFill||'#ff7a3c', eyeF=o.eyeFill||'#3a2a1a', hi=o.eyeHi||'#ffffff';
+  const rim = o.rimlight ? '<path d="M12.4 34 Q12.6 16 30 14" fill="none" stroke="#9fe8ff" stroke-width="1.4" stroke-linecap="round" opacity=".85"/>' : '';
+  const hair = o.hairTuft ? '<path d="M26 10 Q32 1 38 10 Q34 8 32 11 Q30 8 26 10 Z" fill="#e8552f"/><path d="M40 12 Q47 7 46 15 Q43 12 40 12 Z" fill="#e8552f"/>' : '';
+  const nose = o.nose ? '<path d="M32 41 l-2.4 -2.2 h4.8 Z" fill="'+eyeF+'"/>' : '';
+  const smile = o.wink
+    ? '<path d="M30 44 Q32 47 34 44" stroke="#7a4a2a" stroke-width="1.6" fill="none" stroke-linecap="round"/>'
+    : '<path d="M29 43.5 Q32 46.5 35 43.5" stroke="#7a4a2a" stroke-width="1.6" fill="none" stroke-linecap="round"/>';
+  const rEye = o.wink
+    ? '<path d="M36 37 Q39 34.5 42 37" stroke="'+eyeF+'" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+    : '<ellipse cx="39" cy="37" rx="2.9" ry="3.7" fill="'+eyeF+'"/><circle cx="40.1" cy="35.5" r="1" fill="'+hi+'"/>';
+  return `<g transform="translate(0,4.5)">
+    <path d="M13 24 L17 5 L31 16 Z" fill="${earF}"/><path d="M51 24 L47 5 L33 16 Z" fill="${earF}"/>
+    <path d="M17 19 L19 9 L26 15 Z" fill="#ffd9b0"/><path d="M47 19 L45 9 L38 15 Z" fill="#ffd9b0"/>
+    ${hair}
+    <path d="M12 35 Q12 13 32 13 Q52 13 52 35 L52 45 Q52 41 48 41 L16 41 Q12 41 12 45 Z" fill="${headF}"/>
+    <ellipse cx="32" cy="35" rx="16" ry="15" fill="${faceF}"/>
+    <path d="M16 31 Q18 19 32 19 Q46 19 48 31 Q44 25 38 26 Q40 29 36 30 Q33 25 28 27 Q30 30 24 29 Q20 27 16 31 Z" fill="${fringeF}"/>
+    ${rim}
+    <ellipse cx="25" cy="37" rx="2.9" ry="3.7" fill="${eyeF}"/><circle cx="26.1" cy="35.5" r="1" fill="${hi}"/>
+    ${rEye}
+    <circle cx="20.5" cy="41" r="2.3" fill="#ff9ba0" opacity=".7"/><circle cx="43.5" cy="41" r="2.3" fill="#ff9ba0" opacity=".7"/>
+    ${nose}${smile}
+  </g>`;
+}
+function foxMinimal(){ return `<g transform="translate(0,4.5)">
+  <path d="M13 24 L17 5 L31 16 Z" fill="#f0712f"/><path d="M51 24 L47 5 L33 16 Z" fill="#f0712f"/>
+  <path d="M12 35 Q12 13 32 13 Q52 13 52 35 L52 45 Q52 41 48 41 L16 41 Q12 41 12 45 Z" fill="#f0712f"/>
+  <circle cx="25" cy="34" r="3.2" fill="#0b0f17"/><circle cx="39" cy="34" r="3.2" fill="#0b0f17"/>
+  <path d="M32 42 l-3 -3 h6 Z" fill="#0b0f17"/></g>`; }
+function foxNeon(){ return `<g transform="translate(0,4.5)" filter="url(#neonGlow)" fill="none" stroke="#9fe8ff" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round">
+  <path d="M13 24 L17 5 L31 16"/><path d="M51 24 L47 5 L33 16"/>
+  <path d="M12 35 Q12 13 32 13 Q52 13 52 35 L52 45 Q52 41 48 41 L16 41 Q12 41 12 45 Z"/>
+  <path d="M32 41 l-2.4 -2.2 h4.8 Z" fill="#9fe8ff"/>
+  <circle cx="25" cy="35" r="1.7" fill="#9fe8ff" stroke="none"/><circle cx="39" cy="35" r="1.7" fill="#9fe8ff" stroke="none"/>
+  <path d="M29 43 Q32 46 35 43"/></g>`; }
+function foxPixel(){ const M=['..O....O..','.OO....OO.','.OOOOOOOO.','OOOOOOOOOO','OOEOOOOEOO','OOOOOOOOOO','.OCCCCCCO.','.OCCNNCCO.','..OCCCCO..','...OOOO...'];
+  const col={O:'#f0712f',C:'#ffe3c8',E:'#2a1c12',N:'#2a1c12'}; const s=6.4; let r='';
+  M.forEach((row,y)=>[...row].forEach((c,x)=>{ if(col[c]) r+=`<rect x="${x*s}" y="${y*s}" width="${s+0.4}" height="${s+0.4}" fill="${col[c]}"/>`; }));
+  return `<g>${r}</g>`; }
+function foxHex(){ return `<g>
+  <path d="M32 4 L54 17 L54 43 L32 56 L10 43 L10 17 Z" fill="#141a12" stroke="#e0b25a" stroke-width="2.4"/>
+  <g transform="translate(0,3) scale(0.86) translate(4.6,2)">${foxMinimal()}</g></g>`; }
+function foxMono(){ return `<g>
+  <path d="M21 15 L24 6 L31 13 Z" fill="#e8632a"/><path d="M43 15 L40 6 L33 13 Z" fill="#e8632a"/>
+  <text x="32" y="50" font-family="ui-monospace,monospace" font-size="44" font-weight="800" text-anchor="middle" fill="url(#komyoGrad)">k</text></g>`; }
+
+// ---- proposals ----
+const CUR = foxBaseCurrent();
+function foxBaseCurrent(){ return `<g transform="translate(0,4.5)">
+  <path d="M13 24 L17 5 L31 16 Z" fill="#e8632a"/><path d="M51 24 L47 5 L33 16 Z" fill="#e8632a"/>
+  <path d="M17 19 L19 9 L26 15 Z" fill="#ffd9b0"/><path d="M47 19 L45 9 L38 15 Z" fill="#ffd9b0"/>
+  <path d="M12 35 Q12 13 32 13 Q52 13 52 35 L52 45 Q52 41 48 41 L16 41 Q12 41 12 45 Z" fill="#f0712f"/>
+  <ellipse cx="32" cy="35" rx="16" ry="15" fill="#ffe3c8"/>
+  <path d="M16 31 Q18 19 32 19 Q46 19 48 31 Q44 25 38 26 Q40 29 36 30 Q33 25 28 27 Q30 30 24 29 Q20 27 16 31 Z" fill="#ff7a3c"/>
+  <ellipse cx="25" cy="37" rx="2.6" ry="3.5" fill="#3a2a1a"/><ellipse cx="39" cy="37" rx="2.6" ry="3.5" fill="#3a2a1a"/>
+  <circle cx="26" cy="35.6" r="1" fill="#fff"/><circle cx="40" cy="35.6" r="1" fill="#fff"/>
+  <circle cx="20.5" cy="41" r="2.3" fill="#ff9ba0" opacity=".7"/><circle cx="43.5" cy="41" r="2.3" fill="#ff9ba0" opacity=".7"/>
+  <path d="M29 43 Q32 46 35 43" stroke="#7a4a2a" stroke-width="1.6" fill="none" stroke-linecap="round"/></g>`; }
+
+const P = [
+  {n:'0', t:'Current (reference)', cur:true, m:CUR, ring:false,
+   d:'Today’s favicon/header mark — small eyes, thin features; gets muddy below ~20px.'},
+  {n:'1', t:'Refined chibi', m:foxBase({nose:true}),
+   d:'The current fox, cleaned + upscaled: bigger eyes, added nose, crisper. Safest evolution.'},
+  {n:'2', t:'Bold + warm gradient', m:foxBase({nose:true,earFill:'#d9531f',fringeFill:'url(#warmGrad)'}),
+   d:'Heftier ears, warm-gradient fur fringe — more depth, still flat and simple.'},
+  {n:'3', t:'Cyan rim-light', m:foxBase({nose:true,rimlight:true,eyeHi:'#9fe8ff'}),
+   d:'Warm fox with a cyan edge-light + cyan eye glints — ties the mark to the komyo palette.'},
+  {n:'4', t:'Gradient badge', m:foxBase({nose:true}), ring:'grad',
+   d:'Mark framed by the cyan→gold→purple arcade ring baked in — a strong PWA/Discord tile.'},
+  {n:'5', t:'Minimal', m:foxMinimal(),
+   d:'Reduced to ears + head + dot eyes + nose. Reads perfectly at 16px; most icon-native.'},
+  {n:'6', t:'Playful (wink + hair)', m:foxBase({nose:true,wink:true,hairTuft:true}),
+   d:'A wink + a red hair tuft (nod to the fox-GIRL mascot). Most character; busiest small.'},
+  {n:'7', t:'Neon outline', m:foxNeon(),
+   d:'Cyan neon line-art on dark — retro-arcade sign energy. Glow may thin out at 16px.'},
+  {n:'8', t:'Pixel / 8-bit', m:foxPixel(),
+   d:'Chunky pixel fox — leans hard into retro-arcade. Surprisingly legible tiny.'},
+  {n:'9', t:'Hex token', m:foxHex(),
+   d:'Minimal fox in a gold-rimmed arcade “token.” Distinct silhouette; frame competes at 16px.'},
+  {n:'10', t:'Monogram k-fox', m:foxMono(),
+   d:'Lowercase “k” with fox ears — a lettermark alternative. Least fox-forward.'},
+];
+
+function iconSvg(markup, px, ring){
+  const bg = `<rect width="64" height="64" rx="14" fill="#0a0c14"/>`;
+  const r = ring==='grad' ? `<rect x="2" y="2" width="60" height="60" rx="13" fill="none" stroke="url(#komyoGrad)" stroke-width="2.4"/>` : '';
+  return `<svg class="mark" width="${px}" height="${px}" viewBox="0 0 64 64">${bg}${r}${markup}</svg>`;
+}
+function bareSvg(markup, px){ return `<svg class="mark" width="${px}" height="${px}" viewBox="0 0 64 64">${markup}</svg>`; }
+
+const grid = document.getElementById('grid');
+P.forEach(p=>{
+  const card = document.createElement('div');
+  card.className = 'card' + (p.cur?' cur':'');
+  card.innerHTML =
+    `<div class="chd"><span class="n">${p.n}</span><span class="t">${p.t}</span></div>
+     <div class="hero"><span class="big">${iconSvg(p.m,96,p.ring)}</span>
+       <div class="lock"><span>${bareSvg(p.m,34)}</span><span class="wm">komyo</span></div></div>
+     <div class="strip">
+       <div class="u"><span class="cap">fav 16 dk</span><span class="tab dark">${iconSvg(p.m,16,p.ring)}</span></div>
+       <div class="u"><span class="cap">fav 32 dk</span><span class="tab dark">${iconSvg(p.m,32,p.ring)}</span></div>
+       <div class="u"><span class="cap">fav 16 lt</span><span class="tab light">${iconSvg(p.m,16,p.ring)}</span></div>
+       <div class="u"><span class="cap">fav 32 lt</span><span class="tab light">${iconSvg(p.m,32,p.ring)}</span></div>
+       <div class="u"><span class="cap">pwa tile</span><span class="pwa">${iconSvg(p.m,56,p.ring)}</span></div>
+       <div class="u"><span class="cap">discord</span><span class="disc">${iconSvg(p.m,44,p.ring)}</span></div>
+     </div>
+     <p class="desc">${p.d}</p>`;
+  grid.appendChild(card);
+});
+</script>
+</body>
+</html>
