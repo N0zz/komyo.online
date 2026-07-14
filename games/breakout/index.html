@@ -6,7 +6,8 @@
 <title>Brick Breaker — free online breakout arcade game, no ads | Komyo Games</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#ff5cc8">
-<link rel="manifest" href="manifest.json">
+<script>/* PWA manifest only over http(s) — file:// cannot fetch it (CORS from origin "null"); no offline install path anyway */
+if (location.protocol !== "file:") { var m = document.createElement("link"); m.rel = "manifest"; m.href = "manifest.json"; document.head.appendChild(m); }</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
