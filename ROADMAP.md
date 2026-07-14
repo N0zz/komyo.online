@@ -329,6 +329,18 @@ Not yet tiles (lane/genre ideas, added 2026-07-03 — a game gets a tile once it
 - **More puzzle/riddle lane** (beyond Sudoku/Minesweeper/Floodgate/Blink) — nonogram/picross,
   sokoban, sliding-15, tents-and-trees / logic-riddle packs, daily riddle ("one brain-teaser a
   day" pairs with challenges/streaks). All solvable-by-construction per the design knobs.
+- **Colour + logic pack** *(idea — added 2026-07-14, unconfirmed; from the competitor study)* — a
+  coherent colour lane rather than scattered clones: **Flow Connect** (Flow Free / Numberlink — connect
+  coloured dot pairs, fill every cell, no crossings; best touch UX → build first), **Color Flood**
+  (flood-fill from a corner in ≤N moves, seeded Daily + VS-bot), **Water Sort** (pour liquids until each
+  tube is one colour), **Loop Maze** (one-loop Slitherlink/"Zip" deduction; hand-authored level packs).
+  All solvable-by-construction. See `~/komyo-competitor-teardown.md`.
+- **More retro-arcade lane** *(idea — added 2026-07-14, unconfirmed; from the competitor study)* —
+  classic-arcade slots we don't cover yet: **Pong** (VS-bot + local 2P; tiny, on-identity), **Missile
+  Command** (mouse-aim city defense, vector-native), **Lunar Lander** (physics landing, reuses the
+  Asteroids space theme), a **block-faller** (Tetris-style — needs a non-trademark name; fills a real
+  gap), a **maze-muncher** (Pac-Man dot-chase — biggest build, "someday flagship"). Centipede/Galaga-style
+  formation shooter overlaps Invaders (lower prio). See `~/komyo-competitor-teardown.md`.
 - ~~**Frog Rush** 🐸~~ — **shipped 2026-07-06 as Frog Bonk** (see Done).
 
 ### Kids-first (ages 6–10)
@@ -392,6 +404,16 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
 - **Reddit groundwork — STARTED (2026-07-05).** Advertising in some existing threads + actively
   commenting on target subs to build presence/karma; own threads planned within a few days. Feeds
   Path-to-launch #3.
+- **Competitor study + identity direction** *(idea — 2026-07-14, unconfirmed; nothing selected)* —
+  studied 3 sibling AI-built arcades (Skorven, iplay.free, playhive.net). Full notes + copy proposals in
+  `~/komyo-competitor-teardown.md`. Gist: (1) **AI-slop tells to avoid** — the lone 🔊/☰ emoji-glass
+  cluster (our #1 tell), the two off-the-shelf skins (puzzler "Bricolage+orange+glass" / kids
+  "Fredoka+Nunito+candy"), and the boilerplate "no ads/no sign-ups/kid-safe" tagline quad (all four sites
+  recite it). (2) **Identity lean** — all-ages skewing **teen+parents**; keep our terminal/retro look (off
+  both slop skins) but soften it; lead the pitch on **depth + truly offline + no accounts + no ads**, not
+  the safe/free cliché → implies an SEO re-aim. (3) **Cheap first wins** — reskin the 🔊/☰ cluster into a
+  labelled terminal console; a pitch/SEO copy rewrite via the i18n flow; a motion signature vs the default
+  spring-lift. (4) **Games** — the colour+logic pack + retro-arcade lane now in the coming-soon queue.
 - ~~**Fable review of recent additions**~~ *(done 2026-07-06)* — komyo-new-game skill, i18n
   implementation and translations reviewed & tested.
 - **Marketing plan (brainstorm + prep) — drafted (2026-07-05),** `plans/marketing_plan.md`.
@@ -448,6 +470,13 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   prune/merge so future sessions don't act on outdated context.
 - **Real mascot art** *(in progress)* — chibi fox-girl (Holo-ish, red/orange hair, fox ears); replaces
   the header + score-card placeholder; reuse on social, stickers, 404, newsletter, empty states.
+  **Approach idea (2026-07-14, unconfirmed — from the competitor study):** artists are expensive/slow, so
+  consider a **gen-AI bridge — but one-and-done, not many iterations**, because the real cost is the
+  re-upload tax (logo lives on socials, Discord, itch, BuyMeACoffee, …). Do it **spec-first** (converge on
+  a written character spec cheaply, then generate once and freeze). **Split the freeze-once avatar/logo
+  (goes everywhere) from the on-site mascot illustration (iterate freely — we redeploy for free).** User
+  steer: the **logo should be derived from the mascot** (a simplified mark of the same character) so it
+  stays recognizable long-term — not a separate abstract emblem. Details in `~/komyo-competitor-teardown.md`.
 - ~~**Daily-challenge target tuning.**~~ *(done 2026-07-06)* — targets retuned across the catalogue
   (incl. Forcefield + Frog Bonk); post-launch re-checks from real GA4 data stay in Ongoing.
 
