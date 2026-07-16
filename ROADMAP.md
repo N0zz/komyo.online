@@ -328,7 +328,7 @@ Not yet tiles (lane/genre ideas, added 2026-07-03 — a game gets a tile once it
   top-down drift/rally sprint. Pick 1–2 that feel most distinct from Pocket Rally.
 - **More puzzle/riddle lane** (beyond Sudoku/Minesweeper/Floodgate/Blink) — nonogram/picross,
   sokoban, sliding-15, tents-and-trees / logic-riddle packs, daily riddle ("one brain-teaser a
-  day" pairs with challenges/streaks). All solvable-by-construction per the design knobs.
+  day" pairs with challenges). All solvable-by-construction per the design knobs.
 - **Colour + logic pack** *(idea — added 2026-07-14, unconfirmed; from the competitor study)* — a
   coherent colour lane rather than scattered clones: **Flow Connect** (Flow Free / Numberlink — connect
   coloured dot pairs, fill every cell, no crossings; best touch UX → build first), **Color Flood**
@@ -390,11 +390,14 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
 
 - ~~**Discord changelog posts get cut mid-sentence**~~ *(fixed 2026-07-12)* — long entries now split
   into multiple messages on bullet boundaries (never mid-sentence).
-- **UI overlap audit** *(added 2026-07-05)* — systematically hunt element collisions across
-  resolutions/orientations: the in-game top bar vs the score pill (worst offender), kit menus that
-  don't fit under the top bar on small/weird viewports, drawers vs the side stack, etc. The headless
-  layout suite only measures canvas-internal rects (`__test.layout`) — DOM chrome overlaps need
-  either real-browser screenshot sweeps or exposing chrome rects to the suite.
+- **UI overlap audit** *(added 2026-07-05 — LOWER priority, defer)* — it works today; not urgent.
+  Systematically hunt element collisions across resolutions/orientations: the in-game top bar vs the
+  score pill (worst offender), kit menus that don't fit under the top bar on small/weird viewports,
+  drawers vs the side stack, etc. **Why deferred:** the fixes risk breaking more than they fix, and
+  verifying every element across all 3 views (desktop/portrait/landscape) is a lot of manual work — the
+  headless layout suite only measures canvas-internal rects (`__test.layout`), so DOM chrome overlaps
+  need real-browser screenshot sweeps or exposing chrome rects to the suite. Do it as a deliberate,
+  scoped pass later, not opportunistically.
 - **Marketing plan: re-aim channels at teen+parents** *(policy set 2026-07-14 — decided; applies to
   NEW posts only, not the launch posts already up; execution ongoing).* Fold into
   `plans/marketing_plan.md`: indie-community sharing is likely WEAK for us (those crowds are saturated
@@ -415,10 +418,11 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   on-page **SEO/pitch copy re-aim** (title/meta/OG/Twitter/JSON-LD/footer, EN + 7 locales) + a chrome
   polish (terminal-console **cyan edge-glow** on nav / sound-menu / side stack). **Dropped:** palette
   warm-up (catalogue's already per-game/per-genre colored) + a tile motion-signature (kept the 5px lift).
-  **Still open:** (a) **mascot/logo** — separate session (see the mascot bullet); (b) the **game ideas** to
-  triage — colour+logic pack + retro-arcade lane in the coming-soon queue, saved but not yet selected;
-  (c) **marketing-channel re-aim** — see the bullet above; (d) **og-image.png** — mildly stale (missing the
-  Jul 10–12 games), regenerate manually when convenient (headless auto-capture hangs on the live JS page).
+  **Still open:** (a) **mascot/logo** — concepts explored 2026-07-14 (`plans/mascot-logo-mock.html` + a
+  fur/ear polish pass); still needs the spec-freeze → final art (see the mascot bullet); (b) the **game
+  ideas** to triage — colour+logic pack + retro-arcade lane in the coming-soon queue, saved but not yet
+  selected; (c) **marketing-channel re-aim** — see the bullet above. *(og-image.png refreshed to the
+  18-game catalogue + edge-glow chrome, `?v=6` — DONE 2026-07-14.)*
 - ~~**Fable review of recent additions**~~ *(done 2026-07-06)* — komyo-new-game skill, i18n
   implementation and translations reviewed & tested.
 - **Marketing plan (brainstorm + prep) — drafted (2026-07-05),** `plans/marketing_plan.md`.
@@ -473,8 +477,12 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
 - **Review local Claude Code memories about komyo** (added 2026-07-02) — audit the Claude memory
   notes for stale komyo entries: plans that shipped, superseded decisions, rebrand leftovers;
   prune/merge so future sessions don't act on outdated context.
-- **Real mascot art** *(in progress)* — chibi fox-girl (Holo-ish, red/orange hair, fox ears); replaces
-  the header + score-card placeholder; reuse on social, stickers, 404, newsletter, empty states.
+- **Real mascot art** *(NOT near-term — the current mascot is the keeper)* — after the 2026-07-14 fixes
+  (fur/ear polish, concepts mock), the chibi fox-girl we have **stays as-is for the foreseeable future**;
+  a from-scratch refresh is pushed **far out**, not on the near roadmap. It's good enough and re-doing it
+  carries the re-upload tax below. Keep the notes here for whenever a refresh is actually revisited —
+  chibi fox-girl (Holo-ish, red/orange hair, fox ears); reused on social, stickers, 404, newsletter,
+  empty states.
   **Approach idea (2026-07-14, unconfirmed — from the competitor study):** artists are expensive/slow, so
   consider a **gen-AI bridge — but one-and-done, not many iterations**, because the real cost is the
   re-upload tax (logo lives on socials, Discord, itch, BuyMeACoffee, …). Do it **spec-first** (converge on
@@ -546,7 +554,7 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   the same widget is hand-written in multiple places with its own markup+CSS, so they drift and we keep
   hand-syncing them (the trophies + Collection **pills** already bit us twice: challenges drawer vs
   profile vs the in-game 🏆 panel; also candidates: the **collection/progress bar**, the good-run bonus
-  line, the streak/points pill, buttons). Fix pattern: extract one kit factory (e.g. `gamekit.cosmeticPills(opts)`)
+  line, the points pill, buttons). Fix pattern: extract one kit factory (e.g. `gamekit.cosmeticPills(opts)`)
   + one shared CSS class in `game-kit.css`, used by BOTH the catalogue (`index.html`) and the in-game
   panel (`game-kit.js`). **Task: sweep index.html + game-kit.js for every element rendered in ≥2 places,
   list them, and extract the DOM ones into shared kit helpers.** Caveat — the **canvas** share/score/profile
@@ -592,9 +600,9 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   image. Backed by the kit's **single source of truth for bests** — all 9 games read/write via
   `gamekit.best`/`gamekit.saveBest` (`gamekit_pb`, keyed by a human mode label) + `gamekit_stats` for
   lifetime rollups. No per-game best-keys, so menu & profile can't diverge; reset prunes the store; portable
-  via Export/import. **Wrapped-style expansion (next):** play/longest streak, challenges completed, this-week /
-  this-month / all-time toggles, "new games tried", milestone badges (played-every-game, first-10k,
-  N-day-streak), night-owl/early-bird from play-hour, and a **"Your year in komyo"** multi-slide seasonal
+  via Export/import. **Wrapped-style expansion (next):** challenges completed, this-week /
+  this-month / all-time toggles, "new games tried", milestone badges (played-every-game, first-10k),
+  night-owl/early-bird from play-hour, and a **"Your year in komyo"** multi-slide seasonal
   card. Deeper ones (total minutes played) need coarse session-time tracking in the kit. Original spec:
 - **"My profile" modal + shareable stats card** *(original spec, superseded by v1 above)* — a profile the player opens from the catalogue
   (☰ menu, next to Settings) that summarizes THIS device's play: total games played + total game-modes
@@ -793,6 +801,19 @@ Play Store via PWA → itch.io. Rest are post-launch or parked.
   feed (`POST /score` → capped list, `GET /recent`); (b) a validating, rate-limiting **relay** in front
   of the Discord webhook (hides the URL → kills the client-embedded-webhook spam surface, drips under
   rate limits). Not wanted now — note the benefits, don't build it.
+
+- **"Prompt-your-own-game" generator (paid, SEPARATE product)** *(idea — noted 2026-07-16)* — a
+  chat on the site where a user describes a game and our game-creation skill builds it live. Model:
+  a **generation *session* with a compute budget capped ~10–30% below what the user paid** (that
+  gap is the margin, net of Stripe/moderation/hosting — not a big earner, "just something"); want
+  to keep iterating/perfecting → pay for more session. Reliability is fine (games boot ~80–90%);
+  the failure mode is "not fun," which is the user's creative risk — they pay regardless (needs a
+  live cost meter + in-session playtest so spend feels earned; a "never-booted → credits back"
+  valve). Generated games live in a **separate, walled-off "unreviewed" catalogue/product — never
+  on the kid-safe main surface**; **prompt + output moderation is mandatory** before any public
+  exposure. Community favorites get **promoted to the curated main catalogue only after review**.
+  Prereq: perfect the game-creation skill first and measure the *safe-and-boots* rate before
+  building any of this.
 
 ## Decision guards (don't re-propose)
 
