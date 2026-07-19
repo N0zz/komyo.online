@@ -30,8 +30,8 @@ window.CHALLENGES = {
     'ast-2':      { slug: 'asteroids',      title: 'Score 8,000 in Asteroids',      metric: 'score', target: 8000 },
     'astp-1':     { slug: 'asteroids-plus', title: 'Score 15,000 in Asteroids+',    metric: 'score', target: 15000 },
     'astp-2':     { slug: 'asteroids-plus', title: 'Score 30,000 in Asteroids+',    metric: 'score', target: 30000 },
-    'forcefield-1':    { slug: 'forcefield',          title: 'Score 250 in Forcefield',       metric: 'score', target: 250 },
-    'forcefield-2':    { slug: 'forcefield',          title: 'Score 500 in Forcefield',       metric: 'score', target: 500 },
+    'forcefield-1':    { slug: 'forcefield',          title: 'Score 500 in Forcefield',       metric: 'score', target: 500 },
+    'forcefield-2':    { slug: 'forcefield',          title: 'Score 1,200 in Forcefield',     metric: 'score', target: 1200 },
     'frog-1':     { slug: 'frog-bonk',    title: 'Score 800 in Frog Bonk',       metric: 'score', target: 800 },
     'frog-2':     { slug: 'frog-bonk',    title: 'Score 2,000 in Frog Bonk',     metric: 'score', target: 2000 },
     'sudoku-1':   { slug: 'sudoku',       title: 'Solve a Sudoku puzzle',        metric: 'score', target: 100 },
@@ -39,9 +39,9 @@ window.CHALLENGES = {
     'mines-1':    { slug: 'minesweeper',  title: 'Clear an Easy Minesweeper board',           metric: 'score', target: 71 },
     'mines-2':    { slug: 'minesweeper',  title: 'Uncover 118 tiles in one Minesweeper run',  metric: 'score', target: 118 },
     '2048-1':     { slug: '2048',         title: 'Build a 256 tile in 2048',     metric: 'maxTile', target: 256 },
-    '2048-2':     { slug: '2048',         title: 'Score 4,500 in one 2048 run',  metric: 'score',   target: 4500 },
+    '2048-2':     { slug: '2048',         title: 'Score 12,000 in one 2048 run', metric: 'score',   target: 12000 },
     'cat-1':      { slug: 'trap-the-cat', title: 'Trap the cat',                 metric: 'score', target: 30 },
-    'cat-2':      { slug: 'trap-the-cat', title: 'Score 90 in Trap the Cat',     metric: 'score', target: 90 },
+    'cat-2':      { slug: 'trap-the-cat', title: 'Score 50 in Trap the Cat',     metric: 'score', target: 50 },
     'glow-1':     { slug: 'glow-says',    title: 'Remember a 5-note tune in Glow Says', metric: 'score', target: 5 },
     'glow-2':     { slug: 'glow-says',    title: 'Remember 8 notes in Glow Says',       metric: 'score', target: 8 },
     'bal-pop-1':  { slug: 'balloon-pop',  title: 'Pop 30 in one Balloon Pop party',     metric: 'score', target: 30 },
@@ -83,8 +83,8 @@ window.CHALLENGES = {
 // ESTIMATED wave-10 score on medium; confirm in playtest.
 window.CHALLENGES.goodRun = {
   snake: 300, bubbles: 5000, breakout: 1500, stacker: 50, flappy: 50,
-  'aim-trainer': 600, 'tower-defense': 2000, asteroids: 8000, 'asteroids-plus': 30000,
-  forcefield: 500, 'frog-bonk': 2000, sudoku: 1500, minesweeper: 118, '2048': 4500, 'trap-the-cat': 90,
+  'aim-trainer': 600, 'tower-defense': 8000, asteroids: 8000, 'asteroids-plus': 30000,
+  forcefield: 1200, 'frog-bonk': 2000, sudoku: 1500, minesweeper: 118, '2048': 12000, 'trap-the-cat': 50,
   'glow-says': 8, 'balloon-pop': 60, 'critter-match': 160,
 };
 
