@@ -283,60 +283,128 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     }
     g.closePath();
   }
+  // stroke a run of hex edges (vertex k..k2; 0=bottom-right → 2=bottom-left → 4=top)
+  function hexEdge(g, px, py, rad, k1, k2) {
+    g.beginPath();
+    for (let k = k1; k <= k2; k++) {
+      const a = Math.PI / 6 + k * Math.PI / 3;
+      const x = px + Math.cos(a) * rad, y = py + Math.sin(a) * rad;
+      k === k1 ? g.moveTo(x, y) : g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+  // darken (f<1) / lighten (f>1) a #rrggbb skin color
+  function shade(hex, f) {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = v => Math.max(0, Math.min(255, Math.round(f >= 1 ? v + (255 - v) * (f - 1) : v * f)));
+    return 'rgb(' + ch((n >> 16) & 255) + ',' + ch((n >> 8) & 255) + ',' + ch(n & 255) + ')';
+  }
 
   function drawHedge(g, px, py, rad, pop) {
     const s = rad * (pop !== undefined ? 0.75 + 0.25 * pop : 1);
-    // rose bush: leafy blob + 3 roses
+    // ground shadow
+    g.fillStyle = 'rgba(0,0,0,0.28)';
+    g.beginPath(); g.ellipse(px, py + s * 0.4, s * 0.6, s * 0.18, 0, 0, 7); g.fill();
+    // rose bush in three foliage layers: dark base → mid → sunlit tops
+    g.fillStyle = '#2c5a33';
+    g.beginPath(); g.arc(px - s * 0.38, py + s * 0.18, s * 0.42, 0, 7); g.arc(px + s * 0.4, py + s * 0.16, s * 0.4, 0, 7);
+    g.arc(px, py + s * 0.08, s * 0.5, 0, 7); g.fill();
     g.fillStyle = '#3f7a44';
-    g.beginPath(); g.arc(px - s * 0.35, py + s * 0.15, s * 0.45, 0, 7); g.arc(px + s * 0.35, py + s * 0.15, s * 0.45, 0, 7);
-    g.arc(px, py - s * 0.2, s * 0.5, 0, 7); g.fill();
+    g.beginPath(); g.arc(px - s * 0.3, py - 0.04 * s, s * 0.38, 0, 7); g.arc(px + s * 0.32, py - s * 0.02, s * 0.36, 0, 7);
+    g.arc(px, py - s * 0.24, s * 0.42, 0, 7); g.fill();
     g.fillStyle = '#57a05c';
-    g.beginPath(); g.arc(px - s * 0.2, py - s * 0.15, s * 0.32, 0, 7); g.arc(px + s * 0.3, py, s * 0.3, 0, 7); g.fill();
-    const roses = [[-0.35, 0.05], [0.3, -0.2], [0.05, 0.3]];
-    for (const [ox, oy] of roses) {
+    g.beginPath(); g.arc(px - s * 0.16, py - s * 0.3, s * 0.26, 0, 7); g.arc(px + s * 0.2, py - s * 0.2, s * 0.24, 0, 7);
+    g.arc(px - s * 0.38, py + s * 0.02, s * 0.2, 0, 7); g.fill();
+    // leaf glints
+    g.fillStyle = 'rgba(190,235,180,0.4)';
+    g.beginPath(); g.arc(px - s * 0.1, py - s * 0.4, s * 0.06, 0, 7); g.arc(px + s * 0.3, py - s * 0.28, s * 0.05, 0, 7); g.fill();
+    // roses: petal ring + core + dew highlight
+    const roses = [[-0.4, 0.06, 0.17], [0.32, -0.2, 0.16], [0.05, 0.3, 0.16], [-0.1, -0.3, 0.13], [0.44, 0.16, 0.13]];
+    for (const [ox, oy, rr] of roses) {
+      const rx = px + ox * s, ry = py + oy * s;
+      g.fillStyle = '#c94f74';
+      g.beginPath(); g.arc(rx, ry, s * rr, 0, 7); g.fill();
       g.fillStyle = '#e06a8e';
-      g.beginPath(); g.arc(px + ox * s, py + oy * s, s * 0.16, 0, 7); g.fill();
+      g.beginPath(); g.arc(rx - s * 0.02, ry - s * 0.02, s * rr * 0.7, 0, 7); g.fill();
       g.fillStyle = '#f0a6c8';
-      g.beginPath(); g.arc(px + ox * s - s * 0.04, py + oy * s - s * 0.04, s * 0.08, 0, 7); g.fill();
+      g.beginPath(); g.arc(rx - s * 0.03, ry - s * 0.03, s * rr * 0.4, 0, 7); g.fill();
+      g.fillStyle = 'rgba(255,225,238,0.8)';
+      g.beginPath(); g.arc(rx - s * rr * 0.35, ry - s * rr * 0.4, s * rr * 0.16, 0, 7); g.fill();
     }
   }
 
   function drawCat(g, px, py, rad, S, mood) {
-    const s = rad * 1.05;
-    const wob = mood === 'trapped' ? Math.sin(frame * 0.35) * s * 0.06 : 0;
-    // tail
-    g.strokeStyle = S.body; g.lineWidth = s * 0.16; g.lineCap = 'round';
-    g.beginPath(); g.moveTo(px + s * 0.45, py + s * 0.35);
-    g.quadraticCurveTo(px + s * 0.85, py + s * 0.3 + wob, px + s * 0.75, py - s * 0.15); g.stroke();
-    // ears
+    const s = rad * 1.15;
+    const wob = mood === 'trapped' ? Math.sin(frame * 0.35) * s * 0.05 : 0;
+    const hy = py - s * 0.22 + wob, hr = s * 0.42;   // head center / radius
+    // ground shadow
+    g.fillStyle = 'rgba(0,0,0,0.3)';
+    g.beginPath(); g.ellipse(px, py + s * 0.58, s * 0.5, s * 0.14, 0, 0, 7); g.fill();
+    // tail — curled around the haunch, gentle sway
+    const sway = Math.sin(frame * 0.06) * s * 0.06;
+    g.strokeStyle = shade(S.body, 0.85); g.lineWidth = s * 0.15; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(px + s * 0.26, py + s * 0.46);
+    g.quadraticCurveTo(px + s * 0.82, py + s * 0.55, px + s * 0.72 + sway, py + s * 0.02);
+    g.stroke();
+    g.fillStyle = shade(S.body, 1.25);                 // pale tail tip
+    g.beginPath(); g.arc(px + s * 0.72 + sway, py + s * 0.02, s * 0.085, 0, 7); g.fill();
+    // sitting body, side-lit
+    const bgr = g.createLinearGradient(px - s * 0.5, 0, px + s * 0.55, 0);
+    bgr.addColorStop(0, shade(S.body, 1.16)); bgr.addColorStop(0.55, S.body); bgr.addColorStop(1, shade(S.body, 0.72));
+    g.fillStyle = bgr;
+    g.beginPath(); g.ellipse(px, py + s * 0.24, s * 0.44, s * 0.4, 0, 0, 7); g.fill();
+    // chest patch + front paws
+    g.fillStyle = S.belly;
+    g.beginPath(); g.ellipse(px - s * 0.02, py + s * 0.32, s * 0.22, s * 0.27, 0, 0, 7); g.fill();
+    g.fillStyle = shade(S.body, 1.08);
+    g.beginPath(); g.ellipse(px - s * 0.16, py + s * 0.55, s * 0.13, s * 0.085, 0, 0, 7); g.fill();
+    g.beginPath(); g.ellipse(px + s * 0.16, py + s * 0.55, s * 0.13, s * 0.085, 0, 0, 7); g.fill();
+    // ears (outer + inner)
     g.fillStyle = S.ear;
-    g.beginPath(); g.moveTo(px - s * 0.52, py - s * 0.28); g.lineTo(px - s * 0.38, py - s * 0.78 + wob); g.lineTo(px - s * 0.12, py - s * 0.42); g.closePath(); g.fill();
-    g.beginPath(); g.moveTo(px + s * 0.52, py - s * 0.28); g.lineTo(px + s * 0.38, py - s * 0.78 + wob); g.lineTo(px + s * 0.12, py - s * 0.42); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(px - hr * 0.92, hy - hr * 0.22); g.lineTo(px - hr * 0.6, hy - hr * 1.42 + wob); g.lineTo(px - hr * 0.1, hy - hr * 0.86); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(px + hr * 0.92, hy - hr * 0.22); g.lineTo(px + hr * 0.6, hy - hr * 1.42 + wob); g.lineTo(px + hr * 0.1, hy - hr * 0.86); g.closePath(); g.fill();
+    g.fillStyle = S.nose; g.globalAlpha = 0.45;
+    g.beginPath(); g.moveTo(px - hr * 0.72, hy - hr * 0.42); g.lineTo(px - hr * 0.58, hy - hr * 1.14 + wob); g.lineTo(px - hr * 0.32, hy - hr * 0.72); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(px + hr * 0.72, hy - hr * 0.42); g.lineTo(px + hr * 0.58, hy - hr * 1.14 + wob); g.lineTo(px + hr * 0.32, hy - hr * 0.72); g.closePath(); g.fill();
+    g.globalAlpha = 1;
     // head
-    const grd = g.createRadialGradient(px - s * 0.2, py - s * 0.25, s * 0.1, px, py, s * 0.75);
+    const grd = g.createRadialGradient(px - hr * 0.4, hy - hr * 0.45, hr * 0.2, px, hy, hr * 1.3);
     grd.addColorStop(0, S.belly); grd.addColorStop(1, S.body);
     g.fillStyle = grd;
-    g.beginPath(); g.arc(px, py, s * 0.55, 0, 7); g.fill();
-    // eyes (glossy)
+    g.beginPath(); g.arc(px, hy, hr, 0, 7); g.fill();
+    // eyes — amber iris, dark pupil, twin glints (blink keeps the old cadence)
     const blink = mood !== 'escaped' && (frame % 180) > 172;
-    g.fillStyle = '#1a141c';
-    if (blink) { g.fillRect(px - s * 0.3, py - s * 0.1, s * 0.22, s * 0.05); g.fillRect(px + s * 0.08, py - s * 0.1, s * 0.22, s * 0.05); }
-    else {
-      g.beginPath(); g.arc(px - s * 0.2, py - s * 0.08, s * 0.12, 0, 7); g.arc(px + s * 0.2, py - s * 0.08, s * 0.12, 0, 7); g.fill();
-      g.fillStyle = '#fff';
-      g.beginPath(); g.arc(px - s * 0.235, py - s * 0.12, s * 0.045, 0, 7); g.arc(px + s * 0.165, py - s * 0.12, s * 0.045, 0, 7); g.fill();
+    if (blink) {
+      g.strokeStyle = '#1a141c'; g.lineWidth = Math.max(1, hr * 0.09); g.lineCap = 'round';
+      g.beginPath(); g.moveTo(px - hr * 0.55, hy - hr * 0.12); g.lineTo(px - hr * 0.2, hy - hr * 0.08); g.stroke();
+      g.beginPath(); g.moveTo(px + hr * 0.55, hy - hr * 0.12); g.lineTo(px + hr * 0.2, hy - hr * 0.08); g.stroke();
+    } else {
+      for (const side of [-1, 1]) {
+        const ex = px + side * hr * 0.38, ey = hy - hr * 0.1;
+        g.fillStyle = '#f0c26a';
+        g.beginPath(); g.ellipse(ex, ey, hr * 0.2, hr * 0.23, 0, 0, 7); g.fill();
+        g.fillStyle = '#1a141c';
+        g.beginPath(); g.ellipse(ex, ey + hr * 0.02, hr * 0.09, hr * 0.17, 0, 0, 7); g.fill();
+        g.fillStyle = '#fff';
+        g.beginPath(); g.arc(ex - hr * 0.07, ey - hr * 0.09, hr * 0.055, 0, 7); g.fill();
+        g.fillStyle = 'rgba(255,255,255,0.55)';
+        g.beginPath(); g.arc(ex + hr * 0.05, ey + hr * 0.08, hr * 0.03, 0, 7); g.fill();
+      }
     }
-    // nose + whiskers
+    // muzzle: nose + ω mouth + whiskers
     g.fillStyle = S.nose;
-    g.beginPath(); g.arc(px, py + s * 0.08, s * 0.06, 0, 7); g.fill();
-    g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = Math.max(1, s * 0.03);
-    for (const side of [-1, 1]) for (let k = 0; k < 2; k++) {
-      g.beginPath(); g.moveTo(px + side * s * 0.12, py + s * (0.08 + k * 0.06));
-      g.lineTo(px + side * s * 0.5, py + s * (0.02 + k * 0.12)); g.stroke();
+    g.beginPath(); g.moveTo(px - hr * 0.1, hy + hr * 0.22); g.lineTo(px + hr * 0.1, hy + hr * 0.22); g.lineTo(px, hy + hr * 0.36); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(20,12,20,0.5)'; g.lineWidth = Math.max(1, hr * 0.045); g.lineCap = 'round';
+    g.beginPath(); g.moveTo(px, hy + hr * 0.36); g.quadraticCurveTo(px - hr * 0.14, hy + hr * 0.52, px - hr * 0.26, hy + hr * 0.42); g.stroke();
+    g.beginPath(); g.moveTo(px, hy + hr * 0.36); g.quadraticCurveTo(px + hr * 0.14, hy + hr * 0.52, px + hr * 0.26, hy + hr * 0.42); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = Math.max(1, hr * 0.035);
+    for (const side of [-1, 1]) for (let k = 0; k < 3; k++) {
+      g.beginPath(); g.moveTo(px + side * hr * 0.3, hy + hr * (0.18 + k * 0.1));
+      g.quadraticCurveTo(px + side * hr * 0.75, hy + hr * (0.1 + k * 0.14), px + side * hr * 1.05, hy + hr * (0.02 + k * 0.2)); g.stroke();
     }
     if (mood === 'trapped') { // sweat drop
       g.fillStyle = '#9fd8ff';
-      g.beginPath(); g.arc(px + s * 0.5, py - s * 0.45 + wob * 2, s * 0.09, 0, 7); g.fill();
+      g.beginPath(); g.arc(px + hr * 1.1, hy - hr * 0.9 + wob * 2, hr * 0.16, 0, 7); g.fill();
     }
   }
 
@@ -353,16 +421,35 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       ctx.beginPath(); ctx.arc(fx, fy, 2, 0, 7); ctx.fill();
     }
 
+    // garden floor: hash-scattered moss flecks + fallen petals (static, behind the board)
+    for (let k = 0; k < 30; k++) {
+      const h = ((k + 7) * 2654435761) >>> 0;
+      const gx = (h % 997) / 997 * W, gy = topMargin + ((h >> 11) % 991) / 991 * (H - topMargin);
+      if (k % 3) {
+        ctx.fillStyle = 'rgba(90,120,80,0.10)';
+        ctx.beginPath(); ctx.ellipse(gx, gy, 6 + (h % 9), 3 + (h % 5), (h % 7) * 0.5, 0, 7); ctx.fill();
+      } else {
+        ctx.fillStyle = 'rgba(240,166,200,0.10)';
+        ctx.beginPath(); ctx.ellipse(gx, gy, 3.5, 1.8, (h % 11) * 0.6, 0, 7); ctx.fill();
+      }
+    }
+
     const S = catSkin();
     for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
       const { px, py } = cellCenter(x, y);
       const edge = onEdge(x, y);
       hexPath(ctx, px, py, r * 0.92);
-      ctx.fillStyle = edge ? 'rgba(240,166,200,0.10)' : 'rgba(120,90,110,0.22)';
+      ctx.fillStyle = edge ? 'rgba(240,166,200,0.12)' : 'rgba(120,90,110,0.26)';
       ctx.fill();
-      ctx.strokeStyle = edge ? 'rgba(240,166,200,0.28)' : 'rgba(240,166,200,0.13)';
+      ctx.strokeStyle = edge ? 'rgba(240,166,200,0.30)' : 'rgba(240,166,200,0.14)';
       ctx.lineWidth = 1;
       ctx.stroke();
+      // tile depth: lit top edges, shaded bottom edges
+      ctx.lineWidth = Math.max(1, r * 0.07); ctx.lineCap = 'round';
+      ctx.strokeStyle = 'rgba(255,235,245,0.05)';
+      hexEdge(ctx, px, py, r * 0.82, 3, 6);
+      ctx.strokeStyle = 'rgba(0,0,0,0.20)';
+      hexEdge(ctx, px, py, r * 0.82, 0, 2);
       if (wall[y][x]) {
         const pop = plantFx && plantFx.x === x && plantFx.y === y && plantFx.t > 0 ? 1 - plantFx.t / 8 : undefined;
         drawHedge(ctx, px, py, r * 0.9, pop);

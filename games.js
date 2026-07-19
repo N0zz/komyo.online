@@ -142,6 +142,7 @@ window.GAMES = [
     accent: "#f0a6c8",
     tags: ["PUZZLE", "LOGIC"],
     added: "2026-07-12",
+    updated: "2026-07-19",
   },
   {
     slug: "flappy",
