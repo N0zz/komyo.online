@@ -1258,6 +1258,22 @@
     var d = chPickAt('daily'), w = chPickAt('weekly');
     return { daily: (d && d.goal) ? d : null, weekly: (w && w.goal) ? w : null };
   }
+  // ms until the current period rolls over (daily = next UTC midnight, weekly = next anchor
+  // Monday) + the localized "resets in 5h 12m" label — ONE clock for the in-game panel and the
+  // catalogue drawer (exported as gamekit.challengeReset).
+  function chResetMs(kind) {
+    var now = Date.now(), d = Math.floor(now / 86400000);
+    var endDay = kind === 'weekly' ? (CH_WEEK_ANCHOR + (Math.floor((d - CH_WEEK_ANCHOR) / 7) + 1) * 7) : (d + 1);
+    return endDay * 86400000 - now;
+  }
+  function chResetLabel(kind) {
+    var m = Math.max(1, Math.ceil(chResetMs(kind) / 60000));
+    var dd = Math.floor(m / 1440), hh = Math.floor((m % 1440) / 60), mm = m % 60;
+    var parts = dd ? [t('time.d', { n: dd }), hh ? t('time.h', { n: hh }) : '']
+      : hh ? [t('time.h', { n: hh }), mm ? t('time.m', { n: mm }) : ''] : [t('time.m', { n: mm })];
+    return t('chal.resetsIn', { t: parts.filter(Boolean).join(' ') });
+  }
+  function challengeReset(kind) { return { ms: chResetMs(kind), label: chResetLabel(kind) }; }
   // does THIS game have an active game-specific challenge right now? (drives the badge + the notify glow)
   function chActiveSlug(slug) {
     if (!slug) return false;
@@ -1348,27 +1364,27 @@
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body || !document.createElement) return;
     var slug = opts.slug, genreOf = opts.genres || null, ct = chToday();
-    function card(entry, kindLabel) {
+    function card(entry, kindLabel, kind) {
       if (!entry || !entry.goal) return '<div class="gkch-empty">' + t('challenges.noneKind', { kind: kindLabel.toLowerCase() }) + '</div>';
       var g = entry.goal, e = chEval(g, { genres: genreOf, id: entry.id }), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
       var prog = e ? (e.done ? t('challenges.done') : (fmtScore(e.val) + ' / ' + fmtScore(e.target))) : '';
-      // "good runs" goal: spell out the bar — the current game's exact bar in-game, generic on the catalogue
-      var hint = '';
-      if (g.metric === 'goodRuns') hint = '<div class="gkch-hint">' + (chGoodRun(slug) ? t('challenges.goodRunHere', { n: fmtScore(chGoodRun(slug)) }) : t('challenges.goodRunGeneric')) + '</div>';
       return '<div class="gkch-card' + (mine ? ' mine' : '') + (e && e.done ? ' done' : '') + '">'
-        + '<div class="gkch-k">' + kindLabel + (mine ? ' · <b>' + t('challenges.thisGame') + '</b>' : '') + '</div>'
+        + '<div class="gkch-k">' + kindLabel + (mine ? ' · <b>' + t('challenges.thisGame') + '</b>' : '')
+        + '<span class="gkch-reset">⏳ ' + chResetLabel(kind) + '</span></div>'
         + '<div class="gkch-t">' + ((e && e.title) || g.title) + '</div>'
         + '<div class="gkch-bar"><span style="width:' + pct + '%"></span></div>'
-        + '<div class="gkch-p">' + prog + '</div>' + hint + '</div>';
+        + '<div class="gkch-p">' + prog + '</div></div>';
     }
-    var body = chGoals() ? (card(ct.daily, t('challenges.today')) + card(ct.weekly, t('challenges.thisWeek')))
+    var body = chGoals() ? (card(ct.daily, t('challenges.today'), 'daily') + card(ct.weekly, t('challenges.thisWeek'), 'weekly'))
       : '<div class="gkch-empty">' + t('challenges.notLoaded') + '</div>';
     // trophies pill (lifetime) + Cosmetics pill (spendable balance → the store) + the always-on
     // good-run bonus line, so "is one more run worth it?" has an answer before playing
     var pills = '<div class="gkch-pills"><span class="gkch-pill">' + t('chal.lifetime', { count: cosLifetime() }) + '</span>'
       + (cosItems().length ? '<button class="gkch-pill gkch-shop" id="gkchShop" type="button">' + t('challenges.cosmeticsBtn') + '</button>' : '')
       + '</div>'
-      + grbHtml();
+      + grbHtml()
+      // the standing "what counts here" line — the bar used to surface only on goodRuns-goal days
+      + (chGoodRun(slug) ? '<div class="gkch-goodbar">🌟 ' + t('challenges.goodRunHere', { n: fmtScore(chGoodRun(slug)) }) + '</div>' : '');
     var ov = document.createElement('div'); ov.className = 'gamekit-challenges';
     ov.innerHTML = '<div class="gkch-box"><button class="gkch-x" type="button" aria-label="' + t('menu.close') + '">&#x2715;</button>'
       + '<div class="gkch-scroll"><h3>🏆 ' + t('challenges.title') + '</h3>' + pills + body
@@ -4235,7 +4251,52 @@
   if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('fullscreenchange', fsEmit);
   var fullscreen = { supported: fsSupported, active: fsActive, toggle: fsToggle, onChange: function (cb) { if (typeof cb === 'function') _fsSubs.push(cb); } };
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
+  // ---------- SEO localization: make the ?lang= variants index-able ----------
+  // The static head is English and every page's hreflang alternates point at ?lang=xx URLs. For
+  // those variants to be INDEXED (not folded into the English page as duplicates) the RENDERED
+  // page must claim its own identity: a self-referencing canonical, a localized <title> + meta
+  // description, and the matching <html lang>. Googlebot renders JS, so swapping here is enough.
+  // og:/twitter: tags stay English (share scrapers don't run JS; shares aren't language-targeted).
+  // Scope: canonical on the catalogue + game pages; title/description on game pages only (the
+  // catalogue's own head pass in index.html translates those via the meta.* keys already).
+  var _seoOrig = null;
+  function seoLocalize() {
+    try {
+      if (typeof document === 'undefined' || !document.querySelector || typeof location === 'undefined') return;
+      var m = (location.pathname || '').match(/\/games\/([^/]+)\//);
+      var home = !m && /(^\/$|\/index\.html$)/.test(location.pathname || '');
+      if (!m && !home) return;
+      var code = lang();
+      var canon = document.querySelector('link[rel="canonical"]');
+      if (canon) {
+        var base = (canon.getAttribute('href') || '').split('?')[0];
+        if (base) canon.setAttribute('href', code === 'en' ? base : base + '?lang=' + code);
+      }
+      try { document.documentElement.lang = code; } catch (e) {}
+      if (!m) return;
+      var desc = document.querySelector('meta[name="description"]');
+      if (!_seoOrig) _seoOrig = { title: document.title || '', desc: (desc && desc.getAttribute('content')) || '' };
+      var title = '', d = '';
+      if (code === 'en') { title = _seoOrig.title; d = _seoOrig.desc; }
+      else {
+        var gt = t('game.' + m[1] + '.title', { def: '' });
+        title = gt ? gt + ' — ' + t('seo.titleTail') + ' | Komyo Games' : '';
+        d = t('game.' + m[1] + '.blurb', { def: '' });
+      }
+      if (title) document.title = title;
+      if (d && desc) desc.setAttribute('content', d);
+    } catch (e) {}
+  }
+  (function () {
+    try {
+      if (typeof document === 'undefined' || typeof document.addEventListener !== 'function') return;
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', seoLocalize);
+      else seoLocalize();
+      onLang(seoLocalize);
+    } catch (e) {}
+  })();
+
+  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

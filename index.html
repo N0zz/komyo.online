@@ -605,7 +605,21 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     color:#e8c069; background:rgba(255,206,92,0.10); border:1px solid rgba(255,206,92,0.34); border-radius:999px; padding:6px 13px; }
   .cpills .streak:hover { border-color:#ffce5c; background:rgba(255,206,92,0.16); color:#ffce5c; }
   .cbonus { font-size:11.5px; color:var(--muted); margin:8px 4px 0; }
-  .csec { font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:12px 4px 2px; }
+  .csec { display:flex; align-items:baseline; justify-content:space-between; gap:8px; font-family:var(--mono); font-size:10px; letter-spacing:2px; text-transform:uppercase; color:var(--faint); padding:12px 4px 2px; }
+  .csec .creset { letter-spacing:0.5px; text-transform:none; white-space:nowrap; }
+  /* "What's a good run?" — the per-game bar list (collapsed by default) */
+  .grbars { margin:10px 4px 0; border:1px solid var(--border); border-radius:12px; background:var(--surface); }
+  .grbars summary { cursor:pointer; padding:9px 12px; font-size:12.5px; color:var(--muted); list-style:none; }
+  .grbars summary::-webkit-details-marker { display:none; }
+  .grbars summary::after { content:'▸'; float:right; color:var(--faint); }
+  .grbars[open] summary::after { content:'▾'; }
+  .grbars summary:hover { color:var(--text); }
+  .grbars .grnote { margin:0 12px 9px; font-size:11.5px; color:var(--faint); line-height:1.5; }
+  .grbars .grlist { padding:0 12px 10px; }
+  .grbars .grrow { display:flex; align-items:center; gap:8px; padding:5px 0; font-size:12.5px; color:var(--muted); border-top:1px solid var(--border); }
+  .grbars .grrow .gi { width:18px; text-align:center; flex:none; }
+  .grbars .grrow .gt { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .grbars .grrow .gn { font-family:var(--mono); font-size:11px; color:#9fe8ff; flex:none; }
   .cc { margin:6px 0; border:1px solid var(--border); border-radius:12px; padding:12px 13px; background:var(--surface); }
   .cc .top { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:9px; }
   .cc .game { font-family:var(--mono); font-size:10px; letter-spacing:1.5px; color:#9fe8ff; }
@@ -802,9 +816,14 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         <button class="streak" id="chalStreak" type="button" title="What do trophies get you?">🏆 0 trophies</button>
       </div>
       <div class="cbonus" id="chalBonus" hidden></div>
-      <div class="csec" data-t="challenges.today">Today</div>
+      <details class="grbars" id="grBars">
+        <summary>🌟 <span data-t="chal.goodRunWhat">What&rsquo;s a good run?</span></summary>
+        <p class="grnote" data-t="chal.goodRunExplain">Score a game&rsquo;s mark in one run — it counts toward good-run challenges and the daily ⚡ bonus.</p>
+        <div class="grlist" id="grBarsList"></div>
+      </details>
+      <div class="csec"><span data-t="challenges.today">Today</span><span class="creset" id="chalResetDay"></span></div>
       <div id="chalToday"></div>
-      <div class="csec" data-t="challenges.thisWeek">This week</div>
+      <div class="csec"><span data-t="challenges.thisWeek">This week</span><span class="creset" id="chalResetWeek"></span></div>
       <div id="chalWeek"></div>
       <div class="csec" data-t="drawer.history">History</div>
       <div id="chalHistory" class="chist-list"></div>
@@ -2242,11 +2261,26 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           bonusEl.innerHTML = K.goodRunBonusHtml(); // the kit's shared ⚡ pips widget (same as the in-game panel)
         }
       }
+      // period countdowns (the kit's ONE reset clock) + the "What's a good run?" bar list
+      const resetDayEl = document.getElementById('chalResetDay'), resetWeekEl = document.getElementById('chalResetWeek');
+      function renderResets() {
+        if (!K.challengeReset) return;
+        if (resetDayEl) resetDayEl.textContent = '⏳ ' + K.challengeReset('daily').label;
+        if (resetWeekEl) resetWeekEl.textContent = '⏳ ' + K.challengeReset('weekly').label;
+      }
+      const barsEl = document.getElementById('grBarsList');
+      function renderGoodRunBars() {
+        if (!barsEl || !C || !C.goodRun) return;
+        barsEl.innerHTML = (window.GAMES || []).filter(g => g && g.slug && !g.soon && C.goodRun[g.slug]).map(g =>
+          '<div class="grrow"><span class="gi">' + (g.icon || '🎮') + '</span><span class="gt">' + esc(T('game.' + g.slug + '.title', g.title || g.slug)) + '</span><span class="gn">' + C.goodRun[g.slug].toLocaleString() + '+</span></div>').join('');
+      }
+      try { setInterval(renderResets, 30000); } catch (e) {}
       function render() {
         if (!C || !todayEl) return;
         const daily = pick('day'), weekly = pick('week');
         todayEl.innerHTML = card(daily && daily.goal, DAILY_PTS, daily && daily.id);
         weekEl.innerHTML = card(weekly && weekly.goal, WEEKLY_PTS, weekly && weekly.id);
+        renderResets(); renderGoodRunBars();
         trackShown(daily, 'daily'); trackShown(weekly, 'weekly');
         backfillAndAward();
         award(); // keep lifetime up to date (drives titles elsewhere)

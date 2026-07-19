@@ -4,6 +4,13 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-19', title: 'Challenge timers, fairer good runs & a prettier cat ⏳🐱', items: [
+    'New: challenges now show a ⏳ countdown to the daily and weekly reset — in the home 🏆 drawer and the in-game panel.',
+    'New: “What’s a good run?” — the 🏆 challenges drawer lists every game’s good-run mark, and in games the 🏆 panel always shows the mark for the game you’re playing.',
+    'Change: good-run marks retuned after playtesting — Forcefield now takes 1,200 points and Keep Defender 8,000 (both were too easy to farm), 2048 takes 12,000 (4,500 was near-automatic on the Big board), and Trap the Cat drops to 50 (90 was nearly impossible). The matching daily challenges follow suit.',
+    'Change: Trap the Cat got an art glow-up — a full fluffy cat with amber eyes and a swishing tail, lusher rose hedges and a garden board with real depth.',
+    'New: komyo can now show up in web searches in all 8 languages — and when you play in another language, a game\'s browser tab shows its name in your language too.',
+  ] },
   { date: '2026-07-14', title: 'Take komyo offline — download the whole arcade 📥', items: [
     'New: ⚙️ Settings → Play offline downloads all of komyo as a single file — unzip it onto a USB stick and open index.html to play every game with no internet, no install and no account.',
   ] },

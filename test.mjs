@@ -1334,6 +1334,16 @@ function testSEO() {
   bad('every live game has hreflang alternates for every locale + x-default',
     pages.filter(([s, h]) => !locales.concat(['x-default']).every(l => h.includes('hreflang="' + l + '"'))
       || !h.includes('hreflang="en"')).map(([s]) => s));
+  // sitemap mirrors the page-level alternates — without them the ?lang= URLs are discoverable
+  // only from the head tags of already-crawled pages
+  {
+    const sm = fs.readFileSync(path.join(DIR, 'sitemap.xml'), 'utf8');
+    bad('every live game sitemap entry has hreflang alternates for every locale + en + x-default',
+      live.filter(s => {
+        const m = sm.match(new RegExp('<url><loc>https://komyo\\.online/games/' + s + '/</loc>[\\s\\S]*?</url>'));
+        return !m || !locales.concat(['en', 'x-default']).every(l => m[0].includes('hreflang="' + l + '"'));
+      }));
+  }
   bad('every live game has OG + Twitter card tags',
     pages.filter(([, h]) => !(h.includes('property="og:title"') && h.includes('property="og:image"') && h.includes('name="twitter:card"'))).map(([s]) => s));
   const badLD = [];

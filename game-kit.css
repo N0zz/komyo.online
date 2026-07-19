@@ -502,14 +502,15 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
 .gamekit-challenges .gkch-card { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; text-align: left; }
 .gamekit-challenges .gkch-card.mine { border-color: var(--gkm-accent, #9fe8ff); box-shadow: 0 0 0 1px var(--gkm-accent, #9fe8ff), var(--gkm-glow, none); }
 .gamekit-challenges .gkch-card.done { opacity: 0.85; }
-.gamekit-challenges .gkch-k { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #6b7a90; }
+.gamekit-challenges .gkch-k { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #6b7a90; display: flex; align-items: baseline; gap: 6px; }
+.gamekit-challenges .gkch-reset { margin-left: auto; letter-spacing: 0.5px; text-transform: none; opacity: 0.8; white-space: nowrap; }
 .gamekit-challenges .gkch-card.mine .gkch-k b { color: var(--gkm-accent, #9fe8ff); }
 .gamekit-challenges .gkch-t { font-size: 14px; margin: 5px 0 9px; color: var(--gkm-text, #eaf3ff); font-family: var(--gkm-font-body, system-ui, sans-serif); }
 .gamekit-challenges .gkch-bar { height: 7px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
 .gamekit-challenges .gkch-bar span { display: block; height: 100%; border-radius: 99px; background: var(--gkm-accent, #9fe8ff); }
 .gamekit-challenges .gkch-card.done .gkch-bar span { background: var(--gkm-new, #7fe0a0); }
 .gamekit-challenges .gkch-p { font-size: 11px; margin-top: 6px; color: #9fb2c9; font-variant-numeric: tabular-nums; }
-.gamekit-challenges .gkch-hint { font-size: 11px; margin-top: 5px; color: var(--gkm-accent, #9fe8ff); opacity: .85; }
+.gamekit-challenges .gkch-goodbar { font-size: 11.5px; margin: 0 0 12px; text-align: center; color: var(--gkm-accent, #9fe8ff); }
 .gamekit-challenges .gkch-empty { color: #8294ac; font-size: 13px; padding: 8px 0; }
 .gamekit-challenges .gkch-note { margin: 12px 0 0; font-size: 11px; color: #6b7a90; line-height: 1.5; }
 .gamekit-challenges .gkch-x { position: absolute; top: -13px; right: -13px; z-index: 6; width: 32px; height: 32px; border-radius: 50%;
