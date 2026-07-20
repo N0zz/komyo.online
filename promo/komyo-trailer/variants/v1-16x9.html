@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/gsap.min.js"></script>
+    <script src="assets/qr.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0b0e17; }
+      body {
+        font-family: Montserrat, sans-serif;
+        --accent: #2ee8c8;
+        --ink: #0b0e17;
+      }
+
+      /* ---- full-bleed gameplay ---- */
+      .gameplay { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover;
+                  transform-origin: 50% 0; transform: scale(1.03); /* crops the site's version-tag footer */ }
+      .shade {
+        position: absolute; inset: 0; pointer-events: none;
+        background:
+          radial-gradient(120% 55% at 50% 118%, rgba(5,7,14,.72) 0%, transparent 62%),
+          radial-gradient(120% 40% at 50% -14%, rgba(5,7,14,.55) 0%, transparent 60%);
+      }
+
+      .hook-shade {
+        position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(62% 42% at 50% 46%, rgba(5,7,14,.82) 0%, transparent 100%);
+      }
+
+      /* ---- hook (center, slight tilt — the raw register) ---- */
+      .hook {
+        position: absolute; left: 200px; right: 200px; top: 400px;
+        text-align: center; transform: rotate(-2deg);
+        font-family: 'Archivo Black', sans-serif;
+        font-size: 108px; line-height: 1.05; color: #fff; letter-spacing: -0.02em;
+        text-shadow: 0 4px 30px rgba(0,0,0,.7), 0 0 54px color-mix(in srgb, var(--accent) 55%, transparent);
+      }
+      .hook em { font-style: normal; color: var(--accent); }
+
+      /* ---- NO-hit slams (stacked, left-anchored) ---- */
+      .slam {
+        position: absolute; left: 110px;
+        font-family: 'Archivo Black', sans-serif; letter-spacing: -0.02em;
+        font-size: 118px; line-height: 1; color: #fff;
+        text-shadow: 0 6px 30px rgba(0,0,0,.75), 0 0 44px color-mix(in srgb, var(--accent) 45%, transparent);
+      }
+      #slam1 { top: 300px; }
+      #slam2 { top: 440px; color: var(--accent); }
+      #slam3 { top: 300px; }
+      .kidnag {
+        position: absolute; left: 110px; top: 452px; max-width: 1100px;
+        font-size: 46px; font-weight: 800; color: #fff; line-height: 1.45;
+      }
+      .kidnag span {
+        background: rgba(11,14,23,.88); border-radius: 16px; padding: 10px 26px 14px;
+        -webkit-box-decoration-break: clone; box-decoration-break: clone;
+      }
+      .kidnag b { color: var(--accent); }
+
+      /* ---- caption chips (bottom-left) ---- */
+      .cap {
+        position: absolute; left: 110px; right: 480px; bottom: 120px;
+        font-size: 52px; font-weight: 800; color: #fff; line-height: 1.42;
+      }
+      .cap span {
+        background: rgba(11,14,23,.86); border-radius: 16px; padding: 10px 26px 14px;
+        -webkit-box-decoration-break: clone; box-decoration-break: clone;
+      }
+      .cap b { color: var(--accent); }
+
+      /* ---- montage title pills (bottom-left, game-accent) ---- */
+      .pill {
+        position: absolute; left: 110px; bottom: 120px;
+        font-size: 42px; font-weight: 800; color: #fff; letter-spacing: .02em;
+        background: rgba(11,14,23,.82); border: 3px solid var(--pc, var(--accent));
+        border-radius: 999px; padding: 14px 36px;
+        box-shadow: 0 0 34px color-mix(in srgb, var(--pc, var(--accent)) 45%, transparent);
+      }
+      .pill b { color: var(--pc, var(--accent)); }
+
+      /* ---- persistent brand pill (top-right, clear of game nav on the left) ---- */
+      .brand-pill {
+        position: absolute; top: 64px; right: 72px;
+        font-size: 34px; font-weight: 800; letter-spacing: .04em; color: #fff;
+        background: rgba(11,14,23,.62); border: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+        border-radius: 999px; padding: 12px 28px;
+      }
+      .brand-pill span { color: var(--accent); }
+
+      /* ---- end card (score-card language, raw cut) ---- */
+      .endcard {
+        position: absolute; inset: 0; color: #fff;
+        background:
+          radial-gradient(90% 52% at 50% 20%, color-mix(in srgb, var(--accent) 20%, transparent) 0%, transparent 70%),
+          #0b0e17;
+      }
+      .endgrid { position: absolute; inset: 0; opacity: .55; }
+      .endwrap {
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center; gap: 140px;
+        padding: 90px 160px;
+      }
+      .endleft { text-align: left; }
+      .wordmark {
+        font-size: 190px; font-weight: 900; letter-spacing: -0.01em; line-height: 1;
+        background: linear-gradient(180deg, #fff 30%, var(--accent) 120%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        filter: drop-shadow(0 0 42px color-mix(in srgb, var(--accent) 45%, transparent));
+      }
+      .tagline { margin-top: 20px; font-size: 52px; font-weight: 800; color: #e8ecf6; }
+      .epills { margin-top: 44px; display: flex; flex-wrap: wrap; gap: 20px; max-width: 900px; }
+      .epills div {
+        font-size: 33px; font-weight: 700; color: #cfe9e2;
+        border: 2px solid rgba(255,255,255,.22); border-radius: 999px; padding: 12px 28px;
+        background: rgba(255,255,255,.05);
+      }
+      .url {
+        margin-top: 52px; font-family: 'JetBrains Mono', monospace;
+        font-size: 74px; font-weight: 700; color: var(--accent);
+        text-shadow: 0 0 34px color-mix(in srgb, var(--accent) 50%, transparent);
+      }
+      .qr-card {
+        background: #fff; border-radius: 32px; padding: 30px 30px 16px; text-align: center;
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 70%, transparent), 0 22px 70px rgba(0,0,0,.5);
+      }
+      .qr-card canvas { display: block; width: 340px; height: 340px; image-rendering: pixelated; }
+      .qr-card p { font-size: 27px; font-weight: 800; color: var(--ink); padding: 12px 0 8px; font-family: Montserrat, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="35.5" data-width="1920" data-height="1080">
+      <!-- ════ GAMEPLAY (cuts on the 122bpm bar grid: 0.06 + n·1.96721) ════ -->
+      <video id="play-frogs" class="clip gameplay" src="assets/footage/5_gameplay_frogs.mp4"
+             data-start="0" data-duration="3.994" data-media-start="0.5" data-track-index="0" muted playsinline></video>
+      <video id="play-ff" class="clip gameplay" src="assets/footage/6_gameplay_forcefield.mp4"
+             data-start="3.994" data-duration="3.935" data-media-start="2.0" data-track-index="0" muted playsinline></video>
+      <video id="play-snake" class="clip gameplay" src="assets/footage/6_gameplay_snake.mp4"
+             data-start="7.929" data-duration="3.934" data-media-start="0.2" data-track-index="0" muted playsinline></video>
+      <video id="play-stack" class="clip gameplay" src="assets/footage/4_gameplay_stack.mp4"
+             data-start="11.863" data-duration="1.967" data-media-start="5.5" data-track-index="0" muted playsinline></video>
+      <video id="play-2048" class="clip gameplay" src="assets/footage/5_gameplay_2048.mp4"
+             data-start="13.830" data-duration="1.967" data-media-start="3.0" data-track-index="0" muted playsinline></video>
+      <video id="play-td" class="clip gameplay" src="assets/footage/6_gameplay_td.mp4"
+             data-start="15.797" data-duration="1.967" data-media-start="4.5" data-track-index="0" muted playsinline></video>
+      <video id="play-ast" class="clip gameplay" src="assets/footage/7_gameplay_asteroids.mp4"
+             data-start="17.764" data-duration="1.968" data-media-start="2.2" data-track-index="0" muted playsinline></video>
+      <video id="play-cat" class="clip gameplay" src="assets/footage/3_gameplay_kitten.mp4"
+             data-start="19.732" data-duration="1.967" data-media-start="4.8" data-track-index="0" muted playsinline></video>
+      <video id="play-flappy" class="clip gameplay" src="assets/footage/3_gameplay_flappy.mp4"
+             data-start="21.699" data-duration="3.935" data-media-start="1.5" data-track-index="0" muted playsinline></video>
+      <div id="cat-scroll" class="clip" style="position:absolute; inset:0; overflow:hidden; background:#0b0e17"
+           data-start="25.634" data-duration="3.934" data-track-index="0">
+        <img id="cat-img" src="assets/brand/catalogue-desktop.png" style="position:absolute; left:0; top:0; width:1920px" />
+      </div>
+
+      <div id="shade" class="clip shade" data-start="0" data-duration="29.568" data-track-index="1"></div>
+
+      <div id="hookshade" class="clip hook-shade" data-start="0" data-duration="4.3" data-track-index="2"></div>
+
+      <!-- ════ HOOK ════ -->
+      <div id="hook" class="clip hook" data-start="0" data-duration="3.994" data-track-index="3">
+        <div id="hook-inner">free browser games.<br /><em>no catch.</em></div>
+      </div>
+
+      <!-- ════ THE "NO…" HIT (slams on downbeats over forcefield + snake) ════ -->
+      <div id="slam1" class="clip slam" data-start="3.994" data-duration="3.935" data-track-index="3">NO ADS.</div>
+      <div id="slam2" class="clip slam" data-start="4.977" data-duration="2.952" data-track-index="4">NO PAYWALLS.</div>
+      <div id="slam3" class="clip slam" data-start="7.929" data-duration="3.934" data-track-index="3">NO ACCOUNTS.</div>
+      <div id="kidnag" class="clip kidnag" data-start="8.912" data-duration="2.951" data-track-index="4">
+        <span>no <b>“your kid wants to buy 500 gems for €12.99”</b> — ever.</span>
+      </div>
+
+      <!-- ════ MONTAGE PILLS (each rides its clip, tinted with the game accent) ════ -->
+      <div id="pill-stack" class="clip pill" style="--pc:#ff9aa2" data-start="11.863" data-duration="1.967" data-track-index="4"><b>Stack</b></div>
+      <div id="pill-2048" class="clip pill" style="--pc:#f2b179" data-start="13.830" data-duration="1.967" data-track-index="4"><b>2048</b></div>
+      <div id="pill-td" class="clip pill" style="--pc:#e0b25a" data-start="15.797" data-duration="1.967" data-track-index="4"><b>Keep Defender</b></div>
+      <div id="pill-ast" class="clip pill" style="--pc:#9fe8ff" data-start="17.764" data-duration="1.968" data-track-index="4"><b>Asteroids</b></div>
+      <div id="pill-cat" class="clip pill" style="--pc:#f0a6c8" data-start="19.732" data-duration="1.967" data-track-index="4"><b>Trap the Cat</b></div>
+
+      <!-- ════ CAPTIONS ════ -->
+      <div id="cap-offline" class="clip cap" data-start="21.699" data-duration="3.935" data-track-index="4">
+        <span>works <b>offline</b> · installs like an app</span>
+      </div>
+      <div id="cap-breadth" class="clip cap" data-start="25.634" data-duration="3.934" data-track-index="4">
+        <span><b>18 games</b> live · more on the way · all free</span>
+      </div>
+
+      <div id="brand" class="clip brand-pill" data-start="0.8" data-duration="28.768" data-track-index="5">
+        <span>komyo</span>.online
+      </div>
+
+      <!-- ════ END CARD ════ -->
+      <div id="end" class="clip endcard" data-start="29.568" data-duration="5.932" data-track-index="2">
+        <canvas id="endgrid" class="endgrid" width="1920" height="1080"></canvas>
+        <div class="endwrap">
+          <div class="endleft">
+            <div id="wordmark" class="wordmark">komyo</div>
+            <div id="tagline" class="tagline">free browser games</div>
+            <div id="epills" class="epills">
+              <div>free forever</div><div>no ads</div><div>no accounts</div><div>works offline</div><div>kid-safe</div>
+            </div>
+            <div id="url" class="url">komyo.online</div>
+          </div>
+          <div id="qrcard" class="qr-card">
+            <canvas id="qr" width="340" height="340"></canvas>
+            <p>scan to play</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ AUDIO: komyo's own snake banger, rendered from the game engine ════ -->
+      <audio id="bgm" src="assets/audio/snakebanger-76s.m4a"
+             data-start="0" data-duration="35.5" data-media-start="0" data-track-index="10" data-volume="1"></audio>
+    </div>
+
+    <script>
+      // Themed scan-to-play QR (komyo's in-repo encoder — same as the score cards).
+      (function () {
+        var c = document.getElementById('qr');
+        var q = window.KOMYO_QR && window.KOMYO_QR.encode('https://komyo.online?utm_source=tr-v1&utm_medium=qr');
+        if (!c || !q) return;
+        var g = c.getContext('2d');
+        var quiet = 2, n = q.size + quiet * 2, px = Math.floor(c.width / n);
+        var off = Math.floor((c.width - px * n) / 2) + quiet * px;
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = '#0b0e17';
+        for (var y = 0; y < q.size; y++)
+          for (var x = 0; x < q.size; x++)
+            if (q.modules[y][x]) g.fillRect(off + x * px, off + y * px, px, px);
+      })();
+
+      // End-card backdrop: perspective grid floor + seeded sparkles (score-card texture kit).
+      (function () {
+        var c = document.getElementById('endgrid'); if (!c) return;
+        var g = c.getContext('2d'), W = 1920, H = 1080, ACC = '#2ee8c8';
+        var s = 1337; var rnd = function () { s |= 0; s = (s + 0x6D2B79F5) | 0; var t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        var hz = H * 0.58, cx = W / 2;
+        g.strokeStyle = ACC; g.lineWidth = 1.5; g.globalAlpha = 0.1;
+        for (var i = -9; i <= 9; i++) { g.beginPath(); g.moveTo(cx + i * 150, hz); g.lineTo(cx + i * 150 * 2.6, H + 60); g.stroke(); }
+        g.globalAlpha = 0.08;
+        for (var j = 1; j <= 6; j++) { var gy = hz + (H - hz) * Math.pow(j / 6, 1.8); g.beginPath(); g.moveTo(0, gy); g.lineTo(W, gy); g.stroke(); }
+        for (var p = 0; p < 16; p++) {
+          var sz = 3 + rnd() * 11, px = W * (0.03 + rnd() * 0.94), py = H * (0.05 + rnd() * 0.6);
+          var pa = (rnd() * 0.5 + 0.35) * 0.7, hr = sz * 3.2;
+          var hg = g.createRadialGradient(px, py, 0, px, py, hr); hg.addColorStop(0, ACC); hg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.globalAlpha = pa * 0.35; g.fillStyle = hg; g.beginPath(); g.arc(px, py, hr, 0, 6.29); g.fill();
+          g.globalAlpha = pa; g.fillStyle = rnd() < 0.35 ? '#fff' : ACC;
+          g.beginPath(); g.arc(px, py, sz / 2, 0, 6.29); g.fill();
+        }
+        g.globalAlpha = 1;
+      })();
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      var BAR = 1.96721, B0 = 0.06;
+
+      // hook: pop, breathe, punch out on the bar
+      tl.from('#hook-inner', { opacity: 0, y: 80, scale: 0.7, duration: 0.5, ease: 'back.out(1.8)' }, 0.15);
+      tl.to('#hook-inner', { scale: 1.04, duration: 3.0, ease: 'sine.inOut' }, 0.7);
+      tl.to('#hook-inner', { opacity: 0, y: -60, duration: 0.3, ease: 'power2.in' }, 3.65);
+      tl.set('#hook-inner', { opacity: 0 }, 3.99);
+      tl.to('#hookshade', { opacity: 0, duration: 0.28, ease: 'power2.in' }, 3.65);
+      tl.set('#hookshade', { opacity: 0 }, 3.95);
+
+      // slams: stamp in hard on downbeats
+      tl.from('#slam1', { opacity: 0, scale: 2.1, duration: 0.28, ease: 'power4.out' }, 3.994);
+      tl.from('#slam2', { opacity: 0, scale: 2.1, duration: 0.28, ease: 'power4.out' }, 4.977);
+      tl.from('#slam3', { opacity: 0, scale: 2.1, duration: 0.28, ease: 'power4.out' }, 7.929);
+      tl.from('#kidnag', { opacity: 0, y: 60, duration: 0.4, ease: 'power3.out' }, 8.912);
+
+      // montage pills: snap in per cut
+      ['#pill-stack', '#pill-2048', '#pill-td', '#pill-ast', '#pill-cat'].forEach(function (id, i) {
+        tl.from(id, { opacity: 0, x: -60, duration: 0.28, ease: 'power3.out' }, 11.863 + i * BAR);
+      });
+
+      // captions
+      tl.from('#cap-offline', { opacity: 0, y: 60, duration: 0.4, ease: 'power3.out' }, 21.85);
+      tl.from('#cap-breadth', { opacity: 0, y: 60, duration: 0.4, ease: 'power3.out' }, 25.78);
+      tl.from('#brand', { opacity: 0, x: 60, duration: 0.4, ease: 'power2.out' }, 0.8);
+
+      // end card build (on the final section's beats)
+      tl.from('#wordmark', { opacity: 0, y: 70, scale: 0.9, duration: 0.5, ease: 'back.out(1.6)' }, 29.65);
+      tl.from('#tagline', { opacity: 0, y: 40, duration: 0.4, ease: 'power2.out' }, 29.9);
+      tl.from('#epills', { opacity: 0, y: 40, duration: 0.4, ease: 'power2.out' }, 30.14);
+      tl.from('#qrcard', { opacity: 0, scale: 0.7, duration: 0.5, ease: 'back.out(2)' }, 30.4);
+      tl.from('#url', { opacity: 0, y: 30, duration: 0.4, ease: 'power2.out' }, 30.63);
+      tl.to('#endgrid', { opacity: 0.75, duration: 2.4, ease: 'sine.inOut' }, 31.0);
+      tl.to('#qrcard', { scale: 1.03, duration: 1.6, ease: 'sine.inOut', repeat: 1, yoyo: true }, 31.4);
+
+      // catalogue: perfectly linear synthetic scroll (recorded scroll was juddery)
+      tl.fromTo('#cat-img', { y: -300 }, { y: -1900, duration: 3.934, ease: 'none' }, 25.634);
+
+      // music: fade out over the card's last two seconds
+      tl.to('#bgm', { volume: 0, duration: 2.0, ease: 'power1.in' }, 33.5);
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

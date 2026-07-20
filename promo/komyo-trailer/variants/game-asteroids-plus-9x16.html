@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <script src="assets/qr.js"></script>
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         PER-GAME TRAILER TEMPLATE (9:16 / TikTok · Shorts). Sibling of the 16:9 file.
+         LANDSCAPE games: BIG gameplay band (~70% height, center-cropped so the core
+         action fills the frame — edges may crop, ship/boss stay centered); the small
+         top/bottom margins carry the score-card brand texture (grid floor + accent
+         bloom + sparkles) so the frame reads full and on-brand.
+         (Footer already removed from the *_nofooter.mp4 source.)
+         To retarget a game: swap DOM text + edit the CONFIG block + set --accent.
+    ═══════════════════════════════════════════════════════════════════════════ -->
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #05070e; }
+      body { font-family: Montserrat, sans-serif; --accent: #b98cff; --ink: #0b0e17; }
+
+      .bgtex { position: absolute; inset: 0; }
+
+      /* big gameplay band (~70% height). It's a hard horizontal crop (sides cut), so the
+         crop window PANS to follow the moving subject — object-position-x is tweened per cut
+         (the subject roams the full width in ~3.8s; a static crop would lose it). */
+      .gameplay { position: absolute; left: 0; top: 300px; width: 1080px; height: 1320px;
+                  object-fit: cover; object-position: 50% 50%;
+                  filter: brightness(1.12) saturate(1.25); }
+      .bandframe {
+        position: absolute; left: 0; top: 300px; width: 1080px; height: 1320px;
+        border: 3px solid color-mix(in srgb, var(--accent) 60%, transparent);
+        box-shadow: 0 0 54px color-mix(in srgb, var(--accent) 34%, transparent),
+                    inset 0 0 40px color-mix(in srgb, var(--accent) 12%, transparent);
+        pointer-events: none;
+      }
+      /* soft edges where the band meets the texture margins */
+      .bandfade {
+        position: absolute; left: 0; top: 300px; width: 1080px; height: 1320px; pointer-events: none;
+        background: linear-gradient(180deg, rgba(5,7,14,.55) 0%, transparent 12%, transparent 84%, rgba(5,7,14,.6) 100%);
+      }
+
+      .hook-shade {
+        position: absolute; left: 0; top: 300px; width: 1080px; height: 620px; pointer-events: none;
+        background: radial-gradient(72% 60% at 50% 42%, rgba(5,7,14,.82) 0%, transparent 100%);
+      }
+      .hook {
+        position: absolute; left: 56px; right: 56px; top: 470px;
+        text-align: center; transform: rotate(-2deg);
+        font-family: 'Archivo Black', sans-serif;
+        font-size: 96px; line-height: 1.08; color: #fff; letter-spacing: -0.02em;
+        text-shadow: 0 4px 28px rgba(0,0,0,.75), 0 0 48px color-mix(in srgb, var(--accent) 55%, transparent);
+      }
+      .hook em { font-style: normal; color: var(--accent); }
+
+      /* captions overlay the lower band, clear of the TikTok bottom UI */
+      .cap {
+        position: absolute; left: 64px; right: 64px; top: 1400px; text-align: center;
+        font-size: 60px; font-weight: 800; color: #fff; line-height: 1.3;
+      }
+      .cap span {
+        background: rgba(11,14,23,.9); border-radius: 16px; padding: 9px 28px 15px;
+        -webkit-box-decoration-break: clone; box-decoration-break: clone;
+      }
+      .cap b { color: var(--accent); }
+
+      .brand-pill {
+        position: absolute; top: 336px; left: 40px;
+        font-size: 36px; font-weight: 800; letter-spacing: .04em; color: #fff;
+        background: rgba(11,14,23,.7); border: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+        border-radius: 999px; padding: 12px 26px;
+      }
+      .brand-pill span { color: var(--accent); }
+
+      .endcard {
+        position: absolute; inset: 0; color: #fff; text-align: center;
+        background:
+          radial-gradient(96% 40% at 50% 20%, color-mix(in srgb, var(--accent) 20%, transparent) 0%, transparent 70%),
+          #0b0e17;
+      }
+      .endgrid { position: absolute; inset: 0; opacity: .55; }
+      .endwrap {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 210px 70px 250px;
+      }
+      .wordmark {
+        font-family: 'Archivo Black', sans-serif; font-size: 128px; letter-spacing: -0.01em; line-height: 1;
+        background: linear-gradient(180deg, #fff 30%, var(--accent) 120%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        filter: drop-shadow(0 0 40px color-mix(in srgb, var(--accent) 45%, transparent));
+      }
+      .tagline { margin-top: 22px; font-size: 50px; font-weight: 800; color: #e8ecf6; }
+      .epills { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; max-width: 900px; }
+      .epills div {
+        font-size: 33px; font-weight: 700; color: #e8ddff;
+        border: 2px solid rgba(185,140,255,.32); border-radius: 999px; padding: 12px 28px;
+        background: rgba(255,255,255,.05);
+      }
+      .qr-card {
+        margin-top: 60px; background: #fff; border-radius: 34px; padding: 32px 32px 18px;
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 70%, transparent), 0 22px 70px rgba(0,0,0,.5);
+      }
+      .qr-card canvas { display: block; width: 340px; height: 340px; image-rendering: pixelated; }
+      .qr-card p { font-size: 28px; font-weight: 800; color: var(--ink); padding: 12px 0 6px; }
+      .url {
+        margin-top: 48px; font-family: 'JetBrains Mono', monospace;
+        font-size: 42px; font-weight: 700; color: var(--accent);
+        text-shadow: 0 0 30px color-mix(in srgb, var(--accent) 50%, transparent);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="24" data-width="1080" data-height="1920">
+      <!-- brand texture fills the top/bottom margins around the big band -->
+      <canvas id="bgtex" class="clip bgtex" width="1080" height="1920" data-start="0" data-duration="15.298" data-track-index="0"></canvas>
+
+      <!-- big center-cropped gameplay band (126bpm bar grid; footer-cropped source) -->
+      <video id="cut0" class="clip gameplay" src="assets/footage/asteroids_plus_nofooter.mp4"
+             data-start="0"        data-duration="3.8695" data-media-start="178" data-track-index="1" muted playsinline></video>
+      <video id="cut1" class="clip gameplay" src="assets/footage/asteroids_plus_nofooter.mp4"
+             data-start="3.8695"   data-duration="3.8095" data-media-start="216" data-track-index="1" muted playsinline></video>
+      <video id="cut2" class="clip gameplay" src="assets/footage/asteroids_plus_nofooter.mp4"
+             data-start="7.679"    data-duration="3.8095" data-media-start="148" data-track-index="1" muted playsinline></video>
+      <video id="cut3" class="clip gameplay" src="assets/footage/asteroids_plus_nofooter.mp4"
+             data-start="11.4886"  data-duration="3.8095" data-media-start="128" data-track-index="1" muted playsinline></video>
+
+      <div id="bandfade" class="clip bandfade" data-start="0" data-duration="15.298" data-track-index="2"></div>
+      <div id="bandframe" class="clip bandframe" data-start="0" data-duration="15.298" data-track-index="3"></div>
+
+      <!-- HOOK (over the band, dark radial behind it) -->
+      <div id="hookshade" class="clip hook-shade" data-start="0" data-duration="4.0" data-track-index="4"></div>
+      <div id="hook" class="clip hook" data-start="0" data-duration="3.8695" data-track-index="5">
+        <div id="hook-inner">asteroids, but a <em>roguelite.</em></div>
+      </div>
+
+      <!-- CAPTION CHIPS -->
+      <div id="cap1" class="clip cap" data-start="3.8695" data-duration="3.8095" data-track-index="6">
+        <span><b>boss</b> fights</span>
+      </div>
+      <div id="cap2" class="clip cap" data-start="7.679" data-duration="3.8095" data-track-index="6">
+        <span><b>upgrade</b> between waves</span>
+      </div>
+      <div id="cap3" class="clip cap" data-start="11.4886" data-duration="3.8095" data-track-index="6">
+        <span>how long can you <b>survive</b>?</span>
+      </div>
+
+      <div id="brand" class="clip brand-pill" data-start="0.6" data-duration="14.698" data-track-index="7">
+        <span>komyo</span>.online
+      </div>
+
+      <!-- END CARD -->
+      <div id="end" class="clip endcard" data-start="15.298" data-duration="8.702" data-track-index="8">
+        <canvas id="endgrid" class="endgrid" width="1080" height="1920"></canvas>
+        <div class="endwrap">
+          <div id="wordmark" class="wordmark">ASTEROIDS+</div>
+          <div id="tagline" class="tagline">a free browser roguelite</div>
+          <div id="epills" class="epills">
+            <div>free</div><div>no ads</div><div>works offline</div><div>1 of 18 games</div>
+          </div>
+          <div id="qrcard" class="qr-card">
+            <canvas id="qr" width="340" height="340"></canvas>
+            <p>scan to play</p>
+          </div>
+          <div id="url" class="url">komyo.online/games/asteroids-plus</div>
+        </div>
+      </div>
+
+      <audio id="bgm" src="assets/audio/asteroidsplus-34s.m4a"
+             data-start="0" data-duration="24" data-media-start="0" data-track-index="10" data-volume="1"></audio>
+    </div>
+
+    <script>
+      /* ════════════ CONFIG (edit per game) ════════════ */
+      var GAME = {
+        accent: '#b98cff',
+        qrUrl: 'https://komyo.online?utm_source=tr-ap&utm_medium=qr',
+        endSeed: 909, bgSeed: 5150,
+      };
+      /* ═══════════════════════════════════════════════ */
+
+      (function () {
+        var c = document.getElementById('qr');
+        var q = window.KOMYO_QR && window.KOMYO_QR.encode(GAME.qrUrl);
+        if (!c || !q) return;
+        var g = c.getContext('2d');
+        var quiet = 2, n = q.size + quiet * 2, px = Math.floor(c.width / n);
+        var off = Math.floor((c.width - px * n) / 2) + quiet * px;
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = '#0b0e17';
+        for (var y = 0; y < q.size; y++)
+          for (var x = 0; x < q.size; x++)
+            if (q.modules[y][x]) g.fillRect(off + x * px, off + y * px, px, px);
+      })();
+
+      // score-card texture behind the band (accent bloom top + bottom, grid floor, sparkles)
+      // — fills the top/bottom margins so the frame reads full and on-brand.
+      (function () {
+        var c = document.getElementById('bgtex'); if (!c) return;
+        var g = c.getContext('2d'), W = 1080, H = 1920, ACC = GAME.accent;
+        var s = GAME.bgSeed; var rnd = function () { s |= 0; s = (s + 0x6D2B79F5) | 0; var t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        // base
+        g.fillStyle = '#05070e'; g.fillRect(0, 0, W, H);
+        // top bloom
+        var tg = g.createRadialGradient(W / 2, 40, 20, W / 2, 40, 560); tg.addColorStop(0, ACC); tg.addColorStop(1, 'rgba(0,0,0,0)');
+        g.globalAlpha = 0.22; g.fillStyle = tg; g.fillRect(0, 0, W, 620);
+        // bottom bloom + grid floor
+        var bg = g.createRadialGradient(W / 2, H - 30, 20, W / 2, H - 30, 560); bg.addColorStop(0, ACC); bg.addColorStop(1, 'rgba(0,0,0,0)');
+        g.globalAlpha = 0.2; g.fillStyle = bg; g.fillRect(0, H - 620, W, 620);
+        g.globalAlpha = 0.12; g.strokeStyle = ACC; g.lineWidth = 1.5;
+        var hz = H - 300, cx = W / 2;
+        for (var i = -10; i <= 10; i++) { g.beginPath(); g.moveTo(cx + i * 90, hz); g.lineTo(cx + i * 90 * 3, H + 60); g.stroke(); }
+        for (var j = 1; j <= 4; j++) { var gy = hz + (H - hz) * Math.pow(j / 4, 1.8); g.beginPath(); g.moveTo(0, gy); g.lineTo(W, gy); g.stroke(); }
+        // sparkles in the top + bottom margin bands only
+        for (var p = 0; p < 22; p++) {
+          var inTop = rnd() < 0.5;
+          var py = inTop ? (10 + rnd() * 280) : (H - 10 - rnd() * 280);
+          var px = W * (0.04 + rnd() * 0.92), sz = 2 + rnd() * 8;
+          var pa = (rnd() * 0.5 + 0.35) * 0.8, hr = sz * 3.2;
+          var hg = g.createRadialGradient(px, py, 0, px, py, hr); hg.addColorStop(0, ACC); hg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.globalAlpha = pa * 0.4; g.fillStyle = hg; g.beginPath(); g.arc(px, py, hr, 0, 6.29); g.fill();
+          g.globalAlpha = pa; g.fillStyle = rnd() < 0.35 ? '#fff' : ACC;
+          g.beginPath(); g.arc(px, py, sz / 2, 0, 6.29); g.fill();
+        }
+        g.globalAlpha = 1;
+      })();
+
+      // end-card backdrop
+      (function () {
+        var c = document.getElementById('endgrid'); if (!c) return;
+        var g = c.getContext('2d'), W = 1080, H = 1920, ACC = GAME.accent;
+        var s = GAME.endSeed; var rnd = function () { s |= 0; s = (s + 0x6D2B79F5) | 0; var t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        var hz = H * 0.66, cx = W / 2;
+        g.strokeStyle = ACC; g.lineWidth = 1.5; g.globalAlpha = 0.1;
+        for (var i = -9; i <= 9; i++) { g.beginPath(); g.moveTo(cx + i * 110, hz); g.lineTo(cx + i * 110 * 2.8, H + 60); g.stroke(); }
+        g.globalAlpha = 0.08;
+        for (var j = 1; j <= 6; j++) { var gy = hz + (H - hz) * Math.pow(j / 6, 1.8); g.beginPath(); g.moveTo(0, gy); g.lineTo(W, gy); g.stroke(); }
+        for (var p = 0; p < 14; p++) {
+          var sz = 3 + rnd() * 11, px = W * (0.04 + rnd() * 0.92), py = H * (0.04 + rnd() * 0.55);
+          var pa = (rnd() * 0.5 + 0.35) * 0.7, hr = sz * 3.2;
+          var hg = g.createRadialGradient(px, py, 0, px, py, hr); hg.addColorStop(0, ACC); hg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.globalAlpha = pa * 0.35; g.fillStyle = hg; g.beginPath(); g.arc(px, py, hr, 0, 6.29); g.fill();
+          g.globalAlpha = pa; g.fillStyle = rnd() < 0.35 ? '#fff' : ACC;
+          g.beginPath(); g.arc(px, py, sz / 2, 0, 6.29); g.fill();
+        }
+        g.globalAlpha = 1;
+      })();
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      tl.from('#bandframe', { opacity: 0, duration: 0.5, ease: 'power2.out' }, 0.1);
+
+      // camera pan — object-position-x tracks each cut's moving subject (measured from the
+      // footage: hook ship 25→95%, boss 22→75%, survive ship 25→68%; shop is static center).
+      tl.fromTo('#cut0', { objectPosition: '5% 50%' },  { objectPosition: '100% 50%', duration: 3.8695, ease: 'none' }, 0);
+      tl.fromTo('#cut1', { objectPosition: '0% 50%' },  { objectPosition: '95% 50%',  duration: 3.8095, ease: 'none' }, 3.8695);
+      tl.set('#cut2', { objectPosition: '50% 50%' }, 7.679);
+      tl.fromTo('#cut3', { objectPosition: '5% 50%' },  { objectPosition: '82% 50%',  duration: 3.8095, ease: 'none' }, 11.4886);
+
+      tl.from('#hook-inner', { opacity: 0, y: 80, scale: 0.7, duration: 0.5, ease: 'back.out(1.8)' }, 0.15);
+      tl.to('#hook-inner', { scale: 1.04, duration: 3.0, ease: 'sine.inOut' }, 0.7);
+      tl.to('#hook-inner', { opacity: 0, y: -50, duration: 0.3, ease: 'power2.in' }, 3.55);
+      tl.set('#hook-inner', { opacity: 0 }, 3.86);
+      tl.to('#hookshade', { opacity: 0, duration: 0.28, ease: 'power2.in' }, 3.55);
+      tl.set('#hookshade', { opacity: 0 }, 3.85);
+
+      tl.from('#cap1', { opacity: 0, y: 40, duration: 0.4, ease: 'power3.out' }, 4.0);
+      tl.from('#cap2', { opacity: 0, y: 40, duration: 0.4, ease: 'power3.out' }, 7.81);
+      tl.from('#cap3', { opacity: 0, y: 40, duration: 0.4, ease: 'power3.out' }, 11.62);
+      tl.from('#brand', { opacity: 0, x: -60, duration: 0.4, ease: 'power2.out' }, 0.6);
+
+      tl.from('#wordmark', { opacity: 0, y: 70, scale: 0.9, duration: 0.5, ease: 'back.out(1.6)' }, 15.4);
+      tl.from('#tagline', { opacity: 0, y: 40, duration: 0.4, ease: 'power2.out' }, 15.68);
+      tl.from('#epills', { opacity: 0, y: 40, duration: 0.4, ease: 'power2.out' }, 15.92);
+      tl.from('#qrcard', { opacity: 0, scale: 0.7, duration: 0.5, ease: 'back.out(2)' }, 16.2);
+      tl.from('#url', { opacity: 0, y: 30, duration: 0.4, ease: 'power2.out' }, 16.45);
+      tl.to('#endgrid', { opacity: 0.75, duration: 2.4, ease: 'sine.inOut' }, 16.8);
+
+      tl.to('#bgm', { volume: 0, duration: 1.5, ease: 'power1.in' }, 22.5);
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

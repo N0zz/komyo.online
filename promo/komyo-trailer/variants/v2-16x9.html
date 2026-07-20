@@ -1,0 +1,759 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/gsap.min.js"></script>
+    <script src="assets/qr.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0b0e17; }
+      body { font-family: Montserrat, sans-serif; --accent: #2ee8c8; --ink: #0b0e17; }
+      #root { position: relative; width: 1920px; height: 1080px; overflow: hidden; }
+
+      /* ═══ the score-card WORLD (persistent stage) ═══ */
+      .stage { position: absolute; inset: 0; pointer-events: none; }
+      .stage-fill { position: absolute; inset: 0; background: #0b0e17; }
+      .stage-bloom {
+        position: absolute; inset: 0;
+        background: radial-gradient(62% 44% at 50% -10%, rgba(46,232,200,.32) 0%, rgba(46,232,200,0) 72%);
+      }
+      .stage-bloom2 {
+        position: absolute; inset: 0;
+        background: radial-gradient(46% 30% at 82% 112%, rgba(46,232,200,.10) 0%, rgba(46,232,200,0) 70%);
+      }
+      .stage-canvas { position: absolute; inset: 0; }
+      .vig {
+        position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(118% 118% at 50% 50%, rgba(4,6,12,0) 56%, rgba(4,6,12,.5) 100%);
+      }
+
+      /* ═══ gameplay ═══ */
+      .gameplay { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover;
+                  transform-origin: 50% 0; transform: scale(1.03); /* crops the site's version-tag footer */ }
+      /* framed card videos: AR wider than 16:9 + object-position Y=0 crops the baked footer strip */
+      .cardvid { position: absolute; object-fit: cover; object-position: 50% 0;
+                 border-radius: 22px; transform-origin: 50% 0; }
+
+      .shade { position: absolute; inset: 0; pointer-events: none; }
+      .shade-b { background:
+        radial-gradient(130% 58% at 38% 122%, rgba(5,7,14,.92) 0%, rgba(5,7,14,0) 68%),
+        radial-gradient(130% 34% at 50% -12%, rgba(5,7,14,.45) 0%, rgba(5,7,14,0) 60%); }
+
+      /* accent frame flash on hook cuts */
+      .accflash { position: absolute; inset: 16px; border: 10px solid var(--pc, var(--accent));
+                  border-radius: 34px; opacity: 0; pointer-events: none;
+                  box-shadow: 0 0 60px color-mix(in srgb, var(--pc, var(--accent)) 60%, transparent),
+                              inset 0 0 60px color-mix(in srgb, var(--pc, var(--accent)) 45%, transparent); }
+
+      /* whip streak */
+      .streak { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+      .streak div { position: absolute; top: -60px; bottom: -60px; width: 960px; left: 480px;
+                    transform: skewX(-16deg);
+                    background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.34) 48%, rgba(255,255,255,0) 100%); }
+
+      /* ═══ mono metadata register ═══ */
+      .mono { font-family: 'JetBrains Mono', monospace; }
+      .meta { position: absolute; inset: 0; pointer-events: none; }
+      .meta .chip { position: absolute; font-family: 'JetBrains Mono', monospace; font-size: 25px;
+                    font-weight: 700; letter-spacing: .05em; color: #9fb2c8;
+                    background: rgba(11,14,23,.72); border-radius: 10px; padding: 9px 18px; }
+      .meta .tick { position: absolute; width: 46px; height: 46px; opacity: .5; }
+      .meta .tick i { position: absolute; background: #3f5468; display: block; }
+
+      .gametag { position: absolute; left: 110px; bottom: 84px; font-family: 'JetBrains Mono', monospace;
+                 font-size: 30px; font-weight: 700; letter-spacing: .08em; color: #eef4fc;
+                 background: rgba(11,14,23,.78); border-left: 6px solid var(--pc, var(--accent));
+                 border-radius: 10px; padding: 12px 26px; }
+      .gametag b { color: var(--pc, var(--accent)); font-weight: 700; }
+
+      .hookline { position: absolute; left: 110px; bottom: 170px;
+                  font-family: 'Archivo Black', sans-serif; font-size: 96px; letter-spacing: -0.02em;
+                  color: #fff; text-shadow: 0 6px 34px rgba(0,0,0,.8), 0 0 54px rgba(46,232,200,.45); }
+      .hookline > div { display: inline-block; background: rgba(11,14,23,.72); border-radius: 24px;
+                        padding: 8px 36px 16px; }
+      .hookline em { font-style: normal; color: var(--accent); }
+
+      /* ═══ anaphora slams ═══ */
+      .slamgroup { position: absolute; left: 110px; top: 236px; transform-origin: left top; }
+      .slam { font-family: 'Archivo Black', sans-serif; font-size: 100px; line-height: 1.36;
+              letter-spacing: -0.02em; color: #fff;
+              text-shadow: 0 6px 30px rgba(0,0,0,.8), 0 0 44px rgba(46,232,200,.4); }
+      .slam.acc { color: var(--accent); text-shadow: 0 6px 30px rgba(0,0,0,.8), 0 0 44px rgba(46,232,200,.55); }
+
+      .dialogwrap { position: absolute; left: 110px; top: 620px; width: 980px; }
+      .dialogrow { display: flex; align-items: center; gap: 30px; }
+      .dialog-no { font-family: 'Archivo Black', sans-serif; font-size: 150px; color: #fff; letter-spacing: -0.02em;
+                   text-shadow: 0 6px 30px rgba(0,0,0,.8), 0 0 50px rgba(46,232,200,.5); }
+      .dlg { width: 690px; background: #f2f6fb; border-radius: 20px; padding: 20px 26px 22px;
+             box-shadow: 0 24px 60px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.25); }
+      .dlg-title { font-family: 'JetBrains Mono', monospace; font-size: 21px; font-weight: 700;
+                   color: #6b7a8f; letter-spacing: .04em; }
+      .dlg-body { margin-top: 10px; font-size: 31px; font-weight: 800; color: #17222f; line-height: 1.3; }
+      .dlg-btns { margin-top: 18px; display: flex; justify-content: flex-end; gap: 14px; }
+      .dlg-btns div { font-size: 24px; font-weight: 800; border-radius: 12px; padding: 10px 30px; }
+      .dlg-cancel { color: #51627a; background: #dde6f0; }
+      .dlg-allow { color: #fff; background: #3b82f6; }
+      .dlg-note { margin-top: 22px; font-family: 'JetBrains Mono', monospace; font-size: 30px;
+                  font-weight: 700; color: var(--accent); letter-spacing: .04em;
+                  text-shadow: 0 0 26px rgba(46,232,200,.5); }
+
+      /* ═══ neon card frames (score-card texture kit) ═══ */
+      .cardframe { position: absolute; inset: 0; pointer-events: none; }
+      .cframe { position: absolute; border: 3px solid color-mix(in srgb, var(--pc, var(--accent)) 70%, transparent);
+                border-radius: 30px;
+                box-shadow: 0 0 46px color-mix(in srgb, var(--pc, var(--accent)) 42%, transparent),
+                            inset 0 0 34px color-mix(in srgb, var(--pc, var(--accent)) 22%, transparent),
+                            0 34px 70px rgba(0,0,0,.5); }
+      .cecho { position: absolute; border: 2px solid color-mix(in srgb, var(--pc, var(--accent)) 26%, transparent);
+               border-radius: 30px; }
+      .cardpill { position: absolute; font-size: 38px; font-weight: 800; color: #fff; letter-spacing: .02em;
+                  background: rgba(11,14,23,.85); border: 3px solid var(--pc, var(--accent));
+                  border-radius: 999px; padding: 12px 34px;
+                  box-shadow: 0 0 32px color-mix(in srgb, var(--pc, var(--accent)) 45%, transparent); }
+      .cardpill b { color: var(--pc, var(--accent)); }
+      .cardidx { position: absolute; font-family: 'JetBrains Mono', monospace; font-size: 23px; font-weight: 700;
+                 color: var(--pc, var(--accent)); background: rgba(11,14,23,.85); border-radius: 8px;
+                 padding: 7px 14px; letter-spacing: .08em; }
+      .cardsub { position: absolute; font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 400;
+                 color: #9fb2c8; letter-spacing: .06em; background: rgba(11,14,23,.7);
+                 border-radius: 8px; padding: 7px 16px; }
+
+      .kicker { position: absolute; top: 58px; left: 0; right: 0; text-align: center;
+                font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700;
+                color: #8fa2b8; letter-spacing: .18em; }
+      .kicker b { color: var(--accent); }
+
+      /* ═══ cold open / CTA ═══ */
+      .coldwrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+      .coldinner { text-align: center; }
+      .wordmark { font-size: 230px; font-weight: 900; letter-spacing: -0.01em; line-height: 1;
+                  background: linear-gradient(180deg, #fff 30%, var(--accent) 120%);
+                  -webkit-background-clip: text; background-clip: text; color: transparent;
+                  filter: drop-shadow(0 0 46px rgba(46,232,200,.45)); }
+      .coldrule { margin: 30px auto 0; width: 520px; height: 4px; border-radius: 2px;
+                  background: var(--accent); box-shadow: 0 0 24px rgba(46,232,200,.7);
+                  transform-origin: center; }
+      .coldtag { margin-top: 26px; font-family: 'JetBrains Mono', monospace; font-size: 38px;
+                 font-weight: 700; color: #cdd9e8; letter-spacing: .06em; }
+      .coldtag b { color: var(--accent); }
+
+      /* ═══ beat 5 — device / offline ═══ */
+      .cap { position: absolute; left: 110px; bottom: 150px; }
+      .cap h1 { font-family: 'Archivo Black', sans-serif; font-size: 96px; font-weight: 400; color: #fff;
+                letter-spacing: -0.02em; text-shadow: 0 6px 30px rgba(0,0,0,.8), 0 0 44px rgba(46,232,200,.4); }
+      .cap .sub { margin-top: 18px; font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 700;
+                  color: #eef4fc; background: rgba(11,14,23,.78); display: inline-block;
+                  border-radius: 10px; padding: 10px 22px; letter-spacing: .03em; }
+      .cap .sub b { color: var(--accent); }
+
+      .offwrap { position: absolute; left: 1010px; top: 270px; width: 830px; }
+      .offwrap h1 { font-family: 'Archivo Black', sans-serif; font-size: 104px; font-weight: 400; color: #fff;
+                    letter-spacing: -0.02em; text-shadow: 0 6px 30px rgba(0,0,0,.8), 0 0 50px rgba(46,232,200,.5); }
+      .offrule { margin-top: 26px; width: 420px; height: 4px; border-radius: 2px; background: var(--accent);
+                 box-shadow: 0 0 22px rgba(46,232,200,.7); transform-origin: left center; }
+      .offrow { margin-top: 26px; font-family: 'JetBrains Mono', monospace; font-size: 33px; font-weight: 700;
+                color: #dfe9f5; letter-spacing: .02em; }
+      .offrow b { color: var(--accent); }
+
+      .phonewrap { position: absolute; inset: 0; pointer-events: none; }
+      .bezel { position: absolute; left: 470px; top: 130px; width: 380px; height: 800px;
+               border: 14px solid #141d2c; border-bottom-width: 46px; border-radius: 52px;
+               box-shadow: 0 0 46px rgba(46,232,200,.30), 0 34px 70px rgba(0,0,0,.6),
+                           inset 0 0 0 2px rgba(255,255,255,.06); }
+      .notch { position: absolute; left: 594px; top: 152px; width: 132px; height: 10px;
+               border-radius: 6px; background: #141d2c; }
+      .phshadow { position: absolute; left: 430px; top: 920px; width: 460px; height: 60px;
+                  border-radius: 50%; background: radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.6) 0%, rgba(0,0,0,0) 72%); }
+      .wifi { position: absolute; left: 868px; top: 148px; }
+      .wifi svg { display: block; }
+      .wifislash { position: absolute; left: 862px; top: 252px; width: 172px; height: 9px;
+                   border-radius: 5px; background: #ff6b7a; transform: rotate(-38deg);
+                   transform-origin: left center; box-shadow: 0 0 20px rgba(255,107,122,.7); }
+      .stillchip { position: absolute; left: 508px; top: 486px; font-family: 'JetBrains Mono', monospace;
+                   font-size: 27px; font-weight: 700; color: #eef4fc; letter-spacing: .04em;
+                   background: rgba(11,14,23,.9); border: 2px solid var(--accent); border-radius: 999px;
+                   padding: 12px 24px; box-shadow: 0 0 28px rgba(46,232,200,.4); }
+      .stillchip b { color: var(--accent); }
+
+      /* ═══ beat 6 — collection ═══ */
+      .collcap { position: absolute; left: 110px; top: 360px; width: 560px; }
+      .collcap h1 { font-family: 'Archivo Black', sans-serif; font-size: 88px; font-weight: 400; color: #fff;
+                    letter-spacing: -0.02em; text-shadow: 0 6px 30px rgba(0,0,0,.8), 0 0 44px rgba(46,232,200,.4); }
+      .collcap .sub { margin-top: 22px; font-family: 'JetBrains Mono', monospace; font-size: 30px;
+                      font-weight: 700; color: #dfe9f5; line-height: 1.6; letter-spacing: .02em; }
+      .collcap .sub b { color: var(--accent); }
+
+      /* ═══ CTA end card ═══ */
+      .ctawrap { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+                 gap: 130px; padding: 90px 150px; }
+      .ctaleft { text-align: left; }
+      .ctamark-row { display: flex; align-items: flex-end; gap: 34px; }
+      .ctamark { font-size: 185px; font-weight: 900; letter-spacing: -0.01em; line-height: 1;
+                 background: linear-gradient(180deg, #fff 30%, var(--accent) 120%);
+                 -webkit-background-clip: text; background-clip: text; color: transparent;
+                 filter: drop-shadow(0 0 42px rgba(46,232,200,.45)); }
+      .mascot { width: 132px; height: 132px; }
+      .ctatag { margin-top: 20px; font-size: 50px; font-weight: 800; color: #e8ecf6; }
+      .ctapills { margin-top: 42px; display: flex; flex-wrap: wrap; gap: 18px; max-width: 920px; }
+      .ctapills div { font-size: 32px; font-weight: 700; color: #cfe9e2;
+                      border: 2px solid rgba(255,255,255,.22); border-radius: 999px; padding: 12px 28px;
+                      background: rgba(255,255,255,.05); }
+      .ctaurl { margin-top: 50px; font-family: 'JetBrains Mono', monospace; font-size: 74px; font-weight: 700;
+                color: var(--accent); text-shadow: 0 0 34px rgba(46,232,200,.5); }
+      .qr-card { background: #fff; border-radius: 32px; padding: 28px 28px 14px; text-align: center;
+                 box-shadow: 0 0 0 5px rgba(46,232,200,.7), 0 22px 70px rgba(0,0,0,.5); }
+      .qr-card canvas { display: block; width: 330px; height: 330px; image-rendering: pixelated; }
+      .qr-card p { font-size: 26px; font-weight: 800; color: var(--ink); padding: 12px 0 8px;
+                   font-family: Montserrat, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="57.15" data-width="1920" data-height="1080">
+
+      <!-- ══ t0 · THE STAGE (score-card world: canvas, bloom, grid floor, sparkles) ══ -->
+      <div id="stage" class="clip stage" data-start="0" data-duration="57.15" data-track-index="0">
+        <div class="stage-fill"></div>
+        <div id="stage-bloom" class="stage-bloom"></div>
+        <div class="stage-bloom2"></div>
+        <canvas id="stage-grid" class="stage-canvas" width="1920" height="1080"></canvas>
+        <canvas id="stage-spark" class="stage-canvas" width="1920" height="1080"></canvas>
+      </div>
+
+      <!-- ══ t1 · GAMEPLAY (every cut on the 122bpm bar grid: 0.06 + n·1.96721) ══ -->
+      <video id="v-frogs" class="clip gameplay" src="assets/footage/5_gameplay_frogs.mp4"
+             data-start="2.027" data-duration="3.935" data-media-start="0.5" data-track-index="1" muted playsinline></video>
+      <video id="v-ff" class="clip gameplay" src="assets/footage/6_gameplay_forcefield.mp4"
+             data-start="5.962" data-duration="1.967" data-media-start="4.2" data-track-index="1" muted playsinline></video>
+      <video id="v-snake" class="clip gameplay" src="assets/footage/6_gameplay_snake.mp4"
+             data-start="7.929" data-duration="1.967" data-media-start="0.8" data-track-index="1" muted playsinline></video>
+
+      <!-- anaphora: gameplay keeps rolling in a tilted neon card (right), cut every 2 bars -->
+      <video id="v-card1" class="clip cardvid" src="assets/footage/6_gameplay_snake.mp4"
+             style="left: 880px; top: 210px; width: 940px; height: 508px; transform: rotate(-2.5deg) scale(1.03); --pc: #7fffb0"
+             data-start="9.896" data-duration="3.934" data-media-start="0.55" data-track-index="1" muted playsinline></video>
+      <video id="v-card2" class="clip cardvid" src="assets/footage/5_gameplay_frogs.mp4"
+             style="left: 880px; top: 210px; width: 940px; height: 508px; transform: rotate(-2.5deg) scale(1.03); --pc: #7ed957"
+             data-start="13.830" data-duration="3.935" data-media-start="3.0" data-track-index="1" muted playsinline></video>
+      <video id="v-card3" class="clip cardvid" src="assets/footage/6_gameplay_forcefield.mp4"
+             style="left: 880px; top: 210px; width: 940px; height: 508px; transform: rotate(-2.5deg) scale(1.03); --pc: #38bdf8"
+             data-start="17.765" data-duration="3.934" data-media-start="1.5" data-track-index="1" muted playsinline></video>
+
+      <!-- breadth constellation: framed 1-bar clips flying through the stage -->
+      <video id="v-stack" class="clip cardvid" src="assets/footage/4_gameplay_stack.mp4"
+             style="left: 150px; top: 190px; width: 560px; height: 700px; object-position: 50% 50%; transform: rotate(-4deg) scale(1.03)"
+             data-start="21.699" data-duration="3.935" data-media-start="3.5" data-track-index="1" muted playsinline></video>
+      <video id="v-2048" class="clip cardvid" src="assets/footage/5_gameplay_2048.mp4"
+             style="left: 940px; top: 160px; width: 820px; height: 432px; transform: rotate(2.5deg) scale(1.03)"
+             data-start="25.634" data-duration="1.967" data-media-start="3.2" data-track-index="1" muted playsinline></video>
+      <video id="v-td" class="clip cardvid" src="assets/footage/6_gameplay_td.mp4"
+             style="left: 420px; top: 320px; width: 960px; height: 505px; transform: rotate(-2deg) scale(1.03)"
+             data-start="27.601" data-duration="1.967" data-media-start="6.0" data-track-index="1" muted playsinline></video>
+      <video id="v-ast" class="clip cardvid" src="assets/footage/7_gameplay_asteroids.mp4"
+             style="left: 180px; top: 170px; width: 820px; height: 432px; transform: rotate(3deg) scale(1.03)"
+             data-start="29.568" data-duration="1.967" data-media-start="2.3" data-track-index="1" muted playsinline></video>
+      <video id="v-kit" class="clip cardvid" src="assets/footage/3_gameplay_kitten.mp4"
+             style="left: 990px; top: 240px; width: 640px; height: 640px; object-position: 47% 50%; transform: rotate(-3deg) scale(1.03)"
+             data-start="31.535" data-duration="1.968" data-media-start="4.8" data-track-index="1" muted playsinline></video>
+      <video id="v-mem" class="clip cardvid" src="assets/footage/4_gameplay_memory.mp4"
+             style="left: 470px; top: 250px; width: 980px; height: 516px; transform: rotate(1.5deg) scale(1.03)"
+             data-start="33.503" data-duration="3.934" data-media-start="4.5" data-track-index="1" muted playsinline></video>
+
+      <!-- any device + offline -->
+      <video id="v-flap1" class="clip gameplay" src="assets/footage/3_gameplay_flappy.mp4"
+             data-start="37.437" data-duration="3.934" data-media-start="1.1" data-track-index="1" muted playsinline></video>
+      <video id="v-flap2" class="clip cardvid" src="assets/footage/3_gameplay_flappy.mp4"
+             style="left: 484px; top: 144px; width: 352px; height: 760px; object-position: 0% 50%; border-radius: 30px; transform: scale(1.03)"
+             data-start="41.371" data-duration="5.902" data-media-start="0.5" data-track-index="1" muted playsinline></video>
+
+      <!-- collection quick beat -->
+      <video id="v-coll" class="clip cardvid" src="assets/footage/collections.mp4"
+             style="left: 720px; top: 220px; width: 980px; height: 516px; transform: rotate(2deg) scale(1.03)"
+             data-start="47.273" data-duration="3.935" data-media-start="0.5" data-track-index="1" muted playsinline></video>
+
+      <!-- ══ t2 · shades (contrast under text over bright footage) ══ -->
+      <div id="shade-hook" class="clip shade shade-b" data-start="2.027" data-duration="7.869" data-track-index="2"></div>
+      <div id="shade-any" class="clip shade shade-b" data-start="37.437" data-duration="3.935" data-track-index="2"></div>
+
+      <!-- ══ t3 · neon frames / bezels (score-card texture kit) ══ -->
+      <div id="frame-card1" class="clip cardframe" style="--pc:#7fffb0" data-start="9.896" data-duration="3.934" data-track-index="3">
+        <div id="frame-card1-in" style="position:absolute; inset:0; transform-origin: 1350px 210px;">
+          <div class="cecho" style="left: 888px; top: 226px; width: 968px; height: 546px; transform: rotate(-2.5deg)"></div>
+          <div class="cframe" style="left: 866px; top: 202px; width: 968px; height: 546px; transform: rotate(-2.5deg)"></div>
+          <div class="cardsub" style="left: 890px; top: 766px; transform: rotate(-2.5deg)">live gameplay — neon snake</div>
+        </div>
+      </div>
+      <div id="frame-card2" class="clip cardframe" style="--pc:#7ed957" data-start="13.830" data-duration="3.935" data-track-index="3">
+        <div id="frame-card2-in" style="position:absolute; inset:0; transform-origin: 1350px 210px;">
+          <div class="cecho" style="left: 888px; top: 226px; width: 968px; height: 546px; transform: rotate(-2.5deg)"></div>
+          <div class="cframe" style="left: 866px; top: 202px; width: 968px; height: 546px; transform: rotate(-2.5deg)"></div>
+          <div class="cardsub" style="left: 890px; top: 766px; transform: rotate(-2.5deg)">live gameplay — frog bonk</div>
+        </div>
+      </div>
+      <div id="frame-card3" class="clip cardframe" style="--pc:#38bdf8" data-start="17.765" data-duration="3.934" data-track-index="3">
+        <div id="frame-card3-in" style="position:absolute; inset:0; transform-origin: 1350px 210px;">
+          <div class="cecho" style="left: 888px; top: 226px; width: 968px; height: 546px; transform: rotate(-2.5deg)"></div>
+          <div class="cframe" style="left: 866px; top: 202px; width: 968px; height: 546px; transform: rotate(-2.5deg)"></div>
+          <div class="cardsub" style="left: 890px; top: 766px; transform: rotate(-2.5deg)">live gameplay — forcefield</div>
+        </div>
+      </div>
+
+      <div id="frame-stack" class="clip cardframe" style="--pc:#ff9aa2" data-start="21.699" data-duration="3.935" data-track-index="3">
+        <div id="frame-stack-in" style="position:absolute; inset:0; transform-origin: 430px 190px;">
+          <div class="cecho" style="left: 158px; top: 214px; width: 588px; height: 742px; transform: rotate(-4deg)"></div>
+          <div class="cframe" style="left: 136px; top: 182px; width: 588px; height: 742px; transform: rotate(-4deg)"></div>
+          <div class="cardpill" style="left: 190px; top: 890px; transform: rotate(-4deg)"><b>Stack</b></div>
+          <div class="cardidx" style="left: 620px; top: 150px; transform: rotate(-4deg)">04/18</div>
+        </div>
+      </div>
+      <div id="frame-2048" class="clip cardframe" style="--pc:#f2b179" data-start="25.634" data-duration="1.967" data-track-index="3">
+        <div id="frame-2048-in" style="position:absolute; inset:0; transform-origin: 1350px 160px;">
+          <div class="cecho" style="left: 948px; top: 180px; width: 848px; height: 466px; transform: rotate(2.5deg)"></div>
+          <div class="cframe" style="left: 926px; top: 152px; width: 848px; height: 466px; transform: rotate(2.5deg)"></div>
+          <div class="cardpill" style="left: 980px; top: 590px; transform: rotate(2.5deg)"><b>2048</b></div>
+          <div class="cardidx" style="left: 1680px; top: 130px; transform: rotate(2.5deg)">05/18</div>
+        </div>
+      </div>
+      <div id="frame-td" class="clip cardframe" style="--pc:#e0b25a" data-start="27.601" data-duration="1.967" data-track-index="3">
+        <div id="frame-td-in" style="position:absolute; inset:0; transform-origin: 900px 320px;">
+          <div class="cecho" style="left: 428px; top: 344px; width: 988px; height: 542px; transform: rotate(-2deg)"></div>
+          <div class="cframe" style="left: 406px; top: 312px; width: 988px; height: 542px; transform: rotate(-2deg)"></div>
+          <div class="cardpill" style="left: 460px; top: 826px; transform: rotate(-2deg)"><b>Keep Defender</b></div>
+          <div class="cardidx" style="left: 1290px; top: 288px; transform: rotate(-2deg)">06/18</div>
+        </div>
+      </div>
+      <div id="frame-ast" class="clip cardframe" style="--pc:#9fe8ff" data-start="29.568" data-duration="1.967" data-track-index="3">
+        <div id="frame-ast-in" style="position:absolute; inset:0; transform-origin: 590px 170px;">
+          <div class="cecho" style="left: 188px; top: 190px; width: 848px; height: 466px; transform: rotate(3deg)"></div>
+          <div class="cframe" style="left: 166px; top: 162px; width: 848px; height: 466px; transform: rotate(3deg)"></div>
+          <div class="cardpill" style="left: 220px; top: 600px; transform: rotate(3deg)"><b>Asteroids</b></div>
+          <div class="cardidx" style="left: 920px; top: 140px; transform: rotate(3deg)">07/18</div>
+        </div>
+      </div>
+      <div id="frame-kit" class="clip cardframe" style="--pc:#f0a6c8" data-start="31.535" data-duration="1.968" data-track-index="3">
+        <div id="frame-kit-in" style="position:absolute; inset:0; transform-origin: 1310px 240px;">
+          <div class="cecho" style="left: 998px; top: 262px; width: 668px; height: 680px; transform: rotate(-3deg)"></div>
+          <div class="cframe" style="left: 976px; top: 232px; width: 668px; height: 680px; transform: rotate(-3deg)"></div>
+          <div class="cardpill" style="left: 1030px; top: 876px; transform: rotate(-3deg)"><b>Trap the Cat</b></div>
+          <div class="cardidx" style="left: 1540px; top: 204px; transform: rotate(-3deg)">08/18</div>
+        </div>
+      </div>
+      <div id="frame-mem" class="clip cardframe" style="--pc:#ffb86b" data-start="33.503" data-duration="3.934" data-track-index="3">
+        <div id="frame-mem-in" style="position:absolute; inset:0; transform-origin: 960px 250px;">
+          <div class="cecho" style="left: 478px; top: 274px; width: 1008px; height: 552px; transform: rotate(1.5deg)"></div>
+          <div class="cframe" style="left: 456px; top: 242px; width: 1008px; height: 552px; transform: rotate(1.5deg)"></div>
+          <div class="cardpill" style="left: 510px; top: 766px; transform: rotate(1.5deg)"><b>Critter Match</b></div>
+          <div class="cardidx" style="left: 1360px; top: 220px; transform: rotate(1.5deg)">09/18</div>
+        </div>
+      </div>
+
+      <div id="phone" class="clip phonewrap" data-start="41.371" data-duration="5.902" data-track-index="3">
+        <div id="phone-in" style="position:absolute; inset:0; transform-origin: 660px 530px;">
+          <div class="phshadow"></div>
+          <div class="bezel"></div>
+          <div class="notch"></div>
+          <div class="wifi" id="wifi-arcs">
+            <svg width="132" height="106" viewBox="0 0 24 20">
+              <path d="M1.5 7.5 a15 15 0 0 1 21 0" stroke="#9fb2c8" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M4.8 11 a10 10 0 0 1 14.4 0" stroke="#9fb2c8" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <path d="M8.2 14.4 a5.6 5.6 0 0 1 7.6 0" stroke="#9fb2c8" stroke-width="2" fill="none" stroke-linecap="round"/>
+              <circle cx="12" cy="17.6" r="1.8" fill="#9fb2c8"/>
+            </svg>
+          </div>
+          <div id="wifi-slash" class="wifislash"></div>
+          <div id="stillchip" class="stillchip"><b>✈</b> still plays.</div>
+        </div>
+      </div>
+
+      <div id="frame-coll" class="clip cardframe" style="--pc:#2ee8c8" data-start="47.273" data-duration="3.935" data-track-index="3">
+        <div id="frame-coll-in" style="position:absolute; inset:0; transform-origin: 1210px 220px;">
+          <div class="cecho" style="left: 728px; top: 244px; width: 1008px; height: 552px; transform: rotate(2deg)"></div>
+          <div class="cframe" style="left: 706px; top: 212px; width: 1008px; height: 552px; transform: rotate(2deg)"></div>
+          <div class="cardsub" style="left: 760px; top: 786px; transform: rotate(2deg)">the collection — skins · cursors · music</div>
+        </div>
+      </div>
+
+      <!-- ══ t4 · accent flashes + section kicker ══ -->
+      <div id="flash1" class="clip accflash" style="--pc:#7ed957" data-start="2.027" data-duration="0.9" data-track-index="4"></div>
+      <div id="flash2" class="clip accflash" style="--pc:#38bdf8" data-start="5.962" data-duration="0.9" data-track-index="4"></div>
+      <div id="flash3" class="clip accflash" style="--pc:#7fffb0" data-start="7.929" data-duration="0.9" data-track-index="4"></div>
+      <div id="kicker4" class="clip kicker" data-start="21.699" data-duration="15.738" data-track-index="4">
+        <span id="kicker4-in">· <b>18 games live</b> · more every week ·</span>
+      </div>
+      <div id="flash4" class="clip accflash" style="--pc:#8fd3a6" data-start="37.437" data-duration="0.9" data-track-index="4"></div>
+
+      <!-- ══ t5 · primary text ══ -->
+      <div id="cold" class="clip coldwrap" data-start="0" data-duration="2.027" data-track-index="5">
+        <div id="cold-in" class="coldinner">
+          <div id="cold-word" class="wordmark">komyo</div>
+          <div id="cold-rule" class="coldrule"></div>
+          <div id="cold-tag" class="coldtag">free browser games — <b>no catch.</b></div>
+        </div>
+      </div>
+
+      <div id="hookline" class="clip hookline" data-start="2.027" data-duration="3.935" data-track-index="5">
+        <div id="hookline-in">this is <em>komyo</em> — 18 free games.</div>
+      </div>
+
+      <div id="slamwrap" class="clip" style="position:absolute; inset:0; pointer-events:none"
+           data-start="9.896" data-duration="11.803" data-track-index="5">
+        <div id="slamgroup" class="slamgroup">
+          <div id="slam1" class="slam">NO ADS.</div>
+          <div id="slam2" class="slam acc">NO PAYWALLS.</div>
+          <div id="slam3" class="slam">NO ACCOUNTS.</div>
+        </div>
+      </div>
+
+      <div id="cap-any" class="clip cap" data-start="37.437" data-duration="3.934" data-track-index="5">
+        <div id="cap-any-in">
+          <h1>plays on anything.</h1>
+          <div class="sub">phone · tablet · laptop — <b>straight from the browser</b></div>
+        </div>
+      </div>
+
+      <div id="cap-off" class="clip offwrap" data-start="41.371" data-duration="5.902" data-track-index="5">
+        <div id="cap-off-in">
+          <h1 id="off-h1">works offline.</h1>
+          <div id="off-rule" class="offrule"></div>
+          <div id="off-r1" class="offrow"><b>→</b> installs like an app (PWA)</div>
+          <div id="off-r2" class="offrow"><b>→</b> your data stays on your device</div>
+        </div>
+      </div>
+
+      <div id="cap-coll" class="clip collcap" data-start="47.273" data-duration="3.934" data-track-index="5">
+        <div id="cap-coll-in">
+          <h1>make it yours.</h1>
+          <div class="sub">earn <b>trophies 🏆</b> → unlock skins, cursors &amp; music</div>
+        </div>
+      </div>
+
+      <div id="cta" class="clip" style="position:absolute; inset:0" data-start="51.207" data-duration="5.925" data-track-index="5">
+        <div class="ctawrap">
+          <div class="ctaleft">
+            <div class="ctamark-row">
+              <div id="cta-word" class="ctamark">komyo</div>
+              <img id="cta-mascot" class="mascot" src="assets/brand/mascot-head.svg" alt="" />
+            </div>
+            <div id="cta-tag" class="ctatag">free browser games</div>
+            <div id="cta-pills" class="ctapills">
+              <div>free forever</div><div>no ads</div><div>no accounts</div><div>works offline</div><div>kid-safe</div>
+            </div>
+            <div id="cta-url" class="ctaurl">komyo.online</div>
+          </div>
+          <div id="qrcard" class="qr-card">
+            <canvas id="qr" width="330" height="330"></canvas>
+            <p>scan to play</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ t6 · secondary text (game tags, system dialog) ══ -->
+      <div id="tag1" class="clip gametag" style="--pc:#7ed957" data-start="2.027" data-duration="3.935" data-track-index="6">
+        <span id="tag1-in"><b>01/18</b> · FROG BONK</span>
+      </div>
+      <div id="tag2" class="clip gametag" style="--pc:#38bdf8" data-start="5.962" data-duration="1.967" data-track-index="6">
+        <span id="tag2-in"><b>02/18</b> · FORCEFIELD</span>
+      </div>
+      <div id="tag3" class="clip gametag" style="--pc:#7fffb0" data-start="7.929" data-duration="1.967" data-track-index="6">
+        <span id="tag3-in"><b>03/18</b> · NEON SNAKE</span>
+      </div>
+
+      <div id="dialog" class="clip dialogwrap" data-start="15.798" data-duration="5.901" data-track-index="6">
+        <div id="dialog-in">
+          <div class="dialogrow">
+            <div id="dialog-no" class="dialog-no">NO</div>
+            <div id="dialog-chip" class="dlg">
+              <div class="dlg-title">⚠ purchase request — just now</div>
+              <div class="dlg-body">“Your kid wants to buy 500 gems” · €12.99</div>
+              <div class="dlg-btns"><div class="dlg-cancel">Cancel</div><div id="dlg-allow" class="dlg-allow">Allow</div></div>
+            </div>
+          </div>
+          <div id="dlg-note" class="dlg-note">not here. not ever.</div>
+        </div>
+      </div>
+
+      <!-- ══ t7 · persistent mono metadata (corners) ══ -->
+      <div id="meta" class="clip meta" data-layout-ignore data-start="0.8" data-duration="50.0" data-track-index="7">
+        <div id="meta-in">
+          <div class="chip" style="left: 64px; top: 52px; color: var(--accent)">komyo.online</div>
+          <div class="chip" style="right: 64px; top: 52px">free forever · no ads · kid-safe</div>
+          <div class="chip" style="right: 64px; bottom: 46px; font-size: 22px; color: #7f92a8">♪ snake banger — komyo ost</div>
+          <div class="tick" style="left: 30px; top: 30px"><i style="width:100%;height:3px"></i><i style="width:3px;height:100%"></i></div>
+          <div class="tick" style="right: 30px; top: 30px"><i style="width:100%;height:3px"></i><i style="width:3px;height:100%;right:0;position:absolute"></i></div>
+          <div class="tick" style="left: 30px; bottom: 30px"><i style="width:100%;height:3px;bottom:0;position:absolute"></i><i style="width:3px;height:100%"></i></div>
+          <div class="tick" style="right: 30px; bottom: 30px"><i style="width:100%;height:3px;bottom:0;position:absolute"></i><i style="width:3px;height:100%;right:0;position:absolute"></i></div>
+        </div>
+      </div>
+
+      <!-- ══ t8 · vignette ══ -->
+      <div id="vig" class="clip vig" data-start="0" data-duration="57.15" data-track-index="8"></div>
+
+      <!-- ══ t9 · whip streaks ══ -->
+      <div id="streak1" class="clip streak" data-layout-ignore data-start="5.732" data-duration="0.6" data-track-index="9"><div id="streak1-in"></div></div>
+      <div id="streak2" class="clip streak" data-layout-ignore data-start="7.699" data-duration="0.6" data-track-index="9"><div id="streak2-in"></div></div>
+
+      <!-- ══ AUDIO: komyo's own snake banger (122bpm) ══ -->
+      <audio id="bgm" src="assets/audio/snakebanger-76s.m4a"
+             data-start="0" data-duration="57.15" data-media-start="0" data-track-index="10" data-volume="1"></audio>
+    </div>
+
+    <script>
+      // Themed scan-to-play QR (komyo's in-repo encoder — same as the score cards).
+      (function () {
+        var c = document.getElementById('qr');
+        var q = window.KOMYO_QR && window.KOMYO_QR.encode('https://komyo.online?utm_source=tr-v2&utm_medium=qr');
+        if (!c || !q) return;
+        var g = c.getContext('2d');
+        var quiet = 2, n = q.size + quiet * 2, px = Math.floor(c.width / n);
+        var off = Math.floor((c.width - px * n) / 2) + quiet * px;
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = '#0b0e17';
+        for (var y = 0; y < q.size; y++)
+          for (var x = 0; x < q.size; x++)
+            if (q.modules[y][x]) g.fillRect(off + x * px, off + y * px, px, px);
+      })();
+
+      // Stage: perspective grid floor (score-card texture kit).
+      (function () {
+        var c = document.getElementById('stage-grid'); if (!c) return;
+        var g = c.getContext('2d'), W = 1920, H = 1080, ACC = '#2ee8c8';
+        var hz = H * 0.55, cx = W / 2;
+        g.strokeStyle = ACC; g.lineWidth = 1.5; g.globalAlpha = 0.1;
+        for (var i = -10; i <= 10; i++) { g.beginPath(); g.moveTo(cx + i * 140, hz); g.lineTo(cx + i * 140 * 2.7, H + 60); g.stroke(); }
+        g.globalAlpha = 0.08;
+        for (var j = 1; j <= 7; j++) { var gy = hz + (H - hz) * Math.pow(j / 7, 1.8); g.beginPath(); g.moveTo(0, gy); g.lineTo(W, gy); g.stroke(); }
+        g.globalAlpha = 0.12; g.beginPath(); g.moveTo(0, hz); g.lineTo(W, hz); g.stroke();
+        g.globalAlpha = 1;
+      })();
+
+      // Stage: seeded sparkles (deterministic — mulberry32-style).
+      (function () {
+        var c = document.getElementById('stage-spark'); if (!c) return;
+        var g = c.getContext('2d'), W = 1920, H = 1080, ACC = '#2ee8c8';
+        var s = 90210; var rnd = function () { s |= 0; s = (s + 0x6D2B79F5) | 0; var t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        for (var p = 0; p < 16; p++) {
+          var sz = 3 + rnd() * 10, px = W * (0.03 + rnd() * 0.94), py = H * (0.04 + rnd() * 0.55);
+          var pa = (rnd() * 0.5 + 0.3) * 0.65, hr = sz * 3.2;
+          var hg = g.createRadialGradient(px, py, 0, px, py, hr); hg.addColorStop(0, ACC); hg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.globalAlpha = pa * 0.35; g.fillStyle = hg; g.beginPath(); g.arc(px, py, hr, 0, 6.29); g.fill();
+          g.globalAlpha = pa; g.fillStyle = rnd() < 0.35 ? '#fff' : ACC;
+          g.beginPath(); g.arc(px, py, sz / 2, 0, 6.29); g.fill();
+        }
+        g.globalAlpha = 1;
+      })();
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      var BAR = 1.96721;
+      function bar(n) { return 0.06 + n * BAR; }
+
+      /* ── BEAT 1 · cold open (1 bar — a brand sting, gameplay lands at bar 1) ── */
+      tl.fromTo('#stage-grid', { opacity: 0, y: 150 }, { opacity: 1, y: 0, duration: 1.2, ease: 'power2.out' }, 0.15);
+      tl.fromTo('#stage-bloom', { opacity: 0 }, { opacity: 0.72, duration: 1.2, ease: 'sine.out' }, 0.2);
+      tl.fromTo('#stage-spark', { opacity: 0 }, { opacity: 1, duration: 1.0, ease: 'sine.out' }, 0.4);
+      // stage ambience for the whole runtime (finite, seek-safe)
+      tl.fromTo('#stage-spark', { y: 24 }, { y: -30, duration: 55.4, ease: 'none' }, 1.2);
+      tl.to('#stage-grid', { scale: 1.05, duration: 55, ease: 'sine.inOut' }, 1.6);
+      tl.to('#stage-bloom', { opacity: 0.5, duration: 2.46, repeat: 18, yoyo: true, ease: 'sine.inOut' }, 2.5);
+
+      tl.fromTo('#cold-word', { opacity: 0, scale: 0.9, filter: 'blur(18px)' },
+        { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.55, ease: 'power3.out' }, 0.22);
+      tl.fromTo('#cold-rule', { scaleX: 0 }, { scaleX: 1, duration: 0.4, ease: 'power2.out' }, 0.62);
+      tl.fromTo('#cold-tag', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }, 0.78);
+      // zoom-through exit into the hook burst
+      tl.to('#cold-in', { scale: 2.1, opacity: 0, filter: 'blur(16px)', duration: 0.36, ease: 'power3.in' }, bar(1) - 0.36);
+      tl.set('#cold-in', { opacity: 0 }, bar(1));
+
+      tl.fromTo('#meta-in', { opacity: 0 }, { opacity: 1, duration: 0.8, ease: 'power1.out' }, 0.8);
+      tl.to('#meta-in', { opacity: 0, duration: 0.4, ease: 'power1.in' }, 50.3);
+
+      /* ── BEAT 2 · hook burst (bars 2–6): frogs → whip → forcefield → whip → snake ── */
+      tl.fromTo('#v-frogs', { scale: 1.28, filter: 'blur(14px)' },
+        { scale: 1.03, filter: 'blur(0px)', duration: 0.6, ease: 'expo.out' }, bar(1));
+      tl.fromTo('#flash1', { opacity: 1 }, { opacity: 0, duration: 0.7, ease: 'power2.out' }, bar(1));
+      tl.fromTo('#hookline-in', { opacity: 0, y: 80 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power3.out' }, bar(1) + 0.35);
+      tl.fromTo('#tag1-in', { opacity: 0, x: -46 }, { opacity: 1, x: 0, duration: 0.3, ease: 'power2.out' }, bar(1) + 0.6);
+
+      // whip 1 (frogs → forcefield) — velocity-matched at the bar
+      tl.to('#hookline-in', { x: -420, opacity: 0, filter: 'blur(10px)', duration: 0.3, ease: 'power3.in' }, bar(3) - 0.3);
+      tl.set('#hookline-in', { opacity: 0 }, bar(3));
+      tl.to('#tag1-in', { x: -320, opacity: 0, filter: 'blur(8px)', duration: 0.26, ease: 'power3.in' }, bar(3) - 0.26);
+      tl.set('#tag1-in', { opacity: 0 }, bar(3));
+      tl.to('#v-frogs', { x: -560, filter: 'blur(16px)', duration: 0.28, ease: 'power3.in' }, bar(3) - 0.28);
+      tl.set('#v-frogs', { opacity: 0 }, bar(3));
+      tl.fromTo('#v-ff', { x: 560, filter: 'blur(16px)' }, { x: 0, filter: 'blur(0px)', duration: 0.34, ease: 'power3.out' }, bar(3));
+      tl.fromTo('#streak1-in', { x: -2400 }, { x: 2400, duration: 0.44, ease: 'power2.inOut' }, bar(3) - 0.22);
+      tl.fromTo('#flash2', { opacity: 1 }, { opacity: 0, duration: 0.6, ease: 'power2.out' }, bar(3));
+      tl.fromTo('#tag2-in', { opacity: 0, x: 46 }, { opacity: 1, x: 0, duration: 0.3, ease: 'power2.out' }, bar(3) + 0.3);
+
+      // whip 2 (forcefield → snake)
+      tl.to('#tag2-in', { x: -320, opacity: 0, filter: 'blur(8px)', duration: 0.26, ease: 'power3.in' }, bar(4) - 0.26);
+      tl.set('#tag2-in', { opacity: 0 }, bar(4));
+      tl.to('#v-ff', { x: -560, filter: 'blur(16px)', duration: 0.28, ease: 'power3.in' }, bar(4) - 0.28);
+      tl.set('#v-ff', { opacity: 0 }, bar(4));
+      tl.fromTo('#v-snake', { x: 560, filter: 'blur(16px)' }, { x: 0, filter: 'blur(0px)', duration: 0.34, ease: 'power3.out' }, bar(4));
+      tl.fromTo('#streak2-in', { x: -2400 }, { x: 2400, duration: 0.44, ease: 'power2.inOut' }, bar(4) - 0.22);
+      tl.fromTo('#flash3', { opacity: 1 }, { opacity: 0, duration: 0.6, ease: 'power2.out' }, bar(4));
+      tl.fromTo('#tag3-in', { opacity: 0, x: 46 }, { opacity: 1, x: 0, duration: 0.3, ease: 'power2.out' }, bar(4) + 0.3);
+
+      // snake zooms out into the stage; the anaphora card flies in from depth
+      tl.to('#v-snake', { scale: 0.82, opacity: 0, filter: 'blur(10px)', duration: 0.3, ease: 'power2.in' }, bar(5) - 0.3);
+      tl.set('#v-snake', { opacity: 0 }, bar(5));
+      tl.to('#tag3-in', { y: 90, opacity: 0, filter: 'blur(8px)', duration: 0.26, ease: 'power3.in' }, bar(5) - 0.26);
+      tl.set('#tag3-in', { opacity: 0 }, bar(5));
+      tl.to('#shade-hook', { opacity: 0, duration: 0.3, ease: 'power2.in' }, bar(5) - 0.3);
+
+      /* ── BEAT 3 · the anaphora (bars 6–12): slams stack over the tilted card ── */
+      tl.fromTo('#v-card1', { opacity: 0, y: 170, rotation: 3 },
+        { opacity: 1, y: 0, rotation: -2.5, duration: 0.55, ease: 'power3.out' }, bar(5));
+      tl.fromTo('#frame-card1-in', { opacity: 0, y: 170, rotation: 5.5 },
+        { opacity: 1, y: 0, rotation: 0, duration: 0.55, ease: 'power3.out' }, bar(5));
+
+      tl.fromTo('#slam1', { opacity: 0, scale: 2.4 }, { opacity: 1, scale: 1, duration: 0.32, ease: 'power4.out' }, bar(5));
+      tl.fromTo('#slam2', { opacity: 0, scale: 2.4 }, { opacity: 1, scale: 1, duration: 0.32, ease: 'power4.out' }, bar(6));
+      tl.fromTo('#slam3', { opacity: 0, scale: 2.4 }, { opacity: 1, scale: 1, duration: 0.32, ease: 'power4.out' }, bar(7));
+
+      // card cuts every 2 bars (snake → frogs → forcefield), quick pop swaps
+      tl.to('#v-card1', { opacity: 0, filter: 'blur(8px)', duration: 0.25, ease: 'power2.in' }, bar(7) - 0.25);
+      tl.set('#v-card1', { opacity: 0 }, bar(7));
+      tl.to('#frame-card1-in', { opacity: 0, duration: 0.25, ease: 'power2.in' }, bar(7) - 0.25);
+      tl.set('#frame-card1-in', { opacity: 0 }, bar(7));
+      tl.fromTo('#v-card2', { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1.03, duration: 0.4, ease: 'power2.out' }, bar(7));
+      tl.fromTo('#frame-card2-in', { opacity: 0, scale: 1.1 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }, bar(7));
+      tl.to('#v-card2', { opacity: 0, filter: 'blur(8px)', duration: 0.25, ease: 'power2.in' }, bar(9) - 0.25);
+      tl.set('#v-card2', { opacity: 0 }, bar(9));
+      tl.to('#frame-card2-in', { opacity: 0, duration: 0.25, ease: 'power2.in' }, bar(9) - 0.25);
+      tl.set('#frame-card2-in', { opacity: 0 }, bar(9));
+      tl.fromTo('#v-card3', { opacity: 0, scale: 1.12 }, { opacity: 1, scale: 1.03, duration: 0.4, ease: 'power2.out' }, bar(9));
+      tl.fromTo('#frame-card3-in', { opacity: 0, scale: 1.1 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'power2.out' }, bar(9));
+
+      // bar 9: the three compress up, the kid-nag dialog takes the floor
+      tl.to('#slamgroup', { scale: 0.62, y: -36, opacity: 0.45, duration: 0.5, ease: 'power3.inOut' }, bar(8));
+      tl.fromTo('#dialog-no', { opacity: 0, scale: 2.6 }, { opacity: 1, scale: 1, duration: 0.34, ease: 'power4.out' }, bar(8));
+      tl.fromTo('#dialog-chip', { opacity: 0, y: 90, rotation: 3 },
+        { opacity: 1, y: 0, rotation: -1, duration: 0.5, ease: 'back.out(1.4)' }, bar(8) + 0.2);
+      tl.fromTo('#dlg-allow', { scale: 1 }, { scale: 1.07, duration: 0.49, repeat: 5, yoyo: true, ease: 'sine.inOut' }, bar(8) + 0.9);
+      tl.fromTo('#dlg-note', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, bar(9) + 0.4);
+
+      // beat 3 → 4: text whips up, card zooms through camera (velocity-matched)
+      tl.to('#slamgroup', { y: -220, opacity: 0, filter: 'blur(12px)', duration: 0.32, ease: 'power3.in' }, bar(11) - 0.32);
+      tl.set('#slamgroup', { opacity: 0 }, bar(11));
+      tl.to('#dialog-in', { y: -180, opacity: 0, filter: 'blur(12px)', duration: 0.32, ease: 'power3.in' }, bar(11) - 0.32);
+      tl.set('#dialog-in', { opacity: 0 }, bar(11));
+      tl.fromTo('#v-card3', { scale: 1.03, rotation: -2.5, opacity: 1, filter: 'blur(0px)' },
+        { scale: 1.3, opacity: 0, filter: 'blur(8px)', duration: 0.3, ease: 'power2.in' }, bar(11) - 0.3);
+      tl.set('#v-card3', { opacity: 0 }, bar(11));
+      tl.fromTo('#frame-card3-in', { scale: 1, opacity: 1 },
+        { scale: 1.26, opacity: 0, duration: 0.3, ease: 'power2.in' }, bar(11) - 0.3);
+      tl.set('#frame-card3-in', { opacity: 0 }, bar(11));
+
+      /* ── BEAT 4 · breadth constellation (bars 12–20): framed clips fly the stage ── */
+      tl.fromTo('#kicker4-in', { opacity: 0, y: -30 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power2.out' }, bar(11) + 0.15);
+      tl.to('#kicker4-in', { opacity: 0, duration: 0.3, ease: 'power1.in' }, bar(19) - 0.34);
+      // slow camera drift across the constellation
+      tl.to('#stage-grid', { x: -60, duration: 7.869, repeat: 1, yoyo: true, ease: 'sine.inOut' }, bar(11));
+
+      function cardIn(vid, frameIn, t, r, dir) {
+        tl.fromTo(vid, { opacity: 0, y: 190 * dir, rotation: r + 6 * dir, scale: 0.72 },
+          { opacity: 1, y: 0, rotation: r, scale: 1.03, duration: 0.5, ease: 'expo.out' }, t);
+        tl.fromTo(frameIn, { opacity: 0, y: 190 * dir, rotation: 6 * dir, scale: 0.7 },
+          { opacity: 1, y: 0, rotation: 0, scale: 1, duration: 0.5, ease: 'expo.out' }, t);
+      }
+      function cardOut(vid, frameIn, t, r, yEnd) {
+        tl.fromTo(vid, { scale: 1.03, rotation: r, y: yEnd || 0, opacity: 1, filter: 'blur(0px)' },
+          { scale: 1.32, opacity: 0, filter: 'blur(8px)', duration: 0.28, ease: 'power2.in' }, t - 0.28);
+        tl.set(vid, { opacity: 0 }, t);
+        tl.fromTo(frameIn, { scale: 1, rotation: 0, y: yEnd || 0, opacity: 1 },
+          { scale: 1.28, opacity: 0, duration: 0.28, ease: 'power2.in' }, t - 0.28);
+        tl.set(frameIn, { opacity: 0 }, t);
+      }
+      cardIn('#v-stack', '#frame-stack-in', bar(11), -4, 1);
+      tl.fromTo('#v-stack', { y: 0 }, { y: -16, duration: 3.2, ease: 'sine.inOut' }, bar(11) + 0.55);
+      tl.fromTo('#frame-stack-in', { y: 0 }, { y: -16, duration: 3.2, ease: 'sine.inOut' }, bar(11) + 0.55);
+      cardOut('#v-stack', '#frame-stack-in', bar(13), -4, -16);
+      cardIn('#v-2048', '#frame-2048-in', bar(13), 2.5, -1);
+      cardOut('#v-2048', '#frame-2048-in', bar(14), 2.5, 0);
+      cardIn('#v-td', '#frame-td-in', bar(14), -2, 1);
+      cardOut('#v-td', '#frame-td-in', bar(15), -2, 0);
+      cardIn('#v-ast', '#frame-ast-in', bar(15), 3, -1);
+      cardOut('#v-ast', '#frame-ast-in', bar(16), 3, 0);
+      cardIn('#v-kit', '#frame-kit-in', bar(16), -3, 1);
+      cardOut('#v-kit', '#frame-kit-in', bar(17), -3, 0);
+      cardIn('#v-mem', '#frame-mem-in', bar(17), 1.5, -1);
+      tl.fromTo('#v-mem', { y: 0 }, { y: -14, duration: 3.2, ease: 'sine.inOut' }, bar(17) + 0.55);
+      tl.fromTo('#frame-mem-in', { y: 0 }, { y: -14, duration: 3.2, ease: 'sine.inOut' }, bar(17) + 0.55);
+      cardOut('#v-mem', '#frame-mem-in', bar(19), 1.5, -14);
+
+      /* ── BEAT 5 · any device + offline (bars 20–25) ── */
+      tl.fromTo('#v-flap1', { scale: 1.24, filter: 'blur(12px)' },
+        { scale: 1.03, filter: 'blur(0px)', duration: 0.55, ease: 'expo.out' }, bar(19));
+      tl.fromTo('#flash4', { opacity: 1 }, { opacity: 0, duration: 0.7, ease: 'power2.out' }, bar(19));
+      tl.fromTo('#cap-any-in', { opacity: 0, y: 80 }, { opacity: 1, y: 0, duration: 0.45, ease: 'power3.out' }, bar(19) + 0.3);
+
+      // full-bleed flappy SHRINKS toward the phone spot; the bezel takes over on the bar
+      tl.to('#cap-any-in', { y: -140, opacity: 0, filter: 'blur(10px)', duration: 0.3, ease: 'power3.in' }, bar(21) - 0.34);
+      tl.set('#cap-any-in', { opacity: 0 }, bar(21));
+      tl.to('#v-flap1', { scale: 0.36, x: -320, y: 150, filter: 'blur(6px)', duration: 0.5, ease: 'power3.inOut' }, bar(21) - 0.5);
+      tl.set('#v-flap1', { opacity: 0 }, bar(21));
+      tl.fromTo('#v-flap2', { opacity: 0, scale: 1.55 }, { opacity: 1, scale: 1.03, duration: 0.55, ease: 'expo.out' }, bar(21));
+      tl.fromTo('#phone-in', { opacity: 0, scale: 1.5 }, { opacity: 1, scale: 1, duration: 0.55, ease: 'expo.out' }, bar(21));
+      tl.set('#wifi-slash', { scaleX: 0 }, bar(21));
+      tl.set('#stillchip', { opacity: 0 }, bar(21));
+
+      tl.fromTo('#off-h1', { opacity: 0, x: 90 }, { opacity: 1, x: 0, duration: 0.5, ease: 'power3.out' }, bar(21) + 0.3);
+      tl.fromTo('#off-rule', { scaleX: 0 }, { scaleX: 1, duration: 0.5, ease: 'power2.out' }, bar(21) + 0.55);
+      tl.fromTo('#off-r1', { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out' }, bar(21) + 0.75);
+      tl.fromTo('#off-r2', { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.4, ease: 'power2.out' }, bar(21) + 1.0);
+
+      // bar 23: the wifi slashes off — it still plays
+      tl.to('#wifi-slash', { scaleX: 1, duration: 0.25, ease: 'power4.out' }, bar(22));
+      tl.to('#wifi-arcs', { opacity: 0.22, duration: 0.22, ease: 'power1.in' }, bar(22) + 0.05);
+      tl.fromTo('#stillchip', { opacity: 0, scale: 0.6 }, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2)' }, bar(22) + 0.3);
+      tl.fromTo('#phone-in', { y: 0 }, { y: -10, duration: 1.6, repeat: 1, yoyo: true, ease: 'sine.inOut' }, bar(22) + 0.8);
+      tl.fromTo('#v-flap2', { y: 0 }, { y: -10, duration: 1.6, repeat: 1, yoyo: true, ease: 'sine.inOut' }, bar(22) + 0.8);
+
+      // beat 5 → 6: blur-through
+      tl.fromTo('#v-flap2', { scale: 1.03, opacity: 1, filter: 'blur(0px)' },
+        { opacity: 0, filter: 'blur(12px)', scale: 0.94, duration: 0.3, ease: 'power2.in' }, bar(24) - 0.3);
+      tl.set('#v-flap2', { opacity: 0 }, bar(24));
+      tl.fromTo('#phone-in', { scale: 1, opacity: 1 },
+        { opacity: 0, filter: 'blur(12px)', scale: 0.92, duration: 0.3, ease: 'power2.in' }, bar(24) - 0.3);
+      tl.set('#phone-in', { opacity: 0 }, bar(24));
+      tl.to('#cap-off-in', { y: -140, opacity: 0, filter: 'blur(10px)', duration: 0.3, ease: 'power3.in' }, bar(24) - 0.32);
+      tl.set('#cap-off-in', { opacity: 0 }, bar(24));
+
+      /* ── BEAT 6 · the collection (bars 25–27) ── */
+      tl.fromTo('#v-coll', { opacity: 0, y: 150, rotation: 6, scale: 0.8 },
+        { opacity: 1, y: 0, rotation: 2, scale: 1.03, duration: 0.55, ease: 'expo.out' }, bar(24));
+      tl.fromTo('#frame-coll-in', { opacity: 0, y: 150, rotation: 4, scale: 0.78 },
+        { opacity: 1, y: 0, rotation: 0, scale: 1, duration: 0.55, ease: 'expo.out' }, bar(24));
+      tl.fromTo('#cap-coll-in', { opacity: 0, x: -90 }, { opacity: 1, x: 0, duration: 0.5, ease: 'power3.out' }, bar(24) + 0.3);
+
+      // beat 6 → CTA: zoom through
+      tl.fromTo('#v-coll', { scale: 1.03, rotation: 2, opacity: 1, filter: 'blur(0px)' },
+        { scale: 1.3, opacity: 0, filter: 'blur(10px)', duration: 0.3, ease: 'power2.in' }, bar(26) - 0.3);
+      tl.set('#v-coll', { opacity: 0 }, bar(26));
+      tl.fromTo('#frame-coll-in', { scale: 1, opacity: 1 },
+        { scale: 1.26, opacity: 0, duration: 0.3, ease: 'power2.in' }, bar(26) - 0.3);
+      tl.set('#frame-coll-in', { opacity: 0 }, bar(26));
+      tl.to('#cap-coll-in', { opacity: 0, x: -90, filter: 'blur(8px)', duration: 0.28, ease: 'power2.in' }, bar(26) - 0.3);
+      tl.set('#cap-coll-in', { opacity: 0 }, bar(26));
+
+      /* ── BEAT 7 · CTA end card (bars 27–30, lingers) ── */
+      tl.to('#stage-bloom', { opacity: 0.9, duration: 1.6, ease: 'sine.out' }, bar(26));
+      tl.fromTo('#cta-word', { opacity: 0, y: 70, scale: 0.9 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: 'back.out(1.6)' }, bar(26) + 0.1);
+      tl.fromTo('#cta-mascot', { opacity: 0, y: 40, rotation: -14 }, { opacity: 1, y: 0, rotation: 0, duration: 0.55, ease: 'back.out(1.8)' }, bar(26) + 0.3);
+      tl.fromTo('#cta-tag', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, bar(26) + 0.4);
+      tl.fromTo('#cta-pills div', { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out', stagger: 0.08 }, bar(26) + 0.6);
+      tl.fromTo('#qrcard', { opacity: 0, scale: 0.7 }, { opacity: 1, scale: 1, duration: 0.5, ease: 'back.out(2)' }, bar(26) + 0.9);
+      tl.fromTo('#cta-url', { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.4, ease: 'power2.out' }, bar(26) + 1.15);
+      tl.to('#cta-mascot', { y: -12, duration: 1.5, repeat: 1, yoyo: true, ease: 'sine.inOut' }, bar(27) + 0.5);
+      tl.to('#qrcard', { scale: 1.03, duration: 1.5, repeat: 1, yoyo: true, ease: 'sine.inOut' }, bar(27) + 0.7);
+
+      // music: fade out over the final 2s
+      tl.to('#bgm', { volume: 0, duration: 2.0, ease: 'power1.in' }, 55.1);
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

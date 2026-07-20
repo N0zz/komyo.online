@@ -1,0 +1,359 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <script src="assets/qr.js"></script>
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         PER-GAME TRAILER TEMPLATE · V2 "STAGE" (9:16) — the cinematic register.
+         The score-card WORLD as a stage: dark canvas, top bloom, perspective grid floor,
+         drifting sparkles. ONE game's gameplay lives in a neon card up top that flies /
+         whips through the stage on the bar grid; a mono gametag + big Archivo feature line
+         sit in a clean band BELOW the card; brand ticks up top; lingering CTA.
+         Real-time 60fps footage (no slow-mo) → smooth motion; render at 60fps (root data-fps).
+
+         RETARGET (≈5 min): CONFIG + DOM text (hook / feature lines / gametag / CTA) +
+         swap the 4 <video src> + set --accent on <body>.
+         DATA-* windows align to the forcefield bar grid (BAR 1.875). For the snakebanger
+         bed, scale every data-start/data-duration by 1.0492 and set BAR 1.96721 + swap
+         the <audio src> (mechanical pass; the shipped template is single-bpm).
+    ═══════════════════════════════════════════════════════════════════════════ -->
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #0b0e17; }
+      body { font-family: Montserrat, sans-serif; --accent: #38bdf8; --ink: #0b0e17; }
+
+      .stage { position: absolute; inset: 0; pointer-events: none; }
+      .stage-fill { position: absolute; inset: 0; background: #0b0e17; }
+      .stage-bloom { position: absolute; inset: 0;
+        background: radial-gradient(80% 32% at 50% -8%, color-mix(in srgb, var(--accent) 32%, transparent) 0%, transparent 72%); }
+      .stage-bloom2 { position: absolute; inset: 0;
+        background: radial-gradient(60% 22% at 84% 110%, color-mix(in srgb, var(--accent) 12%, transparent) 0%, transparent 70%); }
+      .stage-canvas { position: absolute; inset: 0; }
+      .vig { position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(120% 120% at 50% 50%, rgba(4,6,12,0) 56%, rgba(4,6,12,.5) 100%); }
+
+      .cardvid { position: absolute; object-fit: cover; object-position: 50% 12%;
+                 border-radius: 22px; transform-origin: 50% 50%; }
+
+      .accflash { position: absolute; inset: 16px; border: 10px solid var(--accent);
+        border-radius: 40px; opacity: 0; pointer-events: none;
+        box-shadow: 0 0 60px color-mix(in srgb, var(--accent) 60%, transparent),
+                    inset 0 0 60px color-mix(in srgb, var(--accent) 45%, transparent); }
+
+      .streak { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+      .streak div { position: absolute; top: -60px; bottom: -60px; width: 720px; left: 180px;
+        transform: skewX(-14deg);
+        background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.34) 48%, rgba(255,255,255,0) 100%); }
+
+      /* brand ticks up top, clear of the card */
+      .meta { position: absolute; inset: 0; pointer-events: none; }
+      .meta .chip { position: absolute; font-family: 'JetBrains Mono', monospace; font-size: 24px;
+        font-weight: 700; letter-spacing: .05em; color: #9fb2c8;
+        background: rgba(11,14,23,.72); border-radius: 10px; padding: 8px 16px; }
+      .meta .tick { position: absolute; width: 42px; height: 42px; opacity: .5; }
+      .meta .tick i { position: absolute; background: #3f5468; display: block; }
+
+      /* mono "now playing" tab on the card top-left */
+      .gametag { position: absolute; left: 118px; top: 332px; font-family: 'JetBrains Mono', monospace;
+        font-size: 28px; font-weight: 700; letter-spacing: .08em; color: #eef4fc;
+        background: rgba(11,14,23,.82); border-left: 6px solid var(--accent);
+        border-radius: 10px; padding: 10px 22px; }
+      .gametag b { color: var(--accent); }
+
+      /* ── feature text band, BELOW the card ── */
+      .slamgroup { position: absolute; left: 64px; right: 64px; top: 1470px; text-align: center; transform-origin: center top; }
+      .slam { font-family: 'Archivo Black', sans-serif; font-size: 92px; line-height: 1.0;
+        letter-spacing: -0.02em; color: #fff;
+        text-shadow: 0 6px 30px rgba(0,0,0,.8), 0 0 46px color-mix(in srgb, var(--accent) 45%, transparent); }
+      .slam em { font-style: normal; color: var(--accent); }
+      .feat { position: absolute; left: 64px; right: 64px; top: 1470px; text-align: center;
+        font-family: 'Archivo Black', sans-serif; font-size: 88px; line-height: 1.0;
+        letter-spacing: -0.02em; color: #fff;
+        text-shadow: 0 6px 30px rgba(0,0,0,.8), 0 0 44px color-mix(in srgb, var(--accent) 42%, transparent); }
+      .feat b { color: var(--accent); }
+
+      .cardframe { position: absolute; inset: 0; pointer-events: none; }
+      .cframe { position: absolute; border: 3px solid color-mix(in srgb, var(--accent) 70%, transparent);
+        border-radius: 26px;
+        box-shadow: 0 0 46px color-mix(in srgb, var(--accent) 42%, transparent),
+                    inset 0 0 34px color-mix(in srgb, var(--accent) 22%, transparent),
+                    0 34px 70px rgba(0,0,0,.5); }
+      .cecho { position: absolute; border: 2px solid color-mix(in srgb, var(--accent) 26%, transparent);
+        border-radius: 26px; }
+      .cardsub { position: absolute; font-family: 'JetBrains Mono', monospace; font-size: 23px; font-weight: 400;
+        color: #9fb2c8; letter-spacing: .06em; background: rgba(11,14,23,.7); border-radius: 8px; padding: 7px 16px; }
+
+      /* CTA end card */
+      .ctawrap { position: absolute; left: 0; right: 0; top: 430px; bottom: 430px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+      .ctamark-row { display: flex; align-items: flex-end; gap: 28px; }
+      .ctamark { font-family: 'Archivo Black', sans-serif; font-size: 150px; letter-spacing: -0.01em; line-height: 1;
+        background: linear-gradient(180deg, #fff 30%, var(--accent) 120%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        filter: drop-shadow(0 0 42px color-mix(in srgb, var(--accent) 45%, transparent)); }
+      .mascot { width: 112px; height: 112px; }
+      .ctatag { margin-top: 22px; font-size: 48px; font-weight: 800; color: #e8ecf6; }
+      .ctapills { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; max-width: 860px; }
+      .ctapills div { font-size: 32px; font-weight: 700; color: #cfe9e2;
+        border: 2px solid color-mix(in srgb, var(--accent) 30%, transparent); border-radius: 999px; padding: 11px 26px;
+        background: rgba(255,255,255,.05); }
+      .qr-card { margin-top: 44px; background: #fff; border-radius: 30px; padding: 26px 26px 12px; text-align: center;
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 70%, transparent), 0 22px 70px rgba(0,0,0,.5); }
+      .qr-card canvas { display: block; width: 300px; height: 300px; image-rendering: pixelated; }
+      .qr-card p { font-size: 25px; font-weight: 800; color: var(--ink); padding: 10px 0 6px; font-family: Montserrat, sans-serif; }
+      .ctaurl { margin-top: 40px; font-family: 'JetBrains Mono', monospace; font-size: 44px; font-weight: 700;
+        color: var(--accent); text-shadow: 0 0 34px color-mix(in srgb, var(--accent) 50%, transparent); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-fps="60" data-start="0" data-duration="24.131" data-width="1080" data-height="1920">
+
+      <div id="stage" class="clip stage" data-start="0" data-duration="24.131" data-track-index="0">
+        <div class="stage-fill"></div>
+        <div id="stage-bloom" class="stage-bloom"></div>
+        <div class="stage-bloom2"></div>
+        <canvas id="stage-grid" class="stage-canvas" width="1080" height="1920"></canvas>
+        <canvas id="stage-spark" class="stage-canvas" width="1080" height="1920"></canvas>
+      </div>
+
+      <!-- gameplay beats — real-time 60fps windows of the one capture -->
+      <video id="v1" class="clip cardvid" src="assets/footage/forcefield_p.mp4"
+             style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(-2.5deg)"
+             data-start="0"     data-duration="4.197" data-media-start="6" data-track-index="1" muted playsinline></video>
+      <video id="v2" class="clip cardvid" src="assets/footage/forcefield_p.mp4"
+             style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(2.5deg)"
+             data-start="3.997"  data-duration="4.144" data-media-start="37" data-track-index="2" muted playsinline></video>
+      <video id="v3" class="clip cardvid" src="assets/footage/forcefield_p.mp4"
+             style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(-2.5deg)"
+             data-start="7.932"  data-duration="4.144" data-media-start="76" data-track-index="3" muted playsinline></video>
+      <video id="v4" class="clip cardvid" src="assets/footage/forcefield_p.mp4"
+             style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(2deg)"
+             data-start="11.866" data-duration="3.462"  data-media-start="138" data-track-index="4" muted playsinline></video>
+
+      <div id="f1" class="clip cardframe" data-start="0" data-duration="4.197" data-track-index="5">
+        <div id="f1-in" style="position:absolute; inset:0; transform-origin: 540px 870px;">
+          <div class="cecho" style="left:110px; top:330px; width:860px; height:1080px; transform: rotate(-2.5deg)"></div>
+          <div class="cframe" style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(-2.5deg)"></div>
+          <div class="cardsub" style="left:120px; top:1385px; transform: rotate(-2.5deg)">live gameplay — forcefield</div>
+        </div>
+      </div>
+      <div id="f2" class="clip cardframe" data-start="3.997" data-duration="4.144" data-track-index="6">
+        <div id="f2-in" style="position:absolute; inset:0; transform-origin: 540px 870px;">
+          <div class="cecho" style="left:110px; top:330px; width:860px; height:1080px; transform: rotate(2.5deg)"></div>
+          <div class="cframe" style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(2.5deg)"></div>
+        </div>
+      </div>
+      <div id="f3" class="clip cardframe" data-start="7.932" data-duration="4.144" data-track-index="7">
+        <div id="f3-in" style="position:absolute; inset:0; transform-origin: 540px 870px;">
+          <div class="cecho" style="left:110px; top:330px; width:860px; height:1080px; transform: rotate(-2.5deg)"></div>
+          <div class="cframe" style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(-2.5deg)"></div>
+        </div>
+      </div>
+      <div id="f4" class="clip cardframe" data-start="11.866" data-duration="3.462" data-track-index="8">
+        <div id="f4-in" style="position:absolute; inset:0; transform-origin: 540px 870px;">
+          <div class="cecho" style="left:110px; top:330px; width:860px; height:1080px; transform: rotate(2deg)"></div>
+          <div class="cframe" style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(2deg)"></div>
+        </div>
+      </div>
+
+      <div id="slamwrap" class="clip" style="position:absolute; inset:0; pointer-events:none"
+           data-start="0" data-duration="4.197" data-track-index="9">
+        <div id="slamgroup" class="slamgroup">
+          <div class="slam">HOLD THE <em>LINE.</em></div>
+        </div>
+      </div>
+      <div id="feat2" class="clip feat" data-start="3.997" data-duration="4.144" data-track-index="10">
+        <div id="feat2-in">slide to <b>block</b></div>
+      </div>
+      <div id="feat3" class="clip feat" data-start="7.932" data-duration="4.144" data-track-index="11">
+        <div id="feat3-in"><b>chain</b> the combo</div>
+      </div>
+      <div id="feat4" class="clip feat" data-start="11.866" data-duration="3.462" data-track-index="12">
+        <div id="feat4-in"><b>solo</b> or <b>2-player</b></div>
+      </div>
+
+      <div id="gametag" class="clip gametag" data-start="0.21" data-duration="14.793" data-track-index="13">
+        <span id="gametag-in">🌐 FORCEFIELD · <b>SKILL</b></span>
+      </div>
+
+      <div id="flash1" class="clip accflash" data-start="0"     data-duration="1.154" data-track-index="15"></div>
+      <div id="flash2" class="clip accflash" data-start="3.997"  data-duration="1.154" data-track-index="16"></div>
+      <div id="flash3" class="clip accflash" data-start="7.932"  data-duration="1.154" data-track-index="17"></div>
+      <div id="flash4" class="clip accflash" data-start="11.866" data-duration="1.154" data-track-index="18"></div>
+
+      <div id="streak1" class="clip streak" data-layout-ignore data-start="3.672"  data-duration="0.734" data-track-index="19"><div id="streak1-in"></div></div>
+      <div id="streak2" class="clip streak" data-layout-ignore data-start="7.607" data-duration="0.734" data-track-index="20"><div id="streak2-in"></div></div>
+      <div id="streak3" class="clip streak" data-layout-ignore data-start="11.541" data-duration="0.734" data-track-index="21"><div id="streak3-in"></div></div>
+
+      <div id="meta" class="clip meta" data-layout-ignore data-start="0.472" data-duration="14.426" data-track-index="22">
+        <div id="meta-in">
+          <div class="chip" style="left:56px; top:205px; color: var(--accent)">komyo.online</div>
+          <div class="chip" style="right:56px; top:205px">free forever</div>
+          <div class="tick" style="left:26px; top:169px"><i style="width:100%;height:3px"></i><i style="width:3px;height:100%"></i></div>
+          <div class="tick" style="right:26px; top:169px"><i style="width:100%;height:3px"></i><i style="width:3px;height:100%;right:0;position:absolute"></i></div>
+        </div>
+      </div>
+
+      <div id="vig" class="clip vig" data-start="0" data-duration="24.131" data-track-index="23"></div>
+
+      <div id="cta" class="clip" style="position:absolute; inset:0" data-start="15.014" data-duration="9.117" data-track-index="24">
+        <div class="ctawrap">
+          <div class="ctamark-row">
+            <div id="cta-word" class="ctamark">komyo</div>
+            <img id="cta-mascot" class="mascot" src="assets/brand/mascot-head.svg" alt="" />
+          </div>
+          <div id="cta-tag" class="ctatag">play Forcefield free</div>
+          <div id="cta-pills" class="ctapills">
+            <div>free</div><div>no ads</div><div>no accounts</div><div>works offline</div>
+          </div>
+          <div id="qrcard" class="qr-card">
+            <canvas id="qr" width="300" height="300"></canvas>
+            <p>scan to play</p>
+          </div>
+          <div id="cta-url" class="ctaurl">komyo.online/games/forcefield</div>
+        </div>
+      </div>
+
+      <!-- ══ MUSIC — swap src + BAR together ══ -->
+      <audio id="bgm" src="assets/audio/snakebanger-76s.m4a"
+             data-start="0" data-duration="24.131" data-media-start="0" data-track-index="25" data-volume="1"></audio>
+    </div>
+
+    <script>
+      /* ════════════ CONFIG (edit per game) ════════════ */
+      var GAME = { accent: '#38bdf8',
+        qrUrl: 'https://komyo.online/games/forcefield?utm_source=tr&utm_medium=qr',
+        sparkSeed: 3801 };
+      /* ════════════ MUSIC — keep in lockstep with data-* windows ════════════ */
+      var BAR = 1.96721;          /* forcefield 128bpm; snakebanger 122bpm → 1.96721 */
+      function bar(n) { return 0.06 + n * BAR; }
+      /* ═══════════════════════════════════════════════ */
+
+      (function () {
+        var c = document.getElementById('qr');
+        var q = window.KOMYO_QR && window.KOMYO_QR.encode(GAME.qrUrl);
+        if (!c || !q) return;
+        var g = c.getContext('2d');
+        var quiet = 2, n = q.size + quiet * 2, px = Math.floor(c.width / n);
+        var off = Math.floor((c.width - px * n) / 2) + quiet * px;
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = '#0b0e17';
+        for (var y = 0; y < q.size; y++)
+          for (var x = 0; x < q.size; x++)
+            if (q.modules[y][x]) g.fillRect(off + x * px, off + y * px, px, px);
+      })();
+
+      function mulberry(seed) { var s = seed; return function () {
+        s |= 0; s = (s + 0x6D2B79F5) | 0; var t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+      (function () {
+        var c = document.getElementById('stage-grid'); if (!c) return;
+        var g = c.getContext('2d'), W = 1080, H = 1920, ACC = GAME.accent;
+        var hz = H * 0.62, cx = W / 2;
+        g.strokeStyle = ACC; g.lineWidth = 1.5; g.globalAlpha = 0.1;
+        for (var i = -9; i <= 9; i++) { g.beginPath(); g.moveTo(cx + i * 110, hz); g.lineTo(cx + i * 110 * 2.8, H + 60); g.stroke(); }
+        g.globalAlpha = 0.08;
+        for (var j = 1; j <= 7; j++) { var gy = hz + (H - hz) * Math.pow(j / 7, 1.8); g.beginPath(); g.moveTo(0, gy); g.lineTo(W, gy); g.stroke(); }
+        g.globalAlpha = 0.12; g.beginPath(); g.moveTo(0, hz); g.lineTo(W, hz); g.stroke();
+        g.globalAlpha = 1;
+      })();
+
+      (function () {
+        var c = document.getElementById('stage-spark'); if (!c) return;
+        var g = c.getContext('2d'), W = 1080, H = 1920, ACC = GAME.accent, rnd = mulberry(GAME.sparkSeed);
+        for (var p = 0; p < 16; p++) {
+          var sz = 3 + rnd() * 10, px = W * (0.04 + rnd() * 0.92), py = H * (0.04 + rnd() * 0.52);
+          var pa = (rnd() * 0.5 + 0.3) * 0.65, hr = sz * 3.2;
+          var hg = g.createRadialGradient(px, py, 0, px, py, hr); hg.addColorStop(0, ACC); hg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.globalAlpha = pa * 0.35; g.fillStyle = hg; g.beginPath(); g.arc(px, py, hr, 0, 6.29); g.fill();
+          g.globalAlpha = pa; g.fillStyle = rnd() < 0.35 ? '#fff' : ACC;
+          g.beginPath(); g.arc(px, py, sz / 2, 0, 6.29); g.fill();
+        }
+        g.globalAlpha = 1;
+      })();
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // stage lives + breathes
+      tl.fromTo('#stage-grid', { opacity: 0, y: 150 }, { opacity: 1, y: 0, duration: 1.1, ease: 'power2.out' }, 0.1);
+      tl.fromTo('#stage-bloom', { opacity: 0 }, { opacity: 0.75, duration: 1.0, ease: 'sine.out' }, 0.15);
+      tl.fromTo('#stage-spark', { opacity: 0 }, { opacity: 1, duration: 1.0, ease: 'sine.out' }, 0.3);
+      tl.fromTo('#stage-spark', { y: 20 }, { y: -24, duration: 22, ease: 'none' }, 1.0);
+      tl.to('#stage-grid', { scale: 1.05, duration: 21, ease: 'sine.inOut' }, 1.2);
+      tl.to('#stage-bloom', { opacity: 0.5, duration: 2.4, repeat: 8, yoyo: true, ease: 'sine.inOut' }, 2.2);
+      tl.fromTo('#meta-in', { opacity: 0 }, { opacity: 1, duration: 0.7, ease: 'power1.out' }, 0.6);
+      tl.to('#meta-in', { opacity: 0, duration: 0.35, ease: 'power1.in' }, bar(7.22));
+      tl.set('#meta-in', { opacity: 0 }, bar(7.43));
+      tl.from('#gametag-in', { opacity: 0, x: -46, duration: 0.35, ease: 'power2.out' }, 0.4);
+      tl.to('#gametag-in', { opacity: 0, x: -60, duration: 0.3, ease: 'power2.in' }, bar(7.22));
+      tl.set('#gametag-in', { opacity: 0 }, bar(7.41));
+
+      // ── beat 1 (bars 0–2): hero card flies up + HOLD THE LINE ──
+      tl.fromTo('#v1', { opacity: 0, y: 180, rotation: 3, scale: 0.72 },
+        { opacity: 1, y: 0, rotation: -2.5, scale: 1, duration: 0.6, ease: 'expo.out' }, 0.1);
+      tl.fromTo('#f1-in', { opacity: 0, y: 180, rotation: 6, scale: 0.7 },
+        { opacity: 1, y: 0, rotation: 0, scale: 1, duration: 0.6, ease: 'expo.out' }, 0.1);
+      tl.fromTo('#flash1', { opacity: 1 }, { opacity: 0, duration: 0.7, ease: 'power2.out' }, 0.1);
+      tl.set('#flash1', { opacity: 0 }, 0.9);
+      tl.from('#slamgroup', { opacity: 0, y: 60, scale: 0.82, duration: 0.4, ease: 'back.out(1.6)' }, 0.35);
+
+      function beatOut(vid, fr, txt, t) {
+        var e = t - 0.05;
+        tl.to(vid, { x: -460, filter: 'blur(16px)', opacity: 0, duration: 0.3, ease: 'power3.in' }, e - 0.3);
+        tl.set(vid, { opacity: 0 }, e);
+        tl.to(fr, { x: -460, opacity: 0, filter: 'blur(10px)', duration: 0.3, ease: 'power3.in' }, e - 0.3);
+        tl.set(fr, { opacity: 0 }, e);
+        if (txt) { tl.to(txt, { y: 60, opacity: 0, filter: 'blur(10px)', duration: 0.3, ease: 'power3.in' }, e - 0.3);
+                   tl.set(txt, { opacity: 0 }, e); }
+      }
+      function beatIn(vid, fr, feat, t) {
+        tl.fromTo(vid, { x: 460, filter: 'blur(16px)', opacity: 0 },
+          { x: 0, filter: 'blur(0px)', opacity: 1, duration: 0.36, ease: 'power3.out' }, t);
+        tl.fromTo(fr, { x: 460, opacity: 0 }, { x: 0, opacity: 1, duration: 0.36, ease: 'power3.out' }, t);
+        if (feat) tl.fromTo(feat, { opacity: 0, y: 60, scale: 0.84 }, { opacity: 1, y: 0, scale: 1, duration: 0.4, ease: 'back.out(1.5)' }, t + 0.18);
+      }
+      function streak(s, t) { tl.fromTo(s, { x: -1500 }, { x: 1500, duration: 0.44, ease: 'power2.inOut' }, t - 0.24); }
+      function flash(f, t) { tl.fromTo(f, { opacity: 1 }, { opacity: 0, duration: 0.6, ease: 'power2.out' }, t); tl.set(f, { opacity: 0 }, t + 0.7); }
+
+      beatOut('#v1', '#f1-in', '#slamgroup', bar(2));
+      beatIn('#v2', '#f2-in', '#feat2-in', bar(2));
+      streak('#streak1-in', bar(2)); flash('#flash2', bar(2));
+
+      beatOut('#v2', '#f2-in', '#feat2-in', bar(4));
+      beatIn('#v3', '#f3-in', '#feat3-in', bar(4));
+      streak('#streak2-in', bar(4)); flash('#flash3', bar(4));
+
+      beatOut('#v3', '#f3-in', '#feat3-in', bar(6));
+      beatIn('#v4', '#f4-in', '#feat4-in', bar(6));
+      streak('#streak3-in', bar(6)); flash('#flash4', bar(6));
+
+      // hand off to CTA — last card zooms through camera
+      var HO = bar(7.6);
+      tl.to('#v4', { scale: 1.34, opacity: 0, filter: 'blur(10px)', duration: 0.34, ease: 'power2.in' }, HO - 0.39);
+      tl.set('#v4', { opacity: 0 }, HO - 0.05);
+      tl.to('#f4-in', { scale: 1.3, opacity: 0, duration: 0.34, ease: 'power2.in' }, HO - 0.39);
+      tl.set('#f4-in', { opacity: 0 }, HO - 0.05);
+      tl.to('#feat4-in', { y: -120, opacity: 0, filter: 'blur(10px)', duration: 0.3, ease: 'power3.in' }, HO - 0.35);
+      tl.set('#feat4-in', { opacity: 0 }, HO - 0.05);
+
+      // ── CTA ──
+      tl.to('#stage-bloom', { opacity: 0.92, duration: 1.4, ease: 'sine.out' }, HO);
+      tl.from('#cta-word', { opacity: 0, y: 70, scale: 0.9, duration: 0.5, ease: 'back.out(1.6)' }, HO);
+      tl.from('#cta-mascot', { opacity: 0, y: 40, rotation: -14, duration: 0.55, ease: 'back.out(1.8)' }, HO + 0.2);
+      tl.from('#cta-tag', { opacity: 0, y: 40, duration: 0.4, ease: 'power2.out' }, HO + 0.3);
+      tl.from('#cta-pills div', { opacity: 0, y: 34, duration: 0.35, ease: 'power2.out', stagger: 0.08 }, HO + 0.5);
+      tl.from('#qrcard', { opacity: 0, scale: 0.7, duration: 0.5, ease: 'back.out(2)' }, HO + 0.8);
+      tl.from('#cta-url', { opacity: 0, y: 30, duration: 0.4, ease: 'power2.out' }, HO + 1.05);
+      tl.to('#cta-mascot', { y: -12, duration: 1.5, repeat: 1, yoyo: true, ease: 'sine.inOut' }, HO + 1.6);
+      tl.to('#qrcard', { scale: 1.03, duration: 1.5, repeat: 1, yoyo: true, ease: 'sine.inOut' }, HO + 1.8);
+
+      tl.to('#bgm', { volume: 0, duration: 2.0, ease: 'power1.in' }, 22.033);
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

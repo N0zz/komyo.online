@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en" data-resolution="portrait">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1080, height=1920" />
+    <script src="assets/gsap.min.js"></script>
+    <script src="assets/qr.js"></script>
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         PER-GAME TRAILER TEMPLATE · V3 "HYPE" (9:16) — the high-energy register.
+         A different grammar from V2: near-full-bleed, colour-graded gameplay with BIG
+         kinetic Archivo word-slams punching in on the beat (and on in-game juice), full-
+         frame flash-cuts, a screen shake on the hit, scanline + vignette grade. No floating
+         cards — the screen IS the stage; type explodes over it. Still komyo-themed (accent
+         glow, mono register, same CTA end card).
+
+         RETARGET (≈5 min): CONFIG + the word-slam DOM text + the CTA + swap <video src> +
+         set --accent on <body>.
+         DATA-* windows align to the forcefield bar grid (BAR 1.875); for the snakebanger
+         bed, scale data-start/data-duration by 1.0492 and set BAR 1.96721 + swap <audio src>.
+    ═══════════════════════════════════════════════════════════════════════════ -->
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1080px; height: 1920px; overflow: hidden; background: #04060c; }
+      body { font-family: Montserrat, sans-serif; --accent: #38bdf8; --ink: #0b0e17; }
+
+      /* near-full-bleed graded gameplay (space bg blends the crop) */
+      .bed { position: absolute; inset: 0; width: 1080px; height: 1920px;
+             object-fit: cover; object-position: 50% 50%;
+             filter: brightness(1.12) contrast(1.14) saturate(1.32); }
+
+      /* grade overlays */
+      .scan { position: absolute; inset: 0; pointer-events: none; opacity: .5;
+        background: repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0px, rgba(0,0,0,.16) 2px, rgba(0,0,0,0) 3px, rgba(0,0,0,0) 5px); }
+      .grade { position: absolute; inset: 0; pointer-events: none;
+        background:
+          radial-gradient(120% 100% at 50% 42%, rgba(4,6,12,0) 40%, rgba(4,6,12,.66) 100%),
+          radial-gradient(90% 40% at 50% -6%, color-mix(in srgb, var(--accent) 20%, transparent) 0%, transparent 70%),
+          linear-gradient(180deg, rgba(4,6,12,.5) 0%, transparent 16%, transparent 78%, rgba(4,6,12,.75) 100%); }
+      .flash { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: #fff; }
+      .flashacc { position: absolute; inset: 0; pointer-events: none; opacity: 0; background: var(--accent); mix-blend-mode: screen; }
+
+      /* kinetic word slams (center, over gameplay) */
+      .slam { position: absolute; left: 40px; right: 40px; text-align: center;
+        font-family: 'Archivo Black', sans-serif; letter-spacing: -0.02em; color: #fff;
+        text-shadow: 0 8px 34px rgba(0,0,0,.9), 0 0 60px color-mix(in srgb, var(--accent) 60%, transparent),
+                     0 0 3px rgba(0,0,0,.55); }
+      .slam em { font-style: normal; color: var(--accent); }
+      .s-a { top: 760px; font-size: 176px; line-height: 0.98; }
+      .s-b { top: 800px; font-size: 150px; line-height: 1.02; }
+      .s-q { top: 820px; font-size: 118px; line-height: 1.06; }
+
+      /* giant juice number */
+      .numpop { position: absolute; left: 0; right: 0; top: 560px; text-align: center;
+        font-family: 'Archivo Black', sans-serif; font-size: 300px; line-height: 1; color: var(--accent);
+        text-shadow: 0 0 70px color-mix(in srgb, var(--accent) 80%, transparent), 0 10px 40px rgba(0,0,0,.7); }
+      .numpop small { display: block; font-size: 64px; letter-spacing: .1em; color: #fff; margin-top: -10px; }
+
+      .brand-pill { position: absolute; top: 150px; left: 44px;
+        font-size: 36px; font-weight: 800; letter-spacing: .03em; color: #fff;
+        background: rgba(4,6,12,.55); border: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+        border-radius: 999px; padding: 12px 26px; }
+      .brand-pill span { color: var(--accent); }
+      .gametag { position: absolute; top: 158px; right: 44px; font-family: 'JetBrains Mono', monospace;
+        font-size: 28px; font-weight: 700; letter-spacing: .06em; color: #cfe0f0;
+        background: rgba(4,6,12,.5); border-radius: 10px; padding: 11px 18px; }
+      .gametag b { color: var(--accent); }
+
+      /* CTA end card */
+      .endcard { position: absolute; inset: 0; color: #fff; text-align: center;
+        background: radial-gradient(96% 42% at 50% 20%, color-mix(in srgb, var(--accent) 24%, transparent) 0%, transparent 70%), #0a0e17; }
+      .endgrid { position: absolute; inset: 0; opacity: .55; }
+      .endwrap { position: absolute; inset: 0; display: flex; flex-direction: column;
+                 align-items: center; justify-content: center; padding: 300px 70px 300px; }
+      .wordmark { font-family: 'Archivo Black', sans-serif; font-size: 150px; letter-spacing: -0.01em; line-height: 1;
+        background: linear-gradient(180deg, #fff 30%, var(--accent) 120%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        filter: drop-shadow(0 0 42px color-mix(in srgb, var(--accent) 46%, transparent)); }
+      .ctatag { margin-top: 20px; font-size: 50px; font-weight: 800; color: #e8ecf6; }
+      .epills { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 18px; justify-content: center; max-width: 900px; }
+      .epills div { font-size: 34px; font-weight: 700; color: #dceefb;
+        border: 2px solid color-mix(in srgb, var(--accent) 32%, transparent); border-radius: 999px;
+        padding: 12px 28px; background: rgba(255,255,255,.05); }
+      .qr-card { margin-top: 54px; background: #fff; border-radius: 34px; padding: 30px 30px 14px;
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 70%, transparent), 0 22px 70px rgba(0,0,0,.5); }
+      .qr-card canvas { display: block; width: 320px; height: 320px; image-rendering: pixelated; }
+      .qr-card p { font-size: 27px; font-weight: 800; color: var(--ink); padding: 12px 0 6px; }
+      .url { margin-top: 44px; font-family: 'JetBrains Mono', monospace; font-size: 46px; font-weight: 700;
+        color: var(--accent); text-shadow: 0 0 30px color-mix(in srgb, var(--accent) 50%, transparent); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-fps="60" data-start="0" data-duration="22" data-width="1080" data-height="1920">
+      <!-- full-bleed graded bed (mild slow-mo; footer pre-cropped) -->
+      <video id="bed" class="clip bed" src="assets/footage/forcefield_p.mp4"
+             data-start="0" data-duration="15.2" data-media-start="36" data-track-index="1" muted playsinline></video>
+
+      <div id="scan" class="clip scan" data-start="0" data-duration="15.2" data-track-index="2"></div>
+      <div id="grade" class="clip grade" data-start="0" data-duration="15.2" data-track-index="3"></div>
+
+      <!-- flash-cuts -->
+      <div id="flash1" class="clip flash"    data-start="0"     data-duration="1.0" data-track-index="4"></div>
+      <div id="flash2" class="clip flashacc" data-start="3.81"  data-duration="1.0" data-track-index="5"></div>
+      <div id="flash3" class="clip flash"    data-start="7.56"  data-duration="1.0" data-track-index="6"></div>
+      <div id="flash4" class="clip flashacc" data-start="11.31" data-duration="1.0" data-track-index="7"></div>
+
+      <!-- kinetic word slams -->
+      <div id="slam1" class="clip slam s-a" data-start="0"     data-duration="4.0" data-track-index="8"><div id="slam1-in">ONE <em>PLANET.</em></div></div>
+      <div id="slam2" class="clip slam s-a" data-start="3.81"  data-duration="3.95" data-track-index="9"><div id="slam2-in">ONE <em>DOME.</em></div></div>
+      <div id="slam3" class="clip slam s-b" data-start="7.56"  data-duration="3.95" data-track-index="10"><div id="slam3-in">ENDLESS<br /><em>FIRE.</em></div></div>
+      <div id="slam4" class="clip slam s-q" data-start="11.31" data-duration="3.6" data-track-index="11"><div id="slam4-in">how long can<br />you <em>hold?</em></div></div>
+
+
+      <div id="brand" class="clip brand-pill" data-start="0.15" data-duration="15.0" data-track-index="13"><span>komyo</span>.online</div>
+      <div id="gametag" class="clip gametag" data-start="0.18" data-duration="15.0" data-track-index="14">🌐 <b>FORCEFIELD</b></div>
+
+      <!-- CTA -->
+      <div id="end" class="clip endcard" data-start="15.06" data-duration="6.94" data-track-index="15">
+        <canvas id="endgrid" class="endgrid" width="1080" height="1920"></canvas>
+        <div class="endwrap">
+          <div id="wordmark" class="wordmark">FORCEFIELD</div>
+          <div id="ctatag" class="ctatag">play free on komyo</div>
+          <div id="epills" class="epills"><div>free</div><div>no ads</div><div>works offline</div><div>kid-safe</div></div>
+          <div id="qrcard" class="qr-card"><canvas id="qr" width="320" height="320"></canvas><p>scan to play</p></div>
+          <div id="url" class="url">komyo.online/games/forcefield</div>
+        </div>
+      </div>
+
+      <!-- ══ MUSIC — swap src + BAR together ══ -->
+      <audio id="bgm" src="assets/audio/forcefield-76s.m4a"
+             data-start="0" data-duration="22" data-media-start="0" data-track-index="16" data-volume="1"></audio>
+    </div>
+
+    <script>
+      /* ════════════ CONFIG (edit per game) ════════════ */
+      var GAME = { accent: '#38bdf8',
+        qrUrl: 'https://komyo.online/games/forcefield?utm_source=tr&utm_medium=qr', endSeed: 1128 };
+      /* ════════════ MUSIC — keep in lockstep with data-* windows ════════════ */
+      var BAR = 1.875;          /* forcefield 128bpm; snakebanger 122bpm → 1.96721 */
+      function bar(n) { return 0.06 + n * BAR; }
+      /* ═══════════════════════════════════════════════ */
+
+      (function () {
+        var c = document.getElementById('qr');
+        var q = window.KOMYO_QR && window.KOMYO_QR.encode(GAME.qrUrl);
+        if (!c || !q) return;
+        var g = c.getContext('2d');
+        var quiet = 2, n = q.size + quiet * 2, px = Math.floor(c.width / n);
+        var off = Math.floor((c.width - px * n) / 2) + quiet * px;
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = '#0b0e17';
+        for (var y = 0; y < q.size; y++)
+          for (var x = 0; x < q.size; x++)
+            if (q.modules[y][x]) g.fillRect(off + x * px, off + y * px, px, px);
+      })();
+
+      function mulberry(seed) { var s = seed; return function () {
+        s |= 0; s = (s + 0x6D2B79F5) | 0; var t = Math.imul(s ^ (s >>> 15), 1 | s);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+
+      (function () {
+        var c = document.getElementById('endgrid'); if (!c) return;
+        var g = c.getContext('2d'), W = 1080, H = 1920, ACC = GAME.accent, rnd = mulberry(GAME.endSeed);
+        var hz = H * 0.66, cx = W / 2;
+        g.strokeStyle = ACC; g.lineWidth = 1.5; g.globalAlpha = 0.1;
+        for (var i = -9; i <= 9; i++) { g.beginPath(); g.moveTo(cx + i * 110, hz); g.lineTo(cx + i * 110 * 2.8, H + 60); g.stroke(); }
+        g.globalAlpha = 0.08;
+        for (var j = 1; j <= 6; j++) { var gy = hz + (H - hz) * Math.pow(j / 6, 1.8); g.beginPath(); g.moveTo(0, gy); g.lineTo(W, gy); g.stroke(); }
+        for (var p = 0; p < 14; p++) {
+          var sz = 3 + rnd() * 11, pxx = W * (0.04 + rnd() * 0.92), py = H * (0.04 + rnd() * 0.55);
+          var pa = (rnd() * 0.5 + 0.35) * 0.7, hr = sz * 3.2;
+          var hg = g.createRadialGradient(pxx, py, 0, pxx, py, hr); hg.addColorStop(0, ACC); hg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.globalAlpha = pa * 0.35; g.fillStyle = hg; g.beginPath(); g.arc(pxx, py, hr, 0, 6.29); g.fill();
+          g.globalAlpha = pa; g.fillStyle = rnd() < 0.35 ? '#fff' : ACC;
+          g.beginPath(); g.arc(pxx, py, sz / 2, 0, 6.29); g.fill();
+        }
+        g.globalAlpha = 1;
+      })();
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // bed: slow zoom + a punch-in on each beat + a shake on the fire hit
+      tl.fromTo('#bed', { scale: 1.14, filter: 'brightness(0.6) contrast(1.14) saturate(1.32)' },
+        { scale: 1.06, filter: 'brightness(1.12) contrast(1.14) saturate(1.32)', duration: 0.7, ease: 'expo.out' }, 0);
+      tl.to('#bed', { scale: 1.14, duration: bar(8), ease: 'sine.inOut' }, 0.7);
+
+      function slamIn(sel, t) {
+        tl.fromTo(sel, { opacity: 0, scale: 2.5, filter: 'blur(6px)' },
+          { opacity: 1, scale: 1, filter: 'blur(0px)', duration: 0.34, ease: 'power4.out' }, t);
+      }
+      function slamOut(sel, t) {
+        tl.to(sel, { opacity: 0, scale: 0.86, filter: 'blur(8px)', duration: 0.26, ease: 'power2.in' }, t - 0.3);
+        tl.set(sel, { opacity: 0 }, t - 0.02);
+      }
+      function beatPunch(t) { tl.fromTo('#bed', { scale: 1.16 }, { scale: 1.10, duration: 0.5, ease: 'power2.out' }, t); }
+      function whiteCut(sel, t) { tl.fromTo(sel, { opacity: 0.85 }, { opacity: 0, duration: 0.42, ease: 'power2.out' }, t); tl.set(sel, { opacity: 0 }, t + 0.5); }
+
+      // ── beat 1 (bars 0–2): ONE PLANET. ──
+      tl.fromTo('#flash1', { opacity: 0.9 }, { opacity: 0, duration: 0.55, ease: 'power2.out' }, 0.05);
+      tl.set('#flash1', { opacity: 0 }, 0.7);
+      slamIn('#slam1-in', 0.12);
+      tl.from('#brand', { opacity: 0, x: -50, duration: 0.4, ease: 'power2.out' }, 0.25);
+      tl.from('#gametag', { opacity: 0, x: 50, duration: 0.4, ease: 'power2.out' }, 0.35);
+
+      // ── beat 2 (bar 2): ONE DOME. ──
+      slamOut('#slam1-in', bar(2));
+      slamIn('#slam2-in', bar(2)); beatPunch(bar(2)); whiteCut('#flash2', bar(2));
+
+      // ── beat 3 (bar 4): ENDLESS FIRE. + ×6 juice + shake ──
+      slamOut('#slam2-in', bar(4));
+      slamIn('#slam3-in', bar(4)); whiteCut('#flash3', bar(4));
+      // screen shake on the hit
+      tl.to('#bed', { x: 16, y: -12, duration: 0.05, repeat: 7, yoyo: true, ease: 'none' }, bar(4));
+      tl.set('#bed', { x: 0, y: 0 }, bar(4) + 0.45);
+
+      // ── beat 4 (bar 6): how long can you hold? ──
+      slamOut('#slam3-in', bar(6));
+      slamIn('#slam4-in', bar(6)); beatPunch(bar(6)); whiteCut('#flash4', bar(6));
+
+      // hand off to CTA — hard flash into the end card
+      var HO = bar(8);
+      tl.to('#slam4-in', { opacity: 0, scale: 1.15, filter: 'blur(10px)', duration: 0.3, ease: 'power2.in' }, HO - 0.34);
+      tl.set('#slam4-in', { opacity: 0 }, HO - 0.02);
+      tl.to('#bed', { scale: 1.3, opacity: 0, filter: 'blur(12px)', duration: 0.34, ease: 'power2.in' }, HO - 0.34);
+      tl.set('#bed', { opacity: 0 }, HO - 0.02);
+
+      // ── CTA ──
+      tl.from('#wordmark', { opacity: 0, y: 70, scale: 0.9, duration: 0.5, ease: 'back.out(1.6)' }, HO);
+      tl.from('#ctatag', { opacity: 0, y: 40, duration: 0.4, ease: 'power2.out' }, HO + 0.25);
+      tl.from('#epills div', { opacity: 0, y: 34, duration: 0.35, ease: 'power2.out', stagger: 0.08 }, HO + 0.4);
+      tl.from('#qrcard', { opacity: 0, duration: 0.5, ease: 'power2.out' }, HO + 0.7);
+      tl.from('#url', { opacity: 0, y: 30, duration: 0.4, ease: 'power2.out' }, HO + 0.95);
+      tl.to('#endgrid', { opacity: 0.78, duration: 2.2, ease: 'sine.inOut' }, HO + 1.0);
+
+      tl.to('#bgm', { volume: 0, duration: 1.9, ease: 'power1.in' }, 20.1);
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>
