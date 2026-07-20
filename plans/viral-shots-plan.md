@@ -20,7 +20,7 @@ custom themes narrow the audience; the winner is generic/abstract theme + a weir
 
 - **Graspable in ~5 seconds, zero teaching cost** — you already knew how to play Wordle.
 - **A comparable, spoiler-free result you can paste as TEXT/emoji** (the Wordle grid, "I got 2048",
-  a streak) — image score cards are weaker: they need a click to view and can't go in a group chat
+  a daily result) — image score cards are weaker: they need a click to view and can't go in a group chat
   as a one-liner.
 - **One-more-try pull, or once-a-day scarcity** — the daily format also syncs everyone's
   conversation ("did you get today's?").
@@ -51,18 +51,18 @@ free: UPDATED badge + changelog entry + Discord post.
 - [ ] Candidate list (grow it): daily-seeded runs (roguelite knob already in the design knobs),
       inverted/constraint modes (one-life, mirrored, timed-zen), score-attack variants of the kids games
 
-### 3. "komyo daily" — the cheapest ticket (from the review's §7)
+### 3. "komyo daily" share artifact — the cheapest ticket (from the review's §7)
 
-One rotating cross-game seeded daily challenge as *the* site ritual, with a **spoiler-free
-emoji/text share artifact** (the Wordle-grid lesson applied to plumbing that already exists:
-`scope:'random'` challenges, `challengePick`, seeded RNG, streak-adjacent `gamekit_done`).
-Makes every existing game part of the shareable loop without building a new game.
+The daily challenge **already exists** (one hashed game+goal, same for everyone, via `challengePick`)
+— no new seeded runs needed. The only missing piece is the **spoiler-free emoji/text share artifact**
+(the Wordle-grid lesson): make the existing daily part of the shareable loop without building anything new.
 
-- [ ] Design the ritual: what "today's komyo" is (one hashed game+goal for everyone, same as
-      challengePick), what the emoji result grid encodes (attempts? score band? streak?)
-- [ ] Design the text share artifact (paste-safe, no URL needed to be legible, link appended)
+**Streaks are OFF the table — predatory.** No login / day-count streak mechanic (the Duolingo pattern
+that punishes a missed day). Retention comes from good games + the daily ritual, not loss-aversion.
+
+- [ ] Design the emoji/text result grid for the existing daily (score band / result — NOT a streak)
+- [ ] Design the text share artifact (paste-safe, legible with no URL, link appended)
 - [ ] Front-and-center placement on the catalogue (not buried in the drawer)
-- [ ] Streaks on top (the review's highest-evidence retention gap — Duolingo +14 % D7)
 - [ ] Build + ship + measure via GA4 share/UTM events
 
 ## Not doing
