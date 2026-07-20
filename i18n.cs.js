@@ -1984,4 +1984,6 @@ window.KOMYO_I18N.cs = {
   'changelog.e67.b4': 'Novinka: komyo se nyní může objevovat ve webovém vyhledávání ve všech 8 jazycích — a když hraješ v jiném jazyce, karta prohlížeče ukazuje název hry ve tvém jazyce.',
   'changelog.e66.title': 'Vezměte komyo offline — stáhněte celou arkádu 📥',
   'changelog.e66.b0': 'Novinka: ⚙️ Nastavení → Hrát offline stáhne celé komyo jako jeden soubor — rozbalte ho na USB flash disk a otevřete index.html, ať si zahrajete všechny hry bez internetu, bez instalace a bez účtu.',
+  'changelog.e68.title': 'komyo je teď na YouTube, TikToku, Instagramu i Facebooku 📣',
+  'changelog.e68.b0': 'Novinka: sledujte komyo! Odkazy na naše profily najdete v patičce stránky a dole v menu ☰ — YouTube, TikTok, Instagram a Facebook, hned vedle našeho Discordu. Klipy ze her a trailery se objevují nejdřív tam.',
 };
