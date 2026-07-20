@@ -81,6 +81,9 @@ age if any.
 - **TikTok + YT Shorts = the drip.** Two trailers are up; next: a GAME-post template and a
   FEATURE-post template (from the komyo-shorts/trailer pipeline), then ~1 game + 1 feature post
   per 2-3 days (1-2 games if no feature to show). Never two uploads same day per platform.
+  **Extended 2026-07-20 to 5 channels** (+ Instagram Reels, Facebook Reels, Discord auto-mirror of
+  YouTube) — the per-clip release runbook (formats, per-platform renders/QR-UTMs, metadata
+  templates, cadence) lives in **`plans/clip-release-plan.md`**.
 - **YT full videos:** no more planned for now — game/feature content is shorts-only; full slots
   are reserved for future trailers only.
 - **Reddit: parked 2-3 days** after the 4 launch posts (SideProject, IndieGaming, playmygame

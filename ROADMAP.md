@@ -433,6 +433,10 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
 - **komyo TikTok account — CREATED (2026-07-11).** The channel for the 9:16 per-game/feature shorts
   from `plans/promo-content-plan.md`. **2 trailer cuts posted (2026-07-13)**; per-game shorts drip is
   the ongoing next step (needs the 9:16 game-trailer template — see Video tooling).
+- **Socials expanded to 5 channels (2026-07-20):** Instagram + Facebook pages created (first posts up)
+  alongside TikTok/YouTube/Discord; icon links added to the site footer + ☰ drawer. Every future clip
+  releases to all 5 per **`plans/clip-release-plan.md`** (Reels on IG/FB, per-platform QR renders +
+  UTM scheme, paste-ready metadata kit, Discord auto-mirrors YouTube).
 - **Launch trailers — SHIPPED (2026-07-13).** 3 concepts × 2 formats (16:9 + 9:16), built with the
   HyperFrames pipeline: **V1** raw/simple · **V2** cinematic score-card-stage (voted best) · **V3**
   "pain → cure" parody-portal narrative. Music = the game engine's own tracks rendered offline

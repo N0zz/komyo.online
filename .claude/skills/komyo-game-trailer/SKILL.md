@@ -151,6 +151,11 @@ before uploading anywhere.
 
 ## Step 7 — Upload metadata (always part of the deliverable)
 
+**Read `~/arcade/plans/clip-release-plan.md` first** — the 5-channel release runbook (TikTok, YT
+Shorts, Instagram Reel, Facebook Reel, Discord auto-mirror): per-platform QR renders + UTM scheme,
+IG/FB caption templates, and cadence. Emit the full kit it defines (until its work items land in
+this skill, the blocks below cover only TikTok + YT).
+
 Produce per-trailer, per-platform metadata, paste-ready in fenced blocks:
 
 - **YouTube Shorts** — Title ≤100 chars (hook + game name + "free browser
