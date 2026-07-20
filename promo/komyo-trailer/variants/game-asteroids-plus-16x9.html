@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/gsap.min.js"></script>
+    <script src="assets/qr.js"></script>
+    <!-- ══════════════════════════════════════════════════════════════════════════
+         PER-GAME TRAILER TEMPLATE (16:9). To make another game's short:
+         1. swap the DOM text (hook line, the 3 caption chips, end-card title/tagline/url)
+         2. edit the CONFIG block in the <script> (accent, footage src, cut list, QR url)
+         3. set --accent below to the game's accent
+         Everything else (bar grid, end-card texture, QR, timeline) is reusable as-is.
+    ═══════════════════════════════════════════════════════════════════════════ -->
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #0b0e17; }
+      body { font-family: Montserrat, sans-serif; --accent: #b98cff; --ink: #0b0e17; }
+
+      /* gameplay: zoomed per-cut (this footage is dark thin-line vectors — a full-bleed
+         unzoomed cut reads near-black; the zoom also crops the site's version-tag footer) */
+      .gameplay { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover;
+                  filter: brightness(1.12) saturate(1.25); /* lift the dark neon for phone legibility */ }
+      .shade {
+        position: absolute; inset: 0; pointer-events: none;
+        background:
+          radial-gradient(120% 55% at 50% 118%, rgba(5,7,14,.72) 0%, transparent 62%),
+          radial-gradient(120% 40% at 50% -14%, rgba(5,7,14,.55) 0%, transparent 60%);
+      }
+      .hook-shade {
+        position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(64% 44% at 50% 46%, rgba(5,7,14,.84) 0%, transparent 100%);
+      }
+
+      .hook {
+        position: absolute; left: 160px; right: 160px; top: 410px;
+        text-align: center; transform: rotate(-2deg);
+        font-family: 'Archivo Black', sans-serif;
+        font-size: 104px; line-height: 1.05; color: #fff; letter-spacing: -0.02em;
+        text-shadow: 0 4px 30px rgba(0,0,0,.7), 0 0 54px color-mix(in srgb, var(--accent) 55%, transparent);
+      }
+      .hook em { font-style: normal; color: var(--accent); }
+
+      .cap {
+        position: absolute; left: 110px; right: 480px; bottom: 130px;
+        font-size: 54px; font-weight: 800; color: #fff; line-height: 1.42;
+      }
+      .cap span {
+        background: rgba(11,14,23,.86); border-radius: 16px; padding: 10px 28px 15px;
+        -webkit-box-decoration-break: clone; box-decoration-break: clone;
+      }
+      .cap b { color: var(--accent); }
+
+      .brand-pill {
+        position: absolute; top: 64px; right: 72px;
+        font-size: 34px; font-weight: 800; letter-spacing: .04em; color: #fff;
+        background: rgba(11,14,23,.62); border: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+        border-radius: 999px; padding: 12px 28px;
+      }
+      .brand-pill span { color: var(--accent); }
+
+      .endcard {
+        position: absolute; inset: 0; color: #fff;
+        background:
+          radial-gradient(90% 52% at 50% 20%, color-mix(in srgb, var(--accent) 20%, transparent) 0%, transparent 70%),
+          #0b0e17;
+      }
+      .endgrid { position: absolute; inset: 0; opacity: .55; }
+      .endwrap {
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center; gap: 130px; padding: 90px 150px;
+      }
+      .endleft { text-align: left; }
+      .wordmark {
+        font-family: 'Archivo Black', sans-serif; font-size: 150px; letter-spacing: -0.01em; line-height: 1;
+        background: linear-gradient(180deg, #fff 30%, var(--accent) 120%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        filter: drop-shadow(0 0 42px color-mix(in srgb, var(--accent) 45%, transparent));
+      }
+      .tagline { margin-top: 22px; font-size: 48px; font-weight: 800; color: #e8ecf6; }
+      .epills { margin-top: 40px; display: flex; flex-wrap: wrap; gap: 18px; max-width: 900px; }
+      .epills div {
+        font-size: 31px; font-weight: 700; color: #e8ddff;
+        border: 2px solid rgba(185,140,255,.32); border-radius: 999px; padding: 11px 26px;
+        background: rgba(255,255,255,.05);
+      }
+      .url {
+        margin-top: 46px; font-family: 'JetBrains Mono', monospace;
+        font-size: 44px; font-weight: 700; color: var(--accent);
+        text-shadow: 0 0 30px color-mix(in srgb, var(--accent) 50%, transparent);
+      }
+      .qr-card {
+        background: #fff; border-radius: 32px; padding: 30px 30px 16px; text-align: center;
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 70%, transparent), 0 22px 70px rgba(0,0,0,.5);
+      }
+      .qr-card canvas { display: block; width: 340px; height: 340px; image-rendering: pixelated; }
+      .qr-card p { font-size: 27px; font-weight: 800; color: var(--ink); padding: 12px 0 8px; font-family: Montserrat, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="24" data-width="1920" data-height="1080">
+      <!-- gameplay cuts (126bpm bar grid: 0.06 + n·1.904762; zoom/origin set in CONFIG) -->
+      <video id="cut0" class="clip gameplay" src="assets/footage/asteroids_plus_gameplay.mp4"
+             data-start="0"        data-duration="3.8695" data-media-start="178" data-track-index="0" muted playsinline></video>
+      <video id="cut1" class="clip gameplay" src="assets/footage/asteroids_plus_gameplay.mp4"
+             data-start="3.8695"   data-duration="3.8095" data-media-start="216"   data-track-index="0" muted playsinline></video>
+      <video id="cut2" class="clip gameplay" src="assets/footage/asteroids_plus_gameplay.mp4"
+             data-start="7.679"    data-duration="3.8095" data-media-start="148"   data-track-index="0" muted playsinline></video>
+      <video id="cut3" class="clip gameplay" src="assets/footage/asteroids_plus_gameplay.mp4"
+             data-start="11.4886"  data-duration="3.8095" data-media-start="128"   data-track-index="0" muted playsinline></video>
+
+      <div id="shade" class="clip shade" data-start="0" data-duration="15.298" data-track-index="1"></div>
+      <div id="hookshade" class="clip hook-shade" data-start="0" data-duration="4.1" data-track-index="2"></div>
+
+      <!-- HOOK -->
+      <div id="hook" class="clip hook" data-start="0" data-duration="3.8695" data-track-index="3">
+        <div id="hook-inner">asteroids, but a <em>roguelite.</em></div>
+      </div>
+
+      <!-- CAPTION CHIPS (one per proof cut) -->
+      <div id="cap1" class="clip cap" data-start="3.8695" data-duration="3.8095" data-track-index="4">
+        <span><b>boss</b> fights</span>
+      </div>
+      <div id="cap2" class="clip cap" data-start="7.679" data-duration="3.8095" data-track-index="4">
+        <span><b>upgrade</b> between waves</span>
+      </div>
+      <div id="cap3" class="clip cap" data-start="11.4886" data-duration="3.8095" data-track-index="4">
+        <span>how long can you <b>survive</b>?</span>
+      </div>
+
+      <div id="brand" class="clip brand-pill" data-start="0.6" data-duration="14.698" data-track-index="5">
+        <span>komyo</span>.online
+      </div>
+
+      <!-- END CARD -->
+      <div id="end" class="clip endcard" data-start="15.298" data-duration="8.702" data-track-index="2">
+        <canvas id="endgrid" class="endgrid" width="1920" height="1080"></canvas>
+        <div class="endwrap">
+          <div class="endleft">
+            <div id="wordmark" class="wordmark">ASTEROIDS+</div>
+            <div id="tagline" class="tagline">a free browser roguelite</div>
+            <div id="epills" class="epills">
+              <div>free</div><div>no ads</div><div>works offline</div><div>1 of 18 games</div>
+            </div>
+            <div id="url" class="url">komyo.online/games/asteroids-plus</div>
+          </div>
+          <div id="qrcard" class="qr-card">
+            <canvas id="qr" width="340" height="340"></canvas>
+            <p>scan to play</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- AUDIO: the game's OWN engine track (asteroidsplus, 126bpm) -->
+      <audio id="bgm" src="assets/audio/asteroidsplus-34s.m4a"
+             data-start="0" data-duration="24" data-media-start="0" data-track-index="10" data-volume="1"></audio>
+    </div>
+
+    <script>
+      /* ════════════ CONFIG (edit per game) ════════════ */
+      var GAME = {
+        accent: '#b98cff',
+        qrUrl: 'https://komyo.online?utm_source=tr-ap&utm_medium=qr',
+        endSeed: 909,
+        // per-cut zoom: scale from→to (ken-burns) + transform-origin focal point.
+        // dark thin-line footage MUST be zoomed; shop cut stays gentle (it's readable UI).
+        cuts: [
+          { id: '#cut0', start: 0,       dur: 3.8695, from: 1.28, to: 1.4,  ox: '50%', oy: '50%' }, // wave-4 asteroid field (178)
+          { id: '#cut1', start: 3.8695,  dur: 3.8095, from: 1.6,  to: 1.74, ox: '52%', oy: '34%' }, // boss (216)
+          { id: '#cut2', start: 7.679,   dur: 3.8095, from: 1.12, to: 1.2,  ox: '50%', oy: '56%' }, // DRYDOCK shop, gentle (148)
+          { id: '#cut3', start: 11.4886, dur: 3.8095, from: 1.35, to: 1.48, ox: '52%', oy: '54%' }, // wave-3 FRENZY, ship firing (128)
+        ],
+      };
+      /* ═══════════════════════════════════════════════ */
+
+      // themed scan-to-play QR (komyo's in-repo encoder)
+      (function () {
+        var c = document.getElementById('qr');
+        var q = window.KOMYO_QR && window.KOMYO_QR.encode(GAME.qrUrl);
+        if (!c || !q) return;
+        var g = c.getContext('2d');
+        var quiet = 2, n = q.size + quiet * 2, px = Math.floor(c.width / n);
+        var off = Math.floor((c.width - px * n) / 2) + quiet * px;
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = '#0b0e17';
+        for (var y = 0; y < q.size; y++)
+          for (var x = 0; x < q.size; x++)
+            if (q.modules[y][x]) g.fillRect(off + x * px, off + y * px, px, px);
+      })();
+
+      // end-card backdrop: perspective grid + seeded sparkles (score-card texture kit)
+      (function () {
+        var c = document.getElementById('endgrid'); if (!c) return;
+        var g = c.getContext('2d'), W = 1920, H = 1080, ACC = GAME.accent;
+        var s = GAME.endSeed; var rnd = function () { s |= 0; s = (s + 0x6D2B79F5) | 0; var t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        var hz = H * 0.58, cx = W / 2;
+        g.strokeStyle = ACC; g.lineWidth = 1.5; g.globalAlpha = 0.1;
+        for (var i = -9; i <= 9; i++) { g.beginPath(); g.moveTo(cx + i * 150, hz); g.lineTo(cx + i * 150 * 2.6, H + 60); g.stroke(); }
+        g.globalAlpha = 0.08;
+        for (var j = 1; j <= 6; j++) { var gy = hz + (H - hz) * Math.pow(j / 6, 1.8); g.beginPath(); g.moveTo(0, gy); g.lineTo(W, gy); g.stroke(); }
+        for (var p = 0; p < 16; p++) {
+          var sz = 3 + rnd() * 11, px = W * (0.03 + rnd() * 0.94), py = H * (0.05 + rnd() * 0.6);
+          var pa = (rnd() * 0.5 + 0.35) * 0.7, hr = sz * 3.2;
+          var hg = g.createRadialGradient(px, py, 0, px, py, hr); hg.addColorStop(0, ACC); hg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.globalAlpha = pa * 0.35; g.fillStyle = hg; g.beginPath(); g.arc(px, py, hr, 0, 6.29); g.fill();
+          g.globalAlpha = pa; g.fillStyle = rnd() < 0.35 ? '#fff' : ACC;
+          g.beginPath(); g.arc(px, py, sz / 2, 0, 6.29); g.fill();
+        }
+        g.globalAlpha = 1;
+      })();
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // per-cut ken-burns zoom (fromTo avoids the CSS-transform-conflict lint)
+      GAME.cuts.forEach(function (c) {
+        tl.fromTo(c.id, { scale: c.from, transformOrigin: c.ox + ' ' + c.oy },
+          { scale: c.to, transformOrigin: c.ox + ' ' + c.oy, duration: c.dur, ease: 'none' }, c.start);
+      });
+
+      // hook: pop, breathe, punch out on the bar
+      tl.from('#hook-inner', { opacity: 0, y: 80, scale: 0.7, duration: 0.5, ease: 'back.out(1.8)' }, 0.15);
+      tl.to('#hook-inner', { scale: 1.04, duration: 3.0, ease: 'sine.inOut' }, 0.7);
+      tl.to('#hook-inner', { opacity: 0, y: -50, duration: 0.3, ease: 'power2.in' }, 3.55);
+      tl.set('#hook-inner', { opacity: 0 }, 3.86);
+      tl.to('#hookshade', { opacity: 0, duration: 0.28, ease: 'power2.in' }, 3.55);
+      tl.set('#hookshade', { opacity: 0 }, 3.85);
+
+      // caption chips: slide up per cut
+      tl.from('#cap1', { opacity: 0, y: 60, duration: 0.4, ease: 'power3.out' }, 4.0);
+      tl.from('#cap2', { opacity: 0, y: 60, duration: 0.4, ease: 'power3.out' }, 7.81);
+      tl.from('#cap3', { opacity: 0, y: 60, duration: 0.4, ease: 'power3.out' }, 11.62);
+      tl.from('#brand', { opacity: 0, x: 60, duration: 0.4, ease: 'power2.out' }, 0.6);
+
+      // end card build
+      tl.from('#wordmark', { opacity: 0, y: 70, scale: 0.9, duration: 0.5, ease: 'back.out(1.6)' }, 15.4);
+      tl.from('#tagline', { opacity: 0, y: 40, duration: 0.4, ease: 'power2.out' }, 15.68);
+      tl.from('#epills', { opacity: 0, y: 40, duration: 0.4, ease: 'power2.out' }, 15.92);
+      tl.from('#qrcard', { opacity: 0, scale: 0.7, duration: 0.5, ease: 'back.out(2)' }, 16.2);
+      tl.from('#url', { opacity: 0, y: 30, duration: 0.4, ease: 'power2.out' }, 16.45);
+      tl.to('#endgrid', { opacity: 0.75, duration: 2.4, ease: 'sine.inOut' }, 16.8);
+
+      // music fade over the last 1.5s
+      tl.to('#bgm', { volume: 0, duration: 1.5, ease: 'power1.in' }, 22.5);
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

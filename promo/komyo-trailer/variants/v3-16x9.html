@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="en" data-resolution="landscape">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="assets/gsap.min.js"></script>
+    <script src="assets/qr.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      /* OS-bundled parody fonts (no downloadable file — local() satisfies the renderer) */
+      @font-face { font-family: 'Comic Sans MS'; src: local('Comic Sans MS'); }
+      @font-face { font-family: 'Chalkboard SE'; src: local('Chalkboard SE'); }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #05070e; }
+      body {
+        font-family: Montserrat, sans-serif;
+        --accent: #2ee8c8;
+        --ink: #0b0e17;
+      }
+
+      /* ══════════ THE PAIN — deliberately ugly parody portal ══════════ */
+      .pain { position: absolute; inset: 0; }
+      .fgp-page { position: absolute; inset: 0; background: #ded6c2; z-index: 1; }
+      .fgp-head {
+        position: absolute; top: 0; left: 0; right: 0; height: 116px;
+        background: repeating-linear-gradient(90deg, #ffe600 0 140px, #ff9a00 140px 280px);
+        border-bottom: 6px solid #c40000; display: flex; align-items: center; gap: 40px; padding: 0 44px;
+      }
+      .fgp-logo {
+        font-family: 'Comic Sans MS', 'Chalkboard SE', cursive;
+        font-size: 58px; font-weight: 700; color: #c40000;
+        text-shadow: 3px 3px 0 #ffffff;
+      }
+      .fgp-tick { font-size: 30px; font-weight: 900; color: #1a1a1a; letter-spacing: .02em; }
+      .fgp-blink {
+        margin-left: auto; font-size: 34px; font-weight: 900; color: #ffffff; background: #c40000;
+        padding: 12px 26px; border: 4px dashed #ffe600; transform: rotate(-2deg);
+      }
+      .fgp-col { position: absolute; top: 132px; bottom: 96px; width: 320px; display: flex; flex-direction: column; gap: 16px; }
+      #fgp-col-l { left: 14px; }
+      #fgp-col-r { right: 14px; }
+      .fgp-ad {
+        flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; font-weight: 900; padding: 18px; border: 5px ridge #999;
+        font-size: 30px; line-height: 1.25;
+      }
+      .fgp-ad small { font-size: 20px; font-weight: 700; margin-top: 10px; opacity: .85; }
+      .fgp-ad .em { font-size: 52px; display: block; margin-bottom: 8px; }
+      .ad-yellow { background: #ffe600; color: #111111; }
+      .ad-blue { background: #1a3cff; color: #ffffff; }
+      .ad-green { background: #86ff2a; color: #103300; font-family: 'Comic Sans MS', 'Chalkboard SE', cursive; }
+      .ad-red { background: #c40000; color: #ffffff; }
+      .ad-purple { background: #7a1fa2; color: #ffffff; }
+      .fgp-mid { position: absolute; left: 352px; right: 352px; top: 132px; bottom: 96px; display: flex; flex-direction: column; gap: 14px; align-items: center; }
+      .fgp-widebanner {
+        width: 100%; padding: 16px; text-align: center; font-weight: 900; font-size: 32px;
+        background: repeating-linear-gradient(45deg, #ff2a2a 0 42px, #ffe600 42px 84px);
+        color: #111111; border: 5px outset #bbb;
+      }
+      .fgp-widebanner b { background: #111; color: #ffe600; padding: 2px 14px; }
+      .fgp-game {
+        width: 560px; flex: 1; background: #16181f; border: 6px inset #888;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+        color: #cfd4de; text-align: center;
+      }
+      .fgp-game h3 { font-size: 34px; font-weight: 900; color: #b2bccd; letter-spacing: .04em; }
+      .fgp-spin {
+        width: 74px; height: 74px; border-radius: 50%;
+        border: 9px solid #3a4152; border-top-color: #ffe600;
+      }
+      .fgp-load { font-size: 30px; font-weight: 800; }
+      .fgp-adnote { font-size: 22px; font-weight: 700; color: #ffa077; }
+      .fgp-foot {
+        position: absolute; left: 0; right: 0; bottom: 0; height: 84px;
+        background: #ff2a2a; color: #ffffff; display: flex; align-items: center; justify-content: center;
+        font-size: 34px; font-weight: 900; letter-spacing: .01em;
+      }
+
+      /* overlays that pile on */
+      .fgp-cookie {
+        position: absolute; left: 0; right: 0; bottom: 0; height: 320px; z-index: 5;
+        background: #2b2440; color: #ffffff; border-top: 8px solid #ffe600;
+        padding: 36px 70px; display: flex; flex-direction: column; gap: 22px;
+      }
+      .fgp-cookie h2 { font-size: 44px; font-weight: 900; }
+      .fgp-cookie p { font-size: 28px; font-weight: 700; color: #d9d2f2; max-width: 1300px; }
+      .fgp-cookie .row { display: flex; gap: 26px; }
+      .btn-loud {
+        font-size: 30px; font-weight: 900; padding: 16px 40px; border: none; border-radius: 8px;
+        background: #ffe600; color: #111111; box-shadow: 0 5px 0 #b3a100;
+      }
+      .btn-loud.alt { background: #ffe600; transform: scale(.86); }
+      .fgp-register {
+        position: absolute; left: 560px; top: 250px; width: 660px; z-index: 6;
+        background: #ffffff; border: 6px solid #1a3cff; box-shadow: 14px 14px 0 rgba(0,0,0,.35);
+      }
+      .fgp-register .bar { background: #1a3cff; color: #fff; font-size: 28px; font-weight: 900; padding: 12px 20px; display: flex; justify-content: space-between; }
+      .fgp-register .body { padding: 28px 34px; }
+      .fgp-register h2 { font-size: 40px; font-weight: 900; color: #c40000; }
+      .fgp-register p { font-size: 25px; font-weight: 700; color: #333; margin-top: 8px; }
+      .fgp-register .field { margin-top: 18px; border: 3px solid #999; background: #f4f4f4; color: #666; font-size: 26px; font-weight: 700; padding: 12px 16px; }
+      .fgp-register .go { margin-top: 22px; width: 100%; background: #c40000; color: #fff; font-size: 32px; font-weight: 900; padding: 16px; border: none; }
+      .fgp-register .nope { margin-top: 12px; font-size: 20px; color: #757575; text-align: center; text-decoration: line-through; }
+      .popup {
+        position: absolute; z-index: 7; width: 520px;
+        background: #ece9e2; border: 5px outset #aaa; box-shadow: 12px 12px 0 rgba(0,0,0,.35);
+      }
+      .popup .bar { display: flex; justify-content: space-between; align-items: center; color: #fff; font-size: 24px; font-weight: 900; padding: 10px 16px; }
+      .popup .bar i { font-style: normal; background: #fff; color: #111; width: 34px; text-align: center; font-weight: 900; }
+      .popup .body { padding: 22px 26px 26px; text-align: center; font-weight: 900; }
+      #fgp-pop1 { left: 1210px; top: 190px; transform: rotate(2deg); z-index: 7; }
+      #fgp-pop1 .bar { background: #c40000; }
+      #fgp-pop1 .body { font-size: 33px; color: #7a0000; }
+      #fgp-pop2 { left: 240px; top: 640px; transform: rotate(-2deg); z-index: 8; }
+      #fgp-pop2 .bar { background: #1a7a1a; }
+      #fgp-pop2 .body { font-size: 31px; color: #0d3b0d; }
+      #fgp-pop3 { left: 1130px; top: 610px; transform: rotate(1.5deg); z-index: 9; }
+      #fgp-pop3 .bar { background: #1a3cff; }
+      #fgp-pop3 .body { font-size: 31px; color: #101d66; }
+      .popup .body small { display: block; font-size: 21px; font-weight: 700; margin-top: 10px; color: #444; }
+      .popup .claim { display: inline-block; margin-top: 16px; background: #ffe600; color: #111; font-size: 26px; font-weight: 900; padding: 12px 30px; border: 4px dashed #c40000; }
+      .fgp-dim { position: absolute; inset: 0; z-index: 10; background: rgba(8,6,16,.5); opacity: 0; }
+      .fgp-purchase {
+        position: absolute; left: 640px; top: 250px; width: 640px; z-index: 11;
+        background: #f5f5f7; border-radius: 22px; padding: 40px 44px 34px; text-align: center;
+        box-shadow: 0 40px 120px rgba(0,0,0,.6); color: #1c1c1e;
+      }
+      .fgp-purchase .icon { font-size: 62px; }
+      .fgp-purchase h2 { font-size: 36px; font-weight: 800; margin-top: 12px; letter-spacing: -0.01em; }
+      .fgp-purchase p { font-size: 27px; font-weight: 600; color: #3a3a3c; margin-top: 12px; line-height: 1.4; }
+      .fgp-purchase .btns { display: flex; gap: 18px; margin-top: 30px; }
+      .fgp-purchase .btns div {
+        flex: 1; font-size: 28px; font-weight: 700; padding: 16px 0; border-radius: 12px;
+        background: #007aff; color: #ffffff;
+      }
+      .fgp-purchase .btns div.ghost { background: #e3e3e8; color: #007aff; }
+
+      /* pain caption — THE thesis: oversized Archivo, centered, survives the wipe */
+      .pain-cap {
+        position: absolute; left: 120px; right: 120px; top: 690px; z-index: 30; text-align: center;
+      }
+      .pain-cap .line { margin-top: 16px; }
+      .pain-cap .line span {
+        font-family: 'Archivo Black', 'Arial Black', Montserrat, sans-serif; font-weight: 400;
+        font-size: 92px; letter-spacing: -0.02em; line-height: 1.16; color: #ffffff;
+        background: rgba(5,7,14,.92); border-radius: 20px; padding: 6px 40px 16px;
+        border: 2px solid rgba(46,232,200,.4);
+        -webkit-box-decoration-break: clone; box-decoration-break: clone;
+      }
+
+      /* ══════════ THE CURE — full-bleed clean gameplay ══════════ */
+      .gameplay { position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover;
+                  transform-origin: 50% 0; transform: scale(1.03); /* crops the site's version-tag footer */ }
+      .shade {
+        position: absolute; inset: 0; pointer-events: none;
+        background:
+          radial-gradient(120% 55% at 50% 118%, rgba(5,7,14,.72) 0%, transparent 62%),
+          radial-gradient(120% 40% at 50% -14%, rgba(5,7,14,.55) 0%, transparent 60%);
+      }
+      .cap {
+        position: absolute; left: 110px; right: 480px; bottom: 120px;
+        font-size: 56px; font-weight: 800; color: #fff; line-height: 1.42;
+      }
+      .cap span {
+        background: rgba(11,14,23,.86); border-radius: 16px; padding: 10px 28px 14px;
+        -webkit-box-decoration-break: clone; box-decoration-break: clone;
+      }
+      .cap b { color: var(--accent); }
+      .brand-pill {
+        position: absolute; top: 64px; right: 72px;
+        font-size: 34px; font-weight: 800; letter-spacing: .04em; color: #fff;
+        background: rgba(11,14,23,.62); border: 2px solid color-mix(in srgb, var(--accent) 60%, transparent);
+        border-radius: 999px; padding: 12px 28px;
+      }
+      .brand-pill span { color: var(--accent); }
+
+      /* ══════════ CTA — end card + the crossed-out carcass ══════════ */
+      .endcard {
+        position: absolute; inset: 0; color: #fff;
+        background:
+          radial-gradient(90% 52% at 50% 20%, color-mix(in srgb, var(--accent) 20%, transparent) 0%, transparent 70%),
+          #0b0e17;
+      }
+      .endgrid { position: absolute; inset: 0; opacity: .55; }
+      .endwrap {
+        position: absolute; inset: 0;
+        display: flex; align-items: center; justify-content: center; gap: 150px;
+        padding: 80px 160px;
+      }
+      .endleft { text-align: left; }
+      .wordmark {
+        font-size: 190px; font-weight: 900; letter-spacing: -0.01em; line-height: 1;
+        background: linear-gradient(180deg, #fff 30%, var(--accent) 120%);
+        -webkit-background-clip: text; background-clip: text; color: transparent;
+        filter: drop-shadow(0 0 42px color-mix(in srgb, var(--accent) 45%, transparent));
+      }
+      .tagline { margin-top: 20px; font-size: 50px; font-weight: 800; color: #e8ecf6; }
+      .url {
+        margin-top: 40px; font-family: 'JetBrains Mono', monospace;
+        font-size: 76px; font-weight: 700; color: var(--accent);
+        text-shadow: 0 0 34px color-mix(in srgb, var(--accent) 50%, transparent);
+      }
+      .instead { margin-top: 48px; display: flex; align-items: center; gap: 40px; }
+      /* the parody carcass — big enough that the garish banners READ, then ✕'d out */
+      .carcass {
+        position: relative; width: 470px; height: 280px; flex: none;
+        border-radius: 12px; overflow: hidden; opacity: .92;
+        background: #ded6c2; filter: saturate(.85) brightness(.94);
+        box-shadow: 0 16px 48px rgba(0,0,0,.55);
+      }
+      .carcass .ch {
+        position: absolute; top: 0; left: 0; right: 0; height: 58px;
+        background: repeating-linear-gradient(90deg, #ffe600 0 46px, #ff9a00 46px 92px);
+        border-bottom: 3px solid #c40000; display: flex; align-items: center; justify-content: space-between; padding: 0 14px;
+      }
+      .carcass .clogo { font-family: 'Comic Sans MS', 'Chalkboard SE', cursive; font-size: 26px; font-weight: 700; color: #a30000; text-shadow: 1px 1px 0 #fff; }
+      .carcass .cclick { font-size: 15px; font-weight: 900; color: #fff; background: #c40000; padding: 4px 9px; border: 2px dashed #ffe600; transform: rotate(-2deg); }
+      .carcass .cl, .carcass .cr {
+        position: absolute; top: 68px; bottom: 56px; width: 100px; border: 3px ridge #999;
+        font-size: 15px; font-weight: 900; text-align: center; padding: 22px 6px 0; line-height: 1.25;
+      }
+      .carcass .cl { left: 8px; background: #ffe600; color: #111; }
+      .carcass .cr { right: 8px; background: #1a3cff; color: #fff; }
+      .carcass .cg {
+        position: absolute; left: 120px; right: 120px; top: 78px; height: 100px;
+        background: #16181f; border: 3px inset #888; color: #dde2ea;
+        font-size: 17px; font-weight: 800; display: flex; align-items: center; justify-content: center;
+      }
+      .carcass .cpop {
+        position: absolute; left: 156px; top: 118px; width: 190px; z-index: 2;
+        background: #ece9e2; border: 3px outset #aaa; transform: rotate(3deg);
+        box-shadow: 6px 6px 0 rgba(0,0,0,.3); text-align: center;
+      }
+      .carcass .cpop .pb { background: #1a7a1a; color: #fff; font-size: 14px; font-weight: 900; padding: 4px 8px; text-align: left; }
+      .carcass .cpop .pt { font-size: 15px; font-weight: 900; color: #062406; padding: 8px 10px 10px; }
+      .carcass .cb {
+        position: absolute; left: 0; right: 0; bottom: 0; height: 48px;
+        background: repeating-linear-gradient(45deg, #ff2a2a 0 20px, #ffe600 20px 40px);
+        color: #111; font-size: 19px; font-weight: 900; display: flex; align-items: center; justify-content: center;
+      }
+      .cross { position: absolute; inset: 0; z-index: 3; }
+      .cross::before, .cross::after {
+        content: ""; position: absolute; left: -6%; right: -6%; top: 50%; height: 16px; margin-top: -8px;
+        background: #ff3b3b; border-radius: 8px; box-shadow: 0 0 28px rgba(255,60,60,.9);
+      }
+      .cross::before { transform: rotate(28deg); }
+      .cross::after { transform: rotate(-28deg); }
+      .instead-cap { font-family: 'JetBrains Mono', monospace; font-size: 48px; font-weight: 700; color: #cdd9e8; line-height: 1.4; }
+      .instead-cap b { color: var(--accent); font-weight: 700; }
+      .instead-cap small { display: block; font-size: 27px; color: #67788f; margin-top: 6px; }
+      .qr-card {
+        background: #fff; border-radius: 32px; padding: 30px 30px 16px; text-align: center; flex: none;
+        box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 70%, transparent), 0 22px 70px rgba(0,0,0,.5);
+      }
+      .qr-card canvas { display: block; width: 340px; height: 340px; image-rendering: pixelated; }
+      .qr-card p { font-size: 27px; font-weight: 800; color: var(--ink); padding: 12px 0 8px; font-family: Montserrat, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="45.5" data-width="1920" data-height="1080">
+      <!-- dark canvas behind everything (the "dark beat" frame) -->
+      <div id="bgfill" style="position:absolute; inset:0; background:#05070e;"></div>
+
+      <!-- ════ THE CURE (128bpm bar grid: cuts at 3.5 + n·1.875) ════ -->
+      <video id="play-frogs" class="clip gameplay" src="assets/footage/5_gameplay_frogs.mp4"
+             data-start="5.375" data-duration="3.75" data-media-start="0.5" data-track-index="0" muted playsinline></video>
+      <video id="play-snake" class="clip gameplay" src="assets/footage/6_gameplay_snake.mp4"
+             data-start="9.125" data-duration="3.75" data-media-start="0.2" data-track-index="0" muted playsinline></video>
+      <video id="play-ff" class="clip gameplay" src="assets/footage/6_gameplay_forcefield.mp4"
+             data-start="12.875" data-duration="3.75" data-media-start="2.0" data-track-index="0" muted playsinline></video>
+      <video id="play-stack" class="clip gameplay" src="assets/footage/4_gameplay_stack.mp4"
+             data-start="16.625" data-duration="3.75" data-media-start="3.3" data-track-index="0" muted playsinline></video>
+      <video id="play-2048" class="clip gameplay" src="assets/footage/5_gameplay_2048.mp4"
+             data-start="20.375" data-duration="3.75" data-media-start="2.0" data-track-index="0" muted playsinline></video>
+      <video id="play-flappy" class="clip gameplay" src="assets/footage/3_gameplay_flappy.mp4"
+             data-start="24.125" data-duration="3.75" data-media-start="1.5" data-track-index="0" muted playsinline></video>
+      <!-- proof: synthetic linear pan of the real catalogue (the recorded scroll was juddery) -->
+      <div id="cat-scroll" class="clip" style="position:absolute; inset:0; overflow:hidden; background:#0b0e17"
+           data-start="27.875" data-duration="5.625" data-track-index="0">
+        <img id="cat-img" src="assets/brand/catalogue-desktop.png" style="position:absolute; left:0; top:0; width:1920px" />
+      </div>
+
+      <div id="shade" class="clip shade" data-start="5.375" data-duration="28.125" data-track-index="1"></div>
+
+      <!-- ════ THE PAIN (0–3.5 · no music · dings only) ════ -->
+      <div id="pain" class="clip pain" data-start="0" data-duration="4.6" data-track-index="2">
+        <div id="fgp-page" class="fgp-page drop">
+          <div id="fgp-head" class="fgp-head">
+            <div class="fgp-logo">FreeGamezPortal</div>
+            <div class="fgp-tick">★ 100% FREE GAMES ★ NO VIRUSES (PROBABLY) ★</div>
+            <div id="fgp-blink" class="fgp-blink">CLICK HERE!!!</div>
+          </div>
+          <div id="fgp-col-l" class="fgp-col">
+            <div id="ad-ram" class="fgp-ad ad-green"><span class="em">⬇</span>DOWNLOAD MORE RAM<small>100% legit · trusted by 4 people</small></div>
+            <div id="ad-pixel" class="fgp-ad ad-blue" data-layout-ignore><span class="em">🧐</span>DOCTORS HATE THIS PIXEL<small>see why (you won't)</small></div>
+          </div>
+          <div id="fgp-col-r" class="fgp-col">
+            <div id="ad-boat" class="fgp-ad ad-red"><span class="em">🚤</span>WIN A FREE BOAT<small>(boat not included)</small></div>
+            <div id="ad-hamster" class="fgp-ad ad-yellow" data-layout-ignore><span class="em">🐹</span>TURN YOUR HAMSTER INTO CRYPTO<small>ask us how</small></div>
+          </div>
+          <div class="fgp-mid">
+            <div id="fgp-ban-top" class="fgp-widebanner">⚠ YOUR PC HAS <b>99+</b> PROBLEMS — FIX ALL WITH ONE CLICK ⚠</div>
+            <div id="fgp-game" class="fgp-game" data-layout-ignore>
+              <h3>☁ SuperFreeGame3000</h3>
+              <div id="fgp-spin" class="fgp-spin"></div>
+              <div class="fgp-load">Loading… 3%</div>
+              <div class="fgp-adnote">an ad will play first (unskippable)</div>
+            </div>
+            <div id="fgp-ban-bot" class="fgp-widebanner" data-layout-ignore>🎁 CLAIM YOUR DAILY GIFT (requires 14 permissions) 🎁</div>
+          </div>
+          <div id="fgp-foot" class="fgp-foot">🔥 LIMITED OFFER: EVERYTHING — CLICK ANYWHERE TO CONTINUE 🔥</div>
+        </div>
+
+        <div id="fgp-cookie" class="fgp-cookie drop" data-layout-allow-occlusion>
+          <h2>🍪 We value your privacy (and your data)</h2>
+          <p>We and our <b>1,847 partners</b> would like to know everything about you. It's fine. Probably.</p>
+          <div class="row"><div class="btn-loud">ACCEPT ALL</div><div class="btn-loud alt">Accept all</div></div>
+        </div>
+
+        <div id="fgp-register" class="fgp-register drop" data-layout-allow-occlusion>
+          <div class="bar"><span>Account required</span><span>✕</span></div>
+          <div class="body">
+            <h2>REGISTER TO CONTINUE</h2>
+            <p>create a free account to play free games for free</p>
+            <div class="field">email address…</div>
+            <div class="field">password (min. 47 characters)</div>
+            <div class="go">SIGN UP NOW</div>
+            <div class="nope">no thanks</div>
+          </div>
+        </div>
+
+        <div id="fgp-pop1" class="popup drop" data-layout-allow-occlusion>
+          <div class="bar"><span>Advertisement</span><i>✕</i></div>
+          <div class="body">🎰 HOT SINGLES OF SLOT MACHINES IN YOUR AREA<small>they want to meet your wallet</small></div>
+        </div>
+        <div id="fgp-pop2" class="popup drop" data-layout-allow-occlusion>
+          <div class="bar"><span>WINNER!!!</span><i>✕</i></div>
+          <div class="body">🎉 YOU ARE THE 1,000,000th VISITOR!!!<div class="claim">CLAIM PRIZE</div></div>
+        </div>
+        <div id="fgp-pop3" class="popup drop" data-layout-allow-occlusion>
+          <div class="bar"><span>Security alert</span><i>✕</i></div>
+          <div class="body">🛡 YOUR ANTIVIRUS EXPIRED 3 YEARS AGO<small>panic now — click calmly</small></div>
+        </div>
+
+        <div id="fgp-dim" class="fgp-dim drop"></div>
+        <div id="fgp-purchase" class="fgp-purchase drop" data-layout-allow-occlusion>
+          <div class="icon">💳</div>
+          <h2>Purchase request</h2>
+          <p>Your kid wants to buy <b>“500 gems”</b> for <b>12,99 €</b></p>
+          <div class="btns"><div class="ghost">Allow</div><div>Allow</div></div>
+        </div>
+      </div>
+
+      <!-- the thesis — dominates the frame, survives the wipe into the dark beat -->
+      <div id="pain-cap" class="clip pain-cap" data-start="2.35" data-duration="2.85" data-track-index="4">
+        <div id="pain-cap-inner">
+          <div class="line"><span>finding a clean game</span></div>
+          <div class="line"><span>shouldn't be this hard.</span></div>
+        </div>
+      </div>
+
+      <!-- ════ CURE CHIPS (calm, one per beat) ════ -->
+      <div id="cap-just" class="clip cap" data-start="5.375" data-duration="3.75" data-track-index="3">
+        <span>just <b>games.</b></span>
+      </div>
+      <div id="cap-free" class="clip cap" data-start="9.125" data-duration="3.75" data-track-index="4">
+        <span><b>free</b> forever.</span>
+      </div>
+      <div id="cap-noads" class="clip cap" data-start="12.875" data-duration="3.75" data-track-index="3">
+        <span><b>no ads.</b> no accounts.</span>
+      </div>
+      <div id="cap-nonags" class="clip cap" data-start="16.625" data-duration="3.75" data-track-index="4">
+        <span>no purchase nags. <b>ever.</b></span>
+      </div>
+      <div id="cap-devices" class="clip cap" data-start="20.375" data-duration="3.75" data-track-index="3">
+        <span>browser · phone · <b>installed app</b></span>
+      </div>
+      <div id="cap-offline" class="clip cap" data-start="24.125" data-duration="3.75" data-track-index="4">
+        <span>works <b>offline</b> — your data stays on your device</span>
+      </div>
+      <div id="cap-proof" class="clip cap" data-start="27.875" data-duration="5.625" data-track-index="3">
+        <span><b>18 free games.</b> more coming.</span>
+      </div>
+
+      <div id="brand" class="clip brand-pill" data-start="5.575" data-duration="27.925" data-track-index="5">
+        <span>komyo</span>.online
+      </div>
+
+      <!-- ════ CTA ════ -->
+      <div id="end" class="clip endcard" data-start="33.5" data-duration="12.0" data-track-index="2">
+        <canvas id="endgrid" class="endgrid" width="1920" height="1080"></canvas>
+        <div class="endwrap">
+          <div class="endleft">
+            <div id="wordmark" class="wordmark">komyo</div>
+            <div id="tagline" class="tagline">free browser games · no catch</div>
+            <div id="url" class="url">komyo.online</div>
+            <div id="instead" class="instead">
+              <div class="carcass">
+                <div class="ch"><span class="clogo">FreeGamezPortal</span><span class="cclick">CLICK HERE!!!</span></div>
+                <div class="cl">WIN A FREE BOAT</div>
+                <div class="cr">DOWNLOAD MORE RAM</div>
+                <div class="cg">Loading… 3%</div>
+                <div class="cpop" data-layout-allow-overlap><div class="pb">WINNER!!!</div><div class="pt">1,000,000th VISITOR</div></div>
+                <div class="cb">⚠ YOUR PC HAS 99+ PROBLEMS ⚠</div>
+                <div class="cross"></div>
+              </div>
+              <div class="instead-cap"><b>this</b>, instead.<small>no ads · no nags · just games</small></div>
+            </div>
+          </div>
+          <div id="qrcard" class="qr-card">
+            <canvas id="qr" width="340" height="340"></canvas>
+            <p>scan to play</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ AUDIO ════ -->
+      <!-- music mounts AT the wipe; media-start 15.06 = 0.06 + 8 bars → in-video bars at 3.5 + n·1.875 -->
+      <audio id="bgm" src="assets/audio/forcefield-76s.m4a"
+             data-start="3.5" data-duration="42.0" data-media-start="15.06" data-track-index="10" data-volume="1"></audio>
+      <!-- pain drone (timeline fades it under the wipe) -->
+      <audio id="sfx-drone" src="assets/audio/sfx/drone.wav"
+             data-start="0" data-duration="5.0" data-track-index="13" data-volume="0.35"></audio>
+      <!-- UI dings, one per popup -->
+      <audio id="sfx-pop1" src="assets/audio/sfx/pop.wav" data-start="0.15" data-duration="0.12" data-track-index="11" data-volume="0.45"></audio>
+      <audio id="sfx-pop2" src="assets/audio/sfx/pop.wav" data-start="0.4" data-duration="0.12" data-track-index="11" data-volume="0.45"></audio>
+      <audio id="sfx-ding1" src="assets/audio/sfx/ding1.wav" data-start="0.6" data-duration="0.3" data-track-index="11" data-volume="0.5"></audio>
+      <audio id="sfx-ding2" src="assets/audio/sfx/ding2.wav" data-start="1.0" data-duration="0.3" data-track-index="11" data-volume="0.5"></audio>
+      <audio id="sfx-ding3" src="assets/audio/sfx/ding3.wav" data-start="1.3" data-duration="0.28" data-track-index="11" data-volume="0.5"></audio>
+      <audio id="sfx-ding4" src="assets/audio/sfx/ding1.wav" data-start="1.6" data-duration="0.28" data-track-index="11" data-volume="0.5"></audio>
+      <audio id="sfx-ding5" src="assets/audio/sfx/ding2.wav" data-start="1.9" data-duration="0.28" data-track-index="11" data-volume="0.5"></audio>
+      <audio id="sfx-purchase" src="assets/audio/sfx/purchase.wav" data-start="2.05" data-duration="0.54" data-track-index="12" data-volume="0.55"></audio>
+      <!-- the wipe -->
+      <audio id="sfx-whoosh" src="assets/audio/sfx/whoosh.wav" data-start="3.45" data-duration="0.7" data-track-index="11" data-volume="0.6"></audio>
+      <audio id="sfx-thud" src="assets/audio/sfx/thud.wav" data-start="3.55" data-duration="0.7" data-track-index="12" data-volume="0.7"></audio>
+    </div>
+
+    <script>
+      // Themed scan-to-play QR (komyo's in-repo encoder — same as the score cards).
+      (function () {
+        var c = document.getElementById('qr');
+        var q = window.KOMYO_QR && window.KOMYO_QR.encode('https://komyo.online?utm_source=tr-v3&utm_medium=qr');
+        if (!c || !q) return;
+        var g = c.getContext('2d');
+        var quiet = 2, n = q.size + quiet * 2, px = Math.floor(c.width / n);
+        var off = Math.floor((c.width - px * n) / 2) + quiet * px;
+        g.fillStyle = '#ffffff'; g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = '#0b0e17';
+        for (var y = 0; y < q.size; y++)
+          for (var x = 0; x < q.size; x++)
+            if (q.modules[y][x]) g.fillRect(off + x * px, off + y * px, px, px);
+      })();
+
+      // End-card backdrop: perspective grid floor + seeded sparkles (score-card texture kit).
+      (function () {
+        var c = document.getElementById('endgrid'); if (!c) return;
+        var g = c.getContext('2d'), W = 1920, H = 1080, ACC = '#2ee8c8';
+        var s = 7331; var rnd = function () { s |= 0; s = (s + 0x6D2B79F5) | 0; var t = Math.imul(s ^ (s >>> 15), 1 | s); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        var hz = H * 0.58, cx = W / 2;
+        g.strokeStyle = ACC; g.lineWidth = 1.5; g.globalAlpha = 0.1;
+        for (var i = -9; i <= 9; i++) { g.beginPath(); g.moveTo(cx + i * 150, hz); g.lineTo(cx + i * 150 * 2.6, H + 60); g.stroke(); }
+        g.globalAlpha = 0.08;
+        for (var j = 1; j <= 6; j++) { var gy = hz + (H - hz) * Math.pow(j / 6, 1.8); g.beginPath(); g.moveTo(0, gy); g.lineTo(W, gy); g.stroke(); }
+        for (var p = 0; p < 16; p++) {
+          var sz = 3 + rnd() * 11, px = W * (0.03 + rnd() * 0.94), py = H * (0.05 + rnd() * 0.6);
+          var pa = (rnd() * 0.5 + 0.35) * 0.7, hr = sz * 3.2;
+          var hg = g.createRadialGradient(px, py, 0, px, py, hr); hg.addColorStop(0, ACC); hg.addColorStop(1, 'rgba(0,0,0,0)');
+          g.globalAlpha = pa * 0.35; g.fillStyle = hg; g.beginPath(); g.arc(px, py, hr, 0, 6.29); g.fill();
+          g.globalAlpha = pa; g.fillStyle = rnd() < 0.35 ? '#fff' : ACC;
+          g.beginPath(); g.arc(px, py, sz / 2, 0, 6.29); g.fill();
+        }
+        g.globalAlpha = 1;
+      })();
+
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      var BAR = 1.875, WIPE = 3.5;
+
+      // ── THE PAIN: the portal assembles itself, popup on popup (fast pile-up) ──
+      tl.from('#fgp-head', { y: -140, opacity: 0, duration: 0.3, ease: 'power2.out' }, 0.05);
+      tl.from('#fgp-col-l > div', { x: -360, opacity: 0, duration: 0.28, ease: 'power2.out', stagger: 0.09 }, 0.12);
+      tl.from('#fgp-col-r > div', { x: 360, opacity: 0, duration: 0.28, ease: 'power2.out', stagger: 0.09 }, 0.18);
+      tl.from('#fgp-game', { scale: 0.6, opacity: 0, duration: 0.3, ease: 'back.out(1.6)' }, 0.25);
+      tl.from('#fgp-ban-top, #fgp-ban-bot, #fgp-foot', { opacity: 0, duration: 0.22, ease: 'power1.out', stagger: 0.08 }, 0.32);
+      tl.to('#fgp-blink', { scale: 1.14, rotation: 2, duration: 0.3, ease: 'steps(1)', yoyo: true, repeat: 8 }, 0.6);    // ends 3.3
+      tl.to('#fgp-spin', { rotation: 660, duration: 3.3, ease: 'none' }, 0.15);                               // ends 3.45
+      tl.from('#fgp-cookie', { y: 360, duration: 0.4, ease: 'power3.out' }, 0.6);
+      tl.from('#fgp-register', { y: -700, opacity: 0, duration: 0.45, ease: 'bounce.out' }, 1.0);
+      tl.from('#fgp-pop1', { scale: 0.3, opacity: 0, duration: 0.3, ease: 'back.out(2.2)' }, 1.3);
+      tl.from('#fgp-pop2', { scale: 0.3, opacity: 0, duration: 0.3, ease: 'back.out(2.2)' }, 1.6);
+      tl.from('#fgp-pop3', { scale: 0.3, opacity: 0, duration: 0.3, ease: 'back.out(2.2)' }, 1.9);
+      tl.to('#fgp-dim', { opacity: 1, duration: 0.3, ease: 'power1.out' }, 2.0);
+      tl.from('#fgp-purchase', { scale: 0.7, opacity: 0, y: 60, duration: 0.4, ease: 'back.out(1.8)' }, 2.05);
+      tl.from('#pain-cap-inner', { opacity: 0, y: 50, scale: 0.94, duration: 0.45, ease: 'power2.out' }, 2.45);
+
+      // ── THE WIPE: everything slams off (gravity drop, staggered), 1 dark beat ──
+      // explicit order (a selector list would stagger in DOM order): junk first, the nag dialog last
+      [ ['#fgp-cookie',   0,     5 ],
+        ['#fgp-pop1',     0.05,  7 ],
+        ['#fgp-pop2',     0.1,  -6 ],
+        ['#fgp-pop3',     0.15,  8 ],
+        ['#fgp-register', 0.2,  -7 ],
+        ['#fgp-dim',      0.25,  0 ],
+        ['#fgp-purchase', 0.25,  10 ],
+        ['#fgp-page',     0.34,  3 ] ].forEach(function (d) {
+        tl.to(d[0], { y: 1500, rotation: d[2], duration: 0.5, ease: 'power3.in' }, WIPE + d[1]);
+      });
+      tl.set('#pain .drop', { opacity: 0 }, 4.42);                                   // hard kill well before clip end
+      tl.to('#pain-cap-inner', { y: -230, scale: 1.1, duration: 0.6, ease: 'power2.inOut' }, WIPE);  // the thesis steps to center — OWNS the dark beat
+      tl.to('#pain-cap-inner', { opacity: 0, duration: 0.35, ease: 'power1.in' }, 4.5);
+      tl.set('#pain-cap-inner', { opacity: 0 }, 4.95);                               // clip ends 5.2
+
+      // ── THE CURE: calm chips ride each cut ──
+      ['#cap-just', '#cap-free', '#cap-noads', '#cap-nonags', '#cap-devices', '#cap-offline'].forEach(function (id, i) {
+        tl.from(id, { opacity: 0, y: 50, duration: 0.45, ease: 'power2.out' }, 5.375 + i * 2 * BAR + 0.15);
+      });
+      tl.from('#cap-proof', { opacity: 0, y: 50, duration: 0.45, ease: 'power2.out' }, 28.05);
+      tl.from('#brand', { opacity: 0, x: 60, duration: 0.4, ease: 'power2.out' }, 5.575);
+
+      // proof: perfectly linear synthetic scroll of the real catalogue
+      tl.fromTo('#cat-img', { y: -300 }, { y: -1900, duration: 5.625, ease: 'none' }, 27.875);
+
+      // ── CTA build (on the bar) ──
+      tl.from('#wordmark', { opacity: 0, y: 70, scale: 0.9, duration: 0.5, ease: 'back.out(1.6)' }, 33.6);
+      tl.from('#tagline', { opacity: 0, y: 40, duration: 0.4, ease: 'power2.out' }, 33.85);
+      tl.from('#qrcard', { opacity: 0, scale: 0.7, duration: 0.5, ease: 'back.out(2)' }, 34.1);
+      tl.from('#url', { opacity: 0, y: 30, duration: 0.4, ease: 'power2.out' }, 34.35);
+      tl.from('#instead', { opacity: 0, y: 40, duration: 0.45, ease: 'power2.out' }, 35.375);
+      tl.from('#instead .cross', { opacity: 0, scale: 1.7, duration: 0.3, ease: 'power4.out' }, 35.9);
+      tl.to('#endgrid', { opacity: 0.75, duration: 2.6, ease: 'sine.inOut' }, 36.5);
+      tl.to('#qrcard', { scale: 1.03, duration: 1.6, ease: 'sine.inOut', repeat: 3, yoyo: true }, 36.8);
+
+      // drone ducks out under the wipe (its baked tail sits past our cut point)
+      tl.to('#sfx-drone', { volume: 0, duration: 1.2, ease: 'power1.in' }, 3.6);
+      // music: fade out over the last two seconds
+      tl.to('#bgm', { volume: 0, duration: 2.0, ease: 'power1.in' }, 43.5);
+
+      window.__timelines['main'] = tl;
+    </script>
+  </body>
+</html>

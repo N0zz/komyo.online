@@ -1,0 +1,2 @@
+{ "name": "komyo-trailer-tools", "private": true, "type": "module",
+  "dependencies": { "node-web-audio-api": "^1.0.0" } }

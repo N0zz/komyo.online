@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>komyo — recording launcher</title>
+<style>
+  :root { --accent: #38bdf8; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0b0e17; color: #eef4fc;
+         font-family: -apple-system, Segoe UI, Roboto, sans-serif; padding: 28px 26px 60px; }
+  h1 { font-size: 26px; margin: 0 0 4px; }
+  h1 b { color: var(--accent); }
+  .sub { color: #9fb2c8; font-size: 15px; margin-bottom: 20px; }
+  .info { background: #121a28; border: 1px solid #23324a; border-radius: 12px;
+          padding: 14px 18px; margin-bottom: 22px; font-size: 14px; line-height: 1.6; }
+  .info code { background: #0b0e17; padding: 2px 8px; border-radius: 6px; color: var(--accent);
+               font-family: ui-monospace, Menlo, monospace; }
+  .info .big { font-size: 20px; font-weight: 800; color: #fff; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px,1fr)); gap: 12px; }
+  button { text-align: left; cursor: pointer; color: #fff; font-size: 17px; font-weight: 700;
+           background: #131c2b; border: 1px solid #26374f; border-left: 5px solid var(--pc);
+           border-radius: 12px; padding: 15px 16px; transition: transform .08s, background .12s; }
+  button:hover { background: #1a2740; transform: translateY(-2px); }
+  button small { display: block; font-weight: 500; color: #8aa0ba; font-size: 12px;
+                 font-family: ui-monospace, Menlo, monospace; margin-top: 3px; }
+  .steps { margin-top: 30px; font-size: 14px; color: #b7c6da; line-height: 1.7; max-width: 720px; }
+  .steps b { color: #fff; }
+  .steps code { background: #121a28; padding: 2px 7px; border-radius: 5px; color: var(--accent);
+                font-family: ui-monospace, Menlo, monospace; }
+</style>
+</head>
+<body>
+  <h1>komyo · <b>recording launcher</b></h1>
+  <div class="sub">Click a game → it pops a portrait window sized for a clean 1080×1920 capture.</div>
+
+  <div class="info" id="info">measuring your display…</div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="steps">
+    <p><b>Record it (OBS · Window Capture):</b></p>
+    <p>1. Click a game above — a portrait window opens on the live site. Press <b>⛶ fullscreen</b> in the
+       game to drop the nav (optional — the template crops it anyway). Pick your mode in the start menu.</p>
+    <p>2. In OBS set <b>Base + Output = 1080×1920</b>, <b>FPS 60</b>. Add a <b>Window Capture</b> of this
+       popup, right-click → <b>Transform → Fit to screen</b>, Alt-drag to crop chrome.</p>
+    <p>3. Play a few rounds, record continuously. If your backing size below isn't exactly 1080×1920,
+       downscale after (never up): <code>ffmpeg -i in.mov -vf scale=1080:1920 out.mp4</code>.</p>
+    <p>4. Drop the mp4 in <code>assets/footage/</code> and swap the <code>&lt;video src&gt;</code> in the template.</p>
+  </div>
+
+<script>
+  var GAMES = [
+    {slug:"asteroids",title:"Asteroids",accent:"#9fe8ff"},
+    {slug:"asteroids-plus",title:"Asteroids+",accent:"#b98cff"},
+    {slug:"tower-defense",title:"Keep Defender",accent:"#e0b25a"},
+    {slug:"forcefield",title:"Forcefield",accent:"#38bdf8"},
+    {slug:"bubbles",title:"Bubble Pop",accent:"#2ee8c8"},
+    {slug:"frog-bonk",title:"Frog Bonk",accent:"#7ed957"},
+    {slug:"breakout",title:"Brick Breaker",accent:"#ff5cc8"},
+    {slug:"sudoku",title:"Sudoku",accent:"#f0b429"},
+    {slug:"stacker",title:"Stack",accent:"#ff9aa2"},
+    {slug:"trap-the-cat",title:"Trap the Cat",accent:"#f0a6c8"},
+    {slug:"flappy",title:"Meadow Flyer",accent:"#8fd3a6"},
+    {slug:"aim-trainer",title:"Range",accent:"#ff7a3c"},
+    {slug:"snake",title:"Neon Snake",accent:"#7fffb0"},
+    {slug:"2048",title:"2048",accent:"#f2b179"},
+    {slug:"minesweeper",title:"Minesweeper",accent:"#35e0ff"},
+    {slug:"balloon-pop",title:"Balloon Pop",accent:"#ff9ec2"},
+    {slug:"critter-match",title:"Critter Match",accent:"#ffb86b"},
+    {slug:"glow-says",title:"Glow Says",accent:"#7ee787"}
+  ];
+
+  function targetSize() {
+    var dpr = window.devicePixelRatio || 1;
+    // ideal CSS size so the backing store is 1080×1920
+    var cssH = Math.round(1920 / dpr), cssW = Math.round(1080 / dpr);
+    // clamp to what fits on screen (keep 9:16); if we clamp, backing < 1080×1920 → downscale later
+    var maxH = (screen.availHeight || window.innerHeight) - 80;
+    if (cssH > maxH) { cssH = maxH; cssW = Math.round(cssH * 9 / 16); }
+    return { dpr: dpr, cssW: cssW, cssH: cssH, backW: Math.round(cssW * dpr), backH: Math.round(cssH * dpr) };
+  }
+
+  function renderInfo() {
+    var t = targetSize();
+    var exact = (t.backW === 1080 && t.backH === 1920);
+    document.getElementById('info').innerHTML =
+      'Display pixel ratio: <code>' + t.dpr + '×</code> &nbsp;·&nbsp; ' +
+      'window opens at <code>' + t.cssW + '×' + t.cssH + '</code> CSS &nbsp;→&nbsp; ' +
+      'backing <span class="big">' + t.backW + '×' + t.backH + '</span> px' +
+      (exact ? ' &nbsp;✅ exact 1080×1920' :
+       ' &nbsp;⚠️ not exactly 1080×1920 — record, then downscale with the ffmpeg line below (still crisp).');
+  }
+
+  function launch(slug) {
+    var t = targetSize();
+    var feat = 'popup=yes,noopener=no,width=' + t.cssW + ',height=' + t.cssH + ',left=40,top=20';
+    var w = window.open('https://komyo.online/games/' + slug + '/', 'rec_' + slug, feat);
+    if (!w) alert('Popup blocked — allow popups for this page and click again.');
+  }
+
+  var grid = document.getElementById('grid');
+  GAMES.forEach(function (g) {
+    var b = document.createElement('button');
+    b.style.setProperty('--pc', g.accent);
+    b.innerHTML = g.title + '<small>' + g.slug + '</small>';
+    b.onclick = function () { launch(g.slug); };
+    grid.appendChild(b);
+  });
+  renderInfo();
+</script>
+</body>
+</html>

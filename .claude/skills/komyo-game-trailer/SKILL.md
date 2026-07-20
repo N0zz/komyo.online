@@ -17,10 +17,10 @@ You turn **one gameplay recording** of a komyo game into **two finished 9:16
 card) and V3 "hype" (near-full-bleed graded gameplay, kinetic word slams) — and
 hand back the mp4 paths **plus upload metadata** for TikTok and YouTube Shorts.
 
-Everything lives in the trailer project, NOT in ~/arcade:
+Everything lives in the trailer project (in-repo, templates/tools tracked, footage/beds/renders gitignored):
 
 ```text
-~/komyo-promo/komyo-trailer/
+~/arcade/promo/komyo-trailer/
   variants/game-v2-stage-9x16.html   V2 base template (forcefield demo, 128bpm grid)
   variants/game-v3-hype-9x16.html    V3 base template (same grid)
   assets/footage/                    prepped per-game clips (<slug>_p.mp4)
@@ -92,7 +92,7 @@ Everything lives in the trailer project, NOT in ~/arcade:
 ## Step 4 — Render the game's OST bed
 
 ```bash
-cd ~/komyo-promo/komyo-trailer/tools
+cd ~/arcade/promo/komyo-trailer/tools
 node render-music.mjs <track> 76 ../assets/audio/<track>-76s.wav "0:0.55,2:0.7,6:0.9,10:1"
 cd ../assets/audio && ffmpeg -i <track>-76s.wav -c:a aac -b:a 192k <track>-76s.m4a && rm <track>-76s.wav
 ```
@@ -134,7 +134,7 @@ it does.
 ## Step 6 — Render + QA
 
 ```bash
-cd ~/komyo-promo/komyo-trailer
+cd ~/arcade/promo/komyo-trailer
 cp variants/game-v2-stage-9x16-<slug>.html index.html
 npx --yes hyperframes@0.7.53 render --fps 60 --quality high --output finals-games/game-v2-stage-9x16-<slug>.mp4
 # same for v3

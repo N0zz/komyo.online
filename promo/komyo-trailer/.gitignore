@@ -1,0 +1,9 @@
+# local-only / regenerable — only templates, tools and docs are tracked
+assets/footage/
+assets/audio/
+finals-games/
+renders/
+snapshots/
+post-assets/
+node_modules/
+index.html
