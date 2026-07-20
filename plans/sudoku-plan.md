@@ -41,5 +41,4 @@ Classic 9×9 Sudoku for komyo. `games/sudoku/` · 🔢 · amber `#f0b429` · dra
 
 - Watch Daily engagement (per-band best buckets) and the goodRun bar (1500) — retune with
   `challenges.js` goal `sudoku-2` in lockstep if needed
-- Possible v2: notes auto-fill option, technique-stats screen ("you needed 3 X-wings"),
-  daily streak counter
+- Possible v2: notes auto-fill option, technique-stats screen ("you needed 3 X-wings")
