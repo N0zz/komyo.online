@@ -1985,4 +1985,6 @@ window.KOMYO_I18N.es = {
   'changelog.e67.b4': 'Nuevo: komyo ahora puede aparecer en las búsquedas web en los 8 idiomas — y cuando juegas en otro idioma, la pestaña del navegador muestra el nombre del juego en tu idioma.',
   'changelog.e66.title': 'Llévate komyo sin conexión — descarga todo el arcade 📥',
   'changelog.e66.b0': 'Nuevo: ⚙️ Ajustes → Jugar sin conexión descarga todo komyo en un solo archivo — descomprímelo en una memoria USB y abre index.html para jugar a todos los juegos sin internet, sin instalación y sin cuenta.',
+  'changelog.e68.title': 'komyo ya está en YouTube, TikTok, Instagram y Facebook 📣',
+  'changelog.e68.b0': 'Nuevo: ¡sigue a komyo! Los enlaces a nuestras redes están en el pie de página y al final del menú ☰ — YouTube, TikTok, Instagram y Facebook, junto a nuestro Discord. Los clips de juegos y los tráilers llegan allí primero.',
 };
