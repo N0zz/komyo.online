@@ -156,6 +156,8 @@ window.KOMYO_I18N.pl = {
   'cat.favorites': '★ Ulubione',
   'cat.recentlyPlayed': 'Ostatnio grane',
   'cat.scrollRecent': 'Przewiń ostatnio grane',
+  'cat.discover': '✨ Odkrywaj',
+  'cat.scrollDiscover': 'Przewiń sekcję Odkrywaj',
   'cat.allGames': 'Wszystkie gry',
   'cat.comingSoonHead': 'Wkrótce',
   'cat.profileBtn': 'Profil',
@@ -2008,6 +2010,8 @@ window.KOMYO_I18N.pl = {
   'changelog.e66.b0': 'Nowość: ⚙️ Ustawienia → Graj offline pobiera całe komyo jako jeden plik — rozpakuj go na pendrive i otwórz index.html, aby grać we wszystkie gry bez internetu, bez instalacji i bez konta.',
   'changelog.e68.title': 'komyo jest już na YouTube, TikToku, Instagramie i Facebooku 📣',
   'changelog.e68.b0': 'Nowość: obserwuj komyo! Linki do naszych profili znajdziesz w stopce strony i na dole menu ☰ — YouTube, TikTok, Instagram i Facebook, tuż obok naszego Discorda. Klipy z gier i zwiastuny lądują tam najpierw.',
+  'changelog.e70.title': 'Odkrywaj — gry, których jeszcze nie znasz ✨',
+  'changelog.e70.b0': 'Nowość: rząd ✨ Odkrywaj na stronie głównej — krótka półka gier, których jeszcze nie znasz (najpierw nowe i popularne). Znika, gdy wypróbujesz wszystko.',
   'changelog.e69.title': 'Blokada rodzicielska — daj telefon dziecku bez obaw 🔒',
   'changelog.e69.b0': 'Nowość: ⚙️ Ustawienia → Blokada rodzicielska. Ustaw 4-cyfrowy PIN, a komyo poprosi o niego przed wydaniem trofeów w sklepie 🎨, przed resetem danych gier i przed eksportem/importem — dziecko może grać na Twoim telefonie czy laptopie bez opróżniania trofeów i kasowania postępów.',
 };

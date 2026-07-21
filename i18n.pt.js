@@ -156,6 +156,8 @@ window.KOMYO_I18N.pt = {
   'cat.favorites': '★ Favoritos',
   'cat.recentlyPlayed': 'Jogados recentemente',
   'cat.scrollRecent': 'Rolar jogados recentemente',
+  'cat.discover': '✨ Descobrir',
+  'cat.scrollDiscover': 'Rolar a seção Descobrir',
   'cat.allGames': 'Todos os jogos',
   'cat.comingSoonHead': 'Em breve',
   'cat.profileBtn': 'Perfil',
@@ -2004,6 +2006,8 @@ window.KOMYO_I18N.pt = {
   'changelog.e66.b0': 'Novo: ⚙️ Configurações → Jogar offline baixa todo o komyo num único arquivo — descompacte num pen drive e abra o index.html para jogar todos os jogos sem internet, sem instalação e sem conta.',
   'changelog.e68.title': 'komyo agora está no YouTube, TikTok, Instagram e Facebook 📣',
   'changelog.e68.b0': 'Novo: siga o komyo! Os links das nossas redes estão no rodapé da página e no fim do menu ☰ — YouTube, TikTok, Instagram e Facebook, ao lado do nosso Discord. Clipes de jogos e trailers chegam lá primeiro.',
+  'changelog.e70.title': 'Descobrir — jogos que você ainda não experimentou ✨',
+  'changelog.e70.b0': 'Novo: uma fileira ✨ Descobrir na página inicial — uma pequena prateleira de jogos que você ainda não experimentou (novos e populares primeiro). Ela some quando você já experimentou tudo.',
   'changelog.e69.title': 'Bloqueio parental — empreste seu celular a uma criança sem preocupação 🔒',
   'changelog.e69.b0': 'Novo: ⚙️ Configurações → Bloqueio parental. Crie um PIN de 4 dígitos e o komyo vai pedi-lo antes de gastar troféus na loja 🎨, antes de redefinir os dados dos jogos e antes de Exportar / Importar — assim uma criança pode jogar no seu celular ou notebook sem esvaziar seus troféus nem apagar seu progresso.',
 };

@@ -239,6 +239,8 @@ window.KOMYO_I18N.fr = {
   'cat.favorites': '★ Favoris',
   'cat.recentlyPlayed': 'Joués récemment',
   'cat.scrollRecent': 'Faire défiler les jeux récents',
+  'cat.discover': '✨ Découvrir',
+  'cat.scrollDiscover': 'Faire défiler la section Découvrir',
   'cat.allGames': 'Tous les jeux',
   'cat.comingSoonHead': 'Bientôt',
   'cat.profileBtn': 'Profil',
@@ -2004,6 +2006,8 @@ window.KOMYO_I18N.fr = {
   'changelog.e66.b0': 'Nouveau : ⚙️ Paramètres → Jouer hors ligne télécharge tout komyo en un seul fichier — décompressez-le sur une clé USB et ouvrez index.html pour jouer à tous les jeux sans internet, sans installation et sans compte.',
   'changelog.e68.title': 'komyo est maintenant sur YouTube, TikTok, Instagram et Facebook 📣',
   'changelog.e68.b0': 'Nouveau : suivez komyo ! Les liens vers nos réseaux se trouvent dans le pied de page et en bas du menu ☰ — YouTube, TikTok, Instagram et Facebook, juste à côté de notre Discord. Les clips de jeu et les bandes-annonces y arrivent en premier.',
+  'changelog.e70.title': 'Découvrir — des jeux que vous n’avez pas encore essayés ✨',
+  'changelog.e70.b0': 'Nouveau : une rangée ✨ Découvrir sur la page d’accueil — une petite étagère de jeux que vous n’avez pas encore essayés (les nouveaux et les populaires d’abord). Elle disparaît une fois que vous avez tout essayé.',
   'changelog.e69.title': 'Contrôle parental — prêtez votre téléphone à un enfant sans souci 🔒',
   'changelog.e69.b0': 'Nouveau : ⚙️ Réglages → Contrôle parental. Définissez un PIN à 4 chiffres et komyo le demandera avant de dépenser des trophées dans la boutique 🎨, avant de réinitialiser les données des jeux et avant Exporter / Importer — un enfant peut ainsi jouer sur votre téléphone ou ordinateur sans vider vos trophées ni effacer votre progression.',
 };

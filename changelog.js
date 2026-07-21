@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-21', title: 'Discover — games you haven’t tried yet ✨', items: [
+    'New: a ✨ Discover row on the home page — a short shelf of games you haven’t tried yet (new and popular ones first). It disappears once you’ve tried everything.',
+  ] },
   { date: '2026-07-21', title: 'Parental lock — hand your device to a kid, worry-free 🔒', items: [
     'New: ⚙️ Settings → Parental lock. Set a 4-digit PIN and komyo asks for it before trophies are spent in the 🎨 store, before game data is reset and before Export / Import — so a kid can play on your phone or laptop without draining your trophies or wiping your progress.',
   ] },
