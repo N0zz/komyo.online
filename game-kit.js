@@ -586,6 +586,247 @@
     if (typeof document.addEventListener === 'function') { document.addEventListener('keydown', onKey, true); document.addEventListener('keyup', onKeyUp, true); }
   }
 
+  // ---------- parental lock (gamekit_lock) ----------
+  // A child-deterrent, NOT security: everything is client-side. The two goals are (a) a kid can't
+  // pass the gate, and (b) a glance at devtools never reveals the PIN — people reuse phone/bank
+  // PINs, so it's PBKDF2-hashed, never plaintext. Recovery is zero-knowledge by design:
+  // localStorage.removeItem('gamekit_lock') removes the lock without disclosing the PIN (the
+  // documented "Forgot PIN?" path, safe for support to share). The blob is EXCLUDED from
+  // Export/Import so the PIN never travels in a backup file. 4-digit PINs are only 10k combos —
+  // the hash slows offline brute force, it can't stop it; what actually stops the kid is the
+  // wrong-try cooldown below.
+  var LOCK_KEY = 'gamekit_lock', LOCK_ITER = 100000, LOCK_MAX_FAILS = 5, LOCK_COOLDOWN_MS = 30000;
+  function lockData() { try { return JSON.parse(lsGet(LOCK_KEY) || 'null'); } catch (e) { return null; } }
+  function lockSave(d) { lsSet(LOCK_KEY, JSON.stringify(d)); }
+  function lockEnabled() { var d = lockData(); return !!(d && d.hash); }
+  function lockClear() { try { if (typeof localStorage !== 'undefined') localStorage.removeItem(LOCK_KEY); } catch (e) {} }
+  // deterministic non-crypto fallback for environments without WebCrypto (headless tests); its
+  // hashes carry a 'w' prefix so verify always recomputes with the algo the blob was made with
+  function lockWeakHash(pin, salt, iter) {
+    var h = 2166136261, s = String(salt) + ':' + String(pin), n = Math.max(1, Math.min(iter | 0, 5000)), i, j;
+    for (j = 0; j < n; j++) for (i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; }
+    return 'w' + h.toString(16);
+  }
+  function lockHash(pin, salt, iter) {
+    try {
+      if (typeof crypto !== 'undefined' && crypto.subtle && typeof TextEncoder !== 'undefined') {
+        var enc = new TextEncoder();
+        return crypto.subtle.importKey('raw', enc.encode(String(pin)), 'PBKDF2', false, ['deriveBits'])
+          .then(function (key) { return crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt: enc.encode(String(salt)), iterations: iter }, key, 256); })
+          .then(function (bits) { var b = new Uint8Array(bits), s = '', i; for (i = 0; i < b.length; i++) s += ('0' + b[i].toString(16)).slice(-2); return s; })
+          .catch(function () { return lockWeakHash(pin, salt, iter); });
+      }
+    } catch (e) {}
+    return Promise.resolve(lockWeakHash(pin, salt, iter));
+  }
+  function lockCooldownMs() { var d = lockData(); if (!d || !d.until) return 0; var left = d.until - Date.now(); return left > 0 ? left : 0; }
+  function lockSetup(pin) {
+    var salt = '';
+    try { if (typeof crypto !== 'undefined' && crypto.getRandomValues) { var a = new Uint8Array(8); crypto.getRandomValues(a); for (var i = 0; i < a.length; i++) salt += ('0' + a[i].toString(16)).slice(-2); } } catch (e) {}
+    if (!salt) salt = ((Math.random() * 0xffffffff) >>> 0).toString(16) + (Date.now() >>> 0).toString(16);
+    return lockHash(String(pin || ''), salt, LOCK_ITER).then(function (h) { lockSave({ v: 1, salt: salt, iter: LOCK_ITER, hash: h }); return true; });
+  }
+  function lockVerify(pin) {
+    var d = lockData(); if (!d || !d.hash) return Promise.resolve(true);
+    if (lockCooldownMs() > 0) return Promise.resolve(false);
+    var weak = d.hash.charAt(0) === 'w';
+    var p = weak ? Promise.resolve(lockWeakHash(String(pin || ''), d.salt, d.iter)) : lockHash(String(pin || ''), d.salt, d.iter);
+    return p.then(function (h) {
+      if (h === d.hash) { if (d.fails || d.until) { delete d.fails; delete d.until; lockSave(d); } return true; }
+      d.fails = (d.fails | 0) + 1;
+      if (d.fails >= LOCK_MAX_FAILS) { d.until = Date.now() + LOCK_COOLDOWN_MS; d.fails = 0; }
+      lockSave(d);
+      return false;
+    });
+  }
+  // Daily support code: derived from the UTC date — self-rotating at UTC midnight, nothing stored
+  // or posted anywhere. Support generates it on demand (gamekit.lock.supportCode() in any komyo
+  // page's console, or scripts/support-code.mjs) and reads it to the parent, who types it into the
+  // Forgot-PIN pad; a match removes the lock without revealing the PIN. Derivable from the public
+  // source by design — a kid who reverse-engineers today's code earned it. Verification accepts
+  // today AND yesterday (UTC) so a code generated just before midnight still works.
+  function lockSupportCode(dayStr) {
+    var s = 'komyo-support:' + (dayStr || utcDateStr()), h = 2166136261, i, j;
+    for (j = 0; j < 7; j++) for (i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return ('0000000' + (h % 100000000)).slice(-8);
+  }
+  function lockVerifySupport(code) {
+    var d = lockData(); if (!d || !d.hash) return true;
+    if (lockCooldownMs() > 0) return false;
+    var now = Date.now();
+    if (String(code) === lockSupportCode(utcDateStr(now)) || String(code) === lockSupportCode(utcDateStr(now - 86400000))) {
+      delete d.fails; delete d.until; lockSave(d);
+      return true;
+    }
+    d.fails = (d.fails | 0) + 1; // wrong codes burn the same tries as wrong PINs → same cooldown
+    if (d.fails >= LOCK_MAX_FAILS) { d.until = now + LOCK_COOLDOWN_MS; d.fails = 0; }
+    lockSave(d);
+    return false;
+  }
+  // The ONE PIN-pad modal, three modes: verify (default — checks against the stored blob, wrong-try
+  // shake + cooldown countdown, "Forgot PIN?" help), the support-code entry it can switch into
+  // (8 digits vs the daily code; a match REMOVES the lock), and input (mode:'input' — just collects
+  // 4 digits via onPin(pin); used by the Settings set/change flow, no verification).
+  function lockModal(opts) {
+    opts = opts || {};
+    if (typeof document === 'undefined' || !document.body || !document.createElement) { return; }
+    var input = opts.mode === 'input';
+    var ov = document.createElement('div'); ov.className = 'gamekit-lock';
+    var dots = '', i;
+    for (i = 0; i < 4; i++) dots += '<span class="gamekit-lock-dot"></span>';
+    var pad = '', keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'];
+    for (i = 0; i < keys.length; i++) pad += keys[i] === '' ? '<span></span>' : '<button type="button" data-k="' + keys[i] + '"' + (keys[i] === '⌫' ? ' aria-label="' + t('lock.backspace', { def: 'Delete last digit' }) + '"' : '') + '>' + keys[i] + '</button>';
+    // the hint <p> is ALWAYS rendered (empty when unused): its reserved min-height keeps the pad
+    // at the SAME position across enter/choose/repeat pads, so rapid re-typing never mis-hits
+    ov.innerHTML = '<div class="gamekit-lock-box">'
+      + '<h3>' + (opts.title || t('lock.enter', { def: '🔒 Enter PIN' })) + '</h3>'
+      + '<p class="gamekit-lock-hint">' + (opts.hint || '') + '</p>'
+      + '<div class="gamekit-lock-dots">' + dots + '</div>'
+      + '<div class="gamekit-lock-status" aria-live="polite"></div>'
+      + '<div class="gamekit-lock-pad">' + pad + '</div>'
+      + '<div class="gamekit-lock-row"><button class="gamekit-lock-cancel" type="button">' + t('confirm.cancel') + '</button>'
+      + (input ? '' : '<button class="gamekit-lock-forgot" type="button">' + t('lock.forgot', { def: 'Forgot PIN?' }) + '</button>') + '</div>'
+      + (input ? '' : '<div class="gamekit-lock-tip" hidden><p>' + t('lock.forgotHelp', { def: "Ask on the komyo Discord (linked in the site footer and the ☰ menu) — support will give you today's unlock code. It removes the lock without revealing the PIN; progress is untouched." }) + '</p><button class="gamekit-lock-supportbtn" type="button">' + t('lock.supportBtn', { def: '⌨ Enter support code' }) + '</button></div>');
+    applyMenuTheme(ov, opts.theme);
+    document.body.appendChild(ov);
+    var box = ov.querySelector('.gamekit-lock-box');
+    var dotEls = ov.querySelectorAll('.gamekit-lock-dot');
+    var status = ov.querySelector('.gamekit-lock-status');
+    var padEl = ov.querySelector('.gamekit-lock-pad');
+    var pin = '', busy = false, done = false, cdTimer = 0, support = false, pinLen = 4;
+    var stash = null; // input+confirmTitle mode: the first entry, awaiting its in-place repeat
+    function setStatus(msg, err) { if (status) { status.textContent = msg || ''; status.className = 'gamekit-lock-status' + (err ? ' err' : ''); } }
+    function paint() { for (var j = 0; j < dotEls.length; j++) dotEls[j].classList.toggle('on', j < pin.length); }
+    function setPad(dis) { var bs = padEl ? padEl.querySelectorAll('button') : []; for (var j = 0; j < bs.length; j++) bs[j].disabled = !!dis; }
+    function finish(cb) {
+      if (done) return; done = true; modalDec();
+      if (cdTimer) { clearInterval(cdTimer); cdTimer = 0; }
+      try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
+      try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+      if (cb) try { cb(); } catch (e) {}
+    }
+    // cooldown countdown — pad stays dead until the timer runs out (this, not the hash, is what
+    // actually stops a guessing kid)
+    function syncCooldown() {
+      var left = input ? 0 : lockCooldownMs();
+      if (left > 0) {
+        setPad(true); setStatus(t('lock.cooldown', { def: 'Too many tries — wait {s}s', s: Math.ceil(left / 1000) }), true);
+        if (!cdTimer && typeof setInterval === 'function') cdTimer = setInterval(function () {
+          var l2 = lockCooldownMs();
+          if (l2 <= 0) { clearInterval(cdTimer); cdTimer = 0; setPad(false); setStatus(''); }
+          else setStatus(t('lock.cooldown', { def: 'Too many tries — wait {s}s', s: Math.ceil(l2 / 1000) }), true);
+        }, 500);
+        return true;
+      }
+      return false;
+    }
+    function wrong() {
+      pin = ''; paint(); busy = false;
+      shake();
+      if (!syncCooldown()) {
+        var d = lockData(), leftTries = LOCK_MAX_FAILS - ((d && d.fails) | 0);
+        setStatus(support
+          ? t('lock.wrongCode', { def: 'Wrong code · {n} tries left', n: leftTries })
+          : t('lock.wrong', { def: 'Wrong PIN · {n} tries left', n: leftTries }), true);
+      }
+      try { sound.play('lose'); } catch (e) {}
+    }
+    // switch the pad into support-code entry: 8 dots, new title, the help/forgot row goes away
+    function toSupport() {
+      support = true; pinLen = 8; pin = ''; setStatus('');
+      setTitle(t('lock.supportTitle', { def: "🔒 Enter today's support code" }));
+      var dc = ov.querySelector('.gamekit-lock-dots');
+      if (dc) {
+        var s = '', j;
+        for (j = 0; j < pinLen; j++) s += '<span class="gamekit-lock-dot"></span>';
+        dc.innerHTML = s;
+        dotEls = dc.querySelectorAll('.gamekit-lock-dot');
+      }
+      if (help) help.hidden = true;
+      if (forgot && forgot.style) forgot.style.display = 'none';
+      paint();
+    }
+    function shake() {
+      if (box && box.classList) {
+        box.classList.remove('gamekit-lock-shake');
+        try { void box.offsetWidth; } catch (e) {}
+        box.classList.add('gamekit-lock-shake');
+      }
+    }
+    function setTitle(txt) { var h3 = ov.querySelector('h3'); if (h3) h3.textContent = txt; }
+    function submit() {
+      if (busy || done) return; busy = true;
+      if (input) {
+        var p = pin;
+        // confirmTitle = collect the PIN TWICE in this one modal (title swaps in place, the pad
+        // never moves); a mismatch restarts step 1 with the reserved status line as feedback
+        if (opts.confirmTitle) {
+          if (stash === null) {
+            stash = p; pin = ''; paint(); busy = false;
+            setTitle(opts.confirmTitle); setStatus('');
+            return;
+          }
+          if (stash !== p) {
+            stash = null; pin = ''; paint(); busy = false;
+            setTitle(opts.title || t('lock.enter', { def: '🔒 Enter PIN' }));
+            setStatus(opts.mismatchMsg || t('lock.mismatch', { def: "The PINs didn't match — start over." }), true);
+            shake();
+            try { sound.play('lose'); } catch (e) {}
+            return;
+          }
+        }
+        finish(function () { if (opts.onPin) opts.onPin(p); });
+        return;
+      }
+      if (support) {
+        // a matching daily code IS the recovery: the lock is removed, then the gated action runs
+        if (lockVerifySupport(pin)) { lockClear(); finish(opts.onOk); }
+        else wrong();
+        return;
+      }
+      lockVerify(pin).then(function (ok) {
+        if (done) return;
+        if (ok) finish(opts.onOk);
+        else wrong();
+      });
+    }
+    function press(k) {
+      if (busy || done) return;
+      if (k === '⌫') { pin = pin.slice(0, -1); paint(); return; }
+      if (pin.length >= pinLen || !(k >= '0' && k <= '9')) return;
+      if (help && !help.hidden) help.hidden = true; // typing dismisses the forgot-tip
+      pin += k; paint(); setStatus('');
+      if (pin.length === pinLen) submit();
+    }
+    function onKey(e) {
+      if (!e || done) return;
+      if (e.preventDefault) e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation(); else if (e.stopPropagation) e.stopPropagation();
+      var k = e.key;
+      if (k === 'Escape' || k === 'Esc') finish(opts.onCancel);
+      else if (k === 'Backspace') press('⌫');
+      else if (k >= '0' && k <= '9') press(k);
+    }
+    if (padEl) padEl.addEventListener('click', function (e) { var b = e && e.target; if (b && b.getAttribute && b.getAttribute('data-k')) press(b.getAttribute('data-k')); });
+    var cancel = ov.querySelector('.gamekit-lock-cancel');
+    if (cancel) cancel.addEventListener('click', function () { finish(opts.onCancel); });
+    var forgot = ov.querySelector('.gamekit-lock-forgot'), help = ov.querySelector('.gamekit-lock-tip');
+    if (forgot && help) forgot.addEventListener('click', function () { help.hidden = !help.hidden; });
+    var supportBtn = ov.querySelector('.gamekit-lock-supportbtn');
+    if (supportBtn) supportBtn.addEventListener('click', toSupport);
+    ov.addEventListener('click', function (e) { if (e && e.target === ov) finish(opts.onCancel); });
+    modalInc();
+    if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
+    syncCooldown();
+  }
+  // gate an action: no lock set → runs immediately; lock set → PIN modal first
+  function lockRequire(cb, opts) {
+    if (!lockEnabled()) { if (cb) try { cb(); } catch (e) {} return; }
+    opts = opts || {};
+    lockModal({ title: opts.title, theme: opts.theme, onOk: cb, onCancel: opts.onCancel });
+  }
+  var lock = { enabled: lockEnabled, require: lockRequire, setup: lockSetup, verify: lockVerify, clear: lockClear, cooldownMs: lockCooldownMs, prompt: lockModal, supportCode: lockSupportCode, verifySupport: lockVerifySupport, KEY: LOCK_KEY };
+
   // ---------- embed modal (iframe snippet) — used by the per-game nav button + catalogue menu ----------
   function embedSnippet(slug, title) {
     var t = String(title || 'Komyo Games').replace(/"/g, '&quot;');
@@ -1626,8 +1867,10 @@
       var doBuy = function () { if (cosBuy(it.id)) { cosSelect(it.set, it.id); applyMusic(it); try { sound.play('levelup'); } catch (e) {} syncCells(); } };
       // premium items get a second "spend?" step — there is no refund, so one mis-tap on a 🏆500
       // skin must not be able to drain weeks of trophies
-      if ((+it.price || 0) >= 100) confirmDialog(t('shop.confirmBuy', { def: 'Spend {price} 🏆 on {name}?', price: fmtT(it.price), name: cosName(it) }), doBuy, t('shop.confirmBtn', { def: 'BUY' }), null, { theme: opts.theme });
-      else doBuy();
+      lockRequire(function () {
+        if ((+it.price || 0) >= 100) confirmDialog(t('shop.confirmBuy', { def: 'Spend {price} 🏆 on {name}?', price: fmtT(it.price), name: cosName(it) }), doBuy, t('shop.confirmBtn', { def: 'BUY' }), null, { theme: opts.theme });
+        else doBuy();
+      }, { theme: opts.theme });
     }
     // click a cell: OWNED → equip immediately (no spend); UNOWNED → just select (BUY button confirms)
     function clickCell(idx) {
@@ -2602,7 +2845,9 @@
       var rb = document.getElementById('gamekitReset');
       if (rb) rb.addEventListener('click', function () {
         setMore(false);
-        confirmDialog(t('confirm.reset'), function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} }, t('confirm.holdReset'), null, { hold: 3000, theme: opts.theme });
+        lockRequire(function () {
+          confirmDialog(t('confirm.reset'), function () { resetScores(opts.reset); try { location.reload(); } catch (e) {} }, t('confirm.holdReset'), null, { hold: 3000, theme: opts.theme });
+        }, { theme: opts.theme });
       });
     }
     // ☰ language row: a full-width item (split globe/flag glyph + "Language") opening the themed
@@ -3747,8 +3992,10 @@
           var ref = { el: cell, kind: 'choice', grp: g2.id, choice: c.id, locked: false, c: c, buyFn: null };
           if (typeof c.buy === 'function') ref.buyFn = function () {
             if (!ref.locked) return;
-            var okB = false; try { okB = !!c.buy(c.id, handle); } catch (e) {}
-            if (okB) { sel[g2.id] = c.id; changed(); }
+            lockRequire(function () {
+              var okB = false; try { okB = !!c.buy(c.id, handle); } catch (e) {}
+              if (okB) { sel[g2.id] = c.id; changed(); }
+            }, { theme: cfg.theme });
           };
           var preFocused = false, viaTouch = false;
           cell.addEventListener('pointerdown', function (e) { preFocused = (focusables[fi] === ref); viaTouch = !!(e && e.pointerType === 'touch'); });
@@ -4296,7 +4543,7 @@
     } catch (e) {}
   })();
 
-  var api = { sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
+  var api = { lock: lock, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

@@ -399,6 +399,16 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
 
 ### In flight / near-term
 
+- **🔒 Parental lock — IN PROGRESS (2026-07-21)** — hand the device to a kid without them spending
+  trophies / wiping data: kit-owned PIN gate (PBKDF2-hashed via `crypto.subtle`, never plaintext —
+  people reuse bank/phone PINs) on shop BUY, "↺ Reset game data", Export/Import, and the lock's own
+  settings; 5-wrong-tries cooldown; zero-knowledge recovery = a **daily 8-digit support code**
+  (UTC-derived, self-rotating, typed into the Forgot-PIN pad — works even in iOS home-screen
+  installs; support generates it on demand via `scripts/support-code.mjs` or a console snippet
+  kept in the INTERNAL Discord staff channel); `gamekit_lock` excluded from Export. Deterrent, not
+  security (client-side, said plainly). Separate from 🐣 Easy picks. **Later:** 📖 word-check gate
+  (Disney+-style spelled-out digits — reading test, no secret; second strength option) +
+  external-link gating. Plan: **`plans/parental-lock-plan.md`**.
 - ~~**Discord changelog posts get cut mid-sentence**~~ *(fixed 2026-07-12)* — long entries now split
   into multiple messages on bullet boundaries (never mid-sentence).
 - **UI overlap audit** *(added 2026-07-05 — LOWER priority, defer)* — it works today; not urgent.

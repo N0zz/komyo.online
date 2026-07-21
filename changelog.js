@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-21', title: 'Parental lock — hand your device to a kid, worry-free 🔒', items: [
+    'New: ⚙️ Settings → Parental lock. Set a 4-digit PIN and komyo asks for it before trophies are spent in the 🎨 store, before game data is reset and before Export / Import — so a kid can play on your phone or laptop without draining your trophies or wiping your progress.',
+  ] },
   { date: '2026-07-20', title: 'komyo is now on YouTube, TikTok, Instagram & Facebook 📣', items: [
     'New: follow komyo! Social links live in the page footer and at the bottom of the ☰ menu — YouTube, TikTok, Instagram and Facebook, next to our Discord. Game clips and trailers land there first.',
   ] },

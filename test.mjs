@@ -770,6 +770,79 @@ async function testKit() {
   if (hc) { hc.select('mode', 'enh'); hc.activate('play'); }
   ok(played2 && played2.mode === 'enh' && played2.speedrun === true, 'onPlay gets the merged selection + toggle state');
   if (hc) hc.hide();
+
+  // ---- parental lock (gamekit_lock): hashed store, gating, cooldown ----
+  {
+    const L = F.lock;
+    ok(L && typeof L.require === 'function' && typeof L.setup === 'function' && typeof L.verify === 'function' && typeof L.clear === 'function',
+      'kit exposes lock (require/setup/verify/clear)');
+    ok(L.enabled() === false, 'lock starts disabled');
+    let ran = 0;
+    L.require(() => { ran++; });
+    ok(ran === 1, 'require() with no lock runs the action immediately');
+    await L.setup('1234');
+    ok(L.enabled() === true, 'setup() enables the lock');
+    const blob = store['gamekit_lock'] || '';
+    ok(blob.indexOf('1234') < 0, 'the PIN is never stored in the clear (hashed blob only)');
+    const d = JSON.parse(blob);
+    ok(d && d.v === 1 && d.salt && d.hash && d.iter >= 1000, 'blob is versioned {v,salt,hash,iter}');
+    ok(await L.verify('1234') === true, 'verify accepts the right PIN');
+    ok(await L.verify('0000') === false, 'verify rejects a wrong PIN');
+    // salt: same PIN → different blob on re-setup
+    await L.setup('1234');
+    ok((store['gamekit_lock'] || '') !== blob, 're-setup rolls a fresh salt (same PIN, different blob)');
+    // cooldown: 5 wrong tries lock the pad for 30s; the right PIN clears the fail count
+    for (let i = 0; i < 5; i++) await L.verify('9999');
+    ok(L.cooldownMs() > 0, '5 wrong tries start the cooldown (' + L.cooldownMs() + 'ms)');
+    ok(await L.verify('1234') === false, 'even the RIGHT PIN is rejected during the cooldown');
+    { const d2 = JSON.parse(store['gamekit_lock']); delete d2.until; store['gamekit_lock'] = JSON.stringify(d2); }
+    ok(await L.verify('1234') === true, 'after the cooldown the right PIN works again');
+    ok(!JSON.parse(store['gamekit_lock']).fails, 'a correct PIN clears the fail counter');
+    // require() with a lock set → opens the PIN modal instead of running the action
+    const findOv = () => doc.body.children.find(c => c && c.className === 'gamekit-lock');
+    let gated = 0;
+    L.require(() => { gated++; });
+    let ovl = findOv();
+    ok(gated === 0 && !!ovl, 'require() with a lock opens the PIN pad, action deferred');
+    if (ovl) ovl.parentNode = doc.body; // the harness appendChild doesn't set parentNode
+    for (const k of ['1', '2', '3', '4']) g.down(k); // keyboard path: 4th digit auto-submits
+    await Promise.resolve(); await Promise.resolve(); await Promise.resolve();
+    ok(gated === 1 && !findOv(), 'typing the right PIN runs the action + closes the pad');
+    L.require(() => { gated++; });
+    ovl = findOv(); if (ovl) ovl.parentNode = doc.body;
+    g.down('Escape');
+    ok(gated === 1 && !findOv(), 'Escape cancels the pad without running the action');
+    L.clear();
+    ok(L.enabled() === false && !store['gamekit_lock'], 'clear() removes the lock (the last-resort console recovery)');
+    // ---- daily support code (the "Forgot PIN?" recovery) ----
+    ok(/^\d{8}$/.test(L.supportCode('2026-07-21')), 'supportCode is 8 digits');
+    ok(L.supportCode('2026-07-21') === L.supportCode('2026-07-21'), 'supportCode is deterministic for a date');
+    ok(L.supportCode('2026-07-21') !== L.supportCode('2026-07-22'), 'supportCode rotates with the (UTC) date');
+    await L.setup('1234');
+    const today = L.supportCode();
+    const yesterday = L.supportCode(new Date(Date.now() - 86400000).toISOString().slice(0, 10));
+    ok(L.verifySupport('00000000') === false || today === '00000000', 'verifySupport rejects a wrong code');
+    ok(JSON.parse(store['gamekit_lock']).fails === 1, 'a wrong support code burns a try (shared cooldown pool)');
+    ok(L.verifySupport(yesterday) === true, "verifySupport accepts YESTERDAY's UTC code (midnight edge)");
+    ok(L.verifySupport(today) === true, "verifySupport accepts TODAY's code");
+    ok(!JSON.parse(store['gamekit_lock']).fails, 'a correct support code clears the fail counter');
+    L.clear();
+    // ---- input mode with confirmTitle: ONE modal collects the PIN twice, mismatch restarts in place ----
+    {
+      let got = null;
+      L.prompt({ mode: 'input', title: 'A', confirmTitle: 'B', onPin: (p) => { got = p; } });
+      const ovl2 = findOv();
+      ok(!!ovl2, 'input+confirm prompt opens the pad');
+      if (ovl2) ovl2.parentNode = doc.body;
+      for (const k of ['1', '2', '3', '4']) g.down(k); // first entry
+      ok(got === null && !!findOv(), 'after the first entry the modal STAYS OPEN (repeat step)');
+      for (const k of ['9', '9', '9', '9']) g.down(k); // mismatching repeat
+      ok(got === null && !!findOv(), 'a mismatch restarts in place, onPin not fired');
+      for (const k of ['5', '6', '7', '8']) g.down(k);
+      for (const k of ['5', '6', '7', '8']) g.down(k);
+      ok(got === '5678' && !findOv(), 'matching entries fire onPin once with the PIN and close');
+    }
+  }
 }
 
 // ---------------- Challenges ↔ games coverage ----------------

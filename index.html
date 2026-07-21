@@ -277,32 +277,55 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   .verlink.nolink { pointer-events:none; opacity:.7; }
   .dver { text-align:center; margin:6px 4px 10px; }
   .set-note { color:var(--faint); font-size:12.5px; margin:2px 0 10px; }
-  .set-head { justify-content:flex-start; align-items:baseline; flex-wrap:wrap; gap:4px 10px; }
+  /* dialog#settingsModal prefix: .cl-head (later in source, same specificity) would otherwise win
+     with space-between and push the note under the corner ✕ (the mobile-landscape overlap) */
+  dialog#settingsModal .set-head { justify-content:flex-start; align-items:baseline; flex-wrap:wrap; gap:4px 10px; }
   .set-head .set-note { margin:0; }
-  /* height safety net — the box never exceeds the viewport; scrolls inside if it somehow must */
-  dialog#settingsModal .about { max-height:90vh; overflow-y:auto; overflow-x:hidden; }
-  /* wide screens (landscape phones AND desktop): split the 8 rows into two balanced columns,
-     column-first so the order reads sound+play (left) | data+copy (right). Hints + sliders stay
-     visible everywhere. Selector is `dialog#settingsModal` so it outranks the shared modal-width
-     rule regardless of source order (that mismatch is why the box wasn't widening before). */
+  /* HEIGHT DISCIPLINE (2026-07-21 rework — after the parental-lock row re-broke landscape).
+     The old approach capped .about at 90–96vh, but the UA stylesheet caps the <dialog> FRAME at
+     calc(100% - 6px - 2em) — SHORTER than 96vh on short screens — so the inner box grew taller
+     than its frame and bled out the bottom. Structural fix: the DIALOG is the one bound (flex
+     column capped safely inside the viewport) and .about flexes into it, scrolling itself when
+     content doesn't fit. Future-proof by construction: ANY number of settings rows scrolls inside
+     the frame, never overlaps out of it. The frame keeps overflow:visible so the corner ✕ badge
+     still protrudes (its 13px overhang is why the cap leaves 15px margins). */
+  dialog#settingsModal { max-height:calc(100vh - 30px); display:flex; flex-direction:column; overflow:visible; }
+  dialog#settingsModal .about { max-height:none; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; }
+  /* wide screens (landscape phones AND desktop): two balanced 4-row columns, column-first, so the
+     order reads sound+play (left) | data+danger (right). The grid holds only true SETTINGS — the
+     8 rows split evenly; metadata (Version + Update) lives in the .set-foot strip below, so no
+     odd row ever lops the columns. A future 9th setting: prefer demoting metadata-like rows to
+     the footer first; a genuinely odd row spans both columns EXPLICITLY placed (grid-row + span —
+     auto row placement scrambles column flow). Selector is `dialog#settingsModal` so it outranks
+     the shared modal-width rule regardless of source order. */
   @media (min-width:600px) {
     dialog#settingsModal { width:min(880px,96vw); }
     .setgroups { display:grid; grid-template-columns:1fr 1fr; grid-auto-flow:column; grid-template-rows:repeat(4,auto); column-gap:36px; align-items:stretch; }
     .setgroups > .setrow:nth-child(1), .setgroups > .setrow:nth-child(5) { border-top:0; }
   }
-  /* short screens (landscape phones + short windows): the wider box already trims hint wrapping;
-     tighten vertical spacing too so all 8 rows + hints fit on one screen without scrolling */
+  /* shrink ladder, step 1 (≤640px tall): tighten spacing */
   @media (max-height:640px) {
-    dialog#settingsModal .about { gap:6px; padding:12px 18px 14px; max-height:96vh; }
+    dialog#settingsModal .about { gap:6px; padding:12px 18px 14px; }
     .setgroups .setrow { padding:7px 0; }
     .setgroups .sethint { margin-top:2px; line-height:1.3; }
   }
-  /* very short screens (<360px tall): bound + clip the DIALOG FRAME itself to the viewport so the box
-     fits and its scroll stays inside it; .about scrolls within. The corner ✕ is tucked inside since a
-     clipped frame would cut off the protruding badge. ≥360px is unaffected. */
+  /* shrink ladder, step 2 (≤500px tall — landscape phones): minimum readable sizes for every
+     row element; whatever still doesn't fit scrolls inside the frame (the safety net above) */
+  @media (max-height:500px) {
+    dialog#settingsModal .about { gap:4px; padding:10px 16px 12px; }
+    .set-head h3 { font-size:16px; }
+    .set-note { font-size:11px; margin-bottom:4px; }
+    .setgroups .setrow { padding:5px 0; gap:8px; }
+    .setgroups .setlbl { font-size:13px; gap:7px; }
+    .setgroups .setlbl .di { width:18px; font-size:13px; }
+    .setgroups .sethint { font-size:10.5px; margin-top:1px; line-height:1.25; }
+    .setgroups .settoggle { padding:4px 9px; font-size:11.5px; min-width:56px; }
+    .setgroups .drefresh { padding:6px 10px; font-size:11px; }
+    .setgroups .setvol { width:90px; }
+  }
+  /* very short screens (<360px tall): tuck the corner ✕ inside — the frame hugs the viewport, so
+     the protruding badge would poke off-screen */
   @media (max-height:359px) {
-    dialog#settingsModal { max-height:96vh; overflow:hidden; }
-    dialog#settingsModal .about { max-height:96vh; }
     dialog#settingsModal .pf-x { top:6px; right:6px; }
   }
   .sethint { display:block; font-size:11.5px; font-weight:400; color:var(--faint); margin-top:3px; letter-spacing:.2px; }
@@ -367,6 +390,15 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   .setrow:first-of-type { border-top:0; }
   .setlbl { flex:1; font-size:15px; color:var(--text); display:flex; align-items:center; gap:9px; }
   .setlbl .di { width:22px; text-align:center; }
+  /* two-button rows (parental lock): stack the buttons so the label keeps a full row's width */
+  .setbtncol { display:flex; flex-direction:column; gap:6px; }
+  .setbtncol .drefresh { text-align:center; }
+  /* Version + Update = metadata, not a setting: a slim centered strip under the grid (mirrors the
+     home footer's version line) so the grid stays an even 4|4 */
+  .set-foot { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; padding-top:10px; margin-top:2px;
+    border-top:1px solid var(--border); color:var(--faint); font-size:11.5px; }
+  .set-foot .setverv { font-family:var(--mono); }
+  .set-foot .drefresh { padding:5px 10px; font-size:11px; }
   .settoggle { border:1px solid var(--border); background:var(--surface); color:var(--muted); border-radius:999px; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer; min-width:70px; }
   .settoggle.on { border-color:#9fe8ff; color:#9fe8ff; }
   .setvol { width:120px; accent-color:#9fe8ff; }
@@ -986,15 +1018,24 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           <a class="drefresh" id="setDownload" href="komyo.zip" download="komyo.zip" data-t="settings.download">Download</a>
         </div>
         <div class="setrow">
-          <span class="setlbl"><span class="di">🧩</span><span><span data-t="settings.version">Version</span>
-            <small class="sethint setverv" id="setVersion"></small></span></span>
-          <button class="drefresh" id="setUpdate" type="button" title="Fetch the newest version of the site and every game" data-tt="settings.updateTitle" data-t="update.upToDate">✓ Up to date</button>
+          <span class="setlbl"><span class="di">🔒</span><span><span data-t="settings.lock">Parental lock</span>
+            <small class="sethint" data-t="settings.lockHint">Asks for a PIN before spending trophies, resetting data or export/import</small></span></span>
+          <span class="setbtncol">
+            <button class="drefresh" id="setLockBtn" type="button">Set PIN</button>
+            <button class="drefresh setdanger" id="setLockOff" type="button" disabled data-t="lock.turnOff">Turn off</button>
+          </span>
         </div>
         <div class="setrow">
           <span class="setlbl"><span class="di">↺</span><span><span data-t="settings.resetAll">Reset all data</span>
             <small class="sethint" data-t="settings.resetHint">Clears every game's scores &amp; progress · keeps your name, sound &amp; consent</small></span></span>
           <button class="drefresh setdanger" id="resetAll" type="button" data-t="settings.reset">Reset</button>
         </div>
+      </div>
+      <div class="set-foot">
+        <span class="di">🧩</span>
+        <span data-t="settings.version">Version</span>
+        <span class="setverv" id="setVersion"></span>
+        <button class="drefresh" id="setUpdate" type="button" title="Fetch the newest version of the site and every game" data-tt="settings.updateTitle" data-t="update.upToDate">✓ Up to date</button>
       </div>
     </div>
   </dialog>
@@ -1935,7 +1976,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     (function () {
       const btn = document.getElementById('resetAll');
       if (!btn) return;
-      const KEEP = { gamekit_consent: 1, gamekit_sfx_muted: 1, gamekit_sfx_vol: 1, gamekit_music_muted: 1, gamekit_music_vol: 1, gamekit_name: 1, gamekit_discord_name: 1 };
+      const KEEP = { gamekit_consent: 1, gamekit_sfx_muted: 1, gamekit_sfx_vol: 1, gamekit_music_muted: 1, gamekit_music_vol: 1, gamekit_name: 1, gamekit_discord_name: 1, gamekit_lock: 1 };
       const wipe = () => {
         try {
           const keys = [];
@@ -1953,8 +1994,13 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const wasOpen = !!(sm && sm.open);
         if (wasOpen) { try { sm.close(); } catch (_) {} }
         const back = () => { if (wasOpen && sm) { try { sm.showModal(); } catch (_) {} } };
-        if (window.gamekit && window.gamekit.confirm) window.gamekit.confirm(msg, wipe, 'Hold to reset', back, { hold: 3000 });
-        else if (typeof confirm !== 'function' || confirm(msg)) wipe();
+        const K = window.gamekit;
+        const ask = () => {
+          if (K && K.confirm) K.confirm(msg, wipe, 'Hold to reset', back, { hold: 3000 });
+          else if (typeof confirm !== 'function' || confirm(msg)) wipe();
+        };
+        if (K && K.lock && K.lock.enabled()) K.lock.require(ask, { onCancel: back });
+        else ask();
       });
     })();
 
@@ -2141,10 +2187,22 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const setMsg = (t, cls) => { if (msg) { msg.textContent = t || ''; msg.className = 'data-msg' + (cls ? ' ' + cls : ''); } };
       function buildExport() {
         const data = {};
-        try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); data[k] = localStorage.getItem(k); } } catch (e) {}
+        // gamekit_lock stays out: the PIN hash must not travel in a backup file people share
+        try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k !== 'gamekit_lock') data[k] = localStorage.getItem(k); } } catch (e) {}
         return enc(JSON.stringify({ app: 'komyo', v: 1, ts: Date.now(), data }));
       }
-      if (btn) btn.addEventListener('click', () => { if (ex) ex.value = buildExport(); if (imp) imp.value = ''; setMsg(''); modal.showModal(); lock(true); });
+      const openData = () => { if (ex) ex.value = buildExport(); if (imp) imp.value = ''; setMsg(''); modal.showModal(); lock(true); };
+      // parental lock gates the whole modal (export leaks progress a kid could paste elsewhere,
+      // import overwrites it). The kit's lock overlay would render UNDER the open Settings
+      // <dialog> (top layer), so close Settings first and bring it back on cancel.
+      if (btn) btn.addEventListener('click', () => {
+        const K = window.gamekit;
+        if (!(K && K.lock && K.lock.enabled())) { openData(); return; }
+        const sm = document.getElementById('settingsModal');
+        const wasOpen = !!(sm && sm.open);
+        if (wasOpen) { try { sm.close(); } catch (_) {} }
+        K.lock.require(openData, { onCancel: () => { if (wasOpen && sm) { try { sm.showModal(); } catch (_) {} } } });
+      });
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
       modal.addEventListener('close', () => lock(false));
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
@@ -2158,13 +2216,64 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         let parsed = null; try { parsed = JSON.parse(dec((imp.value || '').trim())); } catch (e) {}
         if (!parsed || parsed.app !== 'komyo' || !parsed.data) { setMsg(window.gamekit.t('data.invalid', { def: "That doesn't look like a valid komyo backup code." }), 'err'); track('data_import', { result: 'invalid' }); return; }
         // REPLACE semantics (as the modal promises): wipe this device's data first, so keys the
-        // backup doesn't carry (purchases, migration flags, …) can't survive and skew the economy
-        try { localStorage.clear(); for (const k in parsed.data) if (Object.prototype.hasOwnProperty.call(parsed.data, k)) localStorage.setItem(k, parsed.data[k]); }
+        // backup doesn't carry (purchases, migration flags, …) can't survive and skew the economy.
+        // THIS device's parental lock survives the wipe, and a lock inside the blob never applies —
+        // importing a save must neither remove your lock nor smuggle in someone else's
+        try {
+          const keepLock = localStorage.getItem('gamekit_lock');
+          delete parsed.data.gamekit_lock;
+          localStorage.clear();
+          for (const k in parsed.data) if (Object.prototype.hasOwnProperty.call(parsed.data, k)) localStorage.setItem(k, parsed.data[k]);
+          if (keepLock) localStorage.setItem('gamekit_lock', keepLock);
+        }
         catch (e) { setMsg('Import failed — storage error.', 'err'); track('data_import', { result: 'error' }); return; }
         track('data_import', { result: 'ok' });
         setMsg(window.gamekit.t('data.imported', { def: 'Imported! Reloading…' }), 'ok');
         setTimeout(() => { try { location.reload(); } catch (e) {} }, 700);
       });
+    })();
+
+    // ---- Parental lock (⚙️ Settings row): set / change / remove the PIN ----
+    (function () {
+      const btn = document.getElementById('setLockBtn'), off = document.getElementById('setLockOff');
+      const K = window.gamekit;
+      if (!btn || !(K && K.lock)) return;
+      const refresh = () => {
+        const on = K.lock.enabled();
+        btn.textContent = on ? K.t('lock.change', { def: 'Change PIN' }) : K.t('lock.set', { def: 'Set PIN' });
+        if (off) off.disabled = !on; // grayed when there's no lock to turn off (row never reflows)
+      };
+      // the kit's PIN overlay renders under the open Settings <dialog> (top layer) — close
+      // Settings for the flow, reopen when it ends
+      const sm = document.getElementById('settingsModal');
+      const flow = (fn) => {
+        const wasOpen = !!(sm && sm.open);
+        if (wasOpen) { try { sm.close(); } catch (_) {} }
+        const end = () => { refresh(); if (wasOpen && sm) { try { sm.showModal(); } catch (_) {} } };
+        fn(end);
+      };
+      // set / change: ONE modal collects the PIN twice (the title swaps in place, the pad never
+      // moves); mismatches restart inside it, so this only sees the final confirmed PIN
+      const setFlow = (end) => {
+        K.lock.prompt({
+          mode: 'input',
+          title: K.t('lock.choose', { def: '🔒 Choose a 4-digit PIN' }),
+          confirmTitle: K.t('lock.repeat', { def: '🔒 Repeat the PIN' }),
+          mismatchMsg: K.t('lock.mismatch', { def: "The PINs didn't match — start over." }),
+          hint: K.t('lock.freshPin', { def: 'Pick a fresh PIN — not your phone or bank one.' }),
+          onPin: (p) => { K.lock.setup(p).then(end); },
+          onCancel: end,
+        });
+      };
+      btn.addEventListener('click', () => flow((end) => {
+        if (K.lock.enabled()) K.lock.require(() => setFlow(end), { onCancel: end });
+        else setFlow(end);
+      }));
+      if (off) off.addEventListener('click', () => flow((end) => {
+        K.lock.require(() => { K.lock.clear(); end(); }, { onCancel: end });
+      }));
+      refresh();
+      try { K.onLang(refresh); } catch (e) {}
     })();
 
     // ---- Daily / weekly Challenges panel (🏆 right drawer) ----

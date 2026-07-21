@@ -81,7 +81,7 @@
 .gamekit-more-danger:hover { color: #fff; background: rgba(255, 90, 90, 0.25); border-color: #ff8a8a; }
 
 /* an open kit overlay owns the scroll — the page behind must not move (overlay panes scroll themselves) */
-body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .gamekit-challenges, .gamekit-pause.show, .gkm-picker-modal, .gamekit-langmenu) { overflow: hidden; }
+body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gamekit-controls, .gamekit-challenges, .gamekit-pause.show, .gkm-picker-modal, .gamekit-langmenu) { overflow: hidden; }
 .gamekit-menu .gkm-scroll, .gamekit-menu .gkm-rail, .gamekit-challenges, .gamekit-embed-box, .gamekit-controls, .gkm-picker-list { overscroll-behavior: contain; }
 
 /* universal pause overlay */
@@ -152,6 +152,43 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-embed, .gamekit-controls, .ga
   background-size: var(--gk-hold, 0%) 100% !important; background-repeat: no-repeat !important; touch-action: none; }
 .gamekit-confirm-btns button.gkm-cf-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
 .gamekit-confirm-btns button.gamekit-cf-yes.gkm-cf-focus { outline-color: #ff8a8a; } /* destructive button: red focus ring, never the theme accent */
+/* parental-lock PIN pad — same theming contract as the confirm dialog */
+.gamekit-lock { position: fixed; inset: 0; z-index: 9600; display: flex; align-items: center; justify-content: center;
+  background: var(--gkm-overlay, rgba(5, 8, 13, 0.66)); }
+.gamekit-lock-box { position: relative; background: var(--gkm-bg, rgba(16, 22, 34, 0.98)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--gkm-radius, 14px); padding: 16px 20px;
+  width: min(300px, calc(100vw - 32px)); max-height: calc(100vh - 24px); overflow: auto; text-align: center;
+  box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6));
+  color: var(--gkm-text, #eef2f8); font-family: var(--gkm-font, ui-monospace, "SFMono-Regular", Menlo, monospace); }
+.gamekit-lock-box h3 { margin: 0 0 6px; font-size: 15px; }
+/* always rendered (even empty) with a reserved height — every pad variant (enter / choose /
+   repeat) keeps its numpad at the SAME position, so rapid re-typing never mis-hits a moved key */
+.gamekit-lock-hint { margin: 0 0 4px; font-size: 11.5px; line-height: 1.4; opacity: 0.8; min-height: 32px; }
+.gamekit-lock-dots { display: flex; gap: 12px; justify-content: center; margin: 8px 0 4px; }
+.gamekit-lock-dot { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--gkm-accent, #9fe8ff); opacity: 0.45; }
+.gamekit-lock-dot.on { background: var(--gkm-accent, #9fe8ff); opacity: 1; }
+.gamekit-lock-status { min-height: 16px; font-size: 11.5px; margin: 2px 0 4px; opacity: 0.9; }
+.gamekit-lock-status.err { color: #ff8a8a; }
+.gamekit-lock-pad { display: grid; grid-template-columns: repeat(3, minmax(56px, 64px)); gap: 8px; justify-content: center; margin: 4px 0 10px; }
+.gamekit-lock-pad button { font: 600 17px/1 var(--gkm-font, ui-monospace, monospace); padding: 11px 0; border-radius: 10px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06); color: var(--gkm-text, #eef2f8); touch-action: manipulation; }
+.gamekit-lock-pad button:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-lock-pad button:disabled { opacity: 0.35; cursor: default; }
+.gamekit-lock-shake { animation: gk-lock-shake 0.3s; }
+@keyframes gk-lock-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.gamekit-lock-row { display: flex; gap: 14px; justify-content: center; }
+.gamekit-lock-cancel, .gamekit-lock-forgot { font: 600 11px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 0.5px; cursor: pointer;
+  padding: 7px 10px; border: 0; background: none; color: var(--gkm-text, #eef2f8); opacity: 0.75; text-decoration: underline; }
+.gamekit-lock-cancel:hover, .gamekit-lock-forgot:hover { opacity: 1; }
+/* "Forgot PIN?" tip — a floating bubble over the pad (toggled by the link; typing dismisses it),
+   so the modal itself never grows to fit help text */
+.gamekit-lock-tip { position: absolute; left: 12px; right: 12px; bottom: 52px; z-index: 2; text-align: left;
+  background: rgba(8, 13, 22, 0.98); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px; padding: 10px 12px;
+  font-size: 11px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); }
+.gamekit-lock-tip p { margin: 0 0 8px; }
+.gamekit-lock-supportbtn { display: block; margin: 0 auto; font: 600 11px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 0.5px; cursor: pointer;
+  padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06); color: var(--gkm-text, #eef2f8); }
+.gamekit-lock-supportbtn:hover { border-color: var(--gkm-accent, #9fe8ff); }
 .gamekit-sharemenu { width: min(320px, calc(100vw - 32px)); }
 .gamekit-sm-preview { display: block; width: 100%; max-height: 45vh; object-fit: contain; border-radius: 10px; margin: 0 0 14px;
   border: 1px solid rgba(255, 255, 255, 0.14); background: #0a121d; }
