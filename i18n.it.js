@@ -239,6 +239,8 @@ window.KOMYO_I18N.it = {
   'cat.favorites': '★ Preferiti',
   'cat.recentlyPlayed': 'Giocati di recente',
   'cat.scrollRecent': 'Scorri giocati di recente',
+  'cat.discover': '✨ Scopri',
+  'cat.scrollDiscover': 'Scorri la sezione Scopri',
   'cat.allGames': 'Tutti i giochi',
   'cat.comingSoonHead': 'In arrivo',
   'cat.profileBtn': 'Profilo',
@@ -2004,6 +2006,8 @@ window.KOMYO_I18N.it = {
   'changelog.e66.b0': 'Novità: ⚙️ Impostazioni → Gioca offline scarica tutto komyo in un unico file — estrailo su una chiavetta USB e apri index.html per giocare a tutti i giochi senza internet, senza installazione e senza account.',
   'changelog.e68.title': 'komyo ora è su YouTube, TikTok, Instagram e Facebook 📣',
   'changelog.e68.b0': 'Novità: segui komyo! I link ai nostri profili sono nel piè di pagina e in fondo al menu ☰ — YouTube, TikTok, Instagram e Facebook, accanto al nostro Discord. Le clip di gioco e i trailer arrivano lì per primi.',
+  'changelog.e70.title': 'Scopri — giochi che non hai ancora provato ✨',
+  'changelog.e70.b0': 'Novità: una fila ✨ Scopri nella pagina iniziale — una piccola mensola di giochi che non hai ancora provato (prima i nuovi e i popolari). Sparisce quando li hai provati tutti.',
   'changelog.e69.title': 'Blocco genitori — presta il telefono a un bambino senza pensieri 🔒',
   'changelog.e69.b0': 'Novità: ⚙️ Impostazioni → Blocco genitori. Imposta un PIN di 4 cifre e komyo lo chiederà prima di spendere trofei nel negozio 🎨, prima di azzerare i dati dei giochi e prima di Esporta / Importa — così un bambino può giocare sul tuo telefono o computer senza svuotare i tuoi trofei né cancellare i tuoi progressi.',
 };

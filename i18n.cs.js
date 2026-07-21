@@ -239,6 +239,8 @@ window.KOMYO_I18N.cs = {
   'cat.favorites': '★ Oblíbené',
   'cat.recentlyPlayed': 'Naposledy hrané',
   'cat.scrollRecent': 'Posunout nedávno hrané',
+  'cat.discover': '✨ Objevuj',
+  'cat.scrollDiscover': 'Posunout sekci Objevuj',
   'cat.allGames': 'Všechny hry',
   'cat.comingSoonHead': 'Již brzy',
   'cat.profileBtn': 'Profil',
@@ -2004,6 +2006,8 @@ window.KOMYO_I18N.cs = {
   'changelog.e66.b0': 'Novinka: ⚙️ Nastavení → Hrát offline stáhne celé komyo jako jeden soubor — rozbalte ho na USB flash disk a otevřete index.html, ať si zahrajete všechny hry bez internetu, bez instalace a bez účtu.',
   'changelog.e68.title': 'komyo je teď na YouTube, TikToku, Instagramu i Facebooku 📣',
   'changelog.e68.b0': 'Novinka: sledujte komyo! Odkazy na naše profily najdete v patičce stránky a dole v menu ☰ — YouTube, TikTok, Instagram a Facebook, hned vedle našeho Discordu. Klipy ze her a trailery se objevují nejdřív tam.',
+  'changelog.e70.title': 'Objevuj — hry, které jste ještě nezkusili ✨',
+  'changelog.e70.b0': 'Novinka: řada ✨ Objevuj na hlavní stránce — krátká polička her, které jste ještě nezkusili (nejdřív nové a populární). Zmizí, až vyzkoušíte všechno.',
   'changelog.e69.title': 'Rodičovský zámek — půjčte telefon dítěti bez obav 🔒',
   'changelog.e69.b0': 'Novinka: ⚙️ Nastavení → Rodičovský zámek. Nastavte čtyřmístný PIN a komyo si ho vyžádá před utracením trofejí v obchodě 🎨, před resetem herních dat a před exportem/importem — dítě si tak může hrát na vašem telefonu či notebooku, aniž by utratilo vaše trofeje nebo smazalo váš postup.',
 };
