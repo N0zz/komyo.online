@@ -71,8 +71,8 @@ kit/catalogue code) — zero per-game changes.
 - [x] Tests (`test.mjs` game-kit section): setup/verify/clear round-trip, require() gating,
       cooldown after 5 fails, support-code determinism + today/yesterday acceptance
 - [x] Changelog entry
-- [ ] Eyeball pass ×3 viewports (desktop / portrait / landscape) — incl. the reworked Settings
-      height ladder in landscape — then commit + push
+- [x] Eyeball pass ×3 viewports (desktop / portrait / landscape) — incl. the reworked Settings
+      height ladder in landscape — then commit + push (SHIPPED 2026-07-21, `93170ad`)
 
 ## Phase 2 — Later (saved ideas, not scheduled)
 
