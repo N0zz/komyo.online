@@ -289,7 +289,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
      content doesn't fit. Future-proof by construction: ANY number of settings rows scrolls inside
      the frame, never overlaps out of it. The frame keeps overflow:visible so the corner ✕ badge
      still protrudes (its 13px overhang is why the cap leaves 15px margins). */
-  dialog#settingsModal { max-height:calc(100vh - 30px); display:flex; flex-direction:column; overflow:visible; }
+  dialog#settingsModal[open] { max-height:calc(100vh - 30px); display:flex; flex-direction:column; overflow:visible; }
   dialog#settingsModal .about { max-height:none; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; }
   /* wide screens (landscape phones AND desktop): two balanced 4-row columns, column-first, so the
      order reads sound+play (left) | data+danger (right). The grid holds only true SETTINGS — the
