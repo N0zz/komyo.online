@@ -217,6 +217,17 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
   **`plans/audio-music-plan.md`**. Follows Audio v2 (shipped 2026-07-07, see Done). Stays zero-asset;
   `.ogg` files deferred.
 
+- **Replay system — clips + deterministic replays** *(idea — noted 2026-07-21)* — two-part:
+  (B) kit-owned **video clip capture** (`canvas.captureStream` + `MediaRecorder`, rolling last-15 s
+  buffer, audio tapped from the kit's WebAudio graph — zero game changes, ships alone) and
+  (A) **deterministic input-replay** (per-run seeded RNG + inputs routed through a kit recorder,
+  re-simulated through the same fixed-step `update()` — the `__test.step(n)` contract already
+  guarantees the hard part). Replays live in **IndexedDB** (`gamekit.replays`, capped, best-effort)
+  + file export/import (which doubles as sharing); the ~10 KB localStorage budget doesn't apply.
+  A feeds B: "render any past run as a clip". Roll-out: clips first → kit replay contract →
+  asteroids-plus pilot (synergy with daily-seeded runs) → per-game adoption + the new-game skill.
+  Plan: **`plans/replay-plan.md`**.
+
 - **QR-based save import/export** *(idea — noted 2026-07-07)* — reuse the in-repo `qr.js` encoder to
   turn a player's Export blob (bests / owned cosmetics / selections) into a scannable QR, and add a
   scan-to-import path (camera → decode → apply), so saves move device→device with no account/backend.
