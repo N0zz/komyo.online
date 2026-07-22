@@ -57,20 +57,25 @@ sweep screenshots in `~/komyo-sweep/` (not committed).
 
 ## Session progress — 2026-07-22 (implementation started)
 
-**Shipped (committed, suites green):**
-- ✅ Kit: landscape HUD drops below the nav row (≤768) + `hudTop()` 92 in that band — fixes overlap for every `.gamekit-hud` game.
-- ✅ Kit: menu option-list scroll cue on short screens (mode-list clip in balloon-pop/glow-says/minesweeper/trap-the-cat).
-- ✅ tower-defense: full slim HUD (GOLD·SCORE·WAVE+remain·THREAT-meter), castle HP on the keep, BEST/MODE→pause/end, Mage un-clipped. Verified in-browser.
-- ✅ breakout: ball speed normalized by field height (device-fair crossing time).
-- ✅ flappy: pipe gap normalized to the playable band (constant screen-share).
-- ✅ aim-trainer: targets/spawn/speed scaled to play-area (device-fair leaderboard). ⚠ consider leaderboard reset.
-- ✅ snake / asteroids / asteroids-plus: custom HUDs drop below nav in landscape ≤768.
+**Approach taken:** normalize-in-place (the "B" path — fill the viewport + normalize the load-bearing
+quantities to a desktop reference) rather than the fixed-aspect-letterbox "A" path. This achieves
+device-fairness for the action games AND keeps them filling every orientation — which makes the
+rotate-to-fill / themed-fill / objects-as-% rework **largely moot** for those games (they already fill
+portrait natively; nothing to letterbox).
 
-**Remaining (the big "scaling & orientation rework" — future session):**
-- Full fixed-aspect play-region + objects-as-% + %-clamped UI + themed-fill/vignette across all games.
-- Rotations: frog-bonk, tower-defense, aim-trainer (rotate-to-fill portrait).
-- frog-bonk approach+range normalization; bubbles fixed row-budget + desktop-landscape lock.
-- 2560 empty-space via board-scale-up; object-clamp helper; test-harness fairness assertion; docs (§5) + breakout reference fix.
+**Shipped (committed, all suites green — 605 + 18 games):**
+- ✅ Kit: landscape HUD drops below the nav row (≤768) + `hudTop()` 92 in that band — overlap fix for every `.gamekit-hud` game.
+- ✅ Kit: menu option-list scroll cue on short screens (mode-list clip: balloon-pop/glow-says/minesweeper/trap-the-cat).
+- ✅ tower-defense: slim HUD (GOLD·SCORE·WAVE+remain·THREAT-meter), castle HP on the keep, BEST/MODE→pause/end, Mage un-clipped. Browser-verified.
+- ✅ Fairness (normalized to desktop → unchanged there): **breakout** (ball speed), **flappy** (gap), **aim-trainer** (targets/spawn/speed — ⚠ consider leaderboard reset), **frog-bonk** (hop speed).
+- ✅ snake / asteroids / asteroids-plus: custom HUDs drop below nav in landscape ≤768.
+- ✅ 2560 empty-space: **2048 / sudoku / glow-says / critter-match** board caps scale with the screen (minesweeper/trap-the-cat already fill).
+- ✅ Docs: corrected the breakout "fixed-logical" misclassification (responsive.md); added the "Resolution fairness" knob (game-design-knobs.md).
+
+**Remaining (genuinely left — smaller than first scoped):**
+- **bubbles**: runway rides screen height; the clean fix is a fixed-aspect play region (a runway-cap hack leaves an ugly gap). Desktop-only impact (portrait-locked on phones). Deferred.
+- **asteroids / asteroids-plus**: cap the large-screen arena + scale entities (accepted scaled-world tradeoff, lowest priority; asteroids is handle-with-care).
+- Optional: object-clamp helper + a test-harness fairness assertion (lock in the gains); the full fixed-aspect "A" visual model if that specific letterbox+themed-fill look is ever wanted over the B path taken.
 
 ## Worklist
 
