@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-22', title: 'Score cards speak your language 🌍', items: [
+    'Fix: game mode names (“Classic”, “Easy”, “Speedrun”…) now show in your language on score cards, in your profile and in the game menus of 2048, Balloon Pop, Critter Match, Glow Says, Trap the Cat and Minesweeper — they used to stay English.',
+    'Fix: speedrun and sprint score cards now show your TIME again when playing in Ukrainian.',
+  ] },
   { date: '2026-07-21', title: 'Discover, now twice as smart ✨💡', items: [
     'New: the ✨ Discover row split in two — “What’s new” shows arrivals and freshly updated games from the last month you haven’t tried, and “For you” suggests untried games matched to the genres you already play (worked out on your device — nothing leaves it). Both vanish once you’ve tried everything.',
   ] },
