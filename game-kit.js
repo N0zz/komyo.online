@@ -3451,8 +3451,9 @@
         // modules = bigger, easier to scan when printed small). Source 'sc' (scorecard), kept short too.
         url: withUtm(getUrl(), 'sc', 'share'), qrUrl: withUtm(base, 'sc', 'qr'), text: getMsg(),
       };
-      // speedrun/sprint modes: the record IS the time (same rule as the profile) → TIME card
-      if (/speedrun|sprint/i.test(String(opts.sub)) && extra.score == null && lr.time > 0) { opts.label = 'TIME'; opts.scoreText = fmtMs(lr.time); }
+      // speedrun/sprint modes: the record IS the time (same rule as the profile) → TIME card.
+      // Test the language-STABLE mode key, not the localized sub (uk renders Speedrun as «Спідран»).
+      if (/speedrun|sprint/i.test(String(lr.mode || opts.sub)) && extra.score == null && lr.time > 0) { opts.label = 'TIME'; opts.scoreText = fmtMs(lr.time); }
       return opts;
     };
     // render the card inline once (async, headless-safe → resolves null → just the button); reuse the
