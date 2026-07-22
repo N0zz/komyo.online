@@ -53,9 +53,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     font-size:14px; letter-spacing:2px; pointer-events:none; }
   #hud .lbl { opacity:0.5; font-size:10px; }
   #hud b { color:#0ff; text-shadow:0 0 10px #0ff; }
-  /* Portrait: the centered HUD can collide with the top-left nav, so drop it below the nav row. */
-  @media (orientation:portrait) and (max-width:560px) {
-    #hud { top:46px; gap:16px; padding:6px 14px; font-size:13px; }
+  /* The centered HUD collides with the ~214px right cluster at ≤768px (portrait AND short landscape),
+     so drop it below the nav row there. hudTop() reserves 92px in this same band, so the grid clears it. */
+  @media (max-width:768px) {
+    #hud { top:46px; gap:16px; padding:6px 14px; font-size:13px; max-width:calc(100vw - 16px); }
   }
   #overlay { position:fixed; inset:0; z-index:8; display:flex; flex-direction:column; align-items:center; justify-content:center;
     text-align:center; gap:16px; background:rgba(0,5,12,0.88); padding:24px; }
