@@ -213,6 +213,13 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
   --gamekit-accent: var(--gkm-accent, #9fe8ff); }
 /* the content between the title and the actions scrolls — so the title + the big Play stay pinned/visible */
 .gamekit-menu .gkm-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+/* Short screens (landscape phones): the options list can be taller than the box, so the last mode card
+   sits below the fold. Tighten the section spacing AND add a persistent bottom scroll-shadow as a
+   "there's more below" cue (the list already scrolls; this just makes it obvious). Kit-wide fix. */
+@media (max-height: 560px) {
+  .gamekit-menu .gkm-sec { margin: 12px 0 6px; }
+  .gamekit-menu .gkm-scroll { box-shadow: inset 0 -14px 12px -12px rgba(0, 0, 0, 0.55); }
+}
 .gamekit-menu .gkm-title { flex: 0 0 auto; }
 .gamekit-menu .gkm-title { margin: 0 0 14px; font-size: 26px; letter-spacing: 2px; font-weight: 800; text-wrap: balance;
   color: var(--gkm-title, var(--gkm-text, #eaf2fb)); text-shadow: var(--gkm-glow, none); }
