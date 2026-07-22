@@ -140,6 +140,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- State ----
   let W = 0, H = 0, topMargin = 48, dpr = 1, postGrade = null, postVig = null;
   let cx = 0, cy = 0, castR = 60;
+  // Approach speed scales with field size so time-to-castle is the same on every screen (fair): frogs
+  // spawn at the edge (distance ∝ viewport), so the hop distance must scale with it too — otherwise a
+  // frog reaches the wall in ~4 hops on a phone but ~13-25 on a 4K screen. 752 = desktop reference
+  // (min(1280, 800-48)) → scale 1 there, so the feel and the seeded suite are unchanged.
+  function hopScale() { return Math.max(0.5, Math.min(2.2, Math.min(W, H - topMargin) / 752)); }
   let state = 'ready';               // ready | playing | shop | paused | over
   let gameMode = 'waves';            // waves | endless | zen
   let diff = 'medium';
@@ -285,7 +290,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     } else if (f.ph === 'wind') {
       if (--f.t <= 0) {
         const ang = Math.atan2(f.zen.wy - f.y, f.zen.wx - f.x) + rand(-0.2, 0.2);
-        const hop = Math.min(tp.hop * rand(0.85, 1.15), Math.max(6, d));
+        const hop = Math.min(tp.hop * hopScale() * rand(0.85, 1.15), Math.max(6, d));
         f.fx = f.x; f.fy = f.y;
         f.tx = f.x + Math.cos(ang) * hop; f.ty = f.y + Math.sin(ang) * hop;
         f.ph = 'air'; f.t = AIR;
@@ -333,7 +338,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     } else if (f.ph === 'wind') {
       if (--f.t <= 0) {
         const ang = Math.atan2(cy - f.y, cx - f.x) + rand(-0.25, 0.25);
-        const hop = Math.min(tp.hop * rand(0.85, 1.15), Math.max(4, d - stop));
+        const hop = Math.min(tp.hop * hopScale() * rand(0.85, 1.15), Math.max(4, d - stop));
         f.fx = f.x; f.fy = f.y;
         f.tx = f.x + Math.cos(ang) * hop; f.ty = f.y + Math.sin(ang) * hop;
         f.ph = 'air'; f.t = AIR;
