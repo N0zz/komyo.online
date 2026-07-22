@@ -75,9 +75,13 @@ sweep screenshots in `~/komyo-sweep/` (not committed).
 - [ ] **asteroids / asteroids-plus** (optional, accepted tradeoff) — scale entities + cap the large-screen arena.
 
 ### Phase 3 — overlap papercuts
-- [ ] **tower-defense** — fix the Mage clip in landscape + apply rotate-to-fill.
+- [~] **tower-defense** — [x] Mage clip fixed (safe-center scroll) + [x] landscape HUD drop (2026-07-22); [ ] rotate-to-fill (Phase 4).
 - [ ] **mode-list clip** in landscape start menus (balloon-pop, glow-says, minesweeper, trap-the-cat) — scroll affordance / shorter lists.
 - [ ] **2560 empty-space** — resolved by the universal board-scale-up; verify per game.
+
+> **Note (2026-07-22):** the kit HUD-drop fixes every game that uses a plain `.gamekit-hud`. Games with
+> their own `#top.gamekit-hud` media overrides (tower-defense — done) or a fully custom HUD
+> (asteroids, asteroids-plus, snake) need per-game reconciliation — check each in landscape.
 
 ### Phase 4 — apply orientation treatment (per the table in §C)
 - [ ] rotate-to-fill: frog-bonk, tower-defense, aim-trainer
