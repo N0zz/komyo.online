@@ -427,7 +427,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     KIT.showMenuButton(false); KIT.showPauseButton(false);
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: round >= 8 ? KIT.t('game.glow-says.endGreat', { def: 'AMAZING MEMORY!' }) : KIT.t('game.glow-says.endNice', { def: 'NICE TUNE!' }),
-      record: { slug: SLUG, mode: modeLabel(mode), score: round },
+      record: { slug: SLUG, mode: modeLabel(mode), modeText: modeDisplay(mode), score: round },
       score: round, best, newBest: isBest,
       lines: [ modeDisplay(mode) + ' · ' + KIT.t('game.glow-says.roundLine', { round, def: '{round} notes remembered' }) ],
       share: { slug: SLUG, accent: ACCENT, icon: '🏮', title: KIT.t('game.glow-says.title', { def: 'Glow Says' }),

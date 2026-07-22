@@ -600,7 +600,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     KIT.showMenuButton(false); KIT.showPauseButton(false);
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: won ? KIT.t('game.trap-the-cat.win', { def: 'CORNERED! 😸' }) : KIT.t('game.trap-the-cat.lose', { def: 'THE CAT ESCAPED!' }),
-      record: { slug: SLUG, mode: diffLabel(diff), score, stats: { clicks } },
+      record: { slug: SLUG, mode: diffLabel(diff), modeText: diffDisplay(diff), score, stats: { clicks } },
       score, best, newBest: isBest,
       lines: [ diffDisplay(diff) + ' · ' + KIT.t('game.trap-the-cat.hedgesLine', { count: clicks, def: '{count} hedges planted' }) ],
       share: { slug: SLUG, accent: ACCENT, icon: '🐱', title: KIT.t('game.trap-the-cat.title', { def: 'Trap the Cat' }),
