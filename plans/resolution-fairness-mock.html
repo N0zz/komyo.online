@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>komyo — resolution fairness mock v2 (fixed-aspect board + %objects + %UI)</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #0e1116; color: #dfe6ee; font: 14px/1.5 system-ui, sans-serif; padding: 18px 20px 60px; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: #8b97a6; font-size: 13px; margin: 0 0 16px; max-width: 1000px; }
+  .bar { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; padding: 12px 14px; background: #161b22; border: 1px solid #263041; border-radius: 12px; position: sticky; top: 8px; z-index: 5; }
+  .grp { display: flex; gap: 6px; align-items: center; }
+  .grp b { color: #9fb0c3; font-weight: 600; margin-right: 4px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }
+  button { font: inherit; padding: 6px 12px; border-radius: 8px; border: 1px solid #33415a; background: #1d2530; color: #cdd7e3; cursor: pointer; }
+  button.on { background: #2f6df6; border-color: #2f6df6; color: #fff; }
+  button:hover:not(.on) { background: #263041; }
+  .strip { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-end; }
+  .frame { display: flex; flex-direction: column; gap: 6px; }
+  .frame .lab { font-size: 11px; color: #8b97a6; font-variant-numeric: tabular-nums; }
+  .frame .lab b { color: #dfe6ee; }
+  .frame canvas { border: 1px solid #2a3444; border-radius: 6px; background: #000; display: block; }
+  .frame .read { font-size: 11px; color: #ffd479; font-variant-numeric: tabular-nums; min-height: 15px; }
+  .frame .read.fair { color: #7ee0a0; }
+  .explain { margin-top: 22px; max-width: 1000px; background: #161b22; border: 1px solid #263041; border-radius: 12px; padding: 14px 18px; }
+  .explain h2 { font-size: 14px; margin: 0 0 6px; color: #cdd7e3; }
+  .explain p { margin: 6px 0; color: #b3bfcd; font-size: 13px; }
+  .explain .rec { color: #7ee0a0; }
+</style>
+</head>
+<body>
+  <h1>komyo — resolution fairness mock v2</h1>
+  <p class="sub">Proposed = <b>both plans combined</b>: fixed-aspect board scaled to fit · objects as % of board · UI %-clamped (44px touch floor) · themed fill + vignette · <b>non-overlapping top bar</b> (the overlap-plan fix). The 16:9 board fills the screen with the HUD overlaid; the square board fills the area <b>below</b> the bar so the score pill never covers the tiles. Toggle Current vs Proposed (Current shows both bugs: viewport-coupled sizing + a pill that collides with the Menu chip / buttons on narrow screens).</p>
+
+  <div class="bar">
+    <div class="grp"><b>Game</b>
+      <button data-game="frog" class="on">🐸 frog-bonk · 16:9 board</button>
+      <button data-game="g2048">🔢 2048 · square board</button>
+      <button data-game="forcefield">🛡 forcefield · radial</button>
+      <button data-game="asteroids">🚀 asteroids · space</button>
+      <button data-game="breakout">🧱 breakout · native both</button>
+      <button data-game="stacker">🟪 stacker · lock</button>
+    </div>
+    <div class="grp"><b>Model</b>
+      <button data-mode="current" class="on">Current</button>
+      <button data-mode="proposed">Proposed (fixed-aspect + %)</button>
+    </div>
+    <div class="grp"><b>Objects</b>
+      <button data-obj="pure" class="on">pure %</button>
+      <button data-obj="clamped">clamped 44–120px</button>
+    </div>
+  </div>
+
+  <div class="strip" id="strip"></div>
+  <div class="explain" id="explain"></div>
+
+<script>
+const VPS = [
+  { name: 'portrait', w: 360, h: 640 },
+  { name: 'landscape', w: 640, h: 360 },
+  { name: 'desktop', w: 1280, h: 800 },
+  { name: 'FHD', w: 1920, h: 1080 },
+  { name: 'QHD/4K', w: 2560, h: 1440 },
+];
+const DISP_H = 200;
+const frames = [];
+let game = 'frog', mode = 'current', objClamp = false;
+
+const strip = document.getElementById('strip');
+for (const vp of VPS) {
+  const wrap = document.createElement('div'); wrap.className = 'frame';
+  const lab = document.createElement('div'); lab.className = 'lab';
+  lab.innerHTML = `<b>${vp.name}</b> · ${vp.w}×${vp.h}`;
+  const cv = document.createElement('canvas');
+  const dispW = Math.round(DISP_H * vp.w / vp.h);
+  cv.style.height = DISP_H + 'px'; cv.style.width = dispW + 'px';
+  const rs = Math.min(1, 900 / Math.max(vp.w, vp.h));
+  cv.width = Math.round(vp.w * rs); cv.height = Math.round(vp.h * rs);
+  const read = document.createElement('div'); read.className = 'read';
+  wrap.append(lab, cv, read); strip.append(wrap);
+  frames.push({ vp, cv, ctx: cv.getContext('2d'), rs, read, frogX: null });
+}
+
+const TARGET_S = 3.0;
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+function rr(ctx, x, y, w, h, r) { r = Math.min(r, w/2, h/2); ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function meadow(ctx, x, y, w, h, dim) { const g = ctx.createLinearGradient(0,y,0,y+h); g.addColorStop(0, dim?'#3a5a2e':'#8fd06a'); g.addColorStop(1, dim?'#25401d':'#4e9c3f'); ctx.fillStyle=g; ctx.fillRect(x,y,w,h); }
+function vignette(ctx, x, y, w, h) { ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=Math.max(2,w*0.004); ctx.strokeRect(x+2,y+2,w-4,h-4); const g=ctx.createRadialGradient(x+w/2,y+h/2,Math.min(w,h)*0.25,x+w/2,y+h/2,Math.max(w,h)*0.62); g.addColorStop(0,'rgba(0,0,0,0)'); g.addColorStop(1,'rgba(0,0,0,.36)'); ctx.fillStyle=g; ctx.fillRect(x,y,w,h); }
+
+// UI top bar + OVERLAP-PLAN fix: the pill fits the gap between the Menu chip and the button
+// cluster, or drops to a 2nd row when that gap is too narrow — so nothing ever overlaps.
+function barMetrics(W, H, proposed) {
+  const btn = proposed ? clamp(Math.min(W,H)*0.055, 44, 78) : 34;
+  const pad = btn*0.3, gap = btn*0.25;
+  const chipW = btn*2.4, clusterW = 5*btn + 4*gap, pillW = btn*4.6, pillH = btn*0.92;
+  const gapForPill = W - pad*2 - chipW - clusterW - 2*gap;
+  const twoRow = proposed && gapForPill < pillW;
+  const height = twoRow ? (pad + btn + gap + pillH + pad) : (pad*2 + btn);
+  return { btn, pad, gap, chipW, clusterW, pillW, pillH, twoRow, height };
+}
+function topbar(ctx, W, H, proposed) {
+  const m = barMetrics(W, H, proposed);
+  const { btn, pad, gap, chipW, clusterW, pillW, pillH, twoRow } = m;
+  const fs = btn*0.5;
+  // left "Menu" chip
+  ctx.fillStyle = '#1a1f27'; rr(ctx, pad, pad, btn*2.4, btn, btn*0.22); ctx.fill();
+  ctx.fillStyle = '#cdd7e3'; ctx.font = fs+'px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('‹ Menu', pad + btn*1.2, pad + btn/2);
+  // right cluster of 5 buttons
+  const icons = ['⏸','🔊','🎮','⛶','☰'];
+  let x = W - pad - btn;
+  for (let i = icons.length-1; i>=0; i--) { ctx.fillStyle='#1a1f27'; rr(ctx, x, pad, btn, btn, btn*0.22); ctx.fill(); ctx.fillStyle='#cdd7e3'; ctx.font=(btn*0.5)+'px system-ui'; ctx.fillText(icons[i], x+btn/2, pad+btn/2); x -= btn+gap; }
+  // score pill: current = screen-centered (may overlap); proposed = gap-centered or 2nd row (never overlaps)
+  const pw = pillW, ph = pillH;
+  let px, py;
+  if (!proposed) { px = W/2 - pw/2; py = pad; }
+  else if (!twoRow) { const gx = pad+chipW+gap, gw = (W-pad-clusterW-gap) - gx; px = gx + (gw-pw)/2; py = pad; }
+  else { px = (W-pw)/2; py = pad+btn+gap; }
+  ctx.fillStyle = 'rgba(20,25,32,.9)'; rr(ctx, px, py, pw, ph, ph*0.4); ctx.fill();
+  ctx.fillStyle = '#9fb0c3'; ctx.font = (ph*0.24)+'px system-ui';
+  ctx.fillText('SCORE', px+pw*0.22, py+ph*0.34); ctx.fillText('BEST', px+pw*0.55, py+ph*0.34); ctx.fillText('TIME', px+pw*0.83, py+ph*0.34);
+  ctx.fillStyle = '#fff'; ctx.font = 'bold '+(ph*0.32)+'px system-ui';
+  ctx.fillText('148', px+pw*0.22, py+ph*0.68); ctx.fillText('512', px+pw*0.55, py+ph*0.68); ctx.fillText('30', px+pw*0.83, py+ph*0.68);
+  return m;
+}
+
+function drawFrog(f) {
+  const ctx=f.ctx, W=f.vp.w, H=f.vp.h; ctx.setTransform(f.rs,0,0,f.rs,0,0); ctx.clearRect(0,0,W,H);
+  if (mode === 'current') {
+    meadow(ctx,0,0,W,H,false);
+    if (f.frogX==null) f.frogX=-10;
+    const cx=W/2, cy=H/2, cr=42;
+    f.frogX += 4.2; if (f.frogX>=cx-cr) f.frogX=-10;
+    ctx.fillStyle='#c9b18a'; ctx.strokeStyle='#6b5533'; ctx.lineWidth=3; ctx.beginPath(); ctx.arc(cx,cy,cr,0,7); ctx.fill(); ctx.stroke();
+    ctx.font='40px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🏰',cx,cy+2); ctx.fillText('🐸',f.frogX,cy);
+    const secs=(cx-cr+10)/4.2/60;
+    const bar=topbar(ctx,W,H,false);
+    f.read.textContent='⏱ '+secs.toFixed(1)+'s · frog 40px fixed · btn 34px'; f.read.className='read';
+  } else {
+    // Proposed: fixed 16:9 board, PURE contain (no padding) → fills one axis edge-to-edge, 2 fill blocks only
+    const btn = clamp(Math.min(W,H)*0.055, 44, 78);
+    const aspect = 16/9;
+    if (H/W >= aspect - 0.02) {
+      // ROTATE-TO-FILL (frog-bonk portrait only): reuse the landscape 16:9 design rotated 90° so it
+      // fills the portrait screen. Sprites are counter-rotated to stay upright → looks like normal portrait.
+      const Lw = H, Lh = W;                              // landscape board that, rotated 90°, fills W×H
+      meadow(ctx, 0, 0, W, H, false);                    // board fills the whole screen → 0 bars
+      ctx.save(); ctx.translate(W/2, H/2); ctx.rotate(Math.PI/2); ctx.translate(-Lw/2, -Lh/2);
+      const cx=Lw/2, cy=Lh/2, cr=Lh*0.13, frP=Lh*0.11, fr=objClamp?clamp(frP,44,120):frP;
+      if (f.frogX==null) f.frogX=-fr;
+      f.frogX += Lw/(TARGET_S*60); if (f.frogX>=cx-cr) f.frogX=-fr;
+      ctx.fillStyle='#c9b18a'; ctx.strokeStyle='#6b5533'; ctx.lineWidth=Lh*0.01; ctx.beginPath(); ctx.arc(cx,cy,cr,0,7); ctx.fill(); ctx.stroke();
+      const spr=(e,x,y,s)=>{ ctx.save(); ctx.translate(x,y); ctx.rotate(-Math.PI/2); ctx.font=s+'px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(e,0,0); ctx.restore(); };
+      spr('🏰',cx,cy,cr*1.4); spr('🐸',f.frogX,cy,fr*2);
+      ctx.restore();
+      vignette(ctx,0,0,W,H); topbar(ctx,W,H,true);
+      f.read.textContent='⏱ '+TARGET_S.toFixed(1)+'s ✓ · rotated to fill portrait · 0 bars'; f.read.className='read fair';
+      return;
+    }
+    let bw, bh, widthFilled;
+    if (W/H > aspect) { bh = H; bw = H*aspect; widthFilled = false; }  // taller-than-board → fills height, 2 side bars
+    else { bw = W; bh = W/aspect; widthFilled = true; }               // wider-than-board → fills width, 2 top/bottom bars
+    const bx = (W-bw)/2, by = (H-bh)/2;
+    meadow(ctx, 0, 0, W, H, true);                                    // themed fill shows only on the 2 unfilled sides
+    ctx.save(); ctx.translate(bx, by); meadow(ctx, 0, 0, bw, bh, false);
+    const cx=bw/2, cy=bh/2, cr=bh*0.13;
+    const frPure = bh*0.11, fr = objClamp ? clamp(frPure, 44, 120) : frPure;
+    if (f.frogX==null) f.frogX=-fr;
+    f.frogX += bw/(TARGET_S*60); if (f.frogX>=cx-cr) f.frogX=-fr;
+    ctx.fillStyle='#c9b18a'; ctx.strokeStyle='#6b5533'; ctx.lineWidth=bh*0.01; ctx.beginPath(); ctx.arc(cx,cy,cr,0,7); ctx.fill(); ctx.stroke();
+    ctx.font=(cr*1.4)+'px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText('🏰',cx,cy+2);
+    ctx.font=(fr*2)+'px system-ui'; ctx.fillText('🐸',f.frogX,cy);
+    ctx.restore();
+    vignette(ctx,bx,by,bw,bh);
+    topbar(ctx,W,H,true);
+    const perfect = bw>=W-1 && bh>=H-1;
+    const bars = perfect ? '0 bars' : (widthFilled ? '2 top/bottom bars' : '2 side bars');
+    const csz = (objClamp && fr!==frPure) ? Math.round(frPure)+'→'+Math.round(fr)+'px ('+(frPure<44?'floored':'capped')+')' : Math.round(frPure)+'px (pure %)';
+    f.read.textContent='⏱ '+TARGET_S.toFixed(1)+'s ✓ · frog '+csz+' · '+bars; f.read.className='read fair';
+  }
+}
+
+function board2048(ctx, bx, by, bpx) {
+  ctx.fillStyle='#b8a690'; rr(ctx,bx,by,bpx,bpx,bpx*0.03); ctx.fill();
+  const pad=bpx*0.04, cell=(bpx-pad*5)/4, vals=[[2,4,0,2],[0,8,16,0],[4,0,2,32],[0,2,0,4]], col={2:'#eee4da',4:'#ede0c8',8:'#f2b179',16:'#f59563',32:'#f67c5f'};
+  for(let r=0;r<4;r++)for(let c=0;c<4;c++){const x=bx+pad+c*(cell+pad),y=by+pad+r*(cell+pad),v=vals[r][c]; ctx.fillStyle=v?(col[v]||'#edc850'):'rgba(238,228,218,.35)'; rr(ctx,x,y,cell,cell,cell*0.12); ctx.fill(); if(v){ctx.fillStyle='#6b5b45'; ctx.font='bold '+(cell*0.4)+'px system-ui'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(v,x+cell/2,y+cell/2);}}
+}
+function drawG2048(f) {
+  const ctx=f.ctx, W=f.vp.w, H=f.vp.h; ctx.setTransform(f.rs,0,0,f.rs,0,0); ctx.clearRect(0,0,W,H);
+  const bg=ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#2a2118'); bg.addColorStop(1,'#171310'); ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  if (mode==='current') {
+    const bpx=Math.min(W,H,560), bx=(W-bpx)/2, by=(H-bpx)/2+18;
+    board2048(ctx,bx,by,bpx); topbar(ctx,W,H,false);
+    f.read.textContent='board '+Math.round(bpx)+'px · margins '+Math.round((W-bpx)/2)+'px · btn 34px'; f.read.className='read';
+  } else {
+    const m = barMetrics(W, H, true);
+    const reserve = m.height;                       // board sits BELOW the top bar → pill never overlaps the tiles
+    const side = Math.min(W, H - reserve);          // fill the area under the bar; margins on the other sides are fine
+    const bx = (W-side)/2, by = reserve + ((H-reserve)-side)/2;
+    board2048(ctx, bx, by, side); vignette(ctx, bx, by, side, side); topbar(ctx, W, H, true);
+    f.read.textContent='board '+Math.round(side)+'px · below the bar · btn '+Math.round(m.btn)+'px · chrome ✓ no overlap'; f.read.className='read fair';
+  }
+}
+
+// --- forcefield: RADIAL → fills any aspect, rotation is a no-op ---
+function drawForce(f){
+  const ctx=f.ctx,W=f.vp.w,H=f.vp.h; ctx.setTransform(f.rs,0,0,f.rs,0,0); ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#0a1020'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.4)'; for(let i=0;i<36;i++) ctx.fillRect((i*997)%W,(i*571)%H,1.5,1.5);
+  const cx=W/2, cy=H*0.6, R=Math.min(W,H)*0.30;
+  const g=ctx.createRadialGradient(cx-R*0.3,cy-R*0.3,R*0.2,cx,cy,R); g.addColorStop(0,'#3b6ea5'); g.addColorStop(1,'#15324f');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(cx,cy,R,0,7); ctx.fill();
+  const domeR=R*1.3; ctx.lineWidth=Math.max(2,R*0.05);
+  ctx.strokeStyle='rgba(120,200,255,.35)'; ctx.beginPath(); ctx.arc(cx,cy,domeR,0,7); ctx.stroke();
+  const ta=-Math.PI/2; ctx.fillStyle='#ffd479'; ctx.beginPath(); ctx.arc(cx+Math.cos(ta)*domeR,cy+Math.sin(ta)*domeR,R*0.09,0,7); ctx.fill();
+  if(f.t==null)f.t=0; f.t+=0.02; const sa=ta+Math.sin(f.t)*0.9;
+  ctx.strokeStyle='#7fe0ff'; ctx.lineWidth=Math.max(3,R*0.07); ctx.beginPath(); ctx.arc(cx,cy,domeR,sa-0.14,sa+0.14); ctx.stroke();
+  topbar(ctx,W,H,mode!=='current');
+  f.read.textContent = mode==='current' ? 'radial · already fair on every aspect' : 'radial · fills any aspect · rotating 90° is invisible ✓';
+  f.read.className = mode==='current'?'read':'read fair';
+}
+// --- asteroids: SPACE/scaled → fills already; fix = scale entities + cap arena; rotation moot ---
+function drawAst(f){
+  const ctx=f.ctx,W=f.vp.w,H=f.vp.h; ctx.setTransform(f.rs,0,0,f.rs,0,0); ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#05060a'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='rgba(255,255,255,.5)'; for(let i=0;i<44;i++) ctx.fillRect((i*997)%W,(i*571)%H,1.5,1.5);
+  const rockR = mode==='current' ? 24 : Math.min(W,H)*0.06;
+  const shipS = mode==='current' ? 13 : Math.min(W,H)*0.032;
+  const cx=W/2, cy=H/2;
+  ctx.fillStyle='#dfe6ee'; ctx.beginPath(); ctx.moveTo(cx,cy-shipS*1.4); ctx.lineTo(cx+shipS,cy+shipS); ctx.lineTo(cx-shipS,cy+shipS); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#6b7280'; ctx.strokeStyle='#9aa4b2'; ctx.lineWidth=2;
+  [[0.2,0.25],[0.8,0.3],[0.72,0.74],[0.24,0.8],[0.5,0.14],[0.5,0.86]].forEach(([rx,ry])=>{ ctx.beginPath(); ctx.arc(rx*W,ry*H,rockR,0,7); ctx.fill(); ctx.stroke(); });
+  topbar(ctx,W,H,mode!=='current');
+  f.read.textContent = mode==='current' ? 'rocks fixed px → tiny/sparse on 4K (easier)' : 'entities scaled to min(W,H) + arena capped → consistent ✓ · rotation moot';
+  f.read.className = mode==='current'?'read':'read fair';
+}
+// --- breakout: fixed UP → native both orientations (paddle bottom); fix = normalize ball; no rotation ---
+function drawBrk(f){
+  const ctx=f.ctx,W=f.vp.w,H=f.vp.h; ctx.setTransform(f.rs,0,0,f.rs,0,0); ctx.clearRect(0,0,W,H);
+  const bg=ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#1a0b2e'); bg.addColorStop(1,'#2d1b4e'); ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  const reserve=barMetrics(W,H,mode!=='current').height, cols=8, bw=W*0.9/cols, bx0=W*0.05;
+  const bh=Math.min(W,H)*0.035, top=reserve+Math.min(W,H)*0.03, pal=['#f94144','#f8961e','#f9c74f','#43aa8b'];
+  for(let r=0;r<4;r++)for(let c=0;c<cols;c++){ ctx.fillStyle=pal[r%4]; rr(ctx,bx0+c*bw+2,top+r*(bh+3),bw-4,bh,3); ctx.fill(); }
+  const pw=W*0.2, ph=Math.max(8,Math.min(W,H)*0.02), py=H-ph-Math.min(W,H)*0.05;
+  ctx.fillStyle='#7fe0ff'; rr(ctx,W/2-pw/2,py,pw,ph,ph/2); ctx.fill();
+  const br=Math.max(5,Math.min(W,H)*0.02); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(W/2,py-Math.min(W,H)*0.22,br,0,7); ctx.fill();
+  topbar(ctx,W,H,mode!=='current');
+  f.read.textContent = mode==='current' ? 'ball fixed px/step → fast on phone, slow-mo on 4K' : 'ball speed % of height → same crossing time ✓ · native both, no rotation';
+  f.read.className = mode==='current'?'read':'read fair';
+}
+// --- stacker: gravity UP → cannot rotate; lock to portrait ---
+function drawStk(f){
+  const ctx=f.ctx,W=f.vp.w,H=f.vp.h; ctx.setTransform(f.rs,0,0,f.rs,0,0); ctx.clearRect(0,0,W,H);
+  const bg=ctx.createLinearGradient(0,0,0,H); bg.addColorStop(0,'#dfe7f5'); bg.addColorStop(1,'#b8c6e0'); ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+  if (mode!=='current' && W>H) {
+    ctx.fillStyle='rgba(20,20,40,.55)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font=(Math.min(W,H)*0.11)+'px system-ui'; ctx.fillText('Rotate to play', W/2, H/2);
+    topbar(ctx,W,H,true);
+    f.read.textContent='locked → portrait only (stack grows up; cannot rotate)'; f.read.className='read';
+    return;
+  }
+  const colW=Math.min(W*0.55, Math.min(W,H)*0.6), bx=(W-colW)/2, bh=Math.max(14,Math.min(W,H)*0.06);
+  let y=H-bh-10; const pal=['#c792ea','#f78fb3','#82ccdd','#b8e994','#f7d794','#e77f9e'];
+  for(let i=0;i<6 && y>H*0.2;i++){ ctx.fillStyle=pal[i%6]; rr(ctx,bx,y,colW,bh,4); ctx.fill(); y-=bh+4; }
+  if(f.t==null)f.t=0; f.t+=0.03; ctx.fillStyle='#a55eea'; rr(ctx, bx+Math.sin(f.t)*(W*0.14), y, colW, bh, 4); ctx.fill();
+  topbar(ctx,W,H,mode!=='current');
+  f.read.textContent = mode==='current' ? 'vertical · native portrait' : 'native portrait; landscape → locked (rotate) ✓';
+  f.read.className = mode==='current'?'read':'read fair';
+}
+const DRAW = { frog: drawFrog, g2048: drawG2048, forcefield: drawForce, asteroids: drawAst, breakout: drawBrk, stacker: drawStk };
+function tick(){ frames.forEach(DRAW[game] || drawFrog); requestAnimationFrame(tick); }
+requestAnimationFrame(tick);
+
+const EX = {
+  'frog|current': ['Current — viewport-coupled + colliding chrome', 'Frog is a fixed 40px hopping fixed px/step; buttons fixed 34px; the score pill is screen-centered. Result: ⏱ diverges wildly, the frog/buttons are tiny on 4K, and on narrow screens the pill collides with the ‹Menu chip / button cluster (the overlap-plan bug).'],
+  'frog|proposed': ['Proposed — 16:9 board fills the screen (HUD overlays) + fixed chrome', 'The 16:9 board fills the screen edge-to-edge (themed fill on only 2 sides when the screen aspect differs; 0 bars on 16:9). The HUD overlays the world. Frog is 11% of the board with board-relative speed → fair (3.0s everywhere). Buttons %-clamped 44–78px, and the top bar is laid out so ‹Menu / pill / buttons never overlap (the overlap-plan fix — watch the pill drop to a 2nd row on narrow screens). Portrait still collapses to a short strip → that game wants a portrait layout or rotate-lock.', 'rec'],
+  'g2048|current': ['Current — fixed 560px board + colliding chrome', 'Square board caps at 560px and floats in empty space at 1920/2560; the score pill overlaps the top row of tiles; buttons fixed 34px look tiny on big screens and the pill collides with the chrome on narrow ones.'],
+  'g2048|proposed': ['Proposed — square fills below the bar + fixed chrome', 'The square fills the area <b>below</b> the top bar (biggest square that fits), so the score pill never overlaps the tiles; margins on the remaining sides are expected (that is fine for a board). Buttons %-clamped 44–78px; the top bar is non-overlapping (overlap-plan fix). Square scales cleanly in every orientation — no second layout needed for board games.', 'rec'],
+  'forcefield|current': ['Radial — already fair', 'A dome sweeps around a central planet; the whole model is radial/angular, so it fills any aspect and is identical on every screen.'],
+  'forcefield|proposed': ['Radial — fills any aspect, rotation is a no-op', 'Because it is radial, there are no letterbox bars and <b>rotating 90° is invisible</b> — a circle looks the same rotated. Nothing to do for orientation; just the shared UI-clamp / chrome polish. This is why forcefield does not need the rotation trick.', 'rec'],
+  'asteroids|current': ['Space — sparse & easy on big screens', 'Scaled-world already fills the screen, but rocks/ship are fixed px, so on 4K they are a tiny fraction of a huge arena → sparser, easier, longer to reach you.'],
+  'asteroids|proposed': ['Space — scale entities + cap the arena', 'Scale rock/ship size to min(W,H) and cap the huge-desktop arena so density is consistent. Space is symmetric → <b>rotation changes nothing</b>; no rotation needed (your intuition was right).', 'rec'],
+  'breakout|current': ['Fixed up — ball speed rides the viewport', 'Bricks top, paddle bottom, ball falls; the ball moves fixed px/step, so it is fast on a phone and slow-mo on 4K.'],
+  'breakout|proposed': ['Fixed up — native both orientations + normalize ball', 'The paddle stays at the bottom in portrait AND landscape → plays natively both ways, <b>no rotation</b> (rotating would break the paddle axis). Fix = ball speed as % of height so crossing time is constant.', 'rec'],
+  'stacker|current': ['Gravity up — vertical', 'Blocks stack upward; naturally portrait. On landscape it is a narrow centre strip.'],
+  'stacker|proposed': ['Gravity up — lock to portrait', 'Stacking is vertical, so it <b>cannot be rotated</b> (gravity would go sideways). Lock to portrait; on landscape, prompt to rotate the device. The one category where rotate-to-fill does not apply.', 'rec'],
+};
+function refresh(){
+  document.querySelectorAll('[data-game]').forEach(b=>b.classList.toggle('on',b.dataset.game===game));
+  document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('on',b.dataset.mode===mode));
+  document.querySelectorAll('[data-obj]').forEach(b=>b.classList.toggle('on',(b.dataset.obj==='clamped')===objClamp));
+  frames.forEach(f=>f.frogX=null);
+  const e=EX[game+'|'+mode]||['',''];
+  document.getElementById('explain').innerHTML='<h2>'+e[0]+'</h2><p'+(e[2]==='rec'?' class="rec"':'')+'>'+e[1]+'</p>';
+}
+document.querySelectorAll('[data-game]').forEach(b=>b.onclick=()=>{game=b.dataset.game; refresh();});
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode; refresh();});
+document.querySelectorAll('[data-obj]').forEach(b=>b.onclick=()=>{objClamp=b.dataset.obj==='clamped'; refresh();});
+refresh();
+</script>
+</body>
+</html>
