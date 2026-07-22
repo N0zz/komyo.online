@@ -55,6 +55,23 @@ sweep screenshots in `~/komyo-sweep/` (not committed).
 
 ---
 
+## Session progress — 2026-07-22 (implementation started)
+
+**Shipped (committed, suites green):**
+- ✅ Kit: landscape HUD drops below the nav row (≤768) + `hudTop()` 92 in that band — fixes overlap for every `.gamekit-hud` game.
+- ✅ Kit: menu option-list scroll cue on short screens (mode-list clip in balloon-pop/glow-says/minesweeper/trap-the-cat).
+- ✅ tower-defense: full slim HUD (GOLD·SCORE·WAVE+remain·THREAT-meter), castle HP on the keep, BEST/MODE→pause/end, Mage un-clipped. Verified in-browser.
+- ✅ breakout: ball speed normalized by field height (device-fair crossing time).
+- ✅ flappy: pipe gap normalized to the playable band (constant screen-share).
+- ✅ aim-trainer: targets/spawn/speed scaled to play-area (device-fair leaderboard). ⚠ consider leaderboard reset.
+- ✅ snake / asteroids / asteroids-plus: custom HUDs drop below nav in landscape ≤768.
+
+**Remaining (the big "scaling & orientation rework" — future session):**
+- Full fixed-aspect play-region + objects-as-% + %-clamped UI + themed-fill/vignette across all games.
+- Rotations: frog-bonk, tower-defense, aim-trainer (rotate-to-fill portrait).
+- frog-bonk approach+range normalization; bubbles fixed row-budget + desktop-landscape lock.
+- 2560 empty-space via board-scale-up; object-clamp helper; test-harness fairness assertion; docs (§5) + breakout reference fix.
+
 ## Worklist
 
 ### Phase 1 — shared kit (highest leverage; do first)
