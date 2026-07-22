@@ -72,10 +72,15 @@ portrait natively; nothing to letterbox).
 - ✅ 2560 empty-space: **2048 / sudoku / glow-says / critter-match** board caps scale with the screen (minesweeper/trap-the-cat already fill).
 - ✅ Docs: corrected the breakout "fixed-logical" misclassification (responsive.md); added the "Resolution fairness" knob (game-design-knobs.md).
 
-**Remaining (genuinely left — smaller than first scoped):**
-- **bubbles**: runway rides screen height; the clean fix is a fixed-aspect play region (a runway-cap hack leaves an ugly gap). Desktop-only impact (portrait-locked on phones). Deferred.
-- **asteroids / asteroids-plus**: cap the large-screen arena + scale entities (accepted scaled-world tradeoff, lowest priority; asteroids is handle-with-care).
-- Optional: object-clamp helper + a test-harness fairness assertion (lock in the gains); the full fixed-aspect "A" visual model if that specific letterbox+themed-fill look is ever wanted over the B path taken.
+- ✅ **bubbles**: play field cap+centered to a desktop-reference height (752) → constant descent runway on tall/4K screens; themed bg fills the margins. Phones/desktop unchanged.
+
+**Deliberately not changed (documented decisions, not oversights):**
+- **asteroids / asteroids-plus**: the large-screen "sparser/easier" arena is an *accepted scaled-world tradeoff* (audit: moderate, lowest priority). Both fixes are poor for a handle-with-care game — capping the world (`S=900/m` for m>900) upscales the backing → **soft/blurry 4K**; scaling every entity/speed is a large risky rewrite of its core. Left as-is by design; revisit only if it becomes a real complaint.
+
+**Optional infra (future, low urgency):**
+- `gamekit.refScale(ref)` helper to standardize the normalize-by-reference pattern (games currently inline it).
+- A test-harness fairness assertion (needs each game to expose a difficulty proxy) to lock in the gains against regression.
+- The full fixed-aspect "A" visual model (letterbox + themed-fill + objects-as-%) — only if that specific look is ever wanted over the B path taken (fairness is already achieved).
 
 ## Worklist
 
