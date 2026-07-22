@@ -61,13 +61,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   /* LANDSCAPE: dock the build toolbar as a vertical strip on the left edge so the map keeps its
      full height; in PORTRAIT it stays a horizontal bar along the bottom (the @media below). */
   @media (orientation: landscape) {
-    #bottom { right:auto; bottom:0; top:0; width:124px; flex-direction:column; justify-content:flex-start;
+    /* `safe center` centers the stack when it fits AND falls back to top-aligned + scrollable when it
+       overflows a short screen — so the last tower (Mage) is never clipped. (Plain `center` / the old
+       margin-top:auto+margin-bottom:auto trick both push overflow out of the scroll range.) */
+    #bottom { right:auto; bottom:0; top:0; width:124px; flex-direction:column; justify-content:safe center;
       align-items:stretch; flex-wrap:nowrap; gap:6px; padding:48px 8px 8px; overflow-y:auto; }
-    /* auto-margins center the stack when it fits yet keep it scrollable when it doesn't —
-       justify-content:center clips the top buttons beyond the scroll area on short screens;
-       the top padding clears the ‹ Menu nav that overlaps the strip */
-    #bottom > :first-child { margin-top:auto; }
-    #bottom > :last-child { margin-bottom:auto; }
     #bottom .tbtn { min-width:0; }
   }
   .tbtn { font-family:inherit; cursor:pointer; min-width:84px; padding:7px 10px; border-radius:9px; color:var(--parch);
@@ -161,7 +159,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     #top.gamekit-hud { gap:2px 10px; padding:2px 10px; font-size:11px; letter-spacing:.5px; border-radius:8px; }
     #top .lbl { display:inline; font-size:8px; letter-spacing:1px; margin:0 2px 0 0; }
   }
-  @media (max-height:560px) { #top.gamekit-hud { top:6px; } }
+  /* short landscape: the 8-stat pill is too wide to share the button row, so drop it below the nav
+     (top:50px) — same as the kit — instead of pinning it at top:6px where it slid under the cluster.
+     Fits within TD's 78px topReserve; nudge the WAVE announce clear of the dropped pill. */
+  @media (max-height:560px) { #top.gamekit-hud { top:50px; } #waveAnnounce { top:96px; } }
   /* portrait keeps the pill on its own row below the nav at EVERY width — the kit only drops it
      ≤560px, but TD's 8-stat pill is too wide to share the button row on tablets/vertical windows */
   @media (orientation: portrait) and (min-width: 561px) {
