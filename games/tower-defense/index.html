@@ -55,6 +55,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   /* HUD: center-top via the shared .gamekit-hud (kit centers it + wraps when busy). Keep only the
      parchment value colors + THREAT logic; the kit owns position/background/font. */
   #top .stat b { color:var(--gold); }
+  .gk-td-threat { text-align:center; line-height:1; }
+  #threatMeter { width:36px; height:20px; display:inline-block; vertical-align:middle; }
 
   #bottom { position:fixed; left:0; right:0; bottom:0; z-index:5; display:flex; gap:8px; align-items:stretch;
     padding:8px; justify-content:center; flex-wrap:wrap; }
@@ -159,10 +161,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     #top.gamekit-hud { gap:2px 10px; padding:2px 10px; font-size:11px; letter-spacing:.5px; border-radius:8px; }
     #top .lbl { display:inline; font-size:8px; letter-spacing:1px; margin:0 2px 0 0; }
   }
-  /* short landscape: the 8-stat pill is too wide to share the button row, so drop it below the nav
-     (top:50px) — same as the kit — instead of pinning it at top:6px where it slid under the cluster.
-     Fits within TD's 78px topReserve; nudge the WAVE announce clear of the dropped pill. */
-  @media (max-height:560px) { #top.gamekit-hud { top:50px; } #waveAnnounce { top:96px; } }
+  /* the slim 4-stat pill fits the top row, so keep it up top on short landscape (reclaims board height). */
+  @media (max-height:560px) { #top.gamekit-hud { top:6px; } }
   /* portrait keeps the pill on its own row below the nav at EVERY width — the kit only drops it
      ≤560px, but TD's 8-stat pill is too wide to share the button row on tablets/vertical windows */
   @media (orientation: portrait) and (min-width: 561px) {
@@ -186,13 +186,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <canvas id="game"></canvas>
 <div id="top" class="gamekit-hud">
   <div class="stat"><span class="lbl">GOLD</span> <b id="gold">0</b></div>
-  <div class="stat"><span class="lbl">KEEP</span> <b id="hp">0</b></div>
-  <div class="stat"><span class="lbl">WAVE</span> <b id="wave">0</b></div>
   <div class="stat"><span class="lbl">SCORE</span> <b id="score">0</b></div>
-  <div class="stat"><span class="lbl">REMAIN</span> <b id="remain">0</b></div>
-  <div class="stat"><span class="lbl">BEST</span> <b id="best">0</b></div>
-  <div class="stat"><span class="lbl">THREAT</span> <b id="threat">1.0×</b></div>
-  <div class="stat" style="opacity:.75"><span class="lbl">MODE</span> <b id="modeLbl">–</b></div>
+  <div class="stat"><span class="lbl">WAVE</span> <b id="wave">0</b></div>
+  <div class="stat gk-td-threat"><span class="lbl">THREAT</span><canvas id="threatMeter" width="72" height="40"></canvas></div>
 </div>
 <div id="waveAnnounce"></div>
 
@@ -272,13 +268,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function initHudLabels() {
     const labels = [
       KIT.t('game.tower-defense.hud.gold', { def: 'GOLD' }),
-      KIT.t('game.tower-defense.hud.keep', { def: 'KEEP' }),
-      KIT.t('game.tower-defense.hud.wave', { def: 'WAVE' }),
       KIT.t('game.tower-defense.hud.score', { def: 'SCORE' }),
-      KIT.t('game.tower-defense.hud.remain', { def: 'REMAIN' }),
-      KIT.t('game.common.best', { def: 'BEST' }),
+      KIT.t('game.tower-defense.hud.wave', { def: 'WAVE' }),
       KIT.t('game.tower-defense.hud.threat', { def: 'THREAT' }),
-      KIT.t('game.common.modeLabel', { def: 'MODE' }),
     ];
     document.querySelectorAll('#top .lbl').forEach((el, i) => { if (labels[i] != null) el.textContent = labels[i]; });
   }
@@ -702,7 +694,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     pausedMenu = true;
     menuReshow = showPauseMenu;
     KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
-      lines: [KIT.t('game.tower-defense.pauseLine', { wave: wave, score: score, gold: gold, def: 'Wave ' + wave + ' · Score ' + score + ' · ' + gold + 'g' })],
+      lines: [
+        KIT.t('game.tower-defense.pauseLine', { wave: wave, score: score, gold: gold, def: 'Wave ' + wave + ' · Score ' + score + ' · ' + gold + 'g' }),
+        KIT.t('game.common.best', { def: 'BEST' }) + ' ' + bestScore + ' · ' + mapModeDisplay(mapIndex, diffLevel)
+      ],
       actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true }, { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
       onAction: id => { pausedMenu = false; if (id === 'resume') KIT.menu.hide(); else if (id === 'menu') toMenu(); },
       onEsc: () => { pausedMenu = false; KIT.menu.hide(); } });
@@ -722,17 +717,55 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   function updateHud() {
     $('gold').textContent = gold;
-    $('hp').textContent = hp;
-    $('wave').textContent = wave;
     $('score').textContent = score;
-    $('remain').textContent = enemies.length + spawnQ.length;
-    $('best').textContent = bestScore;
-    $('modeLbl').textContent = mapModeDisplay(mapIndex, diffLevel);
-    const th = $('threat');
-    if (th) {
-      th.textContent = difficulty.toFixed(1) + '×';
-      th.style.color = difficulty >= 2 ? '#ff6b6b' : difficulty >= 1.4 ? '#e0b25a' : '';
+    const remain = enemies.length + spawnQ.length;
+    $('wave').textContent = wave + (remain > 0 ? ' · ' + remain : '');
+    // KEEP → castle HP bar on the board (drawKeepHp); THREAT → the meter canvas (drawThreatMeter);
+    // BEST + MODE → pause/end screens. Both live widgets are drawn per-frame in render().
+  }
+  // THREAT meter: rising signal-bars in a compact square, single colour by level, exact left-to-right
+  // fill, number on the bars, escalating particles 5→10 (capped). Headless-safe (skips w/o canvas).
+  let _tmCtx = null;
+  function drawThreatMeter() {
+    const cv = $('threatMeter'); if (!cv || !cv.getContext) return;
+    if (!_tmCtx) { _tmCtx = cv.getContext('2d'); if (_tmCtx.scale) _tmCtx.scale(2, 2); }
+    const g = _tmCtx; if (!g) return;
+    const W = 36, H = 20, v = difficulty;
+    const color = v < 2 ? '#3fb950' : v < 3 ? '#e3b341' : v < 4 ? '#f0883e' : '#f85149';
+    const intensity = v >= 5 ? Math.min(1, 0.12 + (v - 5) / 5) : 0;
+    g.clearRect(0, 0, W, H);
+    if (intensity > 0) { g.save(); g.globalAlpha = 0.22 * intensity; g.fillStyle = '#f85149'; g.fillRect(0, 0, W, H); g.restore(); }
+    const n = 5, gap = 1.6, bw = (W - gap * (n - 1)) / n;
+    for (let i = 0; i < n; i++) {
+      const h = H * (0.34 + 0.135 * i), x = i * (bw + gap), y = H - h, f = Math.max(0, Math.min(1, v - i));
+      g.fillStyle = '#20262e'; g.fillRect(x, y, bw, h);
+      if (f > 0) { g.fillStyle = color; g.fillRect(x, y, bw * f, h); }
     }
+    const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
+    if (intensity > 0) {
+      const N = Math.round(intensity * 7); g.fillStyle = '#ff7a58';
+      for (let i = 0; i < N; i++) { const ph = now * 0.0016 + i * 1.7; const px = W / 2 + Math.sin(ph * 1.3 + i) * W * 0.42, py = H / 2 + Math.cos(ph + i * 0.6) * H * 0.42; g.globalAlpha = 0.4 + 0.5 * (0.5 + 0.5 * Math.sin(ph * 3 + i)); g.beginPath(); g.arc(px, py, 1 + (i % 2), 0, 7); g.fill(); }
+      g.globalAlpha = 1;
+    }
+    g.font = 'bold 11px ui-monospace, Menlo, monospace'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const label = v.toFixed(1) + '×';
+    g.lineWidth = 3; g.strokeStyle = 'rgba(0,0,0,.8)'; g.strokeText(label, W / 2, H / 2 + 0.5);
+    g.fillStyle = '#fff'; g.fillText(label, W / 2, H / 2 + 0.5);
+  }
+  // Castle HP: a bar + number on the keep itself (moved off the HUD pill).
+  function drawKeepHp(x, y, s) {
+    const frac = Math.max(0, hp / 30);
+    const bw = s * 0.86, bh = Math.max(4, s * 0.13), bx = x - bw / 2, by = y - s * 0.66 - bh;
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
+    ctx.fillStyle = '#2a1a0e'; ctx.fillRect(bx, by, bw, bh);
+    ctx.fillStyle = frac > 0.5 ? '#5fd35f' : frac > 0.25 ? '#e0b25a' : '#ff5a4d';
+    ctx.fillRect(bx, by, bw * frac, bh);
+    ctx.strokeStyle = 'rgba(255,255,255,0.25)'; ctx.lineWidth = 1; ctx.strokeRect(bx + 0.5, by + 0.5, bw - 1, bh - 1);
+    ctx.font = 'bold ' + Math.max(9, Math.round(s * 0.2)) + 'px Georgia, serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    ctx.lineWidth = 3; ctx.strokeStyle = 'rgba(0,0,0,.7)'; ctx.strokeText('♥ ' + hp, x, by - 2);
+    ctx.fillStyle = '#fff'; ctx.fillText('♥ ' + hp, x, by - 2);
+    ctx.restore();
   }
   function refreshToolbar() {
     document.querySelectorAll('.tbtn[data-t]').forEach(b => {
@@ -2229,8 +2262,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       drawRoadTexture(ctx);
     }
 
-    // keep
+    // keep + its HP bar (HP moved off the HUD onto the castle)
     drawKeep(cx(WP[WP.length - 1][0]), cy(WP[WP.length - 1][1]), ts);
+    drawKeepHp(cx(WP[WP.length - 1][0]), cy(WP[WP.length - 1][1]), ts);
+    drawThreatMeter();
 
     // build preview range ring
     if (selBuild && hoverCell && !road[hoverCell.c]?.[hoverCell.r] && !towerAt(hoverCell.c, hoverCell.r)) {
