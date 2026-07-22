@@ -285,9 +285,9 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
    `<head>` (see the atomic head order), and read the selected skin in the game's render
    (`KIT.cosmetics.selected('<slug>.<set>')`). The 🎨 button + store modal are automatic (kit-owned).
 6. Add an entry to `games.js` (`soon: true` = greyed "coming soon" tile). Set **`added: "YYYY-MM-DD"`**
-   on a new game (drives the auto **NEW** badge for 7 days). **Whenever you ship a notable update to a
+   on a new game (drives the auto **NEW** badge for 30 days). **Whenever you ship a notable update to a
    game (new mode/feature — not every bugfix), bump that game's `updated: "YYYY-MM-DD"`** (drives the
-   **UPDATED** badge for 7 days). Keep these dates accurate — they're the only source for those badges.
+   **UPDATED** badge for 30 days). Keep these dates accurate — they're the only source for those badges.
    Also **add a `CHANGELOG` bullet** in `changelog.js` for the change (see Catalogue specifics).
    When a game goes **live** (not `soon`), add its `https://komyo.online/games/<slug>/` URL to
    both `sitemap.xml` and `llms.txt`, AND to the homepage's two crawler surfaces in `index.html`
@@ -393,7 +393,8 @@ and name landscape explicitly in what to check.
   **Coming soon** (`soon: true`, greyed) — split by centered horizontal dividers. MP tiles
   (`mp: true`) show a `players` pill (👥 2P / 2–4P) and keep their genre tag. **Badges** (shimmer+sparkle marks, top-left, stackable
   vertically) come from the `BADGES` map in `index.html`: **NEW** (gold) and **UPDATED** (blue) are
-  auto-applied from a game's `added` / `updated` date in `games.js` (within 7 days; NEW wins over
+  auto-applied from a game's `added` / `updated` date in `games.js` (within 30 days — same window as
+  the "✨ What's new" shelf, so shelf and badges stay in lockstep; NEW wins over
   UPDATED); **POPULAR** (purple, `badges: ["pick"]`) is manual. Add a type = one map entry + a color
   rule. Header carries a **mascot placeholder**
   (chibi fox-girl inline SVG — swap for real art later).
