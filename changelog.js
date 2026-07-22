@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-21', title: 'Discover, now twice as smart ✨💡', items: [
+    'New: the ✨ Discover row split in two — “What’s new” shows arrivals and freshly updated games from the last month you haven’t tried, and “For you” suggests untried games matched to the genres you already play (worked out on your device — nothing leaves it). Both vanish once you’ve tried everything.',
+  ] },
   { date: '2026-07-21', title: 'Discover — games you haven’t tried yet ✨', items: [
     'New: a ✨ Discover row on the home page — a short shelf of games you haven’t tried yet (new and popular ones first). It disappears once you’ve tried everything.',
   ] },

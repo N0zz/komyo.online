@@ -168,26 +168,46 @@ function testCatalogue() {
       'favorited games still appear in the rail (got ' + cards3.map(c => c.href).join(', ') + ')');
   }
 
-  // "✨ Discover" rail: untried-only carousel between Recently played and All games — on for
-  // EVERYONE (new users included) while something's left to try. "Tried" = any gamekit_pb entry
-  // OR a Recent-rail slot; never shows favorited/recent games; capped at 8; All games stays complete.
+  // Discover rails: "✨ What's new" (untried, added/updated ≤30 d, freshest first) + "💡 For you"
+  // (the other untried games, affinity-ordered) — on for EVERYONE while something's left to try.
+  // "Tried" = any gamekit_pb entry OR a Recent-rail slot; never favorited/recent games; a game is
+  // in at most ONE rail; each rail capped at 8; All games stays complete.
   {
     const playable = GAMES.filter(gm => !gm.soon);
-    const discOf = gg => gg.getEl('grid').children.find(c => String(c.className).includes('discover-wrap'));
+    const railsOf = gg => gg.getEl('grid').children.filter(c => String(c.className).includes('discover-wrap'));
+    const cardsOf = wrap => {
+      const row = wrap && wrap.children.find(c => String(c.className).includes('recent-row'));
+      return row ? row.children.filter(c => String(c.className).includes('tile')) : [];
+    };
+    const allCards = gg => railsOf(gg).flatMap(cardsOf);
     const pb = slugs => JSON.stringify(Object.fromEntries(slugs.map(s => [s, { 'Classic': { score: 1, time: 0, plays: 1, stats: {} } }])));
-    // brand-new user (nothing played) → rail shows straight away
+    // fresh split mirror: which playable games fall in the 30-day "What's new" window right now
+    const days = d => { const t = d ? Date.parse(d) : NaN; return isFinite(t) ? (Date.now() - t) / 86400000 : Infinity; };
+    const isFresh = x => Math.min(days(x.added), days(x.updated)) <= 30;
+    // brand-new user (nothing played) → discovery shows straight away
     const d1 = bootGame('index.html', { preCode: [games, challenges], store: {} });
-    ok(!!discOf(d1), 'Discover rail shows for a brand-new user (nothing played)');
-    // some played → rail shows only unplayed games, ≤8, and the played ones aren't in it
+    ok(railsOf(d1).length >= 1, 'Discover rail(s) show for a brand-new user (nothing played)');
+    const freshCount = playable.filter(isFresh).length;
+    ok(railsOf(d1).some(w => String(w.className).includes('discover-new-wrap')) === (freshCount > 0),
+      '"What\'s new" rail present iff a playable game is ≤30 days fresh (' + freshCount + ' fresh)');
+    if (playable.length > freshCount) ok(railsOf(d1).some(w => String(w.className).includes('discover-you-wrap')),
+      '"For you" rail present when non-fresh untried games exist');
+    // no game appears in both rails
+    const seen1 = allCards(d1).map(c => c.href);
+    ok(new Set(seen1).size === seen1.length, 'a game appears in at most one Discover rail');
+    // the What's-new rail holds only fresh games
+    const nw1 = railsOf(d1).find(w => String(w.className).includes('discover-new-wrap'));
+    if (nw1) {
+      const freshHrefs = new Set(playable.filter(isFresh).map(x => 'games/' + x.slug + '/'));
+      ok(cardsOf(nw1).every(c => freshHrefs.has(c.href)), '"What\'s new" holds only ≤30-day games');
+    }
+    // some played → rails show only unplayed games, ≤8 each, and the played ones aren't in them
     const playedSlugs = playable.slice(0, 3).map(x => x.slug);
     const d2 = bootGame('index.html', { preCode: [games, challenges], store: { gamekit_pb: pb(playedSlugs) } });
-    const wrap2 = discOf(d2);
-    ok(!!wrap2, 'Discover rail renders with played games recorded and unplayed games left');
-    const row2 = wrap2 && wrap2.children.find(c => String(c.className).includes('recent-row'));
-    const cards2 = row2 ? row2.children.filter(c => String(c.className).includes('tile')) : [];
-    ok(cards2.length > 0 && cards2.length <= 8, 'Discover rail is capped at 8 tiles (got ' + cards2.length + ')');
+    const cards2 = allCards(d2);
+    ok(cards2.length > 0 && railsOf(d2).every(w => cardsOf(w).length <= 8), 'each Discover rail is capped at 8 tiles');
     ok(!cards2.some(c => playedSlugs.some(s => c.href === 'games/' + s + '/')), 'Discover never shows a played game');
-    // All games stays the complete index: every unplayed non-fav game still has a grid tile
+    // All games stays the complete index: every playable game still has a direct grid tile
     const gridTiles = d2.getEl('grid').children.filter(c => String(c.className).includes('tile'));
     const inGrid = new Set(gridTiles.map(t => t.href));
     ok(playable.every(x => inGrid.has('games/' + x.slug + '/')), 'every playable game still appears in the grid (All games stays complete)');
@@ -198,15 +218,13 @@ function testCatalogue() {
         gamekit_pb: pb(playedSlugs), arcade_favs: JSON.stringify([favSlug]),
         gamekit_recent: JSON.stringify([{ slug: recSlug, at: 1 }]),
       } });
-      const w3 = discOf(d3);
-      const r3 = w3 && w3.children.find(c => String(c.className).includes('recent-row'));
-      const c3 = r3 ? r3.children.filter(c => String(c.className).includes('tile')) : [];
-      ok(!!w3 && !c3.some(c => c.href === 'games/' + favSlug + '/' || c.href === 'games/' + recSlug + '/'),
+      const c3 = allCards(d3);
+      ok(c3.length > 0 && !c3.some(c => c.href === 'games/' + favSlug + '/' || c.href === 'games/' + recSlug + '/'),
         'Discover excludes favorited and recently-played games');
     }
-    // everything played → no rail
+    // everything played → no rails at all
     const d4 = bootGame('index.html', { preCode: [games, challenges], store: { gamekit_pb: pb(playable.map(x => x.slug)) } });
-    ok(!discOf(d4), 'no Discover rail when every game has been played');
+    ok(railsOf(d4).length === 0, 'no Discover rails when every game has been played');
   }
 
   // side stack (Profile / Challenges / Collection) + top-right row: wired, headless-safe
@@ -257,11 +275,14 @@ function testCatalogue() {
     const kids = (ge.win.GAMES || []).filter(x => !x.soon && (x.tags || []).indexOf('KIDS') >= 0).map(x => 'games/' + x.slug + '/');
     ok(kids.length >= 3 && tiles.slice(0, kids.length).join(',') === kids.join(','),
       'easy picks: KIDS games lead All games (got ' + tiles.slice(0, kids.length + 1).join(', ') + ')');
-    // and the Discover rail leads with a KIDS game too (fresh profile: everything is untried)
-    const dw = ge.getEl('grid').children.find(c => String(c.className).includes('discover-wrap'));
-    const dr = dw && dw.children.find(c => String(c.className).includes('recent-row'));
-    const first = dr && dr.children.filter(c => String(c.className).includes('tile'))[0];
-    ok(!!first && kids.indexOf(first.href) >= 0, 'easy picks: Discover rail leads with a KIDS game (got ' + (first && first.href) + ')');
+    // and any Discover rail that holds a KIDS game leads with one (fresh profile: all untried)
+    ge.getEl('grid').children.filter(c => String(c.className).includes('discover-wrap')).forEach(dw => {
+      const dr = dw.children.find(c => String(c.className).includes('recent-row'));
+      const cards = dr ? dr.children.filter(c => String(c.className).includes('tile')) : [];
+      const hasKids = cards.some(c => kids.indexOf(c.href) >= 0);
+      if (hasKids) ok(kids.indexOf(cards[0].href) >= 0,
+        'easy picks: a Discover rail with KIDS games leads with one (got ' + cards[0].href + ')');
+    });
   }
 
   // challenge history back-fill: a completion is recorded even when detected on a later catalogue

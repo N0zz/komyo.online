@@ -399,6 +399,13 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
 
 ### In flight / near-term
 
+- **✨💡 Discover rails — BUILT (2026-07-21), v2 awaiting eyeball** — two untried-only home-page
+  carousels: "What's new" (added/updated ≤30 days, freshest first) + "For you" (genre-affinity
+  from local play history + POPULAR nudge + daily tie rotation); no gate — new users see them
+  too; 🐣 Easy picks lifts KIDS games; both collapsible, vanish when everything's tried. v1
+  (single rail) shipped same day, then split per discussion. **Later/if-ever:** the 🎲
+  tinder-deck picker (from the Random button, never a new button/menu item). Plan + decision
+  log: **`plans/discover-plan.md`**.
 - **🔒 Parental lock — IN PROGRESS (2026-07-21)** — hand the device to a kid without them spending
   trophies / wiping data: kit-owned PIN gate (PBKDF2-hashed via `crypto.subtle`, never plaintext —
   people reuse bank/phone PINs) on shop BUY, "↺ Reset game data", Export/Import, and the lock's own

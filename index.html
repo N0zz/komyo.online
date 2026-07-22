@@ -1448,18 +1448,29 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         .map(r => all.find(g => !g.soon && g.slug === (r && r.slug)))
         .filter(Boolean).slice(0, 10);
       if (recent.length) sections.push({ key: 'recent', label: T('cat.recentlyPlayed', 'Recently played'), list: recent, carousel: true });
-      // ✨ Discover — a short untried-only rail, on for everyone while something's left to try.
-      // "Tried" = any gamekit_pb entry (a finished run) OR sitting in the Recent rail (launched);
-      // so it can't overlap Favorites/Recent, and its only overlap is with All games, which stays
-      // the complete canonical index. Vanishes once every game has been tried.
+      // ✨💡 Discover rails (plans/discover-plan.md) — TWO untried-only carousels: "What's new"
+      // (fresh arrivals/updates ≤30 days) and "For you" (the rest, affinity-ordered). "Tried" =
+      // any gamekit_pb entry (finished run) OR a Recent-rail slot (launched); so neither rail
+      // overlaps the other, Favorites or Recent — the only overlap is with All games, which
+      // stays the complete canonical index. Each rail renders only when non-empty.
       {
         const pbAll = (() => { try { return JSON.parse(localStorage.getItem('gamekit_pb') || '{}') || {}; } catch (e) { return {}; } })();
         const played = new Set(Object.keys(pbAll));
         const recSlugs = new Set(recent.map(g => g.slug));
-        // score = badges + genre affinity: NEW 4 > UPDATED 3 > POPULAR 2 (so UPDATED+POPULAR
-        // outranks plain NEW), plus up to ~+3 for genres the player already plays (share of
-        // their lifetime plays carried by the game's tags — all local, zero for new users)
-        const w = g => { const b = badgeKeys(g); return (b.includes('new') ? 4 : 0) + (b.includes('updated') ? 3 : 0) + (b.includes('pick') ? 2 : 0); };
+        const untried = all.filter(g => !g.soon && !isFav(g) && !played.has(g.slug) && !recSlugs.has(g.slug));
+        // 🐣 Easy picks lifts KIDS games in both rails — they front the site for new players
+        const easy = window.gamekit && window.gamekit.easyPicks && window.gamekit.easyPicks();
+        const kid = g => tagsOf(g).some(t => String(t).toUpperCase() === 'KIDS') ? 1 : 0;
+        // "What's new": added/updated within 30 days (the badge's 7-day window would sit empty
+        // most weeks at our release pace), freshest first
+        const fresh = g => { const d = s => { const t = s ? Date.parse(s) : NaN; return isFinite(t) ? (Date.now() - t) / 86400000 : Infinity; }; return Math.min(d(g.added), d(g.updated)); };
+        const news = untried.filter(g => fresh(g) <= 30)
+          .sort((a, b) => (easy ? kid(b) - kid(a) : 0) || fresh(a) - fresh(b))
+          .slice(0, 8);
+        const newSet = new Set(news.map(g => g.slug));
+        // "For you": everything else untried — genre affinity (share of the player's lifetime
+        // plays carried by the game's tags — all local, zero for new users) + a POPULAR nudge,
+        // ties rotated daily (hashed like challengePick — same for everyone, fresh rail each day)
         const aff = (() => {
           const per = {}; let total = 0;
           (window.GAMES || []).forEach(g => {
@@ -1471,16 +1482,14 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           });
           return g => { if (!total) return 0; let s = 0; tagsOf(g).forEach(t => { s += per[String(t).toUpperCase()] || 0; }); return 3 * s / total; };
         })();
-        // ties rotate daily (hashed like challengePick — same for everyone, fresh rail each day)
+        const w = g => badgeKeys(g).includes('pick') ? 2 : 0;
         const day = (window.gamekit && window.gamekit.utcDayNumber) ? window.gamekit.utcDayNumber() : 0;
         const rot = s => { s = day + ':' + s; let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
-        // 🐣 Easy picks lifts KIDS games here too — the rail fronts the site for new players
-        const easy = window.gamekit && window.gamekit.easyPicks && window.gamekit.easyPicks();
-        const kid = g => tagsOf(g).some(t => String(t).toUpperCase() === 'KIDS') ? 1 : 0;
-        const disc = all.filter(g => !g.soon && !isFav(g) && !played.has(g.slug) && !recSlugs.has(g.slug))
+        const yours = untried.filter(g => !newSet.has(g.slug))
           .sort((a, b) => (easy ? kid(b) - kid(a) : 0) || (w(b) + aff(b)) - (w(a) + aff(a)) || rot(a.slug) - rot(b.slug))
           .slice(0, 8);
-        if (disc.length) sections.push({ key: 'discover', label: T('cat.discover', '✨ Discover'), list: disc, carousel: true });
+        if (news.length) sections.push({ key: 'discover-new', label: T('cat.discoverNew', "✨ What's new"), list: news, carousel: true });
+        if (yours.length) sections.push({ key: 'discover-you', label: T('cat.discoverForYou', '💡 For you'), list: yours, carousel: true });
       }
       // all games (single + multi together — MP tiles keep their 👥 pill; the Type filter still splits)
       let rest = all.filter(g => !g.soon && !isFav(g));
@@ -1528,7 +1537,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           // one full-width rail holding the tiles — scrolls horizontally, one row tall, no
           // visible scrollbar; a » paddle on the right pages it (wraps back to the start at the end)
           const wrap = document.createElement('div');
-          wrap.className = 'recent-wrap' + (sec.key === 'discover' ? ' discover-wrap' : '');
+          wrap.className = 'recent-wrap' + (sec.key.indexOf('discover') === 0 ? ' discover-wrap ' + sec.key + '-wrap' : '');
           const row = document.createElement('div');
           row.className = 'recent-row';
           sec.list.forEach(g => row.appendChild(tileEl(g, f)));
@@ -1536,7 +1545,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           const next = document.createElement('button');
           next.type = 'button'; next.className = 'recent-next';
           next.innerHTML = '»';
-          next.setAttribute('aria-label', sec.key === 'discover' ? T('cat.scrollDiscover', 'Scroll discover') : T('cat.scrollRecent', 'Scroll recently played'));
+          next.setAttribute('aria-label', sec.key.indexOf('discover') === 0 ? T('cat.scrollDiscover', 'Scroll discover') : T('cat.scrollRecent', 'Scroll recently played'));
           next.addEventListener('click', () => {
             if (!row.scrollBy) return;
             const atEnd = row.scrollLeft + row.clientWidth >= row.scrollWidth - 8;
