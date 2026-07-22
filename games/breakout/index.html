@@ -192,8 +192,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (balls.length) { balls[0].x = paddleX; balls[0].y = paddleY() - BALL_R - PADDLE_H / 2; }
   }
 
+  // Ball speed scales with field height so crossing-time is identical on every screen (fair): a phone's
+  // short field gets a slower px/step, a 4K field a faster one. REF 800 = desktop baseline (unchanged there).
+  function ballSpeedBase() { return (5.85 + level * 0.65) * Math.max(0.55, Math.min(2.2, H / 800)); }
   function makeBall(x, y, speed) {
-    const spd = speed || (5.85 + level * 0.65);
+    const spd = speed || ballSpeedBase();
     const ang = -Math.PI / 2 + (Math.random() - 0.5) * 0.4;
     return { x, y, vx: Math.cos(ang) * spd, vy: Math.sin(ang) * spd };
   }
@@ -266,7 +269,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function launch() {
     if (!ballStuck || state !== 'playing') return;
     ballStuck = false;
-    const spd = 5.85 + level * 0.65;
+    const spd = ballSpeedBase();
     balls[0].vx = (Math.random() - 0.5) * spd * 0.6;
     balls[0].vy = -spd;
     SND.play('launch');

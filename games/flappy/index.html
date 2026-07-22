@@ -422,7 +422,13 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // GAP_MIN (= 0.5× the default GAP_H). Reaches the floor around GAP_RAMP points.
   function currentGap() {
     const t = Math.min(1, score / GAP_RAMP);
-    return GAP_H - (GAP_H - GAP_MIN) * t;
+    // Scale the gap to the playable band so its share of the screen (and the difficulty) is the same on
+    // every aspect — a fixed 240px gap was 46% of a portrait phone but ~85% of a short landscape screen
+    // (trivially easy). 724 = the desktop reference band, so GAP_H/GAP_MIN are unchanged there.
+    const band = Math.max(200, H - 28 - topInset);
+    const scale = band / 724;
+    const gh = GAP_H * scale, gmin = GAP_MIN * scale;
+    return gh - (gh - gmin) * t;
   }
 
   // Scroll speed: mode base, plus a creep that ramps in over score SPEED_RAMP_FROM→SPEED_RAMP_TO.
