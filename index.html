@@ -1273,7 +1273,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       chSlugsCache = out; chSlugsDay = day;
       return out;
     }
-    // badges stack (vertical, top-left). Auto NEW/UPDATED from dates (≤7 days) sit on top;
+    // badges stack (vertical, top-left). Auto NEW/UPDATED from dates (≤30 days) sit on top;
     // manual badges (e.g. "pick") follow. NEW wins over UPDATED; duplicates are de-duped.
     // the badge keys a game currently shows (date-driven NEW/UPDATED + manual) — single source
     // of truth shared by the tile badges and the Highlights filter
@@ -1281,8 +1281,8 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       if (g.soon) return [];
       const keys = Array.isArray(g.badges) ? g.badges.slice() : [];
       const daysSince = d => { const t = d ? Date.parse(d) : NaN; return isFinite(t) ? (Date.now() - t) / 86400000 : Infinity; };
-      if (daysSince(g.added) <= 7) keys.push('new');
-      else if (daysSince(g.updated) <= 7) keys.push('updated');
+      if (daysSince(g.added) <= 30) keys.push('new');
+      else if (daysSince(g.updated) <= 30) keys.push('updated');
       if (activeChallengeSlugs().has(g.slug)) keys.push('challenge');
       // priority order; de-dupe; hard-cap at 3 so the stack can never crowd the tile
       const ORDER = ['new', 'updated', 'challenge', 'pick'], seen = {};
@@ -1461,8 +1461,8 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         // 🐣 Easy picks lifts KIDS games in both rails — they front the site for new players
         const easy = window.gamekit && window.gamekit.easyPicks && window.gamekit.easyPicks();
         const kid = g => tagsOf(g).some(t => String(t).toUpperCase() === 'KIDS') ? 1 : 0;
-        // "What's new": added/updated within 30 days (the badge's 7-day window would sit empty
-        // most weeks at our release pace), freshest first
+        // "What's new": added/updated within 30 days — same window as the NEW/UPDATED tile
+        // badges, so the shelf and the badges stay in lockstep; freshest first
         const fresh = g => { const d = s => { const t = s ? Date.parse(s) : NaN; return isFinite(t) ? (Date.now() - t) / 86400000 : Infinity; }; return Math.min(d(g.added), d(g.updated)); };
         const news = untried.filter(g => fresh(g) <= 30)
           .sort((a, b) => (easy ? kid(b) - kid(a) : 0) || fresh(a) - fresh(b))
