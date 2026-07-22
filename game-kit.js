@@ -3565,7 +3565,10 @@
   function vh() { try { return (typeof window !== 'undefined' && window.innerHeight) || 0; } catch (e) { return 0; } }
   function isPortrait() { return vh() > vw(); }
   function isNarrow() { var w = vw(); return isPortrait() || (w > 0 && w <= 560); }
-  function layoutState() { return { w: vw(), h: vh(), portrait: isPortrait(), landscape: !isPortrait(), narrow: isNarrow(), hudTop: isNarrow() ? 92 : 48 }; }
+  // The center HUD drops below the nav row (CSS) whenever it would collide with the ~214px side cluster
+  // — i.e. portrait OR width ≤768. hudTop() must reserve the taller headroom (92) in that same band.
+  function hudDropped() { var w = vw(); return isPortrait() || (w > 0 && w <= 768); }
+  function layoutState() { return { w: vw(), h: vh(), portrait: isPortrait(), landscape: !isPortrait(), narrow: isNarrow(), hudTop: hudDropped() ? 92 : 48 }; }
   function fireLayout() { var st = layoutState(); for (var i = 0; i < layoutCbs.length; i++) { try { layoutCbs[i](st); } catch (e) {} } }
   function scheduleLayout() {
     if (typeof requestAnimationFrame === 'function') { if (layoutRaf) return; layoutRaf = requestAnimationFrame(function () { layoutRaf = 0; fireLayout(); }); }
@@ -3581,7 +3584,7 @@
   var layout = {
     get w() { return vw(); }, get h() { return vh(); },
     get portrait() { return isPortrait(); }, get landscape() { return !isPortrait(); }, get narrow() { return isNarrow(); },
-    hudTop: function () { return isNarrow() ? 92 : 48; },
+    hudTop: function () { return hudDropped() ? 92 : 48; },
     state: layoutState,
     on: function (cb) { if (typeof cb === 'function') { layoutCbs.push(cb); wireLayout(); } return layout; },
     // Lock-and-inform: show a "rotate your phone" overlay when the orientation isn't what the game
