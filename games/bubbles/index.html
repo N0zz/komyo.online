@@ -138,6 +138,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // Headroom so the playfield/bubbles clear the shared center-top .gamekit-hud pill.
   // Landscape: pill at top:8px → ~48px. Portrait (≤560px): pill drops to top:50px → ~92px.
   let topMargin = 48;
+  let fieldTop = 0, fieldBottom = 0; // play field is cap+centered on tall screens → constant descent runway
   let WALL = 8; // thickness of the play-column walls (set in resize); side walls bounce, ceiling attaches
   let state = 'ready'; // 'ready'|'playing'|'over'|'won'
   let mode = 'arcade'; // 'arcade'|'endless'|'zen'
@@ -181,11 +182,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     ROW_H = R * 1.73;
     WALL = Math.max(6, Math.round(R * 0.55));
     topMargin = KIT.layout.hudTop();
-    // Vertical fit: on short (landscape phone) screens the default row spacing makes the
-    // starting grid spill past the lose line / shooter. Compress ROW_H so the initial grid
-    // (GRID_ROWS_START rows, top at topMargin+R) clears the lose line (H-SHOOTER_Y_OFFSET-3R)
-    // with a one-row breather. Never expand beyond the default spacing.
-    const playBand = (H - SHOOTER_Y_OFFSET - R * 3) - (topMargin + WALL + R);
+    // Cap the play field to a desktop-reference height (752 = 800 − hudTop 48) and CENTER it, so a tall
+    // screen doesn't grant several times a phone's descent runway (fairness); the themed bg fills the
+    // margins above/below. Phones and the desktop reference are unaffected (usableH ≤ 752 → no cap).
+    const usableH = H - topMargin, fieldH = Math.min(usableH, 752);
+    fieldTop = topMargin + Math.round((usableH - fieldH) / 2);
+    fieldBottom = fieldTop + fieldH;
+    // Vertical fit: on short screens compress ROW_H so the initial grid clears the lose line.
+    const playBand = (fieldBottom - SHOOTER_Y_OFFSET - R * 3) - (fieldTop + WALL + R);
     const fitRowH = playBand / (GRID_ROWS_START + 1);
     if (fitRowH > 0 && fitRowH < ROW_H) ROW_H = fitRowH;
   }
@@ -199,7 +203,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const startX = Math.floor((W - (totalW + R)) / 2) + R;
     return { left: startX - R, right: startX + totalW, startX, totalW };
   }
-  function ceilTop() { return topMargin + WALL; }
+  function ceilTop() { return fieldTop + WALL; }
   function gridX(col, row) {
     const offset = ((row + gridParity) % 2 === 1) ? R : 0;
     return fieldBounds().startX + col * R * 2 + offset;
@@ -681,7 +685,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   // ---- Shooter position ----
   function shooterX() { return W / 2; }
-  function shooterY() { return H - SHOOTER_Y_OFFSET; }
+  function shooterY() { return fieldBottom - SHOOTER_Y_OFFSET; }
 
   // ---- Shoot ----
   function shoot() {
@@ -748,7 +752,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- Lose condition ----
   function checkLose() {
     if (state !== 'playing') return;
-    const loseY = H - SHOOTER_Y_OFFSET - R * 3;
+    const loseY = fieldBottom - SHOOTER_Y_OFFSET - R * 3;
     for (let r = 0; r < grid.length; r++) {
       if (gridY(r) + R > loseY) {
         for (let c = 0; c < COLS_COUNT; c++) {
@@ -822,7 +826,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- Core update ----
   // Music intensity 0..1: calm base rising as the grid nears the lose line, plus the charge combo.
   function musicIntensity() {
-    const top = ceilTop(), loseY = H - SHOOTER_Y_OFFSET - R * 3;
+    const top = ceilTop(), loseY = fieldBottom - SHOOTER_Y_OFFSET - R * 3;
     let lowest = top;
     for (let r = 0; r < grid.length; r++) {
       for (let c = 0; c < COLS_COUNT; c++) {
@@ -1057,7 +1061,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     ctx.stroke();
 
     // Lose line (spans the play column)
-    const loseY = H - SHOOTER_Y_OFFSET - R * 3;
+    const loseY = fieldBottom - SHOOTER_Y_OFFSET - R * 3;
     ctx.strokeStyle = 'rgba(255,77,109,0.3)';
     ctx.setLineDash([6, 6]);
     ctx.lineWidth = 1.5;
@@ -1321,7 +1325,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     get shot() { return shotBubble ? { x: shotBubble.x, y: shotBubble.y, vx: shotBubble.vx } : null; },
     gridX,
     gridY,
-    get loseY() { return H - SHOOTER_Y_OFFSET - R * 3; },
+    get loseY() { return fieldBottom - SHOOTER_Y_OFFSET - R * 3; },
     get shooterX() { return shooterX(); },
     get shooterY() { return shooterY(); },
     get COLS_COUNT() { return COLS_COUNT; },
