@@ -29,17 +29,19 @@ per-device liability to plan for.
 
 ## 2 · Design targets
 
-- **390×780 portrait is the primary device** (also the layout suite's portrait
-  viewport). Sanity-check 320px width — the realistic worst case.
-- The other suite viewports: 780×390 (landscape phone), 1280×800 (desktop).
-  A viewport-is-the-world game must be *playable*, not merely rendered, at all
-  three.
+- **360×640 portrait is the design floor** — test the floor, not the typical
+  (survive 360-wide and every phone above it survives too). Sanity-check 320px
+  width — the absolute worst case.
+- The full eyeball set is five viewports: desktop 1280×800 · 1920×1080 ·
+  2560×1440, portrait 360×640, landscape 640×360. A viewport-is-the-world game
+  must be *playable*, not merely rendered, at all of them. The headless
+  `runLayoutSuite` sweeps the same five.
 - Kit tools: `KIT.layout.narrow` (portrait or ≤560px), `hudTop()`,
   `requireOrientation('portrait'|'landscape')` (use it instead of designing for
   both when the mechanic only works in one), `KIT.layout.on(resize)`.
-- Half-width matters more than width: on 390×780 with a centered playfield,
-  anything beyond ~195px horizontally from center is **invisible**. Desktop
-  tuning (≥640px from center visible) silently assumes 3× that.
+- Half-width matters more than width: on 360×640 with a centered playfield,
+  anything beyond ~180px horizontally from center is **invisible**. Desktop
+  tuning (≥640px from center visible) silently assumes >3× that.
 
 ## 3 · Rules for viewport-is-the-world games
 
@@ -89,7 +91,7 @@ per-device liability to plan for.
   key ranges, arena rects) — the layout suite can only assert what the getter
   returns.
 - **Put model invariants in the `runLayoutSuite` check callback** — it already
-  sweeps 390×780 / 780×390 / 1280×800; add per-viewport asserts beside the
+  sweeps 360×640 / 640×360 / 1280×800 / 1920×1080 / 2560×1440; add per-viewport asserts beside the
   view ones. The frog-bonk regression section is the pattern to copy:
   - sample `spawnPos()` ~200×: every spawn within ~70px of a screen edge;
   - step the sim a few hundred steps: **no entity ever acts while off-screen**
@@ -103,10 +105,15 @@ per-device liability to plan for.
 
 Headless tests can't feel reach or readability — eyeball it:
 
-- Browser device mode at **390×780 with coarse pointer** (touch-only controls
-  don't even render on a desktop pointer), plus a 320px-wide pass and a
-  rotation. Do this at the POC too — model-scaling problems are design
-  problems, cheapest to catch before the MVP.
+- Run the **5-viewport Playwright-MCP pass** (desktop 1280×800 · 1920×1080 ·
+  2560×1440, portrait 360×640, landscape 640×360): navigate → resize → screenshot
+  → inspect each; for games, snapshot + click past the TAP TO PLAY splash and
+  INSERT COIN first. Run the MCP `--headless` (headed shows a `--no-sandbox`
+  infobar that pollutes shots).
+- Plus a browser-device-mode pass at **360×640 with coarse pointer** (touch-only
+  controls don't even render on a desktop pointer) and a rotation. Do this at the
+  POC too — model-scaling problems are design problems, cheapest to catch before
+  the MVP.
 - Watch for the classic symptoms: things arriving "from nowhere" (off-screen
   actors), long invisible approaches, UI under the HUD, targets your thumb
   can't reach, effects that feel violent on a small field.

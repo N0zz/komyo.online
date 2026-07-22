@@ -169,10 +169,16 @@ export function bootGame(file, opts = {}) {
 }
 
 // ---- layout suite: the standard portrait/landscape/desktop triple ----
+// Real device floors, not typical sizes — test the floor, anything above survives too.
+// 2560×1440 is the realistic high-res ceiling (browsers report CSS px; 4K at normal OS
+// scaling reports ~1920–2560), where over-scaling / empty-space layouts surface.
+// Kept in lockstep with the manual eyeball pass in CLAUDE.md.
 export const VIEWPORTS = [
-  { name: 'portrait phone', w: 390, h: 780 },
-  { name: 'landscape phone', w: 780, h: 390 },
+  { name: 'portrait phone', w: 360, h: 640 },
+  { name: 'landscape phone', w: 640, h: 360 },
   { name: 'desktop', w: 1280, h: 800 },
+  { name: 'desktop 1080p', w: 1920, h: 1080 },
+  { name: 'desktop 1440p', w: 2560, h: 1440 },
 ];
 
 // runLayoutSuite(makeGame, check): boots a fresh game per viewport (makeGame must return a

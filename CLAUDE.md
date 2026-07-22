@@ -325,8 +325,8 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
 - **Layout/overlap tests (standard for every live game).** Each game exposes a read-only
   `__test.layout` getter returning JS-computed bounds in canvas px (`W`, `H`, a `topReserve` for the
   `.gamekit-hud` headroom, and the key drawn elements' rects). The suite calls
-  `runLayoutSuite(makeGame, check)` — it sweeps **portrait (390×780) / landscape (780×390) /
-  desktop (1280×800)** and asserts the shared invariants itself (layout getter present, canvas
+  `runLayoutSuite(makeGame, check)` — it sweeps the five viewports **portrait 360×640 · landscape
+  640×360 · desktop 1280×800 · 1920×1080 · 2560×1440** and asserts the shared invariants itself (layout getter present, canvas
   matches the viewport, **`topReserve` ≥ the kit's `hudTop()`** — the headless stand-in for "the
   score box doesn't sit under the nav"); game-specific bounds go in the `check` callback (pass
   `{size:false}` for scaled-world canvases like asteroids). Don't fabricate coords for
@@ -347,13 +347,26 @@ cd ~/arcade && python3 -m http.server 8765    # then open http://localhost:8765/
 - After a redeploy/edit, **hard-refresh** (service workers cache aggressively) or the old build shows.
 - Mobile/touch UX (joysticks, the snake D-pad, rotation): use the browser's device-mode (coarse
   pointer) — touch-only controls don't render on a desktop pointer.
-- **The eyeball pass is THREE viewports, never two: desktop, portrait (~390×780), and landscape
-  (~780×390).** This applies to EVERY player-facing change — kit chrome, modals/drawers, menus, new
-  buttons or text, not just games. Landscape (short-height) is where overlays overflow, fixed-size
-  controls dominate, and rails starve — it's exactly the pass that gets skipped when a change
-  "works on desktop and portrait" (2026-07-12: shop rail, side stack and the minesweeper pill all
-  shipped broken in landscape this way). The headless suites only cover JS-computed game layouts;
-  kit DOM/CSS has NO automated geometry check, so this manual pass is the only landscape gate.
+- **The eyeball pass is FIVE viewports — real device floors, not typical sizes: desktop 1280×800 ·
+  1920×1080 · 2560×1440, portrait 360×640, landscape 640×360.** Test the *floor*, not the
+  *typical*: survive 360-wide and every phone above it survives too. 2560×1440 is the realistic
+  high-res ceiling — browsers report CSS px, so a 4K display at normal OS scaling reports only
+  ~1920–2560, and that's where a game over-scales or a max-width menu floats in empty space (true
+  4K/ultrawide add only side gutter — skip them). This applies to EVERY player-facing change — kit
+  chrome, modals/drawers, menus, new buttons or text, not just games. Landscape (short-height,
+  640×360) is where overlays overflow, fixed-size controls dominate, and rails starve — the pass
+  that gets skipped when a change "works on desktop and portrait" (2026-07-12: shop rail, side stack
+  and the minesweeper pill all shipped broken in landscape this way). The headless suites only cover
+  JS-computed game layouts; kit DOM/CSS has NO automated geometry check, so this manual pass is the
+  only geometry gate.
+- **Drive the pass with Playwright MCP (run it `--headless`).** Serve locally, then per viewport:
+  `browser_navigate` → `browser_resize(w,h)` → `browser_take_screenshot` (scale:css) → read the PNG
+  and inspect for overflow/overlap. Games open behind a **TAP TO PLAY** splash — the canvas is
+  opaque but the DOM chrome is not, so `browser_snapshot` (a11y tree) then `browser_click` the
+  splash + "INSERT COIN" to reach live gameplay before screenshotting. Headless is required: headed
+  Chromium shows a `--no-sandbox` infobar that pollutes every shot. Save shots into `.playwright-mcp/`
+  (gitignored) so they never pollute the repo root — `*.png` at root is off-limits (game icons /
+  og-image are tracked assets). Same tool also captures trailer gameplay.
 - Stop the server when done: `lsof -ti:8765 | xargs kill`.
 
 When the change is visual/interactive, offer the user this local URL to verify before pushing —
