@@ -104,6 +104,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   const DEFAULT_SESSION = 30;
   let SPRINT_TARGET = 100; // selectable in the menu: 10 / 50 / 100
   const TARGET_BASE_R = 34;
+  // Fairness: scale target size, spawn padding and move speed to the play-area size so the challenge
+  // (target angular size + flick distance) is the SAME on a phone and a 4K screen. A fixed 34px target
+  // was ~9% of a phone's width but ~1.3% of 4K, letting phone players inflate the shared leaderboard.
+  // 752 = the desktop reference play-min (min(1280, 800-48)) → scale is 1 there (feel + suites unchanged).
+  function pscale() { return Math.max(0.45, Math.min(2.2, Math.min(W, H - HUD_H) / 752)); }
   const SPAWN_INTERVAL_INIT = 90;
   const SPAWN_INTERVAL_MIN = 40;
   // Moving-targets ramp: fraction of targets that move + their speed both grow with score.
@@ -217,10 +222,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   let _rng = Math.random;
   function spawnTarget() {
-    const pad = 80;
+    const s = pscale(), pad = 80 * s;
     const x = pad + _rng() * (W - pad * 2);
     const y = HUD_H + pad + _rng() * (H - HUD_H - pad * 2);
-    const r = TARGET_BASE_R * (0.75 + _rng() * 0.6);
+    const r = TARGET_BASE_R * s * (0.75 + _rng() * 0.6);
     targets.push({ x, y, r, born: frame, life: 1, vx: 0, vy: 0, moving: false });
     lastSpawnFrame = frame;
     SND.play('spawn');
@@ -474,7 +479,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const p = moveRamp();
     // how many of the on-screen targets should be moving right now
     const wantMoving = p > 0 ? Math.ceil(MOVE_MAX_FRACTION * p * targets.length) : 0;
-    const speed = MOVE_SPEED_MIN + (MOVE_SPEED_MAX - MOVE_SPEED_MIN) * p;
+    const speed = (MOVE_SPEED_MIN + (MOVE_SPEED_MAX - MOVE_SPEED_MIN) * p) * pscale();
 
     let movingCount = 0;
     for (const t of targets) if (t.moving) movingCount++;
@@ -742,7 +747,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     get targets() { return targets.map(t => ({ x: t.x, y: t.y, r: t.r, vx: t.vx, vy: t.vy, moving: t.moving })); },
     // layout snapshot for on-screen / HUD-overlap tests (px in canvas space)
     get layout() {
-      const pad = 80, maxR = TARGET_BASE_R * 1.35; // r = TARGET_BASE_R * (0.75 + rng*0.6)
+      const s = pscale(), pad = 80 * s, maxR = TARGET_BASE_R * s * 1.35; // r = TARGET_BASE_R * s * (0.75 + rng*0.6)
       // Spawn region: target CENTERS land in [pad, W-pad] x [HUD_H+pad, H-pad]; the rect below
       // accounts for the largest possible radius so the full disc stays on-screen / below the HUD.
       const spawn = {
