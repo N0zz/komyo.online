@@ -1338,11 +1338,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     sideMode = availB < 260 && W > H;                // short landscape → dock the pad right
     if (sideMode) {
       const availH = H - topMargin - 12;
-      bsize = Math.max(200, Math.min(W - SIDE_W - 20, availH, 640));
+      bsize = Math.max(200, Math.min(W - SIDE_W - 20, availH, Math.max(640, Math.min(W, H) * 0.8)));
       bx = (W - SIDE_W - bsize) / 2;
       by = topMargin + Math.max(4, (availH - bsize) / 2);
     } else {
-      bsize = Math.max(200, Math.min(W - 20, availB, 640));
+      bsize = Math.max(200, Math.min(W - 20, availB, Math.max(640, Math.min(W, H) * 0.8)));
       bx = (W - bsize) / 2;
       // bias toward the HUD — a huge dead gap above the board reads worse than one below
       by = topMargin + Math.max(6, Math.min(40, (availB - bsize) * 0.25));

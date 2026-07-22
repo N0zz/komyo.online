@@ -240,7 +240,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       if (s > bestSize) { bestSize = s; bestFit = [c, r]; }
     }
     cols = bestFit ? bestFit[0] : 4; rows = bestFit ? bestFit[1] : Math.ceil(n / 4);
-    cw = Math.floor(Math.min(bestSize, 130)); chh = Math.floor(cw * 1.25);
+    cw = Math.floor(Math.min(bestSize, Math.max(130, Math.min(W, H) * 0.16))); chh = Math.floor(cw * 1.25);
     const totW = cols * cw + (cols - 1) * gap, totH = rows * chh + (rows - 1) * gap;
     bx = Math.round((W - totW) / 2);
     by = Math.round(topMargin + pad + (availH - totH) / 2);

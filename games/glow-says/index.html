@@ -215,8 +215,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const cols = nPads === 9 ? 3 : 2, rows = nPads === 9 ? 3 : nPads === 6 ? 3 : 2;
     const pad = 14;
     const availW = W - pad * 2, availH = H - topMargin - pad * 2;
-    const cw = Math.min((availW - pad * (cols - 1)) / cols, 300);
-    const ch = Math.min((availH - pad * (rows - 1)) / rows, 300);
+    const cw = Math.min((availW - pad * (cols - 1)) / cols, Math.max(300, Math.min(W, H) * 0.375));
+    const ch = Math.min((availH - pad * (rows - 1)) / rows, Math.max(300, Math.min(W, H) * 0.375));
     const s = Math.min(cw, ch);
     const totW = cols * s + (cols - 1) * pad, totH = rows * s + (rows - 1) * pad;
     const ox = (W - totW) / 2, oy = topMargin + pad + (availH - totH) / 2;
