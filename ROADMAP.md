@@ -399,14 +399,20 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
 
 ### In flight / near-term
 
-- **✨💡 Discover rails — BUILT (2026-07-21), v2 awaiting eyeball** — two untried-only home-page
+**Current focus (2026-07-22):** in flight = **marketing clip drips + trailers** (the per-game 9:16
+shorts drip across all 5 socials); next dev work = **more games** (build queue below) + the
+**kit-owned persistence / progress-save API** (Path to launch #5 — gates the saved-state lane).
+Recently shipped: Parental lock, Discover rails, and the teen+parents identity/channel re-aim.
+
+- **✨💡 Discover rails — DONE (deployed 2026-07-22)** — two untried-only home-page
   carousels: "What's new" (added/updated ≤30 days, freshest first) + "For you" (genre-affinity
   from local play history + POPULAR nudge + daily tie rotation); no gate — new users see them
   too; 🐣 Easy picks lifts KIDS games; both collapsible, vanish when everything's tried. v1
-  (single rail) shipped same day, then split per discussion. **Later/if-ever:** the 🎲
-  tinder-deck picker (from the Random button, never a new button/menu item). Plan + decision
-  log: **`plans/discover-plan.md`**.
-- **🔒 Parental lock — IN PROGRESS (2026-07-21)** — hand the device to a kid without them spending
+  (single rail) shipped same day, then split per discussion. NEW/UPDATED tile badges later
+  aligned to the same 30-day window (2026-07-22) so shelf and badges stay in lockstep.
+  **Later/if-ever:** the 🎲 tinder-deck picker (from the Random button, never a new button/menu
+  item). Plan + decision log: **`plans/discover-plan.md`**.
+- **🔒 Parental lock — DONE (deployed 2026-07-22)** — hand the device to a kid without them spending
   trophies / wiping data: kit-owned PIN gate (PBKDF2-hashed via `crypto.subtle`, never plaintext —
   people reuse bank/phone PINs) on shop BUY, "↺ Reset game data", Export/Import, and the lock's own
   settings; 5-wrong-tries cooldown; zero-knowledge recovery = a **daily 8-digit support code**
@@ -426,8 +432,8 @@ game in this lane**; pair with the Safari/iOS data-loss warning (Catalogue / kit
   headless layout suite only measures canvas-internal rects (`__test.layout`), so DOM chrome overlaps
   need real-browser screenshot sweeps or exposing chrome rects to the suite. Do it as a deliberate,
   scoped pass later, not opportunistically.
-- **Marketing plan: re-aim channels at teen+parents** *(policy set 2026-07-14 — decided; applies to
-  NEW posts only, not the launch posts already up; execution ongoing).* Fold into
+- **Marketing plan: re-aim channels at teen+parents — DONE (2026-07-22)** *(policy set 2026-07-14 —
+  decided; applies to NEW posts only, not the launch posts already up; re-aim now applied).* Fold into
   `plans/marketing_plan.md`: indie-community sharing is likely WEAK for us (those crowds are saturated
   with indie games and are mostly fellow devs, not players) — shift weight to family + hobbyist/teen
   channels (parenting & family-gaming subs/forums, family-friendly app roundups, school-holiday activity
