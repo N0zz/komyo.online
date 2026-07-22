@@ -127,6 +127,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // storage label carries the play variant so solo / MP / speedrun bests never mix
   const runLabel = m => modeLabel(m) + (play === 'speed' ? ' · Speedrun' : play !== 'solo' ? ' · ' + players + 'P' : '');
   const modeDisplay = m => KIT.t('game.critter-match.mode' + modeLabel(m), { def: modeLabel(m) });
+  const runDisplay = m => modeDisplay(m) + (play === 'speed' ? ' · ' + KIT.t('game.critter-match.speedrun', { def: 'Speedrun' }) : play !== 'solo' ? ' · ' + players + 'P' : '');
   function loadBest(m) { return KIT ? KIT.bestScore(SLUG, runLabel(m)) : 0; }
   function bestTime(m) { const b = KIT ? KIT.best(SLUG, runLabel(m)) : null; return b && b.time > 0 ? b.time / 1000 : 0; }  // store keeps ms → seconds for display
 
@@ -455,7 +456,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     }
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: players > 1 ? KIT.t('game.critter-match.endMp', { def: 'ALL PAIRS FOUND!' }) : KIT.t('game.critter-match.end', { def: 'ALL FRIENDS FOUND!' }),
-      record: { slug: SLUG, mode: runLabel(mode), score, time: play === 'speed' ? Math.round(speedFrames / 60 * 1000) : undefined, stats: { flips } },
+      record: { slug: SLUG, mode: runLabel(mode), modeText: runDisplay(mode), score, time: play === 'speed' ? Math.round(speedFrames / 60 * 1000) : undefined, stats: { flips } },
       score: players > 1 ? undefined : score,
       scoreText: play === 'speed' ? fmtTime(speedFrames / 60) : undefined,
       best: play === 'speed' ? (bestTime(mode) > 0 ? fmtTime(bestTime(mode)) : '') : (players > 1 ? undefined : best),

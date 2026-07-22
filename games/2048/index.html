@@ -465,7 +465,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     actions.push({ id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) });
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: isWin ? KIT.t('game.2048.win', { def: 'YOU MADE 2048!' }) : KIT.t('game.common.gameOver', { def: 'GAME OVER' }),
-      record: { slug: SLUG, mode: modeLabel(mode), score, stats: { maxTile } },
+      record: { slug: SLUG, mode: modeLabel(mode), modeText: modeDisplay(mode), score, stats: { maxTile } },
       score, best, newBest: isBest,
       lines: [modeDisplay(mode) + ' · ' + KIT.t('game.2048.tileLine', { tile: maxTile, def: 'biggest tile {tile}' })],
       share: { slug: SLUG, accent: ACCENT, icon: '🧮', title: '2048', message: () => shareMsg(), params: () => ({ mode }) },

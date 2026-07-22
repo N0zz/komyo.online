@@ -621,7 +621,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     KIT.showMenuButton(false); KIT.showPauseButton(false);
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: KIT.t('game.balloon-pop.end', { def: 'WHAT A PARTY!' }),
-      record: { slug: SLUG, mode: modeLabel(mode), score, stats: { bestCombo, beeStings } },
+      record: { slug: SLUG, mode: modeLabel(mode), modeText: modeDisplay(mode), score, stats: { bestCombo, beeStings } },
       score, best, newBest: isBest,
       lines: [ modeDisplay(mode) + ' · ' + KIT.t('game.balloon-pop.comboLine', { combo: bestCombo, def: 'best streak ×{combo}' })
         + (mode === 'bees' ? ' · ' + KIT.t('game.balloon-pop.stingsLine', { count: beeStings, def: '{count} stings 🐝' }) : '') ],
