@@ -56,6 +56,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   @media (max-width:560px) { #topHud { top:50px; max-width:calc(100vw - 16px); gap:8px 18px; } }
   /* short screens (landscape phones): slim the HUD so it doesn't eat the playfield */
   @media (max-height:560px) { #topHud { padding:2px 12px; gap:14px; } #hud { font-size:16px; } #hud .label { font-size:9px; } #weapon { font-size:10px; margin-top:1px; } #lives { font-size:16px; } }
+  /* ≤768px the centered HUD would slide under the ~214px right cluster — drop it below the nav row
+     (hudTop() reserves 92px×S there, so the ship clears it). */
+  @media (max-width:768px) { #topHud { top:50px; max-width:calc(100vw - 16px); } }
   #timer .goal { display:none; }
   #flash { position:fixed; top:30%; left:0; right:0; text-align:center; font-size:30px; letter-spacing:6px; color:#ffc878; text-shadow:0 0 18px rgba(255,200,120,0.8); pointer-events:none; user-select:none; opacity:0; transition:opacity 0.3s ease; }
   #overlay { position:fixed; inset:0; z-index:9; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:radial-gradient(circle at center, rgba(10,14,26,0.6), rgba(5,6,10,0.92)); gap:14px; user-select:none; }

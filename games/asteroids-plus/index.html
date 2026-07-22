@@ -58,6 +58,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   #hp { font-size:22px; letter-spacing:3px; color:#ff7b7b; text-shadow:0 0 8px rgba(255,120,120,0.6); }
   #shield { font-size:16px; letter-spacing:3px; color:#7fd0ff; margin-top:4px; }
   #timer { font-size:17px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); display:none; }
+  /* ≤768px the wide centered HUD would slide under the ~214px right cluster — drop it below the nav row
+     (hudReserve() uses hudTop()×SCALE = 92×S there, so entities clear it). */
+  @media (max-width:768px) { #topHud { top:50px; max-width:calc(100vw - 16px); } }
   #modeTag { font-size:12px; letter-spacing:1px; opacity:0.5; }
   /* narrow (portrait phone): flatten the score column into one baseline row so the pill stays
      inside the kit's 92px narrow headroom (top 48 + ≤2 slim rows) instead of a tall 3-line box */
