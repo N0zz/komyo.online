@@ -59,7 +59,9 @@ sweep screenshots in `~/komyo-sweep/` (not committed).
 
 ### Phase 1 — shared kit (highest leverage; do first)
 - [ ] Play-region helper: fixed-aspect + pure contain; world=HUD-overlay vs board=below-the-bar mode; `refScale` from the region.
-- [ ] `%`-clamped UI + **non-overlapping top bar** (pill gap / 2nd-row / collapse-to-☰ ≤360) — fixes the landscape HUD↔cluster overlap across ~7 games at once.
+- [~] `%`-clamped UI + **non-overlapping top bar** (pill gap / 2nd-row / collapse-to-☰ ≤360) — fixes the landscape HUD↔cluster overlap across ~7 games at once.
+  - [x] **Landscape HUD↔cluster overlap fixed** (2026-07-22): kit drops the center HUD below the nav row at ≤768px (was ≤560) + `hudTop()` reserves 92px in that band. All games, tests green, verified in-browser (breakout 640×360).
+  - [ ] `%`-clamped UI button sizing + pill 2nd-row / collapse-to-☰ on very narrow (≤360).
 - [ ] Object `%`-size helper with min/max clamp for tappable/aim objects.
 - [ ] Themed-fill + vignette bar treatment.
 - [ ] **Test harness fairness assertion** beside `runLayoutSuite`: a difficulty proxy (time-to-threat / target-size fraction) is equal across the 5 viewports within tolerance. This is the automated net that makes the whole thing enforceable.
