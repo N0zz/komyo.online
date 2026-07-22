@@ -26,6 +26,14 @@ implementation. This file is referenced from CLAUDE.md via `@game-design-knobs.m
   development.
 - **Expose the numbers.** Show score/best/lives/wave so the player can plan; clear hit/score
   feedback on every meaningful action.
+- **Resolution fairness.** No gameplay quantity — spawn distance, approach speed, projectile speed,
+  attack range/radius, target size, reaction window — may be measured in raw viewport px, or the game
+  plays differently per screen (frog-at-your-castle on a phone, slow-mo on 4K, phone-inflated
+  leaderboards). Pick a model at design time: a **fixed-aspect play region scaled to fit** (letterbox
+  + themed fill; everything uniform → fair for free) or **fill + normalize every quantity** to a
+  reference (`refScale = min(W, H) / REF`), with a min/max clamp on tappable/aim objects. Then pick an
+  orientation treatment (agnostic square / rotate-to-fill / native-both / lock). See
+  [plans/fairness-overlap-plan.md](plans/fairness-overlap-plan.md).
 
 ## Per-genre
 

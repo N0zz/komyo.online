@@ -242,7 +242,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function layoutBoard() {
     const pad = 12;
     const availW = W - pad * 2, availH = H - topMargin - pad * 2;
-    boardPx = Math.min(availW, availH, 560);
+    // Cap scales with the screen so the board fills big displays instead of floating in empty space,
+    // while staying 560 on a desktop (560/800 = 0.7 → unchanged at the reference height).
+    boardPx = Math.min(availW, availH, Math.max(560, Math.min(W, H) * 0.7));
     gap = Math.max(6, Math.round(boardPx * 0.022));
     cs = Math.floor((boardPx - gap * (N + 1)) / N);
     boardPx = cs * N + gap * (N + 1);

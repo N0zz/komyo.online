@@ -19,7 +19,7 @@ Decide this before the POC — retrofitting a model is the expensive path.
 
 | Model | How | Games | When |
 |---|---|---|---|
-| **Fixed logical world** | Design in constant `W×H`; compute the CSS box from the viewport; `fitCanvas(canvas, W, H)` | breakout, stacker | **Default.** Gameplay geometry is byte-identical on every device — the whole bug class can't exist |
+| **Fixed logical world** | Design in constant `W×H`; compute the CSS box from the viewport; `fitCanvas(canvas, W, H)` | stacker, snake, 2048 (grids) | **Default.** Gameplay geometry is byte-identical on every device — the whole bug class can't exist. (NOT breakout — it fills the viewport and normalizes ball speed by height instead.) |
 | **Viewport-is-the-world** | Playfield = window (`W = innerWidth` …) | frog-bonk, aim-trainer, keep-defender | Only when the design needs the whole screen as the field (whack-a-mole, aim trainer, tower defense). ALL rules in §3 apply |
 | **Scaled world + camera** | World bigger than screen, own transform, `fitCanvas(..., {dpr:false})` | asteroids, asteroids-plus | Rare; read the asteroids CLAUDE.md first |
 
