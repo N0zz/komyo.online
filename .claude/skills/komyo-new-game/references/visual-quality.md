@@ -73,7 +73,7 @@ Every visual pass gets **two review rounds before hand-off**, both
 screenshot-driven (headless Chrome + a wrapper that clicks past the
 tap-to-play splash and stages entities via `__test`):
 
-1. **Scale & composition round** — desktop AND 390×780 portrait AND **780×390
+1. **Scale & composition round** — desktop AND 360×640 portrait AND **640×360
    landscape** (never skip landscape — every real landscape regression shipped
    because only desktop + portrait were screenshotted), all themes/skins/modes
    (day+night, every map). Include every game-owned control (touch pills,

@@ -67,9 +67,11 @@ section by section. Add the first real feature.
 
 ### 5 · Iterate ×2–3
 Each pass: add one feature and fix the bugs the previous playthrough surfaced.
-Play it each time. This is where feel and tuning happen. **At least one pass in
-browser device mode at 390×780 with a coarse pointer** (phone reach, rotation,
-entities arriving "from nowhere") — see `references/responsive.md` §5.
+Play it each time. This is where feel and tuning happen. **Run the 5-viewport
+Playwright-MCP pass** (desktop 1280×800 · 1920×1080 · 2560×1440, portrait 360×640,
+landscape 640×360), plus one browser-device-mode pass with a coarse pointer for
+touch feel (phone reach, rotation, entities arriving "from nowhere") — see
+`references/responsive.md` §5.
 **One iteration is the visual-quality pass** — the game ships at the bar in
 `references/visual-quality.md` (one light direction, form shading, glossy eyes,
 cached textured terrain, post grade, menu-backdrop parity), reviewed twice

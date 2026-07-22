@@ -146,8 +146,8 @@ ok(g.errors.length === 0, 'comet skin renders without errors');
 
 ## 4. The layout suite
 
-Standard for every live game. `runLayoutSuite(makeGame, check)` sweeps the three viewports —
-**portrait 390×780 / landscape 780×390 / desktop 1280×800** — booting a fresh game per viewport.
+Standard for every live game. `runLayoutSuite(makeGame, check)` sweeps the five viewports —
+**portrait 360×640 / landscape 640×360 / desktop 1280×800 / 1920×1080 / 2560×1440** — booting a fresh game per viewport.
 `makeGame(v)` must return a **started** `bootGame` handle. For each viewport the suite itself asserts
 the shared invariants: `__test.layout` is present, `L.W===v.w && L.H===v.h`, and **`topReserve >=
 gamekit.layout.hudTop()`** (the headless stand-in for "the score box doesn't sit under the nav").
