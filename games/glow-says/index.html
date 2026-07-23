@@ -214,12 +214,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const nPads = MODES[mode].pads;
     const cols = nPads === 9 ? 3 : 2, rows = nPads === 9 ? 3 : nPads === 6 ? 3 : 2;
     const pad = 14;
-    const availW = W - pad * 2, availH = H - topMargin - pad * 2;
+    // Layout contract (board archetype): fit + center the pad cluster inside playRect().
+    const pr = KIT.layout.playRect();
+    const availW = pr.w - pad * 2, availH = pr.h - pad * 2;
     const cw = Math.min((availW - pad * (cols - 1)) / cols, Math.max(300, Math.min(W, H) * 0.375));
     const ch = Math.min((availH - pad * (rows - 1)) / rows, Math.max(300, Math.min(W, H) * 0.375));
     const s = Math.min(cw, ch);
     const totW = cols * s + (cols - 1) * pad, totH = rows * s + (rows - 1) * pad;
-    const ox = (W - totW) / 2, oy = topMargin + pad + (availH - totH) / 2;
+    const ox = pr.x + (pr.w - totW) / 2, oy = pr.y + (pr.h - totH) / 2;
     pads = [];
     for (let k = 0; k < nPads; k++) {
       const cx = k % cols, cy = Math.floor(k / cols);
@@ -453,7 +455,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
-    topMargin = KIT.layout.hudTop();
+    topMargin = KIT.layout.playRect().y;
     layoutBoard();
   }
   window.gamekit.layout.on(resize);
@@ -509,6 +511,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   };
 
   // ---- boot ----
+  KIT.layout.archetype('board'); // layout contract: centered pad cluster fitted in playRect()
   resize();
   if (KIT) {
     const L = { lblRound: ['game.glow-says.hudRound', 'ROUND'], lblBest: ['game.common.best', 'BEST'] };

@@ -87,9 +87,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   const $ = id => document.getElementById(id);
   const canvas = $('game'), ctx = canvas.getContext('2d');
   const KIT = window.gamekit;
-  // Top headroom the playfield must reserve for the kit's center-top .gamekit-hud pill.
-  function hudBottom() { return KIT.layout.hudTop(); }
-  let HUD_H = hudBottom();
+  // Layout contract (action archetype): canvas is full-bleed; the play region is KIT.layout.playRect()
+  // (viewport minus the kit's center-top .gamekit-hud band). PLAY/HUD_H are refreshed in resize().
+  let PLAY = { x: 0, y: 0, w: 0, h: 0 };
+  let HUD_H = 0; // top headroom the playfield reserves for the HUD pill = PLAY.y
 
   // ---- Audio (game-kit shared engine + global mute) ----
   const SND = window.gamekit.sound;
@@ -108,7 +109,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // (target angular size + flick distance) is the SAME on a phone and a 4K screen. A fixed 34px target
   // was ~9% of a phone's width but ~1.3% of 4K, letting phone players inflate the shared leaderboard.
   // 752 = the desktop reference play-min (min(1280, 800-48)) → scale is 1 there (feel + suites unchanged).
-  function pscale() { return Math.max(0.45, Math.min(2.2, Math.min(W, H - HUD_H) / 752)); }
+  function pscale() { return Math.max(0.45, Math.min(2.2, Math.min(PLAY.w, PLAY.h) / 752)); }
   const SPAWN_INTERVAL_INIT = 90;
   const SPAWN_INTERVAL_MIN = 40;
   // Moving-targets ramp: fraction of targets that move + their speed both grow with score.
@@ -178,7 +179,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     W = window.innerWidth;
     H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
-    HUD_H = hudBottom();
+    PLAY = KIT.layout.playRect(); // kit auto-measures the top chrome; do NOT hand-roll hudTop
+    HUD_H = PLAY.y;
     // pull live targets back on-screen — a rotation can otherwise strand the current target
     for (const t of targets) {
       t.x = Math.min(Math.max(t.x, t.r + 4), W - t.r - 4);
@@ -223,8 +225,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let _rng = Math.random;
   function spawnTarget() {
     const s = pscale(), pad = 80 * s;
-    const x = pad + _rng() * (W - pad * 2);
-    const y = HUD_H + pad + _rng() * (H - HUD_H - pad * 2);
+    const x = PLAY.x + pad + _rng() * (PLAY.w - pad * 2);
+    const y = PLAY.y + pad + _rng() * (PLAY.h - pad * 2);
     const r = TARGET_BASE_R * s * (0.75 + _rng() * 0.6);
     targets.push({ x, y, r, born: frame, life: 1, vx: 0, vy: 0, moving: false });
     lastSpawnFrame = frame;
@@ -498,8 +500,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       }
     }
 
-    const minX = t => t.r, maxX = t => W - t.r;
-    const top = t => HUD_H + t.r, bot = t => H - 8 - t.r;
+    const minX = t => PLAY.x + t.r, maxX = t => PLAY.x + PLAY.w - t.r;
+    const top = t => PLAY.y + t.r, bot = t => PLAY.y + PLAY.h - 8 - t.r;
     for (const t of targets) {
       if (!t.moving) continue;
       // rescale velocity toward the current ramp speed so existing targets speed up with score
@@ -748,11 +750,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     // layout snapshot for on-screen / HUD-overlap tests (px in canvas space)
     get layout() {
       const s = pscale(), pad = 80 * s, maxR = TARGET_BASE_R * s * 1.35; // r = TARGET_BASE_R * s * (0.75 + rng*0.6)
-      // Spawn region: target CENTERS land in [pad, W-pad] x [HUD_H+pad, H-pad]; the rect below
-      // accounts for the largest possible radius so the full disc stays on-screen / below the HUD.
+      // Spawn region: target CENTERS land inside PLAY inset by pad; the rect below accounts for the
+      // largest possible radius so the full disc stays inside the play area / below the HUD.
       const spawn = {
-        left: pad - maxR, right: W - pad + maxR,
-        top: HUD_H + pad - maxR, bottom: H - pad + maxR,
+        left: PLAY.x + pad - maxR, right: PLAY.x + PLAY.w - pad + maxR,
+        top: PLAY.y + pad - maxR, bottom: PLAY.y + PLAY.h - pad + maxR,
       };
       let bbox = null;
       if (targets.length) {
@@ -760,7 +762,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
         for (const tg of targets) { l = Math.min(l, tg.x - tg.r); r = Math.max(r, tg.x + tg.r); t = Math.min(t, tg.y - tg.r); b = Math.max(b, tg.y + tg.r); }
         bbox = { left: l, right: r, top: t, bottom: b };
       }
-      return { W, H, topReserve: HUD_H, spawn, targetsBox: bbox };
+      return { W, H, topReserve: HUD_H, board: { x: PLAY.x, y: PLAY.y, w: PLAY.w, h: PLAY.h }, spawn, targetsBox: bbox };
     },
     get movingTargets() { return movingTargets; },
     setMoving(on) { movingTargets = !!on; saveMoving(movingTargets); },
@@ -792,6 +794,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     setSeed(s) { _rng = seededRng(s); },
   };
 
+  KIT.layout.archetype('action'); // layout contract: top HUD only, playfield = playRect()
   resize();
   updateHud();
   // live language switch: retranslate the HUD + rebuild whichever menu is open

@@ -542,15 +542,18 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     W = window.innerWidth;
     H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
+    // Layout contract (board archetype): the canvas is full-bleed; the play column is a centered
+    // fixed-width column fitted inside playRect() (headroom auto-measured, never hand-rolled).
+    const pr = KIT.layout.playRect();
     // Constrain play column so block traversal feels snappy
-    PF_W = Math.max(340, Math.min(Math.round(W * 0.27), MAX_PLAY_W, W));
-    PF_X = (W - PF_W) / 2;
+    PF_W = Math.max(340, Math.min(Math.round(pr.w * 0.27), MAX_PLAY_W, pr.w));
+    PF_X = pr.x + (pr.w - PF_W) / 2;
     // keep the existing stack centered after a rotate/resize: the column recenters, so shift
     // every placed block (and the moving block) by the same delta instead of leaving them off-side
     const dx = PF_X - oldPFX;
     if (dx && blocks.length) { for (let i = 0; i < blocks.length; i++) blocks[i].x += dx; if (mover) mover.x += dx; }
     // Reserve headroom for the kit center-top HUD
-    TOP_PAD = KIT.layout.hudTop();
+    TOP_PAD = pr.y;
   }
   window.gamekit.layout.on(resize); // resize + orientationchange + visualViewport, debounced
 
@@ -575,6 +578,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       if (mover && state === 'playing') topCanvas = Math.min(topCanvas, moverTopCanvas);
       return {
         W, H, topReserve: TOP_PAD, blockH: BLOCK_H,
+        board: { x: PF_X, y: TOP_PAD, w: PF_W, h: H - TOP_PAD },
         pfX: PF_X, pfW: PF_W,
         baseCenterX: top ? top.x + top.w / 2 : null,
         mover: mover ? {
@@ -625,6 +629,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       touch: [ [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.stacker.dropAction', { def: 'Drop the block' })] ] } });
   KIT.music.play('pastel');
 
+  KIT.layout.archetype('board'); // layout contract: centered play column fitted in playRect()
   resize();
   updateHud();
   // live language switch: retranslate the HUD (mode stat) + rebuild whichever menu is open

@@ -231,7 +231,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const combos = [];
     for (let c = 2; c <= n; c++) if (n % c === 0) combos.push([c, n / c]);
     const pad = 10, gap = 8;
-    const availW = W - pad * 2, availH = H - topMargin - pad * 2;
+    // Layout contract (board archetype): fit + center inside playRect().
+    const pr = KIT.layout.playRect();
+    const availW = pr.w - pad * 2, availH = pr.h - pad * 2;
     let bestFit = null, bestSize = 0;
     for (const [c, r] of combos) {
       const wFit = (availW - gap * (c - 1)) / c;
@@ -242,8 +244,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     cols = bestFit ? bestFit[0] : 4; rows = bestFit ? bestFit[1] : Math.ceil(n / 4);
     cw = Math.floor(Math.min(bestSize, Math.max(130, Math.min(W, H) * 0.16))); chh = Math.floor(cw * 1.25);
     const totW = cols * cw + (cols - 1) * gap, totH = rows * chh + (rows - 1) * gap;
-    bx = Math.round((W - totW) / 2);
-    by = Math.round(topMargin + pad + (availH - totH) / 2);
+    bx = Math.round(pr.x + (pr.w - totW) / 2);
+    by = Math.round(pr.y + (pr.h - totH) / 2);
   }
   const cardXY = i => ({
     px: bx + (i % cols) * (cw + 8),
@@ -485,7 +487,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
-    topMargin = KIT.layout.hudTop();
+    topMargin = KIT.layout.playRect().y;
     if (cards.length) layoutBoard();
   }
   window.gamekit.layout.on(resize);
@@ -552,6 +554,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   };
 
   // ---- boot ----
+  KIT.layout.archetype('board'); // layout contract: centered board fitted in playRect()
   resize();
   if (KIT) {
     const L = { lblPairs: ['game.critter-match.hudPairs', 'PAIRS'], lblScore: ['game.common.score', 'SCORE'], lblBest: ['game.common.best', 'BEST'] };

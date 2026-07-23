@@ -144,10 +144,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     W = window.innerWidth;
     H = window.innerHeight;
     dpr = KIT.fitCanvas(canvas, W, H).dpr; // retina-sharp backing store; drawing stays in CSS px
-    // Reserve headroom so the playfield clears the shared center-top .gamekit-hud pill.
-    // Landscape: pill at top:8px → ~48px (kit hudTop). Narrow: the 5-stat pill drops to top:50px
-    // and wraps to two rows, so it needs more than the kit's 92 or the top bricks tuck under it.
-    topMargin = KIT.layout.narrow ? 128 : KIT.layout.hudTop();
+    // Layout contract (action archetype): the canvas is full-bleed; the play region is playRect().
+    // The 5-stat pill wraps to two rows when narrow, so reserve extra top beyond the kit HUD band.
+    KIT.layout.reserve('top', KIT.layout.narrow ? Math.max(0, 128 - KIT.layout.hudTop()) : 0);
+    topMargin = KIT.layout.playRect().y;
     brickW = Math.floor((W - BRICK_GAP * (BRICK_COLS + 1)) / BRICK_COLS);
     brickOffX = Math.floor((W - (brickW + BRICK_GAP) * BRICK_COLS + BRICK_GAP) / 2);
     brickOffY = topMargin + 12;
@@ -900,7 +900,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       const pw = widePaddle > 0 ? paddleW * 1.6 : paddleW;
       let bt = brickOffY, bb = brickOffY, bl = W, br = 0;
       for (const b of bricks) { const r = brickRect(b); bt = Math.min(bt, r.y); bb = Math.max(bb, r.y + r.h); bl = Math.min(bl, r.x); br = Math.max(br, r.x + r.w); }
-      return { W, H, topReserve: topMargin, brickOffY, brickTop: bt, brickBottom: bb,
+      return { W, H, topReserve: topMargin, board: { x: 0, y: topMargin, w: W, h: H - topMargin }, brickOffY, brickTop: bt, brickBottom: bb,
         brickLeft: bricks.length ? bl : W / 2, brickRight: bricks.length ? br : W / 2,
         paddleY: paddleY(), paddleLeft: paddleX - pw / 2, paddleRight: paddleX + pw / 2 };
     },
@@ -921,6 +921,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
   };
 
+  KIT.layout.archetype('action'); // layout contract: top HUD only, playfield = playRect()
   resize();
   i18nHudLabels();
   updateHud();

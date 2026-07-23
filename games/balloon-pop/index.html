@@ -98,7 +98,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     ['#7ab8ff', '#3a72c8'], ['#c99aff', '#8a5ad0'], ['#ff9d5c', '#c86a2a'],
   ];
 
-  let W = 0, H = 0, topMargin = 48;
+  let W = 0, H = 0, topMargin = 48, PW = 0, PH = 0;   // PW/PH = play-region size (playRect)
   let state = 'ready';                        // ready | playing | over
   let mode = 'party';                         // party | zen | bees
   let balloons = [];                          // {x,y,r,c,wob,vy,pop:0}
@@ -117,7 +117,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   const modeDisplay = m => KIT.t('game.balloon-pop.mode' + modeLabel(m), { def: modeLabel(m) });
   function loadBest(m) { return KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0; }
 
-  const scaleR = () => Math.min(W, H) / 560;   // balloon sizes scale with the viewport
+  const scaleR = () => Math.min(PW, PH) / 560;   // balloon sizes scale with the play region (fair per screen)
 
   function spawnBalloon(fx, fy, fr, fc) {
     const s = scaleR();
@@ -648,7 +648,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
-    topMargin = KIT.layout.hudTop();
+    // action archetype: canvas full-bleed; balloons live in the play region below the HUD
+    const pr = KIT.layout.playRect();
+    topMargin = pr.y; PW = pr.w; PH = pr.h;
     for (const b of balloons) b.x = Math.max(b.r, Math.min(W - b.r, b.x));   // clamp after rotate
   }
   window.gamekit.layout.on(resize);
@@ -694,7 +696,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     endRun() { endRun(); },
     get layout() {
       const bs = balloons.filter(b => !b.pop);
-      return { W, H, topReserve: topMargin,
+      return { W, H, topReserve: topMargin, board: { x: 0, y: topMargin, w: W, h: H - topMargin },
         minX: bs.length ? Math.min(...bs.map(b => b.x - b.r)) : 0,
         maxX: bs.length ? Math.max(...bs.map(b => b.x + b.r)) : W };
     },
@@ -705,6 +707,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   };
 
   // ---- boot ----
+  KIT.layout.archetype('action'); // layout contract: top HUD only, playfield = playRect()
   resize();
   if (KIT) {
     const L = { lblScore: ['game.balloon-pop.hudPops', 'POPS'], lblBest: ['game.common.best', 'BEST'], lblTime: ['game.common.time', 'TIME'] };

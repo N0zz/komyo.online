@@ -242,15 +242,17 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   function layoutBoard() {
     const pad = 8;
+    // Layout contract (board archetype): fit + center the hex grid inside playRect().
     // odd-r offset: total width = (SIZE + 0.5) cells, height = 1 + (SIZE-1)*0.87 cells (hex vertical pitch ×0.87)
-    const availW = W - pad * 2, availH = H - topMargin - pad * 2;
+    const pr = KIT.layout.playRect();
+    const availW = pr.w - pad * 2, availH = pr.h - pad * 2;
     const cellW = availW / (SIZE + 0.5);
     const cellH = availH / (1 + (SIZE - 1) * 0.87);
     r = Math.floor(Math.min(cellW, cellH) / 2);
     boardW = (SIZE + 0.5) * r * 2;
     boardH = (1 + (SIZE - 1) * 0.87) * r * 2;
-    bx = Math.round((W - boardW) / 2);
-    by = Math.round(topMargin + pad + (availH - boardH) / 2);
+    bx = Math.round(pr.x + (pr.w - boardW) / 2);
+    by = Math.round(pr.y + (pr.h - boardH) / 2);
   }
 
   const cellCenter = (x, y) => ({
@@ -625,7 +627,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
-    topMargin = KIT.layout.hudTop();
+    topMargin = KIT.layout.playRect().y;
     if (wall.length) layoutBoard();
   }
   window.gamekit.layout.on(resize);
@@ -689,6 +691,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   };
 
   // ---- boot ----
+  KIT.layout.archetype('board'); // layout contract: centered board fitted in playRect()
   resize();
   if (KIT) {
     const L = { lblMoves: ['game.trap-the-cat.hudHedges', 'HEDGES'], lblScore: ['game.common.score', 'SCORE'], lblBest: ['game.common.best', 'BEST'] };

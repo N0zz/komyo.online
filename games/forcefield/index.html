@@ -140,6 +140,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   const rgba = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')';
 
   let W = 0, H = 0, topMargin = 48;
+  let PR = { x: 0, y: 48, w: 0, h: 0 };   // the fair play region (playRect — viewport minus top chrome)
   let state = 'ready';
   let diff = DIFF.medium;
   let score = 0, best = 0, lives = LIVES_START, hits = 0, shots = 0, timeLeft = TIME_LIMIT;
@@ -284,21 +285,23 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- geometry: a huge planet; the dome arcs over its rim; pos 0..1 = angle across it ----
   //   single : planet fills the bottom, battle station fires from the top
   //   double : battle station centre, a planet bulging from the left (lane 0) and right (lane 1)
+  // arena bounds live inside the fair play region (PR = playRect), not raw innerWidth/innerHeight —
+  // so the sweep arena and its pos-fraction quantities (speed/zoneHalf) exclude the reserved chrome
   function planetOf(i) {
-    const gap = Math.min(38, Math.min(W, H) * 0.06);   // atmosphere gap: dome floats this far off the surface
+    const gap = Math.min(38, Math.min(PR.w, PR.h) * 0.06);   // atmosphere gap: dome floats this far off the surface
     if (isDouble()) {
-      const R = H * 0.62, capW = W * 0.24, pcy = H / 2;
-      return i === 0 ? { pcx: capW - R, pcy, R, base: 0, A: 0.5, gap } : { pcx: W - capW + R, pcy, R, base: Math.PI, A: 0.5, gap };
+      const R = PR.h * 0.62, capW = PR.w * 0.24, pcy = PR.y + PR.h / 2;
+      return i === 0 ? { pcx: PR.x + capW - R, pcy, R, base: 0, A: 0.5, gap } : { pcx: PR.x + PR.w - capW + R, pcy, R, base: Math.PI, A: 0.5, gap };
     }
-    const R = W * 0.62, pcx = W / 2, pcy = H * 0.64 + R;
+    const R = PR.w * 0.62, pcx = PR.x + PR.w / 2, pcy = PR.y + PR.h * 0.64 + R;
     return { pcx, pcy, R, base: -Math.PI / 2, A: 0.58, gap };   // A keeps the swept dome on-screen edge-to-edge
   }
   function thetaOf(P, frac) { return P.base - P.A + frac * 2 * P.A; }
   function rimPt(P, frac, extra) { const th = thetaOf(P, frac), r = P.R + (extra || 0); return [P.pcx + r * Math.cos(th), P.pcy + r * Math.sin(th)]; }
-  function stationR() { return Math.min(isDouble() ? 44 : 40, W * (isDouble() ? 0.1 : 0.09)); }
+  function stationR() { return Math.min(isDouble() ? 44 : 40, PR.w * (isDouble() ? 0.1 : 0.09)); }
   function enemyPt() {
-    const minY = topMargin + 8 + stationR();   // the station's top edge must clear the HUD pill
-    return isDouble() ? [W / 2, Math.max(minY, H / 2)] : [W / 2, Math.max(minY, H * 0.14)];
+    const minY = PR.y + 8 + stationR();   // the station's top edge must clear the reserved top chrome
+    return isDouble() ? [PR.x + PR.w / 2, Math.max(minY, PR.y + PR.h / 2)] : [PR.x + PR.w / 2, Math.max(minY, PR.y + PR.h * 0.14)];
   }
   // where the incoming beam (station → mark) actually pierces the dome SHELL (radius R+gap), as a
   // pos-fraction. An oblique beam (edge marks) crosses the shell at a visibly different fraction
@@ -862,7 +865,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // /MENU
   // ==================================================================================
 
-  function resize() { W = window.innerWidth; H = window.innerHeight; KIT.fitCanvas(canvas, W, H); topMargin = KIT.layout.hudTop(); stars = null; }
+  // canvas is full-bleed (action archetype); only the arena bounds source from the play region
+  function resize() { W = window.innerWidth; H = window.innerHeight; KIT.fitCanvas(canvas, W, H); PR = KIT.layout.playRect(); topMargin = PR.y; stars = null; }
   window.gamekit.layout.on(resize);
 
   canvas.addEventListener('pointerdown', e => { e.preventDefault(); if (isDouble()) stop(e.clientX < W / 2 ? 0 : 1); else stop(0); });
@@ -915,6 +919,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       const z1 = rimPt(P, Math.max(0, l.zoneCenter - l.zoneHalf), P.gap), z2 = rimPt(P, Math.min(1, l.zoneCenter + l.zoneHalf), P.gap);
       const [sx, sy] = enemyPt();
       return { W, H, topReserve: topMargin, vertical: false,
+        board: { x: PR.x, y: PR.y, w: PR.w, h: PR.h },
         stationX: sx, stationY: sy, stationTop: sy - stationR(),
         barLeft, barRight, barTop, barBottom, barY: (barTop + barBottom) / 2,
         markerX: mk[0], markerY: mk[1], zoneLeft: Math.min(z1[0], z2[0]), zoneRight: Math.max(z1[0], z2[0]) };
@@ -932,6 +937,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // /__TEST
   // ==================================================================================
 
+  KIT.layout.archetype('action'); // layout contract: top HUD only, arena = playRect()
   resize();
   setHudLabels();
   updateHud();

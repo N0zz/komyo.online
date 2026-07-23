@@ -139,12 +139,13 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   // ---- State ----
   let W = 0, H = 0, topMargin = 48, dpr = 1, postGrade = null, postVig = null;
+  let playW = 0, playH = 0;          // play region (playRect) dims — sourced from the kit in resize()
   let cx = 0, cy = 0, castR = 60;
   // Approach speed scales with field size so time-to-castle is the same on every screen (fair): frogs
   // spawn at the edge (distance ∝ viewport), so the hop distance must scale with it too — otherwise a
   // frog reaches the wall in ~4 hops on a phone but ~13-25 on a 4K screen. 752 = desktop reference
-  // (min(1280, 800-48)) → scale 1 there, so the feel and the seeded suite are unchanged.
-  function hopScale() { return Math.max(0.5, Math.min(2.2, Math.min(W, H - topMargin) / 752)); }
+  // (min(1280, 800-48) = the desktop playRect) → scale 1 there, so the feel and the seeded suite are unchanged.
+  function hopScale() { return Math.max(0.5, Math.min(2.2, Math.min(playW, playH) / 752)); }
   let state = 'ready';               // ready | playing | shop | paused | over
   let gameMode = 'waves';            // waves | endless | zen
   let diff = 'medium';
@@ -202,12 +203,15 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function resize() {
     const oldCx = cx, oldCy = cy, oldRef = Math.min(W, H - topMargin);
     W = window.innerWidth; H = window.innerHeight;
-    dpr = KIT.fitCanvas(canvas, W, H).dpr;
-    // the 5-stat pill wraps on narrow screens (like breakout) — reserve extra headroom there
-    topMargin = KIT.layout.narrow ? 128 : KIT.layout.hudTop();
+    dpr = KIT.fitCanvas(canvas, W, H).dpr; // full-viewport backing store; drawing stays in CSS px
+    // Layout contract (action archetype): canvas is full-bleed; the play region is playRect().
+    // The 5-stat pill wraps to two rows when narrow, so reserve extra top beyond the kit HUD band.
+    KIT.layout.reserve('top', KIT.layout.narrow ? Math.max(0, 128 - KIT.layout.hudTop()) : 0);
+    const pr = KIT.layout.playRect();
+    topMargin = pr.y; playW = pr.w; playH = pr.h;
     cx = W / 2;
     cy = topMargin + (H - topMargin) * 0.52;
-    castR = Math.min(78, Math.max(36, Math.min(W, H - topMargin) * 0.12));
+    castR = Math.min(78, Math.max(36, Math.min(playW, playH) * 0.12));
     // Reposition frogs RELATIVE to the castle on resize/rotate: keep each one's direction and its
     // distance-to-castle (scaled by field size). A close frog stays close — fixes "frog lands far from
     // the castle after rotating yet still attacks as if adjacent". Model is truth; the view just redraws.
@@ -2149,6 +2153,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     get spawnQueueLen() { return spawnQueue.length; },
     get layout() {
       return { W, H, topReserve: topMargin,
+        board: { x: 0, y: topMargin, w: W, h: H - topMargin },
         castle: { x: cx, y: cy, r: castR },
         castleTop: cy - castR * 0.5 - castR * 1.1 - 9,   // keep-tower top incl. battlements
         castleBottom: cy + castR * 1.1 + 8 };            // wall band + base ellipse
@@ -2171,6 +2176,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
   };
 
+  KIT.layout.archetype('action'); // layout contract: top HUD only, playfield = playRect()
   resize();
   i18nHudLabels();
   updateHud();
