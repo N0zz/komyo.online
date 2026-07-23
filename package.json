@@ -1,0 +1,12 @@
+{
+  "name": "komyo-dev",
+  "private": true,
+  "description": "Dev-only tooling for komyo (the shipped site stays dependency-free). Test scripts only.",
+  "scripts": {
+    "test": "node test.mjs",
+    "test:menus": "node test-menu-browser.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.61.1"
+  }
+}
