@@ -15,3 +15,4 @@ komyo.zip
 # Playwright MCP output — a11y snapshots, console logs, QA/eyeball-pass screenshots
 # (save screenshots into this dir; never *.png at root — game icons/og-image are tracked)
 .playwright-mcp/
+node_modules/
