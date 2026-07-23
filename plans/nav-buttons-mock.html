@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nav buttons — ‹ Menu · komyo › rework options</title>
+<style>
+  :root { --ink:#e8eef7; --muted:#93a3bd; --line:#26324a; --accent:#9fe8ff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#0d1320; color:var(--ink); font:15px/1.5 system-ui,sans-serif; padding:24px 20px 60px; }
+  h1 { font-size:21px; margin:0 0 4px; } .lede { color:var(--muted); max-width:720px; margin:0 0 22px; }
+  .opt { border:1px solid var(--line); border-radius:14px; margin:16px 0; overflow:hidden; background:#141d2e; }
+  .opt h2 { font-size:16px; margin:0; padding:12px 16px; background:#18233a; display:flex; gap:10px; align-items:baseline; }
+  .opt h2 .tag { font-size:11px; font-weight:700; letter-spacing:1px; color:#0d1320; background:var(--accent); padding:2px 8px; border-radius:6px; }
+  .opt .note { color:var(--muted); font-size:13.5px; padding:10px 16px 4px; }
+  .rows { display:flex; flex-wrap:wrap; gap:18px; padding:12px 16px 18px; }
+  .demo { flex:1 1 280px; min-width:260px; }
+  .demo .cap { font-size:11px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); margin:0 0 6px; }
+  /* a mini "game top bar" backdrop so the pills read in context */
+  .bar { position:relative; height:64px; border-radius:12px; overflow:hidden;
+    background:linear-gradient(160deg,#1b2f22,#12202c 60%,#0e1622); border:1px solid #223; display:flex; align-items:center; }
+  .bar.tight { max-width:210px; }
+  .left { position:absolute; left:8px; top:8px; display:flex; gap:6px; align-items:center; }
+  .right { position:absolute; right:8px; top:8px; display:flex; gap:5px; }
+  /* kit-like pill */
+  .pill { display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 11px; border-radius:9px;
+    background:rgba(10,15,24,0.72); border:1px solid rgba(255,255,255,0.16); color:#fff;
+    font:600 13px/1 ui-monospace,Menlo,monospace; letter-spacing:.5px; white-space:nowrap; }
+  .pill.icononly { padding:0; width:34px; justify-content:center; font-size:16px; }
+  .pill .fox { font-size:15px; }
+  .pill.home { color:#cfe0ff; }
+  .aud { width:32px; height:30px; border-radius:8px; background:rgba(10,15,24,0.72); border:1px solid rgba(255,255,255,0.16);
+    display:flex; align-items:center; justify-content:center; font-size:13px; color:#cfe0ff; }
+  .chev { opacity:.7; }
+</style>
+</head>
+<body>
+<h1>Nav buttons — <code>‹ Menu · komyo ›</code> rework</h1>
+<p class="lede">Each option shown in the 3 states it must handle: <b>during play</b> (both buttons),
+<b>on a game's menu screen</b> (Menu hidden, home only), and <b>tight</b> (narrow width, next to the
+right cluster). The right cluster (⏸🔊🎮⛶☰) is drawn faint for context.</p>
+
+<!-- CURRENT -->
+<div class="opt">
+  <h2>Current <span class="tag" style="background:#3a4a63;color:#fff">now</span></h2>
+  <div class="note">Two identical text pills. “Komyo ›” uses a forward chevron (reads like “next”) but goes out to the site. Collapses to a bare “›”.</div>
+  <div class="rows">
+    <div class="demo"><p class="cap">during play</p><div class="bar"><div class="left"><span class="pill">‹ Menu</span><span class="pill home">Komyo <span class="chev">›</span></span></div><div class="right"><span class="aud">⏸</span><span class="aud">🔊</span><span class="aud">☰</span></div></div></div>
+    <div class="demo"><p class="cap">on menu screen</p><div class="bar"><div class="left"><span class="pill home">Komyo <span class="chev">›</span></span></div><div class="right"><span class="aud">🔊</span><span class="aud">☰</span></div></div></div>
+    <div class="demo"><p class="cap">tight (collapsed)</p><div class="bar tight"><div class="left"><span class="pill">‹ Menu</span><span class="pill home icononly"><span class="chev">›</span></span></div><div class="right"><span class="aud">☰</span></div></div></div>
+  </div>
+</div>
+
+<!-- A: SEMANTIC -->
+<div class="opt">
+  <h2>A · Semantic fix <span class="tag">minimal</span></h2>
+  <div class="note">Keep text pills, fix the meaning: <b>↩ Menu</b> (back to this game’s menu) and <b>⌂ komyo</b> (home to the site — a home glyph, not a forward chevron). Collapsed = the home glyph, still legible.</div>
+  <div class="rows">
+    <div class="demo"><p class="cap">during play</p><div class="bar"><div class="left"><span class="pill">↩ Menu</span><span class="pill home">⌂ komyo</span></div><div class="right"><span class="aud">⏸</span><span class="aud">🔊</span><span class="aud">☰</span></div></div></div>
+    <div class="demo"><p class="cap">on menu screen</p><div class="bar"><div class="left"><span class="pill home">⌂ komyo</span></div><div class="right"><span class="aud">🔊</span><span class="aud">☰</span></div></div></div>
+    <div class="demo"><p class="cap">tight (collapsed)</p><div class="bar tight"><div class="left"><span class="pill">↩ Menu</span><span class="pill home icononly">⌂</span></div><div class="right"><span class="aud">☰</span></div></div></div>
+  </div>
+</div>
+
+<!-- B: ICON + LOGO -->
+<div class="opt">
+  <h2>B · Icon + fox logo <span class="tag">compact</span></h2>
+  <div class="note">Menu becomes a single glyph (<b>↩</b>); home becomes the <b>🦊 komyo</b> mascot + wordmark (the brand, and obviously “home”). Most compact; the fox reinforces identity. Collapsed = just the fox.</div>
+  <div class="rows">
+    <div class="demo"><p class="cap">during play</p><div class="bar"><div class="left"><span class="pill icononly">↩</span><span class="pill home"><span class="fox">🦊</span> komyo</span></div><div class="right"><span class="aud">⏸</span><span class="aud">🔊</span><span class="aud">☰</span></div></div></div>
+    <div class="demo"><p class="cap">on menu screen</p><div class="bar"><div class="left"><span class="pill home"><span class="fox">🦊</span> komyo</span></div><div class="right"><span class="aud">🔊</span><span class="aud">☰</span></div></div></div>
+    <div class="demo"><p class="cap">tight (collapsed)</p><div class="bar tight"><div class="left"><span class="pill icononly">↩</span><span class="pill home icononly"><span class="fox">🦊</span></span></div><div class="right"><span class="aud">☰</span></div></div></div>
+  </div>
+</div>
+
+<!-- C: BREADCRUMB -->
+<div class="opt">
+  <h2>C · One breadcrumb bar <span class="tag">unified</span></h2>
+  <div class="note">A single connected bar: <b>🦊 komyo</b> on the left, a divider, then <b>Menu</b> — reads like a path “komyo › this game’s menu”. One element, clear hierarchy. On the menu screen the “Menu” half drops.</div>
+  <div class="rows">
+    <div class="demo"><p class="cap">during play</p><div class="bar"><div class="left"><span class="pill" style="gap:9px"><span class="home"><span class="fox">🦊</span> komyo</span><span style="opacity:.35">│</span><span>↩ Menu</span></span></div><div class="right"><span class="aud">⏸</span><span class="aud">🔊</span><span class="aud">☰</span></div></div></div>
+    <div class="demo"><p class="cap">on menu screen</p><div class="bar"><div class="left"><span class="pill home"><span class="fox">🦊</span> komyo</span></div><div class="right"><span class="aud">🔊</span><span class="aud">☰</span></div></div></div>
+    <div class="demo"><p class="cap">tight (collapsed)</p><div class="bar tight"><div class="left"><span class="pill" style="gap:7px"><span class="fox">🦊</span><span style="opacity:.35">│</span><span>↩</span></span></div><div class="right"><span class="aud">☰</span></div></div></div>
+  </div>
+</div>
+
+<p class="lede" style="margin-top:22px">Emoji here are placeholders — the real fox mascot is the inline SVG already in the catalogue header; a home glyph could be that SVG at 18px instead of ⌂/🦊.</p>
+</body>
+</html>

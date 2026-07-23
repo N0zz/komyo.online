@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kit layout contract — reserved zones (visual)</title>
+<style>
+  :root { --bg:#0d1320; --panel:#151d2e; --ink:#e8eef7; --muted:#8ea0bd; --line:#26324a;
+    --hud:#e0b25a; --strip:#5aa9e0; --bar:#c07adf; --play:#4fd18b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui, sans-serif; }
+  header { padding:22px 20px 6px; }
+  h1 { margin:0 0 4px; font-size:22px; letter-spacing:.3px; }
+  header p { margin:0; color:var(--muted); max-width:760px; }
+  .controls { display:flex; flex-wrap:wrap; gap:18px; padding:14px 20px; align-items:center; }
+  .group { display:flex; gap:6px; align-items:center; }
+  .group > span { color:var(--muted); font-size:13px; margin-right:2px; }
+  button { font:inherit; font-size:13px; cursor:pointer; padding:6px 13px; border-radius:8px;
+    color:var(--ink); background:var(--panel); border:1px solid var(--line); }
+  button.on { background:var(--hud); color:#1a1206; border-color:var(--hud); font-weight:600; }
+  .stage { display:flex; gap:28px; padding:8px 20px 30px; flex-wrap:wrap; align-items:flex-start; }
+  .frameWrap { position:relative; }
+  .frame { position:relative; background:#070b13; border:3px solid #2a3854; border-radius:14px;
+    overflow:hidden; box-shadow:0 10px 40px rgba(0,0,0,.5); }
+  .zone { position:absolute; display:flex; align-items:center; justify-content:center; text-align:center;
+    font-size:11px; font-weight:600; letter-spacing:.4px; padding:2px; }
+  .z-hud   { background:rgba(224,178,90,.20);  border:1px dashed var(--hud);   color:var(--hud); }
+  .z-strip { background:rgba(90,169,224,.18);  border:1px dashed var(--strip); color:var(--strip); }
+  .z-bar   { background:rgba(192,122,223,.18); border:1px dashed var(--bar);   color:var(--bar); }
+  .z-play  { background:rgba(79,209,139,.10);  border:1.5px solid var(--play); color:var(--play); }
+  .z-board { position:absolute; border:2px solid var(--play); background:rgba(79,209,139,.16);
+    display:flex; align-items:center; justify-content:center; color:var(--play); font-size:11px; font-weight:600;
+    border-radius:6px; }
+  .nav { position:absolute; top:6px; left:8px; font-size:10px; color:#6c7c98; }
+  .navR { position:absolute; top:6px; right:8px; font-size:10px; color:#6c7c98; }
+  .legend { min-width:280px; max-width:340px; }
+  .legend h3 { margin:2px 0 10px; font-size:15px; }
+  .li { display:flex; gap:10px; margin:9px 0; align-items:flex-start; }
+  .sw { width:16px; height:16px; border-radius:4px; flex:none; margin-top:2px; }
+  .sw.hud{background:rgba(224,178,90,.35);border:1px dashed var(--hud);}
+  .sw.strip{background:rgba(90,169,224,.3);border:1px dashed var(--strip);}
+  .sw.bar{background:rgba(192,122,223,.3);border:1px dashed var(--bar);}
+  .sw.play{background:rgba(79,209,139,.2);border:1.5px solid var(--play);}
+  .li b { color:var(--ink); } .li span { color:var(--muted); font-size:13.5px; }
+  .note { color:var(--muted); font-size:13px; margin-top:14px; padding-top:12px; border-top:1px solid var(--line); }
+  code { background:#0a0f1a; border:1px solid var(--line); border-radius:5px; padding:1px 5px; font-size:12.5px; color:#cfe0ff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Kit layout contract — where the reserved zones are</h1>
+  <p>The kit owns play-area geometry. It reserves bands on the edges (HUD, control strip, secondary
+  bar) and hands the game one safe rectangle — <code>playRect()</code> — to render inside. A game can
+  never overlap chrome because it never draws outside that rect. Pick an archetype and a screen below.</p>
+</header>
+
+<div class="controls">
+  <div class="group"><span>Archetype</span>
+    <button data-arch="action" class="on">action</button>
+    <button data-arch="controls">controls</button>
+    <button data-arch="board">board</button>
+  </div>
+  <div class="group"><span>Screen</span>
+    <button data-vp="p" class="on">portrait 360×640</button>
+    <button data-vp="l">landscape 640×360</button>
+    <button data-vp="d">desktop 1280×800</button>
+  </div>
+</div>
+
+<div class="stage">
+  <div class="frameWrap"><div class="frame" id="frame"></div></div>
+  <div class="legend" id="legend"></div>
+</div>
+
+<script>
+  var arch = 'action', vp = 'p';
+  var VPS = { p:{w:360,h:640,name:'portrait'}, l:{w:640,h:360,name:'landscape'}, d:{w:1280,h:800,name:'desktop'} };
+  var SCALE_H = 460; // display height of the tallest frame; others scale to match area
+
+  function hudTop(v){ return v.h > v.w ? 92 : 48; }        // kit: portrait 92, else 48
+  // mock the auto-measured wrapping HUD: a busy pill wraps to 2 rows in portrait (taller than 92)
+  function hudBand(v){ return v.h > v.w ? 118 : 52; }
+
+  function zones(v){
+    var top = hudBand(v), z = [];
+    z.push({ cls:'z-hud', x:0, y:0, w:v.w, h:top, label:'HUD reserve · '+top+'px' });
+    var play = { x:0, y:top, w:v.w, h:v.h-top };
+    if (arch === 'controls'){
+      if (v.h > v.w){ // portrait → bottom strip
+        var bh = 96; z.push({ cls:'z-strip', x:0, y:v.h-bh, w:v.w, h:bh, label:'control strip · '+bh+'px (measured)' });
+        play = { x:0, y:top, w:v.w, h:v.h-top-bh };
+      } else { // landscape → left strip
+        var lw = 132; z.push({ cls:'z-strip', x:0, y:top, w:lw, h:v.h-top, label:'control\nstrip\n'+lw+'px' });
+        play = { x:lw, y:top, w:v.w-lw, h:v.h-top };
+      }
+    } else if (arch === 'board'){
+      var barH = 30; z.push({ cls:'z-bar', x:0, y:v.h-barH, w:v.w, h:barH, label:'secondary bar · '+barH+'px' });
+      play = { x:0, y:top, w:v.w, h:v.h-top-barH };
+    }
+    return { top:top, play:play, zones:z };
+  }
+
+  function boardIn(play){ // centered square fitted in playRect (board archetype)
+    var s = Math.min(play.w, play.h) - 16;
+    return { x: play.x + (play.w - s)/2, y: play.y + (play.h - s)/2, w:s, h:s };
+  }
+
+  function render(){
+    var v = VPS[vp], Z = zones(v), sc = SCALE_H / 640; // scale everything by the portrait-height ratio
+    var fw = v.w*sc, fh = v.h*sc, frame = document.getElementById('frame');
+    frame.style.width = fw+'px'; frame.style.height = fh+'px'; frame.innerHTML = '';
+    frame.innerHTML = '<div class="nav">‹ Menu · komyo ›</div><div class="navR">⏸ 🔊 🎮 ⛶ ☰</div>';
+    // play rect
+    var p = Z.play, pd = document.createElement('div'); pd.className='zone z-play';
+    pd.style.left=p.x*sc+'px'; pd.style.top=p.y*sc+'px'; pd.style.width=p.w*sc+'px'; pd.style.height=p.h*sc+'px';
+    pd.textContent = arch==='board' ? 'playRect()\n(letterbox fill)' : 'playRect() — canvas / playfield';
+    pd.style.whiteSpace='pre-line'; frame.appendChild(pd);
+    if (arch==='board'){ var b=boardIn(p), bd=document.createElement('div'); bd.className='z-board';
+      bd.style.left=b.x*sc+'px'; bd.style.top=b.y*sc+'px'; bd.style.width=b.w*sc+'px'; bd.style.height=b.h*sc+'px';
+      bd.textContent='boardRect()'; frame.appendChild(bd); }
+    Z.zones.forEach(function(z){ var d=document.createElement('div'); d.className='zone '+z.cls;
+      d.style.left=z.x*sc+'px'; d.style.top=z.y*sc+'px'; d.style.width=z.w*sc+'px'; d.style.height=z.h*sc+'px';
+      d.style.whiteSpace='pre-line'; d.textContent=z.label; frame.appendChild(d); });
+    renderLegend(v, Z);
+  }
+
+  function renderLegend(v, Z){
+    var desc = {
+      action:  '<b>action</b> — top HUD only. The canvas fills <code>playRect()</code>. breakout, flappy, snake, aim-trainer, asteroids.',
+      controls:'<b>controls</b> — top HUD + a build/control strip (bottom in portrait, left in landscape). The strip reserves its <i>measured</i> height. tower-defense.',
+      board:   '<b>board</b> — top HUD + an optional secondary bar. <code>boardRect()</code> is a centered square inside <code>playRect()</code>; the surrounding play area is themed letterbox fill. 2048, sudoku, bubbles.'
+    };
+    var L = document.getElementById('legend');
+    L.innerHTML =
+      '<h3>'+arch+' · '+v.name+' '+v.w+'×'+v.h+'</h3>'+
+      '<div class="li"><div class="sw hud"></div><div><b>HUD reserve</b> — <span>the score pill band. Auto-sized to the <i>real</i> pill (wraps to 2 rows when busy), so the board never slides under it.</span></div></div>'+
+      (arch==='controls' ? '<div class="li"><div class="sw strip"></div><div><b>control strip</b> — <span>build buttons / on-screen controls. Kit reserves its measured size; board fits the rest.</span></div></div>' : '')+
+      (arch==='board' ? '<div class="li"><div class="sw bar"></div><div><b>secondary bar</b> — <span>charge / status bar. A reserved band so it never overlaps the board.</span></div></div>' : '')+
+      '<div class="li"><div class="sw play"></div><div><b>playRect()</b> — <span>the safe rectangle the game draws in. Everything the game renders stays inside it.</span></div></div>'+
+      '<div class="note">The headless suite asserts <code>board ⊆ playRect()</code> across all 5 viewports for every migrated game — so an overlap fails CI, not just the eyeball.</div>';
+  }
+
+  document.querySelectorAll('[data-arch]').forEach(function(b){ b.onclick=function(){
+    arch=b.dataset.arch; document.querySelectorAll('[data-arch]').forEach(function(x){x.classList.toggle('on',x===b);}); render(); }; });
+  document.querySelectorAll('[data-vp]').forEach(function(b){ b.onclick=function(){
+    vp=b.dataset.vp; document.querySelectorAll('[data-vp]').forEach(function(x){x.classList.toggle('on',x===b);}); render(); }; });
+  render();
+</script>
+</body>
+</html>
