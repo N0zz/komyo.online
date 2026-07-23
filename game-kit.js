@@ -3565,9 +3565,10 @@
   function vh() { try { return (typeof window !== 'undefined' && window.innerHeight) || 0; } catch (e) { return 0; } }
   function isPortrait() { return vh() > vw(); }
   function isNarrow() { var w = vw(); return isPortrait() || (w > 0 && w <= 560); }
-  // The center HUD drops below the nav row (CSS) whenever it would collide with the ~214px side cluster
-  // — i.e. portrait OR width ≤768. hudTop() must reserve the taller headroom (92) in that same band.
-  function hudDropped() { var w = vw(); return isPortrait() || (w > 0 && w <= 768); }
+  // The center HUD only drops below the nav row (CSS) in PORTRAIT (tall → room to spare); there it
+  // needs the taller 92px headroom. In LANDSCAPE it stays on the top row (clusters reserved in its
+  // max-width), so headroom stays the compact 48 — dropping on a short screen would squeeze the board.
+  function hudDropped() { return isPortrait(); }
   function layoutState() { return { w: vw(), h: vh(), portrait: isPortrait(), landscape: !isPortrait(), narrow: isNarrow(), hudTop: hudDropped() ? 92 : 48 }; }
   function fireLayout() { var st = layoutState(); for (var i = 0; i < layoutCbs.length; i++) { try { layoutCbs[i](st); } catch (e) {} } }
   function scheduleLayout() {

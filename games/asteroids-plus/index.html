@@ -60,7 +60,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   #timer { font-size:17px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); display:none; }
   /* ≤768px the wide centered HUD would slide under the ~214px right cluster — drop it below the nav row
      (hudReserve() uses hudTop()×SCALE = 92×S there, so entities clear it). */
-  @media (max-width:768px) { #topHud { top:50px; max-width:calc(100vw - 16px); } }
+  @media (orientation:portrait) { #topHud { top:50px; max-width:calc(100vw - 16px); } }
+  @media (orientation:landscape) { #topHud { max-width:calc(100vw - 380px); } }
   #modeTag { font-size:12px; letter-spacing:1px; opacity:0.5; }
   /* narrow (portrait phone): flatten the score column into one baseline row so the pill stays
      inside the kit's 92px narrow headroom (top 48 + ≤2 slim rows) instead of a tall 3-line box */
@@ -77,9 +78,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
   /* short screens (landscape phones): slim single-row bar, narrow enough to clear the side nav clusters */
   @media (max-height:560px) {
-    /* drop below the nav row instead of pinning at top:6px — even the 380px-reserved pill overlapped
-       the ~214px cluster at 640px wide. hudReserve() (92×SCALE here) keeps entities clear. */
-    #topHud { top:50px; max-width:calc(100vw - 16px); gap:2px 12px; padding:2px 10px; border-radius:8px; }
+    /* short landscape: keep the pill on the top row (the landscape rule reserves the clusters in
+       max-width); just slim it. Dropping it would eat the scarce height. */
+    #topHud { gap:2px 12px; padding:2px 10px; border-radius:8px; }
     #hudL, #hudR { display:flex; align-items:baseline; gap:7px; }
     #hudL { font-size:15px; letter-spacing:1px; }
     #hudL .label { font-size:8px; }
