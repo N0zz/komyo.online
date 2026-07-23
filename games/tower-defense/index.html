@@ -70,6 +70,18 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       align-items:stretch; flex-wrap:nowrap; gap:6px; padding:48px 8px 8px; overflow-y:auto; }
     #bottom .tbtn { min-width:0; }
   }
+  /* short landscape: all 8 build buttons must fit the ~360px strip WITHOUT scrolling, so Start Wave /
+     Auto / speed are visible on load (poor first run otherwise). Compact each to a single
+     icon + name + cost row and hide the blurb. */
+  @media (orientation:landscape) and (max-height:620px) {
+    #bottom { gap:4px; padding:44px 6px 6px; }
+    .tbtn { display:flex; flex-direction:row; align-items:center; gap:6px; padding:5px 8px; text-align:left; line-height:1.1; }
+    .tbtn .ic { font-size:16px; margin:0; }
+    .tbtn .n { font-size:12px; }
+    .tbtn .c { font-size:11px; margin-left:auto; }
+    .tbtn .d { display:none; }
+    #startBtn, #autoBtn, #speedBtn { justify-content:center; }
+  }
   .tbtn { font-family:inherit; cursor:pointer; min-width:84px; padding:7px 10px; border-radius:9px; color:var(--parch);
     background:linear-gradient(180deg,#6a4a2c,#4a3220); border:2px solid #2c1d10; text-align:center; line-height:1.25; }
   .tbtn.sel { border-color:var(--gold); box-shadow:0 0 12px rgba(224,178,90,0.6); }

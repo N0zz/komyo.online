@@ -90,8 +90,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   });
 
   // ---- Constants ----
-  const GRAVITY     = 0.28;   // was 0.38 — gentler fall
-  const FLAP_VY     = -6.0;   // was -7.2 — softer flap
+  let   GRAVITY     = 0.28;   const GRAVITY_BASE = 0.28; // scaled by the field band in resize()
+  let   FLAP_VY     = -6.0;   const FLAP_VY_BASE = -6.0; // scaled by the field band in resize()
   const OBS_SPEED_DAY   = 1.9;   // gentle scroll
   const OBS_SPEED_NIGHT = 2.2;   // night: slightly faster for variety
   const OBS_W       = 62;
@@ -106,7 +106,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   const OBS_INTERVAL= 300;    // breathing room between obstacles
   const MAX_GAP_STEP= 150;    // cap vertical change between consecutive gaps so a pair is always reachable
   const BIRD_X      = 90;
-  const BIRD_R      = 14;
+  let   BIRD_R      = 14;     const BIRD_R_BASE = 14; // scaled by the field band → constant fraction of the band
   const HITBOX_SHRINK = 4;    // was 3 — slightly more forgiving
 
   // ---- Mode (persisted so it survives reload / the kit Menu button) ----
@@ -210,6 +210,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
     topInset = KIT.layout.hudTop();
+    // Scale the vertical physics + bird to the playable band so difficulty matches across aspect + size:
+    // jump apex and bird stay a constant fraction of the band, while flap TIMING is preserved
+    // (apex ∝ FLAP²/GRAVITY = vs; time-to-apex = FLAP/GRAVITY = const). 724 = the desktop band → vs=1 there.
+    const band = Math.max(200, H - 28 - topInset), vs = Math.max(0.6, Math.min(1.8, band / 724));
+    GRAVITY = GRAVITY_BASE * vs; FLAP_VY = FLAP_VY_BASE * vs; BIRD_R = BIRD_R_BASE * vs;
     bird.y = startY();
     initParallax();
   }
