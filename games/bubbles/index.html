@@ -57,25 +57,19 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   /* Position/background/font come from the shared .gamekit-hud (center-top pill).
      Keep only the aqua value color. */
   #hud .val { color:var(--aqua); }
-  #chargeMeter { position:fixed; right:10px; top:56px; bottom:auto; height:120px; z-index:5;
-    width:12px; border-radius:6px; border:1px solid var(--border);
-    background:rgba(13,31,45,0.7); overflow:hidden; }
-  #chargeFill { width:100%; background:linear-gradient(180deg,#ffe066,#ff9c2e);
-    border-radius:6px; transition:height 0.15s; }
-  #chargeLabel { position:fixed; right:26px; top:56px; z-index:5; font-size:9px;
-    letter-spacing:1px; color:var(--gold); writing-mode:vertical-lr; transform:rotate(180deg); }
-
-  /* Sits just under the HUD, centered over the playfield, so it tracks the HUD
-     across viewport sizes instead of floating near the shooter. */
-  #specialIndicator { position:fixed; top:56px; left:50%; transform:translateX(-50%);
-    z-index:6; font-size:13px; letter-spacing:1px; padding:5px 14px;
-    background:rgba(255,224,102,0.18); border:1px solid #ffe066; border-radius:8px;
-    color:#ffe066; display:none; white-space:nowrap; pointer-events:none; }
-  @media (max-width:560px), (orientation:portrait) {
-    #specialIndicator { top:96px; font-size:12px; padding:4px 11px; }
-    /* Portrait HUD pill drops to top:50px and is taller — push these below it. */
-    #chargeMeter, #chargeLabel { top:96px; }
-  }
+  /* Combined charge / special bar: a slim HORIZONTAL bar in the contract's reserved bottom band,
+     centered under the playfield — never over the board. Fills left→right as you pop; turns gold +
+     reads ⚡ when a special is armed. (Replaces the old right-edge vertical meter + top pill.) */
+  #chargeBar { position:fixed; left:50%; bottom:7px; transform:translateX(-50%); z-index:6;
+    width:min(300px, 72vw); height:16px; border-radius:8px; border:1px solid var(--border);
+    background:rgba(13,31,45,0.7); overflow:hidden; display:flex; align-items:center;
+    justify-content:center; pointer-events:none; }
+  #chargeFill { position:absolute; left:0; top:0; bottom:0; width:0%;
+    background:linear-gradient(90deg,#ffe066,#ff9c2e); transition:width 0.15s; }
+  #chargeBar.ready { border-color:#ffe066; box-shadow:0 0 12px rgba(255,224,102,0.6); }
+  #chargeBar.ready #chargeFill { width:100%; background:linear-gradient(90deg,#ffe066,#fff2b0,#ffe066); }
+  #chargeLabel { position:relative; z-index:1; font-size:9px; letter-spacing:1px; font-weight:700;
+    color:#fff; text-shadow:0 1px 2px rgba(0,0,0,0.75); white-space:nowrap; }
 </style>
 </head>
 <body>
@@ -86,11 +80,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   <div class="stat"><span class="lbl" id="levelLbl">Level</span><span class="val" id="levelEl">1</span></div>
   <div class="stat" style="opacity:.75"><span class="lbl" id="modeLbl">Mode</span><span class="val" id="modeEl">Arcade</span></div>
 </div>
-<div id="chargeMeter">
-  <div id="chargeFill" style="height:0%;margin-top:auto;"></div>
+<div id="chargeBar">
+  <div id="chargeFill"></div>
+  <span id="chargeLabel">CHARGE</span>
 </div>
-<div id="chargeLabel">CHARGE</div>
-<div id="specialIndicator">⚡ SPECIAL READY</div>
 
 <!-- crawlable game description — shown to players via the ☰ "How to play" entry (kit aboutModal) -->
 <section id="gk-about" hidden>
@@ -181,12 +174,15 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     R = Math.max(9, Math.min(18, Math.floor((W - 24) / (2 * (COLS_COUNT + 1)))));
     ROW_H = R * 1.73;
     WALL = Math.max(6, Math.round(R * 0.55));
-    topMargin = KIT.layout.hudTop();
+    // Layout contract (board archetype): playRect() reserves the bottom band for the #chargeBar
+    // (archetype bottom reserve), so the field ends above it and never sits under it.
+    const pr = KIT.layout.playRect();
+    topMargin = pr.y;
     // Cap the play field to a desktop-reference height (752 = 800 − hudTop 48) and CENTER it, so a tall
     // screen doesn't grant several times a phone's descent runway (fairness); the themed bg fills the
     // margins above/below. Phones and the desktop reference are unaffected (usableH ≤ 752 → no cap).
-    const usableH = H - topMargin, fieldH = Math.min(usableH, 752);
-    fieldTop = topMargin + Math.round((usableH - fieldH) / 2);
+    const usableH = pr.h, fieldH = Math.min(usableH, 752);
+    fieldTop = pr.y + Math.round((usableH - fieldH) / 2);
     fieldBottom = fieldTop + fieldH;
     // Vertical fit: on short screens compress ROW_H so the initial grid clears the lose line.
     const playBand = (fieldBottom - SHOOTER_Y_OFFSET - R * 3) - (fieldTop + WALL + R);
@@ -375,12 +371,13 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     $('modeEl').textContent = modeDisplay(mode) + (timeDescent && mode !== 'zen' ? KIT.t('game.bubbles.timedSuffix', { def: ' · timed' }) : '');
     const pct = Math.round(chargeLevel * 100);
     const fill = $('chargeFill');
-    if (fill) {
-      fill.style.height = pct + '%';
-      fill.style.marginTop = (100 - pct) + '%';
-    }
-    const sp = $('specialIndicator');
-    if (sp) sp.style.display = specialReady ? 'block' : 'none';
+    if (fill) fill.style.width = pct + '%';
+    const bar = $('chargeBar');
+    if (bar) bar.classList.toggle('ready', specialReady);
+    const lbl = $('chargeLabel');
+    if (lbl) lbl.textContent = specialReady
+      ? KIT.t('game.bubbles.specialReady', { def: '⚡ SPECIAL READY' })
+      : KIT.t('game.bubbles.charge', { def: 'CHARGE' });
   }
 
   // Localize the static HUD/chrome labels once (KIT.t returns the def when no translation is loaded).
@@ -391,7 +388,6 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     setTxt('levelLbl', KIT.t('game.bubbles.hudLevel', { def: 'Level' }));
     setTxt('modeLbl', KIT.t('game.bubbles.hudMode', { def: 'Mode' }));
     setTxt('chargeLabel', KIT.t('game.bubbles.charge', { def: 'CHARGE' }));
-    setTxt('specialIndicator', KIT.t('game.bubbles.specialReady', { def: '⚡ SPECIAL READY' }));
     setTxt('modeEl', modeDisplay(mode));
   }
 
@@ -1350,6 +1346,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       const fb = fieldBounds();
       return {
         W, H, topReserve: topMargin, R,
+        board: { x: fb.left - WALL, y: fieldTop, w: (fb.right + WALL) - (fb.left - WALL), h: fieldBottom - fieldTop },
         grid: grid_,
         walls: { left: fb.left, right: fb.right, ceiling: ceilTop(), thickness: WALL },
         shooterX: shooterX(), shooterY: shooterY(),
@@ -1357,6 +1354,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     },
   };
 
+  KIT.layout.archetype('board', { bottom: 30 }); // contract: top HUD + bottom #chargeBar band → field = playRect()
   resize(); KIT.loop(stepUpdate, render);
 })();
   window.gamekit.pwa('../../sw.js');

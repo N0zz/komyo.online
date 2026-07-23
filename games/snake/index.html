@@ -53,8 +53,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     font-size:14px; letter-spacing:2px; pointer-events:none; }
   #hud .lbl { opacity:0.5; font-size:10px; }
   #hud b { color:#0ff; text-shadow:0 0 10px #0ff; }
-  /* Portrait (tall): drop the HUD below the nav row. Landscape (short): keep it on the top row and
-     reserve the side clusters in max-width — dropping would squeeze the board's scarce height. */
+  /* #hud placement only — the kit measures this element (archetype hud:'#hud') for the top reserve.
+     Portrait (tall): drop below the nav row. Landscape (short): stay on the top row, clear the side
+     clusters via max-width (dropping would squeeze the board's scarce height). */
   @media (orientation:portrait) {
     #hud { top:46px; gap:16px; padding:6px 14px; font-size:13px; max-width:calc(100vw - 16px); }
   }
@@ -245,34 +246,32 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     W = window.innerWidth;
     H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
-    // In portrait the HUD drops below the nav row (see CSS @media), so reserve more headroom.
-    const hud = KIT.layout.hudTop();
-    // reserve room for the D-pad: a bottom strip in portrait, a side strip in landscape (so the
-    // arena stays large in landscape instead of being squeezed vertically)
     const landscape = W > H;
-    const rBottom = (dpadReserve && !landscape) ? dpadReserve : 0;
-    const rSide = (dpadReserve && landscape) ? dpadReserve : 0;
+    // D-pad (touch) reserve: a right-side strip in landscape (keeps the arena tall), a bottom strip
+    // in portrait. Declared on the kit so playRect() is the single source of the play region — the
+    // kit auto-measures #hud for the top reserve (no hand-rolled hudTop).
+    KIT.layout.reserve('right', (dpadReserve && landscape) ? dpadReserve : 0);
+    KIT.layout.reserve('bottom', (dpadReserve && !landscape) ? dpadReserve : 0);
+    const pr = KIT.layout.playRect();
     // Pad the vertical ends: the border glow draws ~2px outside the grid and the HUD pill can dip
     // past its reserve — a flush fit clipped the bottom wall / tucked the top under the score bar.
     const PAD_T = 8, PAD_B = 4;
-    const avW = W - rSide, avH = H - hud - rBottom - PAD_T - PAD_B;
-    cellW = Math.floor(avW / COLS);
-    cellH = Math.floor(avH / ROWS);
-    const cell = Math.min(cellW, cellH);
+    const avW = pr.w, avH = pr.h - PAD_T - PAD_B;
+    const cell = Math.min(Math.floor(avW / COLS), Math.floor(avH / ROWS));
     cellW = cellH = cell;
     // The player's saved shift slides the arena along the SPARE axis: vertical in portrait,
-    // horizontal in landscape. Centered plus the shift, clamped so the arena always clears the
-    // HUD/D-pad reserves (write the clamp back so it can't run past).
-    const baseOffX = Math.floor((avW - COLS * cell) / 2); // D-pad sits in the right strip (landscape)
-    const baseOffY = hud + PAD_T + Math.floor((avH - ROWS * cell) / 2);
+    // horizontal in landscape. Centered plus the shift, clamped so the arena always stays inside
+    // playRect (write the clamp back so it can't run past).
+    const baseOffX = pr.x + Math.floor((avW - COLS * cell) / 2); // D-pad sits in the right strip (landscape)
+    const baseOffY = pr.y + PAD_T + Math.floor((avH - ROWS * cell) / 2);
     if (landscape) {
-      const minOffX = 0, maxOffX = Math.max(minOffX, W - rSide - COLS * cell);
+      const minOffX = pr.x, maxOffX = Math.max(minOffX, pr.x + pr.w - COLS * cell);
       offX = Math.max(minOffX, Math.min(maxOffX, baseOffX + boardShiftX));
       boardShiftX = offX - baseOffX;
       offY = baseOffY;
     } else {
       offX = baseOffX;
-      const minOffY = hud + PAD_T, maxOffY = Math.max(minOffY, H - rBottom - PAD_B - ROWS * cell);
+      const minOffY = pr.y + PAD_T, maxOffY = Math.max(minOffY, pr.y + pr.h - PAD_B - ROWS * cell);
       offY = Math.max(minOffY, Math.min(maxOffY, baseOffY + boardShiftY));
       boardShiftY = offY - baseOffY;
     }
@@ -827,7 +826,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     // HUD headroom the arena must clear so the score pill never overlaps the board.
     get layout() {
       const landscape = W > H;
-      const topReserve = KIT.layout.hudTop();
+      const topReserve = KIT.layout.playRect().y; // contract-measured HUD headroom (kit measures #hud)
       const rBottom = (dpadReserve && !landscape) ? dpadReserve : 0;
       const rSide = (dpadReserve && landscape) ? dpadReserve : 0;
       return {
@@ -835,6 +834,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
         offX, offY, cell: cellW, cols: COLS, rows: ROWS,
         arenaLeft: offX, arenaTop: offY,
         arenaRight: offX + COLS * cellW, arenaBottom: offY + ROWS * cellH,
+        board: { x: offX, y: offY, w: COLS * cellW, h: ROWS * cellH }, // grid rect ⊆ playRect (contract)
       };
     },
     get speed() { return opts.speed; },
@@ -876,6 +876,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   loadOpts();
   // deep-link ?walls=&speed=&size= → preselect options
   { const P = KIT && KIT.param; if (P) { const w = P('walls'), s = P('speed'), z = P('size'); if (w === 'solid' || w === 'wrap') opts.walls = w; if (SPEED_CFG[s]) opts.speed = s; if (GRID_SIZES[z]) opts.size = z; } }
+  KIT.layout.archetype('action', { hud: '#hud' }); // layout contract: top HUD (#hud) only, arena = playRect()
   applyGridSize();
   resize();
   best = loadBest();

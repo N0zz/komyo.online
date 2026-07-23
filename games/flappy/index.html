@@ -209,11 +209,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     W = window.innerWidth;
     H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
-    topInset = KIT.layout.hudTop();
+    // Layout contract (action archetype): the play band is playRect() — viewport minus the kit HUD
+    // headroom (top) and the 28px ground strip (bottom reserve, declared at boot). topInset = its top.
+    const pr = KIT.layout.playRect();
+    topInset = pr.y;
     // Scale the vertical physics + bird to the playable band so difficulty matches across aspect + size:
     // jump apex and bird stay a constant fraction of the band, while flap TIMING is preserved
     // (apex ∝ FLAP²/GRAVITY = vs; time-to-apex = FLAP/GRAVITY = const). 724 = the desktop band → vs=1 there.
-    const band = Math.max(200, H - 28 - topInset), vs = Math.max(0.6, Math.min(1.8, band / 724));
+    const band = Math.max(200, pr.h), vs = Math.max(0.6, Math.min(1.8, band / 724));
     GRAVITY = GRAVITY_BASE * vs; FLAP_VY = FLAP_VY_BASE * vs; BIRD_R = BIRD_R_BASE * vs;
     bird.y = startY();
     initParallax();
@@ -361,7 +364,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
         { id: 'tod', label: KIT.t('game.flappy.todLabel', { def: 'TIME OF DAY' }), default: mode, choices: [ { id: 'day', label: KIT.t('game.flappy.day', { def: '☀️ Day' }) }, { id: 'night', label: KIT.t('game.flappy.night', { def: '🌙 Night' }) } ] },
       ],
       actions: [{ id: 'play', label: KIT.t('game.flappy.play', { def: 'Fly!' }), primary: true }],
-      hint: () => KIT.t('game.flappy.hint', { best: getBest(), def: 'Best ' + getBest() + ' · pick your flyer in 🎨 · tap / click / Space to flap.' }),
+      hint: () => KIT.t('game.flappy.hint', { best: getBest(), def: 'Best ' + getBest() + ' · pick your flyer in 🎨' }),
       onChange: st => {
         mode = st.tod === 'night' ? 'night' : 'day'; saveMode(mode);
         selectedBird = getSelectedBird(); // the 🎨 modal may have changed the bird
@@ -430,7 +433,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     // Scale the gap to the playable band so its share of the screen (and the difficulty) is the same on
     // every aspect — a fixed 240px gap was 46% of a portrait phone but ~85% of a short landscape screen
     // (trivially easy). 724 = the desktop reference band, so GAP_H/GAP_MIN are unchanged there.
-    const band = Math.max(200, H - 28 - topInset);
+    const band = Math.max(200, KIT.layout.playRect().h);
     const scale = band / 724;
     const gh = GAP_H * scale, gmin = GAP_MIN * scale;
     return gh - (gh - gmin) * t;
@@ -1129,9 +1132,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       const groundH = 28;
       const groundY = H - groundH;            // top edge of the ground strip
       const o = obstacles.find(x => !x.passed) || obstacles[0] || null;
+      const pr = KIT.layout.playRect();
       return {
         W, H,
         topReserve: topInset,                 // headroom the playfield clears for the center-top HUD
+        board: { x: pr.x, y: pr.y, w: W, h: pr.h }, // play region (⊆ playRect) — action archetype
         groundY,
         bird: {
           x: bird.x, y: bird.y, r: BIRD_R,
@@ -1174,6 +1179,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     setScore(v) { score = v; updateHud(); },
   };
 
+  KIT.layout.archetype('action', { bottom: 28 }); // full-canvas side-scroller: top HUD headroom + 28px ground strip
   resize(); updateHud(); KIT.loop(update, render);
   // live language switch: retranslate the HUD + rebuild whichever menu is open
   KIT.onLang(() => { updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });

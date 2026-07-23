@@ -302,7 +302,6 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
 
   function layoutBoard() {
-    flip = W > H && ROWS > COLS ? true : (W > H && COLS === ROWS ? false : false);
     // transpose whenever the board doesn't match the screen aspect
     flip = (W > H) !== (COLS >= ROWS) && COLS !== ROWS;
     dispC = flip ? ROWS : COLS; dispR = flip ? COLS : ROWS;
@@ -310,22 +309,26 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     // (the side-stack ‹‹ tab owns the right edge) — the board keeps the full height
     const short = H < 500, side = short && W > H;
     const pad = 10, togGap = short ? 8 : 12;
+    // Layout contract (board archetype): reserve the DIG/FLAG pill's band so playRect() bounds the
+    // board — left gutter in short landscape, bottom strip otherwise — then fit + center inside it.
     if (side) {
       const tw = 118, th = 92;
-      const availW = W - pad * 2 - tw - togGap;
-      const availH = H - topMargin - pad * 2;
+      KIT.layout.reserve('bottom', 0); KIT.layout.reserve('left', tw + togGap);
+      const pr = KIT.layout.playRect();
+      const availW = pr.w - pad * 2, availH = pr.h - pad * 2;
       cs = Math.max(12, Math.floor(Math.min(availW / dispC, availH / dispR)));
-      bx = Math.round(pad + tw + togGap + (availW - cs * dispC) / 2);
-      by = Math.round(topMargin + pad + (availH - cs * dispR) / 2);
-      togRect = { x: pad, y: Math.round(topMargin + (H - topMargin - th) / 2), w: tw, h: th, vert: true };
+      bx = Math.round(pr.x + pad + (availW - cs * dispC) / 2);
+      by = Math.round(pr.y + pad + (availH - cs * dispR) / 2);
+      togRect = { x: pad, y: Math.round(pr.y + (pr.h - th) / 2), w: tw, h: th, vert: true };
       return;
     }
     const togH = short ? 44 : 62;
-    const availW = W - pad * 2;
-    const availH = H - topMargin - pad * 2 - togH - togGap;
+    KIT.layout.reserve('left', 0); KIT.layout.reserve('bottom', togH + togGap);
+    const pr = KIT.layout.playRect();
+    const availW = pr.w - pad * 2, availH = pr.h - pad * 2;
     cs = Math.max(12, Math.floor(Math.min(availW / dispC, availH / dispR)));
-    bx = Math.round((W - cs * dispC) / 2);
-    by = Math.round(topMargin + pad + (availH - cs * dispR) / 2);
+    bx = Math.round(pr.x + (pr.w - cs * dispC) / 2);
+    by = Math.round(pr.y + pad + (availH - cs * dispR) / 2);
     const tw = Math.min(short ? 250 : 320, W - 40);
     togRect = { x: (W - tw) / 2, y: by + cs * dispR + togGap, w: tw, h: togH, vert: false };
   }
@@ -637,7 +640,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
-    topMargin = KIT.layout.hudTop();
+    topMargin = KIT.layout.playRect().y;
     if (mine) layoutBoard();
   }
   window.gamekit.layout.on(resize);
@@ -740,6 +743,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   };
 
   // ---- boot ----
+  KIT.layout.archetype('board'); // layout contract: centered grid fitted in playRect()
   resize();
   if (KIT) {
     const L = { lblMines: ['game.minesweeper.hudMines', 'MINES'], lblTime: ['game.common.time', 'TIME'], lblBest: ['game.common.best', 'BEST'] };

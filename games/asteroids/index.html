@@ -58,7 +58,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   @media (max-height:560px), (orientation:portrait) { #topHud { padding:2px 12px; gap:6px 16px; } #hud { font-size:15px; } #hud .label { font-size:9px; } #weapon { font-size:10px; margin-top:1px; } #lives { font-size:15px; } #modeTag { font-size:10px; } }
   /* Portrait: drop below the nav. Landscape (short): keep top-row + reserve the clusters in max-width
      (dropping would waste the scarce height). */
-  @media (orientation:portrait) { #topHud { top:50px; max-width:calc(100vw - 16px); } }
+  @media (orientation:portrait) { #topHud { top:50px; width:80vw; max-width:80vw; justify-content:space-evenly; } }
   @media (orientation:landscape) { #topHud { max-width:calc(100vw - 380px); } }
   #timer .goal { display:none; }
   #flash { position:fixed; top:30%; left:0; right:0; text-align:center; font-size:30px; letter-spacing:6px; color:#ffc878; text-shadow:0 0 18px rgba(255,200,120,0.8); pointer-events:none; user-select:none; opacity:0; transition:opacity 0.3s ease; }

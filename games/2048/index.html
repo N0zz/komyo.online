@@ -241,15 +241,17 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   function layoutBoard() {
     const pad = 12;
-    const availW = W - pad * 2, availH = H - topMargin - pad * 2;
-    // Cap scales with the screen so the board fills big displays instead of floating in empty space,
-    // while staying 560 on a desktop (560/800 = 0.7 → unchanged at the reference height).
+    // Layout contract (board archetype): fit + center inside playRect(). Cap scales with the screen
+    // so the board fills big displays instead of floating in empty space, while staying 560 on a
+    // desktop (560/800 = 0.7 → unchanged at the reference height).
+    const pr = KIT.layout.playRect();
+    const availW = pr.w - pad * 2, availH = pr.h - pad * 2;
     boardPx = Math.min(availW, availH, Math.max(560, Math.min(W, H) * 0.7));
     gap = Math.max(6, Math.round(boardPx * 0.022));
     cs = Math.floor((boardPx - gap * (N + 1)) / N);
     boardPx = cs * N + gap * (N + 1);
-    bx = Math.round((W - boardPx) / 2);
-    by = Math.round(topMargin + pad + (availH - boardPx) / 2);
+    bx = Math.round(pr.x + (pr.w - boardPx) / 2);
+    by = Math.round(pr.y + (pr.h - boardPx) / 2);
   }
 
   // ---- tile skins (cosmetics) ----
@@ -494,7 +496,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
-    topMargin = KIT.layout.hudTop();
+    topMargin = KIT.layout.playRect().y;
     if (grid.length) layoutBoard();
   }
   window.gamekit.layout.on(resize);
@@ -555,6 +557,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   };
 
   // ---- boot ----
+  KIT.layout.archetype('board'); // layout contract: centered board fitted in playRect()
   resize();
   if (KIT) {
     const L = { lblScore: ['game.common.score', 'SCORE'], lblBest: ['game.common.best', 'BEST'], lblTile: ['game.2048.hudTile', 'TILE'] };

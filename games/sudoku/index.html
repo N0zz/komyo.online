@@ -1332,21 +1332,22 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function resize() {
     W = window.innerWidth; H = window.innerHeight;
     KIT.fitCanvas(canvas, W, H);
-    topMargin = KIT.layout.hudTop();
     measureSafeB();
-    const availB = H - topMargin - PAD_H - safeB - HINT_H - 12;   // room above pad + hint strip
-    sideMode = availB < 260 && W > H;                // short landscape → dock the pad right
-    if (sideMode) {
-      const availH = H - topMargin - 12;
-      bsize = Math.max(200, Math.min(W - SIDE_W - 20, availH, Math.max(640, Math.min(W, H) * 0.8)));
-      bx = (W - SIDE_W - bsize) / 2;
-      by = topMargin + Math.max(4, (availH - bsize) / 2);
-    } else {
-      bsize = Math.max(200, Math.min(W - 20, availB, Math.max(640, Math.min(W, H) * 0.8)));
-      bx = (W - bsize) / 2;
-      // bias toward the HUD — a huge dead gap above the board reads worse than one below
-      by = topMargin + Math.max(6, Math.min(40, (availB - bsize) * 0.25));
-    }
+    // Decide the pad dock first (short landscape → pad on the right), then hand the kit the matching
+    // edge reserve so playRect() already excludes the pad + hint strip.
+    const hudT = KIT.layout.hudTop();
+    sideMode = (H - hudT - PAD_H - safeB - HINT_H - 12) < 260 && W > H;
+    if (sideMode) { KIT.layout.reserve('right', SIDE_W); KIT.layout.reserve('bottom', 0); }
+    else { KIT.layout.reserve('right', 0); KIT.layout.reserve('bottom', PAD_H + safeB + HINT_H); }
+    // Layout contract (board archetype): fit + center the square board strictly inside playRect().
+    const pr = KIT.layout.playRect();
+    topMargin = pr.y;
+    const cap = Math.max(640, Math.min(W, H) * 0.8);
+    bsize = Math.max(200, Math.min(pr.w - 20, pr.h - 12, cap));
+    bx = pr.x + (pr.w - bsize) / 2;
+    // side mode centers; otherwise bias toward the HUD — a big dead gap above reads worse than below
+    by = sideMode ? pr.y + Math.max(4, (pr.h - 12 - bsize) / 2)
+                  : pr.y + Math.max(6, Math.min(40, (pr.h - 12 - bsize) * 0.25));
     cell = (bsize - bsize * 0.062) / 9;              // inset = cell*0.28 on each side ≈ 6.2% total
     const pad = document.getElementById('pad'), bar = document.getElementById('hintbar');
     if (pad) pad.classList.toggle('side', sideMode);
@@ -1438,7 +1439,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     get hintInfo() { return hintActive; },
     get layout() {
       return { W, H, topReserve: topMargin, side: sideMode,
-        board: { x: bx, y: by, size: bsize }, cell,
+        board: { x: bx, y: by, w: bsize, h: bsize, size: bsize }, cell,
         padTop: sideMode ? H : H - PAD_H - safeB - HINT_H, padLeft: sideMode ? W - SIDE_W : W };
     },
     newGame(opts) { newRun(opts || {}); },
@@ -1463,6 +1464,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   // ==================================================================================
   // Boot
+  KIT.layout.archetype('board'); // layout contract: board fitted in playRect() (resize sets pad reserves)
   resize();
   function i18nHudLabels() {
     const L = { lblTime: ['game.common.time', 'TIME'], lblMiss: ['game.sudoku.hudMistakes', 'MISTAKES'], lblBest: ['game.common.best', 'BEST'] };

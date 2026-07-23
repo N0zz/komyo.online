@@ -61,12 +61,12 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   /* ≤768px the wide centered HUD would slide under the ~214px right cluster — drop it below the nav row
      (hudReserve() uses hudTop()×SCALE = 92×S there, so entities clear it). */
   @media (orientation:portrait) { #topHud { top:50px; max-width:calc(100vw - 16px); } }
-  @media (orientation:landscape) { #topHud { max-width:calc(100vw - 380px); } }
+  @media (orientation:landscape) { #topHud { max-width:calc(100vw - 440px); } }
   #modeTag { font-size:12px; letter-spacing:1px; opacity:0.5; }
   /* narrow (portrait phone): flatten the score column into one baseline row so the pill stays
      inside the kit's 92px narrow headroom (top 48 + ≤2 slim rows) instead of a tall 3-line box */
   @media (max-width:560px), (orientation:portrait) {
-    #topHud { top:48px; max-width:calc(100vw - 16px); gap:2px 12px; padding:3px 10px; border-radius:8px; }
+    #topHud { top:48px; width:80vw; max-width:80vw; justify-content:space-evenly; gap:2px 10px; padding:3px 8px; border-radius:8px; }
     #hudL, #hudR { display:flex; align-items:baseline; gap:7px; }
     #hudL { font-size:16px; letter-spacing:1px; }
     #hudL .label { font-size:9px; letter-spacing:1px; }
