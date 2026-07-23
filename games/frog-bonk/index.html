@@ -200,6 +200,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   // ---- Layout ----
   function resize() {
+    const oldCx = cx, oldCy = cy, oldRef = Math.min(W, H - topMargin);
     W = window.innerWidth; H = window.innerHeight;
     dpr = KIT.fitCanvas(canvas, W, H).dpr;
     // the 5-stat pill wraps on narrow screens (like breakout) — reserve extra headroom there
@@ -207,6 +208,20 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     cx = W / 2;
     cy = topMargin + (H - topMargin) * 0.52;
     castR = Math.min(78, Math.max(36, Math.min(W, H - topMargin) * 0.12));
+    // Reposition frogs RELATIVE to the castle on resize/rotate: keep each one's direction and its
+    // distance-to-castle (scaled by field size). A close frog stays close — fixes "frog lands far from
+    // the castle after rotating yet still attacks as if adjacent". Model is truth; the view just redraws.
+    if (oldRef > 0 && frogs.length) {
+      const s = Math.min(W, H - topMargin) / oldRef;
+      const rp = (o, kx, ky) => { if (o[kx] == null) return; o[kx] = cx + (o[kx] - oldCx) * s; o[ky] = cy + (o[ky] - oldCy) * s; };
+      for (const f of frogs) {
+        rp(f, 'x', 'y'); rp(f, 'fx', 'fy'); rp(f, 'tx', 'ty');
+        if (f.trail) for (const p of f.trail) rp(p, 'x', 'y');
+        if (f.zen && (f.zen.wx || f.zen.wy)) { f.zen.wx = cx + (f.zen.wx - oldCx) * s; f.zen.wy = cy + (f.zen.wy - oldCy) * s; }
+        f.x = Math.min(W - f.r, Math.max(topMargin + f.r, f.x));
+        f.y = Math.min(H - f.r, Math.max(topMargin + f.r, f.y));
+      }
+    }
     bgCache = null; // repaint the meadow at the new size
     // texture pass: colour grade (warm sun corner → cool shade) + vignette, cached per size
     postGrade = ctx.createLinearGradient(0, 0, W, H);
