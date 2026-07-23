@@ -4,6 +4,12 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-23', title: 'Menus that fit every screen 📐', items: [
+    'Fix: game menus now fit on small and landscape phones — no more scrolling to reach Play.',
+    'Fix: layout overlaps cleaned up on narrow and landscape screens across several games (Snake, Tower Defense, Sudoku and more).',
+    'Change: Bubble Pop’s charge meter moved to a tidy bar along the bottom.',
+    'Change: tidier top-left buttons — ↩ Menu and a Komyo home button.',
+  ] },
   { date: '2026-07-22', title: 'Score cards speak your language 🌍', items: [
     'Fix: game mode names (“Classic”, “Easy”, “Speedrun”…) now show in your language on score cards, in your profile and in the game menus of 2048, Balloon Pop, Critter Match, Glow Says, Trap the Cat and Minesweeper — they used to stay English.',
     'Fix: speedrun and sprint score cards now show your TIME again when playing in Ukrainian.',
