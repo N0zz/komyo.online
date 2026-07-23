@@ -109,6 +109,19 @@ silently, not loudly.
   `gamekit.layout.on(…)` — the game computes its CSS size, the kit applies the retina backing
   store; ALL drawing + pointer math stays in CSS px (scale pointers by `W / rect.width`, never
   `canvas.width`). Scaled-world games (asteroids, asteroids-plus) keep their own sizing.
+- **Layout contract = the kit owns play-area geometry** (see `plans/kit-layout-contract-plan.md`).
+  Every game **declares an archetype at boot** — `gamekit.layout.archetype('action'|'controls'|
+  'board', opts)` — and sources ALL board/canvas bounds from **`gamekit.layout.playRect()`** (safe
+  rect = viewport minus reserved edge zones) / **`boardRect(opts)`** (centered board fitted in it),
+  never raw `innerWidth/innerHeight` or a hand-rolled `hudTop` for gameplay bounds. The kit
+  auto-measures the top chrome (HUD pill + nav + cluster) into the top reserve — don't re-measure per
+  game; add extra reserves via archetype `opts` / `reserve(edge,px)` (e.g. a control strip's measured
+  height, a secondary bar). The game **exposes `__test.layout.board = {x,y,w,h}`** (the drawn play
+  area) so `runLayoutSuite` enforces **`board ⊆ playRect()`** across all 5 viewports — an overlap
+  fails CI. Archetypes: **action** = top HUD only (breakout); **controls** = top HUD + build/control
+  strip, bottom in portrait / left in landscape (tower-defense); **board** = top HUD + optional
+  secondary bar, centered board (2048; bubbles adds a reserved bottom bar). (asteroids/+ not yet
+  migrated — the one exception, being reworked separately.)
 - **SFX:** `SND.define({…})` must never reuse a kit-owned stinger name (`levelup`, `lose`, …) —
   the kit plays those itself, so an override self-recurses into silence.
 - **Game-over restart accepts tap AND key;** touch aim maps to canvas coords, not client coords.
@@ -269,6 +282,10 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
    ({slug, …})` + `gamekit.menu` (start/pause/end screens with `record:` + `share:`) +
    `gamekit.loop` + `gamekit.fitCanvas` + `gamekit.pwa()`; game logic inline with the `__test`
    hook (incl. the `layout` getter). Reference: `games/breakout/index.html`.
+   **Declare the layout contract** (see "Game conventions"): `gamekit.layout.archetype(…)` at boot,
+   size the board/canvas from `gamekit.layout.playRect()`/`boardRect()`, and expose
+   `__test.layout.board = {x,y,w,h}`. Templates: breakout (action), 2048 (board), tower-defense
+   (controls).
 2. `games/<slug>/test.mjs` — import the shared harness (`../../test-harness.mjs`):
    `bootGame('games/<slug>/index.html', opts)` (kit preloaded automatically) + game-specific
    asserts driven via `__test`, a `runLayoutSuite` section, and `summary()` at the end.
@@ -307,6 +324,17 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
   `{ bootGame, ok, section, summary, runLayoutSuite }` and keep only game-specific asserts.
 - `node test.mjs` — top-level: catalogue + Keep Defender + boots every live game + a **game-kit**
   test section. `node games/<slug>/test.mjs` — each game's own suite (incl. asteroids).
+- **Menu-fit is enforced by a REAL browser** (`test-menu-browser.mjs`; `npm run test:menus`):
+  headless Chromium (Playwright, **dev-only dep** — the shipped site stays dependency-free) loads
+  every live game (auto-discovered from `games.js`) at the two tight viewports (360×640, 640×360)
+  and asserts the start menu **does not scroll** (box / `.gkm-scroll` pane / landscape `.gkm-rail`
+  all fit). It uses the real CSS layout engine and **blocks service workers**, so it can't give a
+  false pass or test a stale build. This replaced an earlier JS *model* that gave false greens
+  (it couldn't see the cascade / real metrics) — **for CSS/menu layout, only a real browser is
+  trustworthy**; don't reintroduce a model. Menus fit via compact single-column cards on small
+  screens + the 2-column landscape split; a genuinely huge list uses `style:'picker'` (compact
+  trigger + modal). Run it after any menu/CSS change. (`node test.mjs` still can't see CSS — it's a
+  mocked DOM; menu geometry lives only in this browser test.)
 - **i18n coverage is enforced** (an `test.mjs` section): the `pl` locale must contain EVERY referenced
   key (literal `t()`/`data-t` keys + each game's `game.<slug>.title`/`.blurb` + all `cos.*` name/desc),
   and every other locale must be **empty or carry EXACTLY `pl`'s key set** (no half-translated

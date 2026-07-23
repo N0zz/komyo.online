@@ -12,7 +12,7 @@ window.KOMYO_I18N.pl = {
   'profile.statDays': { one: 'Dzień', few: 'Dni', many: 'Dni', other: 'Dnia' },
   'profile.goodRunsWord': { one: 'dobra runda', few: 'dobre rundy', many: 'dobrych rund', other: 'dobrej rundy' },
   'profile.playsWord': { one: 'rozgrywka', few: 'rozgrywki', many: 'rozgrywek', other: 'rozgrywki' },
-  'nav.menu': '‹ Menu',
+  'nav.menu': '↩ Menu',
   'nav.leave': 'Wyjdź',
   'confirm.cancel': 'Anuluj',
   'confirm.ok': 'OK',

@@ -2934,7 +2934,7 @@
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'gamekit-nav';
       wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">' + t('nav.menu') + '</button>'
-        + '<a class="gamekit-back" id="gamekitHome" draggable="false" href="' + localHref(opts.home || '../../') + '"><span class="gamekit-home-label">Komyo </span>&#x203A;</a>';
+        + '<a class="gamekit-back gamekit-home" id="gamekitHome" draggable="false" href="' + localHref(opts.home || '../../') + '" aria-label="Komyo — home"><svg class="gamekit-home-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.4 12 4l9 7.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10.3V19h13v-8.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="gamekit-home-label">Komyo</span></a>';
       document.body.appendChild(wrap);
       _navEl = wrap;
       var menu = document.getElementById('gamekitMenu');
@@ -3569,7 +3569,51 @@
   // needs the taller 92px headroom. In LANDSCAPE it stays on the top row (clusters reserved in its
   // max-width), so headroom stays the compact 48 — dropping on a short screen would squeeze the board.
   function hudDropped() { return isPortrait(); }
-  function layoutState() { return { w: vw(), h: vh(), portrait: isPortrait(), landscape: !isPortrait(), narrow: isNarrow(), hudTop: hudDropped() ? 92 : 48 }; }
+  // ---------- layout contract: reserved edge zones + safe play rect ----------
+  // The kit owns play-area geometry. The top band is always the HUD headroom (hudTop()); a game
+  // declares an archetype (or reserves edges directly) and renders its board/canvas strictly inside
+  // playRect() — so it can never overlap kit chrome (control strips, secondary bars). Enforced by
+  // runLayoutSuite's no-overlap assert. reserves.* are EXTRA px beyond the HUD band, per edge.
+  var reserves = { top: 0, bottom: 0, left: 0, right: 0 };
+  var archetypeName = null;
+  var hudSel = '.gamekit-hud'; // the game's HUD pill (override via archetype opts.hud for custom-HUD games)
+  // Real rendered bottom of ALL top chrome — the HUD pill AND the kit nav + audio/menu cluster. The
+  // pill wraps to 2+ rows when busy (taller than the hudTop() constant), and the chrome buttons could
+  // change size (bigger touch targets, extra rows); measuring them means the play area always starts
+  // below whatever is actually up there, instead of trusting the 48/92 constant. Headless has no
+  // layout (offsetHeight 0) → 0, so topReserve falls back to the constant.
+  function measuredHudBottom() {
+    var max = 0;
+    try {
+      if (typeof document !== 'undefined' && document.querySelector) {
+        [hudSel, '.gamekit-nav', '.gamekit-audio'].forEach(function (sel) {
+          var el = document.querySelector(sel);
+          if (el && el.offsetHeight) { var b = el.offsetTop + el.offsetHeight; if (b > max) max = b; }
+        });
+      }
+    } catch (e) {}
+    return max;
+  }
+  function topReserve() { var base = hudTop() + reserves.top, m = measuredHudBottom(); return m ? Math.max(base, m + 6) : base; }
+  function playRect() {
+    var W = vw(), H = vh(), top = topReserve();
+    return { x: reserves.left, y: top,
+      w: Math.max(0, W - reserves.left - reserves.right),
+      h: Math.max(0, H - top - reserves.bottom) };
+  }
+  // A centered board fitted inside playRect. opts: {aspect (w/h, default 1), pad, max (cap on the
+  // fitting dimension)}. Returns the rect + `size` (min side) for square boards.
+  function boardRect(opts) {
+    opts = opts || {}; var pr = playRect(), pad = opts.pad || 0;
+    var availW = Math.max(0, pr.w - pad * 2), availH = Math.max(0, pr.h - pad * 2);
+    var aspect = opts.aspect || 1, w, h;
+    if (availH > 0 && availW / availH > aspect) { h = availH; w = h * aspect; }
+    else { w = availW; h = aspect ? w / aspect : availH; }
+    if (opts.max && w > opts.max) { w = opts.max; h = w / aspect; }
+    return { x: pr.x + (pr.w - w) / 2, y: pr.y + (pr.h - h) / 2, w: w, h: h, size: Math.min(w, h) };
+  }
+  function hudTop() { return hudDropped() ? 92 : 48; }
+  function layoutState() { return { w: vw(), h: vh(), portrait: isPortrait(), landscape: !isPortrait(), narrow: isNarrow(), hudTop: hudTop(), archetype: archetypeName, reserves: { top: reserves.top, bottom: reserves.bottom, left: reserves.left, right: reserves.right } }; }
   function fireLayout() { var st = layoutState(); for (var i = 0; i < layoutCbs.length; i++) { try { layoutCbs[i](st); } catch (e) {} } }
   function scheduleLayout() {
     if (typeof requestAnimationFrame === 'function') { if (layoutRaf) return; layoutRaf = requestAnimationFrame(function () { layoutRaf = 0; fireLayout(); }); }
@@ -3585,7 +3629,27 @@
   var layout = {
     get w() { return vw(); }, get h() { return vh(); },
     get portrait() { return isPortrait(); }, get landscape() { return !isPortrait(); }, get narrow() { return isNarrow(); },
-    hudTop: function () { return hudDropped() ? 92 : 48; },
+    hudTop: hudTop,
+    // ---- layout contract ----
+    // Declare the game's layout family; sets the standard reserves and remembers the name so the
+    // no-overlap suite knows to enforce board ⊆ playRect. opts override individual reserves (px):
+    //   action  -> top HUD only
+    //   controls-> top HUD + bottom control strip (opts.bottom)
+    //   board   -> top HUD + optional secondary info bar (opts.bottom); render via boardRect()
+    archetype: function (name, opts) {
+      opts = opts || {}; archetypeName = name || null;
+      reserves.top = opts.top || 0; reserves.left = opts.left || 0; reserves.right = opts.right || 0;
+      reserves.bottom = opts.bottom || 0;
+      if (opts.hud) hudSel = opts.hud; // custom-HUD games (e.g. snake #hud) point the kit at their pill
+      scheduleLayout(); return layout;
+    },
+    archetypeName: function () { return archetypeName; },
+    // Dynamically reserve/adjust one edge (e.g. a control strip measuring its own height). Extra px
+    // beyond the HUD band for 'top'; absolute px for the other edges.
+    reserve: function (edge, px) { if (reserves.hasOwnProperty(edge)) { px = Math.max(0, px | 0); if (reserves[edge] !== px) { reserves[edge] = px; scheduleLayout(); } } return layout; },
+    topReserve: topReserve,
+    playRect: playRect,
+    boardRect: boardRect,
     state: layoutState,
     on: function (cb) { if (typeof cb === 'function') { layoutCbs.push(cb); wireLayout(); } return layout; },
     // Lock-and-inform: show a "rotate your phone" overlay when the orientation isn't what the game
@@ -3860,7 +3924,7 @@
     var hasCards = false;
     // big-list groups (cards/grid/shop) drive the landscape-phone split layout: the list pane left,
     // title + simple selectors/toggles/hint + actions in a right rail (nothing hidden below the fold)
-    var BIG_STYLES = { cards: 1, grid: 1, shop: 1 }, hasBig = false, bigNodes = [];
+    var BIG_STYLES = { cards: 1, grid: 1, shop: 1 }, hasBig = false, hasBigNonCard = false, bigNodes = [];
     var sel = {}, tog = {};
     function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
     // 🐣 Easy picks: `kid: true` marks a group's gentlest choice (toggles: `kid` = the easiest
@@ -3871,11 +3935,16 @@
       sel[g2.id] = (g2['default'] != null ? g2['default'] : (g2.choices && g2.choices[0] ? g2.choices[0].id : null));
       if (EASY) { var chs0 = g2.choices || []; for (var ki = 0; ki < chs0.length; ki++) if (chs0[ki] && chs0[ki].kid) { sel[g2.id] = chs0[ki].id; break; } }
       if (g2.style === 'cards') hasCards = true; if (BIG_STYLES[g2.style]) hasBig = true;
+      if (g2.style === 'grid' || g2.style === 'shop') hasBigNonCard = true;
     });
     // end screens with a score card split too: the CARD is the big pane, score lines + actions
     // form the right rail — stacked, the card overflowed short-landscape viewports
     var endSplit = kind === 'end' && !!cfg.share;
     if (endSplit) hasBig = true;
+    // Split (2-column landscape) for end-screens + any big list (cards/grid/shop): the list column
+    // uses the landscape width so compact single-column cards fit WITHOUT scrolling; title/simple
+    // groups/Play stack in the right rail. Portrait keeps the stacked layout.
+    var splitEligible = hasBig;
     toggles.forEach(function (t) { tog[t.id] = (EASY && t.kid != null) ? !!t.kid : !!t['default']; });
     function state() { var o = {}, k; for (k in sel) if (has(sel, k)) o[k] = sel[k]; for (k in tog) if (has(tog, k)) o[k] = tog[k]; return o; }
 
@@ -3883,7 +3952,7 @@
     // award (recordResult → grAward) must land first. Idempotent per run (menuHide arms the next).
     if (cfg.record && _recDone !== _recRun) { _recDone = _recRun; try { recordResult(cfg.record.slug || (cfg.share && cfg.share.slug), cfg.record); } catch (e) {} }
 
-    var ov = document.createElement('div'); ov.className = 'gamekit-menu gamekit-menu-' + kind + (hasCards ? ' gkm-wide' : '') + (hasBig ? ' gkm-split' : '');
+    var ov = document.createElement('div'); ov.className = 'gamekit-menu gamekit-menu-' + kind + (hasCards ? ' gkm-wide' : '') + (splitEligible ? ' gkm-split' : '');
     // pause screens resume on an outside click/tap (matches every other pause surface); start/end
     // menus keep requiring an explicit action — only wired when the game gave us an onEsc resume
     if (kind === 'pause') ov.addEventListener('click', function (e) { if (e && e.target === ov && typeof cfg.onEsc === 'function') cfg.onEsc(); });
@@ -4175,7 +4244,7 @@
     // Nodes are re-parented (not rebuilt) so listeners, canvas bitmaps and selection state survive.
     var railEl = null, splitOn = false, stackOrder = null;
     function arrange() {
-      if (!hasBig || _menuEl !== ov) return;
+      if (!splitEligible || _menuEl !== ov) return;
       var want = false;
       try { want = vw() > vh() && vh() <= 560; } catch (e) {} // mirrors the CSS media query
       if (want === splitOn) return;

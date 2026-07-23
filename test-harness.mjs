@@ -196,8 +196,21 @@ export function runLayoutSuite(makeGame, check, opts = {}) {
     // opts.size:false for games whose canvas is a scaled world, not the raw viewport (asteroids)
     if (opts.size !== false && L.W != null) ok(L.W === v.w && L.H === v.h, v.name + ': canvas matches viewport (' + L.W + 'x' + L.H + ' vs ' + v.w + 'x' + v.h + ')');
     const reserve = L.topReserve != null ? L.topReserve : L.topMargin;
-    const hud = g.win.gamekit && g.win.gamekit.layout ? g.win.gamekit.layout.hudTop() : 0;
+    const gkL = g.win.gamekit && g.win.gamekit.layout;
+    const hud = gkL ? gkL.hudTop() : 0;
     ok(reserve != null && reserve >= hud, v.name + ': HUD headroom clears the kit chrome (reserve ' + reserve + ' >= hudTop ' + hud + ')');
+    // Layout contract: a game that declared an archetype must render its board strictly inside the
+    // kit's playRect() — the headless proof it can't overlap HUD / control strip / secondary bar.
+    // It exposes that board rect as __test.layout.board {x,y,w,h} in CSS px. Un-migrated games skip.
+    if (gkL && gkL.archetypeName && gkL.archetypeName()) {
+      const pr = gkL.playRect(), b = L.board, rs = r => '[' + [r.x, r.y, r.w, r.h].map(n => Math.round(n)).join(',') + ']';
+      ok(b != null, v.name + ': contract game exposes __test.layout.board');
+      if (b) {
+        const eps = 1;
+        const inside = b.x >= pr.x - eps && b.y >= pr.y - eps && (b.x + b.w) <= pr.x + pr.w + eps && (b.y + b.h) <= pr.y + pr.h + eps;
+        ok(inside, v.name + ': board ⊆ playRect (' + rs(b) + ' in ' + rs(pr) + ')');
+      }
+    }
     if (check) check(g, v, L);
   }
 }

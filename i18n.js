@@ -23,7 +23,7 @@ window.KOMYO_I18N.en = {
   'profile.playsWord': { one: 'play', other: 'plays' },
 
   // --- nav / chrome bar ---
-  'nav.menu': '‹ Menu',
+  'nav.menu': '↩ Menu',
   'nav.leave': 'Leave',
 
   // --- confirm dialog ---

@@ -2,7 +2,7 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.fr = {
-  'nav.menu': '‹ Menu',
+  'nav.menu': '↩ Menu',
   'nav.leave': 'Quitter',
   'confirm.cancel': 'Annuler',
   'confirm.ok': 'OK',

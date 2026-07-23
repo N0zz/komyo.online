@@ -99,10 +99,15 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   /* landscape phones: compact hero so the game tiles are visible without scrolling */
   @media (orientation: landscape) and (max-height: 560px) {
     body { padding-top: 14px; }
-    header { margin: 6px 0 16px; }
-    .mascot { width: 34px; }
-    h1 { font-size: 26px; letter-spacing: 6px; }
+    /* the corner button clusters are fixed at the top; keep the centered hero narrow + inset so it
+       never slides under them (h1 shrinks, clusters tighten, header reserves the corner zones). */
+    header { margin: 6px 0 16px; padding: 0 clamp(64px, 24vw, 150px); }
+    .mascot { width: 26px; }
+    h1 { font-size: 20px; letter-spacing: 4px; }
     .sub { margin-top: 4px; font-size: 10px; letter-spacing: 2px; }
+    .float-btns-l, .float-btns-r { top: 8px; }
+    .float-btns-l { gap: 6px; }
+    .float-btns-r { gap: 5px; }
   }
 
   /* min-height reserves room before games.js renders the tiles — kills the mobile footer-jump CLS */

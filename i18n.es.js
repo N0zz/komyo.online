@@ -12,7 +12,7 @@ window.KOMYO_I18N.es = {
   'profile.statDays': { one: 'Día', other: 'Días' },
   'profile.goodRunsWord': { one: 'buena partida', other: 'buenas partidas' },
   'profile.playsWord': { one: 'partida', other: 'partidas' },
-  'nav.menu': '‹ Menú',
+  'nav.menu': '↩ Menú',
   'nav.leave': 'Salir',
   'confirm.cancel': 'Cancelar',
   'confirm.ok': 'OK',
