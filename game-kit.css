@@ -122,7 +122,10 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
      clusters (~214px each) in its max-width so it never overlaps them; shrink it a touch on short
      screens. hudTop() stays 48 so the board keeps its height. */
 @media (orientation: portrait) {
-  .gamekit-hud { top: 50px; max-width: calc(100vw - 16px); gap: 8px 14px; padding: 5px 12px; font-size: 12px; }
+  /* compact so even a 2-row pill (4+ stats) fits inside the 92px reserve (top 48 + ~40px pill) and
+     clears the board top; the tighter font also fits more stats per row (less wrapping). */
+  .gamekit-hud { top: 48px; max-width: calc(100vw - 12px); gap: 5px 12px; padding: 3px 11px; font-size: 11.5px; }
+  .gamekit-hud .lbl { margin-bottom: 1px; }
 }
 @media (orientation: landscape) {
   .gamekit-hud { max-width: calc(100vw - 380px); }
@@ -148,6 +151,15 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
   .gamekit-back { padding: 6px 8px; font-size: 11px; letter-spacing: .5px; }
   .gamekit-audio { gap: 3px; }
   .gamekit-au-btn { width: 30px; height: 30px; font-size: 12px; }
+}
+/* Large displays (2.5K/4K desktop): bump the kit chrome a notch so it doesn't read tiny. A full
+   10-foot / TV experience (bigger focus targets, D-pad focus nav, safe-area margins) is a future
+   a11y initiative — this is just a proportional nudge. */
+@media (min-width: 1900px) and (min-height: 1000px) {
+  .gamekit-au-btn { width: 46px; height: 42px; font-size: 17px; }
+  .gamekit-hud { font-size: 16px; }
+  .gamekit-back { font-size: 15px; padding: 8px 14px; }
+  .gamekit-home-label { font-size: 15px; }
 }
 
 /* in-page confirm dialog (reset scores / leave-run) — themed via the same --gkm-* vars as the menu,
@@ -263,6 +275,18 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
 .gamekit-menu .gkm-action.danger:hover { color: #fff; background: rgba(255, 90, 90, 0.25); border-color: #ff8a8a; }
 .gamekit-menu .gkm-score { font-size: 40px; font-weight: 800; letter-spacing: 1px; margin: 6px 0; color: var(--gkm-title, var(--gkm-text, #eaf2fb)); text-shadow: var(--gkm-glow, none); }
 .gamekit-menu .gkm-best { margin: 0 0 6px; font-size: 12px; opacity: .85; }
+/* Small/short screens: shrink the end screen (title, score, share card, actions) so score + best +
+   stats lines + the share card + Play again/Menu all fit WITHOUT scrolling (short landscape especially). */
+@media (max-height: 560px) {
+  .gamekit-menu .gkm-title { font-size: 20px; margin-bottom: 6px; }
+  .gamekit-menu .gkm-score { font-size: 26px; margin: 2px 0; }
+  .gamekit-menu .gkm-actions { gap: 6px; margin-top: 8px; padding-top: 8px; }
+  .gamekit-menu .gkm-action { padding: 9px 16px; }
+  .gamekit-menu .gkm-action.primary { padding: 11px; font-size: 15px; }
+  .gamekit-share-card { gap: 6px !important; }
+  .gkshare-card { max-width: 200px !important; }
+}
+@media (max-width: 560px) { .gkshare-card { max-width: 280px !important; } }
 .gamekit-menu .gkm-best .gkm-new { color: var(--gkm-new, #ffd86b); opacity: 1; }
 .gamekit-menu .gkm-line { margin: 2px 0; font-size: 12px; opacity: .7; }
 /* a description line right after a group's button row (e.g. Meadow Flyer's Day/Night) needs breathing room */

@@ -504,8 +504,9 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   /* ---- control row (Install · Search · Filter) ---- */
   .controls { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; flex-wrap:wrap; }
   .controls .ibtn { height:38px; line-height:1; }  /* equal height regardless of emoji/glyph (🎲 vs ⚙/▦) */
-  /* mobile: search on its own row; Filter · Random · Compact share ONE row (equal thirds, shrunk to fit) */
-  @media (max-width:560px) {
+  /* mobile + short landscape: search on its own row; Filter · Random · Compact share ONE row (equal
+     thirds, shrunk to fit) so Compact never wraps to a lonely line on a landscape phone. */
+  @media (max-width:560px), (orientation:landscape) and (max-height:560px) {
     .controls { gap:8px; }
     .controls .searchbox { flex-basis:100%; max-width:none; }
     .controls .filter-wrap { flex:1 1 0; min-width:0; }

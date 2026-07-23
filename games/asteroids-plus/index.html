@@ -65,7 +65,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   #modeTag { font-size:12px; letter-spacing:1px; opacity:0.5; }
   /* narrow (portrait phone): flatten the score column into one baseline row so the pill stays
      inside the kit's 92px narrow headroom (top 48 + ≤2 slim rows) instead of a tall 3-line box */
-  @media (max-width:560px) {
+  @media (max-width:560px), (orientation:portrait) {
     #topHud { top:48px; max-width:calc(100vw - 16px); gap:2px 12px; padding:3px 10px; border-radius:8px; }
     #hudL, #hudR { display:flex; align-items:baseline; gap:7px; }
     #hudL { font-size:16px; letter-spacing:1px; }
@@ -82,10 +82,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
        max-width); just slim it. Dropping it would eat the scarce height. */
     #topHud { gap:2px 12px; padding:2px 10px; border-radius:8px; }
     #hudL, #hudR { display:flex; align-items:baseline; gap:7px; }
-    #hudL { font-size:15px; letter-spacing:1px; }
+    #hudL { font-size:13px; letter-spacing:1px; }
     #hudL .label { font-size:8px; }
     #hudL #wave, #hudL #credits { font-size:10px; margin-top:0; }
-    #hp { font-size:15px; letter-spacing:2px; }
+    #hp { font-size:13px; letter-spacing:2px; }
     #shield { font-size:11px; margin-top:0; }
     #timer { font-size:12px; letter-spacing:1px; }
     #modeTag { font-size:10px; }

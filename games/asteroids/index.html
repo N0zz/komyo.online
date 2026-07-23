@@ -55,7 +55,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   #modeTag { font-size:12px; letter-spacing:1px; opacity:0.5; }
   @media (max-width:560px) { #topHud { top:50px; max-width:calc(100vw - 16px); gap:8px 18px; } }
   /* short screens (landscape phones): slim the HUD so it doesn't eat the playfield */
-  @media (max-height:560px) { #topHud { padding:2px 12px; gap:14px; } #hud { font-size:16px; } #hud .label { font-size:9px; } #weapon { font-size:10px; margin-top:1px; } #lives { font-size:16px; } }
+  @media (max-height:560px), (orientation:portrait) { #topHud { padding:2px 12px; gap:6px 16px; } #hud { font-size:15px; } #hud .label { font-size:9px; } #weapon { font-size:10px; margin-top:1px; } #lives { font-size:15px; } #modeTag { font-size:10px; } }
   /* Portrait: drop below the nav. Landscape (short): keep top-row + reserve the clusters in max-width
      (dropping would waste the scarce height). */
   @media (orientation:portrait) { #topHud { top:50px; max-width:calc(100vw - 16px); } }

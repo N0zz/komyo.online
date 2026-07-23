@@ -808,7 +808,6 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       ],
       onChange: st => { if (st.mode) opts.mode = st.mode; if (st.difficulty) opts.difficulty = st.difficulty; saveOpts(); },
       actions: [{ id: 'play', label: T('game.common.play', 'PLAY'), primary: true }],
-      hint: () => T('game.forcefield.startHint', 'Tap / Space · A & L for the two lanes · Esc to pause'),
       onPlay: () => startGame(),
     });
   }
