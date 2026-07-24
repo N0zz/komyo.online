@@ -34,9 +34,10 @@ later with their own lifecycle; not in scope here.
       parity, counters, timers, shotColor, nextColor, score, level}; save when a shot settles / grid descends
       (never mid-flight); clear on over/win + fresh start; Continue per mode; `confirmLeave` dropped. Round-trip
       test (grid + score). Suite 159, top-level 605.
-- [ ] **Phase 4 — minesweeper (resume).** serialize the board + revealed/flagged + first-click state; save on
-      reveal/flag; **resumed runs are ineligible for best-TIME** (you could pause the clock); Continue per
-      difficulty. Test.
+- [x] **Phase 4 — minesweeper (resume).** Slot per difficulty·variant; serialize mine/rev/flg (num recomputed)
+      + counts + playFrames + relaxed lives; save on each dig/flag; **resumed runs post best SCORE but never
+      best TIME** (`resumedRun` flag strips time from endRun + the end-menu record); Continue per difficulty.
+      Tests incl. the time-ineligibility rule. Suite 124.
 - [ ] **Phase 5 — polish.** Reuse existing `game.common.*` i18n keys where possible (avoid new-locale tax);
       Export/Import already covers the slug-prefixed keys via the existing data blob — verify. Update ROADMAP
       Path-to-launch #5 status. Full suites + menu gate + 5-viewport eyeball.

@@ -116,6 +116,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let flagMode = false;
   let winFxT = 0;
   let relaxed = false, lives = 3;      // Relaxed ♥♥♥ — a mine costs a heart, not the run
+  let resumedRun = false;              // set on resume — such a run never posts a best TIME (see endRun)
   let heartFx = null;                  // {i, t} 💔 pop where a life was lost
 
   // layout (display coords; flip transposes the logical board in landscape)
@@ -188,6 +189,34 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     }
   }
 
+  // ---- resume (kit progress store): one slot per difficulty·variant (id = runLabel), saved on each dig/
+  //      flag, cleared when the run ends or a fresh game starts. num is recomputed from the mine layout,
+  //      so it isn't stored. A RESUMED run posts best SCORE (tiles) but never a best TIME — the clock could
+  //      have been paused across sessions. "Continue" on the start menu resumes it. ----
+  const PROG = KIT ? KIT.progress(SLUG, { max: 8 }) : null;
+  function saveState() {
+    if (!PROG || state !== 'playing' || !minesPlaced) return;
+    PROG.save({ id: runLabel(diff), diff, relaxed, lives, revealed, flags, playFrames,
+      mine: Array.from(mine).join(''), rev: Array.from(rev).join(''), flg: Array.from(flg).join('') });
+  }
+  function clearSave() { if (PROG) PROG.remove(runLabel(diff)); }
+  function resumeRun(s) {
+    if (!s || !s.mine) return false;
+    relaxed = !!s.relaxed;
+    newBoard(s.diff || 'easy');   // sizes + allocates the arrays; we then overwrite with the saved board
+    mine = Uint8Array.from(s.mine, c => +c);
+    rev = Uint8Array.from(s.rev, c => +c);
+    flg = Uint8Array.from(s.flg, c => +c);
+    computeNums(); minesPlaced = true;
+    revealed = s.revealed || 0; flags = s.flags || 0; playFrames = s.playFrames || 0;
+    lives = s.lives != null ? s.lives : 3;
+    won = false; boomAt = -1; resumedRun = true;
+    layoutBoard(); updateHud();
+    state = 'playing'; flagMode = false;
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    return true;
+  }
+
   function placeMines(sx, sy) {
     // first-click safe: exclude the 3x3 around the first reveal (fallback: just the cell)
     const excl = new Set([idx(sx, sy)]);
@@ -215,6 +244,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (num[i] === 0) flood(x, y);
     if (!viaChord) SND.play(num[i] === 0 ? 'ripple' : 'dig');
     updateHud(); checkWin();
+    if (!viaChord && state === 'playing') saveState();
   }
 
   function flood(x, y) {
@@ -238,6 +268,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     flg[i] = flg[i] ? 0 : 1; flags += flg[i] ? 1 : -1;
     SND.play(flg[i] ? 'buoy' : 'unbuoy');
     updateHud();
+    saveState();
   }
 
   function chord(x, y) {
@@ -248,6 +279,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     SND.play('ping');
     eachN(x, y, (nx, ny) => { const j = idx(nx, ny); if (!flg[j] && !rev[j]) reveal(nx, ny, true); });
     updateHud(); if (state === 'playing') checkWin();
+    if (state === 'playing') saveState();
   }
 
   function explode(i) {
@@ -281,8 +313,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     state = 'over';
     const t = elapsedSec();
     const prevT = bestTime(diff);
-    if (KIT) KIT.saveBest(SLUG, runLabel(diff), didWin ? { score: revealed, time: Math.round(t * 1000) } : { score: revealed });
-    const isBest = didWin && (prevT === 0 || t < prevT);
+    if (KIT) KIT.saveBest(SLUG, runLabel(diff), (didWin && !resumedRun) ? { score: revealed, time: Math.round(t * 1000) } : { score: revealed });
+    if (PROG) PROG.remove(runLabel(diff));   // run finished — nothing to resume
+    const isBest = didWin && !resumedRun && (prevT === 0 || t < prevT);
     updateHud();
     setTimeout(() => showEnd(didWin, isBest, t), didWin ? 500 : 900); // let the board read first
   }
@@ -529,6 +562,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function startGame(d) {
     newBoard(d || diff);
     state = 'playing'; flagMode = false;
+    resumedRun = false; clearSave();   // fresh run: time-eligible + abandons any prior save for this variant
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     updateHud();
   }
@@ -580,6 +614,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    const cont = PROG ? PROG.current() : null;   // most-recent saved run (any difficulty), if any
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: KIT.t('game.minesweeper.menuTitle', { def: 'MINESWEEPER' }),
       groups: [{ id: 'diff', label: KIT.t('game.common.difficulty', { def: 'DIFFICULTY' }), style: 'cards', default: diff,
@@ -589,7 +624,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
           preview: (g, w, h) => pvBoard(g, w, h, Math.min(12, DIFFS[d].a), 0.5 + 0.2 * DIFF_ORDER.indexOf(d)) })) }],
       toggles: [{ id: 'relaxed', kid: true, label: '♥♥♥ ' + KIT.t('game.minesweeper.relaxed', { def: 'Relaxed — 3 lives' }), default: relaxed }],
       hint: () => KIT.t('game.minesweeper.startHint', { def: 'Clear the bay without hitting a mine. First dig is always safe.' }),
-      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
+      actions: cont
+        ? [{ id: 'continue', label: KIT.t('game.common.continue', { def: 'Continue' }) + ' · ' + diffDisplay(cont.diff), primary: true },
+           { id: 'play', label: KIT.t('game.common.newGame', { def: 'New game' }) }]
+        : [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
       onChange: st => {
         const prevRelaxed = relaxed;
         diff = st.diff; relaxed = !!st.relaxed; KIT.stampUrl({ diff: st.diff }); updateHud();
@@ -597,6 +635,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
         if (relaxed !== prevRelaxed) showStartMenu();
       },
       onPlay: st => { relaxed = !!st.relaxed; startGame(st.diff); },
+      onAction: id => { if (id === 'continue' && cont) resumeRun(cont); },
     });
   }
 
@@ -613,7 +652,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     KIT.showMenuButton(false); KIT.showPauseButton(false);
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: didWin ? KIT.t('game.minesweeper.cleared', { def: 'BAY CLEARED!' }) : KIT.t('game.minesweeper.boom', { def: 'BOOM!' }),
-      record: didWin ? { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed, time: Math.round(t * 1000) } : { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed },
+      record: (didWin && !resumedRun) ? { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed, time: Math.round(t * 1000) } : { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed },
       scoreText: didWin ? fmtTime(t) : String(revealed),
       best: didWin ? (bestTime(diff) > 0 ? fmtTime(bestTime(diff)) : '') : (KIT.bestScore(SLUG, runLabel(diff)) || ''),
       newBest: !!isBest,
@@ -634,7 +673,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       onAction: id => { if (id === 'resume') KIT.menu.hide(); else if (id === 'menu') toMenu(); },
       onEsc: () => KIT.menu.hide() });
   }
-  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
+  function toMenu() { if (state === 'playing') saveState(); if (KIT) KIT.menu.hide(); showStartMenu(); }
 
   // ---- resize ----
   function resize() {
@@ -693,7 +732,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- nav + music ----
   KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); },
-    confirmLeave: () => state === 'playing' && minesPlaced ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    confirmLeave: false,   // progress auto-saves + "Continue" resumes it, so leaving mid-run loses nothing
     controls: { title: KIT.t('game.minesweeper.controlsTitle', { def: 'Minesweeper — Controls' }),
       mouse: [ [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.minesweeper.ctrlDig', { def: 'Dig (reveal a tile)' })],
                [KIT.t('game.minesweeper.rightClick', { def: 'Right-click' }), KIT.t('game.minesweeper.ctrlFlag', { def: 'Place / remove a flag' })],
@@ -740,6 +779,13 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     startMode(d) { startGame(d); },
     menu() { return KIT ? KIT.menu.current() : null; },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+    // resume hooks (progress store)
+    get resumedRun() { return resumedRun; },
+    hasSave() { return PROG ? PROG.has() : false; },
+    savedRun() { return PROG ? PROG.current() : null; },
+    saveNow() { saveState(); },
+    resume() { return resumeRun(PROG ? PROG.current() : null); },
+    toMenu() { toMenu(); },
   };
 
   // ---- boot ----

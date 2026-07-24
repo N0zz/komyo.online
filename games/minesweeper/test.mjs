@@ -203,4 +203,46 @@ runLayoutSuite(
   }
 );
 
+// ---- resume (kit progress store) ----
+section('minesweeper: resume');
+{
+  const g1 = runGame();
+  g1.T().start();                                  // easy
+  g1.T().plantMines([[3, 4], [5, 4]]);             // mines flank (4,4) → digging it reveals ONE numbered cell (no flood, no win)
+  g1.T().reveal(4, 4);                             // a dig → autosave, board still in progress
+  const savedRevealed = g1.T().score;
+  ok(savedRevealed > 0 && g1.T().state === 'playing', 'a dig reveals tiles and the run continues (got ' + savedRevealed + ')');
+  ok(g1.T().hasSave(), 'a dig creates a resume save');
+  g1.T().toMenu();
+  ok(g1.T().state === 'ready', 'toMenu returns to the start screen');
+
+  const g2 = bootGame(FILE, { seed: 7, store: g1.store });
+  ok(g2.T().hasSave(), 'the save persists into a fresh session');
+  ok(g2.T().resume() === true, 'resume() succeeds');
+  ok(g2.T().state === 'playing', 'resumed run is playing');
+  ok(g2.T().score === savedRevealed, 'resumed revealed-count matches (' + g2.T().score + ' vs ' + savedRevealed + ')');
+  ok(g2.T().resumedRun === true, 'resumed run is flagged time-ineligible');
+  ok(g2.T().isMine(3, 4) && g2.T().isMine(5, 4), 'resumed board keeps the mine layout');
+
+  const g3 = bootGame(FILE, { seed: 7, store: g1.store });
+  ok(g3.T().hasSave(), 'save still present before a fresh start');
+  g3.T().startMode('easy');
+  ok(!g3.T().hasSave(), 'a fresh start clears the prior save for that variant');
+}
+
+section('minesweeper: a resumed win posts best score but NOT best time');
+{
+  const a = runGame();
+  a.T().start(); a.T().plantMines([[3, 4], [5, 4]]); a.T().reveal(4, 4); a.T().toMenu();
+  const b = bootGame(FILE, { seed: 7, store: a.store });
+  b.T().resume();
+  for (let y = 0; y < b.T().rows; y++) for (let x = 0; x < b.T().cols; x++) {
+    if (!b.T().isMine(x, y) && b.T().state === 'playing') b.T().reveal(x, y);
+  }
+  ok(b.T().won, 'resumed board can be won');
+  const rec = (JSON.parse(a.store['gamekit_pb'] || '{}').minesweeper || {})['Easy'] || {};
+  ok((rec.score || 0) > 0, 'resumed win posts a best SCORE (' + (rec.score || 0) + ')');
+  ok(!(rec.time > 0), 'resumed win does NOT post a best TIME (time=' + (rec.time || 0) + ')');
+}
+
 summary();
