@@ -173,12 +173,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     startMusic(){ if(KIT) KIT.music.play('space'); },
     stopMusic(){ /* music persists across menu/pause — one continuous menu + in-game bed */ },
   };
-  let W,H,SCALE=1,AX=0,AY=0,AW=0,AH=0; // AX..AH = the arena (playRect scaled into canvas px); stars stay full-bleed
+  let W,H,SCALE=1; // full-screen wrap torus: the whole viewport is play area (HUD floats over it)
   function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; SCALE=S;
     W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S);
-    const L=KIT&&KIT.layout;
-    if(L){ L.reserve('top', L.narrow ? Math.max(0,128-L.hudTop()) : 0); const pr=L.playRect(); AX=Math.round(pr.x*S); AY=Math.round(pr.y*S); AW=Math.round(pr.w*S); AH=Math.round(pr.h*S); }
-    else { AX=0; AY=0; AW=W; AH=H; }
+    const L=KIT&&KIT.layout; if(L) L.reserve('top', L.narrow ? Math.max(0,128-L.hudTop()) : 0); // reserve reflects the 2-row HUD → board.y
     buildStars(); }
   (window.gamekit && window.gamekit.layout) ? window.gamekit.layout.on(resize) : window.addEventListener('resize', resize);
 
@@ -234,7 +232,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') toMenu(); }, onEsc: resumeGame });
   }
   function resumeGame(){ state='playing'; srPrev=now(); if(!ENHANCED) SND.startMusic(); if(KIT) KIT.menu.hide(); }
-  function spawnShip(){ ship={x:AX+AW/2,y:AY+AH/2,vx:0,vy:0,angle:-Math.PI/2,r:14}; invuln=120; }
+  function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14}; invuln=120; }
   function updateHud(){ scoreEl.textContent=score; livesEl.textContent=KIT.t('game.asteroids.lifeIcon', { def: '▲ ' }).repeat(Math.max(0,lives)).trim(); weaponEl.textContent=WEAPONS[weaponLevel-1].label; }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=90; }
   // quit a run back to the start menu, in-place (no reload). Save the score best first (non-speedrun).
@@ -328,9 +326,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     for(let i=0;i<n;i++){ const ang=(i/n)*Math.PI*2; verts.push({ang,d:r*(0.65+Math.random()*0.5)}); }
     const speed=(1.1+Math.random()*0.9)*(4-size)*0.55; const dir=Math.random()*Math.PI*2;
     return {x,y,size,r,vx:Math.cos(dir)*speed,vy:Math.sin(dir)*speed,rot:Math.random()*Math.PI*2,vrot:(Math.random()-0.5)*0.03,verts,hue:200+Math.random()*40}; }
-  function spawnWave(count){ const R=AX+AW,B=AY+AH; for(let i=0;i<count;i++){ let x,y; if(Math.random()<0.5){ x=Math.random()<0.5?AX-60:R+60; y=AY+Math.random()*AH; } else { x=AX+Math.random()*AW; y=Math.random()<0.5?AY-60:B+60; } asteroids.push(makeAsteroid(x,y,3)); } }
+  function spawnWave(count){ for(let i=0;i<count;i++){ let x,y; if(Math.random()<0.5){ x=Math.random()<0.5?-60:W+60; y=Math.random()*H; } else { x=Math.random()*W; y=Math.random()<0.5?-60:H+60; } asteroids.push(makeAsteroid(x,y,3)); } }
   function burst(x,y,color,n,spread){ for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, sp=Math.random()*spread+0.5; particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,decay:Math.random()*0.025+0.012,color,size:Math.random()*2+1}); } }
-  function wrap(o){ const R=AX+AW,B=AY+AH; if(o.x<AX-o.r)o.x=R+o.r; if(o.x>R+o.r)o.x=AX-o.r; if(o.y<AY-o.r)o.y=B+o.r; if(o.y>B+o.r)o.y=AY-o.r; }
+  function wrap(o){ if(o.x<-o.r)o.x=W+o.r; if(o.x>W+o.r)o.x=-o.r; if(o.y<-o.r)o.y=H+o.r; if(o.y>H+o.r)o.y=-o.r; }
 
   function fireBullet(angle){ bullets.push({ x:ship.x+Math.cos(angle)*ship.r, y:ship.y+Math.sin(angle)*ship.r, vx:Math.cos(angle)*8+ship.vx, vy:Math.sin(angle)*8+ship.vy, life:70, r:2 }); }
   function shoot(){
