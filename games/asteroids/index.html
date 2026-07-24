@@ -47,11 +47,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   html, body { margin:0; padding:0; height:100%; background:#05060a; overflow:hidden; font-family:"Courier New",monospace; color:#cfe8ff; }
   #game { display:block; width:100vw; height:100vh; }
   /* HUD: position/pill/responsive/nav-clearance all come from the shared .gamekit-hud (layout
-     contract, action archetype). Keep only the retro space colours. */
-  #hud .val { font-size:22px; letter-spacing:2px; }
+     contract, action archetype). Keep only the retro space colours. Asteroids-only: the pill floats
+     OVER live gameplay (full-screen wrap), so soften it (70% opacity) + slightly smaller text so rocks
+     stay readable through it — the kit .gamekit-hud is untouched (other games have no play area behind). */
+  #hud { opacity:0.7; }
+  #hud .val { font-size:19px; letter-spacing:2px; }
   #hud #weapon { font-size:12px; color:#ffc878; opacity:0.9; }
-  #hud #lives { font-size:22px; letter-spacing:4px; color:#7fffb0; text-shadow:0 0 8px rgba(120,255,170,0.6); }
-  #hud #timerVal { font-size:18px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); }
+  #hud #lives { font-size:19px; letter-spacing:4px; color:#7fffb0; text-shadow:0 0 8px rgba(120,255,170,0.6); }
+  #hud #timerVal { font-size:16px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); }
   #hud #modeTag { font-size:11px; letter-spacing:1px; opacity:0.55; }
   #hud #timerGoal { display:block; font-size:10px; opacity:0.7; }
   /* small screens: drop the mode label + the speedrun goal sub-line (both are on the start menu) so
