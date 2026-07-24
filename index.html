@@ -1225,7 +1225,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         // presses that start on the ★ star (or any button inside the tile) never enter the drag
         // path — setPointerCapture would otherwise retarget the whole sequence to the tile, so the
         // click lands on the link (opening the game) instead of the star (unfavoriting)
-        if (e.target && e.target.closest && e.target.closest('button')) return;
+        if (e.target && e.target.closest && e.target.closest('button, .more-strip')) return;
         const touch = e.pointerType === 'touch';
         if (!touch && e.preventDefault) e.preventDefault(); // mouse: block native link-drag/text-select
         const sx = e.clientX, sy = e.clientY;
@@ -1441,7 +1441,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     }
     window.__gcClose = gcClose;   // density toggle (separate IIFE) closes any open card
     function gcBuild(g) {
-      const hasVid = !!g.trailer, hasShot = !hasVid && !!g.shot, hasMedia = hasVid || hasShot;
+      const hasVid = !!g.preview, hasShot = !hasVid && !!g.shot, hasMedia = hasVid || hasShot;
       const card = document.createElement('div');
       card.className = 'gcard' + (hasMedia ? '' : ' solo');
       card.style.setProperty('--accent', g.accent || '#9fe8ff');
@@ -1480,7 +1480,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const vid = dlg.querySelector('video');
       if (vid) {
         const media = dlg.querySelector('.gc-media'), spin = dlg.querySelector('.gc-spin');
-        const src = 'games/' + g.slug + '/' + g.trailer;
+        const src = 'games/' + g.slug + '/' + g.preview;
         vid.addEventListener('playing', () => { if (spin && spin.parentNode) spin.remove(); });
         if (media.classList.contains('weak')) {
           if (spin && spin.parentNode) spin.remove();
@@ -1504,7 +1504,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
             var idle = window.requestIdleCallback || function (f) { return setTimeout(f, 1500); };
             idle(function () {
               (window.GAMES || []).forEach(function (g) {
-                if (g && g.trailer && !g.soon) { fetch('games/' + g.slug + '/' + g.trailer).catch(function () {}); }
+                if (g && g.preview && !g.soon) { fetch('games/' + g.slug + '/' + g.preview).catch(function () {}); }
               });
             });
           } catch (e) {}

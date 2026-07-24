@@ -48,7 +48,7 @@ window.GAMES = [
     badges: ["pick"],
     added: "2026-07-04",
     updated: "2026-07-11",
-    trailer: "trailer.v1.mp4",
+    preview: "preview.v1.mp4",
   },
 
   {
@@ -154,7 +154,7 @@ window.GAMES = [
     badges: ["pick"],
     added: "2026-07-12",
     updated: "2026-07-19",
-    trailer: "trailer.v1.mp4",
+    preview: "preview.v1.mp4",
   },
   {
     slug: "flappy",
@@ -166,6 +166,7 @@ window.GAMES = [
     added: "2026-06-26",
     updated: "2026-07-06",
     shot: "shot.v1.webp",
+    preview: "preview.v1.mp4",
   },
   {
     slug: "aim-trainer",
