@@ -331,6 +331,8 @@ window.KOMYO_I18N.es = {
   'game.common.drag': 'Arrastrar',
   'game.common.scoreLine': 'Puntuación {score}',
   'game.common.play': 'Jugar',
+  'game.common.continue': 'Continuar',
+  'game.common.newGame': 'Nueva partida',
   'game.common.playAgain': 'Jugar de nuevo',
   'game.common.modeLabel': 'MODO',
   'game.common.touchScheme': 'Controles con botones',

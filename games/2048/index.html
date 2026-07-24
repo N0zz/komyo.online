@@ -112,6 +112,23 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   const modeDisplay = m => KIT.t('game.2048.mode' + (m || mode), { def: modeLabel(m) });
   function loadBest(m) { return KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0; }
 
+  // ---- resume (kit progress store): one slot per mode, keyed by mode id. Saved on each move, cleared
+  //      when the run finishes or a fresh game starts; "Continue" on the start menu resumes the latest. ----
+  const PROG = KIT ? KIT.progress(SLUG, { max: MODE_ORDER.length }) : null;
+  function saveState() { if (PROG && state === 'playing') PROG.save({ id: mode, mode, grid: grid.map(r => r.slice()), score, maxTile, reached2048 }); }
+  function clearSave() { if (PROG) PROG.remove(mode); }
+  function resumeRun(s) {
+    if (!s || !s.grid) return false;
+    mode = s.mode || 'classic'; N = MODES[mode].n;
+    grid = s.grid.map(r => r.slice());
+    score = s.score || 0; maxTile = s.maxTile || 2; reached2048 = !!s.reached2048;
+    anims = []; animT = 0; spawnAt = null; spawnT = 0;
+    best = loadBest(mode); layoutBoard(); updateHud();
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    return true;
+  }
+
   // ---- board ----
   function emptyCells() {
     const out = [];
@@ -196,6 +213,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (gained > 0) SND.play(gained >= 128 ? 'popBig' : 'pop'); else SND.play('spawnT');
     if (milestone) SND.play('mile');
     updateHud();
+    saveState();   // persist the settled board (win/gameOver below clears it if the run just ended)
     if (maxTile >= 2048 && !reached2048) { reached2048 = true; win(); return true; }
     if (!movesAvailable()) gameOver();
     return true;
@@ -219,11 +237,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
 
   function win() {
-    state = 'over'; const isBest = saveRun();
+    state = 'over'; const isBest = saveRun(); clearSave();
     showEnd(true, isBest);
   }
   function gameOver() {
-    state = 'over'; const isBest = saveRun();
+    state = 'over'; const isBest = saveRun(); clearSave();
     setTimeout(() => showEnd(false, isBest), 500);
   }
 
@@ -395,6 +413,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   function startGame(m) {
     newGame(m);
+    clearSave();   // a fresh run abandons any prior save for this mode (first move re-saves)
     state = 'playing';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
   }
@@ -441,6 +460,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
+    const cont = PROG ? PROG.current() : null;   // most-recent saved run (any mode), if any
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: '2048',
       groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
@@ -449,9 +469,13 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
           best: () => loadBest(m) || '',
           preview: (g, w, h) => pvGrid(MODES[m].n)(g, w, h) })) }],
       hint: () => KIT.t('game.2048.startHint', { def: 'Slide the tiles — equal numbers merge and double. Reach 2048!' }),
-      actions: [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
+      actions: cont
+        ? [{ id: 'continue', label: KIT.t('game.common.continue', { def: 'Continue' }) + ' · ' + modeDisplay(cont.mode) + ' ' + (cont.score || 0), primary: true },
+           { id: 'play', label: KIT.t('game.common.newGame', { def: 'New game' }) }]
+        : [{ id: 'play', label: KIT.t('game.common.play', { def: 'PLAY' }), primary: true }],
       onChange: st => { mode = st.mode; KIT.stampUrl({ mode: st.mode }); },
       onPlay: st => startGame(st.mode),
+      onAction: id => { if (id === 'continue' && cont) resumeRun(cont); },
     });
   }
 
@@ -490,7 +514,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       onAction: id => { if (id === 'resume') KIT.menu.hide(); else if (id === 'menu') toMenu(); },
       onEsc: () => KIT.menu.hide() });
   }
-  function toMenu() { if (state === 'playing') saveRun(); if (KIT) KIT.menu.hide(); showStartMenu(); }
+  function toMenu() { if (state === 'playing') { saveRun(); saveState(); } if (KIT) KIT.menu.hide(); showStartMenu(); }
 
   // ---- resize ----
   function resize() {
@@ -528,7 +552,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- nav + music ----
   KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); },
-    confirmLeave: () => state === 'playing' && score > 0 ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    confirmLeave: false,   // progress auto-saves + "Continue" resumes it, so leaving mid-run loses nothing
     controls: { title: KIT.t('game.2048.controlsTitle', { def: '2048 — Controls' }),
       keyboard: [ ['← ↑ → ↓ · WASD', KIT.t('game.2048.ctrlSlide', { def: 'Slide the tiles' })],
                   ['Esc', KIT.t('game.common.pause', { def: 'Pause' })] ],
@@ -554,6 +578,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     startMode(m) { startGame(m); },
     menu() { return KIT ? KIT.menu.current() : null; },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+    // resume hooks (progress store)
+    hasSave() { return PROG ? PROG.has() : false; },
+    savedRun() { return PROG ? PROG.current() : null; },
+    resume() { return resumeRun(PROG ? PROG.current() : null); },
+    toMenu() { toMenu(); },
   };
 
   // ---- boot ----

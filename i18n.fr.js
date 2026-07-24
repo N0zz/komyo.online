@@ -820,6 +820,8 @@ window.KOMYO_I18N.fr = {
   'game.common.drag': 'Glisser',
   'game.common.scoreLine': 'Score {score}',
   'game.common.play': 'Jouer',
+  'game.common.continue': 'Continuer',
+  'game.common.newGame': 'Nouvelle partie',
   'game.common.playAgain': 'Rejouer',
   'game.common.modeLabel': 'MODE',
   'game.common.touchScheme': 'Commandes par boutons',

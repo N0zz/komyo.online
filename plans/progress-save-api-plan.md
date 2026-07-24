@@ -27,8 +27,9 @@ later with their own lifecycle; not in scope here.
 
 - [x] **Phase 1 — primitive + Sudoku extraction.** Add `gamekit.progress`; migrate Sudoku's `sudoku_history`
       onto it (same key + entry shape → zero player-data migration). Suite green (139), top-level 605.
-- [ ] **Phase 2 — 2048 (resume).** serialize {grid, score}; save on each move; clear on game-over; "Continue"
-      on the start menu; clear on New game. Test round-trip.
+- [x] **Phase 2 — 2048 (resume).** Slot per mode (id=mode); save on each move; clear on over/win + fresh
+      start; "Continue · <mode> <score>" on the start menu; `confirmLeave` dropped (progress persists). Added
+      reusable `game.common.continue`/`newGame` to all 7 locales. Round-trip test. Suite 82, top-level 605.
 - [ ] **Phase 3 — bubbles (resume).** serialize {mode, grid, offsets, counters, shotColor, nextColor, score,
       level}; save on shot resolve (settled grid only, never mid-animation); clear on over/win; Continue per
       mode. Test.

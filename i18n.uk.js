@@ -820,6 +820,8 @@ window.KOMYO_I18N.uk = {
   'game.common.drag': 'Перетягніть',
   'game.common.scoreLine': 'Рахунок {score}',
   'game.common.play': 'Грати',
+  'game.common.continue': 'Продовжити',
+  'game.common.newGame': 'Нова гра',
   'game.common.playAgain': 'Зіграти ще раз',
   'game.common.modeLabel': 'РЕЖИМ',
   'game.common.touchScheme': 'Керування кнопками',
