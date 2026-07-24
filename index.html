@@ -1186,6 +1186,19 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       setFavs(a); render();
       try { if (window.gamekitTrack) window.gamekitTrack('favorite_toggle', { slug, on: i >= 0 ? 0 : 1 }); } catch (e) {}
     }
+    // One snapshot per tab-session of which games are CURRENTLY starred — a STATE event, unlike
+    // favorite_toggle's flow: GA4's "Total users" per slug then reads as the live star count, and a
+    // reset/import (which drops stars without a toggle) self-corrects on the next visit.
+    function pingFavState() {
+      try {
+        if (sessionStorage.getItem('komyo_fav_pinged')) return;
+        if (typeof window.gamekitTrack !== 'function' || localStorage.getItem('gamekit_consent') !== 'granted') return;
+        favs().forEach(slug => window.gamekitTrack('favorite_state', { slug }));
+        sessionStorage.setItem('komyo_fav_pinged', '1');
+      } catch (e) {}
+    }
+    // analytics.js is deferred (runs after this inline script), so wait for the parse to finish
+    document.addEventListener('DOMContentLoaded', pingFavState);
     // manual reorder within the Favorites strip — always on, no edit mode. Mouse: dragging a tile
     // past a small threshold lifts it (a plain click still navigates). Touch: LONG-PRESS lifts it
     // (immediate drag would eat page scrolling — this is the app-home-screen convention). While
@@ -2187,7 +2200,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       if (!saved && banner) banner.hidden = false;
       const decide = (v) => { try { localStorage.setItem('gamekit_consent', v); } catch (e) {} if (banner) banner.hidden = true; };
       const a = document.getElementById('cbAccept'), d = document.getElementById('cbDecline');
-      if (a) a.addEventListener('click', () => { decide('granted'); if (window.gamekitLoadGA) window.gamekitLoadGA(); });
+      if (a) a.addEventListener('click', () => { decide('granted'); if (window.gamekitLoadGA) window.gamekitLoadGA(); pingFavState(); });
       if (d) d.addEventListener('click', () => decide('denied'));
     })();
 
