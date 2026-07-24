@@ -2,6 +2,8 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.fr = {
+  'changelog.e75.title': 'Quitte et reviens — ta partie est sauvegardée 🔖',
+  'changelog.e75.b0': 'Nouveau : 2048, Bulles et Démineur mémorisent désormais ta partie en cours — quitte quand tu veux et appuie sur « Continuer » sur l’écran d’accueil pour reprendre exactement où tu t’es arrêté. (Sudoku conservait déjà tes grilles inachevées.)',
   'nav.menu': '↩ Menu',
   'nav.leave': 'Quitter',
   'confirm.cancel': 'Annuler',

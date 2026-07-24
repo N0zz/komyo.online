@@ -2,6 +2,8 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.uk = {
+  'changelog.e75.title': 'Вийди й повернися — гру збережено 🔖',
+  'changelog.e75.b0': 'Нове: 2048, Бульбашки та Сапер тепер запам’ятовують розпочату гру — виходь будь-коли й натисни «Продовжити» на початковому екрані, щоб продовжити саме звідти, де ти зупинився. (Sudoku вже зберігало незавершені дошки.)',
   'nav.menu': '↩ Меню',
   'nav.leave': 'Вийти',
   'confirm.cancel': 'Скасувати',
