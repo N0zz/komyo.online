@@ -93,6 +93,14 @@ screenshot-driven, unless its identity is deliberately flat/glow.
   manually).
 - **PWA:** `gamekit.pwa('../../sw.js')` registers the ONE root-scope SW (already in
   the template, outside the IIFE) + add the slug to `GAME_SLUGS` in the root `sw.js`.
+- **Resume / save (optional — ONLY long, calm, turn-based games):** puzzle/board games worth leaving
+  mid-run (sudoku, 2048, bubbles, minesweeper) persist state via `gamekit.progress(slug, { max })` —
+  `max:1` = a single "Resume" slot, `max:N` = a capped history; key entries by `id` (use `id: mode`
+  for one slot per mode). Save on discrete events (a move/shot resolving), NEVER per-frame; clear on
+  over/win + on a fresh start; add a "Continue" action (`game.common.continue`/`newGame`) to the start
+  menu. A time-based best must be **ineligible on a resumed run** (the clock could pause across
+  sessions — see minesweeper). SKIP for reflex/short games (snake, flappy, stacker…). See
+  `plans/progress-save-api-plan.md`.
 
 ### 7 · Register the game
 Edit the shared files (see `references/registration.md` for exact shapes):
