@@ -820,6 +820,8 @@ window.KOMYO_I18N.cs = {
   'game.common.drag': 'Táhnout',
   'game.common.scoreLine': 'Skóre {score}',
   'game.common.play': 'Hrát',
+  'game.common.continue': 'Pokračovat',
+  'game.common.newGame': 'Nová hra',
   'game.common.playAgain': 'Hrát znovu',
   'game.common.modeLabel': 'REŽIM',
   'game.common.touchScheme': 'Ovládání tlačítky',

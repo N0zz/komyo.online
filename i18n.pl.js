@@ -331,6 +331,8 @@ window.KOMYO_I18N.pl = {
   'game.common.drag': 'Przeciągnij',
   'game.common.scoreLine': 'Wynik {score}',
   'game.common.play': 'Graj',
+  'game.common.continue': 'Kontynuuj',
+  'game.common.newGame': 'Nowa gra',
   'game.common.playAgain': 'Zagraj ponownie',
   'game.common.modeLabel': 'TRYB',
   'game.common.touchScheme': 'Sterowanie przyciskami',

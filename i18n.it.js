@@ -820,6 +820,8 @@ window.KOMYO_I18N.it = {
   'game.common.drag': 'Trascina',
   'game.common.scoreLine': 'Punteggio {score}',
   'game.common.play': 'Gioca',
+  'game.common.continue': 'Continua',
+  'game.common.newGame': 'Nuova partita',
   'game.common.playAgain': 'Gioca ancora',
   'game.common.modeLabel': 'MODALITÀ',
   'game.common.touchScheme': 'Controlli a pulsanti',

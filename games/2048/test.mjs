@@ -175,4 +175,31 @@ runLayoutSuite(
   }
 );
 
+// ---- resume (kit progress store) ----
+section('2048: resume');
+{
+  const g1 = runGame();
+  const T1 = g1.T;
+  T1().start();
+  T1().setGrid([[2, 2, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]]);
+  T1().move('left');                      // a real move → merges to 4, board changes → autosave
+  const savedScore = T1().score;
+  ok(T1().hasSave(), 'a move creates a resume save');
+  T1().toMenu();
+  ok(T1().state === 'ready', 'toMenu() returns to the start screen');
+
+  const g2 = bootGame(FILE, { seed: 11, store: g1.store });   // new "session", same storage
+  const T2 = g2.T;
+  ok(T2().hasSave(), 'the save persists into a fresh session');
+  ok(T2().state === 'ready', 'fresh session opens at the menu (does not auto-resume)');
+  ok(T2().resume() === true, 'resume() succeeds');
+  ok(T2().state === 'playing', 'resumed run is playing');
+  ok(T2().score === savedScore, 'resumed score matches the saved run (' + T2().score + ' vs ' + savedScore + ')');
+
+  // a fresh start abandons the saved run for that mode
+  const g3 = bootGame(FILE, { seed: 11, store: g1.store });
+  g3.T().start();
+  ok(!g3.T().hasSave() || g3.T().savedRun().score === 0, 'starting a new game clears the prior save for that mode');
+}
+
 summary();
