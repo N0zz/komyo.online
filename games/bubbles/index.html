@@ -264,6 +264,34 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function saveBest() { if (score > bestScore) { bestScore = score; if (KIT) KIT.saveBest('bubbles', modeLabel(mode), { score: score }); } }
   function bestFor(m) { return KIT ? KIT.bestScore('bubbles', modeLabel(m)) : 0; }
 
+  // ---- resume (kit progress store): one slot per mode; saved when a shot settles / the grid descends,
+  //      cleared when the run ends or a fresh game starts. "Continue" on the start menu resumes it. ----
+  const PROG = KIT ? KIT.progress('bubbles', { max: 3 }) : null;
+  function saveState() {
+    if (!PROG || state !== 'playing') return;
+    PROG.save({ id: mode, mode, timeDescent, level, score, gridOffsetY, gridParity,
+      shotsThisLevel, shotsSinceDescent, descentTimer, endlessRowTimer, shotColor, nextColor,
+      grid: grid.map(row => row.map(b => b ? b.colorIdx : null)) });
+  }
+  function clearSave() { if (PROG) PROG.remove(mode); }
+  function resumeRun(s) {
+    if (!s || !s.grid) return false;
+    mode = s.mode || 'arcade'; timeDescent = !!s.timeDescent;
+    level = s.level || 1; score = s.score || 0;
+    gridOffsetY = s.gridOffsetY || 0; gridParity = s.gridParity || 0;
+    descentTimer = s.descentTimer || 0; endlessRowTimer = s.endlessRowTimer || 0;
+    shotsThisLevel = s.shotsThisLevel || 0; shotsSinceDescent = s.shotsSinceDescent || 0;
+    shotColor = s.shotColor || 0; nextColor = s.nextColor || 0;
+    grid = s.grid.map(row => row.map(ci => (ci == null ? null : { colorIdx: ci })));
+    chargeLevel = 0; specialReady = false; specialType = null;
+    isShooting = false; shotBubble = null; floats = []; particles = []; fallingBubbles = [];
+    aimAngle = -Math.PI / 2;
+    loadBest(); updateHud();
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    return true;
+  }
+
   // ---- Start / modes ----
   function startMode(m, timed) {
     mode = m || 'arcade';
@@ -290,6 +318,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     state = 'playing';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     updateHud();
+    clearSave();   // a fresh run abandons any prior save for this mode (first settled shot re-saves)
   }
   function startGame() { startMode(mode); }
 
@@ -325,6 +354,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     state = 'ready'; if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (KIT && KIT.music) KIT.music.intensity(0.3);
     if(!KIT) return;
+    const cont = PROG ? PROG.current() : null;   // most-recent saved run (any mode), if any
     KIT.menu.show({ kind:'start', theme:MENU_THEME, title:KIT.t('game.bubbles.title', { def:'BUBBLE POP' }),
       groups:[{ id:'mode', label:KIT.t('game.common.modeLabel', { def:'MODE' }), style:'cards', default: mode, choices:[
         { id:'arcade',  label:KIT.t('game.bubbles.modeArcade', { def:'ARCADE' }),  preview:pvArcade,  mech:[KIT.t('game.bubbles.mechArcade1', { def:'Clear to advance' }),KIT.t('game.bubbles.mechArcade2', { def:'Grid descends' })], best:()=>bestFor('arcade') },
@@ -333,14 +363,19 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       ]}],
       toggles:[{ id:'timed', kid:false, label:KIT.t('game.bubbles.timedToggle', { def:'Time-based descent' }), caption:KIT.t('game.bubbles.timedCaption', { def:'— drops on a clock, not per shot' }), default: timeDescent, disabled: st => st.mode === 'zen' }],
       hint: st => MODE_HINT(st.mode) + (st.timed && st.mode !== 'zen' ? KIT.t('game.bubbles.timedSuffix', { def:' · timed' }) : ''),
-      actions:[{ id:'play', label:KIT.t('game.common.play', { def:'PLAY ▶' }), primary:true }],
+      actions: cont
+        ? [{ id:'continue', label:KIT.t('game.common.continue', { def:'Continue' })+' · '+modeDisplay(cont.mode)+' '+(cont.score||0), primary:true },
+           { id:'play', label:KIT.t('game.common.newGame', { def:'New game' }) }]
+        : [{ id:'play', label:KIT.t('game.common.play', { def:'PLAY ▶' }), primary:true }],
       onChange: st => { KIT.stampUrl(modeParams(st)); },
       onPlay: st => { KIT.stampUrl(modeParams(st)); startMode(st.mode, st.timed); },
+      onAction: id => { if (id === 'continue' && cont) resumeRun(cont); },
     });
     KIT.stampUrl(modeParams({ mode: mode, timed: timeDescent }));
   }
   function showEnd(won){
     state = won ? 'won' : 'over';
+    clearSave();   // the run is finished — nothing to resume
     const prevBest = bestScore; saveBest(); const isBest = score > prevBest;
     if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
     SND.play(won ? 'won' : 'lose');
@@ -361,7 +396,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     menuReshow = show; show();
   }
   function resumeGame(){ if(state!=='paused') return; state='playing'; if(KIT) KIT.menu.hide(); }
-  function toMenu(){ saveBest(); if(KIT) KIT.menu.hide(); showStartMenu(); }
+  function toMenu(){ if(state==='playing') saveState(); saveBest(); if(KIT) KIT.menu.hide(); showStartMenu(); }
 
   // ---- HUD ----
   function updateHud() {
@@ -743,6 +778,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (state === 'playing') {
       checkWin();
     }
+    if (state === 'playing') saveState();   // persist the settled board between shots
   }
 
   // ---- Lose condition ----
@@ -805,6 +841,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function descentStep() {
     gridOffsetY += ROW_H;
     checkLose();
+    if (state === 'playing' && !isShooting) saveState();   // timed descents settle outside a shot
   }
 
   function addEndlessRow() {
@@ -817,6 +854,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     gridParity ^= 1; // inserting a row at the top would flip every row's hex offset — counter it so the existing shape only moves DOWN, not sideways
     gridOffsetY = Math.max(0, gridOffsetY - ROW_H);
     checkLose();
+    if (state === 'playing' && !isShooting) saveState();   // timed endless rows settle outside a shot
   }
 
   // ---- Core update ----
@@ -1245,7 +1283,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- top nav (game-kit): ‹ Menu + komyo › guard a live run; ⏸ + Esc drive the menu pause ----
   KIT.nav({ slug: 'bubbles', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
-    confirmLeave: () => (state === 'playing' || state === 'paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    confirmLeave: false,   // progress auto-saves + "Continue" resumes it, so leaving mid-run loses nothing
     controls: { title: KIT.t('game.bubbles.controlsTitle', { def: 'Bubble Pop — Controls' }),
       mouse: [ [KIT.t('game.bubbles.ctrlMove', { def:'Move' }),KIT.t('game.bubbles.ctrlAim', { def:'Aim' })], [KIT.t('game.common.click', { def:'Click' }),KIT.t('game.bubbles.ctrlShoot', { def:'Shoot' })] ],
       keyboard: [ [KIT.t('game.bubbles.ctrlAimKeys', { def:'← →  ·  A D' }),KIT.t('game.bubbles.ctrlAim', { def:'Aim' })], [KIT.t('game.common.spaceEnter', { def:'Space  ·  Enter' }),KIT.t('game.bubbles.ctrlShoot', { def:'Shoot' })], [KIT.t('game.common.esc', { def:'Esc' }),KIT.t('game.common.pause', { def:'Pause' })] ],
@@ -1310,6 +1348,12 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     },
     forceDescend() { descentStep(); },
     setScore(n) { score = n; updateHud(); },
+    // resume hooks (progress store)
+    hasSave() { return PROG ? PROG.has() : false; },
+    savedRun() { return PROG ? PROG.current() : null; },
+    saveNow() { saveState(); },
+    resume() { return resumeRun(PROG ? PROG.current() : null); },
+    toMenu() { toMenu(); },
     addCharge(n) {
       chargeLevel = Math.min(1, chargeLevel + n);
       if (chargeLevel >= 1 && !specialReady) { specialReady = true; specialType = 'bomb'; }
