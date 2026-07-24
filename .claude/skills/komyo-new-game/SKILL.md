@@ -127,6 +127,15 @@ Every discovered non-`en` locale with keys is a required target. Run the
 **komyo-i18n-translate** skill in its incremental mode ("add the new keys to
 all existing complete locales") to translate them into each `i18n.<code>.js`.
 
+### 7c · Card media — hand off to komyo-game-trailer
+Every live game's catalogue card needs media in games.js: at minimum a still
+`shot: "shot.v1.webp"` (720×1280 webp, a clean gameplay frame), and ideally a
+`preview: "preview.v1.mp4"` — a **text-free full-bleed gameplay loop** shown in
+the card (language-neutral, so it's correct in every locale). Both come from the
+**komyo-game-trailer** skill once you have a gameplay recording (it also cuts the
+social promo trailer and wires `preview:`/`shot:` into games.js). A new game with
+neither shows a text-only card — acceptable to launch, but flag it as a follow-up.
+
 ### 8 · Verify + hand off
 Run `node test.mjs` AND `node games/<slug>/test.mjs` — both green, including the
 layout suite. Serve locally and give the user the preview URL
