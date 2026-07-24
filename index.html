@@ -391,10 +391,10 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     .setgroups .drefresh { padding:6px 10px; font-size:11px; }
     .setgroups .setvol { width:90px; }
   }
-  /* very short screens (<360px tall): tuck the corner ✕ inside — the frame hugs the viewport, so
-     the protruding badge would poke off-screen */
-  @media (max-height:359px) {
-    dialog#settingsModal .pf-x { top:6px; right:6px; }
+  /* narrow portrait OR very short landscape: tuck the corner ✕ inside — the protruding badge
+     otherwise pokes into the OS status bar / screen edge (tall modal hugs the top-right corner) */
+  @media (max-width:560px), (max-height:359px) {
+    .pf-x { top:6px; right:6px; }
   }
   .sethint { display:block; font-size:11.5px; font-weight:400; color:var(--faint); margin-top:3px; letter-spacing:.2px; }
   .setverv { font-family:var(--mono); font-weight:500; }
