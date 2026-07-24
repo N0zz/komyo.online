@@ -1180,7 +1180,12 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     const FAV_KEY = 'arcade_favs';
     function favs() { try { return JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch (e) { return []; } }
     function setFavs(a) { try { localStorage.setItem(FAV_KEY, JSON.stringify(a)); } catch (e) {} }
-    function toggleFav(slug) { const a = favs(), i = a.indexOf(slug); if (i >= 0) a.splice(i, 1); else a.push(slug); setFavs(a); render(); }
+    function toggleFav(slug) {
+      const a = favs(), i = a.indexOf(slug);
+      if (i >= 0) a.splice(i, 1); else a.push(slug);
+      setFavs(a); render();
+      try { if (window.gamekitTrack) window.gamekitTrack('favorite_toggle', { slug, on: i >= 0 ? 0 : 1 }); } catch (e) {}
+    }
     // manual reorder within the Favorites strip — always on, no edit mode. Mouse: dragging a tile
     // past a small threshold lifts it (a plain click still navigates). Touch: LONG-PRESS lifts it
     // (immediate drag would eat page scrolling — this is the app-home-screen convention). While
