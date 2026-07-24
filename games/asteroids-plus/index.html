@@ -49,48 +49,15 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:5;
     background:repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0px, rgba(0,0,0,0.16) 1px, transparent 2px, transparent 3px); opacity:0.3; }
   .hud { position:fixed; z-index:6; pointer-events:none; user-select:none; text-shadow:0 0 8px rgba(120,200,255,0.6); }
-  #topHud { position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:6; display:flex; gap:28px; flex-wrap:wrap; justify-content:center; align-items:center; max-width:calc(100vw - 240px); padding:5px 18px; border-radius:10px; background:rgba(8,12,20,0.55); border:1px solid rgba(120,200,255,0.22); pointer-events:none; user-select:none; text-align:center; text-shadow:0 0 8px rgba(120,200,255,0.6); }
-  #hudL { font-size:20px; letter-spacing:2px; }
-  #hudL .label { opacity:0.55; font-size:12px; letter-spacing:2px; }
-  #hudL #wave { margin-top:4px; font-size:14px; color:#9fe8ff; }
-  #hudL #credits { margin-top:4px; font-size:14px; color:#ffd166; }
-  #hudR { text-align:center; }
-  #hp { font-size:22px; letter-spacing:3px; color:#ff7b7b; text-shadow:0 0 8px rgba(255,120,120,0.6); }
-  #shield { font-size:16px; letter-spacing:3px; color:#7fd0ff; margin-top:4px; }
-  #timer { font-size:17px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); display:none; }
-  /* ≤768px the wide centered HUD would slide under the ~214px right cluster — drop it below the nav row
-     (hudReserve() uses hudTop()×SCALE = 92×S there, so entities clear it). */
-  @media (orientation:portrait) { #topHud { top:50px; max-width:calc(100vw - 16px); } }
-  @media (orientation:landscape) { #topHud { max-width:calc(100vw - 440px); } }
-  #modeTag { font-size:12px; letter-spacing:1px; opacity:0.5; }
-  /* narrow (portrait phone): flatten the score column into one baseline row so the pill stays
-     inside the kit's 92px narrow headroom (top 48 + ≤2 slim rows) instead of a tall 3-line box */
-  @media (max-width:560px), (orientation:portrait) {
-    #topHud { top:48px; width:80vw; max-width:80vw; justify-content:space-evenly; gap:2px 10px; padding:3px 8px; border-radius:8px; }
-    #hudL, #hudR { display:flex; align-items:baseline; gap:7px; }
-    #hudL { font-size:16px; letter-spacing:1px; }
-    #hudL .label { font-size:9px; letter-spacing:1px; }
-    #hudL #wave, #hudL #credits { font-size:11px; margin-top:0; }
-    #hp { font-size:16px; letter-spacing:2px; }
-    #shield { font-size:11px; margin-top:0; }
-    #timer { font-size:13px; letter-spacing:1px; }
-    #modeTag { font-size:10px; }
-  }
-  /* short screens (landscape phones): slim single-row bar, narrow enough to clear the side nav clusters */
-  @media (max-height:560px) {
-    /* short landscape: keep the pill on the top row (the landscape rule reserves the clusters in
-       max-width); just slim it. Dropping it would eat the scarce height. */
-    #topHud { gap:2px 12px; padding:2px 10px; border-radius:8px; }
-    #hudL, #hudR { display:flex; align-items:baseline; gap:7px; }
-    #hudL { font-size:13px; letter-spacing:1px; }
-    #hudL .label { font-size:8px; }
-    #hudL #wave, #hudL #credits { font-size:10px; margin-top:0; }
-    #hp { font-size:13px; letter-spacing:2px; }
-    #shield { font-size:11px; margin-top:0; }
-    #timer { font-size:12px; letter-spacing:1px; }
-    #modeTag { font-size:10px; }
-  }
-  #timer .goal { display:none; }
+  /* HUD: position/pill/responsive/nav-clearance from the shared .gamekit-hud (contract, action archetype). Keep the retro colours. */
+  #topHud .val { font-size:20px; letter-spacing:2px; }
+  #topHud #wave { font-size:13px; color:#9fe8ff; }
+  #topHud #credits { font-size:13px; color:#ffd166; }
+  #topHud #hp { font-size:20px; letter-spacing:3px; color:#ff7b7b; text-shadow:0 0 8px rgba(255,120,120,0.6); }
+  #topHud #shield { font-size:14px; letter-spacing:3px; color:#7fd0ff; }
+  #topHud #timerVal { font-size:16px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); }
+  #topHud #modeTag { font-size:11px; letter-spacing:1px; opacity:0.55; }
+  #topHud #timerGoal { display:block; font-size:10px; opacity:0.7; }
   #xpwrap { left:50%; transform:translateX(-50%); bottom:18px; width:min(620px,70vw); }
   #xpbar { height:10px; border:1px solid rgba(180,140,255,0.5); border-radius:6px; background:rgba(40,20,70,0.5); overflow:hidden; }
   #xpfill { height:100%; width:0%; background:linear-gradient(90deg,#9b6bff,#d9a7ff); box-shadow:0 0 12px rgba(180,120,255,0.7); transition:width 0.1s linear; }
@@ -162,7 +129,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="topHud"><div id="hudL"><div class="label" id="scoreLbl">SCORE</div><div id="score">0</div><div id="wave">WAVE 1</div><div id="credits" style="display:none">◈ 0</div></div><div id="hudR"><div id="hp">♥♥♥</div><div id="shield"></div></div><div id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div><div id="modeTag">Level-up</div></div>
+<div id="topHud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="scoreLbl">SCORE</span><span class="val" id="score">0</span></div>
+  <div class="stat"><span id="wave">WAVE 1</span></div>
+  <div class="stat" id="credits" style="display:none">◈ 0</div>
+  <div class="stat"><span id="hp">♥♥♥</span> <span id="shield"></span></div>
+  <div class="stat" id="timer" style="display:none"><span id="timerVal">00:00.00</span><span class="goal" id="timerGoal"></span></div>
+  <div class="stat"><span id="modeTag">Level-up</span></div>
+</div>
 <div class="hud" id="xpwrap"><div id="xpbar"><div id="xpfill"></div></div><div id="xplabel">LV 1</div></div>
 <div id="flash"></div>
 
@@ -258,10 +232,15 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
   applyStaticText();
 
-  let W,H,SCALE=1;
-  function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; SCALE=S; W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S); buildStars(); }
+  let W,H,SCALE=1,AX=0,AY=0,AW=0,AH=0; // AX..AH = the arena (playRect scaled into canvas px); stars stay full-bleed
+  function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; SCALE=S;
+    W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S);
+    const L=KIT&&KIT.layout;
+    if(L){ L.reserve('top', L.narrow ? Math.max(0,128-L.hudTop()) : 0); const pr=L.playRect(); AX=Math.round(pr.x*S); AY=Math.round(pr.y*S); AW=Math.round(pr.w*S); AH=Math.round(pr.h*S); }
+    else { AX=0; AY=0; AW=W; AH=H; }
+    buildStars(); }
   // top headroom in CANVAS px reserved for the center HUD pill (kit hudTop is CSS px → ×SCALE).
-  function hudReserve(){ return Math.round(KIT.layout.hudTop()*SCALE); }
+  function hudReserve(){ return AY; } // arena top (playRect.y scaled into canvas px) — gameplay clears it
   (window.gamekit && window.gamekit.layout) ? window.gamekit.layout.on(resize) : window.addEventListener('resize', resize);
 
   let stars=[];
@@ -402,7 +381,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       actions:[ {id:'resume',label:t('game.common.resume',{def:'RESUME (ESC)'}),primary:true}, {id:'menu',label:t('game.common.quitToMenu',{def:'QUIT TO MENU'}),danger:true} ],
       onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') quitToMenu(); }, onEsc: resumeGame }); }
   function resumeGame(){ state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); }
-  function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14,hp:3,maxHp:3,shield:0,shieldMax:0,frenzy:0}; invuln=120; }
+  function spawnShip(){ ship={x:AX+AW/2,y:AY+AH/2,vx:0,vy:0,angle:-Math.PI/2,r:14,hp:3,maxHp:3,shield:0,shieldMax:0,frenzy:0}; invuln=120; }
 
   function recalc(){
     const u=up;
@@ -519,7 +498,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
 
   // ---- Spawning / waves ----
-  function edgePos(){ let x,y; if(Math.random()<0.5){ x=Math.random()<0.5?-50:W+50; y=Math.random()*H; } else { x=Math.random()*W; y=Math.random()<0.5?-50:H+50; } return {x,y}; }
+  function edgePos(){ const R=AX+AW,B=AY+AH; let x,y; if(Math.random()<0.5){ x=Math.random()<0.5?AX-50:R+50; y=AY+Math.random()*AH; } else { x=AX+Math.random()*AW; y=Math.random()<0.5?AY-50:B+50; } return {x,y}; }
   function makeAsteroid(x,y,size){ const r=size===3?56:size===2?34:18; const verts=[]; const n=9+Math.floor(Math.random()*4);
     for(let i=0;i<n;i++){ const ang=(i/n)*Math.PI*2; verts.push({ang,d:r*(0.65+Math.random()*0.5)}); }
     const speed=(1.0+Math.random()*0.9)*(4-size)*0.5*(1+wave*0.045); const dir=Math.random()*Math.PI*2;
@@ -532,7 +511,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // boss HP ramps hard past wave 8 so the wave-10/15/20 bosses are real walls (and player DPS is now
   // capped, so the same HP reads ~3× beefier than before). opts.finale → the dual-boss wave-30 variant.
   function makeBoss(w,opts){ opts=opts||{}; const hp=5*w*w + 175*w; const r=70; const yTop=hudReserve()+r+18+10;
-    return {x:opts.x!=null?opts.x:W/2,y:Math.max(140,yTop),r,hp,maxHp:hp,vx:1.4*(opts.dir||1),vy:0.9,fireCd:Math.max(40,85-w*2),spawnCd:Math.max(100,190-w*4),rot:0,finale:!!opts.finale,radialCd:160}; }
+    return {x:opts.x!=null?opts.x:AX+AW/2,y:Math.max(AY+r+18,yTop),r,hp,maxHp:hp,vx:1.4*(opts.dir||1),vy:0.9,fireCd:Math.max(40,85-w*2),spawnCd:Math.max(100,190-w*4),rot:0,finale:!!opts.finale,radialCd:160}; }
 
   function startWave(n){
     wave=n; waveBreak=0;
@@ -549,7 +528,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       const nS = n>=4 ? Math.floor((n-2)/2) : 0;
       // sentries don't home, so spawn them on-screen (not at the edge) — an edge spawn
       // could get trapped just off-screen by the bounce and become unkillable.
-      for(let i=0;i<nS;i++){ sentries.push(makeSentry(80+Math.random()*(W-160), 80+Math.random()*(H-160))); }
+      for(let i=0;i<nS;i++){ sentries.push(makeSentry(AX+80+Math.random()*(AW-160), AY+80+Math.random()*(AH-160))); }
       const nK = n>=6 ? 1+Math.floor((n-6)*0.4) : 0;   // kamikazes (wave 6+) home in, so spawn at the edge
       for(let i=0;i<nK;i++){ const p=edgePos(); kamikazes.push(makeKamikaze(p.x,p.y)); }
       // normalize pickup drops to ~4 per wave regardless of enemy count (a size-3 asteroid = 7 kills)
@@ -564,7 +543,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   // ---- Effects ----
   function burst(x,y,color,n,spread){ for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, sp=Math.random()*spread+0.5; particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,decay:Math.random()*0.025+0.012,color,size:Math.random()*2+1}); } }
-  function wrap(o){ if(o.x<-o.r)o.x=W+o.r; if(o.x>W+o.r)o.x=-o.r; if(o.y<-o.r)o.y=H+o.r; if(o.y>H+o.r)o.y=-o.r; }
+  function wrap(o){ const R=AX+AW,B=AY+AH; if(o.x<AX-o.r)o.x=R+o.r; if(o.x>R+o.r)o.x=AX-o.r; if(o.y<AY-o.r)o.y=B+o.r; if(o.y>B+o.r)o.y=AY-o.r; }
 
   // ---- Combat ----
   function fireBullet(angle,offx,offy){ bullets.push({ x:ship.x+Math.cos(ship.angle)*ship.r+(offx||0), y:ship.y+Math.sin(ship.angle)*ship.r+(offy||0),
@@ -768,13 +747,13 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       // hunters home toward ship
       for(const h of hunters){ const a=Math.atan2(ship.y-h.y,ship.x-h.x); h.vx+=Math.cos(a)*0.06; h.vy+=Math.sin(a)*0.06; h.vx*=0.97; h.vy*=0.97; h.x+=h.vx; h.y+=h.vy; h.rot+=0.05; wrap(h); }
       // sentries drift + fire
-      for(const s of sentries){ s.x+=s.vx; s.y+=s.vy; if((s.x<40&&s.vx<0)||(s.x>W-40&&s.vx>0)) s.vx*=-1; if((s.y<40&&s.vy<0)||(s.y>H-40&&s.vy>0)) s.vy*=-1; s.rot+=0.02;
+      for(const s of sentries){ s.x+=s.vx; s.y+=s.vy; if((s.x<AX+40&&s.vx<0)||(s.x>AX+AW-40&&s.vx>0)) s.vx*=-1; if((s.y<AY+40&&s.vy<0)||(s.y>AY+AH-40&&s.vy>0)) s.vy*=-1; s.rot+=0.02;
         if(s.fireCd>0) s.fireCd--; else { const bs=4; const dist=Math.hypot(ship.x-s.x,ship.y-s.y); const tt=dist/bs; const ax=ship.x+ship.vx*tt, ay=ship.y+ship.vy*tt; const a=Math.atan2(ay-s.y,ax-s.x); ebullets.push({x:s.x,y:s.y,vx:Math.cos(a)*bs,vy:Math.sin(a)*bs,life:200,r:3}); s.fireCd=110+Math.random()*50; } }
       // kamikazes drift toward the ship (gentle homing), and detonate on contact
       for(let i=kamikazes.length-1;i>=0;i--){ const k=kamikazes[i]; const a=Math.atan2(ship.y-k.y,ship.x-k.x); k.vx+=Math.cos(a)*0.05; k.vy+=Math.sin(a)*0.05; k.vx*=0.98; k.vy*=0.98; k.x+=k.vx; k.y+=k.vy; k.rot+=0.08; wrap(k);
         if(Math.hypot(k.x-ship.x,k.y-ship.y) < k.r+ship.r*0.7){ killKamikaze(i); } }
       // bosses (one per boss wave; two at the wave-30 finale)
-      for(const boss of bosses){ const bTop=hudReserve()+boss.r+18+10; boss.x+=boss.vx; boss.y+=boss.vy; if(boss.x<80||boss.x>W-80) boss.vx*=-1; if(boss.y<bTop||boss.y>H*0.7) boss.vy*=-1; if(boss.y<bTop){ boss.y=bTop; boss.vy=Math.abs(boss.vy); } boss.rot+=0.01;
+      for(const boss of bosses){ const bTop=hudReserve()+boss.r+18+10; boss.x+=boss.vx; boss.y+=boss.vy; if(boss.x<AX+80||boss.x>AX+AW-80) boss.vx*=-1; if(boss.y<bTop||boss.y>AY+AH*0.7) boss.vy*=-1; if(boss.y<bTop){ boss.y=bTop; boss.vy=Math.abs(boss.vy); } boss.rot+=0.01;
         // boss bullet RANGE matches the player's (distance = player bSpeed×bLife); speed stays 3.4 so you can't out-range it
         if(boss.fireCd>0) boss.fireCd--; else { const a=Math.atan2(ship.y-boss.y,ship.x-boss.x), blife=Math.round(ship.bSpeed*ship.bLife/3.4); for(const da of [-0.25,0,0.25]) ebullets.push({x:boss.x,y:boss.y,vx:Math.cos(a+da)*3.4,vy:Math.sin(a+da)*3.4,life:blife,r:4}); boss.fireCd=90; }
         if(boss.spawnCd>0) boss.spawnCd--; else { const p=edgePos(); hunters.push(makeHunter(p.x,p.y)); boss.spawnCd=boss.finale?320:200; }
@@ -952,7 +931,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     // topReserve = the center-HUD headroom (game-kit hudTop, CSS px) projected into canvas px via the
     // same scale resize() uses, so on-canvas content drawn near the top can be checked against it.
     get layout(){
-      const lo={ W, H, scale:SCALE, topReserve:hudReserve() };
+      const L=KIT&&KIT.layout, S=SCALE||1;
+      const pr=L?L.playRect():{x:0,y:0,w:window.innerWidth,h:window.innerHeight};
+      // board + topReserve in CSS px (contract, matching playRect); W/H + arenaTop are canvas px
+      const lo={ W, H, scale:SCALE, S, topReserve:pr.y, board:{x:pr.x,y:pr.y,w:pr.w,h:pr.h}, arenaTop:AY };
       if(ship){ lo.shipTop=ship.y-ship.r; lo.shipBottom=ship.y+ship.r; lo.shipLeft=ship.x-ship.r; lo.shipRight=ship.x+ship.r; }
       if(bosses[0]){ const boss=bosses[0]; lo.bossTop=boss.y-boss.r-18; lo.bossBottom=boss.y+boss.r; lo.bossLeft=boss.x-boss.r; lo.bossRight=boss.x+boss.r; } // -18 covers the HP bar drawn above the body
       return lo;
@@ -1035,7 +1017,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     touch: KIT ? touchRefRows() : [] };
   if (KIT) { KIT.nav({ slug: 'asteroids-plus', music: true, home: '../../', theme: MENU_THEME, controls: NAV_CONTROLS,
     confirmLeave: () => (state==='playing'||state==='paused'||state==='levelup'||state==='shop') ? t('confirm.leave', { def: 'Leave this run? You’ll lose your progress.' }) : false,
-    onMenu: () => quitToMenu(), onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); } }); KIT.showMenuButton(false); KIT.showPauseButton(false); KIT.pwa('../../sw.js'); }
+    onMenu: () => quitToMenu(), onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); } }); KIT.showMenuButton(false); KIT.showPauseButton(false); KIT.pwa('../../sw.js'); KIT.layout.archetype('action'); }
 
   // live language switch: retranslate the HUD + rebuild whichever menu is open
   if (KIT) KIT.onLang(() => { applyStaticText(); applyModeHud(); updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
