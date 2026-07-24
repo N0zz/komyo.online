@@ -2,6 +2,8 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.it = {
+  'changelog.e75.title': 'Esci e torna — la tua partita è salvata 🔖',
+  'changelog.e75.b0': 'Novità: 2048, Bolle e Campo Minato ora ricordano la partita in corso — esci quando vuoi e tocca «Continua» nella schermata iniziale per riprendere esattamente da dove avevi lasciato. (Sudoku conservava già le griglie non finite.)',
   'nav.menu': '↩ Menu',
   'nav.leave': 'Esci',
   'confirm.cancel': 'Annulla',

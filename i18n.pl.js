@@ -2,6 +2,8 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.pl = {
+  'changelog.e75.title': 'Wyjdź i wróć — gra jest zapisana 🔖',
+  'changelog.e75.b0': 'Nowość: 2048, Bąbelki i Saper zapamiętują teraz rozpoczętą grę — wyjdź w dowolnej chwili i naciśnij „Kontynuuj” na ekranie startowym, aby wrócić dokładnie tam, gdzie skończyłeś. (Sudoku już wcześniej zapisywało niedokończone plansze.)',
   'cat.trophies': { one: '{count} trofeum', few: '{count} trofea', many: '{count} trofeów', other: '{count} trofeum' },
   'cat.goodRuns': { one: '{count} dobra runda', few: '{count} dobre rundy', many: '{count} dobrych rund', other: '{count} dobrej rundy' },
   'cat.plays': { one: '{count} rozgrywka', few: '{count} rozgrywki', many: '{count} rozgrywek', other: '{count} rozgrywki' },
