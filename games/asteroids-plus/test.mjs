@@ -1,7 +1,7 @@
 // Headless tests for Asteroids+ — boots via the shared harness, drives window.__test.
 import fs from 'node:fs';
 import path from 'node:path';
-import { bootGame, ok, section, summary, VIEWPORTS, ROOT } from '../../test-harness.mjs';
+import { bootGame, ok, section, summary, VIEWPORTS, runLayoutSuite, ROOT } from '../../test-harness.mjs';
 
 const runGame = (file, opts = {}) => bootGame('games/asteroids-plus/' + file, { seed: 0x1234abcd, ...opts });
 const COSMETICS = fs.readFileSync(path.join(ROOT, 'cosmetics.js'), 'utf8');
@@ -540,42 +540,30 @@ testKamikaze('index.html?prog=levelup');
 testAimAssist('index.html?prog=levelup');
 
 // ---------------- Layout: everything on-screen + clears the top HUD, in portrait / landscape / desktop ----------------
-// NOTE: not using the shared runLayoutSuite() here — it assumes canvas px == viewport px, which
-// doesn't hold for this game: on narrow screens the canvas is deliberately rendered at a higher
-// internal resolution (SCALE, from resize() in index.html) for crispness, then CSS-stretched back
-// down to 100vw/100vh. So canvas W/H only equal the viewport at desktop (SCALE=1); the shared
-// helper's "canvas matches viewport" + HUD-headroom invariants would misfire on the phone
-// viewports (harness gap — reusing its VIEWPORTS + ok/section instead, same as before).
+// Layout contract (action archetype). runLayoutSuite asserts board ⊆ playRect() + topReserve ≥
+// hudTop() itself (both CSS px); this game is a scaled world so canvas W/H ≠ viewport → {size:false}.
+// The ship/boss checks compare canvas-px bounds against arenaTop (playRect.y scaled into canvas px).
 function testLayoutFits(file) {
-  section(file + ' (layout fits the screen — on-screen + no HUD overlap)');
-  for (const v of VIEWPORTS) {
-    const g = runGame(file);
-    const T = () => g.test();
-    T().start(); g.step(2);
-    g.resize(v.w, v.h); g.step(1); // relayout (the game's resize fires via the kit) + one frame
-    // the canvas is a viewport-scaled buffer (CSS stretches it to 100vw/100vh); compute the same
-    // scale the game uses so we assert canvas == viewport in this game's actual model.
-    const m = Math.min(v.w, v.h), S = m < 640 ? Math.min(2.6, 900 / m) : 1;
-    const expW = Math.round(v.w * S), expH = Math.round(v.h * S);
-    const L = T().layout;
-    ok(L.W === expW && L.H === expH, v.name + ': canvas fills viewport (' + L.W + 'x' + L.H + ' == ' + expW + 'x' + expH + ' @S=' + S.toFixed(2) + ')');
-    ok(L.topReserve > 0, v.name + ': HUD reservation computed (' + L.topReserve + 'px)');
-    // ship sits on-screen within the canvas
-    ok(L.shipTop >= 0 && L.shipBottom <= L.H, v.name + ': ship within height (' + Math.round(L.shipTop) + '..' + Math.round(L.shipBottom) + ' in 0..' + L.H + ')');
-    ok(L.shipLeft >= 0 && L.shipRight <= L.W, v.name + ': ship within width (' + Math.round(L.shipLeft) + '..' + Math.round(L.shipRight) + ' in 0..' + L.W + ')');
-
-    // boss is the top-most JS-drawn element — it must spawn fully on-screen AND clear the top HUD pill
-    T().gotoWave(5); g.step(2);
-    const B = T().layout;
-    ok(B.bossTop != null, v.name + ': boss present at wave 5');
-    ok(B.bossTop >= 0 && B.bossBottom <= B.H, v.name + ': boss within height (' + Math.round(B.bossTop) + '..' + Math.round(B.bossBottom) + ' in 0..' + B.H + ')');
-    ok(B.bossLeft >= 0 && B.bossRight <= B.W, v.name + ': boss within width (' + Math.round(B.bossLeft) + '..' + Math.round(B.bossRight) + ' in 0..' + B.W + ')');
-    ok(B.bossTop >= B.topReserve, v.name + ': boss clears the top HUD (bossTop ' + Math.round(B.bossTop) + ' >= topReserve ' + B.topReserve + ')');
-    // and it stays clear after it drifts (the bounce clamp must respect the reservation, not just y>80)
-    g.step(400);
-    const B2 = T().layout;
-    if (B2.bossTop != null) ok(B2.bossTop >= B2.topReserve, v.name + ': boss stays clear of the HUD after drifting (bossTop ' + Math.round(B2.bossTop) + ' >= ' + B2.topReserve + ')');
-  }
+  section(file + ' (layout fits the screen — contract: board ⊆ playRect, HUD clear)');
+  runLayoutSuite(
+    () => { const g = runGame(file); g.test().start(); g.step(2); return g; },
+    (g, v, L) => {
+      // ship spawns inside the arena (playRect scaled into canvas px), clear of the reserved top strip
+      ok(L.shipTop >= L.arenaTop - 1 && L.shipBottom <= L.H, v.name + ': ship inside arena (' + Math.round(L.shipTop) + '..' + Math.round(L.shipBottom) + ' / arenaTop ' + Math.round(L.arenaTop) + ' H ' + L.H + ')');
+      ok(L.shipLeft >= 0 && L.shipRight <= L.W, v.name + ': ship within width (' + Math.round(L.shipLeft) + '..' + Math.round(L.shipRight) + ' in 0..' + L.W + ')');
+      // boss is the top-most JS-drawn element — it must spawn on-screen AND clear the reserved top strip
+      g.test().gotoWave(5); g.step(2);
+      const B = g.test().layout;
+      ok(B.bossTop != null, v.name + ': boss present at wave 5');
+      ok(B.bossTop >= B.arenaTop - 1 && B.bossBottom <= B.H, v.name + ': boss inside arena (' + Math.round(B.bossTop) + '..' + Math.round(B.bossBottom) + ' / arenaTop ' + Math.round(B.arenaTop) + ')');
+      ok(B.bossLeft >= 0 && B.bossRight <= B.W, v.name + ': boss within width (' + Math.round(B.bossLeft) + '..' + Math.round(B.bossRight) + ' in 0..' + B.W + ')');
+      // and it stays clear of the arena top after it drifts (the bounce clamp respects the reserve)
+      g.step(400);
+      const B2 = g.test().layout;
+      if (B2.bossTop != null) ok(B2.bossTop >= B2.arenaTop - 1, v.name + ': boss stays clear after drifting (bossTop ' + Math.round(B2.bossTop) + ' >= arenaTop ' + Math.round(B2.arenaTop) + ')');
+    },
+    { size: false }
+  );
 }
 testLayoutFits('index.html?prog=levelup');
 
