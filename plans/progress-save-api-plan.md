@@ -30,9 +30,10 @@ later with their own lifecycle; not in scope here.
 - [x] **Phase 2 — 2048 (resume).** Slot per mode (id=mode); save on each move; clear on over/win + fresh
       start; "Continue · <mode> <score>" on the start menu; `confirmLeave` dropped (progress persists). Added
       reusable `game.common.continue`/`newGame` to all 7 locales. Round-trip test. Suite 82, top-level 605.
-- [ ] **Phase 3 — bubbles (resume).** serialize {mode, grid, offsets, counters, shotColor, nextColor, score,
-      level}; save on shot resolve (settled grid only, never mid-animation); clear on over/win; Continue per
-      mode. Test.
+- [x] **Phase 3 — bubbles (resume).** Slot per mode; serialize {mode, timeDescent, grid(colorIdx), offsets,
+      parity, counters, timers, shotColor, nextColor, score, level}; save when a shot settles / grid descends
+      (never mid-flight); clear on over/win + fresh start; Continue per mode; `confirmLeave` dropped. Round-trip
+      test (grid + score). Suite 159, top-level 605.
 - [ ] **Phase 4 — minesweeper (resume).** serialize the board + revealed/flagged + first-click state; save on
       reveal/flag; **resumed runs are ineligible for best-TIME** (you could pause the clock); Continue per
       difficulty. Test.

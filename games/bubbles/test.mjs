@@ -415,4 +415,30 @@ section('cosmetics — pop effects & shooter bases');
   ok(g.win.gamekit.cosmetics.buy('bubbles.pop.confetti') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy pop effect with trophies (75 left)');
 }
 
+// ---- resume (kit progress store) ----
+section('bubbles: resume');
+{
+  const r1 = runGame();
+  const R1 = r1.T;
+  R1().start();                                                   // arcade
+  R1().setShotColor(2); R1().aimAngle(-Math.PI / 2); R1().shoot(); R1().step(150);   // land a shot → autosave
+  const savedScore = R1().score, savedGrid = JSON.stringify(R1().grid);
+  ok(R1().hasSave(), 'a settled shot creates a resume save');
+  R1().toMenu();
+  ok(R1().state === 'ready', 'toMenu() returns to the start screen');
+
+  const r2 = bootGame(FILE, { store: r1.store });                 // new "session", same storage
+  const R2 = r2.T;
+  ok(R2().hasSave(), 'the save persists into a fresh session');
+  ok(R2().state === 'ready', 'fresh session opens at the menu (no auto-resume)');
+  ok(R2().resume() === true, 'resume() succeeds');
+  ok(R2().state === 'playing', 'resumed run is playing');
+  ok(R2().score === savedScore, 'resumed score matches (' + R2().score + ' vs ' + savedScore + ')');
+  ok(JSON.stringify(R2().grid) === savedGrid, 'resumed board matches the saved grid');
+
+  const r3 = bootGame(FILE, { store: r1.store });
+  r3.T().start();                                                 // fresh arcade run
+  ok(!r3.T().hasSave() || r3.T().savedRun().score === 0, 'a fresh start clears the prior save for that mode');
+}
+
 summary();
