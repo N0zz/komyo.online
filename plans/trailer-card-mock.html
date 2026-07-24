@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>komyo — trailer game-card mock</title>
+<style>
+  :root{
+    --bg:#0b0f17; --surface:#161c28; --surface-2:#1e2738; --border:#2a3446;
+    --text:#eef2f8; --muted:#aab6c8; --faint:#7d8aa0; --cyan:#9fe8ff;
+    --mono: ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    --sans: system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:var(--sans)}
+  body{padding:40px 22px 70px;line-height:1.5}
+  .wrap{max-width:1080px;margin:0 auto}
+
+  header{text-align:center;margin:20px 0 34px}
+  .brand{display:flex;align-items:center;justify-content:center;gap:clamp(10px,2.5vw,18px)}
+  .mascot{width:clamp(46px,10vw,72px);height:clamp(46px,10vw,72px);border-radius:22px;display:grid;place-items:center;
+    font-size:clamp(30px,7vw,46px);background:radial-gradient(120% 120% at 40% 20%,#ffd0e6,#f0a6c8 55%,#b76a92);box-shadow:0 5px 18px rgba(0,0,0,.45)}
+  h1{margin:0;font-family:var(--mono);font-size:clamp(40px,9vw,66px);letter-spacing:12px;font-weight:800;
+    background:linear-gradient(90deg,#9fe8ff,#e0b25a,#c79bff);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{margin-top:12px;color:var(--muted);letter-spacing:3px;font-size:12px;font-family:var(--mono);text-transform:uppercase}
+
+  .section-head{display:flex;align-items:center;gap:14px;margin:0 2px 18px}
+  .section-head h2{margin:0;font-family:var(--mono);font-size:13px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+  .section-head .line{flex:1;height:1px;background:var(--border)}
+
+  .toolbar{display:flex;gap:10px;align-items:center;justify-content:center;margin:0 0 22px;flex-wrap:wrap}
+  .toolbar button{font-family:var(--mono);font-size:11px;letter-spacing:1px;color:var(--text);background:var(--surface-2);
+    border:1px solid var(--border);border-radius:9px;padding:8px 14px;cursor:pointer}
+  .toolbar button:hover{border-color:var(--cyan)}
+  .toolbar span{color:var(--faint);font-family:var(--mono);font-size:11px;letter-spacing:1px}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(264px,1fr));gap:20px;align-content:start}
+  .tile{position:relative;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--border);
+    border-radius:16px;overflow:hidden;min-height:236px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s}
+  .tile:hover{transform:translateY(-5px);border-color:var(--accent);
+    box-shadow:0 12px 34px rgba(0,0,0,.5),0 0 0 1px var(--accent),0 0 30px -8px var(--accent)}
+  .tile.open{transform:none;border-color:var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 34px -10px var(--accent)}
+
+  .fav{position:absolute;top:10px;right:10px;z-index:3;width:34px;height:34px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;
+    border:1px solid var(--border);background:rgba(11,15,23,.72);color:#6b7892;transition:.12s}
+  .fav:hover{color:#ffcf5c;border-color:#ffcf5c;transform:scale(1.08)}
+  .fav.on{color:#ffcf5c;border-color:#ffcf5c}
+
+  .badges{position:absolute;top:8px;left:11px;z-index:3;pointer-events:none;display:flex;flex-direction:column;gap:6px}
+  .badge b{font-style:normal;font-family:var(--mono);font-size:12px;font-weight:800;letter-spacing:2px;
+    background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 2.2s linear infinite}
+  .badge-pick b{background-image:linear-gradient(90deg,#ead4ff,#b98cff,#fff,#b98cff,#ead4ff);filter:drop-shadow(0 0 5px rgba(160,100,255,.95))}
+  @keyframes shine{to{background-position:200% 0}}
+
+  .art{position:relative;height:116px;display:flex;align-items:center;justify-content:center;font-size:72px;
+    background:radial-gradient(110% 130% at 50% 0%,color-mix(in srgb,var(--accent) 34%,var(--surface)),var(--surface) 72%);border-bottom:1px solid var(--border)}
+  .art .glyph{filter:drop-shadow(0 4px 12px rgba(0,0,0,.45))}
+  .meta{padding:16px 18px 14px;display:flex;flex-direction:column;gap:8px;flex:1}
+  .meta h3{margin:0;font-size:19px;font-weight:700;letter-spacing:.3px}
+  .tags{display:flex;flex-wrap:wrap;gap:5px}
+  .tag{font-family:var(--mono);font-size:10px;letter-spacing:1.5px;padding:3px 9px;border-radius:6px;white-space:nowrap;
+    color:color-mix(in srgb,var(--accent) 60%,#fff);background:rgba(0,0,0,.28);border:1px solid color-mix(in srgb,var(--accent) 50%,transparent)}
+  .meta p{margin:0;font-size:13.5px;line-height:1.55;color:var(--muted)}
+  .play{margin-top:auto;font-family:var(--mono);font-size:12px;letter-spacing:1.5px;color:var(--accent);font-weight:700}
+
+  /* EVERY tile gets the MORE strip — expands the game card (trailer if any + description). Not a play button. */
+  .more-strip{display:flex;align-items:center;justify-content:center;gap:8px;height:32px;flex:none;cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:2px;font-weight:700;color:var(--faint);
+    background:rgba(0,0,0,.22);border-top:1px solid var(--border);transition:color .12s,background .12s}
+  .more-strip:hover{color:var(--accent);background:color-mix(in srgb,var(--accent) 10%,transparent)}
+  .more-strip .chev{transition:transform .2s;font-size:13px}
+  .tile.open .more-strip{color:var(--accent);background:color-mix(in srgb,var(--accent) 14%,transparent)}
+  .tile.open .more-strip .chev{transform:rotate(180deg)}
+
+  /* ---- detail row ---- */
+  .detail-row{grid-column:1/-1}
+  .card{position:relative;max-width:760px;margin:2px auto 8px;background:var(--surface);border:1px solid var(--accent);
+    border-radius:18px;box-shadow:0 20px 60px rgba(0,0,0,.55),0 0 40px -14px var(--accent);animation:pop .22s ease}
+  .card.solo{max-width:640px}
+  @keyframes pop{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+  .card .x{position:absolute;top:-13px;right:-13px;z-index:5;width:34px;height:34px;border-radius:50%;
+    background:var(--surface);border:1px solid var(--border);color:var(--muted);font-size:15px;line-height:1;
+    display:grid;place-items:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+  .card .x:hover{color:#fff;border-color:var(--cyan)}
+  .card .cols{display:grid;grid-template-columns:246px 1fr;gap:26px;padding:24px}
+  .card.solo .cols{grid-template-columns:1fr;text-align:center}
+
+  .vid{aspect-ratio:9/16;background:#05070c;border-radius:14px;overflow:hidden;position:relative;display:grid;place-items:center;
+    box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 45%,transparent),0 0 34px -12px var(--accent)}
+  .vid video, .vid img{width:100%;height:100%;object-fit:cover;display:block}
+  .vid .shotbadge{position:absolute;left:10px;top:10px;font-family:var(--mono);font-size:9px;letter-spacing:1.5px;font-weight:700;
+    color:#06121a;background:color-mix(in srgb,var(--accent) 88%,#fff);padding:3px 8px;border-radius:999px;z-index:2}
+  .vid .spin{position:absolute;width:26px;height:26px;border-radius:50%;border:2px solid rgba(255,255,255,.18);border-top-color:var(--accent);animation:sp .8s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .vid .weak{position:absolute;inset:0;display:none;place-items:center;flex-direction:column;gap:10px;cursor:pointer;
+    background:linear-gradient(180deg,rgba(5,7,12,.35),rgba(5,7,12,.72));color:#fff;font-family:var(--mono);font-size:12px;letter-spacing:1px}
+  .vid .weak .pi{font-size:38px}
+  .card.saveData .vid video{display:none}
+  .card.saveData .vid .weak{display:grid}
+
+  .info{display:flex;flex-direction:column;justify-content:center;min-width:0;align-items:flex-start}
+  .card.solo .info{align-items:center}
+  .info h2{margin:0;font-size:26px;font-weight:800;display:flex;align-items:center;gap:12px;letter-spacing:.3px}
+  .info h2 .g{font-size:30px}
+  .info .howto{margin:14px 0 0;font-size:14.5px;line-height:1.66;color:var(--muted)}
+  .info .cta{margin-top:22px;align-self:center;display:inline-flex;align-items:center;gap:9px;
+    font-family:var(--mono);font-size:14px;font-weight:800;letter-spacing:1.5px;color:#06121a;background:var(--accent);
+    border:0;border-radius:12px;padding:12px 26px;cursor:pointer;box-shadow:0 8px 24px -8px var(--accent)}
+  .info .cta:hover{filter:brightness(1.08)}
+
+  @media (max-width:640px){
+    .card .cols{grid-template-columns:1fr;gap:18px;text-align:center}
+    .vid{max-width:220px;margin:0 auto;width:100%}
+    .info{align-items:center}
+    .info h2{font-size:22px}
+    .info .cta{align-self:stretch;justify-content:center}
+  }
+
+  /* tile-launch toast — proves the whole tile still plays the game (not gated behind the card) */
+  .toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);z-index:50;font-family:var(--mono);font-size:13px;letter-spacing:1px;
+    background:var(--surface-2);border:1px solid var(--cyan);color:var(--text);padding:11px 18px;border-radius:12px;box-shadow:0 14px 40px rgba(0,0,0,.55);opacity:0;transition:opacity .2s}
+  .toast.show{opacity:1}
+
+  .note{max-width:940px;margin:34px auto 0;padding:18px 20px;color:var(--muted);font-size:13px;line-height:1.7;border:1px solid var(--border);border-radius:14px;background:var(--surface)}
+  .note b{color:var(--text)} .note code{font-family:var(--mono);font-size:12px;color:var(--cyan)}
+  .note h4{margin:0 0 10px;font-family:var(--mono);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--faint)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><div class="mascot">🦊</div><h1>KOMYO</h1></div>
+    <div class="sub">trailer game-card · mock</div>
+  </header>
+
+  <div class="toolbar">
+    <button id="tSave">Toggle weak-connection fallback</button>
+    <span id="saveState">AUTOPLAY ON</span>
+  </div>
+
+  <div class="section-head"><h2>All games</h2><div class="line"></div></div>
+  <div class="grid" id="grid"></div>
+
+  <div class="note">
+    <h4>What changed</h4>
+    <p>• <b>Three media states in the same 9:16 slot:</b> <b>trailer</b> (Trap the Cat, Forcefield) → <b>gameplay screenshot</b> (Snake, Bubble Pop, 2048 — real captures) → <b>text only</b> (Breakout, no media yet).<br>
+    • <b>Screenshots are real, captured at 9:16 portrait</b> so they fill the exact same frame as a trailer — the card layout never shifts between a trailer game and a screenshot game.<br>
+    • <b>Whole tile still launches the game</b> — click any tile body → toast “Launching…”. The card is never the only way to play.<br>
+    • <b>Every tile has a <code>MORE ˅</code> strip</b>; <b>Play button centered</b>; <b>tags de-duplicated</b> (tile only).<br>
+    • Note: Snake/2048 boards aren’t 9:16 natively, so their portrait shot has some empty band (that’s how they look on a phone); Bubble Pop fills the frame. HUD/score + nav were hidden for a clean board — that’s a toggle, not a given.</p>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const GAMES=[
+  {slug:'trap-the-cat',title:'Trap the Cat',icon:'🐱',accent:'#f0a6c8',tags:['PUZZLE','LOGIC'],pick:true,star:true,
+   blurb:'Wall off the hex board to corner the cat before it slips off the edge.',
+   howto:'The cat wants out — every turn you plant one rose hedge on the hex garden, then the cat takes a step toward the edge. Cut off every escape route to trap it; the fewer hedges you use, the bigger the score. Kitten mode naps mid-chase for younger players; harder cats think further ahead.',
+   video:'/promo/komyo-trailer/finals-games/game-v2-stage-9x16-trapthecat-catost.mp4'},
+  {slug:'forcefield',title:'Forcefield',icon:'🌐',accent:'#38bdf8',tags:['SKILL','REFLEX'],pick:true,
+   blurb:"Slide your atmosphere dome to block the battle station's fire — solo or 2-player.",
+   howto:'The station charges up and fires at your planet — sweep the atmosphere dome over the marked impact point and tap to deflect the bolt. Timed mode scores deflections against the clock, Shields is survival, and Double puts a planet on each side for two players on one screen.',
+   video:'/promo/komyo-trailer/finals-games/game-v2-stage-9x16-forcefield.mp4'},
+  {slug:'snake',title:'Snake',icon:'🐍',accent:'#46e0a0',tags:['ARCADE'],
+   blurb:'Grow the neon snake — don’t bite your own tail.',
+   howto:'Steer the snake around the arena eating fruit to grow longer — every bite nudges the speed up. Don’t hit the walls or your own tail. Wrap mode lets you slip through the edges; the board pressure climbs the longer you survive.'},
+  {slug:'bubbles',title:'Bubble Pop',icon:'🫧',accent:'#7fd4ff',tags:['PUZZLE'],shot:'trailer-shots/bubbles.png',
+   blurb:'Match three, drop the cluster, clear the board.',
+   howto:'Aim and fire bubbles to group three or more of the same colour — matched clusters pop and anything hanging below drops with them. Clear the ceiling before the bubbles push down to your launcher.'},
+  {slug:'2048',title:'2048',icon:'🔢',accent:'#f2c14e',tags:['PUZZLE','LOGIC'],shot:'trailer-shots/2048.png',
+   blurb:'Slide and merge tiles up to 2048.',
+   howto:'Swipe to slide every tile; two equal tiles merge into their sum. Keep merging to build a 2048 tile — but the board fills with each move, so plan your lanes before it locks up.'},
+  {slug:'breakout',title:'Breakout',icon:'🧱',accent:'#c77bff',tags:['ARCADE'],
+   blurb:'Bounce, break the wall, catch the power-ups.',
+   howto:'Bounce the ball off your paddle to chip away the wall of bricks — catch falling power-ups for multi-ball and a wider paddle. Clear every brick to advance; don’t let the ball fall past you.'},
+];
+
+const grid=document.getElementById('grid');
+const toastEl=document.getElementById('toast');
+let openSlug=null, saveData=false, toastT=null;
+
+GAMES.forEach(g=>{
+  const t=document.createElement('div');
+  t.className='tile'; t.dataset.slug=g.slug; t.style.setProperty('--accent',g.accent);
+  t.innerHTML=`
+    ${g.pick?`<div class="badges"><div class="badge badge-pick"><b>POPULAR</b></div></div>`:''}
+    <div class="fav ${g.star?'on':''}">${g.star?'★':'☆'}</div>
+    <div class="art"><span class="glyph">${g.icon}</span></div>
+    <div class="meta">
+      <h3>${g.title}</h3>
+      <div class="tags">${g.tags.map(x=>`<span class="tag">${x}</span>`).join('')}</div>
+      <p>${g.blurb}</p>
+      <div class="play">PLAY ›</div>
+    </div>
+    <div class="more-strip">MORE <span class="chev">˅</span></div>
+  `;
+  grid.appendChild(t);
+});
+
+function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toastT); toastT=setTimeout(()=>toastEl.classList.remove('show'),1600); }
+
+function closeCard(){
+  const row=document.querySelector('.detail-row');
+  if(row){const v=row.querySelector('video'); if(v)v.pause(); row.remove();}
+  document.querySelectorAll('.tile.open').forEach(t=>t.classList.remove('open'));
+  openSlug=null;
+}
+function openCard(slug){
+  const g=GAMES.find(x=>x.slug===slug);
+  const hasVid=!!g.video, hasShot=!hasVid && !!g.shot, hasMedia=hasVid||hasShot;
+  const tiles=[...grid.querySelectorAll('.tile')];
+  const tile=grid.querySelector(`.tile[data-slug="${slug}"]`);
+  const top=tile.offsetTop; let insertAfter=tile;
+  tiles.forEach(t=>{if(Math.abs(t.offsetTop-top)<4)insertAfter=t;});
+  closeCard();
+  tile.classList.add('open'); openSlug=slug;
+  const vidCol = hasVid ? `
+        <div class="vid">
+          <div class="spin"></div>
+          <video muted loop playsinline preload="none"></video>
+          <div class="weak"><div class="pi">▶</div><div>TAP TO PLAY</div></div>
+        </div>`
+    : hasShot ? `
+        <div class="vid"><div class="shotbadge">SCREENSHOT</div><img src="${g.shot}" alt="${g.title} gameplay"></div>` : '';
+  const row=document.createElement('div'); row.className='detail-row';
+  row.innerHTML=`
+    <div class="card ${hasMedia?'':'solo'} ${saveData?'saveData':''}" style="--accent:${g.accent}">
+      <div class="x" title="Close">✕</div>
+      <div class="cols">
+        ${vidCol}
+        <div class="info">
+          <h2><span class="g">${g.icon}</span>${g.title}</h2>
+          <p class="howto">${g.howto}</p>
+          <button class="cta">▶ PLAY</button>
+        </div>
+      </div>
+    </div>`;
+  insertAfter.after(row);
+  if(hasVid){
+    const vid=row.querySelector('video'), weak=row.querySelector('.weak'), spin=row.querySelector('.spin');
+    const setSrc=()=>{if(!vid.src)vid.src=g.video;};
+    vid.addEventListener('playing',()=>spin&&spin.remove());
+    if(saveData){ weak.onclick=()=>{row.querySelector('.card').classList.remove('saveData'); setSrc(); vid.play().catch(()=>{});}; }
+    else { setSrc(); vid.play().catch(()=>{}); }
+  }
+  row.querySelector('.x').onclick=closeCard;
+  row.querySelector('.cta').onclick=()=>toast('▶ Launching '+g.title+'…');
+  row.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+grid.addEventListener('click',e=>{
+  const strip=e.target.closest('.more-strip');
+  if(strip){const slug=strip.closest('.tile').dataset.slug; openSlug===slug?closeCard():openCard(slug); return;}
+  const fav=e.target.closest('.fav');
+  if(fav){fav.classList.toggle('on'); fav.textContent=fav.classList.contains('on')?'★':'☆'; return;}
+  const tile=e.target.closest('.tile');
+  if(tile){ toast('▶ Launching '+GAMES.find(x=>x.slug===tile.dataset.slug).title+'…'); }
+});
+document.getElementById('tSave').onclick=()=>{
+  saveData=!saveData;
+  document.getElementById('saveState').textContent=saveData?'WEAK-CONN FALLBACK':'AUTOPLAY ON';
+  if(openSlug){const s=openSlug; openCard(s);}
+};
+addEventListener('resize',()=>{if(openSlug){const s=openSlug; openCard(s);}});
+</script>
+</body>
+</html>
