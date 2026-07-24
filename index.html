@@ -1448,7 +1448,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const base = 'games/' + g.slug + '/';
       const media = hasVid
         ? '<div class="gc-media' + (connWeak() ? ' weak' : '') + '"><div class="gc-spin"></div>'
-          + '<video muted loop playsinline preload="none"></video>'
+          + '<video muted loop playsinline preload="none"' + (g.shot ? ' poster="' + base + g.shot + '"' : '') + '></video>'
           + '<div class="gc-weak"><div class="gc-ptri">▶</div><div>' + T('kit.tapToPlay', 'TAP TO PLAY') + '</div></div></div>'
         : hasShot ? '<div class="gc-media"><img loading="lazy" alt="" src="' + base + g.shot + '"></div>' : '';
       const tags = (tagsOf(g).length ? tagsOf(g) : ['GAME']).map(t =>
