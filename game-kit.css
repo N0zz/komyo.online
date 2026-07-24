@@ -138,7 +138,11 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
   .gamekit-hud .lbl { margin-bottom: 1px; }
 }
 @media (orientation: landscape) {
-  .gamekit-hud { max-width: calc(100vw - 380px); }
+  /* Reserve the side clusters (nav left + pause/controls/sound/fullscreen/menu right). The HUD is
+     centered, so its border-box must clear a FULL cluster — 380 left the widest pills (busy stat sets +
+     6-figure scores, e.g. asteroids) clipping the cluster. 410 guarantees clearance for any content at
+     any score; wide pills wrap to a 2nd row instead of spilling. Harmless on desktop (the cap is huge). */
+  .gamekit-hud { max-width: calc(100vw - 410px); }
 }
 @media (orientation: landscape) and (max-height: 560px) {
   .gamekit-hud { gap: 6px 12px; padding: 4px 10px; font-size: 11px; }

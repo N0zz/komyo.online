@@ -59,7 +59,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   #topHud #modeTag { font-size:11px; letter-spacing:1px; opacity:0.55; }
   #topHud #timerGoal { display:block; font-size:10px; opacity:0.7; }
   /* small screens: drop the mode label + the speedrun goal sub-line (both are on the start menu) so
-     the busy HUD fits one row instead of wrapping into the right cluster */
+     the busy HUD fits one row instead of wrapping into the right cluster.
+     (The landscape cluster-clearance itself is handled kit-side in .gamekit-hud.) */
   @media (max-width:560px), (max-height:560px) { #topHud .gk-modestat, #topHud #timerGoal { display:none; } }
   #xpwrap { left:50%; transform:translateX(-50%); bottom:18px; width:min(620px,70vw); }
   #xpbar { height:10px; border:1px solid rgba(180,140,255,0.5); border-radius:6px; background:rgba(40,20,70,0.5); overflow:hidden; }
