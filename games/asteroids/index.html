@@ -46,21 +46,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <style>
   html, body { margin:0; padding:0; height:100%; background:#05060a; overflow:hidden; font-family:"Courier New",monospace; color:#cfe8ff; }
   #game { display:block; width:100vw; height:100vh; }
-  #topHud { position:fixed; top:8px; left:50%; transform:translateX(-50%); z-index:5; display:flex; gap:26px; flex-wrap:wrap; justify-content:center; align-items:center; max-width:calc(100vw - 240px); padding:5px 18px; border-radius:10px; background:rgba(8,12,20,0.55); border:1px solid rgba(120,200,255,0.22); text-shadow:0 0 8px rgba(120,200,255,0.6); pointer-events:none; user-select:none; text-align:center; }
-  #hud { font-size:22px; letter-spacing:2px; }
-  #hud .label { opacity:0.6; font-size:13px; }
-  #weapon { font-size:13px; margin-top:4px; color:#ffc878; opacity:0.85; }
-  #lives { font-size:22px; letter-spacing:4px; color:#7fffb0; text-shadow:0 0 8px rgba(120,255,170,0.6); }
-  #timer { font-size:18px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); display:none; }
-  #modeTag { font-size:12px; letter-spacing:1px; opacity:0.5; }
-  @media (max-width:560px) { #topHud { top:50px; max-width:calc(100vw - 16px); gap:8px 18px; } }
-  /* short screens (landscape phones): slim the HUD so it doesn't eat the playfield */
-  @media (max-height:560px), (orientation:portrait) { #topHud { padding:2px 12px; gap:6px 16px; } #hud { font-size:15px; } #hud .label { font-size:9px; } #weapon { font-size:10px; margin-top:1px; } #lives { font-size:15px; } #modeTag { font-size:10px; } }
-  /* Portrait: drop below the nav. Landscape (short): keep top-row + reserve the clusters in max-width
-     (dropping would waste the scarce height). */
-  @media (orientation:portrait) { #topHud { top:50px; width:80vw; max-width:80vw; justify-content:space-evenly; } }
-  @media (orientation:landscape) { #topHud { max-width:calc(100vw - 380px); } }
-  #timer .goal { display:none; }
+  /* HUD: position/pill/responsive/nav-clearance all come from the shared .gamekit-hud (layout
+     contract, action archetype). Keep only the retro space colours. */
+  #hud .val { font-size:22px; letter-spacing:2px; }
+  #hud #weapon { font-size:12px; color:#ffc878; opacity:0.9; }
+  #hud #lives { font-size:22px; letter-spacing:4px; color:#7fffb0; text-shadow:0 0 8px rgba(120,255,170,0.6); }
+  #hud #timerVal { font-size:18px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); }
+  #hud #modeTag { font-size:11px; letter-spacing:1px; opacity:0.55; }
+  #hud #timerGoal { display:block; font-size:10px; opacity:0.7; }
   #flash { position:fixed; top:30%; left:0; right:0; text-align:center; font-size:30px; letter-spacing:6px; color:#ffc878; text-shadow:0 0 18px rgba(255,200,120,0.8); pointer-events:none; user-select:none; opacity:0; transition:opacity 0.3s ease; }
   #overlay { position:fixed; inset:0; z-index:9; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:radial-gradient(circle at center, rgba(10,14,26,0.6), rgba(5,6,10,0.92)); gap:14px; user-select:none; }
   #overlay h1 { margin:0; font-size:64px; letter-spacing:10px; color:#cfe8ff; text-shadow:0 0 22px rgba(120,200,255,0.7); }
@@ -103,7 +96,13 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="topHud"><div id="hud"><div class="label" id="scoreLabel">SCORE</div><div id="score">0</div><div id="weapon">WEAPON I</div></div><div id="lives"></div><div id="timer"><div id="timerVal">00:00.00</div><div class="goal" id="timerGoal"></div></div><div id="modeTag">Classic</div></div>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="scoreLabel">SCORE</span><span class="val" id="score">0</span></div>
+  <div class="stat"><span id="weapon">WEAPON I</span></div>
+  <div class="stat"><span id="lives"></span></div>
+  <div class="stat" id="timer" style="display:none"><span id="timerVal">00:00.00</span><span class="goal" id="timerGoal"></span></div>
+  <div class="stat"><span id="modeTag">Classic</span></div>
+</div>
 <div id="flash"></div>
 
 <!-- menus (start / pause / end) are rendered by gamekit.menu; #overlay is kept only as a hidden anchor -->
@@ -174,8 +173,13 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     startMusic(){ if(KIT) KIT.music.play('space'); },
     stopMusic(){ /* music persists across menu/pause — one continuous menu + in-game bed */ },
   };
-  let W,H;
-  function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S); buildStars(); }
+  let W,H,SCALE=1,AX=0,AY=0,AW=0,AH=0; // AX..AH = the arena (playRect scaled into canvas px); stars stay full-bleed
+  function resize(){ const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1; SCALE=S;
+    W=canvas.width=Math.round(window.innerWidth*S); H=canvas.height=Math.round(window.innerHeight*S);
+    const L=KIT&&KIT.layout;
+    if(L){ L.reserve('top', L.narrow ? Math.max(0,128-L.hudTop()) : 0); const pr=L.playRect(); AX=Math.round(pr.x*S); AY=Math.round(pr.y*S); AW=Math.round(pr.w*S); AH=Math.round(pr.h*S); }
+    else { AX=0; AY=0; AW=W; AH=H; }
+    buildStars(); }
   (window.gamekit && window.gamekit.layout) ? window.gamekit.layout.on(resize) : window.addEventListener('resize', resize);
 
   let stars=[];
@@ -230,7 +234,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') toMenu(); }, onEsc: resumeGame });
   }
   function resumeGame(){ state='playing'; srPrev=now(); if(!ENHANCED) SND.startMusic(); if(KIT) KIT.menu.hide(); }
-  function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14}; invuln=120; }
+  function spawnShip(){ ship={x:AX+AW/2,y:AY+AH/2,vx:0,vy:0,angle:-Math.PI/2,r:14}; invuln=120; }
   function updateHud(){ scoreEl.textContent=score; livesEl.textContent=KIT.t('game.asteroids.lifeIcon', { def: '▲ ' }).repeat(Math.max(0,lives)).trim(); weaponEl.textContent=WEAPONS[weaponLevel-1].label; }
   function flash(msg){ flashEl.textContent=msg; flashEl.style.opacity='1'; flashTimer=90; }
   // quit a run back to the start menu, in-place (no reload). Save the score best first (non-speedrun).
@@ -324,9 +328,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     for(let i=0;i<n;i++){ const ang=(i/n)*Math.PI*2; verts.push({ang,d:r*(0.65+Math.random()*0.5)}); }
     const speed=(1.1+Math.random()*0.9)*(4-size)*0.55; const dir=Math.random()*Math.PI*2;
     return {x,y,size,r,vx:Math.cos(dir)*speed,vy:Math.sin(dir)*speed,rot:Math.random()*Math.PI*2,vrot:(Math.random()-0.5)*0.03,verts,hue:200+Math.random()*40}; }
-  function spawnWave(count){ for(let i=0;i<count;i++){ let x,y; if(Math.random()<0.5){ x=Math.random()<0.5?-60:W+60; y=Math.random()*H; } else { x=Math.random()*W; y=Math.random()<0.5?-60:H+60; } asteroids.push(makeAsteroid(x,y,3)); } }
+  function spawnWave(count){ const R=AX+AW,B=AY+AH; for(let i=0;i<count;i++){ let x,y; if(Math.random()<0.5){ x=Math.random()<0.5?AX-60:R+60; y=AY+Math.random()*AH; } else { x=AX+Math.random()*AW; y=Math.random()<0.5?AY-60:B+60; } asteroids.push(makeAsteroid(x,y,3)); } }
   function burst(x,y,color,n,spread){ for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, sp=Math.random()*spread+0.5; particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,decay:Math.random()*0.025+0.012,color,size:Math.random()*2+1}); } }
-  function wrap(o){ if(o.x<-o.r)o.x=W+o.r; if(o.x>W+o.r)o.x=-o.r; if(o.y<-o.r)o.y=H+o.r; if(o.y>H+o.r)o.y=-o.r; }
+  function wrap(o){ const R=AX+AW,B=AY+AH; if(o.x<AX-o.r)o.x=R+o.r; if(o.x>R+o.r)o.x=AX-o.r; if(o.y<AY-o.r)o.y=B+o.r; if(o.y>B+o.r)o.y=AY-o.r; }
 
   function fireBullet(angle){ bullets.push({ x:ship.x+Math.cos(angle)*ship.r, y:ship.y+Math.sin(angle)*ship.r, vx:Math.cos(angle)*8+ship.vx, vy:Math.sin(angle)*8+ship.vy, life:70, r:2 }); }
   function shoot(){
@@ -459,7 +463,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   if (KIT) { KIT.nav({ slug: 'asteroids', music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
     onPause: () => { if (state==='playing') pauseGame(); else if (state==='paused') resumeGame(); },
     confirmLeave: () => (state==='playing' || state==='paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
-    controls: NAV_CONTROLS }); KIT.pwa('../../sw.js'); KIT.showMenuButton(false); }
+    controls: NAV_CONTROLS }); KIT.pwa('../../sw.js'); KIT.showMenuButton(false); KIT.layout.archetype('action'); }
 
   // ---- test hook: state getters + a layout snapshot for the headless harness (inert in normal play) ----
   window.__test = {
@@ -472,13 +476,12 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     menu(){ return KIT ? KIT.menu.current() : null; },
     shareMsg(){ return KIT ? shareMsg(score) : ''; },
     get shipAngle(){ return ship ? ship.angle : 0; },
-    // layout snapshot in CANVAS px (the world coords everything is drawn in). The canvas is
-    // scaled up by S on small screens, so topReserve (the CSS HUD headroom) is converted to
-    // canvas px too. Only JS-computed values are exposed; the HUD pill itself is CSS-positioned.
+    // layout snapshot for the contract: board + topReserve in CSS px (matching playRect); W/H are
+    // canvas px (scaled world → the suite runs with {size:false}). Ship bounds stay in canvas px.
     get layout(){
-      const m=Math.min(window.innerWidth,window.innerHeight); const S=m<640?Math.min(2.6,900/m):1;
-      const hudTop=KIT.layout.hudTop();
-      const o={ W, H, S, topReserve:hudTop*S };
+      const L=KIT&&KIT.layout, S=SCALE||1;
+      const pr=L?L.playRect():{x:0,y:0,w:window.innerWidth,h:window.innerHeight};
+      const o={ W, H, S, topReserve:pr.y, board:{x:pr.x,y:pr.y,w:pr.w,h:pr.h} };
       if(ship){ o.shipLeft=ship.x-ship.r; o.shipRight=ship.x+ship.r; o.shipTop=ship.y-ship.r; o.shipBottom=ship.y+ship.r; }
       return o;
     },

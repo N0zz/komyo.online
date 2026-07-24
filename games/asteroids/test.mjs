@@ -131,12 +131,11 @@ runLayoutSuite(
     ok(L.W === Math.round(v.w * S) && L.H === Math.round(v.h * S),
       '[' + v.name + '] canvas matches scaled viewport (W=' + L.W + ' H=' + L.H + ' S=' + L.S.toFixed(2) + ')');
     ok(L.W > 0 && L.H > 0, '[' + v.name + '] canvas has positive size');
-    // the ship (the only JS-positioned on-canvas actor) must be fully within 0..W / 0..H
+    // arena = playRect() scaled into canvas px: the ship spawns inside it, clearing the reserved top HUD
+    // (runLayoutSuite itself asserts board ⊆ playRect() + topReserve ≥ hudTop())
     ok(L.shipLeft >= 0 && L.shipRight <= L.W, '[' + v.name + '] ship within horizontal bounds (' + L.shipLeft.toFixed(0) + '..' + L.shipRight.toFixed(0) + ' / ' + L.W + ')');
-    ok(L.shipTop >= 0 && L.shipBottom <= L.H, '[' + v.name + '] ship within vertical bounds (' + L.shipTop.toFixed(0) + '..' + L.shipBottom.toFixed(0) + ' / ' + L.H + ')');
-    // the ship must not sit under the top score HUD (its reserved headroom, in canvas px)
-    ok(L.topReserve > 0, '[' + v.name + '] HUD reserves top headroom (' + L.topReserve.toFixed(0) + 'px canvas)');
-    ok(L.shipTop >= L.topReserve, '[' + v.name + '] ship clears the top HUD (top=' + L.shipTop.toFixed(0) + ' >= reserve=' + L.topReserve.toFixed(0) + ')');
+    ok(L.shipTop >= L.board.y * S - 1 && L.shipBottom <= L.H,
+      '[' + v.name + '] ship inside arena, clears top HUD (top=' + L.shipTop.toFixed(0) + ' >= ' + (L.board.y * S).toFixed(0) + ')');
   },
   { size: false } // scaled-world canvas — the scale-model assert above replaces the raw W/H match
 );
