@@ -121,8 +121,10 @@ silently, not loudly.
   fails CI. Archetypes: **action** = top HUD only (breakout); **controls** = top HUD + build/control
   strip, bottom in portrait / left in landscape (tower-defense); **board** = top HUD + optional
   secondary bar, centered board (2048; bubbles adds a reserved bottom bar). (asteroids/+ are on the
-  contract too — scaled-world **action** games: full-bleed starfield, arena = `playRect()` scaled into
-  canvas px; their custom fixed-step loop stays grandfathered.)
+  contract too — scaled-world **action** games on `.gamekit-hud`; their `board` = `playRect()` is the
+  guaranteed-clear **spawn** region, but **wrap is full-screen** — a player torus must wrap at the
+  physical screen edges, so the HUD floats over live play; their custom fixed-step loop stays
+  grandfathered.)
 - **SFX:** `SND.define({…})` must never reuse a kit-owned stinger name (`levelup`, `lose`, …) —
   the kit plays those itself, so an override self-recurses into silence.
 - **Game-over restart accepts tap AND key;** touch aim maps to canvas coords, not client coords.

@@ -112,9 +112,11 @@ Both are now on the contract (details in `plans/asteroids-migration-plan.md`):
   `#topHud` CSS + the interim `80vw`/landscape `max-width` hacks removed.
 - ⏭ Loop **stays custom** — the fixed-step accumulator is a grandfathered exception (like
   breakout/snake); it was never in scope for the layout contract and keeps determinism + `__test.step`.
-- ✅ The scaled world maps its transform into `playRect()` (frog-bonk-style: full-bleed starfield,
-  arena = `playRect()` scaled into canvas px, wrap/spawns/bounces clamp to the arena), exposes
-  `__test.layout.board`, and passes `board ⊆ playRect` via `runLayoutSuite` (`{size:false}`).
+- ✅ Exposes `__test.layout.board` (= `playRect()`) and passes `board ⊆ playRect` via `runLayoutSuite`
+  (`{size:false}`). **Wrap stays full-screen (torus)** — a player-controlled wrap game must wrap at the
+  physical screen edges (an arena-clamped wrap put the top line mid-screen → the ship visibly
+  teleported). So the whole viewport is play area, the HUD floats over it, and `board`/`playRect` is the
+  guaranteed-clear **spawn** region; bosses/sentries (which bounce, not wrap) clamp below the HUD.
 - ✅ Both suites green + `games/asteroids/CLAUDE.md` respected (handle-with-care).
 
 ---
