@@ -59,7 +59,7 @@ window.GAMES = [
     accent: "#2ee8c8",
     tags: ["PUZZLE", "CASUAL"],
     added: "2026-06-26",
-    updated: "2026-07-06",
+    updated: "2026-07-24",
     shot: "shot.v1.webp",
   },
   {
@@ -210,6 +210,7 @@ window.GAMES = [
     tags: ["PUZZLE", "LOGIC"],
     badges: ["pick"],
     added: "2026-07-12",
+    updated: "2026-07-24",
     shot: "shot.v1.webp",
   },
   {
@@ -301,6 +302,7 @@ window.GAMES = [
     accent: "#35e0ff",
     tags: ["LOGIC", "PUZZLE", "CLASSIC"],
     added: "2026-07-12",
+    updated: "2026-07-24",
     shot: "shot.v1.webp",
   },
 
