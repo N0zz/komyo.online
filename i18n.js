@@ -14,6 +14,7 @@ window.KOMYO_I18N.en = {
   'cat.goodRuns': { one: '{count} good run', other: '{count} good runs' },
   'cat.plays': { one: '{count} play', other: '{count} plays' },
   'cat.showMore': 'Show {n} more…',
+  'cat.more': 'MORE',
   // profile stat-chip + word plurals (catalogue profile panel)
   'profile.statGames': { one: 'Game', other: 'Games' },
   'profile.statModes': { one: 'Mode', other: 'Modes' },

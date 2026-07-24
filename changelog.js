@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-24', title: 'Peek before you play — trailers & previews 🎬', items: [
+    'New: tap MORE on any game for a card with a trailer or a gameplay preview plus how to play — right on the home page, no need to leave the site.',
+  ] },
   { date: '2026-07-23', title: 'Menus that fit every screen 📐', items: [
     'Fix: game menus now fit on small and landscape phones — no more scrolling to reach Play.',
     'Fix: layout overlaps cleaned up on narrow and landscape screens across several games (Snake, Tower Defense, Sudoku and more).',
