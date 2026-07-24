@@ -381,7 +381,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       actions:[ {id:'resume',label:t('game.common.resume',{def:'RESUME (ESC)'}),primary:true}, {id:'menu',label:t('game.common.quitToMenu',{def:'QUIT TO MENU'}),danger:true} ],
       onAction:(id)=>{ if(id==='resume') resumeGame(); else if(id==='menu') quitToMenu(); }, onEsc: resumeGame }); }
   function resumeGame(){ state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); }
-  function spawnShip(){ ship={x:AX+AW/2,y:AY+AH/2,vx:0,vy:0,angle:-Math.PI/2,r:14,hp:3,maxHp:3,shield:0,shieldMax:0,frenzy:0}; invuln=120; }
+  function spawnShip(){ ship={x:W/2,y:H/2,vx:0,vy:0,angle:-Math.PI/2,r:14,hp:3,maxHp:3,shield:0,shieldMax:0,frenzy:0}; invuln=120; }
 
   function recalc(){
     const u=up;
@@ -498,7 +498,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
 
   // ---- Spawning / waves ----
-  function edgePos(){ const R=AX+AW,B=AY+AH; let x,y; if(Math.random()<0.5){ x=Math.random()<0.5?AX-50:R+50; y=AY+Math.random()*AH; } else { x=AX+Math.random()*AW; y=Math.random()<0.5?AY-50:B+50; } return {x,y}; }
+  function edgePos(){ let x,y; if(Math.random()<0.5){ x=Math.random()<0.5?-50:W+50; y=Math.random()*H; } else { x=Math.random()*W; y=Math.random()<0.5?-50:H+50; } return {x,y}; }
   function makeAsteroid(x,y,size){ const r=size===3?56:size===2?34:18; const verts=[]; const n=9+Math.floor(Math.random()*4);
     for(let i=0;i<n;i++){ const ang=(i/n)*Math.PI*2; verts.push({ang,d:r*(0.65+Math.random()*0.5)}); }
     const speed=(1.0+Math.random()*0.9)*(4-size)*0.5*(1+wave*0.045); const dir=Math.random()*Math.PI*2;
@@ -543,7 +543,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   // ---- Effects ----
   function burst(x,y,color,n,spread){ for(let i=0;i<n;i++){ const a=Math.random()*Math.PI*2, sp=Math.random()*spread+0.5; particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1,decay:Math.random()*0.025+0.012,color,size:Math.random()*2+1}); } }
-  function wrap(o){ const R=AX+AW,B=AY+AH; if(o.x<AX-o.r)o.x=R+o.r; if(o.x>R+o.r)o.x=AX-o.r; if(o.y<AY-o.r)o.y=B+o.r; if(o.y>B+o.r)o.y=AY-o.r; }
+  function wrap(o){ if(o.x<-o.r)o.x=W+o.r; if(o.x>W+o.r)o.x=-o.r; if(o.y<-o.r)o.y=H+o.r; if(o.y>H+o.r)o.y=-o.r; }
 
   // ---- Combat ----
   function fireBullet(angle,offx,offy){ bullets.push({ x:ship.x+Math.cos(ship.angle)*ship.r+(offx||0), y:ship.y+Math.sin(ship.angle)*ship.r+(offy||0),
