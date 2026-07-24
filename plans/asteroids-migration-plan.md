@@ -1,11 +1,17 @@
 # Asteroids / Asteroids+ — onto the kit (no "special kid")
 
 **Status: DONE** (2026-07-24). Both games are on the layout contract: `archetype('action')`, the shared
-`.gamekit-hud` (custom `#topHud` + all its width hacks removed), a frog-bonk-style full-bleed arena
-sourced from `playRect()` (starfield stays full-bleed; wrap/spawns/bounces clamp to the arena so
-rocks/enemies/bosses wrap below the HUD, not behind it), and `__test.layout.board` enforced by
+`.gamekit-hud` (custom `#topHud` + all its width hacks removed), and `__test.layout.board` enforced by
 `runLayoutSuite` (`{size:false}`). The custom fixed-step loop stays (grandfathered — see CLAUDE.md).
-Suites green: asteroids 106, asteroids-plus 343, top-level 605, menu-fit 18/18.
+
+**Wrap is full-screen (torus), NOT arena-clamped.** A first pass clamped the wrap region to `playRect()`
+(frog-bonk style) — but frog-bonk's frogs are auto-enemies that never wrap; a *player-controlled* torus
+must wrap at the physical screen edges or the top wrap line sits mid-screen and the ship visibly
+teleports (empty starfield above the line). So: the whole viewport is the play area, the `.gamekit-hud`
+floats over it (rocks pass behind the translucent pill, as in the original), and `board = playRect()` is
+the guaranteed-clear **spawn** region (ship spawns centered → clears the HUD), not the wrap bounds.
+Bosses + sentries still clamp below the HUD (they bounce, don't wrap — clearing keeps their HP bars
+visible). Suites green: asteroids 106, asteroids-plus 343, top-level 605, menu-fit 18/18.
 
 ## Goal
 
