@@ -22,7 +22,7 @@
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
       html, body { width: 1080px; height: 1920px; overflow: hidden; background: #0b0e17; }
-      body { font-family: Montserrat, sans-serif; --accent: #38bdf8; --ink: #0b0e17; }
+      body { font-family: Montserrat, sans-serif; --accent: #8fd3a6; --ink: #0b0e17; }
 
       .stage { position: absolute; inset: 0; pointer-events: none; }
       .stage-fill { position: absolute; inset: 0; background: #0b0e17; }
@@ -108,9 +108,9 @@
     </style>
   </head>
   <body>
-    <div id="root" data-composition-id="main" data-fps="60" data-start="0" data-duration="23" data-width="1080" data-height="1920">
+    <div id="root" data-composition-id="main" data-fps="60" data-start="0" data-duration="32.711" data-width="1080" data-height="1920">
 
-      <div id="stage" class="clip stage" data-start="0" data-duration="23" data-track-index="0">
+      <div id="stage" class="clip stage" data-start="0" data-duration="32.711" data-track-index="0">
         <div class="stage-fill"></div>
         <div id="stage-bloom" class="stage-bloom"></div>
         <div class="stage-bloom2"></div>
@@ -119,39 +119,39 @@
       </div>
 
       <!-- gameplay beats — real-time 60fps windows of the one capture -->
-      <video id="v1" class="clip cardvid" src="assets/footage/forcefield_p.mp4"
+      <video id="v1" class="clip cardvid" src="assets/footage/flappy_p.mp4"
              style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(-2.5deg)"
-             data-start="0"     data-duration="4.0" data-media-start="6" data-track-index="1" muted playsinline></video>
-      <video id="v2" class="clip cardvid" src="assets/footage/forcefield_p.mp4"
+             data-start="0"     data-duration="5.689" data-media-start="8" data-track-index="1" muted playsinline></video>
+      <video id="v2" class="clip cardvid" src="assets/footage/flappy_p.mp4"
              style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(2.5deg)"
-             data-start="3.81"  data-duration="3.95" data-media-start="37" data-track-index="2" muted playsinline></video>
-      <video id="v3" class="clip cardvid" src="assets/footage/forcefield_p.mp4"
+             data-start="5.419"  data-duration="5.618" data-media-start="38" data-track-index="2" muted playsinline></video>
+      <video id="v3" class="clip cardvid" src="assets/footage/flappy_p.mp4"
              style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(-2.5deg)"
-             data-start="7.56"  data-duration="3.95" data-media-start="76" data-track-index="3" muted playsinline></video>
-      <video id="v4" class="clip cardvid" src="assets/footage/forcefield_p.mp4"
+             data-start="10.752"  data-duration="5.618" data-media-start="69" data-track-index="3" muted playsinline></video>
+      <video id="v4" class="clip cardvid" src="assets/footage/flappy_p.mp4"
              style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(2deg)"
-             data-start="11.31" data-duration="3.3"  data-media-start="138" data-track-index="4" muted playsinline></video>
+             data-start="16.085" data-duration="4.693"  data-media-start="17.2" data-track-index="4" muted playsinline></video>
 
-      <div id="f1" class="clip cardframe" data-start="0" data-duration="4.0" data-track-index="5">
+      <div id="f1" class="clip cardframe" data-start="0" data-duration="5.689" data-track-index="5">
         <div id="f1-in" style="position:absolute; inset:0; transform-origin: 540px 870px;">
           <div class="cecho" style="left:110px; top:330px; width:860px; height:1080px; transform: rotate(-2.5deg)"></div>
           <div class="cframe" style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(-2.5deg)"></div>
-          <div class="cardsub" style="left:120px; top:1385px; transform: rotate(-2.5deg)">live gameplay — forcefield</div>
+          <div class="cardsub" style="left:120px; top:1385px; transform: rotate(-2.5deg)">live gameplay — meadow flyer</div>
         </div>
       </div>
-      <div id="f2" class="clip cardframe" data-start="3.81" data-duration="3.95" data-track-index="6">
+      <div id="f2" class="clip cardframe" data-start="5.419" data-duration="5.618" data-track-index="6">
         <div id="f2-in" style="position:absolute; inset:0; transform-origin: 540px 870px;">
           <div class="cecho" style="left:110px; top:330px; width:860px; height:1080px; transform: rotate(2.5deg)"></div>
           <div class="cframe" style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(2.5deg)"></div>
         </div>
       </div>
-      <div id="f3" class="clip cardframe" data-start="7.56" data-duration="3.95" data-track-index="7">
+      <div id="f3" class="clip cardframe" data-start="10.752" data-duration="5.618" data-track-index="7">
         <div id="f3-in" style="position:absolute; inset:0; transform-origin: 540px 870px;">
           <div class="cecho" style="left:110px; top:330px; width:860px; height:1080px; transform: rotate(-2.5deg)"></div>
           <div class="cframe" style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(-2.5deg)"></div>
         </div>
       </div>
-      <div id="f4" class="clip cardframe" data-start="11.31" data-duration="3.3" data-track-index="8">
+      <div id="f4" class="clip cardframe" data-start="16.085" data-duration="4.693" data-track-index="8">
         <div id="f4-in" style="position:absolute; inset:0; transform-origin: 540px 870px;">
           <div class="cecho" style="left:110px; top:330px; width:860px; height:1080px; transform: rotate(2deg)"></div>
           <div class="cframe" style="left:90px; top:310px; width:900px; height:1120px; transform: rotate(2deg)"></div>
@@ -159,35 +159,35 @@
       </div>
 
       <div id="slamwrap" class="clip" style="position:absolute; inset:0; pointer-events:none"
-           data-start="0" data-duration="4.0" data-track-index="9">
+           data-start="0" data-duration="5.689" data-track-index="9">
         <div id="slamgroup" class="slamgroup">
-          <div class="slam">HOLD THE <em>LINE.</em></div>
+          <div class="slam">TAP TO <em>FLY.</em></div>
         </div>
       </div>
-      <div id="feat2" class="clip feat" data-start="3.81" data-duration="3.95" data-track-index="10">
-        <div id="feat2-in">slide to <b>block</b></div>
+      <div id="feat2" class="clip feat" data-start="5.419" data-duration="5.618" data-track-index="10">
+        <div id="feat2-in">just <b>one</b> tap</div>
       </div>
-      <div id="feat3" class="clip feat" data-start="7.56" data-duration="3.95" data-track-index="11">
-        <div id="feat3-in"><b>chain</b> the combo</div>
+      <div id="feat3" class="clip feat" data-start="10.752" data-duration="5.618" data-track-index="11">
+        <div id="feat3-in">thread every <b>gap</b></div>
       </div>
-      <div id="feat4" class="clip feat" data-start="11.31" data-duration="3.3" data-track-index="12">
-        <div id="feat4-in"><b>solo</b> or <b>2-player</b></div>
-      </div>
-
-      <div id="gametag" class="clip gametag" data-start="0.2" data-duration="14.1" data-track-index="13">
-        <span id="gametag-in">🌐 FORCEFIELD · <b>SKILL</b></span>
+      <div id="feat4" class="clip feat" data-start="16.085" data-duration="4.693" data-track-index="12">
+        <div id="feat4-in">beat your <b>best</b></div>
       </div>
 
-      <div id="flash1" class="clip accflash" data-start="0"     data-duration="1.1" data-track-index="15"></div>
-      <div id="flash2" class="clip accflash" data-start="3.81"  data-duration="1.1" data-track-index="16"></div>
-      <div id="flash3" class="clip accflash" data-start="7.56"  data-duration="1.1" data-track-index="17"></div>
-      <div id="flash4" class="clip accflash" data-start="11.31" data-duration="1.1" data-track-index="18"></div>
+      <div id="gametag" class="clip gametag" data-start="0.284" data-duration="20.053" data-track-index="13">
+        <span id="gametag-in">🐤 MEADOW FLYER · <b>CASUAL</b></span>
+      </div>
 
-      <div id="streak1" class="clip streak" data-layout-ignore data-start="3.5"  data-duration="0.7" data-track-index="19"><div id="streak1-in"></div></div>
-      <div id="streak2" class="clip streak" data-layout-ignore data-start="7.25" data-duration="0.7" data-track-index="20"><div id="streak2-in"></div></div>
-      <div id="streak3" class="clip streak" data-layout-ignore data-start="11.0" data-duration="0.7" data-track-index="21"><div id="streak3-in"></div></div>
+      <div id="flash1" class="clip accflash" data-start="0"     data-duration="1.564" data-track-index="15"></div>
+      <div id="flash2" class="clip accflash" data-start="5.419"  data-duration="1.564" data-track-index="16"></div>
+      <div id="flash3" class="clip accflash" data-start="10.752"  data-duration="1.564" data-track-index="17"></div>
+      <div id="flash4" class="clip accflash" data-start="16.085" data-duration="1.564" data-track-index="18"></div>
 
-      <div id="meta" class="clip meta" data-layout-ignore data-start="0.45" data-duration="13.75" data-track-index="22">
+      <div id="streak1" class="clip streak" data-layout-ignore data-start="4.978"  data-duration="0.996" data-track-index="19"><div id="streak1-in"></div></div>
+      <div id="streak2" class="clip streak" data-layout-ignore data-start="10.311" data-duration="0.996" data-track-index="20"><div id="streak2-in"></div></div>
+      <div id="streak3" class="clip streak" data-layout-ignore data-start="15.644" data-duration="0.996" data-track-index="21"><div id="streak3-in"></div></div>
+
+      <div id="meta" class="clip meta" data-layout-ignore data-start="0.64" data-duration="19.556" data-track-index="22">
         <div id="meta-in">
           <div class="chip" style="left:56px; top:205px; color: var(--accent)">komyo.online</div>
           <div class="chip" style="right:56px; top:205px">free forever</div>
@@ -196,15 +196,15 @@
         </div>
       </div>
 
-      <div id="vig" class="clip vig" data-start="0" data-duration="23" data-track-index="23"></div>
+      <div id="vig" class="clip vig" data-start="0" data-duration="32.711" data-track-index="23"></div>
 
-      <div id="cta" class="clip" style="position:absolute; inset:0" data-start="14.31" data-duration="8.69" data-track-index="24">
+      <div id="cta" class="clip" style="position:absolute; inset:0" data-start="20.352" data-duration="12.359" data-track-index="24">
         <div class="ctawrap">
           <div class="ctamark-row">
             <div id="cta-word" class="ctamark">komyo</div>
             <img id="cta-mascot" class="mascot" src="assets/brand/mascot-head.svg" alt="" />
           </div>
-          <div id="cta-tag" class="ctatag">play Forcefield free</div>
+          <div id="cta-tag" class="ctatag">play Meadow Flyer free</div>
           <div id="cta-pills" class="ctapills">
             <div>free</div><div>no ads</div><div>no accounts</div><div>works offline</div>
           </div>
@@ -212,22 +212,22 @@
             <canvas id="qr" width="300" height="300"></canvas>
             <p>scan to play</p>
           </div>
-          <div id="cta-url" class="ctaurl">komyo.online/games/forcefield</div>
+          <div id="cta-url" class="ctaurl">komyo.online/games/flappy</div>
         </div>
       </div>
 
       <!-- ══ MUSIC — swap src + BAR together ══ -->
-      <audio id="bgm" src="assets/audio/forcefield-76s.m4a"
-             data-start="0" data-duration="23" data-media-start="0" data-track-index="25" data-volume="1"></audio>
+      <audio id="bgm" src="assets/audio/meadow-76s.m4a"
+             data-start="0" data-duration="32.711" data-media-start="0" data-track-index="25" data-volume="1"></audio>
     </div>
 
     <script>
       /* ════════════ CONFIG (edit per game) ════════════ */
-      var GAME = { accent: '#38bdf8',
-        qrUrl: 'https://komyo.online/games/forcefield?utm_source=tr&utm_medium=qr',
+      var GAME = { accent: '#8fd3a6',
+        qrUrl: 'https://komyo.online/games/flappy?utm_source=tr&utm_medium=qr',
         sparkSeed: 3801 };
       /* ════════════ MUSIC — keep in lockstep with data-* windows ════════════ */
-      var BAR = 1.875;          /* forcefield 128bpm; snakebanger 122bpm → 1.96721 */
+      var BAR = 2.666667;          /* forcefield 128bpm; snakebanger 122bpm → 1.96721 */
       function bar(n) { return 0.06 + n * BAR; }
       /* ═══════════════════════════════════════════════ */
 
@@ -352,7 +352,7 @@
       tl.from('#cta-url', { opacity: 0, y: 30, duration: 0.4, ease: 'power2.out' }, HO + 1.05);
       tl.to('#cta-mascot', { y: -12, duration: 1.5, repeat: 1, yoyo: true, ease: 'sine.inOut' }, HO + 1.6);
 
-      tl.to('#bgm', { volume: 0, duration: 2.0, ease: 'power1.in' }, 21);
+      tl.to('#bgm', { volume: 0, duration: 2.0, ease: 'power1.in' }, 29.867);
 
       window.__timelines['main'] = tl;
     </script>
