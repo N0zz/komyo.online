@@ -640,15 +640,19 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // entry 0 (upserted by id on every action), so "Continue" = resume history[0], the
   // modal shows everything incl. the current board, and resuming bubbles a board to the
   // top (its ts refreshes on the first save). Finishing a board removes its entry.
-  const HIST_KEY = 'sudoku_history', LEGACY_SAVE_KEY = 'sudoku_save', HIST_CAP = 20;
+  // Unfinished-board history rides the kit progress store (gamekit.progress) — SAME `sudoku_history`
+  // key + entry shape, so existing saved boards carry over with no migration. The kit owns the v/id/ts
+  // envelope, the cap (20) and quota-safety; this file owns the sudoku-specific payload + the list UX.
+  const PROG = KIT ? KIT.progress('sudoku', { key: 'sudoku_history', max: 20, version: 1 }) : null;
+  const LEGACY_SAVE_KEY = 'sudoku_save';
   let activeId = null;                 // history id of the board being played
   let histSeq = 0;
   function newBoardId() { return 'b' + Date.now().toString(36) + '-' + (histSeq++).toString(36); }
   function lsGetJ(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
   function lsSetJ(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* full/blocked */ } }
   function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
-  function snapshot() {
-    return { v: 1, id: activeId, ts: Date.now(), mode: gameMode, band,
+  function snapshot() {   // v/id/ts are added by the store; id: activeId makes save() upsert this board
+    return { id: activeId, mode: gameMode, band,
       givens: Array.from(givens).join(''), grid: Array.from(grid).join(''),
       solution: Array.from(solution).join(''), notes: Array.from(notes),
       mistakes, hints: hintsUsed, ticks };
@@ -657,28 +661,20 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     for (let i = 0; i < 81; i++) { if (grid[i] !== givens[i] || notes[i]) return true; }
     return false;
   }
-  function history() { const h = lsGetJ(HIST_KEY); return Array.isArray(h) ? h.filter(s => s && s.v === 1) : []; }
+  function history() { return PROG ? PROG.list() : []; }
   function saveCurrent() {
-    if (state !== 'playing' || !activeId || !liveProgress()) return;   // untouched boards never clutter the list
-    const h = history().filter(e => e.id !== activeId);
-    h.unshift(snapshot());
-    lsSetJ(HIST_KEY, h.slice(0, HIST_CAP));
+    if (state !== 'playing' || !activeId || !liveProgress() || !PROG) return;   // untouched boards never clutter the list
+    PROG.save(snapshot());             // upsert by id, bubble to front, cap 20 — all kit-owned
   }
-  function removeEntry(id) { if (id) lsSetJ(HIST_KEY, history().filter(e => e.id !== id)); }
-  function currentSave() { return history()[0] || null; }
-  // one-time migration from the old two-key layout (current board lived in its own key)
+  function removeEntry(id) { if (id && PROG) PROG.remove(id); }
+  function currentSave() { return PROG ? PROG.current() : null; }
+  // one-time migration from the old two-key layout (current board lived in its own key) + id back-fill
   (function () {
     const s = lsGetJ(LEGACY_SAVE_KEY);
-    if (s && s.v === 1 && (s.grid !== s.givens || (s.notes && s.notes.some(n => n))) && s.grid !== s.solution) {
-      const h = history();
-      h.unshift(s);
-      lsSetJ(HIST_KEY, h.slice(0, HIST_CAP));
-    }
+    if (s && s.v === 1 && (s.grid !== s.givens || (s.notes && s.notes.some(n => n))) && s.grid !== s.solution && PROG) PROG.save(s);
     lsDel(LEGACY_SAVE_KEY);
-    const h = history();
-    let dirty = false;
-    for (const e of h) if (!e.id) { e.id = newBoardId(); dirty = true; }
-    if (dirty) lsSetJ(HIST_KEY, h);
+    const raw = lsGetJ('sudoku_history');   // back-fill ids on any pre-id entries (in place, no reorder)
+    if (Array.isArray(raw)) { let dirty = false; for (const e of raw) if (e && !e.id) { e.id = newBoardId(); dirty = true; } if (dirty) lsSetJ('sudoku_history', raw); }
   })();
 
   // ==================================================================================
@@ -1207,12 +1203,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
           onRemove: () => {
             KIT.confirm(
               KIT.t('game.sudoku.deleteConfirm', { board: snapShort(s), def: 'Delete this board? ({board})' }),
-              () => {
-                const h2 = history();
-                const k2 = h2.findIndex(e => e.ts === s.ts && e.givens === s.givens);
-                if (k2 >= 0) { h2.splice(k2, 1); lsSetJ(HIST_KEY, h2); }
-                showHistoryMenu();
-              },
+              () => { removeEntry(s.id); showHistoryMenu(); },
               KIT.t('game.sudoku.deleteYes', { def: 'Delete' })
             );
           },
@@ -1227,7 +1218,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       onPlay: st => { resumeFromHistory(+st.hist || 0); },
       onAction: id => {
         if (id === 'back') showStartMenu();
-        else if (id === 'clear') { lsDel(HIST_KEY); showStartMenu(); }   // one list — Continue goes with it
+        else if (id === 'clear') { if (PROG) PROG.clear(); showStartMenu(); }   // one list — Continue goes with it
       },
       onEsc: showStartMenu,
     });

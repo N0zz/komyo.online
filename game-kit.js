@@ -2048,6 +2048,39 @@
   function getBestScore(slug, mode) { return getBest(slug, mode).score; }
   function saveBest(slug, mode, data) { data = data || {}; return pbSave(slug, mode, data.score, data.time, false, data.stats); }
 
+  // ---------- progress saves (resume / history) — kit-owned; Path-to-launch #5, built incrementally.
+  //   store = gamekit.progress(slug, { key?, max?, version? }) → save/load/list/current/has/remove/clear.
+  //   ONE localStorage key holds a bare array of entries [{ v, id, ts, ...payload }], newest-first, capped
+  //   to `max` (1 = a single "resume" slot; N = a capped history). The game's payload is opaque — the kit
+  //   owns the v/id/ts envelope, the cap and quota-safety (QuotaExceededError swallowed in this ONE place,
+  //   via lsSet). Games call save() on discrete events (a move/shot resolving), NEVER per-frame. The default
+  //   key `<slug>_progress` is slug-prefixed so the ☰ "Reset game data" (prefix `<slug>_`) wipes it; sudoku
+  //   passes its existing `sudoku_history` key so its saved boards carry over with no migration. ----------
+  var _progSeq = 0;
+  function makeProgress(slug, opts) {
+    opts = opts || {};
+    var KEY = opts.key || (slug + '_progress'), MAX = opts.max || 1, VER = opts.version || 1;
+    function readAll() { try { var a = JSON.parse(lsGet(KEY) || 'null'); return Array.isArray(a) ? a.filter(function (e) { return e && e.v === VER; }) : []; } catch (e) { return []; } }
+    function writeAll(list) { lsSet(KEY, JSON.stringify(list.slice(0, MAX))); }   // lsSet swallows quota/blocked — the one place
+    function newId() { return 's' + Date.now().toString(36) + '-' + (_progSeq++).toString(36); }
+    return {
+      list: function () { return readAll(); },
+      current: function () { return readAll()[0] || null; },
+      has: function () { return readAll().length > 0; },
+      // upsert by payload.id (assigned if absent), bubble to the front, cap; returns the id.
+      save: function (payload) {
+        payload = payload || {};
+        var id = payload.id || newId(), rest = readAll().filter(function (e) { return e.id !== id; }), ent = {};
+        for (var k in payload) if (Object.prototype.hasOwnProperty.call(payload, k)) ent[k] = payload[k];
+        ent.v = VER; ent.id = id; ent.ts = Date.now();
+        rest.unshift(ent); writeAll(rest); return id;
+      },
+      load: function (id) { var l = readAll(); if (id == null) return l[0] || null; for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i]; return null; },
+      remove: function (id) { writeAll(readAll().filter(function (e) { return e.id !== id; })); },
+      clear: function () { try { if (typeof localStorage !== 'undefined') localStorage.removeItem(KEY); } catch (e) {} },
+    };
+  }
+
   // recordResult(slug, {mode, score, time, stats}) — called by each game on game-over. Stores the
   // latest result + appends to today's UTC activity log (for cross-game "play N games" challenges).
   function recordResult(slug, data) {
@@ -4617,7 +4650,7 @@
     } catch (e) {}
   })();
 
-  var api = { lock: lock, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
+  var api = { lock: lock, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
