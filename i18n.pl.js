@@ -39,7 +39,7 @@ window.KOMYO_I18N.pl = {
   'kit.resetTitle': 'Zresetuj zapisane wyniki tej gry',
   'kit.gameMenu': 'Menu gry',
   'kit.rotate': 'Obróć telefon, aby zagrać',
-  'kit.tapToPlay': 'DOTKNIJ, ABY ZAGRAĆ',
+  'kit.tapToPlay': 'DOTKNIJ, ABY ODTWORZYĆ',
   'update.upToDate': '✓ Aktualna',
   'update.updateNow': '🔆 Zaktualizuj teraz',
   'update.updating': '⟳ Aktualizowanie…',

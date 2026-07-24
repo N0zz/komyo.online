@@ -28,7 +28,7 @@ window.KOMYO_I18N.fr = {
   'kit.resetTitle': 'Réinitialiser les scores enregistrés de ce jeu',
   'kit.gameMenu': 'Menu du jeu',
   'kit.rotate': 'Tournez votre téléphone pour jouer',
-  'kit.tapToPlay': 'APPUYEZ POUR JOUER',
+  'kit.tapToPlay': 'APPUYEZ POUR LIRE',
   'update.upToDate': '✓ À jour',
   'update.updateNow': '🔆 Mettre à jour',
   'update.updating': '⟳ Mise à jour…',

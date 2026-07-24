@@ -28,7 +28,7 @@ window.KOMYO_I18N.cs = {
   'kit.resetTitle': 'Resetovat uložené výsledky této hry',
   'kit.gameMenu': 'Menu hry',
   'kit.rotate': 'Otoč telefon a hraj',
-  'kit.tapToPlay': 'DOTKNI SE A HRAJ',
+  'kit.tapToPlay': 'KLEPNI PRO PŘEHRÁNÍ',
   'update.upToDate': '✓ Aktuální',
   'update.updateNow': '🔆 Aktualizovat',
   'update.updating': '⟳ Aktualizace…',
