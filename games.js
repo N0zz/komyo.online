@@ -12,6 +12,7 @@ window.GAMES = [
     tags: ["ARCADE", "SHOOTER"],
     added: "2026-06-26",
     updated: "2026-07-13",
+    shot: "shot.v1.webp",
   },
   {
     slug: "asteroids-plus",
@@ -22,6 +23,7 @@ window.GAMES = [
     tags: ["ROGUELIKE", "SHOOTER"],
     added: "2026-06-28",
     updated: "2026-07-13",
+    shot: "shot.v1.webp",
   },
   {
     slug: "tower-defense",
@@ -33,6 +35,7 @@ window.GAMES = [
     badges: ["pick"],
     added: "2026-06-26",
     updated: "2026-07-06",
+    shot: "shot.v1.webp",
   },
 
   {
@@ -45,6 +48,7 @@ window.GAMES = [
     badges: ["pick"],
     added: "2026-07-04",
     updated: "2026-07-11",
+    trailer: "trailer.v1.mp4",
   },
 
   {
@@ -56,6 +60,7 @@ window.GAMES = [
     tags: ["PUZZLE", "CASUAL"],
     added: "2026-06-26",
     updated: "2026-07-06",
+    shot: "shot.v1.webp",
   },
   {
     slug: "frog-bonk",
@@ -66,6 +71,7 @@ window.GAMES = [
     tags: ["REFLEX", "KIDS"],
     added: "2026-07-06",
     updated: "2026-07-06",
+    shot: "shot.v1.webp",
   },
 
   // ---- coming soon ----
@@ -78,6 +84,7 @@ window.GAMES = [
     tags: ["ARCADE", "REFLEX"],
     added: "2026-06-26",
     updated: "2026-07-03",
+    shot: "shot.v1.webp",
   },
   {
     slug: "invaders",
@@ -97,6 +104,7 @@ window.GAMES = [
     tags: ["LOGIC", "PUZZLE"],
     added: "2026-07-10",
     updated: "2026-07-11",
+    shot: "shot.v1.webp",
   },
   {
     slug: "crossy",
@@ -116,6 +124,7 @@ window.GAMES = [
     tags: ["REFLEX", "CASUAL"],
     added: "2026-06-26",
     updated: "2026-07-03",
+    shot: "shot.v1.webp",
   },
   {
     slug: "icy-tower",
@@ -145,6 +154,7 @@ window.GAMES = [
     badges: ["pick"],
     added: "2026-07-12",
     updated: "2026-07-19",
+    trailer: "trailer.v1.mp4",
   },
   {
     slug: "flappy",
@@ -155,6 +165,7 @@ window.GAMES = [
     tags: ["CASUAL", "ARCADE"],
     added: "2026-06-26",
     updated: "2026-07-06",
+    shot: "shot.v1.webp",
   },
   {
     slug: "aim-trainer",
@@ -165,6 +176,7 @@ window.GAMES = [
     tags: ["SKILL", "SHOOTER"],
     added: "2026-06-26",
     updated: "2026-07-03",
+    shot: "shot.v1.webp",
   },
   {
     slug: "spellcaster",
@@ -185,6 +197,7 @@ window.GAMES = [
     badges: ["pick"],
     added: "2026-06-26",
     updated: "2026-07-03",
+    shot: "shot.v1.webp",
   },
 
   // ---- coming soon: new ideas ----
@@ -197,6 +210,7 @@ window.GAMES = [
     tags: ["PUZZLE", "LOGIC"],
     badges: ["pick"],
     added: "2026-07-12",
+    shot: "shot.v1.webp",
   },
   {
     slug: "keyfall",
@@ -287,6 +301,7 @@ window.GAMES = [
     accent: "#35e0ff",
     tags: ["LOGIC", "PUZZLE", "CLASSIC"],
     added: "2026-07-12",
+    shot: "shot.v1.webp",
   },
 
   // ---- coming soon: kids-first (ages 6–10) ----
@@ -298,6 +313,7 @@ window.GAMES = [
     accent: "#ff9ec2",
     tags: ["KIDS", "CASUAL"],
     added: "2026-07-12",
+    shot: "shot.v1.webp",
   },
   {
     slug: "critter-match",
@@ -307,6 +323,7 @@ window.GAMES = [
     accent: "#ffb86b",
     tags: ["KIDS", "PUZZLE"],
     added: "2026-07-12",
+    shot: "shot.v1.webp",
   },
   {
     slug: "glow-says",
@@ -316,6 +333,7 @@ window.GAMES = [
     accent: "#7ee787",
     tags: ["KIDS", "LOGIC"],
     added: "2026-07-12",
+    shot: "shot.v1.webp",
   },
   {
     slug: "color-pop",

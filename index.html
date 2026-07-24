@@ -231,6 +231,69 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     overflow: hidden; color: transparent; -webkit-background-clip: border-box; background-clip: border-box; }
   .grid.compact .badge .spk { display: none; }
 
+  /* ---- trailer / screenshot game card (cozy only — hidden in .compact below) ---- */
+  .more-strip { display:flex; align-items:center; justify-content:center; gap:8px; height:32px; flex:0 0 auto; cursor:pointer;
+    font-family:var(--mono); font-size:11px; letter-spacing:2px; font-weight:700; color:var(--faint);
+    background:rgba(0,0,0,0.22); border-top:1px solid var(--border); transition:color .12s, background .12s; }
+  .more-strip:hover, .more-strip:focus-visible { color:var(--accent); background:color-mix(in srgb, var(--accent) 10%, transparent); outline:none; }
+  .more-strip .chev { transition:transform .2s; font-size:13px; }
+  .tile.card-open { transform:none; border-color:var(--accent); box-shadow:0 0 0 1px var(--accent), 0 0 34px -10px var(--accent); }
+  .tile.card-open .more-strip { color:var(--accent); background:color-mix(in srgb, var(--accent) 14%, transparent); }
+  .tile.card-open .more-strip .chev { transform:rotate(180deg); }
+  .grid.compact .more-strip { display:none; }   /* cozy-only feature */
+
+  /* game card = a unified centered overlay (same on grid AND rail tiles) */
+  dialog.gcard-dialog { padding:0; border:0; background:transparent; width:100vw; height:100vh; max-width:100vw; max-height:100vh; margin:0; overflow:visible; }
+  dialog.gcard-dialog[open] { display:flex; align-items:center; justify-content:center; }
+  dialog.gcard-dialog::backdrop { background:rgba(5,8,13,0.72); }
+  dialog.gcard-dialog .gcard { margin:0; max-height:92vh; overflow:auto; }
+  dialog.gcard-dialog .gc-x { top:10px; right:10px; }   /* tuck inside — overflow:auto would clip a protruding badge */
+  .gc-tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:10px; }
+  .gcard.solo .gc-tags { justify-content:center; }
+  /* badges (NEW/UPDATED/POPULAR) flow inline as an eyebrow above the title, not floating over media */
+  .gc-info .badges { position:static; flex-direction:row; flex-wrap:wrap; top:auto; left:auto; gap:8px; margin-bottom:10px; }
+  .gc-info .badges:empty { display:none; margin:0; }
+  .gcard.solo .gc-info .badges { justify-content:center; }
+  /* title dominates; badges + tags a touch smaller than on a tile */
+  .gc-info .badges .badge b { font-size:10px; letter-spacing:1.5px; }
+  .gcard .gc-tags .tag { font-size:9px; letter-spacing:1px; padding:2px 7px; }
+  .gcard { position:relative; max-width:760px; margin:2px auto 8px; background:var(--surface); border:1px solid var(--accent);
+    border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,0.55), 0 0 40px -14px var(--accent); animation:gcpop .22s ease; }
+  .gcard.solo { max-width:640px; }
+  @keyframes gcpop { from { opacity:0; transform:translateY(-8px); } to { opacity:1; transform:none; } }
+  .gcard .gc-x { position:absolute; top:-13px; right:-13px; z-index:5; width:34px; height:34px; border-radius:50%;
+    background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:15px; line-height:1;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,0.45); }
+  .gcard .gc-x:hover { color:#fff; border-color:var(--accent); }
+  .gc-cols { display:grid; grid-template-columns:246px 1fr; gap:26px; padding:24px; }
+  .gcard.solo .gc-cols { grid-template-columns:1fr; text-align:center; }
+  .gc-media { position:relative; aspect-ratio:9 / 16; background:#05070c; border-radius:14px; overflow:hidden;
+    display:grid; place-items:center; box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 34px -12px var(--accent); }
+  .gc-media video, .gc-media img { width:100%; height:100%; object-fit:cover; display:block; }
+  .gc-media .gc-spin { position:absolute; width:26px; height:26px; border-radius:50%; border:2px solid rgba(255,255,255,0.18);
+    border-top-color:var(--accent); animation:gcspin .8s linear infinite; }
+  @keyframes gcspin { to { transform:rotate(360deg); } }
+  .gc-media .gc-weak { position:absolute; inset:0; display:none; place-items:center; flex-direction:column; gap:10px; cursor:pointer;
+    background:linear-gradient(180deg, rgba(5,7,12,0.35), rgba(5,7,12,0.72)); color:#fff; font-family:var(--mono); font-size:12px; letter-spacing:1px; }
+  .gc-media .gc-ptri { font-size:38px; }
+  .gc-media.weak video { display:none; }
+  .gc-media.weak .gc-weak { display:grid; }
+  .gc-info { display:flex; flex-direction:column; justify-content:center; min-width:0; align-items:flex-start; }
+  .gcard.solo .gc-info { align-items:center; }
+  .gc-info h3 { margin:0; font-size:28px; font-weight:800; display:flex; align-items:center; gap:12px; letter-spacing:0.3px; color:var(--text); }
+  .gc-info h3 .gc-glyph { font-size:32px; }
+  .gc-info .gc-howto { margin:14px 0 0; font-size:14.5px; line-height:1.66; color:var(--muted); }
+  .gc-info .gc-play { margin-top:22px; align-self:center; display:inline-flex; align-items:center; gap:9px; text-decoration:none;
+    font-family:var(--mono); font-size:14px; font-weight:800; letter-spacing:1.5px; color:#06121a; background:var(--accent);
+    border:0; border-radius:12px; padding:12px 26px; cursor:pointer; box-shadow:0 8px 24px -8px var(--accent); }
+  .gc-info .gc-play:hover { filter:brightness(1.08); }
+  @media (max-width:640px) {
+    .gc-cols { grid-template-columns:1fr; gap:18px; text-align:center; }
+    .gc-media { max-width:220px; margin:0 auto; width:100%; }
+    .gc-info { align-items:center; }
+    .gc-info .gc-play { align-self:stretch; justify-content:center; }
+  }
+
   .help-row { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; }
   .ibtn { position:relative; font-family:var(--mono); font-size:12px; letter-spacing:2px; cursor:pointer; padding:9px 16px; border-radius:10px;
     color:var(--text); background:var(--surface-2); border:1px solid var(--border); text-decoration:none; display:inline-flex; align-items:center; }
@@ -1315,7 +1378,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     // catalogue is grouped into sections; favorites pin to the top of their own section.
     // favPos (only passed for tiles rendered within the Favorites strip): { index, count } — drives
     // the ▲▼ manual-reorder buttons, disabled at either end.
-    function tileEl(g, f, isFavTile) {
+    function tileEl(g, f, isFavTile, inGrid) {
       const soon = !!g.soon;
       const el = document.createElement(soon ? 'div' : 'a');
       el.className = 'tile' + (soon ? ' soon' : '') + (isFavTile ? ' fav-tile' : '');
@@ -1345,8 +1408,109 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       }
       // Favorites-strip tiles are always drag handles (mouse threshold / touch long-press)
       if (isFavTile) wireFavDrag(el, g.slug);
+      // cozy-only "MORE ˅" strip → opens the game card overlay (trailer / screenshot + how-to).
+      // On every tile (grid AND rail) — the card is a centered overlay, so section layout doesn't matter.
+      if (!soon) {
+        const strip = document.createElement('div');
+        strip.className = 'more-strip';
+        strip.setAttribute('role', 'button'); strip.setAttribute('tabindex', '0');
+        strip.setAttribute('aria-label', T('cat.more', 'MORE') + ' — ' + gameTitle(g));
+        strip.innerHTML = T('cat.more', 'MORE') + ' <span class="chev">˅</span>';
+        const openFn = e => { e.preventDefault(); e.stopPropagation(); toggleCard(g); };
+        strip.addEventListener('click', openFn);
+        strip.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') openFn(e); });
+        el.appendChild(strip);
+      }
       return el;
     }
+
+    // ---- game card (opened by any tile's cozy "MORE" strip) ----------------------------------
+    // Unified centered overlay (native <dialog>) — identical on grid tiles AND rail tiles so the
+    // behavior never differs by section. The overlay covers the source tile, so the card is
+    // SELF-CONTAINED: title + tags + how-to + Play. Media slot is 9:16: trailer if the game has one,
+    // else a gameplay screenshot. The whole tile still launches the game (the strip is separate).
+    let openCardSlug = null;
+    function connWeak() {
+      try { const c = navigator.connection; if (!c) return false; if (c.saveData) return true;
+        return !!(c.effectiveType && /(^|-)(slow-2g|2g|3g)$/.test(c.effectiveType)); } catch (e) { return false; }
+    }
+    function gcClose() {
+      const dlg = (typeof document !== 'undefined' && document.querySelector) ? document.querySelector('dialog.gcard-dialog') : null;
+      if (dlg) { const v = dlg.querySelector('video'); if (v) { try { v.pause(); } catch (e) {} } try { dlg.close(); } catch (e) {} dlg.remove(); }
+      openCardSlug = null;
+    }
+    window.__gcClose = gcClose;   // density toggle (separate IIFE) closes any open card
+    function gcBuild(g) {
+      const hasVid = !!g.trailer, hasShot = !hasVid && !!g.shot, hasMedia = hasVid || hasShot;
+      const card = document.createElement('div');
+      card.className = 'gcard' + (hasMedia ? '' : ' solo');
+      card.style.setProperty('--accent', g.accent || '#9fe8ff');
+      const base = 'games/' + g.slug + '/';
+      const media = hasVid
+        ? '<div class="gc-media' + (connWeak() ? ' weak' : '') + '"><div class="gc-spin"></div>'
+          + '<video muted loop playsinline preload="none"></video>'
+          + '<div class="gc-weak"><div class="gc-ptri">▶</div><div>' + T('kit.tapToPlay', 'TAP TO PLAY') + '</div></div></div>'
+        : hasShot ? '<div class="gc-media"><img loading="lazy" alt="" src="' + base + g.shot + '"></div>' : '';
+      const tags = (tagsOf(g).length ? tagsOf(g) : ['GAME']).map(t =>
+        '<span class="tag" style="--tc:' + tagColorOf(t) + '">' + T('tag.' + t.toLowerCase(), t) + '</span>').join('');
+      card.innerHTML =
+        '<div class="gc-x" role="button" tabindex="0" aria-label="' + T('cat.close', 'Close') + '">✕</div>' +
+        '<div class="gc-cols">' + media +
+          '<div class="gc-info">' +
+            badgesHtml(g) +   // NEW / UPDATED / POPULAR labels, inline above the title
+            '<h3><span class="gc-glyph">' + (g.icon || '🎮') + '</span>' + gameTitle(g) + '</h3>' +
+            '<div class="gc-tags">' + tags + '</div>' +
+            '<p class="gc-howto">' + T('seo.' + g.slug + '.howto', gameBlurb(g)) + '</p>' +
+            '<a class="gc-play" href="' + gameHref(g.slug) + '">' + T('cat.play', 'PLAY ▸') + '</a>' +
+          '</div>' +
+        '</div>';
+      const x = card.querySelector('.gc-x');
+      x.addEventListener('click', gcClose);
+      x.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); gcClose(); } });
+      return card;
+    }
+    function toggleCard(g) {
+      if (openCardSlug === g.slug) { gcClose(); return; }
+      gcClose();
+      openCardSlug = g.slug;
+      const dlg = document.createElement('dialog');
+      dlg.className = 'gcard-dialog';
+      dlg.appendChild(gcBuild(g));
+      document.body.appendChild(dlg);
+      const vid = dlg.querySelector('video');
+      if (vid) {
+        const media = dlg.querySelector('.gc-media'), spin = dlg.querySelector('.gc-spin');
+        const src = 'games/' + g.slug + '/' + g.trailer;
+        vid.addEventListener('playing', () => { if (spin && spin.parentNode) spin.remove(); });
+        if (media.classList.contains('weak')) {
+          if (spin && spin.parentNode) spin.remove();
+          dlg.querySelector('.gc-weak').addEventListener('click', () => { media.classList.remove('weak'); if (!vid.src) vid.src = src; vid.play().catch(() => {}); });
+        } else { vid.src = src; vid.play().catch(() => {}); }
+      }
+      dlg.addEventListener('click', e => { if (e.target === dlg) gcClose(); });   // click backdrop to close
+      dlg.addEventListener('cancel', e => { e.preventDefault(); gcClose(); });    // Esc
+      if (dlg.showModal) dlg.showModal(); else dlg.setAttribute('open', '');
+    }
+    // Connection-gated idle prefetch: warm the trailer cache after load on a good connection so the
+    // first MORE tap is instant + offline-ready. Skipped on save-data / 2g-3g — those only fetch on
+    // an explicit tap. The SW's MEDIA_CACHE stores whatever this pulls. (Screenshots are tiny — they
+    // load on demand, no prefetch needed.)
+    try {
+      if (typeof fetch === 'function' && typeof window !== 'undefined' && window.addEventListener) {
+        window.addEventListener('load', function () {
+          try {
+            var c = navigator.connection;
+            if (c && (c.saveData || /(^|-)(slow-2g|2g|3g)$/.test(c.effectiveType || ''))) return;
+            var idle = window.requestIdleCallback || function (f) { return setTimeout(f, 1500); };
+            idle(function () {
+              (window.GAMES || []).forEach(function (g) {
+                if (g && g.trailer && !g.soon) { fetch('games/' + g.slug + '/' + g.trailer).catch(function () {}); }
+              });
+            });
+          } catch (e) {}
+        });
+      }
+    } catch (e) {}
 
     // deep-link panel (?m=faq…): capture it NOW, before the filter syncURL rewrites the URL on first
     // render; `openPanel` is the panel currently shown (kept in the URL so it's shareable).
@@ -1430,6 +1594,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       syncURL();
       if (moreObs) { try { moreObs.disconnect(); } catch (e) {} moreObs = null; }
       grid.innerHTML = '';
+      gcClose();   // close any open game card overlay on re-render
       const f = favs();
       const all = (window.GAMES || []).filter(passes);
       const isFav = g => !g.soon && f.includes(g.slug);
@@ -1570,7 +1735,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         let tiles = 0;
         while (queue.length && tiles < PAGE) {
           const it = queue.shift();
-          if (it.slug) { grid.appendChild(tileEl(it, f, favSlugs.has(it.slug))); tiles++; } else grid.appendChild(it);
+          if (it.slug) { grid.appendChild(tileEl(it, f, favSlugs.has(it.slug), true)); tiles++; } else grid.appendChild(it);
         }
         if (!queue.length) return;
         const more = document.createElement('button');
@@ -2557,6 +2722,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       btn.addEventListener('click', () => {
         const compact = !grid.classList.contains('compact');
         apply(compact);
+        if (compact && window.__gcClose) window.__gcClose();   // strip is hidden in compact — close any open card
         try { localStorage.setItem(KEY, compact ? 'compact' : 'cozy'); } catch (e) {}
       });
     })();
