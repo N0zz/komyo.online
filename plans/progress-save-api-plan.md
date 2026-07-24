@@ -38,9 +38,11 @@ later with their own lifecycle; not in scope here.
       + counts + playFrames + relaxed lives; save on each dig/flag; **resumed runs post best SCORE but never
       best TIME** (`resumedRun` flag strips time from endRun + the end-menu record); Continue per difficulty.
       Tests incl. the time-ineligibility rule. Suite 124.
-- [ ] **Phase 5 — polish.** Reuse existing `game.common.*` i18n keys where possible (avoid new-locale tax);
-      Export/Import already covers the slug-prefixed keys via the existing data blob — verify. Update ROADMAP
-      Path-to-launch #5 status. Full suites + menu gate + 5-viewport eyeball.
+- [x] **Phase 5 — polish.** Added the two reusable `game.common.continue`/`newGame` keys once (all 7 locales);
+      Export/Import auto-covers the saves (`buildExport` dumps all localStorage — index.html:2405); per-game
+      ☰ Reset clears them (slug prefix). ROADMAP Path-to-launch #5 flipped to CORE BUILT. All suites green
+      (sudoku 139 · 2048 82 · bubbles 159 · minesweeper 124 · top-level 605 · menus 18/18); 2048 "Continue"
+      affordance eyeballed. **Remaining (separate lane):** the idle/persistent lifecycle (Foxden) on top.
 
 ## Notes / risks
 

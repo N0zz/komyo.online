@@ -176,16 +176,17 @@ quality bar — see the Done entry).
    single adaptive button (native sheet on mobile, copy-link on desktop) — a bare link doesn't need a
    social-icon row. Profile share unchanged (already image-first). Rationale in the
    `plans/share-reorg-mocks.html` mock (option D).
-5. **Kit-owned progress-save API (NOT launch-gating — gates only the saved-state lane)** *(added
-   2026-07-11)* — launch can ship without it; it must merely land **before the first progress-based
-   game** (Foxden / merge-garden-style) —
-   before the first progress-based game ships (Foxden / merge-garden-style): one kit API
-   (`gamekit.progress`-style async load/save per slug) with **guards, limits and tests** — versioned
-   save schema (per `@game-design-knobs.md`), per-game size budget (soft ~100 KB, suite-warned),
-   `QuotaExceededError` handling in ONE place, debounced event-driven writes (never per-frame), and
-   Export/Import coverage. Backend stays localStorage; the API boundary is what makes a later
-   IndexedDB swap (see Parked) invisible to games. Retrofitting 15 progress games onto an API later
-   is far worse than starting with one.
+5. **Kit-owned progress-save API — ✅ CORE BUILT (2026-07-24)** *(added 2026-07-11)*. Shipped
+   incrementally by extracting sudoku's board-history into a reusable primitive:
+   **`gamekit.progress(slug, {key,max,version})`** → `save/load/list/current/has/remove/clear` over one
+   slug-prefixed localStorage key (bare array of `{v,id,ts,...payload}`, newest-first, capped; 1 = resume
+   slot, N = history). Versioned envelope, per-key cap, `QuotaExceededError` handled in ONE place,
+   event-driven writes (never per-frame). **Four consumers:** sudoku (history, cap 20 — reference),
+   2048 · bubbles · minesweeper (single-slot resume; minesweeper resumed runs post best score but not best
+   time). See `plans/progress-save-api-plan.md`. **Remaining for the idle/saved-state lane (Foxden):** the
+   *persistent-game lifecycle* on top of this primitive — timestamp-based offline accrual + no-wipe-on-loss
+   (a game genre, not an API knob). Backend stays localStorage (sync); the boundary keeps a later IndexedDB
+   swap invisible. Saves ride the existing per-game reset + Export/Import via the slug prefix.
 6. **LAUNCH + marketing campaigns — *started* (reddit groundwork underway, see In flight).** Prep the materials (promo video / montage + Discord preview cuts,
    per-game OG/Twitter cards, story-format share card), then publish everywhere: portals (itch.io, free-to-play
    indexes), news, forums, subreddits, Discord servers, socials. Paid ads considered later.
