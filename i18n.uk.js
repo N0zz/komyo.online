@@ -28,7 +28,7 @@ window.KOMYO_I18N.uk = {
   'kit.resetTitle': 'Скинути збережені результати цієї гри',
   'kit.gameMenu': 'Меню гри',
   'kit.rotate': 'Поверни телефон, щоб грати',
-  'kit.tapToPlay': 'ТОРКНИСЯ, ЩОБ ГРАТИ',
+  'kit.tapToPlay': 'ТОРКНИСЯ, ЩОБ ВІДТВОРИТИ',
   'update.upToDate': '✓ Актуально',
   'update.updateNow': '🔆 Оновити зараз',
   'update.updating': '⟳ Оновлення…',
