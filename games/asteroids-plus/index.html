@@ -49,13 +49,16 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:5;
     background:repeating-linear-gradient(0deg, rgba(0,0,0,0.16) 0px, rgba(0,0,0,0.16) 1px, transparent 2px, transparent 3px); opacity:0.3; }
   .hud { position:fixed; z-index:6; pointer-events:none; user-select:none; text-shadow:0 0 8px rgba(120,200,255,0.6); }
-  /* HUD: position/pill/responsive/nav-clearance from the shared .gamekit-hud (contract, action archetype). Keep the retro colours. */
-  #topHud .val { font-size:20px; letter-spacing:2px; }
+  /* HUD: position/pill/responsive/nav-clearance from the shared .gamekit-hud (contract, action archetype). Keep the retro colours.
+     Asteroids-only: pill floats OVER live gameplay (full-screen wrap) → soften it (70% opacity) + slightly smaller text so
+     the arena stays readable through it. Kit .gamekit-hud is untouched (other games have no play area behind the HUD). */
+  #topHud { opacity:0.7; }
+  #topHud .val { font-size:17px; letter-spacing:2px; }
   #topHud #wave { font-size:13px; color:#9fe8ff; }
   #topHud #credits { font-size:13px; color:#ffd166; }
-  #topHud #hp { font-size:20px; letter-spacing:3px; color:#ff7b7b; text-shadow:0 0 8px rgba(255,120,120,0.6); }
+  #topHud #hp { font-size:17px; letter-spacing:3px; color:#ff7b7b; text-shadow:0 0 8px rgba(255,120,120,0.6); }
   #topHud #shield { font-size:14px; letter-spacing:3px; color:#7fd0ff; }
-  #topHud #timerVal { font-size:16px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); }
+  #topHud #timerVal { font-size:15px; letter-spacing:2px; color:#ffd166; text-shadow:0 0 8px rgba(255,209,102,0.6); }
   #topHud #modeTag { font-size:11px; letter-spacing:1px; opacity:0.55; }
   #topHud #timerGoal { display:block; font-size:10px; opacity:0.7; }
   /* small screens: drop the mode label + the speedrun goal sub-line (both are on the start menu) so
