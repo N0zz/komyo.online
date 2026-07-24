@@ -81,16 +81,16 @@ This is the payoff: it turns "fix forever" into "fix once + enforce in CI."
    - **board (hard):** `bubbles` — **✅ DONE**. Top band reserved for the `#specialIndicator` →
      fixes the special-bar overlap.
    - **board (basic):** `2048` — **✅ DONE**. Centered board fitted in `playRect()`.
-   - **de-special:** `asteroids-plus` — **⏭ NEXT** (see §4; deferred as its own careful migration).
+   - **de-special:** `asteroids-plus` — **✅ DONE** (see §4).
    Each canary migration sources geometry from the contract instead of raw viewport reads.
-3. **Migrate the rest** — **✅ DONE** (whole catalogue except asteroids/+). Migrated: snake, sudoku,
+3. **Migrate the rest** — **✅ DONE** (whole catalogue, including asteroids/+). Migrated: snake, sudoku,
    critter-match, glow-says, minesweeper, trap-the-cat, stacker, forcefield, flappy, aim-trainer
    (= "Range"), frog-bonk, balloon-pop. Each sources geometry from `playRect()`/`boardRect()`, declares
-   its archetype, exposes `__test.layout.board`; all 16 pass `board ⊆ playRect` across 5 viewports.
+   its archetype, exposes `__test.layout.board`; all pass `board ⊆ playRect` across 5 viewports.
    Notable: sudoku's number-pad + minesweeper's DIG/FLAG pill + snake's D-pad use dynamic
    `reserve('bottom'|'left'|'right')`; flappy/frog-bonk/aim-trainer/balloon-pop/forcefield re-sourced
    their resolution-fairness scale from `playRect()` (unchanged at the desktop reference).
-   Only **asteroids / asteroids-plus** remain (§4).
+   **asteroids / asteroids-plus** are now on the contract too (§4 — DONE).
 4. **New games follow the contract from day one.** Fold this into the project CLAUDE.md
    `Adding / changing a game` build steps + the "hard contracts" conventions list, so every new game:
    - declares `gamekit.layout.archetype('action'|'controls'|'board', opts)` at boot;
@@ -104,18 +104,18 @@ This is the payoff: it turns "fix forever" into "fix once + enforce in CI."
 
 ---
 
-## 4. Rework asteroids / asteroids-plus onto the kit (no "special kid")
+## 4. Rework asteroids / asteroids-plus onto the kit (no "special kid") — ✅ DONE (2026-07-24)
 
-Both currently run **custom loops** and a **custom `#topHud`**, opting out of kit conventions. Bring
-them in line with every other game:
+Both are now on the contract (details in `plans/asteroids-migration-plan.md`):
 
-- Replace the custom `#topHud` with the kit `.gamekit-hud` (archetype **action**).
-- Move to `gamekit.loop` where feasible (they are grandfathered exceptions with their own fixed-step
-  accumulators — reconcile with the kit accumulator, keeping determinism + `__test.step`).
-- The scaled world maps its transform into `playRect()` (not raw viewport), so it obeys the same
-  reserves and passes the no-overlap test like everyone else.
-- Keep both suites green (`node games/asteroids/test.mjs`, `node games/asteroids-plus/test.mjs`);
-  respect `games/asteroids/CLAUDE.md` (handle-with-care).
+- ✅ Custom `#topHud` replaced with the shared `.gamekit-hud` (archetype **action**); all bespoke
+  `#topHud` CSS + the interim `80vw`/landscape `max-width` hacks removed.
+- ⏭ Loop **stays custom** — the fixed-step accumulator is a grandfathered exception (like
+  breakout/snake); it was never in scope for the layout contract and keeps determinism + `__test.step`.
+- ✅ The scaled world maps its transform into `playRect()` (frog-bonk-style: full-bleed starfield,
+  arena = `playRect()` scaled into canvas px, wrap/spawns/bounces clamp to the arena), exposes
+  `__test.layout.board`, and passes `board ⊆ playRect` via `runLayoutSuite` (`{size:false}`).
+- ✅ Both suites green + `games/asteroids/CLAUDE.md` respected (handle-with-care).
 
 ---
 

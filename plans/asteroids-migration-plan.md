@@ -1,7 +1,11 @@
 # Asteroids / Asteroids+ — onto the kit (no "special kid")
 
-**Status: NOT STARTED** (deferred). This is the last game work from the layout-contract initiative —
-every other live game is on the contract; asteroids and asteroids-plus are the exception.
+**Status: DONE** (2026-07-24). Both games are on the layout contract: `archetype('action')`, the shared
+`.gamekit-hud` (custom `#topHud` + all its width hacks removed), a frog-bonk-style full-bleed arena
+sourced from `playRect()` (starfield stays full-bleed; wrap/spawns/bounces clamp to the arena so
+rocks/enemies/bosses wrap below the HUD, not behind it), and `__test.layout.board` enforced by
+`runLayoutSuite` (`{size:false}`). The custom fixed-step loop stays (grandfathered — see CLAUDE.md).
+Suites green: asteroids 106, asteroids-plus 343, top-level 605, menu-fit 18/18.
 
 ## Goal
 
