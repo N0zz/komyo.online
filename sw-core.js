@@ -14,6 +14,10 @@
   var VERSION = self.VERSION || 'dev';
   var PREFIX = 'komyo-' + SCOPE + '-';
   var CACHE = PREFIX + VERSION;
+  // Trailers + screenshots live in their OWN cache that is NEVER purged on a VERSION bump (so a
+  // deploy never re-downloads them). A filename version (trailer.v1→v2) rotates an entry.
+  var MEDIA_CACHE = 'komyo-media-v1';
+  var MEDIA_RE = /\/games\/[^/]+\/(?:trailer|shot)\.[\w.-]+\.(?:mp4|webp|png)$/;
   var SHELL = self.SHELL || [];
   var ORIGIN = self.location.origin;
 
@@ -40,7 +44,7 @@
           // ONE worker, ONE cache: drop everything that isn't the current version — old versions
           // of this cache, the legacy per-game scope caches (komyo-<slug>-*) and every
           // pre-overhaul cache (gamekit-v1, bubbles-v1, …)
-          if (k !== CACHE) return caches.delete(k);
+          if (k !== CACHE && k !== MEDIA_CACHE) return caches.delete(k);
           return null;
         }));
       }).then(function () { return self.clients.claim(); })
@@ -50,6 +54,24 @@
   self.addEventListener('fetch', function (e) {
     if (e.request.method !== 'GET') return;
     if (e.request.url.indexOf(ORIGIN) !== 0) return; // cross-origin (e.g. GA) → browser default, never cached
+    // Media (trailers + screenshots): cache-first from the persistent MEDIA_CACHE. Fetched FULL (a
+    // plain URL, so no Range header) and stored once, then served forever incl. offline. Muted-loop
+    // autoplay never seeks, so a full 200 satisfies a ranged request fine.
+    if (MEDIA_RE.test(e.request.url)) {
+      var mediaUrl = e.request.url;
+      e.respondWith(
+        caches.open(MEDIA_CACHE).then(function (mc) {
+          return mc.match(mediaUrl).then(function (hit) {
+            if (hit) return hit;
+            return fetch(mediaUrl, { cache: 'reload' }).then(function (resp) {
+              if (resp && resp.status === 200) { try { mc.put(mediaUrl, resp.clone()); } catch (x) {} }
+              return resp;
+            }).catch(function () { return Response.error(); });
+          });
+        })
+      );
+      return;
+    }
     e.respondWith(
       caches.open(CACHE).then(function (cache) {
         return cache.match(e.request).then(function (cached) {

@@ -43,6 +43,8 @@ const SHARED_FILES = [
 ];
 // files in games/<slug>/ that are repo-only, never shipped
 const GAME_SKIP = new Set(['test.mjs', 'CLAUDE.md', '.DS_Store']);
+// catalogue-only media (trailer/screenshot for the game card) — promo, not part of the playable game
+const GAME_SKIP_RE = /^(?:trailer|shot)\.[\w.-]+\.(?:mp4|webp|png)$/;
 
 // index.html transforms: [description, regex, replacement, expected match count (n or [min,max])]
 const HTML_TRANSFORMS = [
@@ -91,7 +93,7 @@ fs.mkdirSync(stage, { recursive: true });
 
 // 1) the game's own files (flat, minus repo-only files)
 for (const f of fs.readdirSync(gameDir)) {
-  if (GAME_SKIP.has(f)) continue;
+  if (GAME_SKIP.has(f) || GAME_SKIP_RE.test(f)) continue;
   fs.copyFileSync(path.join(gameDir, f), path.join(stage, f));
 }
 
