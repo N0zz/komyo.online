@@ -314,7 +314,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // menu-only part of the end screen — re-run on a live language switch (no re-save, no stinger)
   function showEndMenu(win, newBest){
     menuReshow = () => showEndMenu(win, newBest);
-    const record = { mode: keyLabel(KEY, SPEEDRUN), modeText: keyLabelDisplay(KEY, SPEEDRUN), score: score, time: (SPEEDRUN && win) ? srElapsed : 0, stats: { wave: level } };
+    const record = { mode: keyLabel(KEY, SPEEDRUN), modeText: keyLabelDisplay(KEY, SPEEDRUN), score: score, time: (SPEEDRUN && win) ? srElapsed : 0, stats: { wave: level }, outcome: win ? 'win' : 'lose' };
     let title, scoreText, best=null, lines=[];
     if (SPEEDRUN) {
       if (win) { title=KIT.t('game.asteroids.complete', { def: 'COMPLETE' }); scoreText=fmtTime(srElapsed); best=fmtTime((KIT ? KIT.best('asteroids', keyLabel(KEY, true)).time : 0) || srElapsed); lines=[KIT.t('game.asteroids.pointsReached', { pts: SR_TARGET_SCORE, def: SR_TARGET_SCORE + ' points reached' })]; }

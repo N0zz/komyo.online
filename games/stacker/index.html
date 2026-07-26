@@ -369,7 +369,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (!KIT) return;
     menuReshow = () => showEnd(reason, isBest);   // re-show is safe: the kit's record guard is idempotent per run
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: reason === 'time' ? KIT.t('game.stacker.endTitleTime', { def: "TIME'S UP!" }) : KIT.t('game.stacker.endTitle', { def: 'OOPS!' }), backdrop: menuBackdrop,
-      record: { slug: 'stacker', mode: MODE_CFG[mode].label, modeText: modeName(mode), score: score },
+      record: { slug: 'stacker', mode: MODE_CFG[mode].label, modeText: modeName(mode), score: score, outcome: reason === 'time' ? 'end' : 'lose' },
       score: score, best: currentBest(), newBest: isBest, lines: [modeName(mode)],
       share: { slug: 'stacker', accent: '#ff9aa2', icon: '🧊', title: KIT.t('game.stacker.title', { def: 'Stack' }), message: () => shareMsg(), params: () => menuParams({ mode: mode, theme: theme }) },
       actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'Play Again' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'Menu' }) } ],

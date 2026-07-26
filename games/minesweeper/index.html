@@ -652,7 +652,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     KIT.showMenuButton(false); KIT.showPauseButton(false);
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: didWin ? KIT.t('game.minesweeper.cleared', { def: 'BAY CLEARED!' }) : KIT.t('game.minesweeper.boom', { def: 'BOOM!' }),
-      record: (didWin && !resumedRun) ? { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed, time: Math.round(t * 1000) } : { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed },
+      record: (didWin && !resumedRun) ? { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed, time: Math.round(t * 1000), outcome: 'win' } : { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed, outcome: didWin ? 'win' : 'lose' },
       scoreText: didWin ? fmtTime(t) : String(revealed),
       best: didWin ? (bestTime(diff) > 0 ? fmtTime(bestTime(diff)) : '') : (KIT.bestScore(SLUG, runLabel(diff)) || ''),
       newBest: !!isBest,
