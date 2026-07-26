@@ -3844,7 +3844,14 @@
   // catalogue's "Update now"); the player applies it whenever they choose. ONE root-scope worker
   // serves the whole site, so applying anywhere updates the catalogue AND every game at once.
   var _swReloaded = false;
-  function doReload() { if (_swReloaded) return; _swReloaded = true; try { location.reload(); } catch (e) {} }
+  // Small grace period before the reload: the update_apply analytics hit is fired microseconds
+  // earlier and a navigation cancels an in-flight gtag request (transport_type:'beacon' as an event
+  // param is ignored by GA4 — measured, zero hits landed). 250 ms is invisible next to a page load.
+  function doReload() {
+    if (_swReloaded) return; _swReloaded = true;
+    var go = function () { try { location.reload(); } catch (e) {} };
+    if (typeof setTimeout === 'function') setTimeout(go, 250); else go();
+  }
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
   function buildInfo() {
     var v = (typeof window !== 'undefined' && window.KOMYO_VERSION) || {};
@@ -3896,9 +3903,9 @@
   function upApply() {
     if (_upApplying || _swReloaded) return;
     _upApplying = true; _upState.status = 'refreshing'; upEmit();
-    // fires BEFORE the reload this triggers, so the hit MUST go out via sendBeacon — a normal gtag
-    // XHR is cancelled by the navigation and the event never arrives (measured: zero landed).
-    try { track('update_apply', { from_sha: (buildInfo() || {}).sha || 'unknown', transport_type: 'beacon' }); } catch (e) {}
+    // fires BEFORE the reload this triggers — doReload holds the reload back briefly so the hit
+    // isn't cancelled mid-flight (how long players sit on a stale build = the from_sha spread)
+    try { track('update_apply', { from_sha: (buildInfo() || {}).sha || 'unknown' }); } catch (e) {}
     var cap = setTimeout(doReload, 9000); // absolute cap: a plain refresh beats an endless spinner
     var finish = function () { clearTimeout(cap); doReload(); };
     upCheck().then(function (st) {
