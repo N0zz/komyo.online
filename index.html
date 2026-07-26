@@ -1841,7 +1841,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const v = b.dataset.genre || b.dataset.badge; if (!v) return;
         const on = !set.has(v); if (on) set.add(v); else set.delete(v);
         b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
-        if (on) trackCat('catalogue_filter', { kind: b.dataset.genre ? 'genre' : 'badge', value: v });
+        if (on) trackCat('catalogue_filter', { filter_kind: b.dataset.genre ? 'genre' : 'badge', filter_value: v });
         fcountUpdate(); render();
       };
       genreList.addEventListener('click', e => { const b = e.target.closest('button[data-genre]'); if (b) toggleChip(b, FILTER.genres); });
@@ -1852,11 +1852,11 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const b = e.target.closest('button[data-type]'); if (!b) return;
         FILTER.type = b.dataset.type;
         seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
-        trackCat('catalogue_filter', { kind: 'type', value: FILTER.type });
+        trackCat('catalogue_filter', { filter_kind: 'type', filter_value: FILTER.type });
         fcountUpdate(); render();
       });
       const ss = document.getElementById('showSoon');
-      if (ss) ss.addEventListener('change', e => { FILTER.showSoon = e.target.checked; trackCat('catalogue_filter', { kind: 'showSoon', value: e.target.checked ? 'on' : 'off' }); fcountUpdate(); render(); });
+      if (ss) ss.addEventListener('change', e => { FILTER.showSoon = e.target.checked; trackCat('catalogue_filter', { filter_kind: 'showSoon', filter_value: e.target.checked ? 'on' : 'off' }); fcountUpdate(); render(); });
       // on the narrow layout the panel is a full-width sheet — lock the page behind it so it
       // doesn't scroll under the open filters.
       // Filter panel sizing: default = centered under the button at a comfy width; the native resize
