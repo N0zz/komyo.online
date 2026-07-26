@@ -3029,6 +3029,15 @@
 
   function nav(opts) {
     opts = opts || {};
+    // Which catalogue shelf sent the player here. The catalogue can't report this itself — a tile
+    // click navigates and cancels the in-flight hit — so it stashes the shelf and we report it from
+    // the game page, where nothing is racing us. One-shot: cleared as soon as it's read.
+    if (opts.slug) {
+      try {
+        var _entry = sessionStorage.getItem('komyo_entry');
+        if (_entry) { sessionStorage.removeItem('komyo_entry'); track('game_entry', { slug: opts.slug, place: _entry }); }
+      } catch (e) {}
+    }
     // slug is the one identity: reset prefix + challenges key derive from it (explicit opts override),
     // so folder = games.js slug = reset prefix = challenge key can't drift apart per game.
     if (opts.slug) {
