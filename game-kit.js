@@ -3896,8 +3896,9 @@
   function upApply() {
     if (_upApplying || _swReloaded) return;
     _upApplying = true; _upState.status = 'refreshing'; upEmit();
-    // fires BEFORE the reload — how long players sit on a stale build is the from_sha distribution
-    try { track('update_apply', { from_sha: (buildInfo() || {}).sha || 'unknown' }); } catch (e) {}
+    // fires BEFORE the reload this triggers, so the hit MUST go out via sendBeacon — a normal gtag
+    // XHR is cancelled by the navigation and the event never arrives (measured: zero landed).
+    try { track('update_apply', { from_sha: (buildInfo() || {}).sha || 'unknown', transport_type: 'beacon' }); } catch (e) {}
     var cap = setTimeout(doReload, 9000); // absolute cap: a plain refresh beats an endless spinner
     var finish = function () { clearTimeout(cap); doReload(); };
     upCheck().then(function (st) {
