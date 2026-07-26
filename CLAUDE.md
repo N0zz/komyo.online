@@ -429,9 +429,24 @@ and name landscape explicitly in what to check.
   (`score`, `duration_s`) must be actual numbers. **Never send free text or anything the player
   typed** (search queries, names, feedback) — buckets and booleans only; that promise is on the FAQ
   page. A toggle needs BOTH a flow event (the tap) and, when you want current totals, a
-  once-per-tab-session state ping behind a `sessionStorage` guard (`favorite_toggle` +
+  once-per-tab-session state ping behind a `sessionStorage` guard (favorite_toggle +
   `favorite_state` is the pattern). The live list is whatever the code says — don't mirror it here:
   `grep -ohE "track[A-Za-z]*\('[a-z_]+'" analytics.js game-kit.js index.html | sort -u`.
+- **A new event NAME is for a new question SHAPE, never for a new game.** The game goes in the `slug`
+  param, so one event answers cross-game questions AND splits per game with a report filter;
+  per-game names (`td_tower`, `astplus_upgrade`) can never be joined back and mean GA4 clicking for
+  every new game. Same for a new *kind* of choice: reuse a `choice_kind` value before inventing one.
+- **In-game telemetry = decisions, not actions.** A decision is the player picking between options we
+  designed (which upgrade, which tower, spend-or-save, use a hint); an action is them doing the
+  obvious thing (collecting a drop, shooting, tapping). Decisions go to
+  **`run_choice { slug, item_id, choice_kind, wave?, choice_count? }`** — one event, closed
+  vocabulary: `upgrade` (free pick from an offered set) · `shop` (paid, full pool) · `tower` ·
+  `tower_upgrade` · `tower_sell` · `target` · `hint`. **When a decision repeats many times per run,
+  count it silently and report the run's MIX once at game over** (tower-defense's `reportTowerMix`:
+  one event per tower type with `choice_count` + the `wave` it first appeared, ~6/run instead of
+  20+). Anything a player does dozens of times per run is not a decision — don't event it. Games
+  that already record a numeric `stats.wave` get "average wave reached per mode" for free: the kit
+  forwards it onto `game_play`.
 - **GA4** (`G-S4JQPYNDNM`) is **consent-gated**: `analytics.js` loads gtag only after the cookie
   banner's *Accept* (stored in `localStorage.gamekit_consent`, shared across the origin so per-game
   pages track too). **Dev origins (`localhost`, `127.0.0.1`, `*.local`) never send anything** — a

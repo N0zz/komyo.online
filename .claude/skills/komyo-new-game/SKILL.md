@@ -88,6 +88,18 @@ screenshot-driven, unless its identity is deliberately flat/glow.
 - **Audio:** `SND.define(...)` for SFX; add a per-game **track** to the `TRACKS` registry and
   `KIT.music.play('<slug>')`, then feed `KIT.music.intensity(v)` from gameplay so the music builds
   with the action (required). See `references/audio.md`.
+- **Analytics (only if the game has in-run DECISIONS):** the kit already reports the run itself
+  (`game_start`, `game_play` with score/duration/outcome/new_best/good_run) — you get that for free by
+  using the end menu's `record:`, and `record.outcome` (`'win'|'lose'|'end'`) is part of the contract
+  below. Add telemetry ONLY for points where the player **picks between options you designed**
+  (which upgrade, which tower, spend-or-save, use a hint):
+  `window.gamekitTrack('run_choice', { slug, item_id, choice_kind, wave })` — one shared event name,
+  never a per-game one (the game lives in `slug`). Reuse the vocabulary before inventing:
+  `upgrade` (free pick from an offered set) · `shop` (paid, full pool) · `tower` · `tower_upgrade` ·
+  `tower_sell` · `target` · `hint`. **If the decision repeats many times per run, do NOT event each
+  one** — count silently and report the run's mix once at game over with `choice_count` (see
+  tower-defense's `reportTowerMix`). Never event actions (collecting drops, shots, taps) or anything
+  the player typed. Reflex games with no picks need nothing here.
 - **Icons:** `node scripts/gen-icon.mjs <emoji> '<background-css>' games/<slug>`
   (macOS + Chrome + `sips`; if unavailable, tell the user to generate the two PNGs
   manually).
@@ -154,6 +166,13 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   Byte-identical.
 - **Results recorded ONLY via the end menu's `record:` block** — never call
   `gamekit.recordResult` directly (it double-counts; the menu path is idempotent).
+- **`record.outcome` is set** — `'win'` (cleared / goal met), `'lose'` (failed / died) or `'end'`
+  (natural finish, no fail state: a timer running out). Read it from the flag the end screen already
+  branches its title on; don't introduce a second source of truth. Without it, analytics can't tell a
+  three-second rage-quit from a full clear.
+- **`record.mode` is a real label, never `''`** — the best store keys on `[slug][mode]`, so an empty
+  mode reports as `(default)` AND can never be split later without orphaning every existing best
+  (flappy shipped this way and needed a one-time reset to fix).
 - **`time` is always MILLISECONDS** — `record.time` and `saveBest`'s `{time}` are ms
   (the kit renders them via `fmtMs` → mm:ss.cs; seconds render as `00:00.01`). Convert
   at the store boundary (`Math.round(frames / 60 * 1000)`), keep frames/seconds
