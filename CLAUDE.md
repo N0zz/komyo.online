@@ -14,13 +14,15 @@ Game design knobs we honor (per-genre, distilled from external playbooks): @game
 `index.html` is the catalogue; each game is one folder under `games/`. No build step.
 
 **Planning & tracking lives in the repo — update it, don't invent new trackers or memory files.**
-`ROADMAP.md` (repo root) is the living roadmap and holds **open work only** (Path to launch / games
-queue / near-term / catalogue+kit / distribution / marketing). Everything shipped, dropped or parked
-— plus the **decision guards** ("don't re-propose") — moved to **`ROADMAP-archive.md`**; read the
-guards before proposing anything new, and when an item ships, move the whole entry to the archive
-and leave a one-line open bullet behind for any leftover. `plans/*-plan.md` are the per-initiative
-execution plans with `- [ ]` step checkboxes (e.g. `plans/i18n-plan.md`). When the user gives a
-roadmap/plan update, fold it into these files.
+`ROADMAP.md` (repo root) is the living roadmap: **open work only, ONE LINE per item** (Now / Next-dev /
+Next-marketing / Big projects / Backlog / Parked). It is a todo list, not a design doc — never re-grow it
+into prose. Detail lives elsewhere: **`plans/backlog-notes.md`** (rationale for items with no plan file),
+**`plans/games-queue.md`** (the games build pool — the roadmap never names games), `plans/*-plan.md`
+(per-initiative execution plans with `- [ ]` step checkboxes, e.g. `plans/i18n-plan.md`). Everything
+shipped, dropped or parked — plus the **decision guards** ("don't re-propose") — lives in
+**`ROADMAP-archive.md`**; read the guards before proposing anything new, and when an item ships move the
+whole entry to the archive and leave a one-line open bullet behind for any leftover. When the user gives
+a roadmap/plan update, fold it into these files.
 
 ## Layout
 
