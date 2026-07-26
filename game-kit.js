@@ -4533,7 +4533,7 @@
   function setLang(code) {
     code = I18N_SUPPORTED[code] ? code : 'en';
     // GA4's built-in `language` is the BROWSER's — this is the one the player actually picked
-    if (code !== _lang) track('lang_change', { from: _lang || 'en', to: code });
+    if (code !== _lang) track('lang_change', { lang_from: _lang || 'en', lang_to: code });
     _lang = code;
     try { localStorage.setItem('gamekit_lang', code); } catch (e) {}
     try { document.documentElement.lang = code; } catch (e) {}
