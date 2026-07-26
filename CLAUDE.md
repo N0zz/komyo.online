@@ -48,6 +48,7 @@ test.mjs        top-level suite: catalogue + Keep Defender + live-games boot + g
 test-harness.mjs  the ONE shared headless harness (sandbox/bootGame/runLayoutSuite) all suites import
 scripts/        post-changelog.mjs (Discord changelog action) + gen-icon.mjs (icon generation) + bench.sh
                 + package-game.mjs (<slug> → dist-portal/<slug>.zip: self-contained portal build for itch/Newgrounds)
+                + ga4-define.sh (register GA4 custom dimensions/metrics — see "Analytics events")
 sw.js           the ONE site-wide service worker (root scope) — SHELL covers the catalogue, the shared
                 head files, every locale AND every live game (slug list in games.js order, test-enforced)
 manifest.json favicon.svg og-image.png logo-*.png   CNAME .nojekyll .gitignore
@@ -432,6 +433,18 @@ and name landscape explicitly in what to check.
   once-per-tab-session state ping behind a `sessionStorage` guard (favorite_toggle +
   `favorite_state` is the pattern). The live list is whatever the code says — don't mirror it here:
   `grep -ohE "track[A-Za-z]*\('[a-z_]+'" analytics.js game-kit.js index.html | sort -u`.
+- **Shipping a NEW param is three steps, in this order** — miss one and the data is silently
+  invisible. (1) **Register it:** `scripts/ga4-define.sh --dim <names> --met <names>` (`--list` shows
+  what exists). GA4 hides unregistered params from every report, and registration is **NOT
+  retroactive** — only events sent *after* it carry the value, so registering after a test run wastes
+  the run. (2) **Seed it:** trigger the event once on **production** (`komyo.online`, never localhost —
+  the dev guard drops those), driving the game through its `__test` hooks in a real browser; GA4's
+  report builder hides any field that has never had a value. (3) **Wait, then build the report** —
+  values take hours to process into report tables (Realtime shows the event immediately but accepts
+  no custom dimensions). The **read-only** google-analytics MCP verifies all of this
+  (`run_report` / `run_realtime_report`); it cannot create definitions, which is why the script +
+  its service account (`ga4-mcp@goog-analytic…`, **kept as Editor on purpose**) exist. Property
+  `543479165`; GA4 Library reports/Explorations have no API at all — those stay manual clicks.
 - **A new event NAME is for a new question SHAPE, never for a new game.** The game goes in the `slug`
   param, so one event answers cross-game questions AND splits per game with a report filter;
   per-game names (`td_tower`, `astplus_upgrade`) can never be joined back and mean GA4 clicking for
