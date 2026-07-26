@@ -3850,7 +3850,10 @@
   function doReload() {
     if (_swReloaded) return; _swReloaded = true;
     var go = function () { try { location.reload(); } catch (e) {} };
-    if (typeof setTimeout === 'function') setTimeout(go, 250); else go();
+    // only worth waiting when there IS an analytics hit in flight — headless/no-consent reloads at once
+    var pending = false;
+    try { pending = typeof window !== 'undefined' && typeof window.gtag === 'function'; } catch (e) {}
+    if (pending && typeof setTimeout === 'function') setTimeout(go, 250); else go();
   }
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
   function buildInfo() {
