@@ -388,7 +388,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const h = KIT.menu.show({ kind: 'end', title: KIT.t('game.flappy.endTitle', { def: 'Oh no!' }), theme: FLAPPY[mode], backdropAnimate: true, backdrop: (g, w, hh, st, frame) => menuBackdrop(g, w, hh, mode, frame),
       score: score, best: getBest(), newBest: isBest,
       share: { slug: 'flappy', accent: '#8fd3a6', icon: '🐤', title: KIT.t('game.flappy.title', { def: 'Meadow Flyer' }), message: () => shareMsg(), params: () => ({ bird: selectedBird.id, mode: mode }) },
-      record: { slug: 'flappy', mode: '', score: score },
+      record: { slug: 'flappy', mode: mode === 'night' ? 'Night' : 'Day', modeText: KIT.t(mode === 'night' ? 'game.flappy.night' : 'game.flappy.day', { def: mode === 'night' ? '🌙 Night' : '☀️ Day' }), score: score, outcome: 'lose' },
       actions: [ { id: 'again', label: KIT.t('game.flappy.again', { def: 'FLY AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
       onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); } });
     if (h) setVars(h.el, FLAPPY[mode]);
