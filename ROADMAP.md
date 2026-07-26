@@ -1,135 +1,23 @@
 # komyo Roadmap
 
-Working notes — mostly **open items (unordered)**; the one ordered track is **Path to launch** below.
-Per-game feel/balance polish is continuous and not tracked here. Shipped history lives in the in-page
-changelog / git. Design docs live in `~/` (not in the repo): mobile-rotation, gamedev-skills,
-challenges, tv-controller.
+**Open work only.** Everything shipped, dropped or parked — plus the **decision guards**
+("don't re-propose") — lives in **[`ROADMAP-archive.md`](ROADMAP-archive.md)**. Check the guards
+before proposing anything new.
 
-## ✅ Done
+Mostly **unordered**; the one ordered track is **Path to launch** below (its numbering is referenced
+from `plans/*` — don't renumber). Per-game feel/balance polish is continuous and not tracked here.
+Player-facing shipped history also lives in the in-page changelog / git. Design docs live in `~/`
+(not in the repo): mobile-rotation, gamedev-skills, challenges, tv-controller.
 
-- **🐣 Easy picks — DONE (2026-07-12).** Optional Settings switch for young players: every
-  difficulty-bearing menu group/toggle in every game carries a `kid:` flag — when the switch is on,
-  the kit marks the gentlest option with 🐣 AND makes it the menu default, and KIDS-tagged tiles
-  sort first on the home page. All 18 live games annotated, Settings row translated ×8, kit +
-  catalogue behavior test-enforced; the new-game skill requires the annotation on every future game.
+**Item shape** — one bullet per item, titled so the file skims by title alone:
 
-- **Per-game SEO pass (2026-07-12).** Every live game page now ships the full discoverability
-  unit: keyworded `<title>` + meta description + canonical + hreflang ×8 + OG/Twitter +
-  `VideoGame` JSON-LD, plus a **crawlable `#gk-about` section** (how-to, FAQ, related-game links)
-  that doubles as the new ☰ **"ℹ️ How to play"** panel in every game — static English for
-  raw-HTML/LLM crawlers, kit-localized in place for players and Google (all 8 languages).
-  `testSEO` in `test.mjs` enforces the whole unit; the komyo-new-game skill bakes it into every
-  future game. **Still on the user: Google Search Console + Bing Webmaster verification** (the
-  measuring instrument for whether any of this ranks) + the ongoing Reddit backlink work.
+```text
+- **Title — status (date)** *(optional tag)* — one-line gist.
+  Indented detail, rationale, links.
+```
 
-- **Six-game batch SHIPPED (2026-07-12).** Overnight-built MVPs → 2 playtest-feedback rounds →
-  fully translated (185 keys × 7 locales) → changelog'd + deployed: **Minesweeper 💣 · 2048 🔢 ·
-  Trap the Cat 🐱 · Glow Says 🏮 · Balloon Pop 🎈 · Critter Match 🐾** — catalogue now at **18 live
-  games**, kids lane open (3 kids-first titles). Rode along: cosmetics price-tier sweep (every game
-  2+ cheap skins, new premium tier), 🎁 Welcome gift (one-time 100 🏆) + ✨ Free play try-on mode,
-  catalogue filter persistence + hold-to-clear, the ⚡ good-run widget.
-
-- **Sudoku shipped (2026-07-10).** Technique-graded generator (unique-solution, Easy→Expert by
-  required technique), UTC Daily (weekday-rotating difficulty, per-band bests), Zen, teaching hints
-  (highlight + reasoning, never a reveal), pencil marks/undo/digit counters, in-progress board list
-  (autosave, resume, cap 20), 4 board themes + Ink/Animals/Shapes digit styles, 7 locales.
-  Kit gains along the way: daily-pick freeze (playableSince), disabled menu actions, card corner-🗑,
-  and **live language switch rebuilds open menus in ALL 12 games**. Plan: `plans/sudoku-plan.md`.
-
-- **Audio v2 — reactive music engine — DONE (2026-07-07).** The Audio Lab mock's generative "modern"
-  engine shipped into the kit as the default music for all 11 games: gameplay-driven **intensity**
-  (each game feeds 0..1 from its state; layers ease in/out, never pop), the per-game track registry
-  (unique progressions/keys, 6 Keep Defender biome tracks), **music as a cosmetic** (Snake defaults
-  to Remaster; Banger unlockable at 100 🏆) with **▶ preview before buy** in the Collection. Zero-asset.
-  Plan: `plans/audio-ship-plan.md` (all ticked). *Leftover (nice-to-have): point `plans/audio-lint.mjs`
-  at the kit's real track registry instead of the mock.* Follow-up ideas: `plans/audio-music-plan.md`
-  ("Audio v3" — scale to hundreds of seeded tracks, see Later).
-
-- **Knobs audit pass — DONE (2026-06-29).** All 9 games reviewed vs `@game-design-knobs.md` (feel +
-  balance). Keep Defender done (difficulty tiers + rebalance). Asteroids+ rebalanced (×10 scale, caps,
-  expiry, kamikaze, finite 30-wave finale) — **shipped but still being playtested** (tracked in the
-  `komyo-asteroids-plus-rebalance` note; difficulty tiers parked). Meadow Flyer speed-creep shipped.
-  Other games were fine or got minor tweaks. Layout already locked by per-game `__test.layout` tests.
-- **Sound & music — DONE (2026-07-01).** Kit-owned procedural music engine + richer SFX + shared reverb +
-  stingers; music on every game's menu & in-game (Keep Defender swaps per-map biome tracks), Asteroids
-  laser shot; catalogue global Settings page. See the `komyo-audio-design` note.
-- **`gamekit.menu` framework — DONE (2026-07-01).** All 9 games migrated to the declarative kit menu
-  (cards / sliders / grid / map-popup + animated backdrops), suites green.
-- **Profile page + share card fit — DONE (2026-07-02, on-phone verified 2026-07-06).** Title
-  box = title + name full-width with a right meta column (🏆 pts / 💪 good runs / 📅 since — always shown,
-  never hidden at 0); core counts in a centered divider strip; ✕ floats on the modal corner; avatar emoji
-  dropped. **Shared image now matches the live modal:** crop fixed (the clone inherited `bottom:0` →
-  viewport-tall canvas), particle frame composited in, and sizing props are no longer pixel-frozen so the
-  export reflows instead of truncating when the rasterizer's fonts drift (Android).
-- **Score card — DONE (2026-07-02).** "Neon marquee" redesign, mock-transcribed: per-game accent +
-  icon theme (from the share config), silhouette frame glows, gradient score with halo, sparkles, mascot
-  logo + wordmark, ▶ play-on CTA; speedrun/sprint records render as TIME. 780×410 rounded-on-alpha WebP
-  (~20 KB; JPEG on Safari). Share menu (Share… / Copy image / Download + preview) — Copy writes a single
-  PNG flavor (fixes the Discord double-paste; cause was the OS sheet's multi-flavor Copy). The **Discord
-  games-log posts the card itself** (halved) via Components V2 — bare image, clickable play link below,
-  one request. *Mascot art refresh stays gated (Later).*
-
-- **Cosmetics shop / trophies — DONE (2026-07-03).** Challenge points are now **trophies 🏆**
-  everywhere; two metrics (lifetime → titles; spendable = lifetime − spent → the shop). New shared
-  `cosmetics.js` registry (skins for all 9 games + site-wide desktop cursors, canvas painters, banded
-  prices) + `gamekit.cosmetics` API + a kit-owned **store modal** (`shopPanel`: per-game groups, search
-  + filter, select→BUY confirm, read-only "see titles" link) reachable from the Challenges drawer, the
-  profile collection bar, and a per-game **top-bar 🎨 button** (scoped to that game + an "All games →"
-  link). Each game reads its selected skin in render (no start-menu clutter). **Good-run trophy trickle**
-  (+2 🏆 per good run, capped 3/day, end-menu receipt). **Meadow Flyer birds migrated** off banked cash
-  → trophies 1:1 (owned birds kept). **Titles are worn, not just earned** — the ladder's unlocked ranks
-  are tap-to-equip, a new higher tier auto-switches. Asteroids+ got a CRT-green whole-game hull. The
-  hashed daily-pick was unified through `gamekit.challengePick` (drawer/panel/badges had desynced). The
-  pre-interaction PWA silent reload was removed (badge/prompt only). Design doc: `plans/cosmetics-shop.html`.
-  *Parked: mascot-attire cosmetics (gated on the real mascot); deed-locked exclusives; collector badges.*
-
-- **i18n system + ALL 8 LANGUAGES — DONE (2026-07-05).** Full no-build i18n: kit `t()` engine +
-  `Intl.PluralRules`, language picker (home Settings + in-game ☰), `?lang=`/`navigator.language`/persisted
-  pick, `hreflang` + translated meta, and a **coverage test** enforcing every locale is empty-or-complete
-  (now incl. every changelog entry + a per-key `{param}`-token parity check). **Live: en, pl, es, pt, fr,
-  it, cs, uk** across catalogue + kit + every game + legal pages + the full changelog. Produced via the
-  split-into-parts + consistency-review process, captured as the `komyo-i18n-translate` repo skill.
-  Remaining: a native QA pass + mobile QA across languages × orientations. See `plans/i18n-plan.md`.
-- **Home page rework — DONE (2026-07-05).** Four shelves (★ Favorites / Recently played / All games /
-  Coming soon; SP+MP merged), Recently-played rail (full cards, » paddle, edge fade), favorites
-  drag & drop (mouse threshold / touch long-press, ghost-clone drop slot, native long-press menu
-  suppressed), right-edge quick-menu drawer (Profile wearing the current title + Challenges + Collection;
-  measured-gutter default, ‹‹ tab, choice persisted), notification dots (title→Profile mirror,
-  new-challenge-rotation→Challenges with ★ NEW badge inside the drawer, tab bubbling), Install/Language/
-  Fullscreen icon row top-right (incl. a new `gamekit.fullscreen` + per-game ☰ entry), and the PWA
-  stale-precache fix (`{cache:'reload'}`) behind the "updated but the game still shows a dot" bug.
-  Design doc: `plans/top-right-menu-mock.html`.
-- **Forcefield — DONE (2026-07-04).** New game (game #10), first pull from the POC branch. Planet
-  shield-defense: a battle station charges + fires at a huge planet; sweep your atmosphere dome over the marked
-  impact and tap to deflect (instant), or it fires on its own at the deadline. Modes: Timed / Shields / Double
-  (station centre, a planet + player each side, 1–2 players); Easy/Med/Hard scale sweep speed + dome width;
-  planet skins + bolt colours in the Collection; 2 daily challenges + good-run bar; PL + ES strings.
-  *(Challenge targets retuned 2026-07-06.)*
-- **Frog Bonk 🐸 — DONE (2026-07-06).** New game (game #11; the "Frog Rush" queue idea), built via the
-  full dev-process gate + two playtest-feedback rounds. Whack-a-mole castle defense: the frog king bonks
-  hatted invaders (scout/knight/mage/brute + chief mini-bosses) with a head-anchored soft hammer;
-  telegraphed ranged attacks, combo scoring, fly economy. Waves (15, winnable, 2×2 upgrade shop:
-  repair/walls/moat/ballista) · Endless · Zen (wander-and-leave visitors, invulnerable castle). 3/4-view
-  keep, per-season meadows + hammer skins in the Collection (2 sets), animated menu backdrop whose king
-  wears the equipped hammer, 2 daily challenges + good-run bar, all 8 languages, 66-assert suite. Road
-  Hop's tile icon ceded 🐸 → 🚧. Kit gains along the way: music reverb routed through the music channel
-  (mute now truly mutes — every game) + `cols:2` shop grids. *(Challenge targets retuned 2026-07-06.)*
-- **Visual texture-pass initiative — DONE (2026-07-06).** Catalogue-wide graphics detail upgrade,
-  driven by look-dev mocks the user approved before each implementation (`plans/frog-bonk-lookdev.html`,
-  `plans/frog-bonk-texture-pass.html`, `plans/graphics-detail-review.html`, `plans/keep-defender-assets.html`).
-  Shipped: **Frog Bonk** (all 4 meadows: cached grass tufts + colour patches + one light direction,
-  per-stone castle, gradient frogs w/ glossy eyes, detailed hammer/swords, grade+vignette, textured menu
-  scenery) · **Keep Defender** (drawn towers with 3 visible upgrade levels on a growing stone base —
-  emoji stay in the UI — drawn enemies 1:1 with the old species, 6 themed board textures, textured keep,
-  new buff/frost/impact FX, coin/orb/medallion pickups, textured menu backdrop, mage slow removed
-  [Frost owns slow], THREAT uncapped) · **Meadow Flyer** (layered sky/haze/hills, ribbed stems + leaf
-  collars, shaded clouds/flowers/birds, ground tufts, day+night grades, **render interpolation** fixing
-  the fixed-timestep pipe hitch) · **Bubble Pop** (candy-gloss orbs + board depth + shaded walls).
-  **Keep simple (decided):** Snake, Brick Breaker, Forcefield, Range, both Asteroids — flat/glow is
-  their identity; **Stack closed as keep-simple too (2026-07-06)** — the minimal pastel look IS the
-  style. Initiative fully wrapped. The bar is codified in the komyo-new-game skill
-  (`references/visual-quality.md`: 7 requirements, determinism/perf rules, 2-round screenshot review)
-  plus `references/responsive.md` (model-geometry scaling, from the frog-bonk mobile bugs).
+Statuses: *idea* · *planned* · *in progress* · *blocked*. When an item ships, move the whole thing to
+the archive and leave a one-line open bullet behind for any leftover.
 
 ## 🚀 Path to launch (ordered)
 
@@ -142,13 +30,13 @@ art ships fine and gets swapped whenever real art lands; the **privacy policy** 
 *Recently done:* the **cosmetics shop / titles** system · the **"create a game" skill** (gate cleared, used
 to build Forcefield) · **friends/family circle** invited & trickling · the **i18n system + PL + ES live** ·
 the **visual texture-pass initiative** (frog-bonk / Keep Defender / Meadow Flyer / Bubble Pop + the skill
-quality bar — see the Done entry).
+quality bar — see the archive).
 
 ### Ordered path
 
-1. **Translations / i18n — DONE (2026-07-05).** All 8 languages live (en/pl/es/pt/fr/it/cs/uk), full
-   coverage incl. the changelog, enforced by tests. Left over (non-gating): a native QA pass + mobile QA
-   across languages × orientations. See `plans/i18n-plan.md`.
+1. **Translations / i18n — DONE (2026-07-05).** All 8 languages live (en/pl/es/pt/fr/it/cs/uk),
+   coverage test-enforced. *Left over (non-gating): a native QA pass + mobile QA across languages ×
+   orientations.* Detail: archive · `plans/i18n-plan.md`.
 2. **Build more games — *in progress*.** Toward the content bar; each via the dev-process gate (design+mock →
    POC → MVP → iterate). **Forcefield shipped** (first pull from the POC branch). **Frog Bonk shipped**
    (2026-07-06). **Sudoku shipped** (2026-07-10). **Six-game batch shipped** (2026-07-12) — **18 live
@@ -159,34 +47,20 @@ quality bar — see the Done entry).
    the "komyo daily" ritual. See `plans/viral-shots-plan.md` (strategy decided 2026-07-12; grew out of
    the 2026-07-02 review's §5 flagship-vs-breadth verdict, `~/komyo-review-2026-07.md`). More POC
    prototypes wait on a separate branch. Build order below.
-3. **Single service worker for the whole site — DONE (2026-07-06).** The pre-launch gate landed:
-   ONE root-scope SW caches everything (catalogue + shared files + all locales + every live game —
-   `GAME_SLUGS` in `sw.js`, lockstep with games.js test-enforced); the 11 per-game `sw.js` are gone,
-   games register `pwa('../../sw.js')`, `gamekit.pwa()` sweeps legacy per-game scope registrations
-   on boot, the root SW's activate purges the old `komyo-<slug>-*` caches, `updates.apply()` is a
-   single worker swap, the catalogue's idle-register loop is deleted, deploy stamps only `sw.js`.
-   Per-game manifests kept — installs keep working (root SW satisfies installability). Left to
-   verify post-deploy: a previously-installed game PWA migrates cleanly (open → old worker
-   unregisters → next launch runs on the root worker).
-4. **Score card as the DEFAULT share payload — DONE (2026-07-06).** The endgame share is now
-   score-card-first: `gamekit.shareRow` renders the card **inline** + ONE **Share** button that opens
-   the image menu (native share attaches the card image **+** the link/text together · Copy image ·
-   Download). Dropped the X/Reddit/copy-link buttons — a link web-intent can't carry the card, and
-   mobile's native sheet already lists every app. The **site** share (footer + drawer) collapsed to a
-   single adaptive button (native sheet on mobile, copy-link on desktop) — a bare link doesn't need a
-   social-icon row. Profile share unchanged (already image-first). Rationale in the
-   `plans/share-reorg-mocks.html` mock (option D).
-5. **Kit-owned progress-save API — ✅ CORE BUILT (2026-07-24)** *(added 2026-07-11)*. Shipped
-   incrementally by extracting sudoku's board-history into a reusable primitive:
-   **`gamekit.progress(slug, {key,max,version})`** → `save/load/list/current/has/remove/clear` over one
-   slug-prefixed localStorage key (bare array of `{v,id,ts,...payload}`, newest-first, capped; 1 = resume
-   slot, N = history). Versioned envelope, per-key cap, `QuotaExceededError` handled in ONE place,
-   event-driven writes (never per-frame). **Four consumers:** sudoku (history, cap 20 — reference),
-   2048 · bubbles · minesweeper (single-slot resume; minesweeper resumed runs post best score but not best
-   time). See `plans/progress-save-api-plan.md`. **Remaining for the idle/saved-state lane (Foxden):** the
-   *persistent-game lifecycle* on top of this primitive — timestamp-based offline accrual + no-wipe-on-loss
-   (a game genre, not an API knob). Backend stays localStorage (sync); the boundary keeps a later IndexedDB
-   swap invisible. Saves ride the existing per-game reset + Export/Import via the slug prefix.
+3. **Single service worker for the whole site — DONE (2026-07-06).** ONE root-scope SW caches the
+   catalogue + shared files + all locales + every live game. *Left to verify post-deploy: a
+   previously-installed game PWA migrates cleanly (old worker unregisters → next launch runs on the
+   root worker).* Detail: archive.
+4. **Score card as the DEFAULT share payload — DONE (2026-07-06).** Endgame share is card-first
+   (inline card + ONE Share button); the site share collapsed to a single adaptive button. Detail:
+   archive · `plans/share-reorg-mocks.html`.
+5. **Kit-owned progress-save API — ✅ CORE BUILT (2026-07-24)** *(added 2026-07-11)* —
+   `gamekit.progress(slug, {key,max,version})` shipped with four consumers (sudoku history cap 20 ·
+   2048 · bubbles · minesweeper single-slot resume). Detail: archive · `plans/progress-save-api-plan.md`.
+   **Remaining for the idle/saved-state lane (Foxden):** the *persistent-game lifecycle* on top of this
+   primitive — timestamp-based offline accrual + no-wipe-on-loss (a game genre, not an API knob).
+   Backend stays localStorage (sync); the boundary keeps a later IndexedDB swap invisible. Saves ride
+   the existing per-game reset + Export/Import via the slug prefix.
 6. **LAUNCH + marketing campaigns — *started* (reddit groundwork underway, see In flight).** Prep the materials (promo video / montage + Discord preview cuts,
    per-game OG/Twitter cards, story-format share card), then publish everywhere: portals (itch.io, free-to-play
    indexes), news, forums, subreddits, Discord servers, socials. Paid ads considered later.
@@ -215,7 +89,7 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
   music tops out at ~7–8 truly-distinct "flavors" today (limited by style×kit vocabulary, not
   progressions). Phased path to *hundreds* of distinct per-game/biome/daily-seed tracks (seed→song +
   linter-as-selector → synthesis families → rhythm grammar → motif+modes → arrangement) in
-  **`plans/audio-music-plan.md`**. Follows Audio v2 (shipped 2026-07-07, see Done). Stays zero-asset;
+  **`plans/audio-music-plan.md`**. Follows Audio v2 (shipped 2026-07-07, see archive). Stays zero-asset;
   `.ogg` files deferred.
 
 - **Replay system — clips + deterministic replays** *(idea — noted 2026-07-21)* — two-part:
@@ -273,12 +147,6 @@ completion data; confirm the UTC daily reset) and **TV + gamepad + a11y**.
   `staging` CNAME → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
 - **New features / integrations** — free-time only, post-launch (see Integrations below): the deeper
   challenge/anti-cheat/Discord-role ideas stay parked until there's a backend + real demand.
-
-### Dropped (not doing)
-
-- **Pre-launch QA as a formal gate** — organic test-and-report via friends/family instead (the tester pool
-  isn't big enough to staff a checklist; see Decision guards).
-- **Wrapped-style profile expansion** — the profile v1 is enough for launch.
 
 ## Coming-soon games (queue)
 
@@ -353,7 +221,7 @@ Not yet tiles (lane/genre ideas, added 2026-07-03 — a game gets a tile once it
   Asteroids space theme), a **block-faller** (Tetris-style — needs a non-trademark name; fills a real
   gap), a **maze-muncher** (Pac-Man dot-chase — biggest build, "someday flagship"). Centipede/Galaga-style
   formation shooter overlaps Invaders (lower prio). See `~/komyo-competitor-teardown.md`.
-- ~~**Frog Rush** 🐸~~ — **shipped 2026-07-06 as Frog Bonk** (see Done).
+- ~~**Frog Rush** 🐸~~ — **shipped 2026-07-06 as Frog Bonk** (see archive).
 
 ### Kids-first (ages 6–10)
 
@@ -405,107 +273,35 @@ shorts drip across all 5 socials); next dev work = **more games** (build queue b
 **kit-owned persistence / progress-save API** (Path to launch #5 — gates the saved-state lane).
 Recently shipped: Parental lock, Discover rails, and the teen+parents identity/channel re-aim.
 
-- **✨💡 Discover rails — DONE (deployed 2026-07-22)** — two untried-only home-page
-  carousels: "What's new" (added/updated ≤30 days, freshest first) + "For you" (genre-affinity
-  from local play history + POPULAR nudge + daily tie rotation); no gate — new users see them
-  too; 🐣 Easy picks lifts KIDS games; both collapsible, vanish when everything's tried. v1
-  (single rail) shipped same day, then split per discussion. NEW/UPDATED tile badges later
-  aligned to the same 30-day window (2026-07-22) so shelf and badges stay in lockstep.
-  **Later/if-ever:** the 🎲 tinder-deck picker (from the Random button, never a new button/menu
-  item). Plan + decision log: **`plans/discover-plan.md`**.
-- **🔒 Parental lock — DONE (deployed 2026-07-22)** — hand the device to a kid without them spending
-  trophies / wiping data: kit-owned PIN gate (PBKDF2-hashed via `crypto.subtle`, never plaintext —
-  people reuse bank/phone PINs) on shop BUY, "↺ Reset game data", Export/Import, and the lock's own
-  settings; 5-wrong-tries cooldown; zero-knowledge recovery = a **daily 8-digit support code**
-  (UTC-derived, self-rotating, typed into the Forgot-PIN pad — works even in iOS home-screen
-  installs; support generates it on demand via `scripts/support-code.mjs` or a console snippet
-  kept in the INTERNAL Discord staff channel); `gamekit_lock` excluded from Export. Deterrent, not
-  security (client-side, said plainly). Separate from 🐣 Easy picks. **Later:** 📖 word-check gate
-  (Disney+-style spelled-out digits — reading test, no secret; second strength option) +
-  external-link gating. Plan: **`plans/parental-lock-plan.md`**.
-- ~~**Discord changelog posts get cut mid-sentence**~~ *(fixed 2026-07-12)* — long entries now split
-  into multiple messages on bullet boundaries (never mid-sentence).
-- **UI overlap audit** *(added 2026-07-05 — LOWER priority, defer)* — it works today; not urgent.
-  Systematically hunt element collisions across resolutions/orientations: the in-game top bar vs the
-  score pill (worst offender), kit menus that don't fit under the top bar on small/weird viewports,
-  drawers vs the side stack, etc. **Why deferred:** the fixes risk breaking more than they fix, and
-  verifying every element across all 3 views (desktop/portrait/landscape) is a lot of manual work — the
-  headless layout suite only measures canvas-internal rects (`__test.layout`), so DOM chrome overlaps
-  need real-browser screenshot sweeps or exposing chrome rects to the suite. Do it as a deliberate,
-  scoped pass later, not opportunistically.
-- **Marketing plan: re-aim channels at teen+parents — DONE (2026-07-22)** *(policy set 2026-07-14 —
-  decided; applies to NEW posts only, not the launch posts already up; re-aim now applied).* Fold into
-  `plans/marketing_plan.md`: indie-community sharing is likely WEAK for us (those crowds are saturated
-  with indie games and are mostly fellow devs, not players) — shift weight to family + hobbyist/teen
-  channels (parenting & family-gaming subs/forums, family-friendly app roundups, school-holiday activity
-  lists, kid-safe game directories, plus teen/retro-arcade + web-games spaces). Pitch = **depth · works
-  offline · no accounts · no ads · family-friendly, fun for all ages** (matches the confirmed direction —
-  de-emphasize "kid-safe" as the headline).
-- **Reddit groundwork — STARTED (2026-07-05).** Advertising in some existing threads + actively
-  commenting on target subs to build presence/karma; own threads planned within a few days. Feeds
-  Path-to-launch #3.
-- **Competitor study → identity direction CONFIRMED; first changes SHIPPED (2026-07-14).** Studied 3
-  sibling AI-built arcades (Skorven, iplay.free, playhive.net); full notes in
-  `~/komyo-competitor-teardown.md`. **Direction (confirmed):** all-ages skewing **teen+parents**; keep the
-  terminal/retro identity — it's off both AI-slop skins (puzzler "Bricolage+orange+glass" / kids
-  "Fredoka+Nunito+candy") — just soften it; lead the pitch on **depth + truly offline + no accounts + no
-  ads**, not the commodity "no ads/no sign-ups/kid-safe" quad every sibling recites. **Shipped:** the
-  on-page **SEO/pitch copy re-aim** (title/meta/OG/Twitter/JSON-LD/footer, EN + 7 locales) + a chrome
-  polish (terminal-console **cyan edge-glow** on nav / sound-menu / side stack). **Dropped:** palette
-  warm-up (catalogue's already per-game/per-genre colored) + a tile motion-signature (kept the 5px lift).
-  **Still open:** (a) **mascot/logo** — concepts explored 2026-07-14 (`plans/mascot-logo-mock.html` + a
-  fur/ear polish pass); still needs the spec-freeze → final art (see the mascot bullet); (b) the **game
-  ideas** to triage — colour+logic pack + retro-arcade lane in the coming-soon queue, saved but not yet
-  selected; (c) **marketing-channel re-aim** — see the bullet above. *(og-image.png refreshed to the
-  18-game catalogue + edge-glow chrome, `?v=6` — DONE 2026-07-14.)*
-- ~~**Fable review of recent additions**~~ *(done 2026-07-06)* — komyo-new-game skill, i18n
-  implementation and translations reviewed & tested.
+- **🎲 Tinder-deck game picker** *(idea — later/if-ever)* — swipe-a-deck picker behind the existing
+  🎲 Random button, never a new button or menu item. Left over from the Discover rails work (shipped
+  2026-07-22, see archive). Plan: `plans/discover-plan.md`.
+
+- **Parental lock — second strength option** *(planned)* — 📖 word-check gate (Disney+-style
+  spelled-out digits: a reading test, no secret) + external-link gating. Left over from the PIN lock
+  (shipped 2026-07-22, see archive). Plan: `plans/parental-lock-plan.md`.
+
+- **Triage the saved game ideas** *(open — from the competitor study, 2026-07-14)* — the colour+logic
+  pack and the retro-arcade lane sit in the coming-soon queue, saved but not yet selected. Notes:
+  `~/komyo-competitor-teardown.md`.
+
 - **Marketing plan (brainstorm + prep) — drafted (2026-07-05),** `plans/marketing_plan.md`.
   **Next: review & refine into a tl;dr.** No long prose/explanation — per plan, just the list of
   **where to post** and **what to post**, plus called-out **red flags / crucial points only** (budget
   risk, ToS/spam risk, anything that could backfire). (Feeds Path-to-launch #5 + the Marketing
   sections below.)
-- **komyo TikTok account — CREATED (2026-07-11).** The channel for the 9:16 per-game/feature shorts
-  from `plans/promo-content-plan.md`. **2 trailer cuts posted (2026-07-13)**; per-game shorts drip is
-  the ongoing next step (needs the 9:16 game-trailer template — see Video tooling).
-- **Socials expanded to 5 channels (2026-07-20):** Instagram + Facebook pages created (first posts up)
-  alongside TikTok/YouTube/Discord; icon links added to the site footer + ☰ drawer. Every future clip
-  releases to all 5 per **`plans/clip-release-plan.md`** (Reels on IG/FB, per-platform QR renders +
-  UTM scheme, paste-ready metadata kit, Discord auto-mirrors YouTube).
-- **Launch trailers — SHIPPED (2026-07-13).** 3 concepts × 2 formats (16:9 + 9:16), built with the
-  HyperFrames pipeline: **V1** raw/simple · **V2** cinematic score-card-stage (voted best) · **V3**
-  "pain → cure" parody-portal narrative. Music = the game engine's own tracks rendered offline
-  (snakebanger / forcefield). Two review rounds folded in (per-version QR UTMs `tr-v1/v2/v3`, concrete
-  copy, synthetic catalogue scrolls, snake full-board fix, V3 pain-hook trim + thesis-line hero).
-  Renders in `~/komyo-promo/komyo-trailer/renders/`. **Uploaded to YouTube + TikTok; announced on
-  Discord.** Beat sheets `TRAILERS.md`, brand spec `frame.md`, editing guide `README.md` (all in the
-  komyo-trailer dir). See the **Local promo assets** index in `plans/promo-content-plan.md`.
-- **Reddit launch posts — LIVE (2026-07-13).** 4 posts up: r/SideProject (origin story) · r/IndieGaming
-  (trailer, GenAI-declared) · r/playmygame (**mod-approved** after a public AI-transparency reply — the
-  disclose-first-then-repo-receipts playbook, recorded in `plans/marketing_plan.md`) · r/WebGames
-  (Asteroids+ single-game, per P4 rules). Next Reddit: r/ClaudeCode making-of, then r/WebGames drip
-  (originals). Held one-shots: r/InternetIsBeautiful, Show HN, Product Hunt.
-- **itch.io — Asteroids+ listed (2026-07-13); priority DOWNGRADED to "backlinks tier."** Reusable kit
-  built: `scripts/package-game.mjs <slug>` → self-contained portal zip (verified boots standalone) +
-  a per-game trailer CONFIG template + image templates (`~/komyo-promo/itch-assets/`). Decision: itch
-  is worth it as **SEO backlinks + landing pages, NOT browse traffic** (generic-tag browse is hopeless);
-  **lead future listings with ORIGINALS (Forcefield next), not clones.** Deploy automation (butler +
-  GH Action) is designed, not built. AlternativeTo submission gated to **≥ 2026-07-20** (7-day account age).
-- **Video tooling — HyperFrames — IN PRODUCTION (POC 2026-07-12 → trailers shipped 2026-07-13).**
-  Pipeline proven and used for the launch trailers + the Asteroids+ per-game trailer (16:9). Reusable
-  templates live in `~/komyo-promo/komyo-trailer/variants/` (trailer versions + a config-block per-game
-  template). **Deferred:** a proper **9:16 game-trailer framework/template** — landscape-game vertical
-  framing is hard (roaming subject, sparse dark footage); parked for a dedicated template pass. Offline
-  music renderer: `~/komyo-promo/komyo-trailer/tools/render-music.mjs` (boots game-kit headless).
-  Original eval:
-  HeyGen's **HyperFrames** (May 2026, Apache-2.0, free, no per-render fees): agent-native
-  "write HTML → render deterministic MP4" — Claude Code writes HTML/CSS/JS with timing attributes,
-  a headless-Chrome + FFmpeg renderer encodes it; CLI (`npx hyperframes …`) + bundled Claude skills;
-  custom sizes handle 9:16. **Fit:** strong for a code-native solo creator — titles, captions,
-  beat-synced cuts, 9:16 crops layered over captured gameplay, scriptable + reproducible. Caveat: it
-  composites/overlays, it's not a timeline editor — rough-cut the raw capture first (FFmpeg trims),
-  pair with CapCut for quick TikTok-native shorts; DaVinci Resolve stays the free full-NLE fallback
-  for the 30–60 s trailer. (Don't confuse with hyperframe.ai — a B2B doc-to-explainer SaaS, not a fit.)
+
+- **Reddit drip — next posts** *(in progress)* — next up: r/ClaudeCode making-of, then a r/WebGames
+  drip (originals only). Held one-shots: r/InternetIsBeautiful, Show HN, Product Hunt. The 4 launch
+  posts went live 2026-07-13 (see archive); the disclose-first AI-transparency playbook is recorded in
+  `plans/marketing_plan.md`.
+
+- **itch.io — lead future listings with ORIGINALS** *(in progress — "backlinks tier" priority)* —
+  Forcefield next. `scripts/package-game.mjs <slug>` builds the self-contained portal zip; per-game
+  trailer + image templates in `~/komyo-promo/itch-assets/`. Deploy automation (butler + GH Action) is
+  designed, not built. AlternativeTo submission is unblocked (the 7-day account age passed). Asteroids+
+  listed 2026-07-13 (see archive).
+
 - **Promo content plan — planned (2026-07-09),** `plans/promo-content-plan.md`. The *assets* to post
   (sibling to marketing_plan.md = *where* to post): a reusable **promo graphic** + a **30–60s trailer**
   + **9:16 per-game/feature shorts**, all derived from the **score card as the brand visual language**
@@ -529,18 +325,10 @@ Recently shipped: Parental lock, Discover rails, and the teen+parents identity/c
   (goes everywhere) from the on-site mascot illustration (iterate freely — we redeploy for free).** User
   steer: the **logo should be derived from the mascot** (a simplified mark of the same character) so it
   stays recognizable long-term — not a separate abstract emblem. Details in `~/komyo-competitor-teardown.md`.
-- ~~**Daily-challenge target tuning.**~~ *(done 2026-07-06)* — targets retuned across the catalogue
-  (incl. Forcefield + Frog Bonk); post-launch re-checks from real GA4 data stay in Ongoing.
 
-- **Aggregate usage insights via GA4 — v1 SHIPPED (2026-07-01).** Anonymous, consent-gated GA4 events
-  via `window.gamekitTrack` (no-ops unless the cookie banner was accepted; counts only, no per-user
-  data). Shipped: `audio_state` (load ping) + `audio_pref` (mute toggles, from the kit so in-game +
-  Settings both count); `challenge_shown` + `challenge_done` (→ completion rates per goal);
-  `feature_open` (profile/faq/changelog/settings/data/embed/challenges/newsletter/feedback/random);
-  `data_export`/`data_import`; `game_play` {slug,mode}. Event categories named in `privacy.html` §3.
-  **Next (read once real data flows):** if most players disable music, flip it to opt-in / lower the
-  default; retune challenge targets from `challenge_done`÷`challenge_shown`. Caveat: samples only
-  *consented* users → read as a trend, not a census.
+- **GA4 read-back — retune from real data** *(open — v1 shipped 2026-07-01, see archive)* — if most
+  players disable music, flip it to opt-in / lower the default; retune challenge targets from
+  `challenge_done` ÷ `challenge_shown`. Caveat: consented users only — read as a trend, not a census.
 
 - **Privacy policy — legal review** *(in progress)*. The plain-language AI draft is published at
   `komyo.online/privacy.html` (treat as v1 — accurate, not lawyer-hardened) and links from the cookie
@@ -560,34 +348,21 @@ Recently shipped: Parental lock, Discover rails, and the teen+parents identity/c
   Export. Also request **`navigator.storage.persist()`** (Safari 15.2+, Chrome grants heuristically)
   as the silent first line of defense on every engaged device. Matters ×10 once the saved-state lane
   (Foxden) ships — sequence it with that lane at the latest.
-- ~~**Storage-usage discipline — write it into every dev surface**~~ *(done 2026-07-11)* — the rules
-  (the ~5 MB quota is per ORIGIN and shared; cap every list, event-driven debounced writes, ~≤10 KB
-  per arcade game / ~≤100 KB per progress game, versioned saves) now live in **CLAUDE.md** (game
-  conventions), **`game-design-knobs.md`** (cross-cutting), and the **komyo-new-game skill**
-  (contract checklist + `gamekit-api.md` § Storage discipline). The save-API guards (Path to
-  launch #5) will enforce the same rules in code + tests.
+
 - **Backdrop-truth pass (opportunistic)** *(added 2026-07-11)* — three start-menu backdrops still
   IMITATE in-game objects with menu-local code and will drift: **asteroids-plus** (`mbRock` + fake
   enemies), **snake** (menu-local snake/grid), **breakout** (imitation brick wall). When next touching
   each game visually, fold its backdrop onto the real painters (forcefield's retarget pattern).
   Don't sweep them for their own sake. See the new backdrop knob in `game-design-knobs.md`.
-- ~~**Side-stack v2: Profile in games**~~ *(shipped 2026-07-11)* — the profile modal + side stack are
-  kit-owned; every game now carries Profile + Challenges + Collection identically to the catalogue.
+
 - **Tips & tricks widget** *(idea, added 2026-07-04)* — there are no loading screens, so surface
   rotating tips somewhere on the home page (e.g. bottom-right corner), cycling continuously; dismissable
   and re-openable via a small bubble button. Content: how-to-play nuggets, feature callouts (challenges,
   Collection, offline install, languages), keyboard shortcuts. Keep it unobtrusive + reduced-motion-safe.
+
 - **Welcome speech bubble from the mascot** *(idea, added 2026-07-04)* — the header mascot says "welcome"
   in a random rotation across all supported languages (a little i18n flex). Subtle, not distracting — a
   brief bubble on load / occasional, reduced-motion-safe. (Pairs with the real-mascot work.)
-- ~~**Move the Collection button to the home page**~~ *(shipped 2026-07-05)* — the 🎨 Collection is a
-  top-level button in the right-edge quick menu (with Profile + Challenges); the Challenges-drawer pill was
-  removed (its collection bar still opens the store).
-
-- **`gamekit.menu` framework (v3)** *(decided — launch prio #1, see Path to launch)* — promote the
-  asteroids-style mode tiles + option-group rows into a reusable `gamekit.menu`: declarative config →
-  one consistent menu system across all games, less per-game markup, easy to rebuild. Migrate every
-  live game onto it.
 
 - **Audit the whole site for duplicated reused UI elements → shared kit components** *(refactor)* —
   the same widget is hand-written in multiple places with its own markup+CSS, so they drift and we keep
@@ -607,64 +382,25 @@ Recently shipped: Parental lock, Discover rails, and the teen+parents identity/c
   actual game** (factor each game's scene draw into a shared `drawScene(frame)` the menu can call), so
   there's one source of truth. Bigger refactor (needs ambient-motion in a non-playing state); deferred.
 
-- ~~**"CHALLENGE" tile badge + filter**~~ *(shipped — badge in the `BADGES` map + a CHALLENGE filter
-  chip live in index.html; keyed to game-scoped challenges via `gamekit.challengePick`)*.
-- ~~**In-game Challenges button (🏆 top bar)**~~ *(shipped — `gamekit.nav` adds the 🏆 button in every
-  game; `gamekit.challengesPanel` is the shared board, `gamekit.activeChallenge` drives the glow)*.
-- **Claude skill: scaffold a new game on our framework** *(idea — dev tooling, big leverage)* — a
-  `synerise`-style skill (name TBD, komyo-scoped) that captures **once** everything a new game must obey
-  — repo layout, the three-screen schema, `gamekit.menu` declarative config, `gamekit.sound`/`music`
-  usage, the `__test`/`__test.layout` hooks + headless-safety rules, the single-source best store
-  (`gamekit.best`/`saveBest` + `modeLabel()`), PWA files (manifest/sw/icons), `games.js` + changelog +
-  sitemap/llms wiring, and the design knobs (`@game-design-knobs.md`) — distilled from the existing 9
-  games' patterns and this repo's CLAUDE.md. Then: **describe a game in ~5 min → get a working,
-  on-framework MVP in a 20–30 min session** (POC → MVP that boots green in the suites, correct theme,
-  menu, sound, tests). The skill encodes the *dev-process gate* so the output isn't a one-prompt game —
-  it stops at a playable MVP for human iteration, not a "done" claim. **Build it by mining the repo once**
-  (patterns are already consistent across all 9 games), store as a reusable skill, then author new games
-  through it. Nice-to-have accelerator for the "build to 15–20 games" bar, not a launch blocker.
 - **CI check: `updated` badge stays honest** *(idea — dev tooling)* — a GitHub Action that fails when a
   game's OWN files changed but its `updated` date in `games.js` wasn't bumped (so the UPDATED badge never
   goes stale/missing). **Crucial nuance:** shared changes (`game-kit.js/css`, `challenges.js`, etc.) affect
   every game and must NOT require bumping any game's `updated` — a minor menu/kit tweak shouldn't mark all
   9 games "updated" when the games themselves didn't change. So: "game changed" = a diff under
   `games/<slug>/` (probably excluding deploy-stamped `sw.js` VERSION churn); shared/kit diffs are exempt.
+
 - **Custom error pages** — verify what GitHub Pages actually allows. A root **`404.html`** *is*
   supported → build a branded one (mascot + search / back-to-catalogue; ties into the mascot reuse).
   Other codes (403 / 5xx) are served by GitHub/Fastly and **aren't customizable** on a static Pages
   site — confirm the limits and document what we can/can't do.
-- **"My profile" — v1 SHIPPED (2026-07-01).** Catalogue ☰ → 👤 My profile: summary (games / modes / plays /
-  days), favorites (favorite game by plays, most-played mode, favorite genre, top score, good runs,
-  playing-since), per-game PB tables (best + plays, only games with a PB), and a shareable stats-card
-  image. Backed by the kit's **single source of truth for bests** — all 9 games read/write via
-  `gamekit.best`/`gamekit.saveBest` (`gamekit_pb`, keyed by a human mode label) + `gamekit_stats` for
-  lifetime rollups. No per-game best-keys, so menu & profile can't diverge; reset prunes the store; portable
-  via Export/import. **Wrapped-style expansion (next):** challenges completed, this-week /
-  this-month / all-time toggles, "new games tried", milestone badges (played-every-game, first-10k),
-  night-owl/early-bird from play-hour, and a **"Your year in komyo"** multi-slide seasonal
-  card. Deeper ones (total minutes played) need coarse session-time tracking in the kit. Original spec:
-- **"My profile" modal + shareable stats card** *(original spec, superseded by v1 above)* — a profile the player opens from the catalogue
-  (☰ menu, next to Settings) that summarizes THIS device's play: total games played + total game-modes
-  played, and the best score across everything. Below the summary, per-game high-score tables/lists
-  **sorted by game**, showing each mode's PB. **Only list games where the player has a PB** — if every
-  mode of a game is 0/empty, hide that game entirely (so a fresh device shows little/nothing, and it
-  fills in as they play). Data is already on-device: per-game `*_best*` localStorage keys + the kit's
-  `recordResult`/`lastResult` history — no backend. **Key requirement: a Share button** that renders the
-  *exact view shown in the modal* as a **score-card image** (reuse `gamekit.scoreCard`/`buildScoreCard`)
-  and shares it (Native/X/Reddit/Copy + Discord), so the shared image matches what the user sees. Pairs
-  with the global Settings page and the score-card redesign (gate the visual on the real mascot).
+
 - **Sitemap coverage — add the static pages** *(SEO fix)* — `sitemap.xml` currently lists only the
   catalogue + each live game, not `tos.html` / `privacy.html` (nor any future standalone pages). Decide
   whether these belong in the sitemap (they're indexable, low-churn, low-priority) — likely **yes, add
   them** with a low `<priority>` so search engines can discover them; also cross-check `llms.txt` and
   `robots.txt` list what we intend. One-time audit + a note in CLAUDE.md's "when a page goes live" step
   so new standalone pages get added going forward.
-- **"Play a random game" button + challenge — SHIPPED (2026-07-01).** 🎲 Random button in the toolbar
-  picks a playable game, **prefers unplayed** (a `gamekit_pb` entry = played), falls back to all when
-  everything's been tried. Plus a `scope:'random'` daily & weekly challenge ("play today's/this-week's
-  pick") resolved from the deterministic, same-for-everyone `CHALLENGES.randomSlug(idx, playable)` — based
-  on **all** games (never unplayed), lights the CHALLENGE tile badge on the pick, and stores the resolved
-  game title in history. Only the *button* filters to unplayed.
+
 ### Platforms
 
 - **TV & controller support** (Android/Google TV · remote · gamepad) — full design at
@@ -702,14 +438,14 @@ Recently shipped: Parental lock, Discover rails, and the teen+parents identity/c
   above a tunable level (records / notable runs), with a knob to dial how chatty it is. The realistic
   wall is a *single game* getting >~30 finishers/minute (a great problem, far off).
   - *Not doing — batching* (needs a server to aggregate across players; pointless per-player — see
-    Decision guards). *Parked — a relay* in front of the webhook (the client-embedded webhook is an
+    the archive's Decision guards). *Parked — a relay* in front of the webhook (the client-embedded webhook is an
     open spam target; a relay would hide+rate-limit it, but it's a Cloudflare-Worker route we're
-    avoiding for now — see Parked).
+    avoiding for now — see Parked in the archive).
 - **Shared scores feed = Discord** (the score auto-post is the games-log). A live **on-site** feed needs
   an off-GitHub backend (Pages is static — can't host an endpoint, so no GH load risk): **(a)** scheduled
   Action scrapes Discord → static `scores.json` (stopgap, near-live, one-way, GitHub-native — preferred),
   or **(b)** Cloudflare Worker + KV (`POST /score` → capped list, `GET /recent`; truly live — *parked,
-  see Parked*). Filter to **good scores / records only**; public `POST` has the same abuse surface as
+  see Parked in the archive*). Filter to **good scores / records only**; public `POST` has the same abuse surface as
   the webhook. **Defer** until real traffic (an empty live feed looks deader than none).
 - **Optional:** opt-in toggle for the Discord score auto-post.
 
@@ -765,7 +501,7 @@ Filter for all of these: **does it keep the no-server / no-ads / no-accounts ide
   score takes the game, most games won takes the match. To consider honestly before building:
   (a) **"no servers" is only half-true for P2P** — WebRTC data channels are serverless for the match
   itself, but pairing needs a signaling channel (manual room-code/copy-paste blobs are possible but
-  clunky; a tiny relay is the usual answer — collides with the no-backend stance, see Parked);
+  clunky; a tiny relay is the usual answer — collides with the no-backend stance, see Parked in the archive);
   (b) **cheating is trivial** — scores are client-reported, so a duel is honor-system only (fine for
   friends, meaningless for strangers — same anti-cheat wall as the points economy); (c) a cheap
   near-term substitute: a **challenge-link mode** ("beat my 4,320 in Asteroids — same seed") that
@@ -812,60 +548,3 @@ Play Store via PWA → itch.io. Rest are post-launch or parked.
   and it spotlights the repo for cloners (public anyway, but promotion invites it). Mitigation if tried:
   lead with the games' polish, frame AI as the *how*; do it as one deliberate launch-style post, not the
   identity.
-
-## Parked (someday)
-
-- **Attract mode behind start menus** — a self-playing demo of the actual game as the menu backdrop
-  (arcade classic; guarantees the menu look matches gameplay by construction). Per-game work: a demo
-  driver + running update/render in a menu-safe mode. Park until a game wants it.
-
-- **IndexedDB backend for big saves** *(idea — noted 2026-07-11)* — the ready escape hatch if the
-  ~5 MB shared-origin localStorage quota ever pinches (single saves in the hundreds of KB–MBs: big
-  procedural worlds, replays, binary data). IndexedDB is async (no main-thread jank), stores
-  structured/binary data without stringify, and quota is GB-scale (Chrome up to ~60% of disk,
-  Firefox 10%, Safari ~1 GB+). The move: swap the progress-save API's backend (Path to launch #5)
-  to IDB while localStorage keeps the small hot data (settings, bests, trophies — sync reads at
-  boot). Contained refactor, NOT a rewrite — but only pays once the save API exists and a concrete
-  game actually needs >~200 KB saves. Don't build speculatively.
-- **Live "users online now" count** — not possible client-side on a static site; conflicts with the
-  no-server identity. Routes if reconsidered: GA4 Realtime via a relay (approximate) or a small presence
-  backend (Cloudflare Worker + Durable Object / WebSocket — accurate but real infra). Empty-room risk on
-  a young site.
-- **Sort tiles by popularity (GA4-driven)** — scheduled Action reads the GA4 Data API → static
-  `stats.json`; `render()` sorts playable tiles (favorites pinned; missing/zero → current order). Could
-  also drive the "POPULAR" badge.
-
-- **Cloudflare Worker (any role)** — *avoiding for now: prefer staying GitHub-Pages-only, no extra
-  platform.* Saved only for what it *would* give if ever reconsidered: (a) a truly-live on-site scores
-  feed (`POST /score` → capped list, `GET /recent`); (b) a validating, rate-limiting **relay** in front
-  of the Discord webhook (hides the URL → kills the client-embedded-webhook spam surface, drips under
-  rate limits). Not wanted now — note the benefits, don't build it.
-
-- **"Prompt-your-own-game" generator (paid, SEPARATE product)** *(idea — noted 2026-07-16)* — a
-  chat on the site where a user describes a game and our game-creation skill builds it live. Model:
-  a **generation *session* with a compute budget capped ~10–30% below what the user paid** (that
-  gap is the margin, net of Stripe/moderation/hosting — not a big earner, "just something"); want
-  to keep iterating/perfecting → pay for more session. Reliability is fine (games boot ~80–90%);
-  the failure mode is "not fun," which is the user's creative risk — they pay regardless (needs a
-  live cost meter + in-session playtest so spend feels earned; a "never-booted → credits back"
-  valve). Generated games live in a **separate, walled-off "unreviewed" catalogue/product — never
-  on the kid-safe main surface**; **prompt + output moderation is mandatory** before any public
-  exposure. Community favorites get **promoted to the curated main catalogue only after review**.
-  Prereq: perfect the game-creation skill first and measure the *safe-and-boots* rate before
-  building any of this.
-
-## Decision guards (don't re-propose)
-
-- **No user-facing sort control** — closed 2026-07-06: sortable Favorites + the Recently-played rail
-  cover the need; a Featured/Newest/A–Z dropdown adds chrome without value at this catalogue size.
-- **No per-tile personal bests** — every game has many modes, so there's no single best to show, and it
-  overcrowds the home page.
-- **No on-site local "recent plays" ticker** — with no server it only shows your own plays and misreads
-  as a community feed (tried + removed). The shared feed is Discord; see Distribution for the live route.
-- **No formal idea→release checklist / per-game QA blocker list** — testers play what they *like* and
-  report issues there; they won't grind a feature checklist over untested games, and a blocker list of
-  untested games is meaningless. Organic test-and-report instead. (Revisit only if the tester pool
-  grows enough to staff structured QA.)
-- **No batching of Discord score posts** — batching only pays off by aggregating across many players at
-  a central point, which needs a server; a single player doesn't finish games fast enough for
-  per-player batching to mean anything. Use the filter + per-game channels instead.

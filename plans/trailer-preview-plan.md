@@ -1,7 +1,11 @@
 # komyo Game-Card + Trailer/Screenshot Preview — Implementation Plan
 
-> **Status: PLANNED (2026-07-23).** Design locked with the user across a long design session. Not
-> started. Talk-before-implement: the implementing session builds this, keeps every suite green, and
+> **Status: ✅ DONE (shipped 2026-07-24, more previews 2026-07-26).** The `MORE ˅` strip + game-card
+> overlay are live on the catalogue, media ships for all 18 games (`shot.v1.webp` everywhere,
+> `preview.v1.mp4` for 7 and counting), the SW `komyo-media` cache + `package-game.mjs` exclusion are
+> in, and both changelog entries are out. Remaining preview clips are ongoing content work, not plan
+> steps. Original status:  ~~PLANNED (2026-07-23). Design locked with the user across a long design
+> session. Not started.~~ Talk-before-implement: the implementing session builds this, keeps every suite green, and
 > waits for the user's local eyeball before any push (player-facing visual change).
 >
 > **Interactive mock (the source of truth for the look/behaviour):**
@@ -9,7 +13,7 @@
 > `http://localhost:8765/plans/trailer-card-mock.html`. Sample screenshots captured this session live
 > in `plans/trailer-shots/` (Bubble Pop + 2048 — concept placeholders only, see "Screenshots" below).
 
-> **For agentic workers:** implement task-by-task; steps use `- [ ]` checkboxes. Run **all** suites
+> **For agentic workers:** implement task-by-task; steps use `- [x]` checkboxes. Run **all** suites
 > (`node test.mjs` + touched game suites) after changes, then the **5-viewport eyeball pass**
 > (Playwright MCP, headless). Do NOT commit/push until the user approves.
 
@@ -181,33 +185,33 @@ portable game). One ignore rule.
 
 ## Rollout steps (checklist)
 
-- [ ] `games.js`: add `trailer:` to `trap-the-cat` + `forcefield`; add `shot:` per live game (batch —
+- [x] `games.js`: add `trailer:` to `trap-the-cat` + `forcefield`; add `shot:` per live game (batch —
       can land incrementally, card falls back to text-only until a game's `shot` is set).
-- [ ] Compress the two trailers (ffmpeg above); verify ≤1.5 MB; note actual sizes.
-- [ ] Capture real-play screenshots (portrait 9:16, HUD kept, utility chrome hidden) for the first
+- [x] Compress the two trailers (ffmpeg above); verify ≤1.5 MB; note actual sizes.
+- [x] Capture real-play screenshots (portrait 9:16, HUD kept, utility chrome hidden) for the first
       batch of live games; compress ≤~150 KB; save `games/<slug>/shot.v1.png`.
-- [ ] Build the game-card component + full-width row-insert (row membership per breakpoint, re-place
+- [x] Build the game-card component + full-width row-insert (row membership per breakpoint, re-place
       on resize), bounded/centered, headless-safe.
-- [ ] Render the `MORE ˅` strip on every tile in `index.html` (keyboard-reachable, stops
+- [x] Render the `MORE ˅` strip on every tile in `index.html` (keyboard-reachable, stops
       propagation, localized). Card media resolves trailer→shot→text.
-- [ ] Card info: title + `t('seo.<slug>.howto')` + centered Play. No tags.
-- [ ] Trailer: autoplay-on-expand, spinner, connection-aware weak fallback.
-- [ ] SW `komyo-media` cache + cache-first (Range-aware) for `trailer.*.mp4`; connection-gated idle
+- [x] Card info: title + `t('seo.<slug>.howto')` + centered Play. No tags.
+- [x] Trailer: autoplay-on-expand, spinner, connection-aware weak fallback.
+- [x] SW `komyo-media` cache + cache-first (Range-aware) for `trailer.*.mp4`; connection-gated idle
       prefetch (page-side). Screenshots cache-first on first expand.
-- [ ] `scripts/package-game.mjs`: exclude `trailer.*.mp4` (and `shot.*`).
-- [ ] i18n: add `en` + `pl` keys for MORE / Play / close / spinner-fallback.
-- [ ] Tests: strip presence + no-launch-on-click + media resolution + one-open; card open/close
+- [x] `scripts/package-game.mjs`: exclude `trailer.*.mp4` (and `shot.*`).
+- [x] i18n: add `en` + `pl` keys for MORE / Play / close / spinner-fallback.
+- [x] Tests: strip presence + no-launch-on-click + media resolution + one-open; card open/close
       headless; i18n coverage green.
-- [ ] `node test.mjs` + touched game suites — all green.
-- [ ] **5-viewport eyeball** (Playwright MCP, headless): desktop 1280×800 · 1920×1080 · 2560×1440 ·
+- [x] `node test.mjs` + touched game suites — all green.
+- [x] **5-viewport eyeball** (Playwright MCP, headless): desktop 1280×800 · 1920×1080 · 2560×1440 ·
       portrait 360×640 · **landscape 640×360**. Focus: the **full-width row-insert across column
       counts** (1→4 cols), card bounding/centering on big screens, the 2-col→stack transition at
       640px, the 9:16 media slot (trailer + screenshot + text), and landscape overflow.
-- [ ] `CHANGELOG` entry (player-facing): "Tap MORE on any game to see a card with a trailer or
+- [x] `CHANGELOG` entry (player-facing): "Tap MORE on any game to see a card with a trailer or
       gameplay preview + how to play — right on the catalogue, no leaving the site."
-- [ ] Do **NOT** bump each game's `updated:` — a catalogue card is not a change to the game itself
+- [x] Do **NOT** bump each game's `updated:` — a catalogue card is not a change to the game itself
       (would trigger a spurious UPDATED badge).
-- [ ] Hand to user for local eyeball; push only after approval (batch with other pending pushes).
+- [x] Hand to user for local eyeball; push only after approval (batch with other pending pushes).
 
 ## Trailer skill integration (do when trailers are added later)
 
