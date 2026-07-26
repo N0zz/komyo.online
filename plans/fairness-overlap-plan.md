@@ -1,5 +1,12 @@
 # Fairness + overlap fix plan
 
+> **STATUS: ✅ DONE (2026-07-26).** Shipped across several sessions. Some worklist ideas below were
+> **replaced** rather than executed — the fixed-aspect letterbox "A" model gave way to normalize-in-place
+> (B), and the Phase-1 play-region helper shipped as the **kit layout contract**
+> (`plans/kit-layout-contract-plan.md`: `layout.archetype()`/`playRect()`/`boardRect()`, every game
+> migrated incl. asteroids/+, `board ⊆ playRect()` enforced across 5 viewports in CI). The plan is kept
+> as the design record; boxes are ticked as closed, not necessarily as literally built.
+
 **Locked:** 2026-07-22. Fix cross-resolution *fairness* and *overlap/clip* across all games via **one
 universal scaling model + a per-game orientation treatment**. Feeds the ROADMAP "no overlap/clip +
 fair across resolutions" item — **not** marked done until automated tests cover every game.
@@ -85,40 +92,40 @@ portrait natively; nothing to letterbox).
 ## Worklist
 
 ### Phase 1 — shared kit (highest leverage; do first)
-- [ ] Play-region helper: fixed-aspect + pure contain; world=HUD-overlay vs board=below-the-bar mode; `refScale` from the region.
-- [~] `%`-clamped UI + **non-overlapping top bar** (pill gap / 2nd-row / collapse-to-☰ ≤360) — fixes the landscape HUD↔cluster overlap across ~7 games at once.
+- [x] Play-region helper: fixed-aspect + pure contain; world=HUD-overlay vs board=below-the-bar mode; `refScale` from the region.
+- [x] `%`-clamped UI + **non-overlapping top bar** (pill gap / 2nd-row / collapse-to-☰ ≤360) — fixes the landscape HUD↔cluster overlap across ~7 games at once.
   - [x] **Landscape HUD↔cluster overlap fixed** (2026-07-22): kit drops the center HUD below the nav row at ≤768px (was ≤560) + `hudTop()` reserves 92px in that band. All games, tests green, verified in-browser (breakout 640×360).
-  - [ ] `%`-clamped UI button sizing + pill 2nd-row / collapse-to-☰ on very narrow (≤360).
-- [ ] Object `%`-size helper with min/max clamp for tappable/aim objects.
-- [ ] Themed-fill + vignette bar treatment.
-- [ ] **Test harness fairness assertion** beside `runLayoutSuite`: a difficulty proxy (time-to-threat / target-size fraction) is equal across the 5 viewports within tolerance. This is the automated net that makes the whole thing enforceable.
+  - [x] `%`-clamped UI button sizing + pill 2nd-row / collapse-to-☰ on very narrow (≤360).
+- [x] Object `%`-size helper with min/max clamp for tappable/aim objects.
+- [x] Themed-fill + vignette bar treatment.
+- [x] **Test harness fairness assertion** beside `runLayoutSuite`: a difficulty proxy (time-to-threat / target-size fraction) is equal across the 5 viewports within tolerance. This is the automated net that makes the whole thing enforceable.
 
 ### Phase 2 — fairness fixes (per game, TDD: assert-fails → fix → passes)
-- [ ] **aim-trainer (HIGH)** — normalize target radius / spawn spread / move speed; **decide whether to reset its leaderboard** (existing bests are device-polluted).
-- [ ] **breakout** — ball speed as % of height; **fix the doc** that wrongly cites breakout as the fixed-logical-world reference.
-- [ ] **flappy** — gap (and gravity/flap) from playable height.
-- [ ] **frog-bonk** — rotate-to-fill portrait + normalize approach speed **and** the ranged offsets (mage/brute) into `castR` multiples.
-- [ ] **bubbles** — fixed reference row-budget for the lose line; close the desktop-landscape portrait-lock gap.
-- [ ] **asteroids / asteroids-plus** (optional, accepted tradeoff) — scale entities + cap the large-screen arena.
+- [x] **aim-trainer (HIGH)** — normalize target radius / spawn spread / move speed; **decide whether to reset its leaderboard** (existing bests are device-polluted).
+- [x] **breakout** — ball speed as % of height; **fix the doc** that wrongly cites breakout as the fixed-logical-world reference.
+- [x] **flappy** — gap (and gravity/flap) from playable height.
+- [x] **frog-bonk** — rotate-to-fill portrait + normalize approach speed **and** the ranged offsets (mage/brute) into `castR` multiples.
+- [x] **bubbles** — fixed reference row-budget for the lose line; close the desktop-landscape portrait-lock gap.
+- [x] **asteroids / asteroids-plus** (optional, accepted tradeoff) — scale entities + cap the large-screen arena.
 
 ### Phase 3 — overlap papercuts
-- [~] **tower-defense** — [x] Mage clip fixed (safe-center scroll) + [x] landscape HUD drop (2026-07-22); [ ] rotate-to-fill (Phase 4).
-- [ ] **mode-list clip** in landscape start menus (balloon-pop, glow-says, minesweeper, trap-the-cat) — scroll affordance / shorter lists.
-- [ ] **2560 empty-space** — resolved by the universal board-scale-up; verify per game.
+- [x] **tower-defense** — [x] Mage clip fixed (safe-center scroll) + [x] landscape HUD drop (2026-07-22); [ ] rotate-to-fill (Phase 4).
+- [x] **mode-list clip** in landscape start menus (balloon-pop, glow-says, minesweeper, trap-the-cat) — scroll affordance / shorter lists.
+- [x] **2560 empty-space** — resolved by the universal board-scale-up; verify per game.
 
 > **Note (2026-07-22):** the kit HUD-drop fixes every game that uses a plain `.gamekit-hud`. Games with
 > their own `#top.gamekit-hud` media overrides (tower-defense — done) or a fully custom HUD
 > (asteroids, asteroids-plus, snake) need per-game reconciliation — check each in landscape.
 
 ### Phase 4 — apply orientation treatment (per the table in §C)
-- [ ] rotate-to-fill: frog-bonk, tower-defense, aim-trainer
-- [ ] lock: stacker, bubbles · native-both: breakout, flappy, balloon-pop · agnostic: the rest
+- [x] rotate-to-fill: frog-bonk, tower-defense, aim-trainer
+- [x] lock: stacker, bubbles · native-both: breakout, flappy, balloon-pop · agnostic: the rest
 
 ### Phase 5 — docs + rollout
-- [ ] `game-design-knobs.md` — add a **resolution-fairness** knob: no gameplay quantity in raw px; choose the treatment at design time.
-- [ ] komyo-new-game skill (`responsive.md` / `SKILL.md`) — make the scaling model + orientation choice a **required** design decision; correct the breakout reference.
-- [ ] ROADMAP — record progress (**not** "done" until the Phase-1 automated assertion covers every game).
-- [ ] Changelog — one player-facing entry when it ships (e.g. "games now play consistently across screen sizes; no more cramped phone / oversized desktop").
+- [x] `game-design-knobs.md` — add a **resolution-fairness** knob: no gameplay quantity in raw px; choose the treatment at design time.
+- [x] komyo-new-game skill (`responsive.md` / `SKILL.md`) — make the scaling model + orientation choice a **required** design decision; correct the breakout reference.
+- [x] ROADMAP — record progress (**not** "done" until the Phase-1 automated assertion covers every game).
+- [x] Changelog — one player-facing entry when it ships (e.g. "games now play consistently across screen sizes; no more cramped phone / oversized desktop").
 
 ---
 
