@@ -228,6 +228,7 @@ window.KOMYO_I18N.cs = {
   'cat.typeAll': 'Vše',
   'cat.typeSingle': 'Solo',
   'cat.typeMulti': 'Multi',
+  'cat.playersTip': 'Kolik hráčů si může zahrát společně na jednom zařízení',
   'cat.fhHighlights': 'Doporučené',
   'cat.fhGenre': 'Žánr',
   'cat.showSoon': 'Zobrazit připravované',

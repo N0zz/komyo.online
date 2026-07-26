@@ -228,6 +228,7 @@ window.KOMYO_I18N.it = {
   'cat.typeAll': 'Tutti',
   'cat.typeSingle': 'Singolo',
   'cat.typeMulti': 'Multi',
+  'cat.playersTip': 'Quanti giocatori possono giocare insieme su un solo dispositivo',
   'cat.fhHighlights': 'In evidenza',
   'cat.fhGenre': 'Genere',
   'cat.showSoon': 'Mostra prossimamente',

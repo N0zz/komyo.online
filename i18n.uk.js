@@ -228,6 +228,7 @@ window.KOMYO_I18N.uk = {
   'cat.typeAll': 'Усі',
   'cat.typeSingle': 'Соло',
   'cat.typeMulti': 'Мульти',
+  'cat.playersTip': 'Скільки гравців можуть грати разом на одному пристрої',
   'cat.fhHighlights': 'Особливості',
   'cat.fhGenre': 'Жанр',
   'cat.showSoon': 'Показувати «скоро»',

@@ -145,6 +145,7 @@ window.KOMYO_I18N.pl = {
   'cat.typeAll': 'Wszystkie',
   'cat.typeSingle': 'Solo',
   'cat.typeMulti': 'Multi',
+  'cat.playersTip': 'Ilu graczy może grać razem na jednym urządzeniu',
   'cat.fhHighlights': 'Wyróżnienia',
   'cat.fhGenre': 'Gatunek',
   'cat.showSoon': 'Pokaż nadchodzące',

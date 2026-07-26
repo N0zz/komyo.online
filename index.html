@@ -193,10 +193,12 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   @keyframes badgeShine { to { background-position:200% 0; } }
   @keyframes spk { 0%,100%{ opacity:0; transform:scale(.3); } 50%{ opacity:.5; transform:scale(1.1); } } /* 50% less sparkly */
   @media (prefers-reduced-motion: reduce){ .badge b{ animation:none; } .badge .spk{ display:none; } }
-  /* local-multiplayer indicator (player count) */
-  .players { position:absolute; left:10px; bottom:10px; z-index:2; font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:1px;
-    padding:3px 9px; border-radius:999px; color:#08121a; background:color-mix(in srgb, var(--accent) 88%, #fff);
-    display:inline-flex; align-items:center; gap:4px; box-shadow:0 2px 6px rgba(0,0,0,0.32); }
+  /* local-multiplayer indicator (player count) — sits in the title row, so it can never collide
+     with the badge column or the fav star however tall either grows */
+  .players { flex:0 0 auto; font-family:var(--mono); font-size:10px; font-weight:700; letter-spacing:1px;
+    padding:3px 9px; border-radius:999px; color:color-mix(in srgb, var(--accent) 62%, #fff);
+    background:rgba(0,0,0,0.28); border:1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+    display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
   .art { position:relative; height: 116px; display:flex; align-items:center; justify-content:center; font-size: 72px;
          background: radial-gradient(110% 130% at 50% 0%, color-mix(in srgb, var(--accent) 34%, var(--surface)), var(--surface) 72%);
          border-bottom:1px solid var(--border); }
@@ -256,7 +258,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   .gcard.solo .gc-info .badges { justify-content:center; }
   /* title dominates; badges + tags a touch smaller than on a tile */
   .gc-info .badges .badge b { font-size:10px; letter-spacing:1.5px; }
-  .gcard .gc-tags .tag { font-size:9px; letter-spacing:1px; padding:2px 7px; }
+  .gcard .gc-tags .tag, .gcard .gc-tags .players { font-size:9px; letter-spacing:1px; padding:2px 7px; }
   .gcard { position:relative; max-width:760px; margin:2px auto 8px; background:var(--surface); border:1px solid var(--accent);
     border-radius:18px; box-shadow:0 20px 60px rgba(0,0,0,0.55), 0 0 40px -14px var(--accent); animation:gcpop .22s ease; }
   .gcard.solo { max-width:640px; }
@@ -1398,6 +1400,13 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     // catalogue is grouped into sections; favorites pin to the top of their own section.
     // favPos (only passed for tiles rendered within the Favorites strip): { index, count } — drives
     // the ▲▼ manual-reorder buttons, disabled at either end.
+    // player-count chip (tile title row + game card) — the tooltip is the only place that spells out
+    // what the number means, so keep it on both surfaces
+    function playersHtml(g) {
+      if (!g.players) return '';
+      const tip = T('cat.playersTip', 'How many players can play together on one device');
+      return '<span class="players" title="' + tip + '" aria-label="' + tip + '">👥 ' + g.players + '</span>';
+    }
     function tileEl(g, f, isFavTile, inGrid) {
       const soon = !!g.soon;
       const el = document.createElement(soon ? 'div' : 'a');
@@ -1410,11 +1419,10 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       el.innerHTML =
         badgesHtml(g, soon) +
         '<div class="art">' +
-          (g.players ? '<span class="players">👥 ' + g.players + '</span>' : '') +
           '<span class="glyph">' + (g.icon || '🎮') + '</span>' +
         '</div>' +
         '<div class="meta">' +
-          '<div class="row"><h2>' + gameTitle(g) + '</h2></div>' +
+          '<div class="row"><h2>' + gameTitle(g) + '</h2>' + playersHtml(g) + '</div>' +
           '<div class="tags">' + (tagsOf(g).length ? tagsOf(g) : ['GAME']).map(t =>
             '<span class="tag" style="--tc:' + tagColorOf(t) + '">' + T('tag.' + t.toLowerCase(), t) + '</span>').join('') + '</div>' +
           '<p>' + gameBlurb(g) + '</p>' +
@@ -1486,7 +1494,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           '<div class="gc-info">' +
             badgesHtml(g) +   // NEW / UPDATED / POPULAR labels, inline above the title
             '<h3><span class="gc-glyph">' + (g.icon || '🎮') + '</span>' + gameTitle(g) + '</h3>' +
-            '<div class="gc-tags">' + tags + '</div>' +
+            '<div class="gc-tags">' + tags + playersHtml(g) + '</div>' +
             '<p class="gc-howto">' + T('seo.' + g.slug + '.howto', gameBlurb(g)) + '</p>' +
             '<a class="gc-play" href="' + gameHref(g.slug) + '">' + T('cat.play', 'PLAY ▸') + '</a>' +
           '</div>' +
@@ -1577,8 +1585,10 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       if (!FILTER.showSoon && g.soon) return false;
       if (FILTER.genres.size && !tagsOf(g).some(t => FILTER.genres.has(t))) return false;
       if (FILTER.badges.size) { const bk = badgeKeys(g); if (!bk.some(k => FILTER.badges.has(k))) return false; }
-      if (FILTER.type === 'single' && g.mp) return false;
-      if (FILTER.type === 'mp' && !g.mp) return false;
+      // `players` IS the multiplayer marker; a range starting at 1 ("1–2P") also has a solo mode,
+      // so those games pass BOTH filters — no separate mp flag to keep in sync.
+      if (FILTER.type === 'single' && g.players && !/^1/.test(g.players)) return false;
+      if (FILTER.type === 'mp' && !g.players) return false;
       if (FILTER.q) {
         const labels = badgeKeys(g).map(k => (BADGES[k] && BADGES[k].label) || '').join(' ');
         // search over BOTH the raw source strings and their translations, so it works in every language
