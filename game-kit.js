@@ -1597,7 +1597,9 @@
       }
       var slug = (C && C.randomSlug && playable && playable.length) ? C.randomSlug(idx, playable) : '';
       var played = !!slug && ((isWeek ? chWeekAgg(dn) : chDayLog(dStr)).slugs.indexOf(slug) >= 0);
-      var title = slug ? t(isWeek ? 'challenges.playWeek' : 'challenges.playToday', { game: (opts.titles && opts.titles[slug]) || t('game.' + slug + '.title', { def: slug }) }) : goal.title;
+      // the i18n title WINS over the caller's map (the catalogue binds games.js' English titles) —
+      // otherwise a random pick reads "Zagraj w Stack dziś" with the game name stuck in English
+      var title = slug ? t(isWeek ? 'challenges.playWeek' : 'challenges.playToday', { game: t('game.' + slug + '.title', { def: (opts.titles && opts.titles[slug]) || slug }) }) : goal.title;
       return { val: played ? 1 : 0, target: 1, done: played, pct: played ? 1 : 0, title: title, slug: slug };
     }
     if (goal.scope === 'cross') {
@@ -1614,6 +1616,7 @@
   function challengesPanel(opts) {
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body || !document.createElement) return;
+    track('feature_open', { feature: 'challenges', place: 'game' });
     var slug = opts.slug, genreOf = opts.genres || null, ct = chToday();
     function card(entry, kindLabel, kind) {
       if (!entry || !entry.goal) return '<div class="gkch-empty">' + t('challenges.noneKind', { kind: kindLabel.toLowerCase() }) + '</div>';
@@ -2150,6 +2153,50 @@
   function playedToday() { try { return JSON.parse(lsGet('gamekit_played_' + utcDateStr()) || 'null') || emptyLog(); } catch (e) { return emptyLog(); } }
   // profile() — aggregate all-time bests from the uniform gamekit_pb store (device-only). The catalogue
   // enriches per-slug data with titles/icons from games.js; the kit just returns the numbers.
+  // ---------- localized mode labels ----------
+  // gamekit_pb is keyed by each game's language-STABLE English mode label (games pass `mode:` for
+  // storage, `modeText:` for display) — so a player who switches language keeps ONE best per mode.
+  // The profile renders those stored keys, and needs them in the player's language: this table
+  // points every stable token at the i18n key the game ALREADY uses for that word, so there are no
+  // new strings and the profile reads back exactly the wording the game shows. A new game with
+  // modes adds its row here (test-enforced: every key must exist in pl).
+  var MODE_I18N = {
+    '2048': { 'Classic': 'game.2048.modeclassic', 'Mini 3×3': 'game.2048.modemini', 'Big 5×5': 'game.2048.modebig' },
+    'asteroids': { 'Classic': 'game.asteroids.modeClassic', 'Classic+': 'game.asteroids.modeClassicPlus', 'Speedrun': 'game.asteroids.modeSpeedrun' },
+    'asteroids-plus': { 'Level-up': 'game.asteroids-plus.shareModeLevelup', 'Milestones': 'game.asteroids-plus.shareModeMilestones', 'Wave Shop': 'game.asteroids-plus.shareModeShop', 'Speedrun': 'game.asteroids-plus.modeSpeedrun' },
+    'balloon-pop': { 'Party': 'game.balloon-pop.modeParty', 'Zen': 'game.balloon-pop.modeZen', 'Bees': 'game.balloon-pop.modeBees' },
+    'breakout': { 'Classic': 'game.breakout.modeClassic', 'Endless': 'game.breakout.modeEndless', 'Survival': 'game.breakout.modeSurvival' },
+    'bubbles': { 'Arcade': 'game.bubbles.mode.arcade', 'Endless': 'game.bubbles.mode.endless', 'Zen': 'game.bubbles.mode.zen' },
+    'critter-match': { 'Small': 'game.critter-match.modeSmall', 'Medium': 'game.critter-match.modeMedium', 'Large': 'game.critter-match.modeLarge', 'Speedrun': 'game.critter-match.speedrun' },
+    'forcefield': { 'Lives': 'game.forcefield.modeLives', 'Timed': 'game.forcefield.modeTimed', 'Easy': 'game.forcefield.diffEasy', 'Medium': 'game.forcefield.diffMedium', 'Hard': 'game.forcefield.diffHard' },
+    'frog-bonk': { 'Waves': 'game.frog-bonk.modeWaves', 'Endless': 'game.frog-bonk.modeEndless', 'Zen': 'game.frog-bonk.modeZen', 'Easy': 'game.frog-bonk.diffEasy', 'Medium': 'game.frog-bonk.diffMedium', 'Hard': 'game.frog-bonk.diffHard' },
+    'glow-says': { 'Classic': 'game.glow-says.modeClassic', 'Chill': 'game.glow-says.modeChill', 'Hard': 'game.glow-says.modeHard', 'Expert': 'game.glow-says.modeExpert' },
+    'minesweeper': { 'Easy': 'game.minesweeper.diffEasy', 'Medium': 'game.minesweeper.diffMedium', 'Hard': 'game.minesweeper.diffHard', 'Expert': 'game.minesweeper.diffExpert', 'Relaxed': 'game.minesweeper.relaxedShort' },
+    'snake': { 'Slow': 'game.snake.speedSlow', 'Normal': 'game.snake.speedNormal', 'Fast': 'game.snake.speedFast', 'Wrap': 'game.snake.wrapShort', 'Walls': 'game.snake.wallsShort', 'Small': 'game.snake.sizeSmall', 'Large': 'game.snake.sizeLarge' },
+    'stacker': { 'Classic': 'game.stacker.mode.classic', 'Time Attack': 'game.stacker.mode.time', 'Zen': 'game.stacker.mode.zen' },
+    'sudoku': { 'Easy': 'game.sudoku.diffEasy', 'Medium': 'game.sudoku.diffMedium', 'Hard': 'game.sudoku.diffHard', 'Expert': 'game.sudoku.diffExpert', 'Daily': 'game.sudoku.modeDaily', 'Zen': 'game.sudoku.modeZen' },
+    'tower-defense': { 'Grassland': 'game.tower-defense.map.grassland.name', 'Ice': 'game.tower-defense.map.ice.name', 'Lava': 'game.tower-defense.map.lava.name', 'Desert': 'game.tower-defense.map.desert.name', 'Dungeon': 'game.tower-defense.map.dungeon.name', 'Marsh': 'game.tower-defense.map.marsh.name', 'Easy': 'game.tower-defense.diff.easy', 'Medium': 'game.tower-defense.diff.medium', 'Hard': 'game.tower-defense.diff.hard' },
+    'trap-the-cat': { 'Kitten': 'game.trap-the-cat.diffKitten', 'Easy': 'game.trap-the-cat.diffEasy', 'Medium': 'game.trap-the-cat.diffMedium', 'Hard': 'game.trap-the-cat.diffHard' },
+  };
+  function modeText(slug, label) {
+    label = (label == null) ? '' : String(label);
+    if (!label) return '';
+    // aim-trainer's labels carry the run size ('Sprint · 12 targets', 'Timed · 60s') — a pattern, not a token
+    if (slug === 'aim-trainer') {
+      var ms = label.match(/^Sprint · (\d+) targets$/);
+      if (ms) return t('game.aim-trainer.hudModeSprint', { n: +ms[1], def: 'Sprint ' + ms[1] });
+      var mt = label.match(/^Timed · (\d+)s$/);
+      if (mt) return t('game.aim-trainer.hudModeTimed', { n: +mt[1], def: 'Timed ' + mt[1] + 's' });
+    }
+    var map = MODE_I18N[slug] || {};
+    return label.split(' · ').map(function (part) {
+      if (map[part]) return t(map[part], { def: part });
+      var sr = part.match(/^(.+) Speedrun$/);   // both asteroids games join their suffix with a space
+      if (sr && map[sr[1]] && map.Speedrun) return t(map[sr[1]], { def: sr[1] }) + ' ' + t(map.Speedrun, { def: 'Speedrun' });
+      return part;   // unmapped token (e.g. critter-match's '2P') passes through untouched
+    }).join(' · ');
+  }
+
   function profile() {
     var pb; try { pb = JSON.parse(lsGet('gamekit_pb') || 'null') || {}; } catch (e) { pb = {}; }
     var st; try { st = JSON.parse(lsGet('gamekit_stats') || 'null') || {}; } catch (e) { st = {}; }
@@ -2383,20 +2430,20 @@
           + (TT.tier >= 3 ? '<canvas class="pf-pfx" data-tier="' + TT.tier + '"></canvas>' : '')
           + '<span class="pf-tb-emoji">' + (TT.emoji || '🎖️') + '</span>'
           + '<div class="pf-tb-main">'
-          + '<span class="pf-tb-label">' + (o.compact ? 'Title' : '<button type="button" class="pf-title-link" id="pfTitleOpen">Title · see ladder ›</button>') + '</span>'
+          + '<span class="pf-tb-label">' + (o.compact ? T('profile.titleWord', 'Title') : '<button type="button" class="pf-title-link" id="pfTitleOpen">' + T('profile.titleLadder', 'Title · see ladder ›') + '</button>') + '</span>'
           + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(rankTitle(TT)) + '">' + esc(rankTitle(TT)) + '</span></span>';
         h += o.compact
           ? '<span class="pf-tb-name"><span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span></span>'
-          : '<span class="pf-tb-name"><button type="button" class="pf-name-btn" id="pfNameEdit" aria-label="Change your display name">'
+          : '<span class="pf-tb-name"><button type="button" class="pf-name-btn" id="pfNameEdit" aria-label="' + esc(T('profile.nameEditAria', 'Change your display name')) + '">'
             + '<span class="pf-sh pf-gl" data-text="' + esc(who) + '">' + esc(who) + '</span>'
             + '<svg class="pf-pen" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>'
-            + '<span class="pf-tt">Click to change your name</span></button></span>';
+            + '<span class="pf-tt">' + esc(T('profile.nameEditHint', 'Click to change your name')) + '</span></button></span>';
         h += '</div>';
         if (o.compact) h += '<span class="pf-chev">›</span>';
         else h += '<div class="pf-tb-meta">'
           + '<span class="pf-tb-pts">🏆 ' + fmt(o.chPts) + ' <span>' + window.gamekit.t('profile.trophiesEarned', { def: 'TROPHIES EARNED' }) + '</span></span>'
-          + '<span class="pf-tb-mini" title="Runs that cleared a game’s bar">💪 <b>' + fmt(o.goodRuns) + '</b> ' + window.gamekit.t('profile.goodRunsWord', { count: o.goodRuns }) + '</span>'
-          + '<span class="pf-tb-mini">📅 Since <b>' + esc(o.sinceStr || '—') + '</b></span>'
+          + '<span class="pf-tb-mini" title="' + esc(T('profile.goodRunsHint', 'Runs that cleared a game’s bar')) + '">💪 <b>' + fmt(o.goodRuns) + '</b> ' + window.gamekit.t('profile.goodRunsWord', { count: o.goodRuns }) + '</span>'
+          + '<span class="pf-tb-mini">📅 ' + T('profile.since', 'Since') + ' <b>' + esc(o.sinceStr || '—') + '</b></span>'
           + '</div>';
         return h + '</div>';
       }
@@ -2423,7 +2470,8 @@
         const p = (K && K.profile) ? K.profile() : null;
         const { who, chPts, TT } = titleData();
         let sinceStr = '';
-        if (p && p.since) { try { sinceStr = new Date(p.since).toLocaleDateString(undefined, { month: 'short', year: 'numeric' }); } catch (e) {} }
+        // format in the SITE language, not the browser's — the rest of the box is translated
+        if (p && p.since) { try { sinceStr = new Date(p.since).toLocaleDateString((K && K.lang) ? K.lang() : undefined, { month: 'short', year: 'numeric' }); } catch (e) {} }
         // identity (title + name) is the full-width box at the very top — no separate header;
         // shown in both empty + populated states
         const goodRuns = (p && p.goodRuns) ? p.goodRuns : 0;
@@ -2434,8 +2482,8 @@
         // snapshot, whose inlineStyles drops width/height — a min-height div + a computed-style
         // background both make it through; an <i>'s inline width got wiped and collapsed to 0.
         const pctW = Math.round(cos ? cos.pct * 100 : 0);
-        const collectBar = cos ? ('<div class="pf-collect" id="pfCollect" role="button" tabindex="0" title="Open the Cosmetics store">'
-          + '<div class="pf-collect-top"><span>🎨 Collection</span><span class="pf-collect-n">' + cos.owned + ' / ' + cos.total + ' · ' + pctW + '%</span></div>'
+        const collectBar = cos ? ('<div class="pf-collect" id="pfCollect" role="button" tabindex="0" title="' + esc(T('profile.openStore', 'Open the Cosmetics store')) + '">'
+          + '<div class="pf-collect-top"><span>🎨 ' + esc(T('cat.collectionBtn', 'Collection')) + '</span><span class="pf-collect-n">' + cos.owned + ' / ' + cos.total + ' · ' + pctW + '%</span></div>'
           + '<div class="pf-collect-bar" style="background:linear-gradient(90deg,#ffce5c,#ff9a5c) left/' + pctW + '% 100% no-repeat,rgba(255,255,255,0.09)"></div></div>') : '';
         // one list, most-played first: every game with plays, each showing its modes' bests
         const ranked = [];
@@ -2457,22 +2505,23 @@
         html += '<div class="pf-sec">' + window.gamekit.t('profile.yourGames', { def: 'Your games' }) + '</div><div class="pf-games">';
         ranked.forEach(function (it) {
           const gm = it.gm, pg = it.pg;
+          const gTitle = T('game.' + gm.slug + '.title', gm.title);
           const modes = pg.modes.slice().filter(m => m.plays > 0).sort((a, b) => b.plays - a.plays || b.score - a.score);
           let rowsHtml = '';
           modes.forEach(m => {
             // show plays on every mode (even single-mode, where it repeats the header total) for consistency; hide only ×1
-            const x = m.plays > 1 ? ' <i class="pr-x" title="' + fmt(m.plays) + ' plays">×' + fmt(m.plays) + '</i>' : '';
+            const x = m.plays > 1 ? ' <i class="pr-x" title="' + esc(fmt(m.plays) + ' ' + window.gamekit.t('profile.playsWord', { count: m.plays })) + '">×' + fmt(m.plays) + '</i>' : '';
             // time-primary modes (named "Speedrun"/"Sprint" by convention) show their time (stored ms);
             // every other mode shows its score. (score modes may also record a run duration we ignore.)
             const isTimeMode = /speedrun|sprint/i.test(m.mode || '');
             const val = (isTimeMode && m.time > 0) ? fmtTime(m.time) : (m.score > 0 ? fmt(m.score) : '—');
-            rowsHtml += '<div class="pf-row"><span class="pr-mode">' + esc(m.mode || T('profile.colBest', 'Best')) + x + '</span><span class="pr-val">' + val + '</span></div>';
+            rowsHtml += '<div class="pf-row"><span class="pr-mode">' + esc(K.modeText(gm.slug, m.mode) || T('profile.colBest', 'Best')) + x + '</span><span class="pr-val">' + val + '</span></div>';
           });
           html += '<div class="pf-game pf-tinted" style="--acc:' + (gm.accent || '#9fe8ff') + '">'
-            + '<div class="pf-gh"><span class="pf-gt">' + (gm.icon || '🎮') + ' ' + esc(gm.title) + '</span>'
+            + '<div class="pf-gh"><span class="pf-gt">' + (gm.icon || '🎮') + ' ' + esc(gTitle) + '</span>'
             + '<span class="pf-gp"><b>' + fmt(pg.plays) + '</b> ' + window.gamekit.t('profile.playsWord', { count: pg.plays }) + '</span></div>'
             + '<div class="pf-rows"><div class="pf-rhead"><span>' + T('profile.colMode', 'Mode') + '</span><span>' + T('profile.colBest', 'Best') + '</span></div>' + rowsHtml + '</div></div>';
-          rows.push({ name: gm.title, best: fmt(pg.best), mode: (modes[0] && modes[0].mode) || '', accent: gm.accent });
+          rows.push({ name: gTitle, best: fmt(pg.best), mode: K.modeText(gm.slug, (modes[0] && modes[0].mode) || ''), accent: gm.accent });
         });
         html += '</div>'; // close .pf-games
         html += '</div>'; // close .pf-scroll (the games list scrolls; the share button below stays pinned)
@@ -2930,13 +2979,15 @@
     }
     _navMounted = true;
     sideStack({ game: true, slug: opts.challenges || opts.cosmetics || '', genres: opts.genres, theme: opts.theme });
-    if (opts.controls) { var ctlb = document.getElementById('gamekitControls'); if (ctlb) ctlb.addEventListener('click', function () { controlsModal(opts.controls, opts.theme); }); }
+    if (opts.controls) { var ctlb = document.getElementById('gamekitControls'); if (ctlb) ctlb.addEventListener('click', function () { track('feature_open', { feature: 'controls', slug: currentSlug() || 'unknown' }); controlsModal(opts.controls, opts.theme); }); }
     var pb = document.getElementById('gamekitPause'); _pauseBtnEl = pb;
     if (pb) {
       // a game with its own (menu-based) pause passes onPause → the ⏸ button drives THAT, so there's a
       // single pause UI; otherwise the button toggles the kit's universal pause overlay.
-      if (typeof opts.onPause === 'function') pb.addEventListener('click', function () { try { opts.onPause(); } catch (e) {} });
-      else { _pauseBtns.push(pb); pb.addEventListener('click', togglePause); }
+      // ⏸ is the clearest difficulty/frustration signal in the kit — `state` = what it moved TO
+      var trackPause = function () { track('feature_open', { feature: 'pause', state: isPaused() ? 'off' : 'on', slug: currentSlug() || 'unknown' }); };
+      if (typeof opts.onPause === 'function') pb.addEventListener('click', function () { trackPause(); try { opts.onPause(); } catch (e) {} });
+      else { _pauseBtns.push(pb); pb.addEventListener('click', function () { trackPause(); togglePause(); }); }
     }
     syncPauseUI();
     audioUIs.push(u); syncAudioUI();
@@ -4703,7 +4754,7 @@
     } catch (e) {}
   })();
 
-  var api = { lock: lock, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
+  var api = { lock: lock, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
