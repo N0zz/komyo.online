@@ -61,11 +61,13 @@
   function pingContext() {
     try {
       if (sessionStorage.getItem('gamekit_ctx_pinged')) return;
-      var mode = 'tab';
-      if (IN_ACTIVITY) mode = 'activity';
-      else if (navigator.standalone === true) mode = 'standalone';
+      // values are named for the READER of the report, not for the platform APIs they come from
+      // ('standalone' is the CSS display-mode value, 'activity' is Discord's term — neither reads well)
+      var mode = 'browser';
+      if (IN_ACTIVITY) mode = 'discord';
+      else if (navigator.standalone === true) mode = 'pwa';
       else if (typeof matchMedia === 'function'
-        && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches)) mode = 'standalone';
+        && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches)) mode = 'pwa';
       window.gamekitTrack('app_context', { run_mode: mode, lang: localStorage.getItem('gamekit_lang') || 'en' });
       sessionStorage.setItem('gamekit_ctx_pinged', '1');
     } catch (e) {}
