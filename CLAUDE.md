@@ -441,7 +441,9 @@ and name landscape explicitly in what to check.
   the dev guard drops those), driving the game through its `__test` hooks in a real browser; GA4's
   report builder hides any field that has never had a value. (3) **Wait, then build the report** —
   values take hours to process into report tables (Realtime shows the event immediately but accepts
-  no custom dimensions). The **read-only** google-analytics MCP verifies all of this
+  no custom dimensions). A report **filter** can be built before processing catches up: GA4's Value
+  dropdown only lists PROCESSED values, but Match type **matches regex** takes typed input — use
+  `^my_event$`, which is equivalent to "exactly matches". The **read-only** google-analytics MCP verifies all of this
   (`run_report` / `run_realtime_report`); it cannot create definitions, which is why the script +
   its service account (`ga4-mcp@goog-analytic…`, **kept as Editor on purpose**) exist. Property
   `543479165`; GA4 Library reports/Explorations have no API at all — those stay manual clicks.
