@@ -2231,7 +2231,13 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       if (!saved && banner) banner.hidden = false;
       const decide = (v) => { try { localStorage.setItem('gamekit_consent', v); } catch (e) {} if (banner) banner.hidden = true; };
       const a = document.getElementById('cbAccept'), d = document.getElementById('cbDecline');
-      if (a) a.addEventListener('click', () => { decide('granted'); if (window.gamekitLoadGA) window.gamekitLoadGA(); pingFavState(); });
+      if (a) a.addEventListener('click', () => {
+        decide('granted');
+        if (window.gamekitLoadGA) window.gamekitLoadGA();
+        pingFavState();
+        // the pre-consent render couldn't report the day's goals — re-run it now that it can
+        if (window.__renderChallenges) window.__renderChallenges();
+      });
       if (d) d.addEventListener('click', () => decide('denied'));
     })();
 
@@ -2648,10 +2654,14 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       function trackShown(p, kind) {
         if (!p || !p.id) return;
         try {
+          // Don't claim the once-per-session guard until the event can actually be SENT. This render
+          // runs before the consent banner is answered on a first visit, and burning the flag there
+          // meant the whole session never reported a shown goal — deflating every completion rate.
+          if (typeof window.gamekitTrack !== 'function' || localStorage.getItem('gamekit_consent') !== 'granted') return;
           const k = 'gamekit_cshown_' + p.id;
           if (sessionStorage.getItem(k)) return;
           sessionStorage.setItem(k, '1');
-          if (window.gamekitTrack) window.gamekitTrack('challenge_shown', { challenge_id: p.id, kind });
+          window.gamekitTrack('challenge_shown', { challenge_id: p.id, kind });
         } catch (e) {}
       }
       // good-run bonus widget — the collection bar is gone from the drawer (the profile + the
