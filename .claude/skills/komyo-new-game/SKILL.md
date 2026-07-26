@@ -100,6 +100,14 @@ screenshot-driven, unless its identity is deliberately flat/glow.
   one** — count silently and report the run's mix once at game over with `choice_count` (see
   tower-defense's `reportTowerMix`). Never event actions (collecting drops, shots, taps) or anything
   the player typed. Reflex games with no picks need nothing here.
+  **If the game introduces a param name that doesn't exist yet** (`choice_kind`, `wave`,
+  `choice_count`, `item_id`, `slug`, `place`, `mode`, `outcome` all already do — reuse before
+  inventing), it is invisible in GA4 until it's registered AND seeded, in this order:
+  (1) `scripts/ga4-define.sh --dim <name> --met <numeric-name>` — registration is NOT retroactive;
+  (2) fire the event once on **production** (`komyo.online`; localhost sends nothing) by driving the
+  game via its `__test` hooks in a real browser — GA4's report builder hides fields that have never
+  had a value; (3) wait a few hours for processing before building any report on it. Verify with the
+  read-only google-analytics MCP (`run_realtime_report` for arrival, `run_report` for values).
 - **Icons:** `node scripts/gen-icon.mjs <emoji> '<background-css>' games/<slug>`
   (macOS + Chrome + `sips`; if unavailable, tell the user to generate the two PNGs
   manually).
