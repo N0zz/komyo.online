@@ -1423,7 +1423,9 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       if (!soon) {
         // which shelf sent the player into the game — answers "does the Recently played / discover
         // rail earn its space", which a bare page_view can't. `place` is the same dim site_share uses.
-        el.addEventListener('click', () => trackCat('game_entry', { slug: g.slug, place: isFavTile ? 'favorite' : (inGrid ? 'tile' : 'rail') }));
+        // a tile click navigates immediately, which CANCELS an in-flight gtag hit (measured: zero
+        // game_entry events arrived). Stash the entry point and let the game page report it on boot.
+        el.addEventListener('click', () => { try { sessionStorage.setItem('komyo_entry', isFavTile ? 'favorite' : (inGrid ? 'tile' : 'rail')); } catch (e) {} });
         const star = document.createElement('button');
         star.className = 'fav' + (f.includes(g.slug) ? ' on' : '');
         star.textContent = '★';
@@ -2795,7 +2797,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const g = pool[Math.floor(Math.random() * pool.length)];
         if (!g || !g.slug) return;
         if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'random' });
-        trackCat('game_entry', { slug: g.slug, place: 'random' });
+        try { sessionStorage.setItem('komyo_entry', 'random'); } catch (e) {}   // reported by the game page (see above)
         if (window.__activityOpenGame) window.__activityOpenGame('games/' + g.slug + '/'); // Discord Activity: iframe, don't navigate
         else location.href = 'games/' + g.slug + '/';
       });
