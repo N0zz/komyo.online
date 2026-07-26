@@ -1,0 +1,50 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Index of /plans/</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  html, body { margin:0; background:#0b0f17; color:#eef2f8;
+    font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; font-size:14px; }
+  body { padding:24px 22px 48px; }
+  h1 { font-size:16px; font-weight:600; margin:0 0 4px; }
+  .sub { color:#7d8aa0; margin-bottom:18px; }
+  a { color:#9fe8ff; text-decoration:none; }
+  a:hover { text-decoration:underline; }
+  ul { list-style:none; padding:0; margin:0; }
+  li { padding:3px 0; }
+  .sz { color:#7d8aa0; }
+</style>
+<h1>Index of /plans/</h1>
+<div class="sub">public design docs &amp; mocks · <a href="/">← komyo.online</a></div>
+<ul id="list"><li class="sz">loading…</li></ul>
+<script>
+(function () {
+  var list = document.getElementById('list');
+  var API = 'https://api.github.com/repos/N0zz/komyo.online/contents/plans';
+  function kb(n) { return n < 1024 ? n + ' B' : n < 1048576 ? (n / 1024).toFixed(0) + ' K' : (n / 1048576).toFixed(1) + ' M'; }
+  fetch(API).then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); }).then(function (items) {
+    items.sort(function (a, b) {
+      return (a.type === b.type) ? a.name.localeCompare(b.name) : (a.type === 'dir' ? -1 : 1);
+    });
+    list.innerHTML = '';
+    items.forEach(function (it) {
+      if (it.name === 'index.html') return;
+      var li = document.createElement('li'), a = document.createElement('a');
+      a.href = it.type === 'dir' ? it.name + '/' : it.name;
+      a.textContent = it.type === 'dir' ? it.name + '/' : it.name;
+      li.appendChild(a);
+      if (it.type === 'file') {
+        var s = document.createElement('span');
+        s.className = 'sz';
+        s.textContent = '  ' + kb(it.size);
+        li.appendChild(s);
+      }
+      list.appendChild(li);
+    });
+  }).catch(function () {
+    list.innerHTML = '<li class="sz">Listing unavailable — browse ' +
+      '<a href="https://github.com/N0zz/komyo.online/tree/main/plans">the plans folder on GitHub</a>.</li>';
+  });
+})();
+</script>
