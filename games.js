@@ -178,6 +178,7 @@ window.GAMES = [
     added: "2026-06-26",
     updated: "2026-07-03",
     shot: "shot.v1.webp",
+    preview: "preview.v1.mp4",
   },
   {
     slug: "spellcaster",
@@ -213,6 +214,7 @@ window.GAMES = [
     added: "2026-07-12",
     updated: "2026-07-24",
     shot: "shot.v1.webp",
+    preview: "preview.v1.mp4",
   },
   {
     slug: "keyfall",
@@ -317,6 +319,7 @@ window.GAMES = [
     tags: ["KIDS", "CASUAL"],
     added: "2026-07-12",
     shot: "shot.v1.webp",
+    preview: "preview.v1.mp4",
   },
   {
     slug: "critter-match",
@@ -327,6 +330,7 @@ window.GAMES = [
     tags: ["KIDS", "PUZZLE"],
     added: "2026-07-12",
     shot: "shot.v1.webp",
+    preview: "preview.v1.mp4",
   },
   {
     slug: "glow-says",
