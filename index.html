@@ -2114,7 +2114,18 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const lbl = installed ? T('cat.installed', '✓ Installed') : T('cat.install', '📱 Install');
       installBtn.setAttribute('aria-label', lbl); installBtn.title = lbl.replace(/^[✓📱]\s*/, '');
     }
-    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installed = false; trackCat('pwa_install', { stage: 'prompt' }); refresh(); });
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault(); deferredPrompt = e; installed = false;
+      // Chrome fires this on EVERY load of an installable site, so one event per load turned the
+      // funnel's first step into a page-view count (6 loads = 6 "prompts"). Once per tab-session.
+      try {
+        if (!sessionStorage.getItem('komyo_install_pinged')) {
+          sessionStorage.setItem('komyo_install_pinged', '1');
+          trackCat('pwa_install', { stage: 'prompt' });
+        }
+      } catch (_) { trackCat('pwa_install', { stage: 'prompt' }); }
+      refresh();
+    });
     window.addEventListener('appinstalled', () => { installed = true; deferredPrompt = null; trackCat('pwa_install', { stage: 'installed' }); tipPop.classList.add('show'); refresh(); });
     installBtn.addEventListener('click', (e) => {
       e.stopPropagation();
