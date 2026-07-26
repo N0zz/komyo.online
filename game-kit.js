@@ -599,7 +599,7 @@
   function lockData() { try { return JSON.parse(lsGet(LOCK_KEY) || 'null'); } catch (e) { return null; } }
   function lockSave(d) { lsSet(LOCK_KEY, JSON.stringify(d)); }
   function lockEnabled() { var d = lockData(); return !!(d && d.hash); }
-  function lockClear() { try { if (typeof localStorage !== 'undefined') localStorage.removeItem(LOCK_KEY); } catch (e) {} }
+  function lockClear() { try { if (typeof localStorage !== 'undefined') localStorage.removeItem(LOCK_KEY); } catch (e) {} track('lock_state', { state: 'off' }); }
   // deterministic non-crypto fallback for environments without WebCrypto (headless tests); its
   // hashes carry a 'w' prefix so verify always recomputes with the algo the blob was made with
   function lockWeakHash(pin, salt, iter) {
@@ -624,7 +624,7 @@
     var salt = '';
     try { if (typeof crypto !== 'undefined' && crypto.getRandomValues) { var a = new Uint8Array(8); crypto.getRandomValues(a); for (var i = 0; i < a.length; i++) salt += ('0' + a[i].toString(16)).slice(-2); } } catch (e) {}
     if (!salt) salt = ((Math.random() * 0xffffffff) >>> 0).toString(16) + (Date.now() >>> 0).toString(16);
-    return lockHash(String(pin || ''), salt, LOCK_ITER).then(function (h) { lockSave({ v: 1, salt: salt, iter: LOCK_ITER, hash: h }); return true; });
+    return lockHash(String(pin || ''), salt, LOCK_ITER).then(function (h) { lockSave({ v: 1, salt: salt, iter: LOCK_ITER, hash: h }); track('lock_state', { state: 'on' }); return true; });
   }
   function lockVerify(pin) {
     var d = lockData(); if (!d || !d.hash) return Promise.resolve(true);
@@ -938,6 +938,7 @@
       // also drop this game's bests/plays from the unified profile store, so the two never diverge
       var slug = prefix.replace(/_+$/, ''), pb = pbLoad();
       if (pb[slug]) { delete pb[slug]; lsSet('gamekit_pb', JSON.stringify(pb)); }
+      track('data_reset', { scope: 'game', slug: slug });   // the "I'm done with this one" signal
     } catch (e) {}
   }
 
@@ -1067,6 +1068,14 @@
       + '<span class="gk-grb-sub">' + t('grb.sub', { per: b.per }) + '</span></div>';
   }
   var _grAwarded = false; // did the LAST recorded result earn the trickle? (end-menu receipt)
+  // run clock: stamped when a menu 'play'/'again' action enters gameplay, read once by recordResult
+  // so game_play can report how long the run lasted without every game having to time itself.
+  var _runStartMs = 0;
+  var _rotPinged = false;  // rotate-overlay ping: once per tab-session, not once per relayout
+  // ONE tracking helper for the whole kit — analytics.js owns the consent gate, this owns the guards
+  function track(name, params) {
+    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack(name, params || {}); } catch (e) {}
+  }
 
   // ---------- cosmetics (registry data in cosmetics.js; the kit owns storage + the economy) ----------
   // Two metrics: LIFETIME trophies = Σ gamekit_done (only ever grows; titles read this) and the
@@ -1093,7 +1102,7 @@
     if (on) lsSet('gamekit_freeplay', '1');
     else { try { if (typeof localStorage !== 'undefined') localStorage.removeItem('gamekit_freeplay'); } catch (e) {} }
     try { applyCursor(); applyCrt(); } catch (e) {} // site-wide skins re-resolve under the new lens
-    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('shop_freeplay', { on: on ? 1 : 0 }); } catch (e) {}
+    track('shop_freeplay', { freeplay: on ? 1 : 0 });
   }
   function cosOwned(id) { return cosOwnedReal(id) || (cosFreePlay() && !!cosItem(id)); }
   // One-time welcome gift, claimed in the shop: a single 'gift#welcome' entry in gamekit_done, so
@@ -1104,7 +1113,7 @@
     if (giftClaimed()) return false;
     var d = chDoneMap(); d[GIFT_KEY] = GIFT_AMT;
     lsSet('gamekit_done', JSON.stringify(d));
-    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('shop_gift', { amount: GIFT_AMT }); } catch (e) {}
+    track('shop_gift', { amount: GIFT_AMT });
     return true;
   }
   function cosBuy(id) {
@@ -1114,7 +1123,7 @@
     if (cosBalance() < price) return false;
     var o = cosOwnedMap(); o[id] = { c: price, t: utcDayNumber() };
     lsSet('gamekit_owned', JSON.stringify(o));
-    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('shop_buy', { id: id }); } catch (e) {}
+    track('shop_buy', { item_id: id });
     return true;
   }
   function cosSelMap() { try { return JSON.parse(lsGet('gamekit_cos_sel') || 'null') || {}; } catch (e) { return {}; } }
@@ -1130,6 +1139,7 @@
     var m = cosSelMap(); m[setId] = id; lsSet('gamekit_cos_sel', JSON.stringify(m));
     if (setId === 'site.cursor') applyCursor();
     if (setId === 'site.fx') applyCrt(); // selecting the CRT item = enable it; 'off' = disable (shop toggles it)
+    track('cosmetic_equip', { item_id: id, set: setId });   // buying ≠ wearing — this is the wearing half
     return true;
   }
   // Collection progress is a plain item COUNT: pct = items owned / total items. Free defaults
@@ -1657,7 +1667,7 @@
     var items = cosItems();
     if (!items.length) return; // cosmetics.js not loaded here
     var C = cosReg(), gamesMeta = (C && C.games) || {}, setsMeta = (C && C.sets) || {};
-    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('feature_open', { feature: 'cosmetics' }); } catch (e) {}
+    track('feature_open', { feature: 'cosmetics' });
     var scopeGame = (opts.game != null) ? String(opts.game) : null; // game-scoped (in-game) vs full store
     // ---- game ordering: site-wide first, then favorites (catalogue stars), most-played, registry order ----
     var order = [], seen = {};
@@ -2089,6 +2099,9 @@
     // mode = language-STABLE key (best-store grouping); modeText = LOCALIZED display (score card / profile),
     // falling back to mode when a game doesn't provide it.
     var rec = { mode: (data.mode != null ? String(data.mode) : ''), modeText: (data.modeText != null ? String(data.modeText) : (data.mode != null ? String(data.mode) : '')), score: (+data.score || 0), time: (+data.time || 0), stats: (data.stats || {}), ts: nowMs() };
+    // read BEFORE pbSave rewrites the store: a game that already saved its own best this run makes
+    // this read a tie, so the flag under-reports rather than inventing bests that didn't happen
+    var _prevBest = 0; try { _prevBest = +getBestScore(slug, rec.mode) || 0; } catch (e) {}
     lsSet('gamekit_result_' + slug, JSON.stringify(rec));
     try {
       var key = 'gamekit_played_' + utcDateStr();
@@ -2122,8 +2135,13 @@
       _grAwarded = (par && rec.score >= par) ? grAward() : false;
       pruneOldLogs();
     } catch (e) {}
-    // aggregate, consent-gated: which games/modes actually get played to completion
-    try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('game_play', { slug: slug, mode: rec.mode || '(default)' }); } catch (e) {}
+    // aggregate, consent-gated: which games/modes get played to completion, and how that run went.
+    // score/duration_s are GA4 custom METRICS (averages); outcome only exists if the game passes it.
+    var ev = { slug: slug, mode: rec.mode || '(default)', score: rec.score, new_best: (data.newBest != null ? (data.newBest ? 1 : 0) : (rec.score > _prevBest ? 1 : 0)), good_run: _grAwarded ? 1 : 0 };
+    if (_runStartMs) { var d = Math.round((nowMs() - _runStartMs) / 1000); if (d >= 0 && d < 86400) ev.duration_s = d; }
+    if (data.outcome) ev.outcome = String(data.outcome);
+    _runStartMs = 0; // one duration per run — a menu re-show must not re-time the same run
+    track('game_play', ev);
     try { syncChNotify(); } catch (e) {} // this run may have just completed the active challenge
     try { if (typeof window !== 'undefined' && window.__syncTitleNotify) window.__syncTitleNotify(); } catch (e) {} // …or crossed a titles-ladder tier → dot the Profile button
     return rec;
@@ -2508,14 +2526,14 @@
         setWornTier(t); renderTitles(); startTitleFx();
         try { if (window.__renderProfile) window.__renderProfile(); } catch (e2) {}
         try { if (window.__refreshSideStack) window.__refreshSideStack(); } catch (e2) {} // worn title drives the stack's Profile icon/tint
-        if (window.gamekitTrack) window.gamekitTrack('title_wear', { tier: t });
+        track('title_wear', { tier: t });
       });
       // challenges drawer's points pill opens the ladder — points → titles is the payoff
       window.__openTitlesLadder = () => {
         if (!tlModal || !tlModal.showModal) return;
         renderTitles(); tlModal.showModal(); startTitleFx();
         try { if (window.__setPanelUrl) window.__setPanelUrl('titles'); } catch (e) {}
-        if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'titles' });
+        track('feature_open', { feature: 'titles' });
       };
       if (tlClose) tlClose.addEventListener('click', () => tlModal.close());
       if (tlModal) tlModal.addEventListener('click', e => { if (e.target === tlModal) tlModal.close(); });
@@ -3419,7 +3437,11 @@
     function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); close(); } }
     var q = function (sel) { try { return ov.querySelector(sel); } catch (e) { return null; } };
     var bShare = q('.gamekit-sm-share'), bCopy = q('.gamekit-sm-copy'), bDl = q('.gamekit-sm-dl'), bX = q('.gamekit-sm-x');
+    // funnel tail: which way the card actually left the device. 'profile' cards come through here too.
+    var shareSlug = opts.slug || 'unknown', shareKind = opts.kind || (opts.slug === 'profile' ? 'profile' : 'score');
+    var shareStage = function (stage) { track('share_card', { slug: shareSlug, stage: stage, kind: shareKind }); };
     if (bShare) bShare.addEventListener('click', function () {
+      shareStage('native');
       close();
       // attach the card image AND the link/text: targets that take files show the card, the rest keep the link
       var data = { files: [file], title: opts.title || 'Komyo Games' };
@@ -3428,6 +3450,7 @@
       try { navigator.share(data)['catch'](function () {}); } catch (e) {}
     });
     if (bCopy) bCopy.addEventListener('click', function () {
+      shareStage('copy');
       try {
         // promise-valued ClipboardItem keeps the write inside the user gesture (Safari requires it)
         navigator.clipboard.write([new ClipboardItem({ 'image/png': toPng(blob) })]).then(function () {
@@ -3436,7 +3459,7 @@
         }, function () { downloadBlob(blob, name); close(); });
       } catch (e) { downloadBlob(blob, name); close(); }
     });
-    if (bDl) bDl.addEventListener('click', function () { downloadBlob(blob, name); close(); });
+    if (bDl) bDl.addEventListener('click', function () { shareStage('download'); downloadBlob(blob, name); close(); });
     if (bX) bX.addEventListener('click', close);
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
     modalInc();
@@ -3493,6 +3516,7 @@
     // rendered blob when the player taps Share so we don't re-render.
     var _blob = null, _blobUrl = '';
     var openMenu = function () {
+      track('share_card', { slug: o.slug || 'unknown', stage: 'open', kind: 'score' });
       if (_blob) { shareCardBlob(_blob, cardOpts()); return; }
       var opts = cardOpts(); buildScoreCard(opts).then(function (b) { shareCardBlob(b, opts); });
     };
@@ -3500,6 +3524,8 @@
       buildScoreCard(cardOpts()).then(function (b) {
         _blob = b || null;
         if (b && cardImg) { try { _blobUrl = URL.createObjectURL(b); cardImg.src = _blobUrl; if (cardImg.style) cardImg.style.display = ''; } catch (e) {} }
+        // 'render' is the funnel's denominator: a card was actually shown to the player
+        if (b) track('share_card', { slug: o.slug || 'unknown', stage: 'render', kind: 'score' });
       });
     } catch (e) {}
     if (cardBtn) cardBtn.addEventListener('click', openMenu);
@@ -3524,6 +3550,7 @@
         var who = tier === 'named' ? ((player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous') : 'anonymous';
         // post the score card image (downscaled 50% for chat); text line = fallback if the render fails
         var opts = cardOpts(); opts.player = who;
+        track('share_card', { slug: o.slug || 'unknown', stage: 'discord', kind: 'score', tier: tier });
         buildScoreCard(opts).then(function (b) {
           var durl = withUtm(getUrl(), 'sc', 'discord');
           if (!b) return postDiscord('**' + who + '** — ' + msg, durl);
@@ -3692,6 +3719,8 @@
       var ok = (want === 'portrait') ? isPortrait() : !isPortrait();
       var el = document.getElementById('gamekitRotate');
       if (!ok && !el && document.createElement) {
+        // once per tab-session: the overlay re-checks on every relayout, an event per check is noise
+        if (!_rotPinged) { _rotPinged = true; track('rotate_prompt', { slug: currentSlug() || 'unknown', need: want }); }
         el = document.createElement('div'); el.id = 'gamekitRotate'; el.className = 'gamekit-rotate';
         el.innerHTML = '<div class="gamekit-rotate-box"><div class="gamekit-rotate-ico">↻</div><div>' + t('kit.rotate') + '</div></div>';
         document.body.appendChild(el);
@@ -3867,6 +3896,8 @@
   function upApply() {
     if (_upApplying || _swReloaded) return;
     _upApplying = true; _upState.status = 'refreshing'; upEmit();
+    // fires BEFORE the reload — how long players sit on a stale build is the from_sha distribution
+    try { track('update_apply', { from_sha: (buildInfo() || {}).sha || 'unknown' }); } catch (e) {}
     var cap = setTimeout(doReload, 9000); // absolute cap: a plain refresh beats an endless spinner
     var finish = function () { clearTimeout(cap); doReload(); };
     upCheck().then(function (st) {
@@ -3983,7 +4014,14 @@
 
     // record BEFORE building the DOM — the "✓ Good run" line below is the trickle RECEIPT, so the
     // award (recordResult → grAward) must land first. Idempotent per run (menuHide arms the next).
-    if (cfg.record && _recDone !== _recRun) { _recDone = _recRun; try { recordResult(cfg.record.slug || (cfg.share && cfg.share.slug), cfg.record); } catch (e) {} }
+    if (cfg.record && _recDone !== _recRun) {
+      _recDone = _recRun;
+      // the end menu already knows whether this run beat the best (it renders "★ New best!") — hand
+      // that to recordResult rather than re-deriving it from a store the game may have written first
+      var _rd = cfg.record;
+      if (cfg.newBest != null && _rd.newBest == null) { _rd = {}; for (var _k in cfg.record) if (has(cfg.record, _k)) _rd[_k] = cfg.record[_k]; _rd.newBest = !!cfg.newBest; }
+      try { recordResult(_rd.slug || (cfg.share && cfg.share.slug), _rd); } catch (e) {}
+    }
 
     var ov = document.createElement('div'); ov.className = 'gamekit-menu gamekit-menu-' + kind + (hasCards ? ' gkm-wide' : '') + (splitEligible ? ' gkm-split' : '');
     // pause screens resume on an outside click/tap (matches every other pause surface); start/end
@@ -4371,7 +4409,8 @@
         // game_start (analytics) + "recently played" (catalogue strip): fired on entering gameplay
         // from a menu — 'play' (start) or 'again' (replay), i.e. a mode was actually chosen.
         if (a.id === 'play' || a.id === 'again') {
-          try { if (typeof window !== 'undefined' && typeof window.gamekitTrack === 'function') window.gamekitTrack('game_start', { slug: currentSlug() || 'unknown' }); } catch (e) {}
+          track('game_start', { slug: currentSlug() || 'unknown' });
+          _runStartMs = nowMs();   // recordResult turns this into game_play's duration_s
           touchRecent(currentSlug());
         }
         if (a.id === 'play' && typeof cfg.onPlay === 'function') cfg.onPlay(state()); else if (typeof cfg.onAction === 'function') cfg.onAction(a.id, state());
@@ -4493,6 +4532,8 @@
   function lang() { if (!_lang) _lang = detectLang(); return _lang; }
   function setLang(code) {
     code = I18N_SUPPORTED[code] ? code : 'en';
+    // GA4's built-in `language` is the BROWSER's — this is the one the player actually picked
+    if (code !== _lang) track('lang_change', { from: _lang || 'en', to: code });
     _lang = code;
     try { localStorage.setItem('gamekit_lang', code); } catch (e) {}
     try { document.documentElement.lang = code; } catch (e) {}
