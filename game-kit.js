@@ -3032,11 +3032,24 @@
     // Which catalogue shelf sent the player here. The catalogue can't report this itself — a tile
     // click navigates and cancels the in-flight hit — so it stashes the shelf and we report it from
     // the game page, where nothing is racing us. One-shot: cleared as soon as it's read.
+    // NEVER clear the key until the event can actually be sent: nav() runs in the game's inline
+    // script, which executes BEFORE the deferred analytics.js — clearing here lost the entry
+    // silently (same trap as challenge_shown's session guard).
     if (opts.slug) {
+      var reportEntry = function () {
+        try {
+          var e = sessionStorage.getItem('komyo_entry');
+          if (!e) return;
+          if (typeof window.gamekitTrack !== 'function' || lsGet('gamekit_consent') !== 'granted') return;
+          sessionStorage.removeItem('komyo_entry');
+          track('game_entry', { slug: opts.slug, place: e });
+        } catch (err) {}
+      };
+      reportEntry();
       try {
-        var _entry = sessionStorage.getItem('komyo_entry');
-        if (_entry) { sessionStorage.removeItem('komyo_entry'); track('game_entry', { slug: opts.slug, place: _entry }); }
-      } catch (e) {}
+        document.addEventListener('DOMContentLoaded', reportEntry);
+        window.addEventListener('load', reportEntry);
+      } catch (err) {}
     }
     // slug is the one identity: reset prefix + challenges key derive from it (explicit opts override),
     // so folder = games.js slug = reset prefix = challenge key can't drift apart per game.
