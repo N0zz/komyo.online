@@ -54,7 +54,10 @@ Everything lives in the trailer project (in-repo; templates/tools tracked, foota
 - **Full vertical composition, never a crop-pan** of the gameplay.
 - **No game-count copy** ("18 games" rots; "18+" reads NSFW). Count-free strengths only:
   free · no ads · no accounts · works offline · kid-safe.
-- **No invented features in copy.** Verify every claim against games.js blurb/tags + the footage.
+- **No invented, understated or half-true claims in copy.** Every claim traces to the GAME SOURCE
+  (Step 1), not to the footage — a capture is one session and silently omits modes, player counts
+  and penalties. Understating counts as lying too ("solo or 2-player" for a 1–4-player game). Ship
+  a **claim audit** (claim → file:line) with the metadata; anything you can't cite, cut.
 
 ## Inputs (ask if missing)
 
@@ -64,10 +67,31 @@ Everything lives in the trailer project (in-repo; templates/tools tracked, foota
 
 ## Step 1 — Gather the game's facts
 
-- From `~/arcade/games.js`: `title`, `blurb`, `accent`, `tags`, the live URL
-  `https://komyo.online/games/<slug>/`.
+**READ THE GAME'S SOURCE. A recording is one session, not the feature set.** Every copy claim comes
+from the source below; the footage only proves a claim is *visible*, never that it's *complete*.
+(2026-07-26: copy written from footage alone shipped "no way to lose" for a game with a penalty
+mode, "solo or 2-player" for a 1–4-player game, and listed a `SOON` mode as playable.)
+
+- **`seo.<slug>.howto` in `~/arcade/i18n.js`** — read it for orientation only. **It is PROSE, not a
+  spec, and paraphrasing it invents mechanics**: "Boards grow from a quick 4×3 to a challenge grid"
+  describes a size *picker*, and became the false line "boards that grow". Never lift a phrase from
+  it into copy — go to the option definitions and describe what you find there.
+- **The option definitions are the ONLY authority** — the `MODES`/`MODE_ORDER` consts and the
+  `menu.show` `groups`/`toggles` `choices` in `games/<slug>/index.html`. Quote their real values
+  (Critter Match's boards are `{small:6, medium:10, large:15}` pairs → "6, 10 or 15 pairs").
+  **Count every choice in the row, including the default**, and state the full range: the PLAYERS row
+  is `Solo / 2P / 3P / 4P` → the game is **1–4 players**; writing "2–4" drops the default and
+  understates. Two more traps that make copy a lie:
+  - **`locked: true` + a `tag: 'SOON'` choice is NOT playable** — never list it (Range's Reaction).
+  - **A play-variant state var** (`let play = 'solo' | 'p2' | 'p3' | 'p4' | 'speed'`) carries modes
+    the menu shows as separate rows — count them all (Critter Match is 1–4 players *and* Speedrun).
+- **Penalty/fail mechanics** — grep the mode `mech:` lines and the game's hint strings. "No way to
+  lose" is only true if NO mode penalises (Balloon Pop's Bees mode costs 5 pops per sting).
+- From `~/arcade/games.js`: `title`, `blurb`, `accent`, `tags`, `icon` (the gametag emoji MUST be
+  the games.js `icon`, not one you pick), the live URL `https://komyo.online/games/<slug>/`.
 - Music track: grep the game's `index.html` for `KIT.music.play('<track>')`, then the track's `bpm`
-  from the `tracks` table in `~/arcade/game-kit.js`.
+  from the `tracks` table in `~/arcade/game-kit.js`. **Resolve aliases** — `music.play('tactical')`
+  hits the `ALIAS` map and renders as `range`; `render-music.mjs` only knows real track names.
 - Timing math from bpm (templates ship on forcefield's 128bpm grid): **SCALE = 128 / bpm**,
   **BAR = 240 / bpm** (= 4 × 60/bpm).
 
@@ -76,8 +100,10 @@ Everything lives in the trailer project (in-repo; templates/tools tracked, foota
 1. `ffprobe` the recording (dims/fps/duration). Conform to 1080-wide portrait if needed.
 2. Extract a full-res top strip and **measure the nav chrome height by eye** — crop just past the
    nav buttons (~96px at dpr 2), KEEPING the in-game HUD pill. Leave the bottom version-stamp footer
-   IN (`_p.mp4` keeps it — the V2 template hides it via `transform: scale(1.03)`; the card loop
-   crops it explicitly in step 6b).
+   IN (`_p.mp4` keeps it — the V2 card's `object-position` window simply ends above it, see the Step 5
+   fit pass; the card loop crops it explicitly in step 6b). **If the fit pass puts that game on
+   `object-fit: contain`, the whole source height shows and the footer appears** — re-encode that
+   game's `_p.mp4` with `crop=1080:1784:0:0`.
 3. Encode: `ffmpeg -i <rec> -vf "crop=1080:<H>:0:<Y>" -c:v libx264 -crf 18 -an -movflags +faststart
    assets/footage/<slug>_p.mp4` (H even).
 4. **Map the recording**: a 4s-per-tile montage (`-vf "fps=1/4,scale=135:240,tile=8xN"`), then 2fps
@@ -125,6 +151,34 @@ fade-out position (`21`). **`data-media-start` is NEVER scaled** (real-time sour
 gotcha: after scaling, no small `.clip` `data-start` (gametag/brand/meta) may land within 0.05s of an
 exit-tween duration (0.26/0.3/0.34/0.35) or the linter false-triggers `gsap_exit_missing_hard_kill`.
 
+**Fit pass (per game — the card CROPS, and the default crop is wrong for most games).** The
+`.cardvid` box is **900×1120** and the source is **1080×1824**, so `object-fit: cover` scales by
+`900/1080 = 0.8333` and shows only **1344 of 1824 source rows** — 480 rows are cut. The template's
+default `object-position: 50% 12%` shows rows **58–1402**; anything the game draws below row 1402
+(or above 58) is simply gone. Measure, don't eyeball:
+
+```bash
+# brightest pixel per row on a real gameplay frame → where the game actually draws
+ffmpeg -y -v error -ss <t> -i assets/footage/<slug>_p.mp4 -frames:v 1 \
+  -vf "crop=1080:1824:0:0" -f rawvideo -pix_fmt gray /tmp/f.raw
+python3 -c "d=open('/tmp/f.raw','rb').read(); W=1080
+p=[max(d[y*W:(y+1)*W]) for y in range(1824)]
+b=[y for y in range(80,1780) if p[y]>150]; print('content rows', b[0], '→', b[-1])"
+```
+
+Run it on **every** window (each mode/board size draws differently), then:
+
+- **Content fits in 1344 rows** → keep `cover` and centre it:
+  `Y% = ((centre − 672) × 0.8333) / 400`, where `centre = (top + bottom) / 2`.
+  Verify `start + 1344 < 1786` (the version-stamp footer) — the footer is kept out by this window,
+  NOT by the footage. (2048: board rows 463–1450 → 12% cut the bottom row; 60% centres it.)
+- **Content is TALLER than 1344 rows** (full-screen play areas where objects spawn edge to edge)
+  → `object-fit: contain` + `background:` the game's own backdrop colour, so the whole play area is
+  visible with the pillars reading as bezel. Sample the colour:
+  `ffmpeg -ss <t> -i <slug>_p.mp4 -frames:v 1 -vf "crop=40:40:8:8,scale=1:1" -f rawvideo -pix_fmt rgb24 - | xxd -p`
+  **`contain` shows the FULL source height, so the footer becomes visible** — re-encode that game's
+  prepped footage with `crop=1080:1784:0:0` to drop it. (Range: targets spawn rows 108–1740.)
+
 ## Step 6 — Render + QA the social trailer
 
 ```bash
@@ -134,8 +188,21 @@ npx --yes hyperframes@0.7.53 render --fps 60 --quality high --output finals-game
 ```
 
 QA: extract a 6-frame grid at the key beats (hook, each window, payoff, CTA) and READ them — every
-window shows what you intended, text doesn't collide, accent/QR/URL are the game's, an `aac` audio
-stream exists, and **frame 0 is a composed poster (not black)**. Fix and re-render anything off.
+window shows what you intended, text doesn't collide, accent/QR/URL/emoji are the game's, an `aac`
+audio stream exists, and **frame 0 is a composed poster (not black)**. Fix and re-render anything off.
+
+Then a **full-resolution zoom on the card itself** — the 6-frame grid is too small to see a clipped
+edge, and that's exactly what hides:
+
+```bash
+ffmpeg -y -v error -ss <t> -i finals-games/game-v2-stage-9x16-<slug>.mp4 -frames:v 1 \
+  -vf "crop=1000:1250:40:280,scale=500:625" /tmp/zoom.png
+```
+
+Check, on EVERY window: the play area is whole (no clipped board row, no target/object cut by the
+card edge), there's no large dead band inside the card, and **no version stamp is visible**. A
+clipped bottom row or a half-empty card means the Step 5 fit pass is wrong — fix the
+`object-position`/`object-fit`, don't accept it.
 
 ## Step 6b — Cut the card preview loop
 
@@ -202,6 +269,10 @@ channels (generic QR). Produce paste-ready per-platform blocks:
 
 - `assets/footage/<slug>_p.mp4` + `assets/audio/<track>-76s.m4a` (+beats) exist.
 - ONE V2 social mp4 in `finals-games/`, on the game's bpm grid + OST, QA'd frame-by-frame, frame 0 a poster.
+- **Fit pass done**: content rows measured per window, `object-position`/`object-fit` set from that
+  measurement, card zoom shows nothing clipped and no version stamp.
+- **Claim audit written**: every copy line in the trailer AND the metadata cites a source file:line;
+  no `locked`/`SOON` mode listed as playable; player counts and penalty modes stated in full.
 - `games/<slug>/preview.v1.mp4` (text-free full-bleed seamless loop) + `games/<slug>/shot.v1.webp` exist.
 - `games.js` declares `preview:` + `shot:`; the catalogue card shows the loop (shot as fallback).
 - TikTok + YT (+ IG/FB) metadata delivered with the cadence reminder.
