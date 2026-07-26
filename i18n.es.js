@@ -2,6 +2,8 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.es = {
+  'changelog.e76.title': 'Cuatro vistas previas más de juego 🎬',
+  'changelog.e76.b0': 'Nuevo: 2048, Revienta Globos, Parejas de Bichitos y Polígono de Tiro ahora reproducen un clip corto de juego en su ficha — toca MÁS para ver cómo se juega de verdad antes de empezar.',
   'changelog.e75.title': 'Sal y vuelve — tu partida está guardada 🔖',
   'changelog.e75.b0': 'Nuevo: 2048, Burbujas y Buscaminas ahora recuerdan tu partida en curso — sal cuando quieras y toca «Continuar» en la pantalla de inicio para seguir justo donde lo dejaste. (Sudoku ya guardaba tus tableros sin terminar.)',
   'cat.trophies': { one: '{count} trofeo', other: '{count} trofeos' },

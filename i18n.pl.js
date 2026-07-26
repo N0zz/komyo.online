@@ -2,6 +2,8 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.pl = {
+  'changelog.e76.title': 'Jeszcze cztery podglądy rozgrywki 🎬',
+  'changelog.e76.b0': 'Nowość: 2048, Baloniki, Zwierzęce Pary i Strzelnica pokazują teraz na swojej karcie krótki klip z rozgrywki — naciśnij WIĘCEJ, aby zobaczyć, jak gra się w praktyce, przed jej uruchomieniem.',
   'changelog.e75.title': 'Wyjdź i wróć — gra jest zapisana 🔖',
   'changelog.e75.b0': 'Nowość: 2048, Bąbelki i Saper zapamiętują teraz rozpoczętą grę — wyjdź w dowolnej chwili i naciśnij „Kontynuuj” na ekranie startowym, aby wrócić dokładnie tam, gdzie skończyłeś. (Sudoku już wcześniej zapisywało niedokończone plansze.)',
   'cat.trophies': { one: '{count} trofeum', few: '{count} trofea', many: '{count} trofeów', other: '{count} trofeum' },

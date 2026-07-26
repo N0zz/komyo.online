@@ -2,6 +2,8 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.pt = {
+  'changelog.e76.title': 'Mais quatro pré-visualizações de jogo 🎬',
+  'changelog.e76.b0': 'Novo: 2048, Balões, Pares de Bichinhos e Estande de Tiro agora mostram um clipe curto de jogo no seu cartão — toca em MAIS para ver como se joga de verdade antes de começar.',
   'changelog.e75.title': 'Sai e volta — o teu jogo fica guardado 🔖',
   'changelog.e75.b0': 'Novo: 2048, Bolhas e Campo Minado agora guardam o jogo em curso — sai quando quiseres e toca em «Continuar» no ecrã inicial para retomar exatamente onde paraste. (O Sudoku já guardava os teus tabuleiros por terminar.)',
   'cat.trophies': { one: '{count} troféu', other: '{count} troféus' },
