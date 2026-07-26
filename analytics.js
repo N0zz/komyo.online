@@ -66,7 +66,7 @@
       else if (navigator.standalone === true) mode = 'standalone';
       else if (typeof matchMedia === 'function'
         && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches)) mode = 'standalone';
-      window.gamekitTrack('app_context', { mode: mode, lang: localStorage.getItem('gamekit_lang') || 'en' });
+      window.gamekitTrack('app_context', { run_mode: mode, lang: localStorage.getItem('gamekit_lang') || 'en' });
       sessionStorage.setItem('gamekit_ctx_pinged', '1');
     } catch (e) {}
   }

@@ -3438,8 +3438,8 @@
     var q = function (sel) { try { return ov.querySelector(sel); } catch (e) { return null; } };
     var bShare = q('.gamekit-sm-share'), bCopy = q('.gamekit-sm-copy'), bDl = q('.gamekit-sm-dl'), bX = q('.gamekit-sm-x');
     // funnel tail: which way the card actually left the device. 'profile' cards come through here too.
-    var shareSlug = opts.slug || 'unknown', shareKind = opts.kind || (opts.slug === 'profile' ? 'profile' : 'score');
-    var shareStage = function (stage) { track('share_card', { slug: shareSlug, stage: stage, kind: shareKind }); };
+    var shareSlug = opts.slug || 'unknown', shareCardKind = opts.card || (opts.slug === 'profile' ? 'profile' : 'score');
+    var shareStage = function (stage) { track('share_card', { slug: shareSlug, stage: stage, card: shareCardKind }); };
     if (bShare) bShare.addEventListener('click', function () {
       shareStage('native');
       close();
@@ -3516,7 +3516,7 @@
     // rendered blob when the player taps Share so we don't re-render.
     var _blob = null, _blobUrl = '';
     var openMenu = function () {
-      track('share_card', { slug: o.slug || 'unknown', stage: 'open', kind: 'score' });
+      track('share_card', { slug: o.slug || 'unknown', stage: 'open', card: 'score' });
       if (_blob) { shareCardBlob(_blob, cardOpts()); return; }
       var opts = cardOpts(); buildScoreCard(opts).then(function (b) { shareCardBlob(b, opts); });
     };
@@ -3525,7 +3525,7 @@
         _blob = b || null;
         if (b && cardImg) { try { _blobUrl = URL.createObjectURL(b); cardImg.src = _blobUrl; if (cardImg.style) cardImg.style.display = ''; } catch (e) {} }
         // 'render' is the funnel's denominator: a card was actually shown to the player
-        if (b) track('share_card', { slug: o.slug || 'unknown', stage: 'render', kind: 'score' });
+        if (b) track('share_card', { slug: o.slug || 'unknown', stage: 'render', card: 'score' });
       });
     } catch (e) {}
     if (cardBtn) cardBtn.addEventListener('click', openMenu);
@@ -3550,7 +3550,7 @@
         var who = tier === 'named' ? ((player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous') : 'anonymous';
         // post the score card image (downscaled 50% for chat); text line = fallback if the render fails
         var opts = cardOpts(); opts.player = who;
-        track('share_card', { slug: o.slug || 'unknown', stage: 'discord', kind: 'score', tier: tier });
+        track('share_card', { slug: o.slug || 'unknown', stage: 'discord', card: 'score', discord_tier: tier });
         buildScoreCard(opts).then(function (b) {
           var durl = withUtm(getUrl(), 'sc', 'discord');
           if (!b) return postDiscord('**' + who + '** — ' + msg, durl);
