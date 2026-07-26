@@ -2015,6 +2015,9 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const sp = b.querySelector('span[data-t]'); // the label span (drawer item's first span is the icon)
         if (!canNative && sp) { sp.setAttribute('data-t', 'cat.copyLink'); sp.textContent = K.t('cat.copyLink', { def: 'Copy link' }); }
         b.addEventListener('click', () => {
+          // the site share is its own path (not the kit's score-card row) → its own event.
+          // `place` tells the footer pill apart from the drawer item, which look identical in the data.
+          trackCat('site_share', { via: canNative ? 'native' : 'copy', place: id === 'shareSite' ? 'footer' : 'drawer' });
           if (canNative) { try { navigator.share({ title: 'Komyo Games', text, url }).catch(() => {}); } catch (e) {} return; }
           try {
             navigator.clipboard.writeText(url).then(() => {
@@ -2141,7 +2144,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         b.textContent = on ? '▣' : '⛶'; // ▣ = back to windowed
       };
       label(); K.fullscreen.onChange(label);
-      b.addEventListener('click', () => K.fullscreen.toggle());
+      b.addEventListener('click', () => { trackCat('feature_open', { feature: 'fullscreen', state: K.fullscreen.active() ? 'off' : 'on' }); K.fullscreen.toggle(); });
     })();
 
 
@@ -2380,6 +2383,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     (function () {
       const modal = document.getElementById('settingsModal'), btn = document.getElementById('settingsBtn'), closeBtn = document.getElementById('settingsClose');
       if (!modal || !modal.showModal) return;
+      if (btn) btn.addEventListener('click', () => trackCat('feature_open', { feature: 'settings' }));
       const K = window.gamekit;
       const sfxT = document.getElementById('setSfxToggle'), sfxV = document.getElementById('setSfxVol');
       const musT = document.getElementById('setMusToggle'), musV = document.getElementById('setMusVol');
@@ -2407,7 +2411,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const epT = document.getElementById('setEasyPicks');
       if (epT) {
         const epSync = () => paint(epT, K.easyPicks && K.easyPicks());
-        epT.addEventListener('click', () => { if (K.setEasyPicks) K.setEasyPicks(!K.easyPicks()); epSync(); if (window.__renderTiles) window.__renderTiles(); });
+        epT.addEventListener('click', () => { if (K.setEasyPicks) K.setEasyPicks(!K.easyPicks()); epSync(); trackCat('feature_open', { feature: 'easy_picks', state: K.easyPicks && K.easyPicks() ? 'on' : 'off' }); if (window.__renderTiles) window.__renderTiles(); });
         if (btn) btn.addEventListener('click', epSync);
         epSync();
       }
@@ -2416,7 +2420,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       if (dnT) {
         const dnGet = () => { try { return localStorage.getItem('gamekit_discord_name') === '1'; } catch (e) { return false; } };
         const dnSync = () => paint(dnT, dnGet());
-        dnT.addEventListener('click', () => { try { localStorage.setItem('gamekit_discord_name', dnGet() ? '0' : '1'); } catch (e) {} dnSync(); });
+        dnT.addEventListener('click', () => { try { localStorage.setItem('gamekit_discord_name', dnGet() ? '0' : '1'); } catch (e) {} dnSync(); trackCat('feature_open', { feature: 'discord_name', state: dnGet() ? 'on' : 'off' }); });
         if (btn) btn.addEventListener('click', dnSync);
         dnSync();
       }
@@ -2784,6 +2788,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         apply(compact);
         if (compact && window.__gcClose) window.__gcClose();   // strip is hidden in compact — close any open card
         try { localStorage.setItem(KEY, compact ? 'compact' : 'cozy'); } catch (e) {}
+        trackCat('feature_open', { feature: 'density', state: compact ? 'compact' : 'cozy' });
       });
     })();
 
