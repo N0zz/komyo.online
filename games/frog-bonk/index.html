@@ -2100,6 +2100,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const cost = upgCost(u);
     if (lv >= u.max || flies < cost) return;
     if (u.id === 'repair' && castleHp >= castleMax) return;
+    try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: SLUG, item_id: u.id, choice_kind: 'upgrade', wave: wave }); } catch (e) {}
     flies -= cost;
     if (u.id === 'repair') { castleHp = Math.min(castleMax, castleHp + 5); upg.repair++; }
     else if (u.id === 'walls') { upg.walls++; castleMax += 5; castleHp += 5; }

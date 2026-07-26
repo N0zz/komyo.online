@@ -668,7 +668,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
         pickLabel: (c) => t('game.asteroids-plus.takeLabel',{label:c.label,def:'TAKE ' + c.label + ' ▶'}),
         onPick: (id) => pickUpgrade(id) } ] });
   }
-  function pickUpgrade(id){ if(state!=='levelup') return; applyUpgrade(id); pendingPicks--; if(pendingPicks>0){ openPicker(); } else { state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); } }
+  function pickUpgrade(id){ if(state!=='levelup') return;
+    // which of the 3 offered upgrades wins, and at which wave — the only read on whether the tree is balanced
+    try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: 'asteroids-plus', item_id: id, choice_kind: 'upgrade', wave: wave }); } catch (e) {}
+    applyUpgrade(id); pendingPicks--; if(pendingPicks>0){ openPicker(); } else { state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); } }
   function pickByIndex(i){ if(pickOptions[i]) pickUpgrade(pickOptions[i].id); } // kept for the headless harness
 
   // ---- Shop (between waves) — the reusable kit shop primitive (style:'shop' cells + live credit banner) ----
