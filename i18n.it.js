@@ -2,6 +2,9 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.it = {
+  'changelog.e77.title': 'Il tuo profilo e le sfide parlano la tua lingua 🌍',
+  'changelog.e77.b0': 'Correzione: il profilo ora è tradotto del tutto — nomi dei giochi, tutte le modalità e difficoltà, la riga del titolo, la barra Collezione e la data «dal» seguono la lingua scelta.',
+  'changelog.e77.b1': 'Correzione: le sfide completate nella cronologia ora si leggono nella tua lingua attuale, non in quella in cui le hai giocate.',
   'changelog.e76.title': 'Altre quattro anteprime di gioco 🎬',
   'changelog.e76.b0': 'Novità: 2048, Scoppia Palloncini, Coppie di Animali e Poligono di Tiro ora mostrano una breve clip di gioco sulla loro schedina — tocca ALTRO per vedere come si gioca davvero prima di iniziare.',
   'changelog.e75.title': 'Esci e torna — la tua partita è salvata 🔖',
@@ -480,6 +483,13 @@ window.KOMYO_I18N.it = {
   'cat.embedAll': 'Tutta l’arcade (tutti i giochi)',
   'profile.colMode': 'Modalità',
   'profile.colBest': 'Record',
+  'profile.titleWord': 'Titolo',
+  'profile.titleLadder': 'Titolo · scala ›',
+  'profile.since': 'Dal',
+  'profile.nameEditAria': 'Cambia il tuo nome visualizzato',
+  'profile.nameEditHint': 'Clicca per cambiare nome',
+  'profile.openStore': 'Apri la Collezione',
+  'profile.goodRunsHint': 'Partite che hanno superato l’asticella del gioco',
   'cl.noMatch': 'Nessuna modifica corrisponde.',
   'cat.challengesBtn': 'SFIDE',
   'cat.openChallenges': 'Apri le sfide',

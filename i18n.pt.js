@@ -2,6 +2,9 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.pt = {
+  'changelog.e77.title': 'O teu perfil e os desafios falam a tua língua 🌍',
+  'changelog.e77.b0': 'Correção: o teu perfil está agora totalmente traduzido — nomes dos jogos, todos os modos e dificuldades, a linha do título, a barra da Coleção e a data «desde» seguem o idioma escolhido.',
+  'changelog.e77.b1': 'Correção: os desafios concluídos no teu histórico aparecem agora no teu idioma atual, e não naquele em que os jogaste.',
   'changelog.e76.title': 'Mais quatro pré-visualizações de jogo 🎬',
   'changelog.e76.b0': 'Novo: 2048, Balões, Pares de Bichinhos e Estande de Tiro agora mostram um clipe curto de jogo no seu cartão — toca em MAIS para ver como se joga de verdade antes de começar.',
   'changelog.e75.title': 'Sai e volta — o teu jogo fica guardado 🔖',
@@ -1255,6 +1258,13 @@ window.KOMYO_I18N.pt = {
   'tag.game': 'JOGO',
   'profile.colMode': 'Modo',
   'profile.colBest': 'Melhor',
+  'profile.titleWord': 'Título',
+  'profile.titleLadder': 'Título · escada ›',
+  'profile.since': 'Desde',
+  'profile.nameEditAria': 'Alterar o seu nome de exibição',
+  'profile.nameEditHint': 'Clique para mudar o seu nome',
+  'profile.openStore': 'Abrir a Coleção',
+  'profile.goodRunsHint': 'Rodadas que superaram a marca do jogo',
   'chal.play': '▶ Jogar',
   'chal.done': '✓ Concluído',
   'chal.cosmetics': '🎨 Skins',

@@ -2,6 +2,9 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.es = {
+  'changelog.e77.title': 'Tu perfil y los desafíos hablan tu idioma 🌍',
+  'changelog.e77.b0': 'Corrección: tu perfil ahora se traduce por completo — nombres de juegos, todos los modos y dificultades, la línea del título, la barra de Colección y la fecha «desde» siguen el idioma que elijas.',
+  'changelog.e77.b1': 'Corrección: los desafíos completados en tu historial ahora se leen en tu idioma actual y no en el que los jugaste.',
   'changelog.e76.title': 'Cuatro vistas previas más de juego 🎬',
   'changelog.e76.b0': 'Nuevo: 2048, Revienta Globos, Parejas de Bichitos y Polígono de Tiro ahora reproducen un clip corto de juego en su ficha — toca MÁS para ver cómo se juega de verdad antes de empezar.',
   'changelog.e75.title': 'Sal y vuelve — tu partida está guardada 🔖',
@@ -1256,6 +1259,13 @@ window.KOMYO_I18N.es = {
   'tag.game': 'JUEGO',
   'profile.colMode': 'Modo',
   'profile.colBest': 'Mejor',
+  'profile.titleWord': 'Título',
+  'profile.titleLadder': 'Título · escalafón ›',
+  'profile.since': 'Desde',
+  'profile.nameEditAria': 'Cambia tu nombre visible',
+  'profile.nameEditHint': 'Haz clic para cambiar tu nombre',
+  'profile.openStore': 'Abrir la Colección',
+  'profile.goodRunsHint': 'Partidas que superaron el listón del juego',
   'chal.play': '▶ Jugar',
   'chal.done': '✓ Completado',
   'chal.cosmetics': '🎨 Aspectos',
