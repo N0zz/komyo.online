@@ -10,8 +10,14 @@
   // Activity, so the client_id / unique-user count is unreliable — we only care about aggregate events.)
   var IN_ACTIVITY = false;
   try { IN_ACTIVITY = /(^|\.)discordsays\.com$/i.test(location.hostname); } catch (e) {}
+  // Dev origins never talk to GA4. Not about traffic volume — a dev session is a handful of hits but
+  // they're SYNTHETIC RUNS, and those bend the averages that matter (score, duration_s, completion
+  // and share funnels) far more than they bend any count. Consent is per-origin, so localhost was
+  // already quiet unless you clicked Accept there; this makes it impossible to do by accident.
+  var DEV = false;
+  try { DEV = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || /\.local$/i.test(location.hostname); } catch (e) {}
   window.gamekitLoadGA = function () {
-    if (loaded) return;
+    if (loaded || DEV) return;
     loaded = true;
     var s = document.createElement('script');
     s.async = true;
@@ -31,7 +37,7 @@
   // ethos). Any caller anywhere (kit, catalogue) uses window.gamekitTrack(name, params).
   window.gamekitTrack = function (name, params) {
     try {
-      if (!name || typeof window.gtag !== 'function') return;
+      if (!name || DEV || typeof window.gtag !== 'function') return;
       if (localStorage.getItem('gamekit_consent') !== 'granted') return;
       window.gtag('event', name, params || {});
     } catch (e) {}

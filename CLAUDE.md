@@ -416,9 +416,24 @@ and name landscape explicitly in what to check.
 
 ## Catalogue specifics
 
+- **Analytics events (GA4).** Every player-facing feature ships with an event or an explicit decision
+  not to have one. Call the ONE helper for the file you're in — `track()` in `game-kit.js`,
+  `trackCat()` in `index.html`, `window.gamekitTrack` elsewhere — never `gtag` directly (the helper
+  owns the consent + dev-origin + headless guards). **Param names are GLOBAL in GA4**: one custom
+  dimension per name across every event, so never reuse a generic name — it's `item_id` /
+  `challenge_id`, never `id` (that collision cost a rename). Numeric params meant as metrics
+  (`score`, `duration_s`) must be actual numbers. **Never send free text or anything the player
+  typed** (search queries, names, feedback) — buckets and booleans only; that promise is on the FAQ
+  page. A toggle needs BOTH a flow event (the tap) and, when you want current totals, a
+  once-per-tab-session state ping behind a `sessionStorage` guard (`favorite_toggle` +
+  `favorite_state` is the pattern). The live list is whatever the code says — don't mirror it here:
+  `grep -ohE "track[A-Za-z]*\('[a-z_]+'" analytics.js game-kit.js index.html | sort -u`.
 - **GA4** (`G-S4JQPYNDNM`) is **consent-gated**: `analytics.js` loads gtag only after the cookie
   banner's *Accept* (stored in `localStorage.gamekit_consent`, shared across the origin so per-game
-  pages track too). Footer tag: **"built for fun · free forever · no ads · no accounts · kid-safe ·
+  pages track too). **Dev origins (`localhost`, `127.0.0.1`, `*.local`) never send anything** — a
+  synthetic test run bends averages (score, duration, funnels) far more than it bends counts, so the
+  guard is in code and there is no GA4 internal-traffic filter to maintain.
+  Footer tag: **"built for fun · free forever · no ads · no accounts · kid-safe ·
   every game works offline"** (the key-strengths one-liner — keep it in sync with reality).
   **Shared links carry UTM tags** for attribution (`gamekit.withUtm(url, source, medium)`, source
   `sc`=scorecard): native/copy share = `medium=share`, Discord auto-post = `medium=discord`, catalogue
