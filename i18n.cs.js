@@ -2,6 +2,8 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.cs = {
+  'changelog.e76.title': 'Další čtyři náhledy hraní 🎬',
+  'changelog.e76.b0': 'Nové: 2048, Balónky, Zvířecí páry a Střelnice teď na své kartě přehrají krátký klip ze hry — klepni na VÍCE a podívej se, jak se hra opravdu hraje, ještě než ji spustíš.',
   'changelog.e75.title': 'Odejdi a vrať se — hra je uložená 🔖',
   'changelog.e75.b0': 'Novinka: 2048, Bublinky a Hledání min si teď pamatují rozehranou hru — odejdi kdykoli a na úvodní obrazovce klepni na „Pokračovat“, ať navážeš přesně tam, kde jsi skončil. (Sudoku ti nedohrané desky ukládalo už dřív.)',
   'nav.menu': '↩ Menu',

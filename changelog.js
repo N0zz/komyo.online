@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-26', title: 'Four more gameplay previews 🎬', items: [
+    'New: 2048, Balloon Pop, Critter Match and Range now play a short gameplay clip on their card — tap MORE to see how a game actually plays before you start it.',
+  ] },
   { date: '2026-07-24', title: 'Leave and come back — your game is saved 🔖', items: [
     'New: 2048, Bubble Pop and Minesweeper now remember a game in progress — leave any time and tap Continue on the start screen to pick up right where you left off. (Sudoku already kept your unfinished boards.)',
   ] },
