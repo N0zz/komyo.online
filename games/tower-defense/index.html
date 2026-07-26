@@ -695,7 +695,20 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     });
     KIT.stampUrl({ map: mapIndex, diff: diffLevel });
   }
+  // one event per tower TYPE the player actually built: how many, and the wave they first reached
+  // for it. Bounded by the number of tower types (~6), so composition is readable without volume.
+  function reportTowerMix() {
+    try {
+      if (!window.gamekitTrack) return;
+      for (const type in _builtKinds) {
+        if (!Object.prototype.hasOwnProperty.call(_builtKinds, type)) continue;
+        const e = _builtKinds[type];
+        window.gamekitTrack('run_choice', { slug: 'tower-defense', item_id: type, choice_kind: 'tower', choice_count: e.n, wave: e.first });
+      }
+    } catch (e) {}
+  }
   function showEnd() {
+    reportTowerMix();
     if (KIT) KIT.showMenuButton(false);
     if (!KIT) return;
     menuReshow = showEnd;
@@ -918,7 +931,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       targetMode: 'first',
     });
     recomputeBuffs(); // always: applies the map tower-mod to eDmg even without a Bard
-    if (!_builtKinds[type]) { _builtKinds[type] = 1; try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: 'tower-defense', item_id: type, choice_kind: 'tower', wave: wave }); } catch (e) {} }
+    // count silently; the run's whole tower MIX is reported once at game over (see showEnd) — a
+    // per-placement event would be 20+ per run and still wouldn't show composition at a glance
+    if (!_builtKinds[type]) _builtKinds[type] = { n: 0, first: wave };
+    _builtKinds[type].n++;
     SND.play('place');
     updateHud();
     refreshToolbar();

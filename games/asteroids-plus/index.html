@@ -696,7 +696,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       onAction:(id)=>{ if(id==='continue') closeShop(); } }); }
   function buyUpgrade(id){ if(state!=='shop') return; const u=ALL_UPGRADES.find(x=>x.id===id); if(!u) return; const lv=up[u.id]||0;
     const renew=lv>=u.max && EXPIRING.has(u.id); if(lv>=u.max && !renew) return;   // maxed permanent → no buy; maxed expiring → renew
-    const cost=shopCost(u); if(credits<cost) return; credits-=cost; applyUpgrade(u.id); }
+    const cost=shopCost(u); if(credits<cost) return; credits-=cost;
+    // the shop is a SEPARATE decision from the level-up picker: paid, and the pool is the full tree
+    try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: 'asteroids-plus', item_id: u.id, choice_kind: 'shop', wave: wave }); } catch (e) {}
+    applyUpgrade(u.id); }
   function buyByIndex(i){ const u=pool()[i]; if(u) buyUpgrade(u.id); } // kept for the headless harness
   function closeShop(){ state='playing'; srPrev=now(); if(KIT) KIT.menu.hide(); startWave(wave+1); }
 
