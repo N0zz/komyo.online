@@ -558,6 +558,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (n.indexOf('desert') >= 0) return 'kd_desert'; if (n.indexOf('dungeon') >= 0) return 'kd_dungeon';
     if (n.indexOf('marsh') >= 0) return 'kd_marsh'; return 'kd_grass'; }
   function startGame() {
+    _builtKinds = {};   // a fresh run reports its tower mix again
     reset();
     state = 'build';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.music.play(mapMusicKey(mapIndex)); } // swap to the map's biome track
@@ -902,6 +903,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
   function towerAt(c, r) { return towers.find(t => t.c === c && t.r === r) || null; }
 
+  var _builtKinds = {};   // reset per run — one event per tower TYPE, not per placement (20+/run)
   function placeTower(type, c, r) {
     const cfg = TOWERS[type]; if (!cfg) return false;
     if (c < 0 || c >= COLS || r < 0 || r >= ROWS) return false;
@@ -916,6 +918,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       targetMode: 'first',
     });
     recomputeBuffs(); // always: applies the map tower-mod to eDmg even without a Bard
+    if (!_builtKinds[type]) { _builtKinds[type] = 1; try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: 'tower-defense', item_id: type, choice_kind: 'tower', wave: wave }); } catch (e) {} }
     SND.play('place');
     updateHud();
     refreshToolbar();
@@ -925,6 +928,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function upgradeCost(t) { return Math.round(TOWERS[t.type].cost * (t.lvl + 1.2)); }
   function upgradeTower(t) {
     if (t.lvl >= 3) return;
+    try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: 'tower-defense', item_id: t.type, choice_kind: 'tower_upgrade', wave: wave }); } catch (e) {}
     const c = upgradeCost(t);
     if (gold < c) return;
     gold -= c; t.spent += c; t.lvl++;
@@ -938,6 +942,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     refreshToolbar();
   }
   function sellTower(t) {
+    try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: 'tower-defense', item_id: t.type, choice_kind: 'tower_sell', wave: wave }); } catch (e) {}
     gold += Math.round(t.spent * 0.7);
     towers = towers.filter(x => x !== t);
     recomputeBuffs();
@@ -965,6 +970,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (!t || t.kind === 'buff') return;
     const i = TARGET_MODES.indexOf(t.targetMode || 'first');
     t.targetMode = TARGET_MODES[(i + 1) % TARGET_MODES.length];
+    // does anyone touch targeting at all? it changes play more than raw stats, and it's one tap deep
+    try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: 'tower-defense', item_id: t.targetMode, choice_kind: 'target', wave: wave }); } catch (e) {}
     const tb = $('targetBtn'); if (tb) tb.textContent = KIT.t('game.tower-defense.targetBtn', { label: targetLabel(t.targetMode), def: 'Target: ' + TARGET_LABEL[t.targetMode] + ' ▸' });
   }
   // Grey out (disable) the upgrade button when it's maxed or unaffordable; it "pops in" once you

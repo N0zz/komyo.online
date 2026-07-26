@@ -2143,6 +2143,9 @@
     var ev = { slug: slug, mode: rec.mode || '(default)', score: rec.score, new_best: (data.newBest != null ? (data.newBest ? 1 : 0) : (rec.score > _prevBest ? 1 : 0)), good_run: _grAwarded ? 1 : 0 };
     if (_runStartMs) { var d = Math.round((nowMs() - _runStartMs) / 1000); if (d >= 0 && d < 86400) ev.duration_s = d; }
     if (data.outcome) ev.outcome = String(data.outcome);
+    // wave is the one stat several games already record (asteroids(+), tower-defense, frog-bonk) —
+    // forwarding it costs no new event and gives "average wave reached per mode" = the difficulty curve
+    if (rec.stats && isFinite(+rec.stats.wave)) ev.wave = +rec.stats.wave;
     _runStartMs = 0; // one duration per run — a menu re-show must not re-time the same run
     track('game_play', ev);
     try { syncChNotify(); } catch (e) {} // this run may have just completed the active challenge

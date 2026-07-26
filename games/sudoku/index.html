@@ -880,6 +880,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (hintActive) { applyHint(); return; }
     hintActive = findHint();
     if (!hintActive) return;
+    try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: SLUG, item_id: 'hint', choice_kind: 'hint' }); } catch (e) {}
     SND.play('lamp');
     const bar = document.getElementById('hintbar');
     bar.textContent = '💡 ' + hintActive.text + ' — ' + KIT.t('game.sudoku.hintApply', { def: 'tap 💡 again to apply' });
