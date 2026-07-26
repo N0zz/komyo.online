@@ -20,6 +20,17 @@ holds only open work. Nothing in this file is a task.
 - **No batching of Discord score posts** — batching only pays off by aggregating across many players at
   a central point, which needs a server; a single player doesn't finish games fast enough for
   per-player batching to mean anything. Use the filter + per-game channels instead.
+- **No game-portal push** — closed 2026-07-26 after the itch.io test (Asteroids+ listed, ~0 views):
+  our recognizable remakes can't win generic-tag browse, and per-portal uploads are real labor. Site
+  only. Revisit *only* as cheap SEO backlinks once an original earns its own landing page.
+- **No parental lock beyond the PIN** — closed 2026-07-26: the shipped PIN gate is enough; the
+  Disney+-style spelled-out-digits word check and external-link gating are dropped.
+- **"Retune from GA4/feedback" is not a roadmap item** — closed 2026-07-26: rebalancing challenges,
+  targets and games from real data + player feedback is simply how we work, continuously. Don't file
+  it as a task.
+- **No long prose in `ROADMAP.md`** — closed 2026-07-26 (the 550→lean rewrite): the roadmap is a todo
+  list, one line per item. Rationale goes to `plans/backlog-notes.md` or a `plans/*-plan.md`; games go
+  to `plans/games-queue.md`. Don't re-grow the roadmap into a design doc.
 
 ## ✅ Done
 
