@@ -22,6 +22,7 @@
     window.gtag('js', new Date());
     window.gtag('config', GA_ID, IN_ACTIVITY ? { transport_url: location.origin + '/.proxy/ga' } : {});
     pingAudioState();
+    pingContext();
   };
 
   // Aggregate, ANONYMOUS product-usage events. No-op unless the visitor consented (gtag only
@@ -47,6 +48,42 @@
       sessionStorage.setItem('gamekit_audio_pinged', '1');
     } catch (e) {}
   }
+
+  // One coarse snapshot per tab-session of HOW the site is being run: an installed PWA window, a
+  // Discord Activity or a plain tab, plus the language the player actually picked (GA4's built-in
+  // `language` is the browser's, which is a different question). Segments every other report.
+  function pingContext() {
+    try {
+      if (sessionStorage.getItem('gamekit_ctx_pinged')) return;
+      var mode = 'tab';
+      if (IN_ACTIVITY) mode = 'activity';
+      else if (navigator.standalone === true) mode = 'standalone';
+      else if (typeof matchMedia === 'function'
+        && (matchMedia('(display-mode: standalone)').matches || matchMedia('(display-mode: window-controls-overlay)').matches)) mode = 'standalone';
+      window.gamekitTrack('app_context', { mode: mode, lang: localStorage.getItem('gamekit_lang') || 'en' });
+      sessionStorage.setItem('gamekit_ctx_pinged', '1');
+    } catch (e) {}
+  }
+
+  // Uncaught errors, aggregate only: WHERE it broke (file:line) + a truncated message, never a stack
+  // and never anything the player typed. Capped per tab-session so one looping error can't spam GA4.
+  var errLeft = 3;
+  function trackError(where, msg) {
+    if (errLeft <= 0) return;
+    errLeft--;
+    window.gamekitTrack('js_error', { where: String(where || '?').slice(0, 100), msg: String(msg || '?').slice(0, 100) });
+  }
+  try {
+    window.addEventListener('error', function (e) {
+      if (!e) return;
+      var f = String(e.filename || '').split('/').slice(-2).join('/');
+      trackError(f + ':' + (e.lineno || 0), (e.message || ''));
+    });
+    window.addEventListener('unhandledrejection', function (e) {
+      var r = e && e.reason;
+      trackError('promise', (r && (r.message || r)) || '');
+    });
+  } catch (e) {}
 
   try {
     if (localStorage.getItem('gamekit_consent') === 'granted') window.gamekitLoadGA();

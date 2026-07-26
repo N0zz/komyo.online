@@ -1175,6 +1175,8 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   <script src="i18n.js"></script>
   <script>
     const grid = document.getElementById('grid');
+    // ONE tracking helper for the catalogue (analytics.js owns the consent gate)
+    const trackCat = (name, params) => { try { if (window.gamekitTrack) window.gamekitTrack(name, params || {}); } catch (e) {} };
 
     // favorites (per-device); starred games sort to the top of the playable list
     const FAV_KEY = 'arcade_favs';
@@ -1184,7 +1186,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const a = favs(), i = a.indexOf(slug);
       if (i >= 0) a.splice(i, 1); else a.push(slug);
       setFavs(a); render();
-      try { if (window.gamekitTrack) window.gamekitTrack('favorite_toggle', { slug, on: i >= 0 ? 0 : 1 }); } catch (e) {}
+      try { if (window.gamekitTrack) window.gamekitTrack('favorite_toggle', { slug, starred: i >= 0 ? 0 : 1 }); } catch (e) {}
     }
     // One snapshot per tab-session of which games are CURRENTLY starred — a STATE event, unlike
     // favorite_toggle's flow: GA4's "Total users" per slug then reads as the live star count, and a
@@ -1401,6 +1403,8 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const el = document.createElement(soon ? 'div' : 'a');
       el.className = 'tile' + (soon ? ' soon' : '') + (isFavTile ? ' fav-tile' : '');
       if (!soon) el.href = gameHref(g.slug);
+      // a tap on an unreleased tile is a vote for what to build next — the tile itself stays inert
+      else el.addEventListener('click', () => trackCat('soon_interest', { slug: g.slug }));
       if (el.dataset) el.dataset.slug = g.slug;
       el.style.setProperty('--accent', g.accent || '#9fe8ff');
       el.innerHTML =
@@ -1808,7 +1812,22 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     // ---- Search (instant, client-side) ----
     (function () {
       const s = document.getElementById('search');
-      if (s) { s.value = FILTER.q; s.addEventListener('input', () => { FILTER.q = s.value.trim().toLowerCase(); render(); }); }
+      if (!s) return;
+      s.value = FILTER.q;
+      // NEVER send the raw query — free text in analytics quietly breaks the "nothing about you is
+      // collected" promise. Length bucket + whether it found anything is all we need to spot the
+      // searches that come up empty. Debounced so a 12-letter word isn't 12 events.
+      let searchT = 0;
+      const pingSearch = () => {
+        const q = FILTER.q;
+        if (!q) return;
+        const hits = (window.GAMES || []).filter(passes).length;
+        trackCat('catalogue_search', { has_results: hits ? 1 : 0, len_bucket: q.length <= 2 ? 'short' : (q.length <= 6 ? 'mid' : 'long') });
+      };
+      s.addEventListener('input', () => {
+        FILTER.q = s.value.trim().toLowerCase(); render();
+        clearTimeout(searchT); searchT = setTimeout(pingSearch, 900);
+      });
     })();
 
     // ---- Filter ▾ dropdown (genre checkboxes + type + coming-soon) ----
@@ -1822,6 +1841,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const v = b.dataset.genre || b.dataset.badge; if (!v) return;
         const on = !set.has(v); if (on) set.add(v); else set.delete(v);
         b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        if (on) trackCat('catalogue_filter', { kind: b.dataset.genre ? 'genre' : 'badge', value: v });
         fcountUpdate(); render();
       };
       genreList.addEventListener('click', e => { const b = e.target.closest('button[data-genre]'); if (b) toggleChip(b, FILTER.genres); });
@@ -1832,10 +1852,11 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const b = e.target.closest('button[data-type]'); if (!b) return;
         FILTER.type = b.dataset.type;
         seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+        trackCat('catalogue_filter', { kind: 'type', value: FILTER.type });
         fcountUpdate(); render();
       });
       const ss = document.getElementById('showSoon');
-      if (ss) ss.addEventListener('change', e => { FILTER.showSoon = e.target.checked; fcountUpdate(); render(); });
+      if (ss) ss.addEventListener('change', e => { FILTER.showSoon = e.target.checked; trackCat('catalogue_filter', { kind: 'showSoon', value: e.target.checked ? 'on' : 'off' }); fcountUpdate(); render(); });
       // on the narrow layout the panel is a full-width sheet — lock the page behind it so it
       // doesn't scroll under the open filters.
       // Filter panel sizing: default = centered under the button at a comfy width; the native resize
@@ -2090,11 +2111,15 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const lbl = installed ? T('cat.installed', '✓ Installed') : T('cat.install', '📱 Install');
       installBtn.setAttribute('aria-label', lbl); installBtn.title = lbl.replace(/^[✓📱]\s*/, '');
     }
-    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installed = false; refresh(); });
-    window.addEventListener('appinstalled', () => { installed = true; deferredPrompt = null; tipPop.classList.add('show'); refresh(); });
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; installed = false; trackCat('pwa_install', { stage: 'prompt' }); refresh(); });
+    window.addEventListener('appinstalled', () => { installed = true; deferredPrompt = null; trackCat('pwa_install', { stage: 'installed' }); tipPop.classList.add('show'); refresh(); });
     installBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt.userChoice.finally(() => { deferredPrompt = null; refresh(); }); }
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(c => trackCat('pwa_install', { stage: (c && c.outcome === 'accepted') ? 'accepted' : 'dismissed' }), () => {})
+          .finally(() => { deferredPrompt = null; refresh(); });
+      }
       else { tipPop.classList.toggle('show'); } // installed or unsupported → show how to open / install
     });
     document.addEventListener('click', (e) => { if (!(e.target.closest && e.target.closest('.tip'))) tipPop.classList.remove('show'); });
@@ -2144,13 +2169,16 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const data = await res.json();
         if (data.success) {
           fbStatus.className = 'fb-status ok'; fbStatus.textContent = window.gamekit.t('fb.sent', { def: 'Thanks! Feedback sent. ✓' });
+          trackCat('form_submit', { form: 'feedback', result: 'ok' });
           fbForm.reset();
           setTimeout(() => fbModal.close(), 1400);
         } else {
           fbStatus.className = 'fb-status err'; fbStatus.textContent = data.message || 'Something went wrong — please try again.';
+          trackCat('form_submit', { form: 'feedback', result: 'error' });
         }
       } catch (err) {
         fbStatus.className = 'fb-status err'; fbStatus.textContent = 'Network error — please try again.';
+        trackCat('form_submit', { form: 'feedback', result: 'network' });
       } finally {
         fbSubmit.disabled = false;
       }
@@ -2181,13 +2209,16 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const data = await res.json().catch(() => ({}));
         if (res.ok && (data.status === 'success' || data.status === 'quarantined')) {
           nlStatus.className = 'fb-status ok'; nlStatus.textContent = window.gamekit.t('nl.almost', { def: 'Almost there — check your inbox to confirm ✓' });
+          trackCat('form_submit', { form: 'newsletter', result: 'ok' });
           nlForm.reset();
           setTimeout(() => nlModal.close(), 2200);
         } else {
           nlStatus.className = 'fb-status err'; nlStatus.textContent = (data && data.message) || 'Something went wrong — please try again.';
+          trackCat('form_submit', { form: 'newsletter', result: 'error' });
         }
       } catch (err) {
         nlStatus.className = 'fb-status err'; nlStatus.textContent = window.gamekit.t('form.netErr', { def: 'Network error — please try again.' });
+        trackCat('form_submit', { form: 'newsletter', result: 'network' });
       } finally {
         nlSubmit.disabled = false;
       }
@@ -2215,6 +2246,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && !KEEP[k]) keys.push(k); }
           keys.forEach(k => { try { localStorage.removeItem(k); } catch (e) {} });
         } catch (e) {}
+        trackCat('data_reset', { scope: 'all' });
         try { location.reload(); } catch (e) {}
       };
       btn.addEventListener('click', (e) => {
@@ -2565,7 +2597,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           if (snap) {
             pushHistory({ day: snap.day != null ? snap.day : K.utcDayNumber(), date: snap.date || K.utcDateStr(), id: snap.id, title: snap.title, kind: snap.kind, pts });
             // aggregate, consent-gated: completion rate per goal (pairs with challenge_shown)
-            try { if (window.gamekitTrack) window.gamekitTrack('challenge_done', { id: snap.id, kind: snap.kind }); } catch (e) {}
+            try { if (window.gamekitTrack) window.gamekitTrack('challenge_done', { challenge_id: snap.id, kind: snap.kind }); } catch (e) {}
           }
         }
         let total = 0; for (const k in done) total += (done[k] | 0); return total;
@@ -2619,7 +2651,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           const k = 'gamekit_cshown_' + p.id;
           if (sessionStorage.getItem(k)) return;
           sessionStorage.setItem(k, '1');
-          if (window.gamekitTrack) window.gamekitTrack('challenge_shown', { id: p.id, kind });
+          if (window.gamekitTrack) window.gamekitTrack('challenge_shown', { challenge_id: p.id, kind });
         } catch (e) {}
       }
       // good-run bonus widget — the collection bar is gone from the drawer (the profile + the
