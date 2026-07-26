@@ -46,6 +46,7 @@ window.GAMES = [
     accent: "#38bdf8",
     tags: ["SKILL", "REFLEX"],
     badges: ["pick"],
+    players: "1–2P",
     added: "2026-07-04",
     updated: "2026-07-11",
     preview: "preview.v1.mp4",
@@ -328,6 +329,7 @@ window.GAMES = [
     icon: "🐾",
     accent: "#ffb86b",
     tags: ["KIDS", "PUZZLE"],
+    players: "1–4P",
     added: "2026-07-12",
     shot: "shot.v1.webp",
     preview: "preview.v1.mp4",
@@ -390,7 +392,6 @@ window.GAMES = [
     accent: "#5fe0ff",
     tags: ["ARCADE", "ACTION"],
     players: "2–4P",
-    mp: true,
     soon: true,
   },
   {
@@ -401,7 +402,6 @@ window.GAMES = [
     accent: "#ff5c8a",
     tags: ["SPORT", "REFLEX"],
     players: "2P",
-    mp: true,
     soon: true,
   },
   {
@@ -412,7 +412,6 @@ window.GAMES = [
     accent: "#caff4d",
     tags: ["SPORT", "CASUAL"],
     players: "2P",
-    mp: true,
     soon: true,
   },
   {
@@ -423,7 +422,6 @@ window.GAMES = [
     accent: "#ffd24d",
     tags: ["SPORT", "PARTY"],
     players: "2–4P",
-    mp: true,
     soon: true,
   },
   {
@@ -434,7 +432,6 @@ window.GAMES = [
     accent: "#9fb4ff",
     tags: ["ACTION", "SHOOTER"],
     players: "2P",
-    mp: true,
     soon: true,
   },
   {
@@ -445,7 +442,6 @@ window.GAMES = [
     accent: "#f0c674",
     tags: ["ARCADE", "PARTY"],
     players: "2–4P",
-    mp: true,
     soon: true,
   },
   {
@@ -456,7 +452,6 @@ window.GAMES = [
     accent: "#caff4d",
     tags: ["PARTY", "REFLEX"],
     players: "2–4P",
-    mp: true,
     soon: true,
   },
 ];
