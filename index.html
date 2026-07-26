@@ -289,11 +289,30 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     font-family:var(--mono); font-size:14px; font-weight:800; letter-spacing:1.5px; color:#06121a; background:var(--accent);
     border:0; border-radius:12px; padding:12px 26px; cursor:pointer; box-shadow:0 8px 24px -8px var(--accent); }
   .gc-info .gc-play:hover { filter:brightness(1.08); }
-  @media (max-width:640px) {
-    .gc-cols { grid-template-columns:1fr; gap:18px; text-align:center; }
-    .gc-media { max-width:220px; margin:0 auto; width:100%; }
+  /* narrow AND tall (portrait phones) → stack the columns. The height condition matters: a
+     640x360 landscape phone also matches max-width:640px, and stacking a 9/16 trailer above the
+     text there needs ~750px of height, so the title, how-to and PLAY fell below the fold. */
+  @media (max-width:640px) and (min-height:520px) {
+    .gc-cols { grid-template-columns:1fr; gap:14px; padding:16px; text-align:center; }
+    /* size the trailer off the height (not a fixed width) and give the how-to its own scroll —
+       otherwise a long how-to pushes PLAY below the fold on a 640px-tall phone */
+    .gc-media { height:min(300px, 34vh); width:auto; max-width:220px; margin:0 auto; }
     .gc-info { align-items:center; }
-    .gc-info .gc-play { align-self:stretch; justify-content:center; }
+    /* an exact multiple of line-height, so the scroll box never cuts a line in half */
+    .gc-info .gc-howto { margin-top:10px; font-size:13.5px; line-height:24px; max-height:120px;
+      overflow:auto; overscroll-behavior:contain; }
+    .gc-info .gc-play { margin-top:14px; align-self:stretch; justify-content:center; }
+  }
+  /* short viewport (landscape phones) → keep two columns and size the trailer off the HEIGHT, so
+     the whole card fits without scrolling */
+  @media (max-height:520px) {
+    .gc-cols { grid-template-columns:auto 1fr; gap:16px; padding:16px; align-items:center; }
+    .gc-media { height:min(300px, 74vh); width:auto; max-width:none; margin:0; }
+    .gc-info h3 { font-size:20px; }
+    .gc-info h3 .gc-glyph { font-size:22px; }
+    .gc-info .badges { margin-bottom:6px; }
+    .gc-info .gc-howto { margin-top:8px; font-size:12.5px; line-height:1.5; }
+    .gc-info .gc-play { margin-top:12px; padding:10px 22px; }
   }
 
   .help-row { display:flex; gap:10px; align-items:center; justify-content:center; margin-top:18px; }
