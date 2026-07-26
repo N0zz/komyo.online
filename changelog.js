@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-26', title: 'Your profile and challenges speak your language 🌍', items: [
+    'Fix: your profile now translates fully — game names, every mode and difficulty, the title line, the Collection bar and the "since" date all follow the language you picked.',
+    'Fix: completed challenges in your history now read in your current language instead of the one you played them in.',
+  ] },
   { date: '2026-07-26', title: 'Four more gameplay previews 🎬', items: [
     'New: 2048, Balloon Pop, Critter Match and Range now play a short gameplay clip on their card — tap MORE to see how a game actually plays before you start it.',
   ] },

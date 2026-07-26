@@ -1054,6 +1054,13 @@ function testI18nCoverage() {
   Object.keys(CHAL.goals || {}).forEach(id => add('challenge.goal.' + id));            // t('challenge.goal.'+id)
   (CHAL.titles || []).forEach((_, i) => add('title.t' + i));                           // t('title.t'+tier)
   GAMES.forEach(g => (g.tags || []).forEach(tg => add('tag.' + String(tg).toLowerCase()))); // T('tag.'+t.toLowerCase())
+  { // the kit's MODE_I18N table (stable pb mode token → the game's own i18n key) — the profile
+    // renders stored mode labels through it, so every key it points at must be translated
+    const km = KIT.match(/var MODE_I18N = \{([\s\S]*?)\n  \};/);
+    const modeKeys = km ? [...km[1].matchAll(/'(game\.[\w.-]+)'/g)].map(x => x[1]) : [];
+    ok(modeKeys.length >= 50, 'MODE_I18N parsed from game-kit.js (' + modeKeys.length + ' mode keys)');
+    modeKeys.forEach(add);
+  }
   { // badge kinds from the catalogue's BADGES map — T('badge.'+k)
     const idx = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
     const bm = idx.match(/const BADGES = \{([\s\S]*?)\n    \};/);

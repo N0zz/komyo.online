@@ -2,6 +2,9 @@
    the rest lazily after load). Keys must stay a complete superset of pl — see test.mjs. */
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.fr = {
+  'changelog.e77.title': 'Ton profil et les défis parlent ta langue 🌍',
+  'changelog.e77.b0': 'Correction : ton profil est maintenant entièrement traduit — noms des jeux, tous les modes et difficultés, la ligne du titre, la barre Collection et la date « depuis » suivent la langue choisie.',
+  'changelog.e77.b1': 'Correction : les défis terminés dans ton historique s’affichent désormais dans ta langue actuelle, et non dans celle où tu les as réussis.',
   'changelog.e76.title': 'Quatre aperçus de jeu en plus 🎬',
   'changelog.e76.b0': 'Nouveau : 2048, Ballons, Paires d\'Animaux et Stand de tir affichent maintenant un court extrait de jeu sur leur fiche — touche PLUS pour voir comment ça se joue vraiment avant de lancer.',
   'changelog.e75.title': 'Quitte et reviens — ta partie est sauvegardée 🔖',
@@ -480,6 +483,13 @@ window.KOMYO_I18N.fr = {
   'cat.embedAll': 'Toute la salle de jeux (tous les jeux)',
   'profile.colMode': 'Mode',
   'profile.colBest': 'Meilleur',
+  'profile.titleWord': 'Titre',
+  'profile.titleLadder': 'Titre · échelle ›',
+  'profile.since': 'Depuis',
+  'profile.nameEditAria': 'Changer votre nom d’affichage',
+  'profile.nameEditHint': 'Cliquez pour changer votre nom',
+  'profile.openStore': 'Ouvrir la Collection',
+  'profile.goodRunsHint': 'Parties ayant dépassé le seuil du jeu',
   'cl.noMatch': 'Aucun changement ne correspond.',
   'cat.challengesBtn': 'DÉFIS',
   'cat.openChallenges': 'Ouvrir les défis',
