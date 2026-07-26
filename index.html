@@ -1421,6 +1421,9 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           '<div class="play">' + (soon ? T('cat.comingSoon', 'COMING SOON') : T('cat.play', 'PLAY ▸')) + '</div>' +
         '</div>';
       if (!soon) {
+        // which shelf sent the player into the game — answers "does the Recently played / discover
+        // rail earn its space", which a bare page_view can't. `place` is the same dim site_share uses.
+        el.addEventListener('click', () => trackCat('game_entry', { slug: g.slug, place: isFavTile ? 'favorite' : (inGrid ? 'tile' : 'rail') }));
         const star = document.createElement('button');
         star.className = 'fav' + (f.includes(g.slug) ? ' on' : '');
         star.textContent = '★';
@@ -2616,7 +2619,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           done[key] = pts;
           try { localStorage.setItem('gamekit_done', JSON.stringify(done)); } catch (e) {}
           if (snap) {
-            pushHistory({ day: snap.day != null ? snap.day : K.utcDayNumber(), date: snap.date || K.utcDateStr(), id: snap.id, title: snap.title, kind: snap.kind, pts });
+            pushHistory({ day: snap.day != null ? snap.day : K.utcDayNumber(), date: snap.date || K.utcDateStr(), id: snap.id, title: snap.title, slug: snap.slug || '', kind: snap.kind, pts });
             // aggregate, consent-gated: completion rate per goal (pairs with challenge_shown)
             try { if (window.gamekitTrack) window.gamekitTrack('challenge_done', { challenge_id: snap.id, kind: snap.kind }); } catch (e) {}
           }
@@ -2629,6 +2632,21 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const PAGE = 8; let histShown = PAGE;
       const fmtDate = s => { const p = (s || '').split('-'); return p.length < 3 ? (s || '') : (MON[(+p[1]) - 1] || '') + ' ' + (+p[2]); };
       const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+      // A record stores the goal POINTER (id, + the resolved slug for scope:'random' picks) AND the
+      // title as rendered when it was earned. Re-derive from the pointer so history reads in the
+      // player's CURRENT language, and fall back to the frozen title when the goal is gone from
+      // challenges.js (or a pre-`slug` random record can't be rebuilt).
+      function histTitle(r) {
+        if (!r) return '';
+        const goal = (window.CHALLENGES && window.CHALLENGES.goals) ? window.CHALLENGES.goals[r.id] : null;
+        if (goal && goal.scope === 'random') {
+          if (!r.slug) return r.title || '';
+          const gn = T('game.' + r.slug + '.title', titleOf[r.slug] || r.slug);
+          const k = goal.range === 'week' ? 'challenges.playWeek' : 'challenges.playToday';
+          return (window.gamekit && window.gamekit.t) ? window.gamekit.t(k, { game: gn, def: r.title || '' }) : (r.title || '');
+        }
+        return (goal && r.id) ? T('challenge.goal.' + r.id, r.title || goal.title || '') : (r.title || '');
+      }
       function renderHistory() {
         if (!histEl) return;
         let h = [];
@@ -2638,7 +2656,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         if (!h.length) { histEl.innerHTML = ''; if (moreEl) moreEl.hidden = true; if (emptyEl) emptyEl.hidden = false; return; }
         if (emptyEl) emptyEl.hidden = true;
         histEl.innerHTML = h.slice(0, histShown).map(r =>
-          '<div class="chist"><span class="ck">' + (r.kind === 'weekly' ? '🏆' : '⭐') + '</span><span class="ct">' + esc(r.title) +
+          '<div class="chist"><span class="ck">' + (r.kind === 'weekly' ? '🏆' : '⭐') + '</span><span class="ct">' + esc(histTitle(r)) +
           '</span><span class="cd">' + fmtDate(r.date) + '</span><span class="cp">+' + (r.pts | 0) + '</span></div>').join('');
         if (moreEl) moreEl.hidden = h.length <= histShown;
       }
@@ -2654,14 +2672,14 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           if (!p || !p.goal) continue;
           const dStr = K.utcDateStr(d * 86400000);
           const e = evalGoal(p.goal, dStr, p.id);
-          if (e && e.done) award(dStr + '#' + p.id, p.goal.points || DAILY_PTS, { id: p.id, title: e.title || p.goal.title, kind: 'daily', day: d, date: dStr });
+          if (e && e.done) award(dStr + '#' + p.id, p.goal.points || DAILY_PTS, { id: p.id, title: e.title || p.goal.title, slug: e.slug || '', kind: 'daily', day: d, date: dStr });
         }
         for (const refDay of [today, today - 7]) { // this week + last week
           const w = K.challengePick ? K.challengePick('weekly', refDay) : null;
           if (!w || !w.goal) continue;
           const dStr = K.utcDateStr(refDay * 86400000);
           const we = evalGoal(w.goal, dStr, w.id);
-          if (we && we.done) award(w.period + '#' + w.id, w.goal.points || WEEKLY_PTS, { id: w.id, title: we.title || w.goal.title, kind: 'weekly', day: refDay, date: dStr });
+          if (we && we.done) award(w.period + '#' + w.id, w.goal.points || WEEKLY_PTS, { id: w.id, title: we.title || w.goal.title, slug: we.slug || '', kind: 'weekly', day: refDay, date: dStr });
         }
       }
       // aggregate, consent-gated: which goals get seen (once per tab-session per goal) — the
@@ -2777,6 +2795,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const g = pool[Math.floor(Math.random() * pool.length)];
         if (!g || !g.slug) return;
         if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'random' });
+        trackCat('game_entry', { slug: g.slug, place: 'random' });
         if (window.__activityOpenGame) window.__activityOpenGame('games/' + g.slug + '/'); // Discord Activity: iframe, don't navigate
         else location.href = 'games/' + g.slug + '/';
       });
@@ -2831,6 +2850,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         // visible receipt: the button flashes "Saved ✓", then the modal closes over the updated profile
         const sv = document.getElementById('nameSave');
         if (sv) { sv.textContent = window.gamekit.t('name.saved', { def: 'Saved ✓' }); sv.disabled = true; }
+        trackCat('feature_open', { feature: 'name_set' });
         setTimeout(() => { try { modal.close(); } catch (_) {} }, 450);
       });
       if (skip) skip.addEventListener('click', () => { try { modal.close(); } catch (_) {} });
