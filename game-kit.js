@@ -2612,7 +2612,8 @@
       window.__renderProfile = render; // exposed for tests
       window.__startTitleFx = startTitleFx;
       // the profile opens from the side stack (and the ?m=profile deep link) — no drawer card anymore
-      window.__openProfile = () => { render(); modal.showModal(); lock(true); };
+      // Profile was the one side-stack button with no event, while Challenges and Collection had one
+      window.__openProfile = () => { track('feature_open', { feature: 'profile' }); render(); modal.showModal(); lock(true); };
       if (btn) btn.addEventListener('click', window.__openProfile);
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
       modal.addEventListener('close', () => { lock(false); stopTitleFx(); });
