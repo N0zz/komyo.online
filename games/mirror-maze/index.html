@@ -1,0 +1,2215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Mirror Maze — free online laser logic puzzle, no ads | Komyo Games</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#7fe8ff">
+<script>/* PWA manifest only over http(s) — file:// cannot fetch it (CORS from origin "null"); no offline install path anyway */
+if (location.protocol !== "file:") { var m = document.createElement("link"); m.rel = "manifest"; m.href = "manifest.json"; document.head.appendChild(m); }</script>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mirror Maze">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="Spin mirrors to route a laser through prisms and filters and light every target — a free browser logic puzzle with 12 levels, a daily maze and endless mode. No ads.">
+<link rel="canonical" href="https://komyo.online/games/mirror-maze/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Komyo Games">
+<meta property="og:title" content="Mirror Maze — free online laser logic puzzle, no ads">
+<meta property="og:description" content="Spin mirrors to route a laser through prisms and filters and light every target — a free browser logic puzzle with 12 levels, a daily maze and endless mode. No ads.">
+<meta property="og:url" content="https://komyo.online/games/mirror-maze/">
+<meta property="og:image" content="https://komyo.online/games/mirror-maze/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Mirror Maze — free online laser logic puzzle, no ads">
+<meta name="twitter:description" content="Spin mirrors to route a laser through prisms and filters and light every target — a free browser logic puzzle with 12 levels, a daily maze and endless mode. No ads.">
+<meta name="twitter:image" content="https://komyo.online/games/mirror-maze/icon-512.png">
+<link rel="alternate" hreflang="en" href="https://komyo.online/games/mirror-maze/">
+<link rel="alternate" hreflang="pl" href="https://komyo.online/games/mirror-maze/?lang=pl">
+<link rel="alternate" hreflang="es" href="https://komyo.online/games/mirror-maze/?lang=es">
+<link rel="alternate" hreflang="pt" href="https://komyo.online/games/mirror-maze/?lang=pt">
+<link rel="alternate" hreflang="fr" href="https://komyo.online/games/mirror-maze/?lang=fr">
+<link rel="alternate" hreflang="it" href="https://komyo.online/games/mirror-maze/?lang=it">
+<link rel="alternate" hreflang="cs" href="https://komyo.online/games/mirror-maze/?lang=cs">
+<link rel="alternate" hreflang="uk" href="https://komyo.online/games/mirror-maze/?lang=uk">
+<link rel="alternate" hreflang="x-default" href="https://komyo.online/games/mirror-maze/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Mirror Maze","url":"https://komyo.online/games/mirror-maze/","description":"Spin mirrors to route a laser through prisms and filters and light every target — a free browser logic puzzle with 12 levels, a daily maze and endless mode. No ads.","genre":["Puzzle","Logic"],"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"inLanguage":["en","pl","es","pt","fr","it","cs","uk"],"image":"https://komyo.online/games/mirror-maze/icon-512.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Komyo Games","url":"https://komyo.online/"}}</script>
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #03080e; color: #fff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #hud .val { color: #7fe8ff; text-shadow: 0 0 10px rgba(127,232,255,0.55); }
+  /* the kit dims a locked level cell to 55%, where its default grey sub-label falls under AA — the
+     locked maze's par prints near-white so it still composites back over 4.5:1 (same fix as Floodgate) */
+  .gamekit-menu .gkm-gcell.gkm-locked .gkm-gsub { color: #edf5ff; }
+  @media (orientation: landscape) and (max-height: 560px) {
+    /* all twelve mazes have to fit the split pane without scrolling: 4 across, 3 down. The kit's
+       auto-fill lands on 3 columns in a 317px pane, which needs a fourth row it does not have. */
+    .gamekit-menu.gkm-split .gkm-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 2px 0 4px; }
+    .gamekit-menu.gkm-split .gkm-gsub { white-space: nowrap; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblLit">LIT</span><span class="val" id="litEl">0/0</span></div>
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblSpins">SPINS</span><span class="val" id="spinsEl">0</span></div>
+  <div class="stat" id="parStat"><span class="lbl" id="lblPar">PAR</span><span class="val" id="parEl">0</span></div>
+  <div class="stat" id="budgetStat" style="display:none"><span class="lbl" id="lblBudget">POWER</span><span class="val" id="budgetEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat" id="hintStat" style="display:none"><span class="lbl" id="lblHints">HINTS</span><span class="val" id="hintsEl">0</span></div>
+</div>
+<!-- the 🔍 HINT button and its toast are kit-owned (gamekit.hintButton) — bottom-centre, with the text
+     laid out ABOVE the button; the board reserves that strip via layout.archetype({bottom}) -->
+<!-- crawlable game description — shown to players via the ☰ "How to play" entry (kit aboutModal) -->
+<section id="gk-about" hidden>
+<h1 data-t="game.mirror-maze.title">Mirror Maze</h1>
+<p data-t="game.mirror-maze.blurb">Spin the mirrors, split the beam, light every target in its own colour. A neon laser puzzle.</p>
+<h2 data-t="kit.howto">How to play</h2>
+<p data-t="seo.mirror-maze.howto">A laser fires into the grid from one edge. Tap any mirror to flip it between / and \ and bend the beam ninety degrees — light every target in the exact colour it asks for and the maze is solved. A prism splits white light: red bends left, green carries straight on, blue bends right. Filters only let one colour channel through, and a combiner adds the beams that reach it, so red plus green makes yellow. Beams crossing at right angles simply pass through each other. Play twelve campaign mazes, one shared daily maze, or an endless run of ever bigger grids.</p>
+<h2 data-t="game.mirror-maze.legendTitle">HOW THE PIECES WORK</h2>
+<p><strong data-t="game.mirror-maze.pcLaser">LASER</strong> <span data-t="game.mirror-maze.pcLaserD">Fires white light into the grid.</span></p>
+<p><strong data-t="game.mirror-maze.pcMirror">MIRROR</strong> <span data-t="game.mirror-maze.pcMirrorD">Tap it to flip / and \. Bends the beam 90°. Corner arrow = you can turn it.</span></p>
+<p><strong data-t="game.mirror-maze.pcTarget">TARGET</strong> <span data-t="game.mirror-maze.pcTargetD">Needs the colour of its letter. Empty ring = dark, filled + tick = lit.</span></p>
+<p><strong data-t="game.mirror-maze.pcPrism">PRISM</strong> <span data-t="game.mirror-maze.pcPrismD">Splits white light: red bends left, green goes straight, blue bends right.</span></p>
+<p><strong data-t="game.mirror-maze.pcFilter">FILTER</strong> <span data-t="game.mirror-maze.pcFilterD">Only its own colour gets through. Anything else stops here.</span></p>
+<p><strong data-t="game.mirror-maze.pcCombiner">COMBINER</strong> <span data-t="game.mirror-maze.pcCombinerD">Adds the beams that arrive and fires the mix along its arrow. Red + green = yellow.</span></p>
+<p><strong data-t="game.mirror-maze.pcWall">WALL</strong> <span data-t="game.mirror-maze.pcWallD">Blocks the beam. Riveted pieces never turn.</span></p>
+<p><strong data-t="game.mirror-maze.pcBeam">BEAM</strong> <span data-t="game.mirror-maze.pcBeamD">One colour draws a solid line, two mixed colours a dashed line, white a double line. Rings match.</span></p>
+<p><strong data-t="game.mirror-maze.hint">HINT</strong> <span data-t="game.mirror-maze.hintTip">HINT — the ringed mirror is facing the wrong way. Ask again for a different one.</span></p>
+<h2 data-t="seo.h.faq">Common questions</h2>
+<p><strong data-t="seo.q.free">Is this game free?</strong> <span data-t="seo.a.free">Yes — every game on Komyo is completely free to play: no ads, no payments, no accounts.</span></p>
+<p><strong data-t="seo.q.offline">Can I play offline?</strong> <span data-t="seo.a.offline">Yes — after your first visit the game works without internet, and you can install it as an app straight from your browser.</span></p>
+<p><strong data-t="seo.q.saves">Where are my scores saved?</strong> <span data-t="seo.a.saves">On your device only — best scores, trophies and cosmetics live in your browser and are never uploaded anywhere.</span></p>
+<h2 data-t="seo.h.more">More free games</h2>
+<p><a href="../sudoku/" data-t="game.sudoku.title">Sudoku</a> · <a href="../minesweeper/" data-t="game.minesweeper.title">Minesweeper</a> · <a href="../2048/" data-t="game.2048.title">2048</a> · <a href="../../" data-t="seo.allGames">All free games at Komyo</a></p>
+</section>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'mirror-maze';
+  const ACCENT = '#7fe8ff';
+
+  const SND = window.gamekit.sound;
+  SND.define({
+    spin:  c => { c.voice({ f: 620, slideTo: 880, dur: 0.07, type: 'triangle', gain: 0.09, filter: 'lowpass', cutoff: 3200 });
+                  c.noiseHit({ dur: 0.04, gain: 0.05, filter: 'highpass', cutoff: 2600 }); },
+    litup: c => c.voice({ f: 990, slideTo: 1480, dur: 0.16, type: 'sine', gain: 0.09, reverb: 0.35 }),
+    dark:  c => c.voice({ f: 540, slideTo: 380, dur: 0.12, type: 'sine', gain: 0.06, reverb: 0.2 }),
+    deny:  c => c.voice({ f: 180, dur: 0.06, type: 'square', gain: 0.05, filter: 'lowpass', cutoff: 700 }),
+    hint:  c => { c.voice({ f: 760, slideTo: 1140, dur: 0.10, type: 'triangle', gain: 0.07, reverb: 0.3 });
+                  c.voice({ f: 1520, dur: 0.06, type: 'sine', gain: 0.035 }); },
+    cleared: c => { c.seq([523, 659, 784, 1047], 70, f => c.voice({ f, dur: 0.26, type: 'sine', gain: 0.09, reverb: 0.45 }));
+                    c.noiseHit({ dur: 0.4, gain: 0.05, filter: 'highpass', cutoff: 3000 }); },
+  });
+
+  // ---------------- model constants ----------------
+  const CR = 1, CG = 2, CB = 4;                       // additive channels
+  const MASKS = [1, 2, 4, 3, 6, 5, 7];
+  const LETTER = { 1: 'R', 2: 'G', 4: 'B', 3: 'Y', 6: 'C', 5: 'M', 7: 'W' };
+  // 0 = up, 1 = right, 2 = down, 3 = left
+  const D = [{ x: 0, y: -1 }, { x: 1, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 0 }];
+  const SLASH = [1, 0, 3, 2];   // '/'  : up→right, right→up, down→left, left→down
+  const BACK  = [3, 2, 1, 0];   // '\'  : up→left, right→down, down→right, left→up
+
+  const BEAM_SKINS = {
+    'mirror-maze.beam.neon':     { 1: '#ff4d6d', 2: '#4dffa1', 4: '#4db8ff', 3: '#ffe14d', 6: '#4dffe1', 5: '#ff6bff', 7: '#f2fbff', glow: '#7fe8ff' },
+    'mirror-maze.beam.sunset':   { 1: '#ff4a2b', 2: '#9fe870', 4: '#8a6bff', 3: '#ffc247', 6: '#5fe0d0', 5: '#ff77b0', 7: '#fff2dd', glow: '#ffb37a' },
+    'mirror-maze.beam.spectrum': { 1: '#ff0040', 2: '#00ff6a', 4: '#2b7fff', 3: '#ffe600', 6: '#00fff0', 5: '#ff2bd6', 7: '#ffffff', glow: '#9fffe8' },
+    'mirror-maze.beam.aurora':   { 1: '#ff6f91', 2: '#6ef2a0', 4: '#69a6ff', 3: '#ffe066', 6: '#69f2e6', 5: '#c77dff', 7: '#f0f7ff', glow: '#b9a7ff' },
+  };
+  const DEF_SKIN = 'mirror-maze.beam.neon';
+  // CVD-safe override palette (the "Colour-blind friendly beams" toggle). Chosen by maximising the
+  // MINIMUM pairwise CIE76 ΔE across normal vision AND simulated protanopia / deuteranopia /
+  // tritanopia (Viénot–Brettel–Mollon matrices), subject to every colour ALSO holding ≥4:1 contrast
+  // against the board background *as each dichromat sees it* — that second constraint is what rules
+  // out a saturated red (a protanope sees it as near-black), so "red" here is vermillion orange, the
+  // standard accessible substitute. Worst pair: ΔE 26.8, against ΔE 0.0 for the cosmetic palettes
+  // (green and cyan are LITERALLY the same colour to a tritanope in neon and spectrum).
+  // Overrides the selected cosmetic skin while it is on.
+  const CVD_SKIN = { 1: '#ff7825', 2: '#80fe66', 4: '#6e81de', 3: '#f0cf6b', 6: '#54cffb', 5: '#d288a7', 7: '#ffffff', glow: '#9fd8ff' };
+  // Channel-COUNT stroke signature — the non-colour cue that carries beam identity on its own.
+  // Every colour pair that a CVD simulation collapses (R/Y, B/C, M/W, G/C, R/M, C/W, G/Y) differs in
+  // how many channels it mixes, so "solid = pure · dashed = two mixed · twin line = white" separates
+  // all of them without relying on hue at all. 1 = solid, 2 = dashed, 3 = drawn as two parallel lines.
+  const CHANNELS = { 1: 1, 2: 1, 4: 1, 3: 2, 6: 2, 5: 2, 7: 3 };
+  let cvdOn = false;
+  function palette() {
+    if (cvdOn) return CVD_SKIN;
+    const id = (KIT && KIT.cosmetics) ? KIT.cosmetics.selected(SLUG + '.beam') : null;
+    return BEAM_SKINS[id] || BEAM_SKINS[DEF_SKIN];
+  }
+
+  // Minimum number of mirror flips from the dealt board to ANY solved board, per tier. Enforced
+  // exactly at generation time (see genBoard) — this is what stops a maze solving itself by accident.
+  const FLOOR = { 1: 3, 2: 5, 3: 7, 4: 9 };
+  const TIER_SIZE = { 1: 5, 2: 7, 3: 8, 4: 9 };
+
+  // 12 campaign mazes — SEEDS only; every board is regenerated from its seed. `par` mirrors what the
+  // generator computes for that seed so the level-select grid can print it without generating twelve
+  // boards on open (~280ms); the suite asserts every entry against the real board, so it cannot drift.
+  const CAMPAIGN = [
+    { seed: 10101, tier: 1, size: 5, par: 5 }, { seed: 10207, tier: 1, size: 5, par: 6 }, { seed: 10313, tier: 1, size: 6, par: 5 },
+    { seed: 20419, tier: 2, size: 7, par: 9 }, { seed: 20523, tier: 2, size: 7, par: 8 }, { seed: 20629, tier: 2, size: 7, par: 9 },
+    { seed: 30731, tier: 3, size: 8, par: 11 }, { seed: 30837, tier: 3, size: 8, par: 12 }, { seed: 30941, tier: 3, size: 8, par: 12 },
+    { seed: 41043, tier: 4, size: 9, par: 14 }, { seed: 41147, tier: 4, size: 9, par: 14 }, { seed: 41269, tier: 4, size: 9, par: 14 },
+  ];
+  // ---------------- scoring: DIFFICULTY CONQUERED, not boards counted ----------------
+  // Endless now deals harder boards to a player who has finished more of the campaign, so a run score
+  // of "mazes solved" let someone farming 5×5 tier-1 boards out-score a 9×9 tier-4 run. Every maze
+  // instead pays out its OWN worth:
+  //     base = tier × grid width × 10          → 5×5 t1 = 50 … 9×9 t4 = 360, 10×10 t4 = 400
+  //     × 1.5   solved at par or better with no hints (the efficiency bonus)
+  //     × par/moves, floored at 0.5            when it took longer than par
+  //     hinted  → the bonus is forfeit AND 20% comes off per hint, floored at 0.4
+  // A clean tier-4 board therefore pays 540 against a clean tier-1 board's 75 — starting higher up is
+  // rewarded, and no low-tier farm run can catch a high-tier one.
+  const AWARD_BASE = 10;
+  function mazeAward(b, mv, hn) {
+    if (!b) return 0;
+    const base = (b.tier || 1) * b.n * AWARD_BASE;
+    const par = Math.max(1, b.par || 1);
+    let eff = mv <= par ? 1.5 : Math.max(0.5, par / mv);
+    if (hn > 0) eff = Math.min(1, eff) * Math.max(0.4, 1 - 0.2 * hn);
+    return Math.max(1, Math.round(base * eff));
+  }
+
+  const MODES = ['campaign', 'daily', 'endless'];
+  const MODE_LABEL = { campaign: 'Campaign', daily: 'Daily', endless: 'Endless' };  // stable storage keys
+
+  // ---------------- state ----------------
+  let W = 0, H = 0, topMargin = 48;
+  let state = 'ready';                  // ready | playing | over
+  let mode = 'campaign', level = 0, boardIdx = 0, endlessSeed = 1;
+  let board = null, res = null;
+  let solvedCount = 0, moves = 0, tipKey = '';
+  let runScore = 0, lastAward = 0;             // points this run + what the last solved maze paid
+  let budget = 0, outOfBudget = false;            // endless only: a spin pool that a solve tops up
+  let beamAge = 0;                                // frames since the beam last changed (propagation anim)
+  const spinAnim = {};                            // cellIdx → {t, from} view-only mirror rotation
+  const SPIN_FRAMES = 9;                          // length of the eased flip
+  const litAnim = {};                             // cellIdx → frames since this target lit (bloom)
+  let winT = 0, pendingEnd = 0, isBest = false;
+  let frame = 0, labels = true;
+  let cs = 30, bx = 0, by = 0;
+  let cur = { x: 0, y: 0 }, curOn = false;
+  let dirty = false, lastSave = 0, lockWarn = -1, legendOn = false;
+  // hint accounting is kit-owned (gamekit.hints): count, "clean run" flag, badge and the ONE
+  // run_choice analytics event. hintCarry is the only local part — the kit has no way to SEED a
+  // resumed run's count, and the hint cost has to survive a resume.
+  const HINTS = KIT.hints(SLUG);
+  let hintCarry = 0;
+  const hintCount = () => hintCarry + HINTS.used();
+  const hintClean = () => hintCarry === 0 && HINTS.clean();
+  // the kit's end-screen marker ('💡n'), carried count included
+  const hintBadge = () => (hintCarry ? '💡' + hintCount() : HINTS.badge());
+  let hb = null;                                  // the kit hint button (created at boot)
+  let hintCell = -1;                              // the mirror the current hint is ringing
+  const hintSeen = [];                            // cells already hinted on this board (so hints cycle)
+  let primaryId = 'play';                         // the start menu's primary action (always the SELECTED mode)
+  let menuGroupIds = [];                          // the start menu's group ids
+  let menuScreen = 'start';                       // which menu screen is up: start | levels
+
+  // ---------------- storage ----------------
+  const DONE_KEY = SLUG + '_done', UI_KEY = SLUG + '_ui';
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  // one tiny versioned blob for the teaching state: the legend seen flag, which pieces have been
+  // introduced, and the colour-letters preference
+  function readUi() {
+    try { const o = JSON.parse(lsGet(UI_KEY) || 'null');
+      if (o && o.v === 1) return { v: 1, seen: Array.isArray(o.seen) ? o.seen.slice(0, 6) : [], legend: !!o.legend,
+        labels: o.labels !== false, cvd: !!o.cvd }; } catch (e) {}
+    return { v: 1, seen: [], legend: false, labels: true, cvd: false };
+  }
+  function writeUi(o) { lsSet(UI_KEY, JSON.stringify({ v: 1, seen: (o.seen || []).slice(0, 6), legend: !!o.legend,
+    labels: !!o.labels, cvd: !!o.cvd })); }
+  function readDone() {
+    try { const o = JSON.parse(lsGet(DONE_KEY) || 'null');
+      if (o && o.v === 1 && Array.isArray(o.done)) return o.done.filter(n => n >= 0 && n < CAMPAIGN.length); } catch (e) {}
+    return [];
+  }
+  function markDone(i) {
+    const d = readDone(); if (d.indexOf(i) < 0) d.push(i);
+    lsSet(DONE_KEY, JSON.stringify({ v: 1, done: d.sort((a, b) => a - b) }));
+  }
+  const isDone = i => readDone().indexOf(i) >= 0;
+  const unlocked = i => i === 0 || isDone(i - 1);
+  function firstOpen() { for (let i = 0; i < CAMPAIGN.length; i++) if (unlocked(i) && !isDone(i)) return i; return 0; }
+
+  // ---------------- deterministic RNG ----------------
+  function mulberry32(a) {
+    return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+
+  // ---------------- beam propagation (bounded monotone fixed point) ----------------
+  // A segment key is (cell * 4 + entryDir); its value is the accumulated colour mask. Every piece is
+  // a MONOTONE function of that mask, so the fixed point is unique, stale-free and reached in at most
+  // 3 re-visits per key — a mirror loop can grow nothing new and simply stops.
+  function resolveOn(b, lite) {
+    const n = b.n, cells = b.cells, tot = n * n;
+    const seg = new Uint8Array(tot * 4), comb = new Uint8Array(tot);
+    const dist = new Int16Array(tot * 4);
+    for (let i = 0; i < dist.length; i++) dist[i] = -1;
+    const CAP = tot * 16 + 256;
+    const q = [];
+    let pops = 0;
+    const k0 = (b.em.y * n + b.em.x) * 4 + b.em.d;
+    seg[k0] = 7; dist[k0] = 0; q.push(k0);
+    const outsOf = (cell, d, m, acc) => {
+      const p = cells[cell], o = [];
+      if (!p) { o.push([d, m]); return o; }
+      if (p.t === 'mirror') { o.push([p.o === 0 ? SLASH[d] : BACK[d], m]); return o; }
+      if (p.t === 'prism') {
+        const l = (d + 3) % 4, r = (d + 1) % 4;
+        if (m & CR) o.push([l, CR]);
+        if (m & CG) o.push([d, CG]);
+        if (m & CB) o.push([r, CB]);
+        return o;
+      }
+      if (p.t === 'filter') { const f = m & p.ch; if (f) o.push([d, f]); return o; }
+      if (p.t === 'combiner') { if (acc) o.push([p.dir, acc]); return o; }
+      return o;                                  // target / wall absorb
+    };
+    while (q.length && pops++ < CAP) {
+      const k = q.pop(), cell = k >> 2, d = k & 3, m = seg[k];
+      if (!m) continue;
+      const p = cells[cell];
+      let acc = 0;
+      if (p && p.t === 'combiner') {
+        const nm = comb[cell] | m;
+        if (nm === comb[cell]) continue;         // nothing new to emit
+        comb[cell] = nm; acc = nm;
+      }
+      const outs = outsOf(cell, d, m, acc);
+      const x = cell % n, y = (cell - x) / n;
+      for (let i = 0; i < outs.length; i++) {
+        const od = outs[i][0], om = outs[i][1];
+        const nx = x + D[od].x, ny = y + D[od].y;
+        if (nx < 0 || ny < 0 || nx >= n || ny >= n) continue;   // leaves the grid
+        const k2 = (ny * n + nx) * 4 + od;
+        const nd2 = dist[k] + 1;
+        if (dist[k2] < 0 || nd2 < dist[k2]) dist[k2] = nd2;
+        if ((seg[k2] | om) !== seg[k2]) { seg[k2] |= om; q.push(k2); }
+      }
+    }
+    // ---- final pass: build the draw list from the CONVERGED masks (no stale colours) ----
+    const draws = [];
+    let beams = 0, maxHop = 0;
+    const combDone = {};
+    if (!lite) for (let cell = 0; cell < tot; cell++) {
+      const p = cells[cell], x = cell % n, y = (cell - x) / n;
+      for (let d = 0; d < 4; d++) {
+        const m = seg[cell * 4 + d];
+        if (!m) continue;
+        beams++;
+        const hop = dist[cell * 4 + d];
+        if (hop > maxHop) maxHop = hop;
+        draws.push({ x, y, d, m, half: 0, hop: hop });
+        let acc = 0;
+        if (p && p.t === 'combiner') { if (combDone[cell]) continue; combDone[cell] = 1; acc = comb[cell]; }
+        const outs = outsOf(cell, d, m, acc);
+        for (let i = 0; i < outs.length; i++) draws.push({ x, y, d: outs[i][0], m: outs[i][1], half: 1, hop: hop + 0.5 });
+      }
+    }
+    // ---- targets: a target is lit when ONE arriving beam carries exactly its colour ----
+    let lit = 0;
+    const litSet = {}, wrongSet = {};
+    for (let i = 0; i < b.targets.length; i++) {
+      const cell = b.targets[i], want = cells[cell].col;
+      let on = false, wrong = false;
+      for (let d = 0; d < 4; d++) { const m = seg[cell * 4 + d]; if (!m) continue;
+        if (m === want) on = true; else wrong = true; }
+      if (on) { lit++; litSet[cell] = 1; } else if (wrong) wrongSet[cell] = 1;
+    }
+    return { seg, comb, draws, lit, total: b.targets.length, litSet, wrongSet, pops, beams, maxHop };
+  }
+
+  // ---------------- generation: solvable BY CONSTRUCTION ----------------
+  // The solution is BUILT (route the beam, place the pieces the route implies, derive the targets from
+  // the route ends), then the mirrors are scrambled. Nothing is ever searched. A verify pass re-applies
+  // the stored solution as a guard against a construction bug before a board is handed to the player.
+  function build(seed, tier, n) {
+    const rnd = mulberry32(seed >>> 0);
+    const ri = k => Math.floor(rnd() * k);
+    const cells = new Array(n * n).fill(null);
+    const axis = new Uint8Array(n * n);       // 1 = a beam runs horizontally here, 2 = vertically
+    const sol = {}, targets = [], grp = {};
+    let curGrp = 'trunk';                    // which STAGE of the machine the next mirrors belong to
+    const ix = (x, y) => y * n + x;
+    const inb = (x, y) => x >= 0 && y >= 0 && x < n && y < n;
+    const axisOf = d => (d === 1 || d === 3) ? 1 : 2;
+    // pass: the beam may traverse this cell in direction d (a perpendicular crossing is fine)
+    const pass = (x, y, d) => inb(x, y) && !cells[ix(x, y)] && !(axis[ix(x, y)] & axisOf(d));
+    // virgin: nothing at all here — required before a PIECE may be placed
+    const virgin = (x, y) => inb(x, y) && !cells[ix(x, y)] && axis[ix(x, y)] === 0;
+    const claim = (x, y, d) => { axis[ix(x, y)] |= axisOf(d); };
+    function putMirror(x, y, inD, outD) {
+      const i = ix(x, y), o = SLASH[inD] === outD ? 0 : 1;
+      cells[i] = { t: 'mirror', o }; sol[i] = o; grp[i] = curGrp;
+    }
+    function putTarget(x, y, col) {
+      if (!virgin(x, y)) return false;
+      const i = ix(x, y); cells[i] = { t: 'target', col }; targets.push(i); return true;
+    }
+    // Walk the beam `turns` corners deep, claiming what it passes and placing the corner mirrors.
+    // Returns the final cell (still virgin) for the caller to fill, plus the pass-through trail.
+    function walk(x, y, d, turns) {
+      const trail = [];
+      for (let seg = 0; seg <= turns; seg++) {
+        let run = 0, cx = x, cy = y;
+        while (pass(cx, cy, d)) { run++; cx += D[d].x; cy += D[d].y; }
+        if (run < 1) return null;
+        let len = 1 + ri(Math.min(run, 4));
+        while (len >= 1 && !virgin(x + D[d].x * (len - 1), y + D[d].y * (len - 1))) len--;
+        if (len < 1) return null;
+        for (let t = 0; t < len - 1; t++) {
+          const px = x + D[d].x * t, py = y + D[d].y * t;
+          claim(px, py, d); trail.push({ x: px, y: py, d });
+        }
+        const ex = x + D[d].x * (len - 1), ey = y + D[d].y * (len - 1);
+        if (seg === turns) return { x: ex, y: ey, d, trail };
+        const opts = ri(2) ? [(d + 1) % 4, (d + 3) % 4] : [(d + 3) % 4, (d + 1) % 4];
+        let nd = -1;
+        for (let i = 0; i < 2; i++) if (pass(ex + D[opts[i]].x, ey + D[opts[i]].y, opts[i])) { nd = opts[i]; break; }
+        if (nd < 0) return null;
+        putMirror(ex, ey, d, nd);
+        x = ex + D[nd].x; y = ey + D[nd].y; d = nd;
+      }
+      return null;
+    }
+    // A colour gate on a branch: correct routing passes, a mis-routed colour dies here.
+    function maybeFilter(trail, ch) {
+      const cand = [];
+      for (let i = 0; i < trail.length; i++) {
+        const t = trail[i], k = ix(t.x, t.y);
+        if (!cells[k] && axis[k] === axisOf(t.d)) cand.push(k);
+      }
+      if (!cand.length) return false;
+      cells[cand[ri(cand.length)]] = { t: 'filter', ch };
+      return true;
+    }
+
+    // emitter on an edge, firing inward
+    const edge = ri(4), pos = ri(n);
+    const em = edge === 0 ? { x: pos, y: 0, d: 2, edge, pos }
+      : edge === 1 ? { x: n - 1, y: pos, d: 3, edge, pos }
+      : edge === 2 ? { x: pos, y: n - 1, d: 0, edge, pos }
+      : { x: 0, y: pos, d: 1, edge, pos };
+
+    if (tier === 1) {
+      curGrp = 'route';
+      const w = walk(em.x, em.y, em.d, 3 + ri(2));
+      if (!w || !putTarget(w.x, w.y, 7)) return null;
+    } else if (tier === 2 || tier === 3) {
+      // trunk → prism → three INDEPENDENT branches, so the three targets can be finished one at a time
+      curGrp = 'trunk';
+      const w = walk(em.x, em.y, em.d, 2);
+      if (!w) return null;
+      cells[ix(w.x, w.y)] = { t: 'prism' };
+      const chans = [[(w.d + 3) % 4, CR, 'r'], [w.d, CG, 'g'], [(w.d + 1) % 4, CB, 'b']];
+      for (let i = 0; i < 3; i++) {
+        const od = chans[i][0], col = chans[i][1];
+        curGrp = chans[i][2];
+        const sx = w.x + D[od].x, sy = w.y + D[od].y;
+        if (!pass(sx, sy, od)) return null;
+        const bw = walk(sx, sy, od, tier === 3 ? 2 : 1 + ri(2));
+        if (!bw || !putTarget(bw.x, bw.y, col)) return null;
+        if (tier === 3 && rnd() < 0.8) maybeFilter(bw.trail, col);
+      }
+    } else {
+      // The tier-4 machine, built as a CHAIN so progress has to come in stages:
+      //   trunk → prism1 ─ red ┐                                    ┌ prism2 ─ left  → red target
+      //                        ├→ combiner (adds them) → prism2 ────┤
+      //                  green ┘                                    └ prism2 ─ ahead → green target
+      //           prism1 ─ blue ──────────────────────────────────────────────────→ blue target
+      // Nothing lights until the trunk AND the combiner feed are right; then each remaining stage
+      // completes exactly one more target.
+      curGrp = 'trunk';
+      const w = walk(em.x, em.y, em.d, 2);
+      if (!w) return null;
+      const P = { x: w.x, y: w.y }, S = w.d, L = (S + 3) % 4, RT = (S + 1) % 4;
+      cells[ix(P.x, P.y)] = { t: 'prism' };
+      const rects = [[2, 2], [2, 3], [3, 2], [3, 3], [2, 4], [4, 2]];
+      for (let i = rects.length - 1; i > 0; i--) { const j = ri(i + 1); const t = rects[i]; rects[i] = rects[j]; rects[j] = t; }
+      let built = null;
+      for (let r = 0; r < rects.length && !built; r++) {
+        const a = rects[r][0], bb = rects[r][1];
+        const at = (i, j) => ({ x: P.x + D[S].x * i + D[L].x * j, y: P.y + D[S].y * i + D[L].y * j });
+        // sideA at(1..a,0) dir S (corner at a) · sideB at(a,1..bb) dir L (CC at bb)
+        // sideC at(0,1..bb) dir L (corner at bb) · sideD at(1..a,bb) dir S (ends on CC)
+        const CC = at(a, bb);
+        let okAll = inb(CC.x, CC.y) && virgin(CC.x, CC.y);
+        const chk = (c, d, piece) => { if (!okAll) return; if (!inb(c.x, c.y)) { okAll = false; return; }
+          if (!(piece ? virgin(c.x, c.y) : pass(c.x, c.y, d))) okAll = false; };
+        for (let i = 1; i <= a; i++) chk(at(i, 0), S, i === a);
+        for (let j = 1; j < bb; j++) chk(at(a, j), L, false);
+        for (let j = 1; j <= bb; j++) chk(at(0, j), L, j === bb);
+        for (let i = 1; i < a; i++) chk(at(i, bb), S, false);
+        if (!okAll) continue;
+        // output direction: only S / L leave the rectangle (RT and -S point back into its sides)
+        const outOpts = ri(2) ? [S, L] : [L, S];
+        let od = -1;
+        for (let k = 0; k < 2; k++) if (pass(CC.x + D[outOpts[k]].x, CC.y + D[outOpts[k]].y, outOpts[k])) { od = outOpts[k]; break; }
+        if (od < 0) continue;
+        // commit the rectangle: the green side and the red side are separate stages
+        for (let i = 1; i < a; i++) { const c = at(i, 0); claim(c.x, c.y, S); }
+        for (let j = 1; j < bb; j++) { const c = at(a, j); claim(c.x, c.y, L); }
+        for (let j = 1; j < bb; j++) { const c = at(0, j); claim(c.x, c.y, L); }
+        for (let i = 1; i < a; i++) { const c = at(i, bb); claim(c.x, c.y, S); }
+        const c1 = at(a, 0), c2 = at(0, bb);
+        curGrp = 'g'; putMirror(c1.x, c1.y, S, L);
+        curGrp = 'r'; putMirror(c2.x, c2.y, L, S);
+        cells[ix(CC.x, CC.y)] = { t: 'combiner', dir: od };
+        // combiner → prism2
+        curGrp = 'feed';
+        const ow = walk(CC.x + D[od].x, CC.y + D[od].y, od, 1 + ri(2));
+        if (!ow || !virgin(ow.x, ow.y)) return null;
+        cells[ix(ow.x, ow.y)] = { t: 'prism' };
+        const d2 = ow.d, l2 = (d2 + 3) % 4;
+        // prism2 splits the mix back apart: left = red, straight ahead = green
+        const legs = [[l2, CR, 'p2r'], [d2, CG, 'p2g']];
+        for (let i = 0; i < 2; i++) {
+          const od2 = legs[i][0], col2 = legs[i][1];
+          curGrp = legs[i][2];
+          const sx = ow.x + D[od2].x, sy = ow.y + D[od2].y;
+          if (!pass(sx, sy, od2)) return null;
+          const lw = walk(sx, sy, od2, 1 + ri(2));
+          if (!lw || !putTarget(lw.x, lw.y, col2)) return null;
+        }
+        built = true;
+      }
+      if (!built) return null;
+      // prism1's blue output runs its own gated route to a blue target
+      curGrp = 'b';
+      const bx0 = P.x + D[RT].x, by0 = P.y + D[RT].y;
+      if (!pass(bx0, by0, RT)) return null;
+      const bw = walk(bx0, by0, RT, 1 + ri(2));
+      if (!bw || !putTarget(bw.x, bw.y, CB)) return null;
+      if (rnd() < 0.7) maybeFilter(bw.trail, CB);
+    }
+
+    if (!targets.length) return null;
+    // the dealt board must be at least FLOOR flips from solved, and the deepest it can ever be is the
+    // number of mirrors ON the solution route — so a board that came out short is thrown away
+    if (Object.keys(sol).length < FLOOR[tier]) return null;
+
+    // Decoy mirrors + walls, only on cells no solution beam ever touches. Decoys are deliberately
+    // FEW: they add nothing to solution depth but they double the state space the depth check walks.
+    const free = [];
+    for (let i = 0; i < n * n; i++) if (!cells[i] && axis[i] === 0) free.push(i);
+    for (let i = free.length - 1; i > 0; i--) { const j = ri(i + 1); const t = free[i]; free[i] = free[j]; free[j] = t; }
+    let dc = 2, wc = tier === 1 ? 0 : 1 + ri(2), p = 0;
+    while (dc-- > 0 && p < free.length) cells[free[p++]] = { t: 'mirror', o: ri(2), decoy: true };
+    while (wc-- > 0 && p < free.length) cells[free[p++]] = { t: 'wall' };
+
+    return { n, cells, em, sol, grp, targets, tier, seed, size: n };
+  }
+
+  function fallbackBoard(n) {
+    const cells = new Array(n * n).fill(null);
+    const i = n - 1;                     // mirror at the end of row 0, target at the bottom of column n-1
+    cells[i] = { t: 'mirror', o: 0 };
+    cells[(n - 1) * n + (n - 1)] = { t: 'target', col: 7 };
+    const sol = {}; sol[i] = 1;          // '\' turns the beam down
+    return { n, cells, em: { x: 0, y: 0, d: 1, edge: 3, pos: 0 }, sol, targets: [(n - 1) * n + (n - 1)], tier: 1, seed: 0, size: n };
+  }
+
+  const applySol = b => { for (const k in b.sol) b.cells[k].o = b.sol[k]; };
+  const mirrorsOf = b => { const a = []; for (let i = 0; i < b.cells.length; i++) if (b.cells[i] && b.cells[i].t === 'mirror') a.push(i); return a; };
+  const isSolved = b => { const r = resolveOn(b, true); return r.total > 0 && r.lit === r.total; };
+
+  // EXACT solution depth: the fewest single-mirror flips from the dealt board to ANY solved board.
+  // We know a solution sits `known` flips away (that's how the board was scrambled), so it is enough to
+  // prove no closer one exists: sweep every flip-set of size 1 … known-1 (a move sequence of length L
+  // can never beat the Hamming distance, so this is a real lower bound, not a heuristic). Returns the
+  // exact depth when it is < known, otherwise `known`.
+  function solutionDepth(b, known) {
+    const mi = mirrorsOf(b), M = mi.length;
+    const base = mi.map(i => b.cells[i].o);
+    const idx = new Array(Math.max(1, known));
+    let budget = 80000;
+    for (let k = 1; k < known; k++) {
+      for (let i = 0; i < k; i++) idx[i] = i;
+      for (;;) {
+        if (--budget <= 0) return known;                 // pathological board — keep the known bound
+        for (let i = 0; i < k; i++) b.cells[mi[idx[i]]].o = 1 - base[idx[i]];
+        const hit = isSolved(b);
+        for (let i = 0; i < k; i++) b.cells[mi[idx[i]]].o = base[idx[i]];
+        if (hit) return k;
+        let p = k - 1;
+        while (p >= 0 && idx[p] === M - k + p) p--;
+        if (p < 0) break;
+        idx[p]++;
+        for (let q = p + 1; q < k; q++) idx[q] = idx[q - 1] + 1;
+      }
+    }
+    return known;
+  }
+
+  // How many separate "click — something happened" moments the solution must contain: the satisfied-
+  // target count has to climb this many times on the way from the dealt board to a solved one.
+  const STAGES = { 1: 1, 2: 3, 3: 3, 4: 3 };
+
+  // Does a STAGED route through the solution exist? Play the (irreducible) solution set in many orders
+  // — a dependency-aware greedy plus random ones — and keep the best profile: {steps} = how many times
+  // the satisfied-target count climbs, {maxJump} = the biggest single-flip jump. A board is only shipped
+  // when some order climbs one target at a time, which is exactly the "unlock it piece by piece" feel.
+  function stageProfile(b, flips) {
+    if (!flips.length) return { steps: 0, maxJump: 0, firstBlind: 0, maxBlind: 0 };
+    const before = flips.map(i => b.cells[i].o);
+    const reset = () => { for (let i = 0; i < flips.length; i++) b.cells[flips[i]].o = before[i]; };
+    // firstBlind / maxBlind = how many flips in a row give NO feedback (the satisfied-target count
+    // does not climb). That is the number the player experiences as "I can't tell if I'm getting
+    // anywhere" — the playtest complaint on maze 11 was a 3-flip blind opening on a unique solution,
+    // so the generator now measures and bounds it instead of only bounding the total depth.
+    const runOrder = order => {
+      reset();
+      let lit = resolveOn(b, true).lit, steps = 0, mj = 0, down = 0;
+      let blind = 0, maxBlind = 0, firstBlind = -1;
+      for (let k = 0; k < order.length; k++) {
+        b.cells[flips[order[k]]].o ^= 1;
+        const l = resolveOn(b, true).lit;
+        if (l > lit) {
+          steps++; if (l - lit > mj) mj = l - lit;
+          if (firstBlind < 0) firstBlind = blind;
+          blind = 0;
+        } else {
+          if (l < lit) down++;
+          blind++; if (blind > maxBlind) maxBlind = blind;
+        }
+        lit = l;
+      }
+      return { steps: steps, maxJump: mj, down: down,
+        firstBlind: firstBlind < 0 ? order.length : firstBlind, maxBlind: maxBlind };
+    };
+    // greedy: always take the flip that lights the FEWEST new targets; when nothing lights yet, take the
+    // flip that opens up the most one-target-at-a-time follow-ups (that is the shared trunk of the route)
+    const greedy = () => {
+      reset();
+      const rem = []; for (let i = 0; i < flips.length; i++) rem.push(i);
+      const order = [];
+      let lit = resolveOn(b, true).lit;
+      while (rem.length) {
+        let pick = -1, pickLit = -1;
+        for (let i = 0; i < rem.length; i++) {
+          b.cells[flips[rem[i]]].o ^= 1; const l = resolveOn(b, true).lit; b.cells[flips[rem[i]]].o ^= 1;
+          if (l > lit && (pick < 0 || l < pickLit)) { pick = i; pickLit = l; }
+        }
+        if (pick < 0) {                          // nothing lights → score each flip by what it unlocks
+          let bestScore = -1;
+          for (let i = 0; i < rem.length; i++) {
+            b.cells[flips[rem[i]]].o ^= 1;
+            const l0 = resolveOn(b, true).lit;
+            let ones = 0, over = 0;
+            for (let j = 0; j < rem.length; j++) {
+              if (j === i) continue;
+              b.cells[flips[rem[j]]].o ^= 1; const l2 = resolveOn(b, true).lit; b.cells[flips[rem[j]]].o ^= 1;
+              if (l2 - l0 === 1) ones++; else if (l2 - l0 > 1) over++;
+            }
+            b.cells[flips[rem[i]]].o ^= 1;
+            const sc = ones * 10 - over * 25 - (l0 < lit ? 5 : 0);
+            if (sc > bestScore) { bestScore = sc; pick = i; }
+          }
+          if (pick < 0) pick = 0;
+        }
+        b.cells[flips[rem[pick]]].o ^= 1;
+        lit = resolveOn(b, true).lit;
+        order.push(rem[pick]); rem.splice(pick, 1);
+      }
+      return order;
+    };
+    let best = { steps: 0, maxJump: 99, down: 99, firstBlind: 99, maxBlind: 99 }, bestScore = -1;
+    // prefer: one target at a time · never losing a lit target · as many climbing steps as possible ·
+    // and the SHORTEST runs of no-feedback flips (the legibility term)
+    const consider = prof => {
+      const sc = (prof.maxJump <= 1 ? 100000 : 0) + (prof.down === 0 ? 10000 : 0) + prof.steps * 100
+        + Math.max(0, 40 - prof.firstBlind * 5 - prof.maxBlind * 3);
+      if (sc > bestScore) { bestScore = sc; best = prof; }
+    };
+    const goodEnough = () => best.maxJump <= 1 && best.down === 0 && best.firstBlind <= 1 && best.maxBlind <= 2;
+    consider(runOrder(greedy()));
+    const rnd = mulberry32((0x9e3779b9 ^ (flips.length * 2654435761)) >>> 0);
+    const ord = []; for (let i = 0; i < flips.length; i++) ord.push(i);
+    for (let t = 0; t < 64 && !goodEnough(); t++) {
+      for (let i = ord.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const tmp = ord[i]; ord[i] = ord[j]; ord[j] = tmp; }
+      consider(runOrder(ord));
+    }
+    reset();
+    return best;
+  }
+
+  // No single flip from the dealt board may complete more than one target — that is the "flick one
+  // mirror and the whole map lights up" failure, measured directly.
+  function worstSingleJump(b) {
+    const mi = mirrorsOf(b), lit0 = resolveOn(b, true).lit;
+    let worst = 0;
+    for (let i = 0; i < mi.length; i++) {
+      b.cells[mi[i]].o ^= 1; const l = resolveOn(b, true).lit; b.cells[mi[i]].o ^= 1;
+      if (l - lit0 > worst) worst = l - lit0;
+    }
+    return worst;
+  }
+
+  // Legibility bounds on the staged route (see stageProfile): how many flips a player may have to make
+  // with NO change in the lit count. BLIND[tier] caps the opening; RUN[tier] caps any later dry spell.
+  // These are the STRUCTURAL optima, measured by exhaustive enumeration of every mirror configuration
+  // on 36 seeds per tier: a tier-4 machine has three stages of three mirrors, so three correct flips
+  // must land before the first target can light — firstBlind 2 is therefore the best any tier-4 board
+  // can do, and 3 means the scramble wasted a flip. Bounding it here is what stops a board like the
+  // original maze 11 shipping with a longer blind opening than its own architecture requires.
+  const BLIND = { 1: 3, 2: 2, 3: 3, 4: 2 }, BLIND_RUN = { 1: 3, 2: 3, 3: 3, 4: 3 };
+
+  function genBoard(seed, tier, n) {
+    const floor = FLOOR[tier] || 3, stageFloor = STAGES[tier] || 1;
+    let bestB = null, bestOrient = null, bestScore = -1, bestMeta = null;
+    for (let a = 0; a < 60; a++) {
+      const b = build((seed + a * 7919) >>> 0, tier, n);
+      if (!b) continue;
+      applySol(b);
+      if (!isSolved(b)) continue;                    // guard: the constructed solution must solve it
+      const keys = Object.keys(b.sol).map(Number);
+      // group the route mirrors by the machine stage they belong to
+      const groups = {};
+      for (let i = 0; i < keys.length; i++) { const gn = b.grp[keys[i]] || 'route'; (groups[gn] = groups[gn] || []).push(keys[i]); }
+      const gnames = Object.keys(groups);
+      const rnd = mulberry32((seed + a * 7919 + 991) >>> 0);
+      const shuf = arr => { const c = arr.slice(); for (let i = c.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); const t = c[i]; c[i] = c[j]; c[j] = t; } return c; };
+      for (let tries = 0; tries < 12; tries++) {
+        applySol(b);
+        // Scramble at least one mirror in EVERY stage — that is what forces the player to unlock the
+        // board piece by piece instead of one lucky flick finishing it.
+        const flips = [];
+        for (let i = 0; i < gnames.length; i++) {
+          const arr = shuf(groups[gnames[i]]);
+          const take = Math.min(arr.length, 1 + (rnd() < 0.45 ? 1 : 0));
+          for (let k = 0; k < take; k++) flips.push(arr[k]);
+        }
+        const want = Math.max(floor + (rnd() < 0.5 ? 0 : 1), gnames.length);
+        const rest = shuf(keys.filter(k => flips.indexOf(k) < 0));
+        while (flips.length < want && rest.length) flips.push(rest.pop());
+        for (let i = 0; i < flips.length; i++) b.cells[flips[i]].o = 1 - b.sol[flips[i]];
+        if (isSolved(b)) continue;                                  // must never land on a solution
+        // the scramble must be IRREDUCIBLE: no shorter route back to any solved board
+        const depth = solutionDepth(b, flips.length);
+        const prof = stageProfile(b, flips);
+        const jump = tier >= 2 ? worstSingleJump(b) : 1;
+        const okDepth = depth === flips.length && depth >= floor;
+        const okStages = prof.steps >= stageFloor && prof.maxJump <= 1 && prof.down === 0;
+        const okJump = jump <= 1;
+        const okBlind = prof.firstBlind <= (BLIND[tier] || 3) && prof.maxBlind <= (BLIND_RUN[tier] || 3);
+        if (okDepth && okStages && okJump && okBlind) {
+          b.depth = depth; b.stages = prof.steps; b.par = depth + Math.max(2, Math.round(depth * 0.5));
+          b.firstBlind = prof.firstBlind; b.maxBlind = prof.maxBlind;
+          return b;
+        }
+        // keep the closest miss as a last resort
+        const score = (okDepth ? 100 : depth) + prof.steps * 10 - (jump > 1 ? 50 : 0) - (prof.down ? 20 : 0) - (prof.maxJump > 1 ? 40 : 0)
+          - (okBlind ? 0 : 30) - prof.firstBlind * 2 - prof.maxBlind;
+        if (score > bestScore) { bestScore = score; bestB = b; bestOrient = mirrorsOf(b).map(i => b.cells[i].o);
+          bestMeta = { depth: depth, stages: prof.steps, firstBlind: prof.firstBlind, maxBlind: prof.maxBlind }; }
+      }
+    }
+    if (bestB) {                                      // never seen in practice; keeps a board playable
+      const mi = mirrorsOf(bestB);
+      for (let k = 0; k < mi.length; k++) bestB.cells[mi[k]].o = bestOrient[k];
+      bestB.depth = bestMeta.depth; bestB.stages = bestMeta.stages;
+      bestB.firstBlind = bestMeta.firstBlind; bestB.maxBlind = bestMeta.maxBlind;
+      bestB.par = bestB.depth + Math.max(2, Math.round(bestB.depth * 0.5));
+      return bestB;
+    }
+    const fb = fallbackBoard(n); fb.cells[fb.n - 1].o = 0; fb.depth = 1; fb.stages = 1; fb.par = 3;
+    fb.firstBlind = 0; fb.maxBlind = 0; return fb;
+  }
+
+  // ---------------- hints: derived from a REAL solution, never a guess ----------------
+  // The NEAREST solved board from wherever the player actually is. A mirror flip is its own inverse,
+  // so a k-move route can only ever change k mirrors — the flip SET size IS the move distance, and
+  // enumerating sets by size is a breadth-first walk of the state space. The constructed solution
+  // gives a guaranteed upper bound (and a hard answer if the sweep runs out of budget), so a hint is
+  // always a genuine step towards a board that really does solve — even after the player has drifted
+  // off the intended route, and even if they flipped decoy mirrors the stored solution ignores.
+  function nearestSolutionFlips(b) {
+    if (isSolved(b)) return [];
+    const mi = mirrorsOf(b), M = mi.length;
+    const base = mi.map(i => b.cells[i].o);
+    const known = [];
+    for (const k in b.sol) if (b.cells[k].o !== b.sol[k]) known.push(+k);
+    if (known.length <= 1) return known;
+    const idx = new Array(known.length);
+    let probes = 20000;
+    for (let k = 1; k < known.length; k++) {
+      for (let i = 0; i < k; i++) idx[i] = i;
+      for (;;) {
+        if (--probes <= 0) return known;
+        for (let i = 0; i < k; i++) b.cells[mi[idx[i]]].o = 1 - base[idx[i]];
+        const hit = isSolved(b);
+        const snap = idx.slice(0, k);
+        for (let i = 0; i < k; i++) b.cells[mi[idx[i]]].o = base[idx[i]];
+        if (hit) return snap.map(j => mi[j]);
+        let p = k - 1;
+        while (p >= 0 && idx[p] === M - k + p) p--;
+        if (p < 0) break;
+        idx[p]++;
+        for (let q = p + 1; q < k; q++) idx[q] = idx[q - 1] + 1;
+      }
+    }
+    return known;
+  }
+
+  // Hints have a visible PRICE so they are never the default way to play: they are counted on the end
+  // screen, they forfeit "par or better" for that maze, and in Endless each one costs spin power.
+  const HINT_POWER = 3;
+  function giveHint() {
+    if (state !== 'playing' || !board || legendOn) return false;
+    if (mode === 'endless' && budget <= HINT_POWER) { SND.play('deny'); tip('hintPower'); return false; }
+    const flips = nearestSolutionFlips(board);
+    if (!flips.length) { SND.play('deny'); tip('hintNone'); return false; }
+    // repeated hints CYCLE: never re-show a mirror already hinted on this board until every wrong one
+    // has had a turn. Within that, prefer mirrors the beam already reaches — flipping one of those
+    // changes something the player can see right now.
+    let pool = flips.filter(c => hintSeen.indexOf(c) < 0);
+    if (!pool.length) { hintSeen.length = 0; pool = flips.slice(); }
+    const reached = c => { for (let d = 0; d < 4; d++) if (res.seg[c * 4 + d]) return true; return false; };
+    const live = pool.filter(reached);
+    hintCell = (live.length ? live : pool)[0];
+    hintSeen.push(hintCell);
+    HINTS.use('mirror');                          // counts it AND fires the shared run_choice event
+    if (mode === 'endless') budget -= HINT_POWER;
+    tip('hint');
+    SND.play('hint');
+    updateHud(); saveState();
+    return true;
+  }
+  function showHintBtn(on) {
+    if (!hb) return;
+    hb.show(on);
+    // the price rides on the label in Endless, where a hint really costs something
+    hb.label('🔍 ' + (mode === 'endless'
+      ? KIT.t('game.mirror-maze.hintPower', { n: HINT_POWER, def: 'HINT −{n}⚡' })
+      : KIT.t('menu.hint', { def: 'HINT' })));
+  }
+  // the button hides under the piece legend (which owns the whole screen) and on every menu
+  const syncHintBtn = () => showHintBtn(state === 'playing' && !legendOn);
+
+  // ---------------- board lifecycle ----------------
+  function boardSpec() {
+    if (mode === 'campaign') { const c = CAMPAIGN[Math.min(CAMPAIGN.length - 1, Math.max(0, level))]; return { seed: c.seed, tier: c.tier, size: c.size }; }
+    if (mode === 'daily') return dailySpec(KIT ? KIT.utcDayNumber() : 0);
+    const k = boardIdx, tr = Math.min(4, 1 + Math.floor(k / 2));
+    // size grows every 8 boards, not every 6 — at /6 the tier-4 stretch jumped straight from 8×8 to
+    // the 10×10 ceiling, which is also where an endless HEAD START would have landed a player
+    return { seed: (endlessSeed + k * 9176) >>> 0, tier: tr, size: Math.min(10, TIER_SIZE[tr] + Math.floor(k / 8)) };
+  }
+  function dailySpec(day) { const t = 2 + (day % 3); return { seed: (day * 7919 + 13) >>> 0, tier: t, size: TIER_SIZE[t], day }; }
+
+  // Endless opens at the tier the player has already FINISHED in the campaign, so a veteran is not
+  // made to re-clear 5×5 mirrors-only boards. Mapping (boardIdx offset → what boardSpec deals):
+  //   nothing cleared / part of tier 1  → 0  → tier 1, 5×5   (the gentle first-timer opening)
+  //   all of tier 1 (mazes 1–3)         → 2  → tier 2, 7×7
+  //   all of tier 2 (mazes 1–6)         → 4  → tier 3, 8×8
+  //   all of tier 3 (mazes 1–9)         → 6  → tier 4, 9×9   (the CAP — never the 10×10 ceiling)
+  // Floor 0 (never below tier 1), cap 6. Score is boards SOLVED, so a head start never inflates a best.
+  const START_OFF = [0, 2, 4, 6, 6];         // indexed by the highest tier FULLY cleared (0…4)
+  function endlessStartIdx() {
+    const done = readDone();
+    let full = 0;
+    for (let T = 1; T <= 4; T++) {
+      let all = true;
+      for (let i = 0; i < CAMPAIGN.length; i++) if (CAMPAIGN[i].tier === T && done.indexOf(i) < 0) { all = false; break; }
+      if (!all) break;
+      full = T;
+    }
+    return START_OFF[full];
+  }
+
+  function loadBoard(spec) {
+    const s = spec || boardSpec();
+    board = genBoard(s.seed, s.tier, s.size);
+    moves = 0; winT = 0; pendingEnd = 0;
+    HINTS.begin(); hintCarry = 0; hintCell = -1; hintSeen.length = 0;
+    cur = { x: Math.floor(board.n / 2), y: Math.floor(board.n / 2) };
+    res = resolveOn(board);
+    beamAge = 0; for (const k in spinAnim) delete spinAnim[k]; for (const k in litAnim) delete litAnim[k];
+    teach();
+    layoutBoard(); updateHud();
+  }
+
+  // Teaching: the full piece legend once (first campaign maze), then a "NEW: <piece>" toast the first
+  // time each new piece type ever shows up for this player — one new idea at a time.
+  function teach() {
+    const ui = readUi();
+    // reset it: the boot board opens on maze 1 and used to leave its legend hanging over whatever
+    // board the player actually picked from the menu
+    legendOn = false;
+    if (!ui.legend && mode === 'campaign' && level === 0) { legendOn = true; clearTip(); return; }
+    const present = {};
+    for (let i = 0; i < board.cells.length; i++) { const c = board.cells[i]; if (c) present[c.t] = 1; }
+    for (const k of ['prism', 'filter', 'combiner']) {
+      if (present[k] && ui.seen.indexOf(k) < 0) {
+        ui.seen.push(k); writeUi(ui);
+        tip('new_' + k); return;
+      }
+    }
+    if (!moves && board.tier === 1 && ui.seen.indexOf('mirror') < 0) {
+      ui.seen.push('mirror'); writeUi(ui);
+      tip('tip1');
+    } else clearTip();
+  }
+  function dismissLegend() { if (!legendOn) return; legendOn = false; const ui = readUi(); ui.legend = true; writeUi(ui); syncHintBtn(); }
+
+  // EVERY message the player reads mid-board — hint text and the teaching toasts alike — rides the
+  // kit's hint toast, which is laid out ABOVE the 🔍 button, so nothing readable can sit under a tap
+  // target (the bug the old hand-rolled canvas toast kept hitting on a landscape phone).
+  function tip(key) { tipKey = key; if (hb) hb.toast(tipText()); }
+  function clearTip() { tipKey = ''; if (hb) hb.toast(''); }
+  function tipText() {
+    if (tipKey === 'tip1') return KIT.t('game.mirror-maze.tip1', { def: 'Tap a mirror to flip it — the beam turns 90°.' });
+    if (tipKey === 'new_prism') return KIT.t('game.mirror-maze.newPrism', { def: 'NEW · PRISM — splits white light: red bends left, green goes straight, blue bends right.' });
+    if (tipKey === 'new_filter') return KIT.t('game.mirror-maze.newFilter', { def: 'NEW · FILTER — only its own colour passes. Send the matching beam into it.' });
+    if (tipKey === 'new_combiner') return KIT.t('game.mirror-maze.newCombiner', { def: 'NEW · COMBINER — adds the beams that arrive and fires the mix along its arrow. Red + green = yellow.' });
+    if (tipKey === 'hint') return KIT.t('game.mirror-maze.hintTip', { def: 'HINT — the ringed mirror is facing the wrong way. Ask again for a different one.' });
+    if (tipKey === 'hintNone') return KIT.t('game.mirror-maze.hintNone', { def: 'No hint to give — every mirror is already facing the right way.' });
+    if (tipKey === 'hintPower') return KIT.t('game.mirror-maze.hintNoPower', { def: 'Not enough power left for a hint — solve this maze to top the pool up.' });
+    return '';
+  }
+
+  // ---------------- resume (kit progress store) ----------------
+  const PROG = KIT ? KIT.progress(SLUG, { max: 1 }) : null;
+  const mirrorIdxs = b => { const a = []; for (let i = 0; i < b.cells.length; i++) if (b.cells[i] && b.cells[i].t === 'mirror') a.push(i); return a; };
+  function saveState(force) {
+    if (!PROG || state !== 'playing' || !board) return;
+    const now = Date.now();
+    if (!force && now - lastSave < 600) { dirty = true; return; }
+    lastSave = now; dirty = false;
+    const sp = boardSpec();
+    PROG.save({ id: 'run', mode, level, bi: boardIdx, es: endlessSeed, seed: sp.seed, tier: sp.tier, size: sp.size,
+      orient: mirrorIdxs(board).map(i => board.cells[i].o).join(''), solved: solvedCount, moves, hints: hintCount(), bud: budget, rs: runScore });
+  }
+  function clearSave() { if (PROG) PROG.remove('run'); dirty = false; }
+  function resumeRun(s) {
+    if (!s || !s.orient || MODES.indexOf(s.mode) < 0) return false;
+    menuScreen = 'game';
+    mode = s.mode; level = s.level || 0; boardIdx = s.bi || 0; endlessSeed = s.es || 1;
+    solvedCount = s.solved || 0; runScore = s.rs || 0; lastAward = 0;
+    board = genBoard(s.seed, s.tier, s.size);
+    const mi = mirrorIdxs(board);
+    for (let i = 0; i < mi.length && i < s.orient.length; i++) board.cells[mi[i]].o = s.orient.charAt(i) === '1' ? 1 : 0;
+    moves = s.moves || 0; winT = 0; pendingEnd = 0; clearTip();
+    // the hint COST survives a resume — the kit's counter cannot be seeded, so the saved count is
+    // carried alongside it (hintCount()/hintClean() add the two)
+    HINTS.begin(); hintCarry = s.hints || 0; hintCell = -1; hintSeen.length = 0;
+    cur = { x: Math.floor(board.n / 2), y: Math.floor(board.n / 2) };
+    res = resolveOn(board);
+    state = 'playing';
+    // the spin pool has to come back with the run — without it a resumed endless maze died on its
+    // first spin (budget 0 → "out of power" immediately)
+    if (mode === 'endless') budget = s.bud > 0 ? s.bud : (board.par || 6) + 4;
+    layoutBoard(); updateHud();
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); syncHintBtn(); }
+    return true;
+  }
+
+  // ---------------- best store ----------------
+  const modeLabel = m => MODE_LABEL[m || mode];
+  // full literal keys (never built by concatenation — the i18n coverage scanner only sees literals)
+  const modeDisplay = m => {
+    const k = m || mode;
+    if (k === 'daily') return KIT.t('game.mirror-maze.modeDaily', { def: 'Daily' });
+    if (k === 'endless') return KIT.t('game.mirror-maze.modeEndless', { def: 'Endless' });
+    return KIT.t('game.mirror-maze.modeCampaign', { def: 'Campaign' });
+  };
+  const bestOf = m => (KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0);
+
+  // ---------------- layout ----------------
+  function layoutBoard() {
+    if (!board) return;
+    const pr = KIT.layout.playRect();
+    const n = board.n, pad = 8;
+    const availW = Math.max(40, pr.w - pad * 2), availH = Math.max(40, pr.h - pad * 2);
+    // (n + 1.6) leaves a 0.8-cell ring on every side — room for the emitter housing outside the grid
+    cs = Math.floor(Math.min(availW, availH) / (n + 1.6));
+    if (cs < 16) cs = Math.max(6, Math.floor(Math.min(availW, availH) / n));
+    const bw = cs * n;
+    bx = Math.round(pr.x + (pr.w - bw) / 2);
+    by = Math.round(pr.y + (pr.h - bw) / 2);
+  }
+  // Landscape phones: the 🔍 HINT strip moves to a left rail so the board can use the full height
+  // (a bottom strip cost a 640×360 screen a quarter of its board). Portrait keeps it bottom-centre.
+  function dockHint() {
+    if (!hb) return;
+    const side = KIT.layout.landscape && KIT.layout.h <= 520;
+    hb.dock(side ? 'left' : 'bottom');
+    KIT.layout.reserve('left', side ? hb.railWidth : 0);
+    KIT.layout.reserve('bottom', side ? 0 : hb.reserve);
+  }
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    dockHint();
+    topMargin = KIT.layout.playRect().y;
+    layoutBoard();
+  }
+  window.gamekit.layout.on(resize);
+
+  // ---------------- update ----------------
+  function update() {
+    frame++;
+    if (winT > 0) winT++;
+    beamAge++;
+    for (const k in spinAnim) { const a2 = spinAnim[k]; a2.t++; if (a2.t > SPIN_FRAMES) delete spinAnim[k]; }
+    if (res) for (let i = 0; i < board.targets.length; i++) {
+      const c = board.targets[i];
+      if (res.litSet[c]) { if (litAnim[c] == null) litAnim[c] = 0; else if (litAnim[c] < 240) litAnim[c]++; }
+      else if (litAnim[c] != null) delete litAnim[c];
+    }
+    if (dirty && Date.now() - lastSave >= 600) saveState(true);
+    if (pendingEnd > 0 && --pendingEnd === 0) showEnd();
+    if (KIT && KIT.music) {
+      const t = res && res.total ? res.lit / res.total : 0;
+      KIT.music.intensity(state === 'playing' ? Math.min(1, 0.32 + 0.55 * t) : 0.3);
+    }
+  }
+
+  // ---------------- interaction ----------------
+  function rotateAt(x, y) {
+    if (state !== 'playing' || !board) return false;
+    if (x < 0 || y < 0 || x >= board.n || y >= board.n) return false;
+    const i = y * board.n + x, p = board.cells[i];
+    if (!p || p.t !== 'mirror') { SND.play('deny'); return false; }
+    const before = res.lit, fromO = p.o;
+    p.o = p.o ? 0 : 1;
+    moves++;
+    if (i === hintCell) hintCell = -1;               // the hint was taken — stop ringing it
+    spinAnim[i] = { t: 0, from: fromO };            // view-only eased flip
+    beamAge = 0;                                    // re-run the propagation animation
+    if (mode === 'endless') budget--;
+    res = resolveOn(board);
+    SND.play('spin');
+    if (res.lit > before) SND.play('litup'); else if (res.lit < before) SND.play('dark');
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch (e) {} }
+    updateHud();
+    // a clear only counts once the sim has SETTLED — re-resolve and require it still holds, so a
+    // transient line-up can never end the maze
+    if (res.lit === res.total && res.total > 0) {
+      res = resolveOn(board);
+      if (res.lit === res.total && res.total > 0) { solveBoard(); return true; }
+    }
+    if (mode === 'endless' && budget <= 0) { failRun(); return true; }
+    saveState();
+    return true;
+  }
+
+  // Endless only: the spin pool ran dry mid-maze — the run is over.
+  function failRun() {
+    outOfBudget = true; state = 'over';
+    clearSave();
+    const prev = bestOf();
+    lastAward = 0;                                    // the maze it died on pays nothing
+    if (KIT) KIT.saveBest(SLUG, modeLabel(), { score: runScore, stats: { tier: board.tier, mazes: solvedCount } });
+    isBest = runScore > prev;
+    SND.play('dark');
+    updateHud();
+    pendingEnd = 30;
+  }
+
+  function solveBoard() {
+    state = 'over'; winT = 1;
+    solvedCount++;
+    lastAward = mazeAward(board, moves, hintCount());
+    runScore += lastAward;
+    if (mode === 'endless') budget += (board.par || 6) + 2;   // a clean solve buys the next maze
+    if (mode === 'campaign') markDone(level);
+    clearSave();
+    const prev = bestOf();
+    if (KIT) KIT.saveBest(SLUG, modeLabel(), { score: runScore, stats: { tier: board.tier, mazes: solvedCount } });
+    isBest = runScore > prev;
+    SND.play('cleared');
+    if (navigator.vibrate) { try { navigator.vibrate([20, 40, 30]); } catch (e) {} }
+    updateHud();
+    pendingEnd = 46 + board.targets.length * 8;   // let the staged cascade read before the menu (frame-driven → testable)
+  }
+
+  function cellAt(px, py) {
+    if (!board) return null;
+    const x = Math.floor((px - bx) / cs), y = Math.floor((py - by) / cs);
+    if (x < 0 || y < 0 || x >= board.n || y >= board.n) return null;
+    return { x, y };
+  }
+  const toCanvas = (e, r) => ({ x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) });
+  let pDown = null;
+  canvas.addEventListener('pointerdown', e => {
+    if (legendOn) { dismissLegend(); pDown = null; return; }
+    if (state !== 'playing') return;
+    const r = canvas.getBoundingClientRect();
+    pDown = toCanvas(e, r);
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (!pDown || state !== 'playing') { pDown = null; return; }
+    const r = canvas.getBoundingClientRect(), p = toCanvas(e, r);
+    const drag = Math.hypot(p.x - pDown.x, p.y - pDown.y);
+    pDown = null;
+    if (drag > cs * 0.8) return;
+    const c = cellAt(p.x, p.y);
+    if (!c) return;
+    curOn = false;
+    rotateAt(c.x, c.y);
+  });
+  canvas.addEventListener('pointercancel', () => { pDown = null; });
+  window.addEventListener('keydown', e => {
+    if (legendOn) { e.preventDefault(); dismissLegend(); return; }
+    if (state !== 'playing' || !board) return;
+    const k = e.key;
+    if (k === 'Escape') { e.preventDefault(); pauseGame(); return; }
+    const mv = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+      w: [0, -1], s: [0, 1], a: [-1, 0], d: [1, 0], W: [0, -1], S: [0, 1], A: [-1, 0], D: [1, 0] }[k];
+    if (mv) {
+      e.preventDefault(); curOn = true;
+      cur.x = Math.min(board.n - 1, Math.max(0, cur.x + mv[0]));
+      cur.y = Math.min(board.n - 1, Math.max(0, cur.y + mv[1]));
+      return;
+    }
+    // H is bound by the kit's hint button — not here, or a press would spend two hints
+    if (k === ' ' || k === 'Enter') { e.preventDefault(); curOn = true; rotateAt(cur.x, cur.y); }
+  });
+
+  // ---------------- HUD ----------------
+  function updateHud() {
+    const l = document.getElementById('litEl'), s = document.getElementById('scoreEl');
+    const sp = document.getElementById('spinsEl'), b = document.getElementById('bestEl');
+    if (l) l.textContent = res ? (res.lit + '/' + res.total) : '0/0';
+    if (s) s.textContent = String(runScore);
+    if (sp) sp.textContent = String(moves);
+    if (b) b.textContent = String(bestOf());
+    const pe = document.getElementById('parEl');
+    if (pe) pe.textContent = String(board ? (board.par || 0) : 0);
+    const bs = document.getElementById('budgetStat'), be = document.getElementById('budgetEl');
+    if (bs) bs.style.display = (mode === 'endless') ? '' : 'none';
+    if (be) be.textContent = String(Math.max(0, budget));
+    // HINTS only takes a slot in the pill once a hint has actually been used — six stats do not fit
+    // one row at 360 wide, and an always-on zero would push the pill to two rows for nothing
+    const hs = document.getElementById('hintStat'), he = document.getElementById('hintsEl');
+    if (hs) hs.style.display = hintCount() > 0 ? '' : 'none';
+    if (he) he.textContent = String(hintCount());
+  }
+
+  // ---------------- painters ----------------
+  function cellCx(x) { return bx + x * cs + cs / 2; }
+  function cellCy(y) { return by + y * cs + cs / 2; }
+
+  function drawBg() {
+    const g = ctx.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, '#04101a'); g.addColorStop(0.55, '#03080e'); g.addColorStop(1, '#05121c');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    if (!board) return;
+    const n = board.n, bw = cs * n;
+    // soft bloom pooled under the board
+    const rg = ctx.createRadialGradient(bx + bw / 2, by + bw / 2, bw * 0.1, bx + bw / 2, by + bw / 2, bw * 0.95);
+    rg.addColorStop(0, 'rgba(127,232,255,0.10)'); rg.addColorStop(1, 'rgba(127,232,255,0)');
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+  }
+
+  function drawGrid() {
+    const n = board.n, bw = cs * n;
+    ctx.save();
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const p = board.cells[y * n + x], px = bx + x * cs, py = by + y * cs;
+      const rot = !!(p && p.t === 'mirror');
+      ctx.fillStyle = rot ? 'rgba(127,232,255,0.11)' : 'rgba(127,232,255,0.035)';
+      KIT.roundRect(ctx, px + 1.5, py + 1.5, cs - 3, cs - 3, Math.max(2, cs * 0.14)); ctx.fill();
+      ctx.strokeStyle = rot ? 'rgba(150,238,255,0.55)' : 'rgba(127,232,255,0.26)';
+      ctx.lineWidth = rot ? 1.5 : 1;
+      KIT.roundRect(ctx, px + 1.5, py + 1.5, cs - 3, cs - 3, Math.max(2, cs * 0.14)); ctx.stroke();
+    }
+    ctx.strokeStyle = 'rgba(150,238,255,0.6)'; ctx.lineWidth = 2;
+    KIT.roundRect(ctx, bx - 3, by - 3, bw + 6, bw + 6, Math.max(4, cs * 0.2)); ctx.stroke();
+    ctx.restore();
+  }
+
+  // The beam PROPAGATES: after any change the light travels outward from the emitter about 0.7 cells
+  // per frame, so cause and effect are visible instead of the whole path snapping into place.
+  const beamFront = () => beamAge * 0.7;
+  function drawBeams() {
+    const P = palette();
+    const front = beamFront(), done = front > (res.maxHop || 0) + 1;
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    const shim = 0.86 + 0.14 * Math.sin(frame * 0.09);
+    const passes = [[0.34, 0.085], [0.16, 0.20], [0.055, 0.95]];
+    for (let pi = 0; pi < passes.length; pi++) {
+      const core = pi === passes.length - 1;                  // only the thin bright core carries the cue
+      ctx.globalAlpha = passes[pi][1] * shim;
+      for (let mi = 0; mi < MASKS.length; mi++) {
+        const m = MASKS[mi], col = P[m], nch = CHANNELS[m] || 1;
+        const twin = core && nch === 3;                       // white = two parallel rails
+        ctx.lineWidth = Math.max(1, cs * (twin ? 0.042 : passes[pi][0]));
+        // one pure channel = solid · two mixed = dashed · white = twin rails. Every colour pair that a
+        // CVD simulation collapses differs in channel count, so this cue alone tells them apart.
+        if (core && nch === 2) ctx.setLineDash([Math.max(2, cs * 0.17), Math.max(2, cs * 0.12)]);
+        else ctx.setLineDash([]);
+        let any = false;
+        ctx.beginPath();
+        for (let i = 0; i < res.draws.length; i++) {
+          const sg = res.draws[i];
+          if (sg.m !== m) continue;
+          if (!done && sg.hop > front) continue;              // the light has not reached here yet
+          any = true;
+          const cx = cellCx(sg.x), cy = cellCy(sg.y), v = D[sg.d], h = cs / 2;
+          const ax2 = sg.half === 0 ? cx - v.x * h : cx, ay2 = sg.half === 0 ? cy - v.y * h : cy;
+          const bx3 = sg.half === 0 ? cx : cx + v.x * h, by3 = sg.half === 0 ? cy : cy + v.y * h;
+          if (twin) {
+            const ox = -v.y * cs * 0.085, oy = v.x * cs * 0.085;
+            ctx.moveTo(ax2 + ox, ay2 + oy); ctx.lineTo(bx3 + ox, by3 + oy);
+            ctx.moveTo(ax2 - ox, ay2 - oy); ctx.lineTo(bx3 - ox, by3 - oy);
+          } else { ctx.moveTo(ax2, ay2); ctx.lineTo(bx3, by3); }
+        }
+        if (any) { ctx.strokeStyle = col; ctx.stroke(); }
+      }
+    }
+    ctx.setLineDash([]);
+    // the travelling head — a bright bloom on whatever the light has just reached
+    if (!done) {
+      for (let i = 0; i < res.draws.length; i++) {
+        const sg = res.draws[i];
+        if (sg.hop > front || sg.hop < front - 1.2) continue;
+        const cx = cellCx(sg.x), cy = cellCy(sg.y), v = D[sg.d];
+        const hx = sg.half === 0 ? cx : cx + v.x * cs * 0.5, hy = sg.half === 0 ? cy : cy + v.y * cs * 0.5;
+        const gr = ctx.createRadialGradient(hx, hy, 0, hx, hy, cs * 0.55);
+        gr.addColorStop(0, P[sg.m]); gr.addColorStop(0.4, 'rgba(255,255,255,0.20)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.globalAlpha = 0.75; ctx.fillStyle = gr;
+        ctx.beginPath(); ctx.arc(hx, hy, cs * 0.55, 0, Math.PI * 2); ctx.fill();
+      }
+    }
+    // emitter feed stub: from the housing nozzle to the board edge
+    const em = board.em, v0 = D[em.d];
+    ctx.lineWidth = Math.max(2, cs * 0.10); ctx.globalAlpha = 0.9; ctx.strokeStyle = P[7];
+    ctx.beginPath();
+    ctx.moveTo(cellCx(em.x) - v0.x * cs * 0.63, cellCy(em.y) - v0.y * cs * 0.63);
+    ctx.lineTo(cellCx(em.x) - v0.x * cs * 0.5, cellCy(em.y) - v0.y * cs * 0.5);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ---------------- piece painters ----------------
+  // Every painter takes (g, px, py, s) — a cell's top-left corner and size — so the board, the piece
+  // LEGEND and the menu backdrop all draw from the SAME code and can never drift apart. Silhouettes are
+  // deliberately different shapes (bar · triangle · capsule · hexagon · ringed socket · hatched block)
+  // so the pieces are tellable apart in greyscale on a 360px screen.
+
+  // rotatable affordance — a pair of turn arrows in the cell's top-left corner
+  function pRotMark(g, px, py, s) {
+    const r = s * 0.17, cx = px + s * 0.22, cy = py + s * 0.22;
+    g.save();
+    g.strokeStyle = 'rgba(180,235,255,0.62)'; g.lineWidth = Math.max(1, s * 0.035);
+    g.beginPath(); g.arc(cx, cy, r, Math.PI * 0.15, Math.PI * 1.15); g.stroke();
+    const a = Math.PI * 1.15, ax = cx + Math.cos(a) * r, ay = cy + Math.sin(a) * r, t = s * 0.09;
+    g.fillStyle = 'rgba(180,235,255,0.62)';
+    g.beginPath(); g.moveTo(ax, ay); g.lineTo(ax - t * 0.2, ay - t); g.lineTo(ax + t, ay - t * 0.3); g.closePath(); g.fill();
+    g.restore();
+  }
+  // fixed piece — four rivets on the cell corners (the "this never turns" convention)
+  function pRivets(g, px, py, s) {
+    const m = s * 0.14, r = Math.max(1, s * 0.038);
+    g.save(); g.fillStyle = 'rgba(150,190,210,0.55)';
+    for (const [ax, ay] of [[m, m], [s - m, m], [m, s - m], [s - m, s - m]]) {
+      g.beginPath(); g.arc(px + ax, py + ay, r, 0, Math.PI * 2); g.fill();
+    }
+    g.restore();
+  }
+
+  // A mirror is a silvered pane on a mount: bracket at each end, dark backing plate, bright face.
+  // `spin` (0..1) eases the pane through its 90° flip — view only, the model flipped instantly.
+  function pMirror(g, px, py, s, o, spin) {
+    const cx = px + s / 2, cy = py + s / 2;
+    const A0 = -Math.PI / 4, A1 = Math.PI / 4;
+    let ang = o === 0 ? A0 : A1;
+    if (spin && spin.t < SPIN_FRAMES) {
+      const u = spin.t / SPIN_FRAMES, e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;   // ease-in-out
+      const from = spin.from === 0 ? A0 : A1;
+      ang = from + (ang - from) * e;
+    }
+    const half = s * 0.33, ux = Math.cos(ang), uy = Math.sin(ang);
+    const ax = cx - ux * half, ay = cy - uy * half, bx2 = cx + ux * half, by2 = cy + uy * half;
+    const ox = -uy, oy = ux;                                     // pane normal
+    g.save(); g.lineCap = 'round';
+    // mount brackets at both ends
+    g.strokeStyle = 'rgba(120,160,180,0.85)'; g.lineWidth = Math.max(1.2, s * 0.05);
+    g.beginPath();
+    g.moveTo(ax - ox * s * 0.09, ay - oy * s * 0.09); g.lineTo(ax + ox * s * 0.09, ay + oy * s * 0.09);
+    g.moveTo(bx2 - ox * s * 0.09, by2 - oy * s * 0.09); g.lineTo(bx2 + ox * s * 0.09, by2 + oy * s * 0.09);
+    g.stroke();
+    // dark backing plate (the non-reflective side)
+    g.strokeStyle = 'rgba(14,34,48,0.96)'; g.lineWidth = Math.max(3, s * 0.17);
+    g.beginPath(); g.moveTo(ax - ox * s * 0.045, ay - oy * s * 0.045); g.lineTo(bx2 - ox * s * 0.045, by2 - oy * s * 0.045); g.stroke();
+    // silvered face
+    const gr = g.createLinearGradient(ax, ay, bx2, by2);
+    gr.addColorStop(0, '#7fa6bb'); gr.addColorStop(0.4, '#ffffff'); gr.addColorStop(0.62, '#e8f6ff'); gr.addColorStop(1, '#6f97ad');
+    g.strokeStyle = gr; g.lineWidth = Math.max(2, s * 0.105);
+    g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx2, by2); g.stroke();
+    // specular streak along the reflective side
+    g.strokeStyle = 'rgba(235,250,255,0.95)'; g.lineWidth = Math.max(1, s * 0.028);
+    g.beginPath();
+    g.moveTo(ax + ox * s * 0.05 + ux * s * 0.06, ay + oy * s * 0.05 + uy * s * 0.06);
+    g.lineTo(bx2 + ox * s * 0.05 - ux * s * 0.10, by2 + oy * s * 0.05 - uy * s * 0.10);
+    g.stroke();
+    g.restore();
+    pRotMark(g, px, py, s);
+  }
+
+  // A prism: glass wedge with a visible refraction fan on its exit faces.
+  function pPrism(g, px, py, s, P) {
+    const cx = px + s / 2, cy = py + s / 2, r = s * 0.36;
+    const pts = [[cx, cy - r], [cx + r * 0.92, cy + r * 0.72], [cx - r * 0.92, cy + r * 0.72]];
+    g.save();
+    g.beginPath(); g.moveTo(pts[0][0], pts[0][1]); g.lineTo(pts[1][0], pts[1][1]); g.lineTo(pts[2][0], pts[2][1]); g.closePath();
+    const gr = g.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+    gr.addColorStop(0, 'rgba(240,252,255,0.42)'); gr.addColorStop(0.55, 'rgba(190,235,255,0.18)'); gr.addColorStop(1, 'rgba(127,232,255,0.10)');
+    g.fillStyle = gr; g.fill();
+    g.save(); g.clip();
+    // internal refraction: three tinted caustic bands fanning from the apex
+    g.globalCompositeOperation = 'lighter';
+    const cols = [P[1], P[2], P[4]];
+    for (let i = 0; i < 3; i++) {
+      g.globalAlpha = 0.30; g.strokeStyle = cols[i]; g.lineWidth = Math.max(1, s * 0.07);
+      g.beginPath(); g.moveTo(cx, cy - r * 0.75);
+      g.lineTo(cx + (i - 1) * r * 0.62, cy + r * 0.8);
+      g.stroke();
+    }
+    g.restore();
+    g.strokeStyle = 'rgba(232,248,255,0.92)'; g.lineWidth = Math.max(1.2, s * 0.035); g.stroke();
+    // the three faces carry the three channels it splits into
+    g.globalCompositeOperation = 'lighter'; g.lineWidth = Math.max(1.5, s * 0.05);
+    for (let i = 0; i < 3; i++) {
+      g.strokeStyle = cols[i]; g.globalAlpha = 0.95;
+      g.beginPath(); g.moveTo(pts[i][0], pts[i][1]); g.lineTo(pts[(i + 1) % 3][0], pts[(i + 1) % 3][1]); g.stroke();
+    }
+    g.restore();
+    pRivets(g, px, py, s);
+  }
+
+  // A coloured lens in a metal housing — the only capsule-shaped piece on the board.
+  function pFilter(g, px, py, s, ch, P, showLetter) {
+    const cx = px + s / 2, cy = py + s / 2, w = s * 0.50, h = s * 0.70, col = P[ch];
+    g.save();
+    // housing
+    g.fillStyle = '#0c2130';
+    KIT.roundRect(g, cx - w / 2, cy - h / 2, w, h, w / 2); g.fill();
+    g.strokeStyle = 'rgba(170,210,232,0.9)'; g.lineWidth = Math.max(1.4, s * 0.05);
+    KIT.roundRect(g, cx - w / 2, cy - h / 2, w, h, w / 2); g.stroke();
+    // lens glass
+    const lw = w * 0.62, lh = h * 0.60;
+    const lg = g.createLinearGradient(cx - lw / 2, cy - lh / 2, cx + lw / 2, cy + lh / 2);
+    lg.addColorStop(0, col); lg.addColorStop(0.55, col); lg.addColorStop(1, 'rgba(255,255,255,0.35)');
+    g.globalAlpha = 0.55; g.fillStyle = lg;
+    g.beginPath(); g.ellipse(cx, cy, lw / 2, lh / 2, 0, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = 1;
+    g.strokeStyle = col; g.lineWidth = Math.max(1.2, s * 0.04);
+    g.beginPath(); g.ellipse(cx, cy, lw / 2, lh / 2, 0, 0, Math.PI * 2); g.stroke();
+    // specular highlight on the glass
+    g.fillStyle = 'rgba(255,255,255,0.55)';
+    g.beginPath(); g.ellipse(cx - lw * 0.16, cy - lh * 0.20, lw * 0.14, lh * 0.09, -0.6, 0, Math.PI * 2); g.fill();
+    // clamp screws top and bottom
+    g.fillStyle = 'rgba(190,220,238,0.8)';
+    g.beginPath(); g.arc(cx, cy - h / 2 + s * 0.06, Math.max(1, s * 0.035), 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(cx, cy + h / 2 - s * 0.06, Math.max(1, s * 0.035), 0, Math.PI * 2); g.fill();
+    if (showLetter) {
+      g.fillStyle = '#03121c'; g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.font = '700 ' + Math.round(s * 0.30) + 'px ui-monospace, monospace';
+      g.fillText(LETTER[ch] || '?', cx, cy + 1);
+    }
+    g.restore();
+  }
+
+  // A machined merge node: bolted hex housing, inner ring, three intake stubs and one big output arrow.
+  function pCombiner(g, px, py, s, dir) {
+    const cx = px + s / 2, cy = py + s / 2, r = s * 0.36, v = D[dir];
+    const hex = k => { const a = -Math.PI / 2 + k * Math.PI / 3; return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; };
+    g.save();
+    g.beginPath();
+    for (let i = 0; i < 6; i++) { const q = hex(i); if (i) g.lineTo(q[0], q[1]); else g.moveTo(q[0], q[1]); }
+    g.closePath();
+    const gr = g.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+    gr.addColorStop(0, '#17384c'); gr.addColorStop(0.5, '#0d2634'); gr.addColorStop(1, '#081a26');
+    g.fillStyle = gr; g.fill();
+    g.strokeStyle = 'rgba(210,242,255,0.9)'; g.lineWidth = Math.max(1.3, s * 0.042); g.stroke();
+    // bolts at the hex corners
+    g.fillStyle = 'rgba(185,220,240,0.75)';
+    for (let i = 0; i < 6; i++) { const q = hex(i);
+      g.beginPath(); g.arc(cx + (q[0] - cx) * 0.72, cy + (q[1] - cy) * 0.72, Math.max(0.8, s * 0.026), 0, Math.PI * 2); g.fill(); }
+    // inner machined ring
+    g.strokeStyle = 'rgba(150,200,225,0.6)'; g.lineWidth = Math.max(1, s * 0.028);
+    g.beginPath(); g.arc(cx, cy, r * 0.44, 0, Math.PI * 2); g.stroke();
+    // intake stubs on the non-output faces
+    g.strokeStyle = 'rgba(160,205,230,0.62)'; g.lineWidth = Math.max(1, s * 0.032);
+    g.beginPath();
+    for (let k = 0; k < 4; k++) { if (k === dir) continue; const u = D[k];
+      g.moveTo(cx + u.x * r * 0.5, cy + u.y * r * 0.5); g.lineTo(cx + u.x * r * 0.95, cy + u.y * r * 0.95); }
+    g.stroke();
+    // output arrow
+    const al = r * 0.88;
+    g.strokeStyle = '#f4fcff'; g.lineWidth = Math.max(1.5, s * 0.055); g.lineCap = 'round';
+    g.beginPath(); g.moveTo(cx - v.x * al * 0.3, cy - v.y * al * 0.3); g.lineTo(cx + v.x * al, cy + v.y * al); g.stroke();
+    const hx = cx + v.x * al, hy = cy + v.y * al, t = r * 0.38;
+    g.beginPath();
+    g.moveTo(hx, hy); g.lineTo(hx - v.x * t + v.y * t * 0.72, hy - v.y * t + v.x * t * 0.72);
+    g.moveTo(hx, hy); g.lineTo(hx - v.x * t - v.y * t * 0.72, hy - v.y * t - v.x * t * 0.72);
+    g.stroke();
+    g.restore();
+  }
+
+  function pWall(g, px, py, s) {
+    const m = s * 0.09;
+    g.save();
+    const gr = g.createLinearGradient(px, py, px + s, py + s);
+    gr.addColorStop(0, '#12283a'); gr.addColorStop(1, '#071520');
+    g.fillStyle = gr;
+    KIT.roundRect(g, px + m, py + m, s - m * 2, s - m * 2, Math.max(2, s * 0.1)); g.fill();
+    g.strokeStyle = 'rgba(160,200,220,0.42)'; g.lineWidth = Math.max(1, s * 0.03);
+    KIT.roundRect(g, px + m, py + m, s - m * 2, s - m * 2, Math.max(2, s * 0.1)); g.stroke();
+    g.save();
+    KIT.roundRect(g, px + m, py + m, s - m * 2, s - m * 2, Math.max(2, s * 0.1)); g.clip();
+    g.strokeStyle = 'rgba(160,200,220,0.24)'; g.lineWidth = Math.max(1, s * 0.035);
+    g.beginPath();
+    for (let k = -2; k < 5; k++) { const t = m + (s - m * 2) * k / 4;
+      g.moveTo(px + t, py + m - s); g.lineTo(px + t + s, py + m + s * 0.2); }
+    g.stroke();
+    g.restore();
+    g.restore();
+    pRivets(g, px, py, s);
+  }
+
+  // A socket that visibly FILLS: dark well + rising colour when lit, a ✓ once seated, and always the
+  // demanded colour as a thick ring plus its letter. Shape + fill carry the state, never colour alone.
+  function pTarget(g, px, py, s, col, lit, wrong, P, showLetter, ph, fill) {
+    const cx = px + s / 2, cy = py + s / 2, r = s * 0.34, c = P[col] || '#ffffff';
+    const f = Math.max(0, Math.min(1, fill == null ? (lit ? 1 : 0) : fill));
+    g.save();
+    // well
+    const wg = g.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.1, cx, cy, r);
+    wg.addColorStop(0, '#0b1a24'); wg.addColorStop(1, '#02090f');
+    g.fillStyle = wg;
+    g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
+    // socket collar ticks
+    g.strokeStyle = lit ? c : 'rgba(180,215,235,0.62)'; g.lineWidth = Math.max(1, s * 0.032);
+    g.beginPath();
+    for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4;
+      g.moveTo(cx + Math.cos(a) * r * 1.06, cy + Math.sin(a) * r * 1.06);
+      g.lineTo(cx + Math.cos(a) * r * 1.26, cy + Math.sin(a) * r * 1.26); }
+    g.stroke();
+    if (f > 0) {
+      // the well fills from the bottom up as the target seats
+      g.save();
+      g.beginPath(); g.arc(cx, cy, r * 0.80, 0, Math.PI * 2); g.clip();
+      g.fillStyle = c; g.globalAlpha = 0.30 + 0.7 * f;
+      g.fillRect(cx - r, cy + r - 2 * r * f, r * 2, 2 * r * f);
+      g.restore();
+      g.globalCompositeOperation = 'lighter';
+      const pulse = 0.72 + 0.28 * Math.sin((ph || 0) * 0.11);
+      const gr = g.createRadialGradient(cx, cy, 0, cx, cy, r * 2.4);
+      gr.addColorStop(0, c); gr.addColorStop(0.34, 'rgba(255,255,255,0.18)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.globalAlpha = 0.55 * pulse * f; g.fillStyle = gr;
+      g.beginPath(); g.arc(cx, cy, r * 2.4, 0, Math.PI * 2); g.fill();
+      g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1;
+    }
+    if (f >= 1) {
+      g.strokeStyle = 'rgba(3,14,22,0.92)'; g.lineWidth = Math.max(1.6, s * 0.078); g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(cx - r * 0.36, cy - r * 0.10); g.lineTo(cx - r * 0.08, cy + r * 0.20); g.lineTo(cx + r * 0.40, cy - r * 0.42);
+      g.stroke();
+      // the colour LETTER stays readable once lit too — a colour-blind player must still be able to
+      // check WHICH colour seated here, not just that something did
+      if (showLetter) {
+        g.fillStyle = 'rgba(3,14,22,0.92)'; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.font = '700 ' + Math.max(7, Math.round(s * 0.22)) + 'px ui-monospace, monospace';
+        g.fillText(LETTER[col] || '?', cx, cy + r * 0.52);
+      }
+    } else {
+      g.setLineDash([Math.max(2, s * 0.08), Math.max(2, s * 0.08)]);
+      g.strokeStyle = wrong ? 'rgba(255,130,130,0.9)' : 'rgba(215,238,250,0.42)';
+      g.lineWidth = Math.max(1, s * 0.034);
+      g.beginPath(); g.arc(cx, cy, r * 0.62, 0, Math.PI * 2); g.stroke();
+      g.setLineDash([]);
+      if (showLetter) {
+        g.fillStyle = c; g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.font = '700 ' + Math.round(s * 0.34) + 'px ui-monospace, monospace';
+        g.fillText(LETTER[col] || '?', cx, cy + 1);
+      }
+    }
+    // the demand ring carries the SAME channel-count signature as the beam that has to feed it:
+    // solid = one pure colour, dashed = a two-colour mix, twin ring = white
+    const nch = CHANNELS[col] || 1;
+    g.strokeStyle = c; g.lineWidth = Math.max(2, s * (nch === 3 ? 0.052 : 0.088));
+    if (nch === 2) g.setLineDash([Math.max(2, s * 0.16), Math.max(2, s * 0.11)]);
+    g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.stroke();
+    if (nch === 3) { g.beginPath(); g.arc(cx, cy, r * 0.86, 0, Math.PI * 2); g.stroke(); }
+    g.setLineDash([]);
+    g.restore();
+  }
+
+  // The housing lives in the 0.8-cell ring OUTSIDE the grid: centre 0.85 cells from the entry cell's
+  // centre, half-extents 0.22 along the beam / 0.30 across → it never reaches past the ring.
+  function emitterRect() {
+    const em = board.em, v = D[em.d];
+    const cx = cellCx(em.x) - v.x * cs * 0.85, cy = cellCy(em.y) - v.y * cs * 0.85;
+    const along = cs * 0.22, across = cs * 0.30;
+    const horiz = (em.d === 1 || em.d === 3);
+    return { cx, cy, w: horiz ? along : across, h: horiz ? across : along, v, along };
+  }
+  // A laser head: machined barrel with cooling fins, a bright aperture aimed into the grid.
+  function pEmitter(g, cx, cy, s, dir, P, ph) {
+    const v = D[dir], horiz = (dir === 1 || dir === 3);
+    const along = s * 0.22, across = s * 0.30;
+    const w = horiz ? along : across, h = horiz ? across : along;
+    const ox = -v.y, oy = v.x;                                  // across the barrel
+    g.save();
+    const gr = g.createLinearGradient(cx - w, cy - h, cx + w, cy + h);
+    gr.addColorStop(0, '#1a4055'); gr.addColorStop(0.55, '#0d2231'); gr.addColorStop(1, '#07161f');
+    g.fillStyle = gr;
+    KIT.roundRect(g, cx - w, cy - h, w * 2, h * 2, Math.max(2, s * 0.1)); g.fill();
+    g.strokeStyle = 'rgba(150,238,255,0.85)'; g.lineWidth = Math.max(1, s * 0.04);
+    KIT.roundRect(g, cx - w, cy - h, w * 2, h * 2, Math.max(2, s * 0.1)); g.stroke();
+    // cooling fins across the back half
+    g.strokeStyle = 'rgba(150,200,225,0.55)'; g.lineWidth = Math.max(0.8, s * 0.022);
+    g.beginPath();
+    for (let k = -1; k <= 1; k++) {
+      const t = -along * 0.45 + k * along * 0.34;
+      g.moveTo(cx + v.x * t - ox * across * 0.82, cy + v.y * t - oy * across * 0.82);
+      g.lineTo(cx + v.x * t + ox * across * 0.82, cy + v.y * t + oy * across * 0.82);
+    }
+    g.stroke();
+    // aperture ring
+    const ax = cx + v.x * along * 0.72, ay = cy + v.y * along * 0.72;
+    g.strokeStyle = 'rgba(210,245,255,0.9)'; g.lineWidth = Math.max(1, s * 0.03);
+    g.beginPath(); g.arc(ax, ay, s * 0.10, 0, Math.PI * 2); g.stroke();
+    g.globalCompositeOperation = 'lighter';
+    const ag = g.createRadialGradient(ax, ay, 0, ax, ay, s * 0.26);
+    ag.addColorStop(0, P[7]); ag.addColorStop(0.45, 'rgba(255,255,255,0.20)'); ag.addColorStop(1, 'rgba(0,0,0,0)');
+    g.globalAlpha = 0.60 + 0.25 * Math.sin((ph || 0) * 0.13);
+    g.fillStyle = ag;
+    g.beginPath(); g.arc(ax, ay, s * 0.26, 0, Math.PI * 2); g.fill();
+    g.globalAlpha = 1; g.fillStyle = P[7];
+    g.beginPath(); g.arc(ax, ay, s * 0.055, 0, Math.PI * 2); g.fill();
+    g.restore();
+  }
+  function drawEmitter() { const e = emitterRect(); pEmitter(ctx, e.cx, e.cy, cs, board.em.d, palette(), frame); }
+
+  function drawBeamDirection() {
+    // chevrons on every cell EXIT, pointing the way the light travels — cause and effect readable
+    ctx.save();
+    ctx.strokeStyle = 'rgba(3,14,22,0.72)'; ctx.lineWidth = Math.max(1.2, cs * 0.035);
+    ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    const t = cs * 0.11, slide = ((frame % 90) / 90) * cs * 0.34 - cs * 0.10;
+    const front = beamFront(), done = front > (res.maxHop || 0) + 1;
+    ctx.beginPath();
+    for (let i = 0; i < res.draws.length; i++) {
+      const sg = res.draws[i];
+      if (sg.half !== 1) continue;
+      if (!done && sg.hop > front) continue;
+      const v = D[sg.d], cx = cellCx(sg.x) + v.x * slide, cy = cellCy(sg.y) + v.y * slide;
+      ctx.moveTo(cx - v.x * t + v.y * t, cy - v.y * t + v.x * t);
+      ctx.lineTo(cx, cy);
+      ctx.lineTo(cx - v.x * t - v.y * t, cy - v.y * t - v.x * t);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawCursor() {
+    if (!curOn || state !== 'playing') return;
+    const px = bx + cur.x * cs, py = by + cur.y * cs;
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)'; ctx.lineWidth = 2;
+    ctx.setLineDash([Math.max(3, cs * 0.16), Math.max(3, cs * 0.12)]);
+    KIT.roundRect(ctx, px + 1, py + 1, cs - 2, cs - 2, Math.max(2, cs * 0.14)); ctx.stroke();
+    ctx.restore();
+  }
+
+  // measured width, with a monospace estimate when the canvas can't measure (headless)
+  function textW(s, fs) { const mt = ctx.measureText ? ctx.measureText(s) : null;
+    return (mt && mt.width) ? mt.width : s.length * fs * 0.58; }
+  function wrapLines(txt, maxW, fs, weight) {
+    ctx.font = (weight || '600') + ' ' + fs + 'px ui-monospace, monospace';
+    const words = String(txt).split(' '), out = [];
+    let cur = '';
+    for (let i = 0; i < words.length; i++) {
+      const t = cur ? cur + ' ' + words[i] : words[i];
+      if (cur && textW(t, fs) > maxW) { out.push(cur); cur = words[i]; } else cur = t;
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+  // ---------------- the piece legend ----------------
+  // Shown once on the first campaign maze and any time from the pause menu. It lists exactly the pieces
+  // on the CURRENT board and paints them with the real painters, so the key can never lie.
+  function legendRows() {
+    const has = t => { for (let i = 0; i < board.cells.length; i++) { const c = board.cells[i]; if (c && c.t === t) return true; } return false; };
+    const rows = [
+      { k: 'emitter', name: KIT.t('game.mirror-maze.pcLaser', { def: 'LASER' }),
+        desc: KIT.t('game.mirror-maze.pcLaserD', { def: 'Fires white light into the grid.' }) },
+      { k: 'mirror', name: KIT.t('game.mirror-maze.pcMirror', { def: 'MIRROR' }),
+        desc: KIT.t('game.mirror-maze.pcMirrorD', { def: 'Tap it to flip / and \\. Bends the beam 90°. Corner arrow = you can turn it.' }) },
+      { k: 'target', name: KIT.t('game.mirror-maze.pcTarget', { def: 'TARGET' }),
+        desc: KIT.t('game.mirror-maze.pcTargetD', { def: 'Needs the colour of its letter. Empty ring = dark, filled + tick = lit.' }) },
+      // the shape language that lets the board be read without colour at all
+      { k: 'beamCue', name: KIT.t('game.mirror-maze.pcBeam', { def: 'BEAM' }),
+        desc: KIT.t('game.mirror-maze.pcBeamD', { def: 'One colour draws a solid line, two mixed colours a dashed line, white a double line. Rings match.' }) },
+    ];
+    if (has('prism')) rows.push({ k: 'prism', name: KIT.t('game.mirror-maze.pcPrism', { def: 'PRISM' }),
+      desc: KIT.t('game.mirror-maze.pcPrismD', { def: 'Splits white light: red bends left, green goes straight, blue bends right.' }) });
+    if (has('filter')) rows.push({ k: 'filter', name: KIT.t('game.mirror-maze.pcFilter', { def: 'FILTER' }),
+      desc: KIT.t('game.mirror-maze.pcFilterD', { def: 'Only its own colour gets through. Anything else stops here.' }) });
+    if (has('combiner')) rows.push({ k: 'combiner', name: KIT.t('game.mirror-maze.pcCombiner', { def: 'COMBINER' }),
+      desc: KIT.t('game.mirror-maze.pcCombinerD', { def: 'Adds the beams that arrive and fires the mix along its arrow. Red + green = yellow.' }) });
+    if (has('wall')) rows.push({ k: 'wall', name: KIT.t('game.mirror-maze.pcWall', { def: 'WALL' }),
+      desc: KIT.t('game.mirror-maze.pcWallD', { def: 'Blocks the beam. Riveted pieces never turn.' }) });
+    return rows;
+  }
+  function pIcon(g, k, px, py, s, P) {
+    if (k === 'beamCue') {                       // the three stroke signatures, drawn as they really are
+      g.save(); g.lineCap = 'round';
+      const x0 = px + s * 0.06, x1 = px + s * 0.94;
+      g.lineWidth = Math.max(1.5, s * 0.09); g.strokeStyle = P[1];
+      g.beginPath(); g.moveTo(x0, py + s * 0.2); g.lineTo(x1, py + s * 0.2); g.stroke();
+      g.strokeStyle = P[3]; g.setLineDash([Math.max(2, s * 0.17), Math.max(2, s * 0.12)]);
+      g.beginPath(); g.moveTo(x0, py + s * 0.48); g.lineTo(x1, py + s * 0.48); g.stroke();
+      g.setLineDash([]);
+      g.lineWidth = Math.max(1, s * 0.05); g.strokeStyle = P[7];
+      g.beginPath(); g.moveTo(x0, py + s * 0.72); g.lineTo(x1, py + s * 0.72);
+      g.moveTo(x0, py + s * 0.86); g.lineTo(x1, py + s * 0.86); g.stroke();
+      g.restore(); return;
+    }
+    if (k === 'mirror') pMirror(g, px, py, s, 0);
+    else if (k === 'prism') pPrism(g, px, py, s, P);
+    else if (k === 'filter') pFilter(g, px, py, s, CR, P, labels);
+    else if (k === 'combiner') pCombiner(g, px, py, s, 1);
+    else if (k === 'wall') pWall(g, px, py, s);
+    else if (k === 'target') pTarget(g, px, py, s, 3, false, false, P, labels, 0);
+    else if (k === 'targetLit') pTarget(g, px, py, s, 2, true, false, P, labels, 0);
+    else if (k === 'emitter') pEmitter(g, px + s / 2, py + s / 2, s, 1, P, 0);
+  }
+  function drawLegend() {
+    const P = palette(), rows = legendRows();
+    const wide = Math.min(W - 24, 430);
+    const ic = Math.max(26, Math.min(38, Math.round(wide / 12)));
+    const nameFs = Math.max(10, Math.round(ic * 0.36)), descFs = Math.max(9, Math.round(ic * 0.33));
+    const textX = ic + 12, textW2 = wide - 28 - textX;
+    const laid = rows.map(r => ({ r, lines: wrapLines(r.desc, textW2, descFs, '400') }));
+    const rowH = laid.map(l => Math.max(ic + 6, nameFs * 1.5 + l.lines.length * descFs * 1.35 + 6));
+    const titleFs = Math.max(12, Math.round(ic * 0.44));
+    const footFs = Math.max(10, Math.round(ic * 0.34));
+    const bodyH = rowH.reduce((a, b) => a + b, 0);
+    const boxH = titleFs * 2.2 + bodyH + footFs * 2.6 + 16;
+    const x0 = (W - wide) / 2, y0 = Math.max(topMargin + 4, (H - boxH) / 2);
+    ctx.save();
+    ctx.fillStyle = 'rgba(2,10,17,0.93)';
+    KIT.roundRect(ctx, x0, y0, wide, boxH, 14); ctx.fill();
+    ctx.strokeStyle = 'rgba(127,232,255,0.5)'; ctx.lineWidth = 1.5;
+    KIT.roundRect(ctx, x0, y0, wide, boxH, 14); ctx.stroke();
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = ACCENT;
+    ctx.font = '700 ' + titleFs + 'px ui-monospace, monospace';
+    ctx.fillText(KIT.t('game.mirror-maze.legendTitle', { def: 'HOW THE PIECES WORK' }), W / 2, y0 + titleFs * 1.1);
+    let y = y0 + titleFs * 2.2;
+    ctx.textAlign = 'left';
+    for (let i = 0; i < laid.length; i++) {
+      const l = laid[i];
+      pIcon(ctx, l.r.k, x0 + 14, y + 2, ic, P);
+      ctx.fillStyle = '#eafaff';
+      ctx.font = '700 ' + nameFs + 'px ui-monospace, monospace';
+      ctx.fillText(l.r.name, x0 + 14 + textX, y + nameFs * 0.8);
+      ctx.fillStyle = 'rgba(205,235,250,0.82)';
+      ctx.font = '400 ' + descFs + 'px ui-monospace, monospace';
+      for (let j = 0; j < l.lines.length; j++)
+        ctx.fillText(l.lines[j], x0 + 14 + textX, y + nameFs * 1.6 + descFs * 1.35 * (j + 0.5));
+      y += rowH[i];
+    }
+    ctx.textAlign = 'center';
+    ctx.fillStyle = ACCENT;
+    ctx.font = '700 ' + footFs + 'px ui-monospace, monospace';
+    ctx.globalAlpha = 0.65 + 0.35 * Math.sin(frame * 0.08);
+    ctx.fillText(KIT.t('game.mirror-maze.legendGo', { def: 'TAP TO START' }), W / 2, y0 + boxH - footFs * 1.4);
+    ctx.restore();
+  }
+
+  function render() {
+    drawBg();
+    if (!board || !res) return;
+    drawGrid();
+    drawBeams();
+    drawBeamDirection();
+    const n = board.n, P = palette();
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      const i = y * n + x, p = board.cells[i];
+      if (!p) continue;
+      const px = bx + x * cs, py = by + y * cs;
+      if (p.t === 'mirror') pMirror(ctx, px, py, cs, p.o, spinAnim[i]);
+      else if (p.t === 'prism') pPrism(ctx, px, py, cs, P);
+      else if (p.t === 'filter') pFilter(ctx, px, py, cs, p.ch, P, labels);
+      else if (p.t === 'combiner') pCombiner(ctx, px, py, cs, p.dir);
+      else if (p.t === 'wall') pWall(ctx, px, py, cs);
+      else if (p.t === 'target') {
+        const lt = !!res.litSet[i];
+        // the socket fills over ~8 frames once the beam seats — a visible "locks in" moment
+        const fill = lt ? Math.min(1, (litAnim[i] == null ? 0 : litAnim[i]) / 8) : 0;
+        pTarget(ctx, px, py, cs, p.col, lt, !!res.wrongSet[i], P, labels, frame, fill);
+      }
+    }
+    drawEmitter();
+    // the cell you just turned flashes, so the cause of a beam change is unmistakable
+    for (const k in spinAnim) {
+      const a2 = spinAnim[k], i2 = +k, u = a2.t / SPIN_FRAMES;
+      const px2 = bx + (i2 % n) * cs, py2 = by + ((i2 - i2 % n) / n) * cs;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.35 * (1 - u);
+      ctx.strokeStyle = ACCENT; ctx.lineWidth = Math.max(1.5, cs * 0.06);
+      KIT.roundRect(ctx, px2 + 2, py2 + 2, cs - 4, cs - 4, Math.max(2, cs * 0.14)); ctx.stroke();
+      ctx.restore();
+    }
+    // the hinted mirror: an amber cell ring — a SHAPE cue in a colour no beam ever uses, so it reads
+    // for a colour-blind player too
+    if (hintCell >= 0) {
+      const hp = board.cells[hintCell];
+      if (hp && hp.t === 'mirror') {
+        const hxx = hintCell % n, hyy = (hintCell - hxx) / n;
+        const px4 = bx + hxx * cs, py4 = by + hyy * cs, pu = 0.55 + 0.45 * Math.sin(frame * 0.13);
+        const rr = Math.max(3, cs * 0.16);
+        ctx.save();
+        ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.22 * pu;
+        ctx.fillStyle = '#ffd666';
+        KIT.roundRect(ctx, px4 + 1, py4 + 1, cs - 2, cs - 2, rr); ctx.fill();
+        ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+        ctx.strokeStyle = 'rgba(255,214,102,' + (0.55 + 0.45 * pu).toFixed(3) + ')';
+        ctx.lineWidth = Math.max(2, cs * 0.085);
+        KIT.roundRect(ctx, px4 + 1, py4 + 1, cs - 2, cs - 2, rr); ctx.stroke();
+        ctx.restore();
+      }
+    }
+    drawCursor();
+    // win flourish: each target pops in turn (a staged cascade), then one ring sweeps the whole board
+    if (winT > 0) {
+      const bw = cs * n;
+      ctx.save(); ctx.globalCompositeOperation = 'lighter';
+      for (let i = 0; i < board.targets.length; i++) {
+        const c = board.targets[i], age = winT - i * 8;
+        if (age < 0 || age > 26) continue;
+        const u = age / 26, cx2 = cellCx(c % n), cy2 = cellCy((c - c % n) / n);
+        ctx.globalAlpha = 0.65 * (1 - u);
+        ctx.strokeStyle = P[board.cells[c].col] || '#fff';
+        ctx.lineWidth = Math.max(2, cs * 0.13);
+        ctx.beginPath(); ctx.arc(cx2, cy2, cs * (0.32 + u * 0.85), 0, Math.PI * 2); ctx.stroke();
+      }
+      const t = Math.min(1, Math.max(0, (winT - board.targets.length * 8)) / 34);
+      if (winT > board.targets.length * 8) {
+        ctx.globalAlpha = 0.5 * (1 - t);
+        ctx.strokeStyle = P[7]; ctx.lineWidth = Math.max(2, cs * 0.2);
+        KIT.roundRect(ctx, bx - bw * 0.5 * t, by - bw * 0.5 * t, bw * (1 + t), bw * (1 + t), cs * 0.3);
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
+    // post grade + vignette
+    const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.42, W / 2, H / 2, Math.max(W, H) * 0.78);
+    v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.42)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+    if (legendOn) drawLegend();
+  }
+
+  // ---------------- menus ----------------
+  const MENU_THEME = { accent: ACCENT, title: ACCENT };
+
+  // Backdrop truth: the REAL piece painters on a decorative lattice, so the menu can never drift away
+  // from how the board actually looks. Content hugs the left/right edges — the menu box owns the middle.
+  function menuBackdrop(g, w, h, st, fr) {
+    const tt = (fr || 0) / 60, P = palette();
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#04121e'); bg.addColorStop(1, '#03080e');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    const sz = Math.max(38, Math.floor(Math.min(w, h) / 10));
+    g.strokeStyle = 'rgba(127,232,255,0.10)'; g.lineWidth = 1;
+    g.beginPath();
+    for (let x = 0; x <= w; x += sz) { g.moveTo(x, 0); g.lineTo(x, h); }
+    for (let y = 0; y <= h; y += sz) { g.moveTo(0, y); g.lineTo(w, y); }
+    g.stroke();
+    // two working columns, one per edge: laser → mirror → prism → targets, drawn with the real painters
+    const cols = [{ x: sz * 0.5, dir: 2 }, { x: w - sz * 1.5, dir: 2 }];
+    for (let ci = 0; ci < cols.length; ci++) {
+      const c = cols[ci], cx = c.x;
+      const phase = (tt * 0.22 + ci * 0.5) % 1;
+      const rows = Math.max(3, Math.floor(h / sz) - 1);
+      const yTop = sz * 0.4;
+      pEmitter(g, cx + sz / 2, yTop + sz * 0.2, sz, 2, P, (fr || 0) + ci * 30);
+      // the beam runs down the column, revealed by the travelling phase
+      const runH = rows * sz * phase;
+      g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+      for (const pass of [[sz * 0.30, 0.10], [sz * 0.13, 0.22], [sz * 0.05, 0.9]]) {
+        g.lineWidth = pass[0]; g.globalAlpha = pass[1]; g.strokeStyle = ci ? P[4] : P[1];
+        g.beginPath(); g.moveTo(cx + sz / 2, yTop + sz * 0.5); g.lineTo(cx + sz / 2, yTop + sz * 0.5 + runH); g.stroke();
+      }
+      g.restore();
+      pMirror(g, cx, yTop + sz * 1.2, sz, ci ? 1 : 0, null);
+      pPrism(g, cx, yTop + sz * 2.6, sz, P);
+      pTarget(g, cx, yTop + sz * 4.0, sz, ci ? 4 : 1, phase > 0.75, false, P, true, fr || 0, phase > 0.75 ? 1 : 0);
+      if (h > sz * 6) pCombiner(g, cx, yTop + sz * 5.4, sz, ci ? 3 : 1);
+    }
+  }
+
+  // A level thumbnail built from the real painters: the pieces that tier actually introduces.
+  function pvLevel(g, w, h, tier) {
+    const P = palette();
+    g.fillStyle = '#04101a'; g.fillRect(0, 0, w, h);
+    const cols = 3, s = Math.floor(Math.min(w / cols, h / 2)), ox = (w - s * cols) / 2, oy = (h - s * 2) / 2;
+    g.strokeStyle = 'rgba(127,232,255,0.20)'; g.lineWidth = 1;
+    for (let y = 0; y < 2; y++) for (let x = 0; x < cols; x++) g.strokeRect(ox + x * s + 0.5, oy + y * s + 0.5, s - 1, s - 1);
+    g.save(); g.globalCompositeOperation = 'lighter'; g.lineCap = 'round';
+    g.strokeStyle = P[7]; g.lineWidth = Math.max(1.5, s * 0.13); g.globalAlpha = 0.9;
+    g.beginPath(); g.moveTo(ox, oy + s * 0.5); g.lineTo(ox + s * 1.5, oy + s * 0.5); g.stroke();
+    if (tier >= 2) {
+      g.strokeStyle = P[1]; g.beginPath(); g.moveTo(ox + s * 1.5, oy + s * 0.5); g.lineTo(ox + s * 1.5, oy + s * 1.5); g.stroke();
+      g.strokeStyle = P[2]; g.beginPath(); g.moveTo(ox + s * 1.5, oy + s * 0.5); g.lineTo(ox + s * 3, oy + s * 0.5); g.stroke();
+    }
+    g.restore();
+    pMirror(g, ox, oy, s, 0, null);
+    if (tier === 1) pTarget(g, ox + s, oy + s, s, 7, true, false, P, false, 0, 1);
+    else if (tier === 2) pPrism(g, ox + s, oy, s, P);
+    else if (tier === 3) { pPrism(g, ox + s, oy, s, P); pFilter(g, ox + s * 2, oy + s, s, CR, P, false); }
+    else { pPrism(g, ox + s, oy, s, P); pCombiner(g, ox + s * 2, oy + s, s, 1); }
+  }
+
+  // One level-select cell: the tier schematic, with the state drawn as high-contrast vector art —
+  // the kit dims a locked cell, so the padlock and the cleared tick need that contrast headroom.
+  function pvMaze(g, w, h, i) {
+    const open = unlocked(i);
+    if (!open) {
+      g.fillStyle = '#081724'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(150,220,240,0.30)'; g.lineWidth = 1; g.strokeRect(0.5, 0.5, w - 1, h - 1);
+      const s = Math.min(w, h) * 0.62, cxp = w / 2, cyp = h / 2 + s * 0.08;
+      g.strokeStyle = '#e8f7ff'; g.lineWidth = Math.max(1.5, s * 0.14);
+      g.beginPath(); g.arc(cxp, cyp - s * 0.24, s * 0.24, Math.PI, 0); g.stroke();
+      g.fillStyle = '#e8f7ff';
+      KIT.roundRect(g, cxp - s * 0.36, cyp - s * 0.12, s * 0.72, s * 0.5, s * 0.1); g.fill();
+      return;
+    }
+    pvLevel(g, w, h, CAMPAIGN[i].tier);
+    if (isDone(i)) {
+      const s = Math.min(w, h) * 0.5;
+      g.fillStyle = 'rgba(4,16,26,0.62)'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = '#7ef2c0'; g.lineWidth = Math.max(2, s * 0.22); g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(w / 2 - s * 0.4, h / 2); g.lineTo(w / 2 - s * 0.08, h / 2 + s * 0.32); g.lineTo(w / 2 + s * 0.42, h / 2 - s * 0.34);
+      g.stroke();
+    }
+  }
+
+  function modeGoal(m) {
+    if (m === 'daily') return KIT.t('game.mirror-maze.goalDaily', { def: 'one board, everyone the same' });
+    if (m === 'endless') return KIT.t('game.mirror-maze.goalEndlessPts', { best: bestOf('endless'), def: 'best run: {best} points' });
+    return KIT.t('game.mirror-maze.goalCampaign', { done: readDone().length, total: CAMPAIGN.length, def: '{done} / {total} cleared' });
+  }
+  function modeDesc(m) {
+    if (m === 'daily') return KIT.t('game.mirror-maze.descDaily', { def: 'One maze a day — the same maze for everyone.' });
+    if (m === 'endless') return KIT.t('game.mirror-maze.descEndless', { def: 'Maze after maze, each one bigger and trickier.' });
+    return KIT.t('game.mirror-maze.descCampaign', { def: '12 hand-picked mazes that teach one piece at a time.' });
+  }
+
+  // COLOUR HELP (pause menu): letters = colour letters on targets/filters, cb = those PLUS the
+  // CVD-safe palette, plain = neither. Both flags live in the one tiny versioned UI blob.
+  function applyPrefs(st) {
+    if (!st || st.clr == null) return;
+    const nl = st.clr !== 'plain', nc = st.clr === 'cb';
+    if (nl === labels && nc === cvdOn) return;
+    labels = nl; cvdOn = nc;
+    const ui = readUi(); ui.labels = labels; ui.cvd = cvdOn; writeUi(ui);
+  }
+
+  // In campaign the primary opens level select rather than starting a maze, and it SAYS so — the same
+  // two-step shape (and the same wording pattern) as Floodgate's "PLAY · PICK BLUEPRINT".
+  const playLabel = () => KIT.t('game.common.play', { def: 'PLAY' }) +
+    (mode === 'campaign' ? ' · ' + KIT.t('game.mirror-maze.pickMaze', { def: 'Choose a maze' })
+      : ' · ' + modeDisplay(mode));
+
+  // Level select is a SCREEN of its own (gamekit.levelsScreen — the shared component Floodgate uses),
+  // reached from the start menu's primary in campaign. BACK / Esc always lands back on the start menu,
+  // so it is step two of PLAY, never a dead end.
+  function showLevelsScreen() {
+    if (!KIT) return;
+    state = 'ready';
+    menuScreen = 'levels';
+    menuGroupIds = ['level'];
+    KIT.showMenuButton(false); KIT.showPauseButton(false); showHintBtn(false);
+    const warn = lockWarn;
+    lockWarn = -1;
+    KIT.levelsScreen({
+      // a save can sit on a maze the ladder has not opened (a deep link, an old profile) — the grid
+      // still opens on a maze that can actually be played
+      count: CAMPAIGN.length, default: unlocked(level) ? level : firstOpen(),
+      theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      title: KIT.t('game.mirror-maze.pickMaze', { def: 'Choose a maze' }),
+      status: i => !unlocked(i) ? 'locked' : isDone(i) ? 'done' : (i === firstOpen() ? 'next' : 'open'),
+      par: i => CAMPAIGN[i].par,
+      preview: (g, w, h, i) => pvMaze(g, w, h, i),
+      // the default hint (level x of y · CLEARED / NEXT UP / PAR n) unless a locked maze was tried
+      hint: warn >= 0 ? () => KIT.t('game.mirror-maze.lockedDesc', { n: warn, def: 'Clear maze {n} to unlock this one.' }) : null,
+      onPick: i => { level = i; startRun(); },
+      onLocked: i => { SND.play('deny'); lockWarn = i; showLevelsScreen(); },
+      onBack: () => showStartMenu(),
+    });
+  }
+
+  function showStartMenu() {
+    state = 'ready';
+    if (!KIT) return;
+    menuScreen = 'start';
+    KIT.showMenuButton(false); KIT.showPauseButton(false); showHintBtn(false);
+    const cont = PROG ? PROG.current() : null;
+    // ONE group: the mode. Which maze is a question the level-select SCREEN answers (campaign's
+    // primary opens it) — twelve cells never fitted this pane, and a picker row here could not show
+    // par or the cleared/locked state the way a full screen can.
+    const groups = [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), default: mode,
+      choices: MODES.map(m => ({ id: m, label: modeDisplay(m), kid: m === 'campaign' })) }];
+    // The primary action must always PLAY THE SELECTED MODE. A saved run only takes the primary slot
+    // when it belongs to the mode currently selected — otherwise "Continue · Campaign" hijacked the
+    // Daily/Endless play button and started the wrong mode (playtest bug). In campaign the primary is
+    // always PLAY (it opens level select), so a saved run rides the secondary slot: resuming the maze
+    // you were on is still one tap, and the play button never starts a maze you did not choose.
+    const resumable = cont && MODES.indexOf(cont.mode) >= 0;
+    const contHere = resumable && cont.mode === mode && mode !== 'campaign';
+    const acts = contHere
+      ? [{ id: 'continue', label: KIT.t('game.common.continue', { def: 'Continue' }) + ' · ' + modeDisplay(cont.mode), primary: true },
+         { id: 'play', label: KIT.t('game.common.newGame', { def: 'New game' }) }]
+      : resumable
+        ? [{ id: 'play', label: playLabel(), primary: true },
+           { id: 'continue', label: KIT.t('game.common.continue', { def: 'Continue' }) + ' · ' + modeDisplay(cont.mode) }]
+        : [{ id: 'play', label: playLabel(), primary: true }];
+    primaryId = acts[0].id;
+    menuGroupIds = groups.map(g => g.id);
+    KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      title: KIT.t('game.mirror-maze.menuTitle', { def: 'MIRROR MAZE' }),
+      groups,
+      // NO toggle rows. Both display prefs live together in the pause menu: this pane carries the mode
+      // group, the goal line AND up to two action buttons (a saved run adds one), and at 640×360 that
+      // leaves it no room for a toggle row (measured).
+      // the mode's GOAL rides on the hint line — a separate banner block overflows the landscape pane
+      hint: st => modeDesc(st.mode) + ' · ' + modeGoal(st.mode),
+      actions: acts,
+      onChange: st => {
+        if (st.mode !== mode) { mode = st.mode; KIT.stampUrl({ mode }); showStartMenu(); return; }
+        KIT.stampUrl({ mode });
+      },
+      // campaign PLAY is step one of two: it opens level select (the kit already counted this tap as
+      // game_start, which is why that screen's own start action is not called 'play')
+      onPlay: st => {
+        mode = st.mode;
+        if (mode === 'campaign') { showLevelsScreen(); return; }
+        startRun();
+      },
+      onAction: id => { if (id === 'continue' && cont) resumeRun(cont); },
+    });
+  }
+
+  function startRun() {
+    menuScreen = 'game';
+    solvedCount = 0; runScore = 0; lastAward = 0; outOfBudget = false;
+    if (mode === 'endless') { boardIdx = endlessStartIdx(); endlessSeed = (Math.floor(Math.random() * 1e9) + 7) >>> 0; }
+    clearSave();
+    state = 'playing';
+    loadBoard();
+    if (mode === 'endless') { budget = (board.par || 6) + 4; updateHud(); }   // the starting spin pool (HUD was stale at 0)
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); syncHintBtn(); }
+    saveState(true);
+  }
+
+  function nextBoard() {
+    if (mode === 'campaign') { level = Math.min(CAMPAIGN.length - 1, level + 1); }
+    else if (mode === 'endless') boardIdx++;
+    state = 'playing';
+    loadBoard();
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); syncHintBtn(); }
+    saveState(true);
+  }
+
+  const hasNext = () => mode === 'endless' || (mode === 'campaign' && level < CAMPAIGN.length - 1);
+
+  function shareMsg() {
+    return solvedCount > 1
+      ? KIT.t('game.mirror-maze.shareMany', { count: solvedCount, def: 'I solved {count} laser mazes in one Mirror Maze run 🔆' })
+      : KIT.t('game.mirror-maze.shareOne', { size: board ? board.n : 0, def: 'I cracked a {size}×{size} laser maze in Mirror Maze 🔆' });
+  }
+
+  function showEnd() {
+    if (!KIT) return;
+    KIT.showMenuButton(false); KIT.showPauseButton(false); showHintBtn(false);
+    const par = board ? (board.par || 0) : 0, won = !outOfBudget;
+    // exactly TWO actions — a third row overflows the landscape-phone rail
+    const acts = [ (won && hasNext())
+      ? { id: 'next', label: KIT.t('game.mirror-maze.nextMaze', { def: 'NEXT MAZE' }), primary: true }
+      : { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true },
+      { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ];
+    // ONE line, carrying everything that explains the award: efficiency vs par, hints taken, the
+    // difficulty conquered and what it paid. It HAS to be one line, because a run can now also show
+    // "★ New best!" AND "✓ Good run" — five rows overflow the landscape-phone rail by 11px (measured).
+    // A hinted maze cannot earn "par or better" however few spins it took: that is the price of help.
+    const underPar = won && moves <= par && hintClean();
+    const tsz = board ? board.n : 0;
+    const lines = [ won
+      ? KIT.t('game.mirror-maze.endLine', { spins: moves, par: par, size: tsz, award: lastAward,
+          def: '{spins}/{par} spins · {size}×{size} · +{award}' })
+      : KIT.t('game.mirror-maze.outOfPower', { def: 'The laser ran out of power.' }) ];
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      // beating par is the reward, so it takes over the TITLE rather than costing a menu line
+      // the hint count rides on the TITLE — it is the row that would otherwise have said "PAR OR
+      // BETTER!", so it reads as the reason that praise is missing, and it costs the rail no width
+      title: !won ? KIT.t('game.mirror-maze.powerOut', { def: 'OUT OF POWER' })
+        : underPar ? '✦ ' + KIT.t('game.mirror-maze.underPar', { def: 'PAR OR BETTER!' })
+        : KIT.t('game.mirror-maze.solvedTitle', { def: 'MAZE SOLVED!' }) + (hintCount() ? ' · ' + hintBadge() : ''),
+      record: { slug: SLUG, mode: modeLabel(), modeText: modeDisplay(), score: runScore, time: 0,
+        outcome: won ? 'win' : 'lose', stats: { tier: board ? board.tier : 1, mazes: solvedCount } },
+      score: runScore, best: bestOf(), newBest: isBest,
+      lines: lines,
+      share: { slug: SLUG, accent: ACCENT, icon: '🔆', title: KIT.t('game.mirror-maze.title', { def: 'Mirror Maze' }),
+        message: () => shareMsg(), params: () => ({ mode }) },
+      actions: acts,
+      onAction: id => {
+        if (id === 'next') nextBoard();
+        else if (id === 'again') startRun();          // replay — a fresh run, score back to 0
+        else if (id === 'menu') toMenu();
+      } });
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      // no status line: the HUD pill stays visible above the overlay and already reads LIT x/y, so a
+      // "{lit}/{total} targets lit" line was a duplicate state indicator — and its 17px is what the
+      // colour-blind toggle needs to fit the landscape-phone pane
+      // Both display prefs, as ONE selector row rather than two toggle rows: at 640×360 the pause pane
+      // has 59px to spend and two toggles need 116px, while a labelled 3-choice row needs 43px. It also
+      // drops the one incoherent combination (no letters + colour-blind palette). Lives here, next to
+      // the PIECE GUIDE that teaches the shape cues these settings work alongside.
+      // No group header: a labelled row needs 43px and the pane has 53px, but the kit's button rows
+      // carry a 3px internal overflow that then tips the pane over the gate's 1px limit. The choices
+      // name themselves instead.
+      groups: [{ id: 'clr', default: cvdOn ? 'cb' : (labels ? 'letters' : 'plain'),
+        choices: [
+          { id: 'letters', kid: true, label: KIT.t('game.mirror-maze.clrLetters', { def: 'Colour letters' }) },
+          { id: 'cb', label: KIT.t('game.mirror-maze.clrCb', { def: 'Colour-blind' }) },
+          { id: 'plain', label: KIT.t('game.mirror-maze.clrPlain', { def: 'No letters' }) },
+        ] }],
+      onChange: st => applyPrefs(st),
+      // a hint is reachable from here too, for a player who paused because they were stuck
+      actions: [ { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
+                 { id: 'hint', label: mode === 'endless'
+                   ? KIT.t('game.mirror-maze.hintPower', { n: HINT_POWER, def: 'HINT −{n}⚡' })
+                   : KIT.t('menu.hint', { def: 'HINT' }) },
+                 { id: 'guide', label: KIT.t('game.mirror-maze.pieceGuide', { def: 'PIECE GUIDE' }) },
+                 { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true } ],
+      // the toggle is read on EVERY exit as well as on change, so it sticks however the menu is left
+      onAction: (id, st) => {
+        if (st) applyPrefs(st);
+        if (id === 'resume') KIT.menu.hide();
+        else if (id === 'hint') { KIT.menu.hide(); giveHint(); }
+        else if (id === 'guide') { legendOn = true; KIT.menu.hide(); syncHintBtn(); }
+        else if (id === 'menu') toMenu();
+      },
+      onEsc: () => { const h = KIT.menu.current(); if (h && h.selection) applyPrefs(h.selection()); KIT.menu.hide(); } });
+  }
+
+  function toMenu() {
+    if (state === 'playing') saveState(true);
+    if (KIT) KIT.menu.hide();
+    showStartMenu();
+  }
+
+  // ---------------- nav + music ----------------
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); },
+    confirmLeave: false,   // progress auto-saves and "Continue" resumes it
+    controls: { title: KIT.t('game.mirror-maze.controlsTitle', { def: 'Mirror Maze — Controls' }),
+      note: KIT.t('game.mirror-maze.ctrlNote', { def: 'Only mirrors turn. Prisms, filters and combiners are fixed.' }),
+      mouse: [ [KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.mirror-maze.ctrlSpin', { def: 'Flip a mirror' })] ],
+      keyboard: [ ['← ↑ → ↓', KIT.t('game.mirror-maze.ctrlMoveCursor', { def: 'Move the cursor' })],
+                  [KIT.t('game.common.spaceEnter', { def: 'Space · Enter' }), KIT.t('game.mirror-maze.ctrlSpin', { def: 'Flip a mirror' })],
+                  ['H', KIT.t('menu.hint', { def: 'HINT' })],
+                  [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })] ],
+      touch: [ [KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.mirror-maze.ctrlSpin', { def: 'Flip a mirror' })] ] } });
+  KIT.music.play('mirrormaze');
+
+  // ---------------- __test ----------------
+  window.__test = {
+    get state() { return state; },
+    get score() { return runScore; },
+    get mazes() { return solvedCount; },
+    get award() { return lastAward; },
+    mazeAward(mv, hn) { return mazeAward(board, mv == null ? moves : mv, hn == null ? hintCount() : hn); },
+    get mode() { return mode; },
+    get level() { return level; },
+    get boardIdx() { return boardIdx; },
+    get tier() { return board ? board.tier : 0; },
+    get size() { return board ? board.n : 0; },
+    get moves() { return moves; },
+    get lit() { return res ? res.lit : 0; },
+    get targets() { return res ? res.total : 0; },
+    get solved() { return !!(res && res.total > 0 && res.lit === res.total); },
+    get pops() { return res ? res.pops : 0; },
+    get beams() { return res ? res.beams : 0; },
+    get labels() { return labels; },
+    get depth() { return board ? (board.depth || 0) : 0; },
+    get stages() { return board ? (board.stages || 0) : 0; },
+    get firstBlind() { return board && board.firstBlind != null ? board.firstBlind : 99; },
+    get maxBlind() { return board && board.maxBlind != null ? board.maxBlind : 99; },
+    get par() { return board ? (board.par || 0) : 0; },
+    get budget() { return budget; },
+    get outOfPower() { return outOfBudget; },
+    // hints
+    get hints() { return hintCount(); },
+    get hintClean() { return hintClean(); },
+    get hintBadge() { return hintBadge(); },
+    get hintCell() { return hintCell; },
+    get hintXY() { return hintCell < 0 ? null : { x: hintCell % board.n, y: (hintCell - hintCell % board.n) / board.n }; },
+    get hintCost() { return HINT_POWER; },
+    hint() { return giveHint(); },
+    hintBtnShown() { return !!(hb && hb.wrap && hb.wrap.style.display !== 'none'); },
+    // The kit's hint affordance, so "the text a player reads never sits under the tap target (or the
+    // HUD)" survives the move to the shared component. The wrap is a bottom-anchored column: the tip
+    // is its FIRST child and the button its last, which is what puts the text ABOVE the button; the
+    // whole band is reserved out of the play rect, so neither the board nor the HUD reaches into it.
+    // (Pixel geometry is CSS — only the browser pass can measure it.)
+    hintUi() {
+      if (!hb || !hb.wrap) return null;
+      const kids = hb.wrap.children || [];
+      return { shown: hb.wrap.style.display !== 'none', band: hb.reserve, dock: hb.docked(), rail: hb.railWidth,
+        tipFirst: kids.length === 2 && kids[1] === hb.el,
+        tipShown: !!(kids[0] && kids[0].classList && kids[0].classList.contains('show')),
+        text: (kids[0] && kids[0].textContent) || '', label: (hb.el && hb.el.textContent) || '' };
+    },
+    nearestFlips() { return nearestSolutionFlips(board).slice(); },
+    get cvd() { return cvdOn; },
+    // menus
+    get menuPrimary() { return primaryId; },
+    get menuGroups() { return menuGroupIds.slice(); },
+    get menuScreen() { return menuScreen; },
+    openLevels() { showLevelsScreen(); return menuScreen; },
+    campaignPar(i) { return CAMPAIGN[i].par; },
+    endlessStartIdx() { return endlessStartIdx(); },
+    stageProfile() { const flips = []; const mi = mirrorsOf(board);
+      for (const k in board.sol) if (board.cells[k].o !== board.sol[k]) flips.push(+k);
+      return mi.length ? stageProfile(board, flips) : { steps: 0, maxJump: 0 }; },
+    worstSingleJump() { return worstSingleJump(board); },
+    get legendOn() { return legendOn; },
+    get legendRows() { return board ? legendRows().map(r => r.k) : []; },
+    showLegend() { legendOn = true; syncHintBtn(); },
+    dismissLegend() { dismissLegend(); },
+    ui() { return readUi(); },
+    solutionDepth(b) { const bb = b || board; return solutionDepth(bb, mirrorsOf(bb).length + 1); },
+    skinId() { const id = (KIT && KIT.cosmetics) ? KIT.cosmetics.selected(SLUG + '.beam') : null;
+      return BEAM_SKINS[id] ? id : DEF_SKIN; },
+    get layout() {
+      const n = board ? board.n : 0;
+      return { W, H, topReserve: topMargin, cell: cs,
+        board: { x: bx, y: by, w: cs * n, h: cs * n, n } };
+    },
+    // board inspection / injection
+    cell(x, y) { const p = board.cells[y * board.n + x]; return p ? JSON.parse(JSON.stringify(p)) : null; },
+    setCell(x, y, p) { board.cells[y * board.n + x] = p || null; res = resolveOn(board); updateHud(); },
+    beamAt(x, y, d) { return res.seg[(y * board.n + x) * 4 + d]; },
+    targetLit(x, y) { return !!res.litSet[y * board.n + x]; },
+    mirrors() { return mirrorIdxs(board).length; },
+    orient() { return mirrorIdxs(board).map(i => board.cells[i].o).join(''); },
+    emitter() { return { x: board.em.x, y: board.em.y, d: board.em.d }; },
+    emitterBox() { const e = emitterRect(); return { x: e.cx - e.w, y: e.cy - e.h, w: e.w * 2, h: e.h * 2 }; },
+    // drive the generator's stored solution through the live board
+    solve() { applySol(board); res = resolveOn(board); updateHud();
+      if (res.lit === res.total && res.total > 0 && state === 'playing') solveBoard();
+      return res.lit === res.total; },
+    solutionLights() { const o = mirrorIdxs(board).map(i => board.cells[i].o);
+      applySol(board); const r = resolveOn(board);
+      mirrorIdxs(board).forEach((i, k) => { board.cells[i].o = o[k]; }); res = resolveOn(board);
+      return r.lit === r.total && r.total > 0; },
+    // hand-authored board for mechanic asserts: {n, em:{x,y,d}, cells:[[x,y,piece],…]}
+    loadCustom(spec) {
+      const n = spec.n, cells = new Array(n * n).fill(null), targets = [];
+      for (const c of (spec.cells || [])) { const i = c[1] * n + c[0]; cells[i] = c[2]; if (c[2].t === 'target') targets.push(i); }
+      board = { n, cells, em: spec.em, sol: spec.sol || {}, targets, tier: spec.tier || 1, seed: 0, size: n };
+      moves = 0; winT = 0; pendingEnd = 0; state = 'playing';
+      res = resolveOn(board); layoutBoard(); updateHud();
+      return res;
+    },
+    rotate(x, y) { return rotateAt(x, y); },
+    resolve() { res = resolveOn(board); return res; },
+    dailySpec(day) { return dailySpec(day != null ? day : (KIT ? KIT.utcDayNumber() : 0)); },
+    campaignDone() { return readDone(); },
+    genBoard(seed, tier, n) { return genBoard(seed, tier, n); },
+    checkGen(seed, tier, n) { const b = genBoard(seed, tier, n); const o = mirrorIdxs(b).map(i => b.cells[i].o);
+      const before = resolveOn(b); applySol(b); const after = resolveOn(b);
+      mirrorIdxs(b).forEach((i, k) => { b.cells[i].o = o[k]; });
+      return { solvedByConstruction: after.lit === after.total && after.total > 0,
+        scrambledUnsolved: before.lit < before.total, targets: after.total, mirrors: o.length, pops: after.pops }; },
+    start() { mode = 'campaign'; level = 0; startRun(); },
+    startMode(m, lv) { mode = m; if (lv != null) level = lv; startRun(); },
+    next() { nextBoard(); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+    render() { render(); return true; },        // direct render — the kit loop swallows draw errors
+    // resume hooks
+    hasSave() { return PROG ? PROG.has() : false; },
+    savedRun() { return PROG ? PROG.current() : null; },
+    saveNow() { saveState(true); },
+    resume() { return resumeRun(PROG ? PROG.current() : null); },
+    toMenu() { toMenu(); },
+    pause() { pauseGame(); },
+  };
+
+  // ---------------- boot ----------------
+  // the shared hint affordance: one bottom-centre 🔍 button (H key included) with its toast laid out
+  // ABOVE it. Created before the archetype call — the band it owns comes from hb.reserve.
+  hb = KIT.hintButton({ onHint: () => { if (legendOn) { dismissLegend(); return; } giveHint(); } });
+  hb.show(false);
+  // layout contract: centered grid fitted in playRect(). The right reserve keeps the emitter housing
+  // clear of the kit side-stack's ‹‹ tab, which owns the right screen edge during a run.
+  // The bottom reserve is the 🔍 HINT strip: without it the board's bottom edge sat under the button
+  // on a landscape phone (only ~35px of clear space below a 9×9 grid at 640×360).
+  KIT.layout.archetype('board', { right: 14, bottom: hb.reserve });
+  dockHint();
+  const setLbl = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+  setLbl('lblLit', KIT.t('game.mirror-maze.hudLit', { def: 'LIT' }));
+  setLbl('lblScore', KIT.t('game.mirror-maze.hudScore', { def: 'SCORE' }));
+  setLbl('lblSpins', KIT.t('game.mirror-maze.hudSpins', { def: 'SPINS' }));
+  setLbl('lblPar', KIT.t('game.mirror-maze.hudPar', { def: 'PAR' }));
+  setLbl('lblBudget', KIT.t('game.mirror-maze.hudPower', { def: 'POWER' }));
+  setLbl('lblBest', KIT.t('game.common.best', { def: 'BEST' }));
+  setLbl('lblHints', KIT.t('game.mirror-maze.hudHints', { def: 'HINTS' }));
+  { const ui0 = readUi(); labels = ui0.labels; cvdOn = ui0.cvd; }
+  const mp = KIT.param && KIT.param('mode');
+  if (mp && MODES.indexOf(mp) >= 0) mode = mp;
+  // a saved campaign run preselects ITS maze, so the picker, the goal line and the primary action all
+  // agree and "continue where I left off" is two taps from a cold load (splash → primary)
+  if (mode === 'campaign') {
+    const boot = PROG ? PROG.current() : null;
+    level = (boot && boot.mode === 'campaign' && boot.level >= 0 && boot.level < CAMPAIGN.length) ? boot.level : firstOpen();
+  }
+  resize();
+  loadBoard();
+  state = 'ready';
+  updateHud();
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>
