@@ -1,0 +1,3105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Type Siege — free online typing game in 8 languages, no ads | Komyo Games</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#6ad6ff">
+<script>/* PWA manifest only over http(s) — file:// cannot fetch it (CORS from origin "null"); no offline install path anyway */
+if (location.protocol !== "file:") { var m = document.createElement("link"); m.rel = "manifest"; m.href = "manifest.json"; document.head.appendChild(m); }</script>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Type Siege">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="Type Siege — a free typing game on notebook paper: doodle armies march on your keep, type each word to cut it down. Eight languages, three modes. No ads, works offline.">
+<link rel="canonical" href="https://komyo.online/games/type-siege/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Komyo Games">
+<meta property="og:title" content="Type Siege — free online typing game in 8 languages, no ads">
+<meta property="og:description" content="Type Siege — a free typing game on notebook paper: doodle armies march on your keep, type each word to cut it down. Eight languages, three modes. No ads, works offline.">
+<meta property="og:url" content="https://komyo.online/games/type-siege/">
+<meta property="og:image" content="https://komyo.online/games/type-siege/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Type Siege — free online typing game in 8 languages, no ads">
+<meta name="twitter:description" content="Type Siege — a free typing game on notebook paper: doodle armies march on your keep, type each word to cut it down. Eight languages, three modes. No ads, works offline.">
+<meta name="twitter:image" content="https://komyo.online/games/type-siege/icon-512.png">
+<link rel="alternate" hreflang="en" href="https://komyo.online/games/type-siege/">
+<link rel="alternate" hreflang="pl" href="https://komyo.online/games/type-siege/?lang=pl">
+<link rel="alternate" hreflang="es" href="https://komyo.online/games/type-siege/?lang=es">
+<link rel="alternate" hreflang="pt" href="https://komyo.online/games/type-siege/?lang=pt">
+<link rel="alternate" hreflang="fr" href="https://komyo.online/games/type-siege/?lang=fr">
+<link rel="alternate" hreflang="it" href="https://komyo.online/games/type-siege/?lang=it">
+<link rel="alternate" hreflang="cs" href="https://komyo.online/games/type-siege/?lang=cs">
+<link rel="alternate" hreflang="uk" href="https://komyo.online/games/type-siege/?lang=uk">
+<link rel="alternate" hreflang="x-default" href="https://komyo.online/games/type-siege/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Type Siege","url":"https://komyo.online/games/type-siege/","description":"Type Siege — a free typing game on notebook paper: doodle armies march on your keep, type each word to cut it down. Eight languages, three modes. No ads, works offline.","genre":["Typing","Action","Educational"],"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"inLanguage":["en","pl","es","pt","fr","it","cs","uk"],"image":"https://komyo.online/games/type-siege/icon-512.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Komyo Games","url":"https://komyo.online/"}}</script>
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<!-- the shared word banks (8 locales) — part of THIS game's atomic head unit, so the inline script
+     can read window.KOMYO_WORDS.banks straight away; cached offline via the root sw.js SHELL -->
+<script src="../../words.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #f7f3e8; color: #2f3138;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  /* The kit HUD pill is DARK — its text must be light (a dark ink colour here composites to
+     ~1:1 against the pill). Values take the light accent, labels near-white. */
+  #hud .val { color: #fff; }
+  #hud .lbl { color: rgba(238,246,255,0.92); }
+  /* Soft-keyboard bridge: on touch there is no physical keyboard, so a real focused <input>
+     supplies the keystrokes. It is invisible but focusable and sits over the type bar. */
+  #tskb { position: fixed; left: 0; right: 0; bottom: 0; height: 44px; z-index: 6;
+    display: flex; align-items: center; justify-content: center; }
+  #tsin { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; padding: 0;
+    background: transparent; color: transparent; caret-color: transparent; font-size: 16px;
+    text-align: center; outline: none; }
+  #tskbl { pointer-events: none; opacity: 0; font-size: 13px; letter-spacing: .08em;
+    font-weight: 700; transition: opacity .2s; }
+  body.tstouch #tskbl { opacity: .75; }
+  /* The mode picker is a kit grid (3 cells in one row). The kit renders each cell's preview at its
+     literal canvas size, so a cell cannot shrink below it and the third cell clipped at 360px wide.
+     Let the art scale with the cell instead — page-local, so no other game is affected. */
+  .gamekit-menu .gkm-gcv { max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="tskb"><input id="tsin" type="text" autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" enterkeyhint="done"><span id="tskbl">⌨</span></div>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblWall">WALL</span><span class="val" id="wallEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblWave">WAVE</span><span class="val" id="waveEl">1</span></div>
+</div>
+<!-- crawlable game description — shown to players via the ☰ "How to play" entry (kit aboutModal) -->
+<section id="gk-about" hidden>
+<h1 data-t="game.type-siege.title">Type Siege</h1>
+<p data-t="game.type-siege.blurb">Doodle armies march on your keep — type the word above each one to cut it down. Eight languages.</p>
+<h2 data-t="kit.howto">How to play</h2>
+<p data-t="seo.type-siege.howto">Sketched soldiers march across the notebook page and lay siege to your keep, each carrying a word. Type its first letter and the game locks onto the nearest matching enemy — finish the word and it falls. They do not charge in and vanish: swordsmen halt at the wall and hammer it, archers hold back and shoot, and trebuchets lob rocks marked with tiny urgent words, so the longer you leave a word unfinished the more attackers pile up. Words come from your choice of eight languages, with accents optional; play eight authored stages, an endless siege, or Rain, where words fall from the top of the page.</p>
+<h2 data-t="seo.h.faq">Common questions</h2>
+<p><strong data-t="seo.q.free">Is this game free?</strong> <span data-t="seo.a.free">Yes — every game on Komyo is completely free to play: no ads, no payments, no accounts.</span></p>
+<p><strong data-t="seo.q.offline">Can I play offline?</strong> <span data-t="seo.a.offline">Yes — after your first visit the game works without internet, and you can install it as an app straight from your browser.</span></p>
+<p><strong data-t="seo.q.saves">Where are my scores saved?</strong> <span data-t="seo.a.saves">On your device only — best scores, trophies and cosmetics live in your browser and are never uploaded anywhere.</span></p>
+<h2 data-t="seo.h.more">More free games</h2>
+<p><a href="../aim-trainer/" data-t="game.aim-trainer.title">Range</a> · <a href="../tower-defense/" data-t="game.tower-defense.title">Keep Defender</a> · <a href="../snake/" data-t="game.snake.title">Snake</a> · <a href="../../" data-t="seo.allGames">All free games at Komyo</a></p>
+</section>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'type-siege';
+  const ACCENT = '#6ad6ff';
+  const SND = KIT.sound;
+
+  SND.define({
+    // keystroke tick — a dry pencil tap
+    tick:  c => c.voice({ f: 1500, dur: 0.028, type: 'square', gain: 0.05, filter: 'highpass', cutoff: 900 }),
+    // word felled — bright rising pop
+    pop:   c => { c.voice({ f: 620, slideTo: 1080, dur: 0.11, type: 'triangle', gain: 0.12, filter: 'lowpass', cutoff: 3200 }); c.noiseHit({ dur: 0.05, gain: 0.05 }); },
+    // wrong letter — short buzz
+    whiff: c => c.voice({ f: 190, slideTo: 130, dur: 0.1, type: 'sawtooth', gain: 0.08, filter: 'lowpass', cutoff: 800 }),
+    // rock impact on the wall — low thud
+    thud:  c => { c.noiseHit({ dur: 0.2, gain: 0.18, filter: 'lowpass', cutoff: 620, cutoffTo: 160 }); c.voice({ f: 90, slideTo: 55, dur: 0.22, type: 'sine', gain: 0.12 }); },
+    // trebuchet releases — a creaking sling
+    sling: c => c.voice({ f: 300, slideTo: 760, dur: 0.16, type: 'sawtooth', gain: 0.07, filter: 'lowpass', cutoff: 1500 }),
+    // a grunt's blade on the stonework
+    swing: c => { c.voice({ f: 420, slideTo: 210, dur: 0.09, type: 'square', gain: 0.07, filter: 'lowpass', cutoff: 1400 }); c.noiseHit({ dur: 0.07, gain: 0.09, filter: 'lowpass', cutoff: 900 }); },
+    // an archer's release
+    bow: c => c.voice({ f: 900, slideTo: 420, dur: 0.1, type: 'triangle', gain: 0.07, filter: 'highpass', cutoff: 500 }),
+    // the warlord's two-handed blow
+    crash: c => { c.noiseHit({ dur: 0.26, gain: 0.2, filter: 'lowpass', cutoff: 520, cutoffTo: 130 }); c.voice({ f: 70, slideTo: 44, dur: 0.3, type: 'sine', gain: 0.14 }); },
+    // a burning scrap eating into the parapet
+    chip: c => c.noiseHit({ dur: 0.12, gain: 0.1, filter: 'bandpass', cutoff: 1600 }),
+    // wave cleared
+    fanfare: c => c.seq([523, 659, 784, 1047], 78, f => c.voice({ f, dur: 0.2, type: 'square', gain: 0.09, filter: 'lowpass', cutoff: 2600, reverb: 0.22 })),
+    // supply drops: a mallet patching stone / a slow-time chime / coins
+    mend:  c => { c.noiseHit({ dur: 0.09, gain: 0.1, filter: 'lowpass', cutoff: 1100 }); c.voice({ f: 260, slideTo: 420, dur: 0.16, type: 'triangle', gain: 0.1 }); },
+    chime: c => c.seq([880, 1175, 1568], 90, f => c.voice({ f, dur: 0.3, type: 'sine', gain: 0.08, reverb: 0.3 })),
+    coin:  c => c.seq([1046, 1568], 60, f => c.voice({ f, dur: 0.14, type: 'square', gain: 0.08, filter: 'lowpass', cutoff: 4000 })),
+    // a word struck off the warlord's sequence — lighter than `pop`, which is a kill
+    notch: c => c.seq([784, 1047], 55, f => c.voice({ f, dur: 0.12, type: 'triangle', gain: 0.09, filter: 'lowpass', cutoff: 3400 })),
+    // a fumbled key — the pencil skids off the page
+    skid:  c => { c.noiseHit({ dur: 0.14, gain: 0.11, filter: 'bandpass', cutoff: 420 }); c.voice({ f: 150, slideTo: 96, dur: 0.16, type: 'sawtooth', gain: 0.07, filter: 'lowpass', cutoff: 700 }); },
+  });
+
+  // ---------------------------------------------------------------------------
+  // WORD BANKS — game DATA, not i18n strings. Everyday nouns/verbs/adjectives a
+  // 12-year-old knows: no proper nouns, no multi-word entries, no duplicates after
+  // diacritic folding. English is the big bank (1455); the others sit at ~250, so bank
+  // SIZES differ by design and nothing may assume they match.
+  // Difficulty bands are RANK THIRDS of each language's OWN sorted length list — equal
+  // thirds whatever the bank size, and self-calibrating (Polish/Czech words run longer,
+  // so absolute letter counts would make them permanently harder).
+  // ---------------------------------------------------------------------------
+  // WORD SOURCE: the shared bank in /words.js (window.KOMYO_WORDS.banks) — 8 locales, ≥1400 words
+  // each. It used to be an inline literal here, which meant a second word game would either
+  // duplicate it or drift from it. Shape is `{ <locale>: [word, …] }`, so every `WORDS[code]`
+  // membership check below still reads as "do we have words for this language".
+  const WORDS = (typeof window !== 'undefined' && window.KOMYO_WORDS && window.KOMYO_WORDS.banks) || {};
+  const LANGS = [
+    { code: 'en', label: 'English' }, { code: 'pl', label: 'Polski' }, { code: 'cs', label: 'Čeština' },
+    { code: 'es', label: 'Español' }, { code: 'fr', label: 'Français' }, { code: 'it', label: 'Italiano' },
+    { code: 'pt', label: 'Português' }, { code: 'uk', label: 'Українська' },
+  ];
+
+  // ---- letter folding: typing "zolw" must kill "żółw", "garcon" must kill "garçon" ----
+  // NFD + strip combining marks handles most of Europe; letters that do NOT decompose
+  // (ł, ø, đ …) need an explicit map. Input is folded the SAME way, so typing the exact
+  // accented character also works.
+  const HARD_FOLD = { 'ł': 'l', 'ø': 'o', 'đ': 'd', 'ð': 'd', 'þ': 't', 'ß': 'ss', 'æ': 'ae', 'œ': 'oe', 'ı': 'i', 'ħ': 'h', 'ŀ': 'l', 'ŧ': 't' };
+  function fold(s) {
+    let out = '';
+    for (const ch of String(s == null ? '' : s).toLowerCase()) {
+      if (HARD_FOLD[ch]) { out += HARD_FOLD[ch]; continue; }
+      let d = ch;
+      try { d = ch.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) { d = ch; }
+      out += d || ch;
+    }
+    return out;
+  }
+  // What a keystroke counts AS. Forgiving mode folds it (so "z" answers "ż"); perfectionist mode
+  // takes it literally, which is the whole point of the toggle.
+  function keyOf(ch) { return exact ? String(ch == null ? '' : ch).toLowerCase() : fold(ch); }
+
+  // Ukrainian: a Latin keyboard must work too — digraphs FIRST (shch before sh before s).
+  // Typing Cyrillic directly is always accepted (the char itself is a variant).
+  const UK_TRANSLIT = {
+    'а': ['a'], 'б': ['b'], 'в': ['v', 'w'], 'г': ['h', 'g'], 'ґ': ['g'], 'д': ['d'], 'е': ['e'],
+    'є': ['ye', 'je', 'e'], 'ж': ['zh', 'j'], 'з': ['z'], 'и': ['y', 'i'], 'і': ['i'], 'ї': ['yi', 'ji', 'i'],
+    'й': ['y', 'j', 'i'], 'к': ['k'], 'л': ['l'], 'м': ['m'], 'н': ['n'], 'о': ['o'], 'п': ['p'],
+    'р': ['r'], 'с': ['s'], 'т': ['t'], 'у': ['u'], 'ф': ['f'], 'х': ['kh', 'h', 'x'], 'ц': ['ts', 'c'],
+    'ч': ['ch'], 'ш': ['sh'], 'щ': ['shch', 'sch'], 'ь': ["'"], 'ю': ['yu', 'ju', 'u'], 'я': ['ya', 'ja', 'a'],
+  };
+  const UK_SKIP = { 'ь': 1 };   // soft sign: typing nothing for it is fine
+
+  // A word compiles to a list of STEPS; each step is a set of accepted (folded) inputs.
+  // Latin: one step per letter. Ukrainian: one step per Cyrillic letter whose accepted
+  // set includes multi-letter transliterations, so "zh" satisfies "ж".
+  // PERFECTIONIST ("Exact accents"): the accepted set for a letter collapses to the letter
+  // ITSELF — no folded variant, no Latin transliteration, and the Ukrainian soft sign must be
+  // typed. Input is left unfolded to match (see feed), so "zolw" bounces off "żółw".
+  function buildSteps(word, wlang) {
+    const tr = (!exact && wlang === 'uk') ? UK_TRANSLIT : null;
+    const steps = [];
+    for (const ch of String(word)) {
+      const lc = ch.toLowerCase();
+      const v = [];
+      const push = x => { if (x && v.indexOf(x) < 0) v.push(x); };
+      if (tr && tr[lc]) tr[lc].forEach(push);
+      if (!exact) push(fold(lc));
+      push(lc);
+      steps.push({ ch, v, skip: !exact && !!(tr && UK_SKIP[lc]) });
+    }
+    return steps;
+  }
+  function firstLive(steps, i) { while (i < steps.length && steps[i].skip) i++; return i; }
+  // Pure: what happens if `k` (already folded, single char) is typed at (idx, part)?
+  function probe(steps, idx, part, k) {
+    const st = steps[idx];
+    if (!st) return { res: 'miss', idx: idx, part: part };
+    const p = part + k;
+    if (st.v.indexOf(p) >= 0) {
+      const ni = firstLive(steps, idx + 1);
+      return { res: ni >= steps.length ? 'done' : 'ok', idx: ni, part: '' };
+    }
+    for (let i = 0; i < st.v.length; i++) {
+      const v = st.v[i];
+      if (v.length > p.length && v.slice(0, p.length) === p) return { res: 'ok', idx: idx, part: p };
+    }
+    return { res: 'miss', idx: idx, part: part };
+  }
+
+  // ---- per-locale difficulty bands (RANK THIRDS of that language's own lengths) ----
+  // A length THRESHOLD cannot split a bank into thirds (lengths are integers, so one
+  // popular length swallows half the list) and it drifts with bank size — a 1455-word en
+  // and a 250-word pl would land on the same thresholds. Slicing the length-sorted list
+  // into three equal ranks gives true per-locale percentiles at ANY bank size.
+  const bankCache = {};
+  function bank(wl) {
+    if (bankCache[wl]) return bankCache[wl];
+    const raw = (WORDS[wl] || WORDS.en || []).filter(w => w && w.length > 1);
+    const list = [];
+    const seen = {};
+    for (const w of raw) { const k = fold(w); if (!seen[k]) { seen[k] = 1; list.push(w); } }
+    const byLen = list.slice().sort((a, b) => a.length - b.length || (a < b ? -1 : 1));
+    const n = byLen.length;
+    const a = Math.max(1, Math.round(n / 3)), c = Math.max(a + 1, Math.round(n * 2 / 3));
+    const b = {
+      all: list,
+      short: byLen.slice(0, a),
+      medium: byLen.slice(a, c),
+      long: byLen.slice(c),
+      urgent: byLen.slice(0, Math.max(10, Math.round(n * 0.08))),
+      shortMax: byLen[a - 1].length, medMax: byLen[c - 1].length, count: n,
+    };
+    if (!b.short.length) b.short = list;
+    if (!b.medium.length) b.medium = b.short;
+    if (!b.long.length) b.long = b.medium;
+    b.avg = {};
+    for (const k of ['short', 'medium', 'long']) b.avg[k] = b[k].reduce((s, w) => s + w.length, 0) / b[k].length;
+    bankCache[wl] = b;
+    return b;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Config + state
+  // ---------------------------------------------------------------------------
+  const MODES = ['stages', 'endless', 'rain'];
+  const MODE_LABEL = { stages: 'Stages', endless: 'Endless', rain: 'Rain' };   // storage keys — stay English
+  const DIFFS = ['easy', 'normal', 'hard'];
+  // Difficulty moves the knobs that decide whether you can KEEP UP, not just how much
+  // punishment the wall absorbs:
+  //   speed  approach speed (× the crossing-time anchor)   gap  spawn interval (× base)
+  //   cad    strike cadence (× base — lower = hits more often)
+  //   pLong/pMed  the word-LENGTH mix a footman carries (chance of the long / medium band)
+  //   fumble/miss  what a wrong keystroke costs (input-lock steps / points)
+  //   hp     wall hit points                              rockSteps  rock flight time
+  const DIFF = {
+    easy:   { hp: 30, speed: 0.85, gap: 1.38, rockSteps: 205, cad: 1.32, pLong: 0.00, pMed: 0.18, fumble: 12, miss: 2, arch: 'medium' },
+    normal: { hp: 20, speed: 1.10, gap: 1.00, rockSteps: 150, cad: 1.00, pLong: 0.08, pMed: 0.38, fumble: 15, miss: 4, arch: 'medium' },
+    hard:   { hp: 14, speed: 1.45, gap: 0.72, rockSteps: 112, cad: 0.78, pLong: 0.24, pMed: 0.46, fumble: 18, miss: 6, arch: 'long' },
+  };
+  const PTS = { grunt: 10, archer: 20, trebuchet: 40, rock: 5, boss: 150, rain: 10 };
+  // The siege model: an enemy ADVANCES to its own engagement line, STOPS, and then works the
+  // wall on a cadence (wind-up → strike → recover) until you type its word. Nothing deletes
+  // itself on contact, so unkilled attackers stack up and their combined DPS keeps climbing.
+  const DMG = { grunt: 1, archer: 1, arrow: 1, rock: 2, boss: 3, rain: 1 };
+  const CAD = { grunt: 150, archer: 240, trebuchet: 320, boss: 260, rain: 150 };
+  const RANK = { grunt: 0, boss: 0, archer: 0.20, trebuchet: 0.42 };   // fraction of the field behind the wall
+  const WINDUP = 34, ATK_LEN = 18, MELEE_SLOT = 30, MELEE_GAP = 26;    // steps / px per queue slot
+  // 8 authored stages with a FELT shape: build → build → breather → SPIKE(boss) →
+  // build → breather → SPIKE → FINAL(boss). `tag` names the beat on the wave banner.
+  const STAGES = [
+    { grunts: 5,  archers: 0, trebs: 0, interval: 150, speed: 1.00, tag: 'scouts' },
+    { grunts: 6,  archers: 2, trebs: 0, interval: 134, speed: 1.06, tag: 'siege' },
+    { grunts: 4,  archers: 1, trebs: 0, interval: 172, speed: 0.92, tag: 'breather', breather: true },
+    { grunts: 6,  archers: 2, trebs: 1, interval: 110, speed: 1.16, boss: true, tag: 'spike' },
+    { grunts: 8,  archers: 3, trebs: 1, interval: 94,  speed: 1.22, tag: 'siege' },
+    { grunts: 5,  archers: 2, trebs: 1, interval: 152, speed: 1.00, tag: 'breather', breather: true },
+    { grunts: 10, archers: 4, trebs: 2, interval: 76,  speed: 1.34, tag: 'spike' },
+    { grunts: 14, archers: 5, trebs: 3, interval: 64,  speed: 1.44, boss: true, tag: 'final' },
+  ];
+  const REPAIR_PER_STAGE = 1;   // Stages only: a cleared wave patches 1 wall HP (the breather reward)
+  // Crossing TIME (steps) at speed 1.0 — the fairness anchor: an enemy always takes the
+  // same number of seconds to cross the field, whatever the field is wide. These are the
+  // BASE march tempo: a grunt covers the page in ~10 s at speed 1.0 (60 steps = 1 s).
+  const CROSS = { grunt: 620, archer: 700, trebuchet: 1000, boss: 1120, rain: 540, arrow: 150 };
+  // ---- supply drops (the collectible) ----
+  // A crate is NOT an attacker: it never damages the wall and it expires on its own. It sits
+  // out in the field carrying its own short word, so grabbing it means NOT typing the footman
+  // already hammering your gate — a real spend-or-save decision, not free score.
+  const DROPS = [
+    { kind: 'repair', repair: 2 },        // patch the wall
+    { kind: 'slow',   slow: 170 },        // ~2.8 s of half-speed siege
+    { kind: 'bonus',  score: 60 },        // straight points
+  ];
+  const CRATE_LIFE = 470;                 // ~8 s on the page before the crew hauls it away
+  const CRATE_EVERY = 1150;               // ~19 s between drops (jittered)
+
+  let W = 0, H = 0;                       // viewport CSS px
+  let field = { x: 0, y: 0, w: 0, h: 0 }; // the drawn play area (⊆ playRect)
+  let barY = 0, barH = 40;                // the type bar (in the reserved bottom band)
+  let wallW = 60, lanes = 4, laneH = 0, cols = 4, fontPx = 16, tagRoom = 40, gs = 1, fs = 1;
+  let topInset = 0;
+
+  let state = 'ready';                    // ready | playing | paused | over
+  let mode = 'stages', diff = 'normal', wlang = 'en', exact = false;
+  let score = 0, best = 0, hp = 8, hpMax = 8, wave = 1, combo = 0, bestCombo = 0;
+  let outcome = 'end';
+  let enemies = [], puffs = [], corpses = [], dust = [], pops = [], nextId = 1;
+  let wallFlinch = 0, waveSub = '', repaired = 0;
+  let lockId = 0, spawnQ = [], spawnTimer = 0, waveBanner = 0, shake = 0, frame = 0, cleared = 0;
+  let hits = 0, misses = 0, typedChars = 0, runSteps = 0, shotsFired = 0, noSpawn = false;
+  let lastRecord = null;
+  let menuReshow = null;
+  let builtSplit = null;   // the layout the open menu was built for (see isSplit)
+  // mistake cost: `fumble` locks input for a beat after a wrong key (so mashing is strictly
+  // worse than typing); `dupKey/dupFrame` swallow a soft keyboard's double-fire of the SAME
+  // key within a couple of steps, but only when it would have been a miss.
+  let fumble = 0, dupKey = '', dupFrame = -99;
+  let slowT = 0;                          // supply-drop slow-time, in steps
+  let crateTimer = CRATE_EVERY, cratesTaken = 0;
+  let recentWords = [];                   // folded no-repeat window (see pickWord)
+  let banners = [];                       // floating receipts for a collected drop (glyphs only)
+
+  // ---- prefs (ONE versioned key, written on change only) ----
+  const PREF_KEY = SLUG + '_prefs';
+  function loadPrefs() {
+    try {
+      const p = JSON.parse(localStorage.getItem(PREF_KEY) || 'null');
+      // v1 had no `ex` flag; it reads forward as perfectionist OFF, which is what v1 played like
+      if (p && (p.v === 1 || p.v === 2)) {
+        if (MODES.indexOf(p.mode) >= 0) mode = p.mode;
+        if (DIFFS.indexOf(p.diff) >= 0) diff = p.diff;
+        if (WORDS[p.wl]) wlang = p.wl;
+        exact = !!p.ex;
+        return;
+      }
+    } catch (e) {}
+  }
+  function savePrefs() {
+    try { localStorage.setItem(PREF_KEY, JSON.stringify({ v: 2, mode: mode, diff: diff, wl: wlang, ex: exact ? 1 : 0 })); } catch (e) {}
+  }
+
+  // ---- best store (kit only) ----
+  // A perfectionist run is strictly harder, so it must not share a board with a forgiving one:
+  // the stored label gets a stable-English ' · Exact' suffix (the kit localises it for display).
+  function modeKey(m) { return MODE_LABEL[m || mode] + (exact ? ' · Exact' : ''); }
+  function loadBest(m) { return KIT ? KIT.bestScore(SLUG, modeKey(m)) : 0; }
+  function saveBestNow() { if (KIT) KIT.saveBest(SLUG, modeKey(mode), { score: score, stats: statsNow() }); }
+  function modeDisplay(m) {
+    return m === 'stages' ? KIT.t('game.type-siege.modeStages', { def: 'Stages' })
+      : m === 'endless' ? KIT.t('game.type-siege.modeEndless', { def: 'Endless' })
+        : KIT.t('game.type-siege.modeRain', { def: 'Rain' });
+  }
+  function diffDisplay(d) {
+    return d === 'easy' ? KIT.t('game.type-siege.diffEasy', { def: 'Recruit' })
+      : d === 'normal' ? KIT.t('game.type-siege.diffNormal', { def: 'Soldier' })
+        : KIT.t('game.type-siege.diffHard', { def: 'Veteran' });
+  }
+  function wpm() {
+    const mins = runSteps / 3600;
+    return mins > 0.01 ? Math.round((typedChars / 5) / mins) : 0;
+  }
+  function accuracy() {
+    const t = hits + misses;
+    return t ? Math.round((hits / t) * 100) : 100;
+  }
+  function statsNow() { return { wave: wave, wpm: wpm(), accuracy: accuracy() }; }
+
+  // ---- ink palettes (cosmetic skin) ----
+  // CONTRAST RULE: `paper` vs every FOREGROUND colour (ink / ink2 / hi / warn / good) keeps a
+  // relative-luminance gap ≥ 0.45 — mid-greys against paper are the wash-out zone and are
+  // banned for anything the player reads or dodges. `rule`/`margin` are BACKGROUND furniture:
+  // they stay within 0.32 of the paper (so they never compete with ink) and ≥ 0.45 from it.
+  // Enforced by the "palette contrast" section in test.mjs.
+  const INKS = {
+    'type-siege.ink.pencil':    { paper: '#f6f1e4', rule: '#dfeaf4', margin: '#f0c7cc', scene: '#c1ccda', ink: '#1e2126', ink2: '#5a6270', hi: '#1f5e88', warn: '#a8332c', good: '#256b42', smudge: 'rgba(90,98,112,0.045)' },
+    'type-siege.ink.blueprint': { paper: '#0b2130', rule: '#1c4761', margin: '#2f7093', scene: '#4e96bb', ink: '#e4f3ff', ink2: '#a8d2ee', hi: '#6ad6ff', warn: '#ffb3a2', good: '#8ef0b8', smudge: 'rgba(180,225,255,0.05)' },
+    'type-siege.ink.marker':    { paper: '#f0e3ca', rule: '#dcc9a4', margin: '#dcbb9e', scene: '#d2bb95', ink: '#1f160f', ink2: '#4e3a2c', hi: '#b6431a', warn: '#8f1a1a', good: '#33661f', smudge: 'rgba(70,45,25,0.055)' },
+  };
+  const DEF_INK = 'type-siege.ink.pencil';
+  function inkId() {
+    let id = null;
+    try { id = KIT.cosmetics && KIT.cosmetics.selected(SLUG + '.ink'); } catch (e) { id = null; }
+    return INKS[id] ? id : DEF_INK;
+  }
+  function pal() { return INKS[inkId()] || INKS[DEF_INK]; }
+
+  // Deterministic hash noise for the hand-drawn wobble + paper texture + scenery placement.
+  // Math.imul keeps every step inside int32: the classic `n*(n*n*15731+…)` form overflows to a
+  // double past ~n=500, loses its low bits and then returns a CONSTANT 0 — which silently killed
+  // the sketch wobble for every entity with a seed above that and made scenery pile up in a row.
+  function h01(n) {
+    n = (n | 0) ^ 0x9e3779b9;
+    n = Math.imul(n ^ (n >>> 16), 0x85ebca6b);
+    n = Math.imul(n ^ (n >>> 13), 0xc2b2ae35);
+    n ^= n >>> 16;
+    return (n >>> 0) / 4294967296;
+  }
+  function wob(seed, i, amp) { return (h01(seed * 131 + i * 977) - 0.5) * 2 * amp; }
+
+  // ---------------------------------------------------------------------------
+  // Layout — everything derives from playRect(); NOTHING from raw innerWidth/Height
+  // ---------------------------------------------------------------------------
+  function vvH() {
+    try {
+      const vv = window.visualViewport;
+      if (vv && vv.height && vv.height > 120) return Math.min(window.innerHeight, vv.height);
+    } catch (e) {}
+    return window.innerHeight;
+  }
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    // Doodle SIZE scales with the page on big screens (a 2560 desktop must not show
+    // ant-sized figures floating in empty paper) — crossing TIME stays constant, so
+    // scaling art up never changes the reaction window.
+    gs = Math.max(1, Math.min(1.8, Math.min(window.innerWidth, (window.innerHeight - 90) * 1.5) / 900));
+    barH = Math.round((KIT.layout.narrow ? 44 : 36) * Math.min(gs, 1.5));
+    KIT.layout.reserve('bottom', barH);
+    const pr = KIT.layout.playRect();
+    topInset = pr.y;
+    // The soft keyboard overlays the bottom of the page without shrinking innerHeight —
+    // fit the field inside the VISUAL viewport so the action stays above it. Still ⊆ playRect.
+    const visH = vvH() - pr.y - barH;
+    field = { x: pr.x, y: pr.y, w: pr.w, h: Math.min(pr.h, Math.max(150, visH)) };
+    barY = field.y + field.h;
+    // A defensive WALL, not a chimney: a wide stone band down the whole left edge. Wide enough
+    // to carry battlements + a gate at 360px, capped so it never eats the field at 2560.
+    wallW = Math.max(54, Math.min(132 * gs, field.w * 0.13));
+    // words must stay legible at 360px wide AND not shrink into the page at 2560: clamped both ends
+    fontPx = Math.max(13, Math.min(34, Math.round(Math.min(field.w / 25, field.h / 26))));
+    lanes = field.h >= 560 ? 4 : 3;   // 3 lanes on a phone keeps figures + labels from colliding
+    // Figures fill their LANE (a 30px doodle in a 170px lane reads as a scribble), so the
+    // model scale comes from the lane height — two passes, because the headroom above the
+    // top lane depends on how tall a figure ends up being.
+    const room0 = fontPx + 26 * gs;
+    const lh0 = Math.max(40, (field.h - room0) / lanes);
+    // cap the absolute figure scale so the tallest model (the boss) never spills out of its lane
+    fs = Math.min(2.2, gs * Math.max(1, Math.min(1.35, lh0 / 85)));
+    // headroom above the TOP lane so its word tag never rides up into the HUD band
+    tagRoom = fontPx + 30 * fs;
+    laneH = Math.max(40, (field.h - tagRoom) / lanes);
+    cols = Math.max(3, Math.min(6, Math.round(field.w / 130)));   // rain columns
+    positionKb();
+    bgDirty = true;
+  }
+  function positionKb() {
+    const el = document.getElementById('tskb');
+    if (!el || !el.style) return;
+    let lift = 0;
+    try {
+      const vv = window.visualViewport;
+      if (vv && vv.height) lift = Math.max(0, Math.round(window.innerHeight - vv.height - (vv.offsetTop || 0)));
+    } catch (e) {}
+    el.style.bottom = lift + 'px';
+    el.style.height = barH + 'px';
+  }
+  KIT.layout.on(resize);
+  // Rotating between the tall layout and the tight landscape SPLIT changes what a menu can afford
+  // (see isSplit — the start screen's 🌐 button, the end screen's secondary stat lines), and the kit
+  // re-parents rather than rebuilds. So rebuild the open menu ourselves on a flip.
+  KIT.layout.on(() => {
+    const now = isSplit();
+    if (now === builtSplit) return;
+    builtSplit = now;
+    if (menuReshow && KIT.menu.current()) menuReshow();
+  });
+
+  // Where the stronghold sits: LEFT wall (siege modes) / BOTTOM parapet (rain).
+  function isRain() { return mode === 'rain'; }
+  function wallEdge() { return isRain() ? (field.y + field.h - 46) : (field.x + wallW); }
+  // distance from an enemy to the stronghold — the auto-lock's "closest" metric
+  function threat(e) { return isRain() ? (wallEdge() - e.y) : (e.x - wallEdge()); }
+  function laneY(l) { return field.y + tagRoom + laneH * (l + 0.5); }
+
+  // ---------------------------------------------------------------------------
+  // Spawning — spawn distance + speed are normalised so the reaction WINDOW (seconds)
+  // is identical on a 360px phone and a 2560px desktop.
+  // ---------------------------------------------------------------------------
+  function speedOf(type, waveSpeed) {
+    const span = isRain() ? field.h : (field.w - wallW);
+    const steps = CROSS[type] || CROSS.grunt;
+    return (span / steps) * DIFF[diff].speed * (waveSpeed || 1);
+  }
+  // NO-REPEAT: a word already on the page can never be handed out again (two identical labels
+  // make the auto-lock ambiguous), and a spawn never repeats inside the last ~40. The recent
+  // window is clamped to half the band so a small band (pl's 20 urgent words) can't starve.
+  function noteWord(w) {
+    recentWords.push(fold(w));
+    if (recentWords.length > 40) recentWords.shift();
+    return w;
+  }
+  function pickWord(band) {
+    const b = bank(wlang);
+    const list = b[band] && b[band].length ? b[band] : b.all;
+    const live = {};
+    // a warlord reserves EVERY word of its sequence, not just the live one — a pending word that
+    // also hangs over a grunt would read as two identical labels the moment it goes live
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.dead) continue;
+      if (e.seq) { for (let j = 0; j < e.seq.length; j++) live[fold(e.seq[j])] = 1; }
+      else if (e.word) live[fold(e.word)] = 1;
+    }
+    const win = Math.min(recentWords.length, Math.max(4, Math.floor(list.length * 0.5)));
+    const recent = recentWords.slice(recentWords.length - win);
+    for (let t = 0; t < 40; t++) {
+      const w = list[Math.floor(Math.random() * list.length)];
+      const k = fold(w);
+      if (live[k] || recent.indexOf(k) >= 0) continue;
+      return noteWord(w);
+    }
+    for (let i = 0; i < list.length; i++) if (!live[fold(list[i])]) return noteWord(list[i]);
+    return noteWord(list[0]);
+  }
+  // The word-LENGTH mix a footman carries: a difficulty knob, not a wave knob. Endless nudges
+  // it up with the siege ramp on top.
+  function footBand() {
+    const d = DIFF[diff];
+    const push = mode === 'endless' ? Math.min(0.22, siegeRamp() * 0.035) : 0;
+    const r = Math.random();
+    if (r < d.pLong + push) return 'long';
+    if (r < d.pLong + push + d.pMed + push) return 'medium';
+    return 'short';
+  }
+  function archerBand() { return DIFF[diff].arch; }
+  // A drop's word should be REACHABLE: the auto-lock always prefers whoever is closest to the
+  // wall, so if the crate shared a first letter with an attacker you could never start it.
+  // Try a few short words whose opening key no live attacker answers to.
+  function crateWord() {
+    const heads = {};
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.dead || !e.steps.length || e.type === 'crate') continue;
+      const st = e.steps[firstLive(e.steps, 0)];
+      if (st) for (const v of st.v) heads[v.charAt(0)] = 1;
+    }
+    for (let t = 0; t < 12; t++) {
+      const w = pickWord('short');
+      if (!heads[fold(w).charAt(0)]) return w;
+    }
+    return pickWord('short');
+  }
+  // A warlord carries an ordered SEQUENCE of 2–3 separate words, never a phrase: word 1 is live,
+  // the rest wait their turn (a typed space is a silent no-op — see feed). Two words in one
+  // sequence never share an opening key: the auto-lock is unambiguous either way (only the live
+  // word is lockable), but a shared first letter READS ambiguous on the plate.
+  // Budget: total KEYSTROKES ≈ the old phrase's (whose spaces were mandatory keys), so
+  // time-to-kill barely moves — 2 words 70% of the time, 3 words 30%, medium band with one
+  // long word 40% of the time.
+  function bossWords() {
+    const n = 2 + (Math.random() < 0.3 ? 1 : 0);
+    const longAt = Math.random() < 0.4 ? Math.floor(Math.random() * n) : -1;
+    const out = [], heads = {};
+    for (let i = 0; i < n; i++) {
+      const band = i === longAt ? 'long' : 'medium';
+      let pick = null, fallback = null;
+      for (let t = 0; t < 14 && !pick; t++) {
+        const w = pickWord(band);
+        if (headKeys(w).some(h => heads[h])) { if (!fallback) fallback = w; continue; }
+        pick = w;
+      }
+      if (!pick) {   // a tiny band can run out of free opening keys — walk it once
+        const list = bank(wlang)[band] || bank(wlang).all;
+        for (let j = 0; j < list.length && !pick; j++) if (!headKeys(list[j]).some(h => heads[h])) pick = noteWord(list[j]);
+      }
+      const w = pick || fallback;
+      headKeys(w).forEach(h => { heads[h] = 1; });
+      out.push(w);
+    }
+    return out;
+  }
+  // Every key that could OPEN this word (uk transliteration means "ж" also opens on "z")
+  function headKeys(w) {
+    const st = buildSteps(w, wlang);
+    const s0 = st[firstLive(st, 0)];
+    return s0 ? s0.v.map(v => v.charAt(0)) : [];
+  }
+  function makeEnemy(type, word, opts) {
+    opts = opts || {};
+    const ws = opts.waveSpeed || waveSpeed();
+    // A warlord's target is a SEQUENCE (array, or a space-separated string from a deep link/test);
+    // `word` always holds the one LIVE word, so every typing/render path below stays word-shaped.
+    const seq = (type === 'boss' && word)
+      ? (Array.isArray(word) ? word.slice() : String(word).split(/\s+/).filter(Boolean)) : null;
+    if (seq) word = seq[0];
+    const e = {
+      id: nextId++, type: type, word: word, seq: seq, si: 0, steps: buildSteps(word, wlang),
+      idx: 0, part: '', dead: false, born: frame, lane: opts.lane != null ? opts.lane : Math.floor(Math.random() * lanes),
+      x: 0, y: 0, vx: 0, vy: 0, walk: h01(nextId * 7) * 6.28,
+      // siege state: engaged once it reaches `range`, then atkCd/atkT drive the strike cycle
+      engaged: false, range: 0, atkCd: 0, atkT: 0, pose: 0, sling: 0, wind: 0, seed: nextId * 31 + 7,
+    };
+    e.idx = firstLive(e.steps, 0);
+    if (type === 'arrow' || type === 'rock') shotsFired++;
+    if (type === 'arrow') {
+      // archer shot: a fast, un-typeable projectile (the ARCHER carries the word)
+      e.word = ''; e.steps = [];
+      e.x = opts.x; e.y = opts.y;
+      e.tx = field.x + wallW; e.ty = opts.y + (h01(e.seed) - 0.5) * 18 * fs;
+      e.life = Math.max(24, Math.round((e.x - e.tx) / (field.w / 150)));
+      e.t = 0; e.x0 = e.x; e.y0 = e.y; e.arc = -14 * fs;
+    } else if (type === 'rain') {
+      const col = opts.col != null ? opts.col : Math.floor(Math.random() * cols);
+      e.col = col;
+      const cw = field.w / cols;
+      e.x = field.x + cw * (col + 0.5) + wob(e.seed, 3, cw * 0.14);
+      e.y = field.y + 8;
+      e.vy = speedOf('rain', ws);
+    } else if (type === 'crate') {
+      // a supply drop: sits still, harms nothing, expires. Placed OUT in the field so taking
+      // it costs the seconds you'd have spent on whoever is already at the gate.
+      // A repair crate at full wall is a dead prize: the player spends seconds typing its word for
+      // nothing while a footman keeps hammering. Offer it only when it can actually pay.
+      const pool = DROPS.filter(d0 => !(d0.repair && hp >= hpMax));
+      const d = opts.drop || pool[Math.floor(Math.random() * pool.length)] || DROPS[2];
+      e.drop = d; e.life = opts.life || CRATE_LIFE; e.t = 0;
+      e.x = opts.x != null ? opts.x : field.x + wallW + field.w * (0.34 + h01(e.seed * 13) * 0.42);
+      e.y = opts.y != null ? opts.y : laneY(e.lane);
+      e.vx = 0;
+    } else if (type === 'rock') {
+      e.x = opts.x; e.y = opts.y;
+      const steps = DIFF[diff].rockSteps;
+      e.life = steps; e.t = 0;
+      e.x0 = opts.x; e.y0 = opts.y;
+      e.tx = field.x + wallW * 0.5; e.ty = field.y + field.h * (0.25 + h01(e.seed) * 0.5);
+      e.arc = -Math.min(field.h * 0.35, 120 + h01(e.seed * 3) * 70);
+    } else {
+      e.x = field.x + field.w + 30 + h01(e.seed) * 40;
+      e.y = laneY(e.lane);
+      e.vx = -speedOf(type, ws);
+      e.atkCd = cadOf(type) - ATK_LEN;
+      e.range = engageX(type, e);
+    }
+    enemies.push(e);
+    return e;
+  }
+  // Where this type STOPS and starts working the wall. Melee ranks queue outward from the wall
+  // in their lane, so the pile-up is visible instead of everyone standing on the same pixel.
+  function engageX(type, e) {
+    const base = field.x + wallW;
+    if (type === 'grunt' || type === 'boss') {
+      let slot = 0;
+      for (let i = 0; i < enemies.length; i++) {
+        const o = enemies[i];
+        if (!o.dead && o !== e && o.lane === e.lane && (o.type === 'grunt' || o.type === 'boss')) slot++;
+      }
+      return base + (MELEE_GAP + slot * MELEE_SLOT) * fs;
+    }
+    // Endless: the back ranks creep closer as the siege ramp climbs
+    const creep = mode === 'endless' ? Math.max(0, Math.min(0.16, siegeRamp() * 0.03)) : 0;
+    const jitter = h01(e.seed * 5) * (type === 'trebuchet' ? 0.14 : 0.08);
+    // A rank is a FRACTION of the field, but never closer than the melee queue in front of it —
+    // on a 360px screen a plain 20%/42% split would put archers inside the swordsmen.
+    const meleeDepth = (MELEE_GAP + 3 * MELEE_SLOT) * fs;
+    const floorPx = type === 'trebuchet' ? meleeDepth + 60 * fs : meleeDepth + 12 * fs;
+    const want = field.w * Math.max(0.08, RANK[type] - creep + jitter);
+    return base + Math.min(field.w * 0.74, Math.max(want, floorPx));
+  }
+  // ---------------------------------------------------------------------------
+  // ENDLESS = a CONTINUOUS flood. There are no waves here: no gate to clear, no lull between
+  // them, no counter that resets. `siegeRamp()` climbs with elapsed time AND kills and never
+  // comes back down — it is the single dial behind spawn rate, rank mix, approach speed, rank
+  // depth and strike cadence. (Stages keeps its authored waves; that is its identity.)
+  // ---------------------------------------------------------------------------
+  // Tuned against a headless typing bot: on Soldier a ~60 WPM typist should hold ~2 minutes
+  // before the flood wins, and a beginner should feel the squeeze inside the first minute.
+  function siegeRamp() {
+    return runSteps / 60 / 70 + cleared / 120;    // +1 per 70 s survived, +1 per 120 felled
+  }
+  function siegeTier() { return 1 + Math.floor(siegeRamp()); }
+  function waveSpeed() {
+    if (mode === 'stages') return (STAGES[Math.min(STAGES.length - 1, wave - 1)] || STAGES[0]).speed;
+    if (mode === 'endless') return Math.min(2.1, 1 + siegeRamp() * 0.14);
+    return Math.min(2.4, 1 + (wave - 1) * 0.06);
+  }
+  // the interval the flood is currently spawning on, before jitter (the readable "how hard is it")
+  function endlessInterval() {
+    return Math.max(22, Math.round((148 / (1 + siegeRamp() * 0.85)) * DIFF[diff].gap));
+  }
+  function spawnEndless() {
+    const r = siegeRamp();
+    // ranks mix freely and the heavier ones only start showing up once the ramp has climbed
+    const pBoss = (r > 2 && !enemies.some(e => !e.dead && e.type === 'boss')) ? 0.05 : 0;
+    const pTreb = r > 0.85 ? Math.min(0.17, (r - 0.85) * 0.10) : 0;
+    const pArch = r > 0.25 ? Math.min(0.34, 0.10 + (r - 0.25) * 0.12) : 0;
+    const roll = Math.random();
+    const type = roll < pBoss ? 'boss'
+      : roll < pBoss + pTreb ? 'trebuchet'
+        : roll < pBoss + pTreb + pArch ? 'archer' : 'grunt';
+    const word = type === 'boss' ? bossWords()
+      : type === 'trebuchet' ? pickWord('long')
+        : type === 'archer' ? pickWord(archerBand()) : pickWord(footBand());
+    makeEnemy(type, word);
+    if (type === 'boss') {
+      waveText = KIT.t('game.type-siege.warlord', { def: '⚔ WARLORD' });
+      waveSub = KIT.t('game.type-siege.warlordSeq', { def: 'type each word in turn' });
+      waveBanner = 110;
+    }
+    // a soft ceiling on bodies keeps the page (and the label declutter pass) sane
+    const live = enemies.reduce((n, e) => n + (e.dead ? 0 : 1), 0);
+    const crowd = live > 34 ? 1 + (live - 34) * 0.14 : 1;
+    spawnTimer = Math.max(8, Math.round(endlessInterval() * crowd * (0.75 + Math.random() * 0.5)));
+  }
+  function waveDef() {
+    if (mode === 'stages') return STAGES[Math.min(STAGES.length - 1, wave - 1)] || STAGES[0];
+    return { grunts: 6, archers: 1, trebs: 0, interval: endlessInterval(), speed: waveSpeed(), tag: 'siege' };
+  }
+  function tagText(tag) {
+    return tag === 'breather' ? KIT.t('game.type-siege.beatBreather', { def: 'a moment to breathe' })
+      : tag === 'spike' ? KIT.t('game.type-siege.beatSpike', { def: 'they came in force' })
+        : tag === 'final' ? KIT.t('game.type-siege.beatFinal', { def: 'the last push' })
+          : tag === 'scouts' ? KIT.t('game.type-siege.beatScouts', { def: 'scouts on the hill' })
+            : tag === 'flood' ? KIT.t('game.type-siege.beatFlood', { def: 'a downpour' })
+              : KIT.t('game.type-siege.beatSiege', { def: 'the siege continues' });
+  }
+  function announceWave() {
+    waveText = mode === 'stages'
+      ? KIT.t('game.type-siege.stageN', { n: wave, of: STAGES.length, def: 'STAGE {n} / {of}' })
+      : KIT.t('game.type-siege.waveN', { n: wave, def: 'WAVE {n}' });
+    waveSub = tagText(waveDef().tag);
+    waveBanner = 120;
+  }
+  function buildWave() {
+    const d = waveDef();
+    spawnQ = [];
+    if (d.boss) spawnQ.push('boss');
+    for (let i = 0; i < (d.trebs || 0); i++) spawnQ.push('trebuchet');
+    for (let i = 0; i < (d.archers || 0); i++) spawnQ.push('archer');
+    for (let i = 0; i < d.grunts; i++) spawnQ.push('grunt');
+    // interleave so trebuchets don't all arrive first
+    for (let i = spawnQ.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const t = spawnQ[i]; spawnQ[i] = spawnQ[j]; spawnQ[j] = t;
+    }
+    // a breather wave also opens with a longer lull before the first body shows up
+    spawnTimer = d.breather ? 120 : 24;
+    announceWave();
+  }
+  function spawnFromQueue() {
+    const type = spawnQ.shift();
+    if (!type) return;
+    // word LENGTH is a difficulty knob (see footBand) — Stages keeps its authored body counts
+    const word = type === 'boss' ? bossWords()
+      : type === 'trebuchet' ? pickWord('long')
+        : type === 'archer' ? pickWord(archerBand())
+          : pickWord(footBand());
+    const e = makeEnemy(type, word);
+    if (type === 'boss') {
+      waveText = KIT.t('game.type-siege.warlord', { def: '⚔ WARLORD' });
+      waveSub = KIT.t('game.type-siege.warlordSeq', { def: 'type each word in turn' });
+      waveBanner = 120;
+    }
+    spawnTimer = Math.round(waveDef().interval * DIFF[diff].gap * (0.8 + Math.random() * 0.45));
+  }
+
+  // ---------------------------------------------------------------------------
+  // Damage / kills
+  // ---------------------------------------------------------------------------
+  function damage(n, at) {
+    hp = Math.max(0, hp - n);
+    shake = Math.min(16, shake + 5 + n * 2);
+    wallFlinch = 14;
+    combo = 0;
+    // rubble kicked off the stonework at the impact point
+    const ix = at ? at.x : (isRain() ? field.x + field.w * 0.5 : field.x + wallW);
+    const iy = at ? at.y : (isRain() ? wallEdge() : field.y + field.h * 0.5);
+    for (let i = 0; i < 9; i++) {
+      dust.push({ x: ix, y: iy, vx: (h01(frame * 7 + i) - 0.35) * 3.4, vy: -1.2 - h01(frame * 11 + i) * 2.6,
+        t: 0, life: 22 + Math.round(h01(i * 13) * 12), r: (1.4 + h01(i * 17) * 2.4) * gs });
+    }
+    if (dust.length > 90) dust.splice(0, dust.length - 90);
+    SND.play('thud');
+    try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
+    updateHud();
+    if (hp <= 0 && state === 'playing') endRun('lose');
+  }
+  // Collecting a supply drop: the benefit lands immediately and the receipt is a floating
+  // glyph (a symbol + digits — never a translatable sentence, so this needs no new strings).
+  function collect(e) {
+    const d = e.drop || DROPS[2];
+    cratesTaken++;
+    combo++;
+    if (combo > bestCombo) bestCombo = combo;
+    let mark = '';
+    if (d.repair) { const was = hp; hp = Math.min(hpMax, hp + d.repair); mark = '+' + (hp - was) + '♥'; wallFlinch = 0; }
+    else if (d.slow) { slowT = Math.max(slowT, d.slow); mark = '⏳'; }
+    else { score += d.score; mark = '+' + d.score; }
+    banners.push({ x: e.x, y: e.y - 26 * fs, text: mark, kind: d.kind, t: 0, life: 52 });
+    if (banners.length > 6) banners.shift();
+    puffs.push({ x: e.x, y: e.y, t: 0, seed: e.seed, big: true });
+    pops.push({ x: e.x, y: e.y - 26 * fs, word: e.word, t: 0, life: 26, big: false });
+    if (pops.length > 12) pops.shift();
+    SND.play(d.repair ? 'mend' : d.slow ? 'chime' : 'coin');
+    updateHud();
+  }
+  function kill(e, byTyping) {
+    if (e.dead) return;
+    e.dead = true;
+    if (e.id === lockId) lockId = 0;
+    if (e.type === 'crate') { if (byTyping) collect(e); return; }
+    // view-only death reaction: the doodle topples over and fades (game state already forgot it)
+    corpses.push({ x: e.x, y: e.y, type: e.type, seed: e.seed, t: 0, life: 26, hit: byTyping,
+      dir: byTyping ? 1 : -1, walk: e.walk });
+    if (corpses.length > 24) corpses.shift();
+    if (byTyping) {
+      score += PTS[e.type] || 10;
+      cleared++;
+      combo++;
+      if (combo > bestCombo) bestCombo = combo;
+      puffs.push({ x: e.x, y: e.y, t: 0, seed: e.seed, big: e.type === 'boss' || e.type === 'trebuchet' });
+      // the finished word pops off the page
+      pops.push({ x: e.x, y: e.y - 30 * fs, word: e.word, t: 0, life: 26, big: e.type === 'boss' });
+      if (pops.length > 12) pops.shift();
+      SND.play('pop');
+      updateHud();
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Typing — auto-lock on the first keystroke, then that word owns the input
+  // ---------------------------------------------------------------------------
+  function locked() {
+    if (!lockId) return null;
+    for (let i = 0; i < enemies.length; i++) if (enemies[i].id === lockId && !enemies[i].dead) return enemies[i];
+    lockId = 0;
+    return null;
+  }
+  function dropLock() {
+    const e = locked();
+    if (e) { e.idx = firstLive(e.steps, 0); e.part = ''; }
+    lockId = 0;
+  }
+  // Reading AHEAD is free: a key that could only open a word further down a live sequence is a
+  // silent no-op, never a fumble. Those words are printed (dimmed) on the warlord's plate, so a
+  // player typing the next one is following the page — and it can never jump the sequence, since
+  // only the live word's steps accept input.
+  function opensPending(k, only) {
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.dead || !e.seq || (only && e !== only)) continue;
+      for (let j = e.si + 1; j < e.seq.length; j++) {
+        const st = buildSteps(e.seq[j], wlang);
+        if (probe(st, firstLive(st, 0), '', k).res !== 'miss') return true;
+      }
+    }
+    return false;
+  }
+  function feed(rawChar) {
+    if (state !== 'playing' || (KIT.isPaused && KIT.isPaused())) return;
+    const k = keyOf(rawChar);
+    if (!k || k.length !== 1) return;
+    // A typed SPACE is a silent no-op — never a miss, never a fumble, never a broken chain, boss
+    // or no boss. No target ever needs one (a warlord is a sequence of separate words), and a
+    // space is an INVISIBLE character: punishing a habit the player cannot see on the page is
+    // the bug this rule exists to prevent. It doesn't even count as a keystroke for accuracy.
+    if (/^\s$/.test(rawChar) || k === ' ') return;
+    // NO INPUT LOCK. A wrong key used to jam input for 0.2-0.3 s, and for a fast typist that was
+    // backwards: the instant correction landed INSIDE the jam, got dropped, and cost another miss —
+    // one typo cascaded into three. Mashing is already strictly worse than typing without it (wrong
+    // keys never advance a word, they break the combo and take points), so the jam only punished the
+    // players who react fastest. `fumble` survives as the visual receipt only.
+    // soft-keyboard double-fire guard: the SAME key twice within a couple of steps is only ever
+    // swallowed when it would have MISSED — a real double letter always advances the word.
+    const dup = (k === dupKey && frame - dupFrame <= 3);
+    dupKey = k; dupFrame = frame;
+    typedChars++;
+    let e = locked();
+    if (!e) {
+      // AUTO-LOCK: every live enemy whose word can START with this key is a candidate;
+      // the one CLOSEST to the stronghold wins, ties to the oldest.
+      let bestE = null, bestD = Infinity, bestBorn = Infinity;
+      for (let i = 0; i < enemies.length; i++) {
+        const c = enemies[i];
+        if (c.dead) continue;
+        const r = probe(c.steps, firstLive(c.steps, 0), '', k);
+        if (r.res === 'miss') continue;
+        const d = threat(c);
+        if (d < bestD - 0.001 || (Math.abs(d - bestD) <= 0.001 && c.born < bestBorn)) { bestE = c; bestD = d; bestBorn = c.born; }
+      }
+      // a key that matches NOTHING on the page is a miss, never a free no-op
+      if (!bestE) {
+        if (opensPending(k, null)) { typedChars--; return; }
+        miss(dup); return;
+      }
+      bestE.idx = firstLive(bestE.steps, 0); bestE.part = '';
+      lockId = bestE.id;
+      e = bestE;
+    }
+    const r = probe(e.steps, e.idx, e.part, k);
+    if (r.res === 'miss') {
+      if (e.part === '' && opensPending(k, e)) { typedChars--; return; }
+      miss(dup); return;
+    }
+    e.idx = r.idx; e.part = r.part;
+    hits++;
+    SND.play('tick');
+    if (r.res !== 'done') return;
+    // a warlord's sequence advances word by word and KEEPS the lock; only the last word kills it
+    if (e.seq && e.si < e.seq.length - 1) advanceSeq(e);
+    else kill(e, true);
+  }
+  // The finished word stays on the plate (struck through) and the next one goes live. Nothing is
+  // scored here — the warlord pays out once, on its last word.
+  function advanceSeq(e) {
+    e.si++;
+    e.word = e.seq[e.si];
+    e.steps = buildSteps(e.word, wlang);
+    e.idx = firstLive(e.steps, 0);
+    e.part = '';
+    SND.play('notch');
+  }
+  // A wrong key COSTS: the chain breaks and points come off. The red strike-through on the type bar
+  // is a RECEIPT that a key was wrong, not a lockout — input keeps flowing (see feed).
+  function miss(dup) {
+    if (dup) { typedChars--; return; }        // swallowed soft-keyboard double-fire
+    misses++;
+    combo = 0;
+    const d = DIFF[diff];
+    score = Math.max(0, score - d.miss);
+    fumble = d.fumble;
+    shake = Math.min(11, shake + 5);
+    SND.play('skid');
+    try { if (navigator.vibrate) navigator.vibrate(12); } catch (e) {}
+    updateHud();
+  }
+
+  // The full strike PERIOD for a type (wind-up + strike + recover). Endless tightens it as the
+  // siege ramp climbs, which is what keeps a fast typist under pressure.
+  function cadOf(type) {
+    const ramp = mode === 'endless' ? Math.max(0.58, 1 - siegeRamp() * 0.05) : 1;
+    return Math.max(WINDUP + 2 + ATK_LEN, Math.round((CAD[type] || 150) * DIFF[diff].cad * ramp));
+  }
+  // a supply drop's slow-time dilates game-time for the besiegers only
+  function mv() { return slowT > 0 ? 0.45 : 1; }
+  // ONE attack cycle for every attacker: a readable wind-up, the strike (which does the work),
+  // then a recovery. `pose` is what the painters read: 0 idle · 0→1 winding up · 1→2 striking.
+  function strikeCycle(e, hit, sfx) {
+    const d = mv();
+    if (e.atkT > 0) {
+      e.atkT -= d;
+      e.pose = 1 + (1 - Math.max(0, e.atkT) / ATK_LEN);
+      return;
+    }
+    if (e.atkCd > 0) {
+      e.atkCd -= d;
+      e.pose = e.atkCd < WINDUP ? (1 - Math.max(0, e.atkCd) / WINDUP) : 0;
+      return;
+    }
+    e.atkCd = cadOf(e.type) - ATK_LEN;
+    e.atkT = ATK_LEN;
+    e.pose = 1;
+    if (sfx) SND.play(sfx);
+    hit();
+  }
+  // combined damage per second currently landing on the wall — drives music + the HUD pulse
+  function pressure() {
+    let dps = 0;
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.dead || !e.engaged || e.type === 'crate') continue;
+      dps += ((DMG[e.type] || 1) / cadOf(e.type)) * 60;
+    }
+    return dps;
+  }
+
+  // ---------------------------------------------------------------------------
+  // update / render
+  // ---------------------------------------------------------------------------
+  function update() {
+    frame++;
+    if (state !== 'playing') { if (KIT.music) KIT.music.intensity(0.3); return; }
+    runSteps++;
+    if (shake > 0) shake *= 0.86;
+    if (waveBanner > 0) waveBanner--;
+    if (wallFlinch > 0) wallFlinch--;
+    if (fumble > 0) fumble--;
+    if (slowT > 0) slowT--;
+
+    // spawn (__test.isolate() freezes the spawner so a suite can study ONE attacker)
+    if (noSpawn) { /* isolated */ }
+    else if (mode === 'endless') {
+      // CONTINUOUS: one timer, no queue, no gate. Nothing here ever waits for a field to clear.
+      if (spawnTimer > 0) spawnTimer--; else spawnEndless();
+      const t = siegeTier();
+      if (t !== wave) { wave = t; }
+      if (runSteps % 15 === 0) updateHud();
+    }
+    else if (isRain()) {
+      if (spawnTimer > 0) spawnTimer--;
+      else {
+        // every 5th Rain wave is a FLOOD: three words at once, spread across columns
+        const burst = (wave % 5 === 0) ? 3 : 1;
+        for (let b = 0; b < burst; b++) {
+          let col = Math.floor(Math.random() * cols), tries = 0;
+          while (tries++ < cols && enemies.some(e => !e.dead && e.type === 'rain' && e.col === col && e.y < field.y + field.h * 0.34)) col = (col + 1) % cols;
+          // word LENGTH follows the difficulty here too (footBand); the first two waves stay short
+          makeEnemy('rain', pickWord(wave < 3 ? 'short' : footBand()), { col: col });
+        }
+        spawnTimer = Math.round(Math.max(34, 120 - wave * 6) * DIFF[diff].gap * (0.75 + Math.random() * 0.5) * (burst > 1 ? 2.2 : 1));
+      }
+      if (cleared >= wave * 12) {
+        wave++; SND.play('fanfare'); updateHud();
+        waveText = KIT.t('game.type-siege.waveN', { n: wave, def: 'WAVE {n}' });
+        waveSub = tagText(wave % 5 === 0 ? 'flood' : 'siege');
+        waveBanner = 100;
+      }
+    } else {
+      // STAGES: authored waves, cleared one at a time — the mode's whole identity
+      if (spawnQ.length) { if (spawnTimer > 0) spawnTimer--; else spawnFromQueue(); }
+      else if (!enemies.some(e => !e.dead && e.type !== 'crate')) {
+        if (wave >= STAGES.length) { endRun('win'); return; }
+        wave++;
+        if (hp < hpMax) { hp = Math.min(hpMax, hp + REPAIR_PER_STAGE); repaired += REPAIR_PER_STAGE; }
+        SND.play('fanfare'); updateHud(); buildWave();
+      }
+    }
+    // supply drops — siege modes only (a crate falling out of the sky doesn't fit Rain)
+    if (!noSpawn && !isRain()) {
+      if (crateTimer > 0) crateTimer--;
+      else if (!enemies.some(e => !e.dead && e.type === 'crate')) {
+        makeEnemy('crate', crateWord());
+        crateTimer = Math.round(CRATE_EVERY * (0.75 + Math.random() * 0.5));
+      }
+    }
+
+    // ---- advance → engage → work the wall ----
+    const dt = mv();
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.dead) continue;
+      if (e.type === 'crate') {
+        // a drop only ticks down: no movement, no damage, and the crew hauls it away on expiry
+        e.t++;
+        e.walk += 0.04;
+        if (e.t >= e.life) { kill(e, false); }
+      } else if (e.type === 'rain') {
+        if (!e.engaged) {
+          e.y += e.vy * dt;
+          if (e.y >= wallEdge() - 8 * fs) {
+            // a landed scrap STICKS on the parapet and keeps burning a hole in it until typed
+            e.engaged = true; e.y = wallEdge() - 8 * fs; e.vy = 0;
+            e.atkCd = cadOf('rain') - ATK_LEN;
+            damage(DMG.rain, { x: e.x, y: wallEdge() });
+          }
+        } else {
+          e.walk += 0.05;
+          strikeCycle(e, () => damage(DMG.rain, { x: e.x, y: wallEdge() }), 'chip');
+        }
+      } else if (e.type === 'rock' || e.type === 'arrow') {
+        e.t += dt;
+        if (e.type === 'rock') e.spin = (e.spin || 0) + 0.13 * dt;
+        const pr = Math.min(1, e.t / e.life);
+        e.x = e.x0 + (e.tx - e.x0) * pr;
+        e.y = e.y0 + (e.ty - e.y0) * pr + e.arc * Math.sin(Math.PI * pr);
+        if (pr >= 1) { kill(e, false); damage(DMG[e.type], { x: e.x, y: e.y }); }
+      } else if (!e.engaged) {
+        e.walk += 0.11 * dt;
+        e.x += e.vx * dt;
+        if (e.x <= e.range) { e.x = e.range; e.engaged = true; }
+      } else {
+        // holding the line: idle sway, then the wind-up → strike → recover cycle
+        e.walk += 0.03 * dt;
+        if (e.type === 'trebuchet') {
+          strikeCycle(e, () => { e.sling = 22; makeEnemy('rock', pickWord('urgent'), { x: e.x, y: e.y - 12 * fs }); }, 'sling');
+          if (e.sling > 0) e.sling--;
+        } else if (e.type === 'archer') {
+          strikeCycle(e, () => makeEnemy('arrow', '', { x: e.x - 12 * fs, y: e.y - 6 * fs }), 'bow');
+        } else {
+          strikeCycle(e, () => damage(DMG[e.type] || 1, { x: wallEdge(), y: e.y }), e.type === 'boss' ? 'crash' : 'swing');
+        }
+      }
+    }
+    if (enemies.length > 60) enemies = enemies.filter(e => !e.dead);
+    // view-only animation state (deterministic — driven by the fixed step, never by wall clock)
+    for (let i = puffs.length - 1; i >= 0; i--) { puffs[i].t++; if (puffs[i].t > 26) puffs.splice(i, 1); }
+    for (let i = corpses.length - 1; i >= 0; i--) { const c = corpses[i]; c.t++; if (c.t > c.life) corpses.splice(i, 1); }
+    for (let i = pops.length - 1; i >= 0; i--) { const q = pops[i]; q.t++; if (q.t > q.life) pops.splice(i, 1); }
+    for (let i = banners.length - 1; i >= 0; i--) { const b = banners[i]; b.t++; if (b.t > b.life) banners.splice(i, 1); }
+    for (let i = dust.length - 1; i >= 0; i--) {
+      const d = dust[i]; d.t++; d.x += d.vx; d.y += d.vy; d.vy += 0.16; d.vx *= 0.99;
+      if (d.t > d.life) dust.splice(i, 1);
+    }
+
+    // reactive music: bodies on the field + rocks in flight + wall damage taken
+    if (KIT.music) {
+      const live = enemies.filter(e => !e.dead);
+      const flying = live.filter(e => e.type === 'rock' || e.type === 'arrow').length;
+      const v = 0.30 + 0.30 * Math.min(1, live.length / 10) + 0.16 * Math.min(1, flying / 4)
+        + 0.24 * (1 - hp / hpMax) + 0.20 * Math.min(1, pressure() / 1.2);
+      KIT.music.intensity(Math.max(0, Math.min(1, v)));
+    }
+  }
+
+  // ---- paper background (cached: ruled lines + margin + smudges) ----
+  let bgC = null, bgX = null, bgDirty = true, bgKey = '';
+  function ensureBg() {
+    const key = W + 'x' + H + '|' + inkId() + '|' + mode;
+    if (!bgDirty && bgKey === key && bgC) return;
+    bgKey = key; bgDirty = false;
+    if (!bgC) { bgC = document.createElement('canvas'); bgX = bgC.getContext('2d'); }
+    bgC.width = Math.max(1, W); bgC.height = Math.max(1, H);
+    const g = bgX, p = pal();
+    if (!g) return;
+    g.setTransform && g.setTransform(1, 0, 0, 1, 0, 0);
+    g.fillStyle = p.paper; g.fillRect(0, 0, W, H);
+    // ruled lines
+    g.strokeStyle = p.rule; g.lineWidth = 1;
+    const gap = 26;
+    for (let y = Math.round(topInset % gap); y < H; y += gap) {
+      g.beginPath();
+      for (let x = 0; x <= W; x += 40) {
+        const yy = y + wob(y | 0, x / 40, 0.7);
+        if (x === 0) g.moveTo(x, yy); else g.lineTo(x, yy);
+      }
+      g.stroke();
+    }
+    // double margin line + punch holes
+    g.strokeStyle = p.margin; g.lineWidth = 1.2;
+    const mx = Math.min(46, W * 0.07);
+    [mx, mx + 4].forEach(x => { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + wob(x | 0, 1, 1.6), H); g.stroke(); });
+    g.fillStyle = p.smudge;
+    for (let i = 0; i < 14; i++) {
+      const x = h01(i * 17 + 3) * W, y = h01(i * 29 + 11) * H, r = 8 + h01(i * 41) * 26;
+      g.beginPath(); g.arc(x, y, r, 0, 6.2832); g.fill();
+    }
+    g.fillStyle = p.rule;
+    for (let i = 0; i < 3; i++) { g.beginPath(); g.arc(mx * 0.45, H * (0.2 + i * 0.3), 5, 0, 6.2832); g.fill(); }
+    drawScenery(g, p);
+  }
+
+  // ---- battlefield scenery (STATIC, drawn once into the cached bg layer) ----
+  // Rules it obeys, in this order of priority:
+  //   1. FURNITURE ONLY — every stroke uses `scene`, a dedicated background-band ink: far enough
+  //      from the paper to be seen, far enough from `ink` that it can never be mistaken for an
+  //      enemy, a rock or a word (both gaps are test-enforced, like `rule`/`margin`).
+  //   2. NEVER in a word-label lane — each lane's plate band is carved out; anything that would
+  //      land inside it is skipped (roads/ruts are dashed so they can skip a segment).
+  //   3. CHEAP — this runs once per resize, not per frame.
+  function labelBands() {
+    const bands = [];
+    const bh = fontPx + 11;
+    for (let l = 0; l < lanes; l++) {
+      const cy = laneY(l) - 34 * fs;
+      bands.push([cy - bh / 2 - 6, cy + bh / 2 + 6]);
+    }
+    return bands;
+  }
+  function drawScenery(g, p) {
+    if (isRain() || field.w < 40) return;   // Rain plays on a bare page — scraps fall, nothing else
+    const bands = labelBands();
+    const clear = (y, h) => { for (let i = 0; i < bands.length; i++) if (y < bands[i][1] && bands[i][0] < y + h) return false; return true; };
+    const x0 = field.x + wallW, x1 = field.x + field.w;
+    const span = Math.max(60, x1 - x0);
+    const s = Math.max(0.7, Math.min(1.6, gs));
+    const top = field.y + tagRoom * 0.45, bot = field.y + field.h - 6;
+    // pick a spot that misses every label band; null if it can't find one
+    const spot = (i, h, lo, hi) => {
+      for (let t = 0; t < 6; t++) {
+        const y = lo + h01(i * 331 + t * 97) * Math.max(1, hi - lo - h);
+        if (clear(y, h)) return y;
+      }
+      return null;
+    };
+    g.lineCap = 'round'; g.lineJoin = 'round';
+
+    // scenery COUNT follows the area, so a 2560 page isn't three bushes floating in white space
+    const dens = Math.max(1, Math.min(2.6, (span * field.h) / (900 * 560)));
+    const n = c => Math.round(c * dens);
+    // --- the rutted road: runs from the GATE (mid-height of the wall) out to the far edge ---
+    const gy = field.y + field.h * 0.5;
+    const fan = Math.min(field.h * 0.15, 104);          // capped, or the track swallows the page
+    g.strokeStyle = p.scene;
+    for (const side of [-1, 1]) {
+      g.lineWidth = 2 * s;
+      for (let i = 0; i < 26; i++) {          // dashed, so a segment inside a label band is dropped
+        const t0 = i / 26, t1 = (i + 0.72) / 26;
+        const ey = t => gy + side * (9 + t * fan) * s + Math.sin(t * 5.5 + side) * 5 * s;
+        const ya = ey(t0), yb = ey(t1);
+        if (!clear(Math.min(ya, yb) - 1, Math.abs(yb - ya) + 2)) continue;
+        g.beginPath(); g.moveTo(x0 + span * t0, ya); g.lineTo(x0 + span * t1, yb); g.stroke();
+      }
+    }
+    g.lineWidth = 1.1 * s;                    // cart ruts across the track
+    for (let i = 0; i < n(18); i++) {
+      const t = (i + 0.5) / n(18), h = Math.min((9 + t * fan) * s * 1.1, 26 * s);
+      const ya = gy - h * 0.5;
+      if (!clear(ya, h)) continue;
+      g.beginPath(); g.moveTo(x0 + span * t, ya); g.lineTo(x0 + span * t + 4 * s, ya + h); g.stroke();
+    }
+
+    // --- rocks: lumpy little outlines scattered over the ground ---
+    g.strokeStyle = p.scene; g.lineWidth = 1.5 * s;
+    for (let i = 0; i < n(13); i++) {
+      const r = (3 + h01(i * 61) * 5) * s;
+      const y = spot(i + 5, r * 2, top, bot);
+      if (y == null) continue;
+      const x = x0 + 14 + h01(i * 97 + 7) * Math.max(10, span - 28);
+      g.beginPath();
+      for (let k = 0; k <= 7; k++) {
+        const a = (k / 7) * 6.2832, rr = r * (0.72 + h01(i * 13 + k) * 0.5);
+        const px = x + Math.cos(a) * rr, py = y + r + Math.sin(a) * rr * 0.7;
+        if (k === 0) g.moveTo(px, py); else g.lineTo(px, py);
+      }
+      g.closePath(); g.stroke();
+    }
+
+    // --- scrubby bushes: a low tuft of strokes ---
+    for (let i = 0; i < n(8); i++) {
+      const hh = (10 + h01(i * 71) * 8) * s;
+      const y = spot(i + 40, hh, top, bot);
+      if (y == null) continue;
+      const x = x0 + 18 + h01(i * 149 + 3) * Math.max(10, span - 36);
+      g.lineWidth = 1.3 * s;
+      for (let k = 0; k < 6; k++) {
+        const a = -1.9 + (k / 5) * 1.9;
+        g.beginPath();
+        g.moveTo(x, y + hh);
+        g.lineTo(x + Math.cos(a) * hh * 0.8, y + hh + Math.sin(a) * hh);
+        g.stroke();
+      }
+    }
+
+    // --- scrubby trees: a bare trunk with a scribbled crown, out toward the far edge ---
+    for (let i = 0; i < n(5); i++) {
+      const hh = (24 + h01(i * 53) * 16) * s;
+      const y = spot(i + 80, hh * 1.25, top, bot);
+      if (y == null) continue;
+      const x = x0 + span * (0.34 + h01(i * 211 + 5) * 0.6);
+      if (x > x1 - 16) continue;
+      g.strokeStyle = p.scene; g.lineWidth = 1.9 * s;
+      g.beginPath();
+      g.moveTo(x, y + hh * 1.25); g.lineTo(x + 2 * s, y + hh * 0.5);
+      g.moveTo(x + 2 * s, y + hh * 0.72); g.lineTo(x - 7 * s, y + hh * 0.42);
+      g.moveTo(x + 2 * s, y + hh * 0.62); g.lineTo(x + 9 * s, y + hh * 0.34);
+      g.stroke();
+      g.lineWidth = 1.3 * s;
+      for (let k = 0; k < 5; k++) {
+        const a = (k / 5) * 6.2832 + h01(i * 7) * 3;
+        g.beginPath();
+        g.arc(x + Math.cos(a) * hh * 0.26, y + hh * 0.32 + Math.sin(a) * hh * 0.2, hh * 0.24, 0, 6.2832);
+        g.stroke();
+      }
+    }
+
+    // --- the besiegers' camp: two tents right at the far edge, where they came from ---
+    for (let i = 0; i < (dens > 1.5 ? 3 : 2); i++) {
+      const tw = (26 + i * 8) * s, th = (20 + i * 5) * s;
+      const y = spot(i + 120, th + 6 * s, top, bot);
+      if (y == null) continue;
+      const x = x1 - (18 + i * 40) * s - tw * 0.5;
+      if (x < x0 + span * 0.6) continue;
+      g.strokeStyle = p.scene; g.lineWidth = 1.8 * s;
+      g.beginPath();
+      g.moveTo(x - tw / 2, y + th); g.lineTo(x, y); g.lineTo(x + tw / 2, y + th); g.closePath(); g.stroke();
+      g.lineWidth = 1.2 * s;
+      g.beginPath();                       // the entrance flap + a guy rope
+      g.moveTo(x, y + th); g.lineTo(x - tw * 0.14, y + th * 0.42); g.lineTo(x + tw * 0.1, y + th * 0.4);
+      g.moveTo(x, y); g.lineTo(x, y - 5 * s);
+      g.moveTo(x, y - 3 * s); g.lineTo(x + tw * 0.7, y + th);
+      g.stroke();
+    }
+
+    // --- spent arrows and debris stuck in the ground near the wall ---
+    g.strokeStyle = p.scene; g.lineWidth = 1.4 * s;
+    for (let i = 0; i < n(10); i++) {
+      const L = (9 + h01(i * 37) * 7) * s;
+      const y = spot(i + 160, L, top, bot);
+      if (y == null) continue;
+      const x = x0 + 8 + h01(i * 191 + 11) * Math.max(8, span * 0.5);
+      const a = -0.5 - h01(i * 29) * 0.8;
+      const ex = x + Math.cos(a) * L, ey2 = y + L + Math.sin(a) * L;
+      g.beginPath(); g.moveTo(x, y + L); g.lineTo(ex, ey2); g.stroke();
+      g.beginPath();                        // fletching
+      g.moveTo(ex, ey2); g.lineTo(ex - Math.cos(a + 0.6) * 3.4 * s, ey2 - Math.sin(a + 0.6) * 3.4 * s);
+      g.moveTo(ex, ey2); g.lineTo(ex - Math.cos(a - 0.6) * 3.4 * s, ey2 - Math.sin(a - 0.6) * 3.4 * s);
+      g.stroke();
+    }
+  }
+
+  // ---- hand-drawn ink helpers ----
+  function sketchLine(g, x1, y1, x2, y2, seed, amp) {
+    amp = amp == null ? 1.1 : amp;
+    g.beginPath();
+    const n = 4;
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      const x = x1 + (x2 - x1) * t + wob(seed, i, amp);
+      const y = y1 + (y2 - y1) * t + wob(seed + 5, i, amp);
+      if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+    }
+    g.stroke();
+  }
+  function sketchCircle(g, cx, cy, r, seed, amp) {
+    amp = amp == null ? 1.1 : amp;
+    g.beginPath();
+    const n = 12;
+    for (let i = 0; i <= n; i++) {
+      const a = (i / n) * 6.2832;
+      const rr = r + wob(seed, i, amp);
+      const x = cx + Math.cos(a) * rr, y = cy + Math.sin(a) * rr;
+      if (i === 0) g.moveTo(x, y); else g.lineTo(x, y);
+    }
+    g.closePath();
+    g.stroke();
+  }
+  function sketchRect(g, x, y, w, h, seed, amp) {
+    sketchLine(g, x, y, x + w, y, seed, amp);
+    sketchLine(g, x + w, y, x + w, y + h, seed + 2, amp);
+    sketchLine(g, x + w, y + h, x, y + h, seed + 4, amp);
+    sketchLine(g, x, y + h, x, y, seed + 6, amp);
+  }
+  function hatch(g, x, y, w, h, step, seed) {
+    for (let i = 0; i < w + h; i += step) {
+      const x1 = x + Math.min(i, w), y1 = y + Math.max(0, i - w);
+      const x2 = x + Math.max(0, i - h), y2 = y + Math.min(i, h);
+      sketchLine(g, x1, y1, x2, y2, seed + i, 0.5);
+    }
+  }
+  function textW(s, size) {
+    let m = null;
+    try { m = ctx.measureText(s); } catch (e) { m = null; }
+    return (m && m.width) ? m.width : String(s).length * size * 0.62;
+  }
+
+  // ---- painters ----
+  // Flat ink identity (visual-quality.md flat exemption): no painterly shading, but every
+  // model gets a real silhouette — helmet, tunic, spear, shield; frame, wheels, counterweight;
+  // battlements, gate, banner — plus per-part damage states and a proper walk cycle.
+
+  function drawWall(g, p) {
+    const dmg = 1 - hp / hpMax;
+    const fl = wallFlinch > 0 ? -Math.round(Math.sin(wallFlinch * 0.9) * 3) : 0;   // flinch on impact
+    if (isRain()) {
+      const y = wallEdge() + (wallFlinch > 0 ? Math.abs(fl) : 0);
+      const bottom = field.y + field.h;
+      g.fillStyle = p.paper; g.fillRect(field.x, y, field.w, bottom - y);
+      // crenellated top edge across the whole parapet
+      const step = Math.max(22, 26 * fs);
+      const n = Math.max(4, Math.round(field.w / step));
+      const bw = field.w / n;
+      const gone = Math.round((1 - hp / hpMax) * n);
+      g.strokeStyle = p.ink; g.lineWidth = 3 * Math.min(gs, 1.4); g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(field.x, y + 17);
+      for (let i = 0; i < n; i++) {
+        const x0 = field.x + bw * i, broken = gone > 0 && (i % Math.max(2, Math.round(n / gone)) === 0);
+        const top = broken ? y + 12 : y;
+        g.lineTo(x0, top); g.lineTo(x0 + bw * 0.6, top);
+        g.lineTo(x0 + bw * 0.6, y + 17); g.lineTo(x0 + bw, y + 17);
+      }
+      g.stroke();
+      // stone courses below the merlons
+      g.strokeStyle = p.ink2; g.lineWidth = 1.3;
+      sketchLine(g, field.x + 1, y + 26, field.x + field.w - 1, y + 26, 211, 0.6);
+      for (let i = 0; i < n * 2; i++) {
+        const off = bw * 0.5;
+        sketchLine(g, field.x + off * i, y + 26, field.x + off * i, Math.min(bottom - 2, y + 40), 260 + i, 0.5);
+      }
+      // damage: red bite marks where the parapet has been burned through
+      if (gone > 0) {
+        g.strokeStyle = p.warn; g.lineWidth = 2.2;
+        for (let i = 0; i < gone; i++) {
+          const x0 = field.x + bw * ((i * 2.3) % n) + bw * 0.2;
+          g.beginPath();
+          g.moveTo(x0, y + 14); g.lineTo(x0 + bw * 0.2, y + 25); g.lineTo(x0 + bw * 0.42, y + 15);
+          g.stroke();
+        }
+      }
+      return;
+    }
+    // ------------------------------------------------------------------------
+    // A defensive WALL seen from the side — NOT a tower. What makes it read that way:
+    //   · a wide stone band down the whole left edge, brick-coursed
+    //   · battlements running its FULL height along the outer face (not just a top edge)
+    //   · the gate in the MIDDLE of the wall, where a road can reach it
+    //   · a tower cap + banner only at the very top, plus a short RETURN below it — the wall
+    //     turning a corner is what stops a tall band reading as a chimney
+    // ------------------------------------------------------------------------
+    const x = field.x + fl, y = field.y, w = wallW, h = field.h;
+    const k = Math.min(gs, 1.5);
+    const xo = x + w;                                       // the outer (field-facing) face
+    const capH = Math.max(18, 26 * k);                      // the tower cap at the very top
+    const retH = Math.max(12, 17 * k);                       // the return / buttress under it
+    const retL = Math.min(w * 0.62, 40 * k);
+    const tooth = Math.max(8, Math.min(24, w * 0.2));       // how far a merlon stands proud
+    const mstep = Math.max(15, 23 * k);                     // merlon pitch down the face
+    const bandTop = y + capH + retH;
+    g.fillStyle = p.paper; g.fillRect(x, y, w, h);          // opaque stonework
+    g.lineCap = 'round'; g.lineJoin = 'round';
+
+    // ---- the gate, dead centre of the wall's height ----
+    const gh = Math.min(h * 0.24, 96 * gs);
+    const gy = y + h * 0.5 - gh / 2;
+    // ---- battlements down the full outer face (skipping the gate) ----
+    g.strokeStyle = p.ink; g.lineWidth = 2.6 * k;
+    let merl = 0;
+    for (let my = bandTop + 4; my < y + h - mstep; my += mstep * 2, merl++) {
+      if (my + mstep > gy - 4 && my < gy + gh + 4) continue;             // the gate breaks the line
+      const chipped = dmg > 0.3 && merl % 4 === 1;                        // knocked-out crenels
+      const out = chipped ? tooth * 0.35 : tooth;
+      g.fillStyle = p.paper;
+      g.fillRect(xo, my, out, mstep);
+      g.beginPath();
+      g.moveTo(xo, my); g.lineTo(xo + out, my); g.lineTo(xo + out, my + mstep); g.lineTo(xo, my + mstep);
+      g.stroke();
+      if (chipped) {                                                     // a jagged broken top
+        g.strokeStyle = p.warn; g.lineWidth = 1.7 * k;
+        g.beginPath();
+        g.moveTo(xo, my + 1); g.lineTo(xo + out * 0.6, my + mstep * 0.32); g.lineTo(xo + out, my + 1);
+        g.stroke();
+        g.strokeStyle = p.ink; g.lineWidth = 2.6 * k;
+      }
+    }
+    // the face itself + the base line
+    g.lineWidth = 2.8 * k;
+    sketchLine(g, xo, bandTop, xo, y + h, 55, 1.0);
+    sketchLine(g, x, y + h, xo, y + h, 57, 1.0);
+
+    // ---- tower cap + the short return, at the very top ----
+    g.fillStyle = p.paper; g.fillRect(x, y, w + tooth * 0.6, capH);
+    g.strokeStyle = p.ink; g.lineWidth = 2.8 * k;
+    const capX = xo + tooth * 0.6, cn = 3, cw = (capX - x) / (cn * 2 - 1);
+    g.beginPath();
+    let ccx = x;
+    g.moveTo(x, y + 11 * k);
+    for (let i = 0; i < cn * 2 - 1; i++) {
+      const up = i % 2 === 0;
+      const ty = up ? y : y + 11 * k;
+      g.lineTo(ccx, ty); ccx += cw; g.lineTo(ccx, ty);
+    }
+    g.lineTo(capX, y + capH); g.lineTo(x, y + capH);
+    g.stroke();
+    // the RETURN: the wall turning a corner and running back into the page
+    g.fillStyle = p.paper; g.fillRect(xo, y + capH, retL, retH);
+    g.lineWidth = 2.4 * k;
+    g.beginPath();
+    g.moveTo(xo, y + capH); g.lineTo(xo + retL, y + capH + retH * 0.34);
+    g.lineTo(xo + retL, y + capH + retH); g.lineTo(xo, y + capH + retH);
+    g.stroke();
+    g.strokeStyle = p.ink2; g.lineWidth = 1.2;
+    for (let i = 1; i < 3; i++) sketchLine(g, xo + retL * i / 3, y + capH + retH * (0.2 + i * 0.05), xo + retL * i / 3, y + capH + retH, 190 + i, 0.5);
+
+    // ---- brick courses (staggered), the full height of the band ----
+    g.lineWidth = 1.2; g.strokeStyle = p.ink2;
+    const bh = 20 * k;
+    let row = 0;
+    for (let yy = y + capH + 8; yy < y + h - 5; row++, yy += bh) {
+      if (yy > gy - 3 && yy < gy + gh + 3) continue;
+      sketchLine(g, x + 1, yy, xo - 1, yy, 300 + row, 0.7);
+      const off = row % 2 ? w * 0.54 : w * 0.27;
+      sketchLine(g, x + off, yy, x + off, Math.min(y + h - 3, yy + bh), 400 + row, 0.6);
+    }
+    // ---- arrow slits, above and below the gate ----
+    g.strokeStyle = p.ink; g.lineWidth = 1.7;
+    for (const f of [0.26, 0.74]) {
+      const sy = y + h * f;
+      if (sy > gy - 20 && sy < gy + gh + 8) continue;
+      sketchRect(g, x + w * 0.44, sy, Math.max(4, w * 0.1), 15 * Math.min(gs, 1.3), 520 + Math.round(f * 10), 0.5);
+    }
+
+    // ---- the gate: a barbican mouth bulging out of the wall, plank door, iron bands, rivets ----
+    const ar = Math.min(gh * 0.42, tooth * 1.1 + 5 * k);
+    g.fillStyle = p.paper; g.fillRect(x, gy - 3, w + tooth + ar, gh + 6);
+    // the surround: the wall thickens around the opening and pushes past the battlement line
+    g.strokeStyle = p.ink; g.lineWidth = 3 * k;
+    g.beginPath();
+    g.moveTo(x, gy);
+    g.lineTo(xo + tooth * 0.35, gy);
+    g.quadraticCurveTo(xo + tooth + ar, gy + gh * 0.5, xo + tooth * 0.35, gy + gh);
+    g.lineTo(x, gy + gh);
+    g.stroke();
+    // the recess: the arch mouth is DARK (hatched), which is what makes it read as a hole
+    g.strokeStyle = p.ink2; g.lineWidth = 1.1;
+    hatch(g, x + w * 0.06, gy + gh * 0.12, w * 0.88, gh * 0.76, Math.max(5, 7 * k), 660);
+    // the door itself: planks across the opening, two iron bands down it, rivets on both
+    const planks = 5;
+    for (let i = 1; i < planks; i++) {
+      const py = gy + (gh / planks) * i;
+      const splint = dmg > 0.7 && i === 2;                  // the gate splinters near collapse
+      g.strokeStyle = splint ? p.warn : p.ink;
+      g.lineWidth = splint ? 2.4 : 1.6;
+      sketchLine(g, x + 3, py, xo + tooth * 0.2, py, 600 + i, splint ? 2.4 : 0.6);
+    }
+    g.strokeStyle = p.ink; g.lineWidth = 2.2;
+    [0.3, 0.68].forEach((f, i) => {
+      const bx2 = x + w * f;
+      sketchLine(g, bx2, gy + 3, bx2, gy + gh - 3, 640 + i, 0.5);
+      g.fillStyle = p.ink;
+      for (let r2 = 0; r2 < 3; r2++) { g.beginPath(); g.arc(bx2, gy + 5 + r2 * (gh - 10) / 2, 1.6 * k, 0, 6.2832); g.fill(); }
+    });
+    // threshold stones spilling out of the gate mouth, where the road meets it
+    g.strokeStyle = p.ink2; g.lineWidth = 1.4;
+    for (let i = 0; i < 3; i++) {
+      const sx2 = xo + tooth + ar * 0.35 + i * 6 * k;
+      sketchLine(g, sx2, gy + gh * (0.3 + i * 0.05), sx2, gy + gh * (0.7 - i * 0.05), 700 + i, 0.8);
+    }
+
+    // ---- damage: crack network + rubble at the base ----
+    if (dmg > 0.01) {
+      g.strokeStyle = p.warn; g.lineWidth = 1.9 * Math.min(gs, 1.3);
+      const cracks = Math.min(4, Math.round(dmg * 5));
+      for (let i = 0; i < cracks; i++) {
+        const cy0 = bandTop + 16 + h01(i * 37) * Math.max(20, h - 120);
+        if (cy0 > gy - 8 && cy0 < gy + gh + 8) continue;
+        g.beginPath();
+        g.moveTo(x + 3, cy0);
+        g.lineTo(x + w * 0.4, cy0 + wob(i * 3, 1, 9));
+        g.lineTo(x + w * 0.68, cy0 - wob(i * 5, 2, 12));
+        g.lineTo(xo - 4, cy0 + wob(i * 7, 3, 8));
+        g.stroke();
+        if (dmg > 0.5) {   // a branch off the main crack
+          g.beginPath();
+          g.moveTo(x + w * 0.4, cy0 + wob(i * 3, 1, 9));
+          g.lineTo(x + w * 0.55, cy0 + 16 + wob(i * 9, 4, 6));
+          g.stroke();
+        }
+      }
+      // rubble spilling out from the foot of the wall
+      g.strokeStyle = p.ink2; g.lineWidth = 1.4;
+      const rocks = Math.round(dmg * 7);
+      for (let i = 0; i < rocks; i++) {
+        const rx = xo + tooth + 4 + h01(i * 23) * 26 * gs, ry = y + h - 5 - h01(i * 29) * 14 * gs;
+        sketchCircle(g, rx, ry, (2 + h01(i * 31) * 3) * gs, 900 + i, 1.1);
+      }
+    }
+    // ---- banner: flown from the corner of the return, so it stays INSIDE the field ----
+    g.strokeStyle = p.ink; g.lineWidth = 2.4 * k;
+    const fx = xo + retL * 0.55;
+    sketchLine(g, fx, y + capH + retH * 0.5, fx, y + 2, 61, 0.8);
+    g.fillStyle = p.hi;
+    const flag = Math.sin(frame * 0.07) * 2;
+    const fl2 = Math.min(26, retL * 0.8);
+    g.beginPath();
+    g.moveTo(fx, y + 2);
+    g.lineTo(fx + fl2, y + 8 + flag);
+    g.lineTo(fx + fl2 * 0.55, y + 10);
+    g.lineTo(fx, y + 17);
+    g.closePath(); g.fill();
+  }
+
+  // A stick SOLDIER with intent: helmet, tunic, belt, spear, round shield — and a real walk
+  // cycle (hip pivot + knee bend + counter-swinging arms + body bob + forward lean).
+  function drawSoldier(g, p, e, ax, ay, s, boss, phase) {
+    const m = Math.min(s, 1.7);
+    const ph = phase == null ? e.walk : phase;
+    const eng = !!e.engaged, pose = e.pose || 0;
+    const bob = (eng ? Math.sin(ph * 2) * 0.8 : Math.abs(Math.sin(ph)) * 1.8) * s;
+    const lean = eng && pose > 1 ? (pose - 1) * 3 * s : 0;        // body follows the blow through
+    const cy = ay + bob;
+    const hipY = cy + 6 * s, headY = cy - 21 * s, shoY = cy - 9 * s;
+    // planted stance once engaged (feet apart, braced), striding while advancing
+    const stride = eng ? 0.42 : Math.sin(ph) * 0.55, stride2 = eng ? -0.42 : Math.sin(ph + Math.PI) * 0.55;
+    const legL = 13 * s;
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    // --- legs (hip → knee → foot) ---
+    g.strokeStyle = p.ink; g.lineWidth = (boss ? 3.2 : 2.1) * m;
+    [stride, stride2].forEach((a, i) => {
+      const kx = ax + Math.sin(a) * legL, ky = hipY + Math.cos(a) * legL;
+      const bend = 0.5 + Math.max(0, -a) * 0.8;
+      const fx2 = kx + Math.sin(a * 0.3) * legL * 0.9, fy2 = ky + Math.cos(a * bend * 0.4) * legL * 0.9;
+      g.beginPath(); g.moveTo(ax, hipY); g.lineTo(kx, ky); g.lineTo(fx2, fy2); g.stroke();
+      // foot
+      g.beginPath(); g.moveTo(fx2, fy2); g.lineTo(fx2 - 4 * s, fy2 + 1 * s); g.stroke();
+    });
+    // --- tunic (the silhouette that stops it reading as a bare stick) ---
+    g.fillStyle = p.paper;
+    g.beginPath();
+    g.moveTo(ax - 6 * s, shoY + 1 * s); g.lineTo(ax + 6 * s, shoY + 1 * s);
+    g.lineTo(ax + 8 * s, hipY + 3 * s); g.lineTo(ax - 8 * s, hipY + 3 * s);
+    g.closePath(); g.fill();
+    g.lineWidth = (boss ? 3 : 2) * m;
+    g.beginPath();
+    g.moveTo(ax - 6 * s, shoY + 1 * s); g.lineTo(ax + 6 * s, shoY + 1 * s);
+    g.lineTo(ax + 8 * s, hipY + 3 * s); g.lineTo(ax - 8 * s, hipY + 3 * s);
+    g.closePath(); g.stroke();
+    g.lineWidth = 1.3 * m; g.strokeStyle = p.ink2;
+    sketchLine(g, ax - 7 * s, hipY - 2 * s, ax + 7 * s, hipY - 2 * s, e.seed + 30, 0.5);   // belt
+    // --- spine + head ---
+    g.strokeStyle = p.ink; g.lineWidth = (boss ? 3 : 2.1) * m;
+    g.beginPath(); g.moveTo(ax, shoY); g.lineTo(ax + 1 * s, hipY); g.stroke();
+    g.fillStyle = p.paper;
+    g.beginPath(); g.arc(ax, headY, 7 * s, 0, 6.2832); g.fill();
+    sketchCircle(g, ax, headY, 7 * s, e.seed, 0.7);
+    // eyes + a set jaw
+    g.fillStyle = p.ink;
+    g.beginPath(); g.arc(ax - 2.6 * s, headY - 0.5 * s, 1.2 * s, 0, 6.2832); g.fill();
+    g.beginPath(); g.arc(ax + 2.6 * s, headY - 0.5 * s, 1.2 * s, 0, 6.2832); g.fill();
+    g.strokeStyle = p.ink2; g.lineWidth = 1.2 * m;
+    g.beginPath(); g.moveTo(ax - 2 * s, headY + 3.4 * s); g.lineTo(ax + 2 * s, headY + 3.4 * s); g.stroke();
+    // --- helmet: dome + brim + nose guard (boss gets a crown instead) ---
+    g.strokeStyle = p.ink; g.lineWidth = 2.2 * m;
+    if (boss) {
+      g.fillStyle = p.hi;
+      g.beginPath();
+      g.moveTo(ax - 8 * s, headY - 5 * s);
+      g.lineTo(ax - 8 * s, headY - 13 * s); g.lineTo(ax - 4 * s, headY - 8 * s);
+      g.lineTo(ax, headY - 14 * s); g.lineTo(ax + 4 * s, headY - 8 * s);
+      g.lineTo(ax + 8 * s, headY - 13 * s); g.lineTo(ax + 8 * s, headY - 5 * s);
+      g.closePath(); g.fill();
+      g.strokeStyle = p.ink; g.lineWidth = 1.8 * m; g.stroke();
+    } else {
+      g.fillStyle = p.paper;
+      g.beginPath(); g.arc(ax, headY - 1 * s, 7.6 * s, Math.PI * 1.05, Math.PI * 1.95); g.closePath(); g.fill();
+      g.beginPath(); g.arc(ax, headY - 1 * s, 7.6 * s, Math.PI * 1.05, Math.PI * 1.95); g.stroke();
+      g.beginPath(); g.moveTo(ax - 9 * s, headY - 4 * s); g.lineTo(ax + 9 * s, headY - 4 * s); g.stroke();
+      g.lineWidth = 1.6 * m;
+      g.beginPath(); g.moveTo(ax, headY - 4 * s); g.lineTo(ax, headY + 2 * s); g.stroke();   // nose guard
+    }
+    // --- shield arm (front, braced toward the wall) ---
+    const swing = eng ? 0 : Math.sin(ph) * 4 * s;
+    const shX = ax - (eng ? 13 : 11) * s, shY = shoY + 9 * s - swing;
+    g.strokeStyle = p.ink; g.lineWidth = (boss ? 3 : 2.1) * m;
+    g.beginPath(); g.moveTo(ax + lean, shoY + 1 * s); g.lineTo(shX + 2 * s, shY - 1 * s); g.stroke();
+    g.fillStyle = p.paper;
+    g.beginPath(); g.arc(shX, shY, 7 * s, 0, 6.2832); g.fill();
+    g.lineWidth = 2 * m;
+    sketchCircle(g, shX, shY, 7 * s, e.seed + 3, 0.6);
+    g.lineWidth = 1.2 * m; g.strokeStyle = p.ink2;
+    g.beginPath(); g.arc(shX, shY, 3.2 * s, 0, 6.2832); g.stroke();
+    g.fillStyle = p.ink;
+    g.beginPath(); g.arc(shX, shY, 1.3 * s, 0, 6.2832); g.fill();
+    // --- weapon arm: reads the strike cycle (idle → haul back → swing through) ---
+    let wa;
+    if (!eng) wa = -0.35 + Math.sin(ph) * 0.22;
+    else if (pose <= 1) wa = -0.35 - pose * 1.05;                 // wind-up: blade goes up and back
+    else wa = -1.40 + (pose - 1) * 2.35;                          // strike: down and forward
+    const handX = ax + lean + Math.cos(wa) * 9 * s, handY = shoY + 2 * s + Math.sin(wa) * 9 * s;
+    g.strokeStyle = p.ink; g.lineWidth = (boss ? 3 : 2.1) * m;
+    g.beginPath(); g.moveTo(ax + lean, shoY + 1 * s); g.lineTo(handX, handY); g.stroke();
+    const dx = Math.cos(wa - 1.35), dy = Math.sin(wa - 1.35);     // spear points across the hand
+    const sx = handX - dx * 9 * s, sy0 = handY - dy * 9 * s;
+    const bx2 = handX + dx * 17 * s, by2 = handY + dy * 17 * s;
+    g.lineWidth = 2 * m;
+    sketchLine(g, sx, sy0, bx2, by2, e.seed + 8, 0.7);
+    g.fillStyle = p.ink;
+    g.beginPath();
+    g.moveTo(sx - dx * 6 * s, sy0 - dy * 6 * s);
+    g.lineTo(sx + dy * 3.2 * s, sy0 - dx * 3.2 * s);
+    g.lineTo(sx, sy0);
+    g.lineTo(sx - dy * 3.2 * s, sy0 + dx * 3.2 * s);
+    g.closePath(); g.fill();
+    if (boss) {
+      // cape + pennant: the boss must read as a boss at a glance
+      g.fillStyle = p.paper;
+      g.beginPath();
+      g.moveTo(ax + 5 * s, shoY); g.lineTo(ax + 15 * s, hipY + 14 * s); g.lineTo(ax + 2 * s, hipY + 8 * s);
+      g.closePath(); g.fill();
+      g.strokeStyle = p.ink; g.lineWidth = 2 * m; g.stroke();
+      g.strokeStyle = p.ink2; g.lineWidth = 1.1 * m;
+      for (let i = 1; i < 4; i++) sketchLine(g, ax + 5 * s + i * 2.4 * s, shoY + i * 2 * s, ax + 4 * s + i * 3.4 * s, hipY + 6 * s + i * 1.5 * s, e.seed + 40 + i, 0.5);
+      g.fillStyle = p.hi;
+      const wv = Math.sin(frame * 0.09) * 2 * s;
+      g.beginPath();
+      g.moveTo(sx, sy0); g.lineTo(sx + 15 * s, sy0 + 5 * s + wv); g.lineTo(sx + 8 * s, sy0 + 8 * s); g.lineTo(sx - dx * 2 * s, sy0 + 11 * s);
+      g.closePath(); g.fill();
+    }
+  }
+  function drawGrunt(g, p, e, ax, ay, big) { drawSoldier(g, p, e, ax, ay, (big ? 1.55 : 1) * fs, !!big); }
+
+  // Archer: mid-rank stick figure with a real bow — the string draws back on the wind-up
+  function drawArcher(g, p, e, ax, ay) {
+    const s = fs, m = Math.min(s, 1.7);
+    const eng = !!e.engaged, pose = e.pose || 0;
+    const ph = e.walk;
+    const bob = (eng ? Math.sin(ph * 2) * 0.7 : Math.abs(Math.sin(ph)) * 1.6) * s;
+    const cy = ay + bob, hipY = cy + 6 * s, headY = cy - 21 * s, shoY = cy - 9 * s;
+    const draw = eng ? (pose <= 1 ? pose : Math.max(0, 1 - (pose - 1) * 3)) : 0;   // 0..1 string pull
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    // legs
+    g.strokeStyle = p.ink; g.lineWidth = 2.1 * m;
+    const a1 = eng ? 0.4 : Math.sin(ph) * 0.5, a2 = eng ? -0.4 : Math.sin(ph + Math.PI) * 0.5;
+    [a1, a2].forEach(a => {
+      const kx = ax + Math.sin(a) * 13 * s, ky = hipY + Math.cos(a) * 13 * s;
+      g.beginPath(); g.moveTo(ax, hipY); g.lineTo(kx, ky); g.lineTo(kx + Math.sin(a * 0.3) * 12 * s, ky + 11 * s); g.stroke();
+    });
+    // hooded tunic (distinct silhouette from the shielded grunt)
+    g.fillStyle = p.paper;
+    g.beginPath();
+    g.moveTo(ax - 5 * s, shoY); g.lineTo(ax + 5 * s, shoY); g.lineTo(ax + 7 * s, hipY + 3 * s); g.lineTo(ax - 7 * s, hipY + 3 * s);
+    g.closePath(); g.fill();
+    g.strokeStyle = p.ink; g.lineWidth = 2 * m; g.stroke();
+    g.beginPath(); g.moveTo(ax, shoY); g.lineTo(ax + 1 * s, hipY); g.stroke();
+    // head + hood
+    g.fillStyle = p.paper;
+    g.beginPath(); g.arc(ax, headY, 6.5 * s, 0, 6.2832); g.fill();
+    sketchCircle(g, ax, headY, 6.5 * s, e.seed, 0.7);
+    g.fillStyle = p.paper;
+    g.beginPath(); g.moveTo(ax - 8 * s, headY + 2 * s); g.quadraticCurveTo(ax, headY - 12 * s, ax + 8 * s, headY + 2 * s); g.closePath(); g.fill();
+    g.strokeStyle = p.ink; g.lineWidth = 2 * m;
+    g.beginPath(); g.moveTo(ax - 8 * s, headY + 2 * s); g.quadraticCurveTo(ax, headY - 12 * s, ax + 8 * s, headY + 2 * s); g.stroke();
+    g.fillStyle = p.ink;
+    g.beginPath(); g.arc(ax - 2 * s, headY + 1 * s, 1.2 * s, 0, 6.2832); g.fill();
+    // quiver on the back
+    g.strokeStyle = p.ink2; g.lineWidth = 1.6 * m;
+    sketchRect(g, ax + 5 * s, shoY + 1 * s, 5 * s, 13 * s, e.seed + 20, 0.6);
+    g.strokeStyle = p.ink; g.lineWidth = 1.3 * m;
+    for (let i = 0; i < 3; i++) sketchLine(g, ax + 6 * s + i * 1.6 * s, shoY + 1 * s, ax + 6 * s + i * 1.6 * s, shoY - 6 * s, e.seed + 25 + i, 0.4);
+    // bow arm forward + bow with a drawn string
+    const bx = ax - 13 * s, by = shoY + 3 * s;
+    g.strokeStyle = p.ink; g.lineWidth = 2.1 * m;
+    g.beginPath(); g.moveTo(ax, shoY + 1 * s); g.lineTo(bx + 2 * s, by); g.stroke();
+    g.lineWidth = 2.4 * m;
+    g.beginPath(); g.arc(bx, by, 12 * s, -1.15, 1.15); g.stroke();
+    g.lineWidth = 1.3 * m;
+    const nock = bx + (4 + draw * 9) * s;
+    g.beginPath();
+    g.moveTo(bx + Math.cos(-1.15) * 12 * s, by + Math.sin(-1.15) * 12 * s);
+    g.lineTo(nock, by);
+    g.lineTo(bx + Math.cos(1.15) * 12 * s, by + Math.sin(1.15) * 12 * s);
+    g.stroke();
+    // the nocked arrow + the drawing hand
+    if (draw > 0.05) {
+      g.lineWidth = 1.6 * m; g.strokeStyle = p.ink;
+      g.beginPath(); g.moveTo(bx - 10 * s, by); g.lineTo(nock + 3 * s, by); g.stroke();
+      g.beginPath(); g.moveTo(ax, shoY + 1 * s); g.lineTo(nock, by); g.stroke();
+    }
+  }
+
+  // Arrow: a small ink shaft, head and fletching, rotated along its flight
+  function drawArrow(g, p, e, ax, ay) {
+    const s = fs, L = 11 * s;
+    const pr = Math.min(1, e.t / e.life);
+    const ang = Math.atan2((e.ty - e.y0) / e.life + e.arc * Math.cos(Math.PI * pr) * Math.PI / e.life, (e.tx - e.x0) / e.life);
+    g.save();
+    g.translate(ax, ay); g.rotate(ang);
+    g.strokeStyle = p.ink; g.lineWidth = 1.8 * Math.min(s, 1.6); g.lineCap = 'round';
+    g.beginPath(); g.moveTo(-L, 0); g.lineTo(L * 0.45, 0); g.stroke();
+    g.fillStyle = p.ink;
+    g.beginPath(); g.moveTo(L, 0); g.lineTo(L * 0.45, -2.6 * s); g.lineTo(L * 0.45, 2.6 * s); g.closePath(); g.fill();
+    // fletching: swept BACK along the shaft so it never reads as a second arrowhead
+    g.lineWidth = 1.2 * Math.min(s, 1.6);
+    g.beginPath();
+    g.moveTo(-L, -2.2 * s); g.lineTo(-L + 4.5 * s, 0);
+    g.moveTo(-L, 2.2 * s); g.lineTo(-L + 4.5 * s, 0);
+    g.stroke();
+    g.restore();
+    // motion streak so it reads as an arrow in flight, not an arrow glyph
+    const back = Math.max(0, Math.min(1, (e.t - 5) / e.life));
+    const sxp = e.x0 + (e.tx - e.x0) * back, syp = e.y0 + (e.ty - e.y0) * back + e.arc * Math.sin(Math.PI * back);
+    g.strokeStyle = p.ink2; g.lineWidth = 1;
+    g.globalAlpha = 0.55;
+    g.beginPath(); g.moveTo(sxp, syp); g.lineTo(ax + L * 0.4, ay); g.stroke();
+    g.globalAlpha = 1;
+  }
+
+  // Trebuchet: braced A-frame, spoked wheels, counterweight crate with straps, and an arm
+  // that hauls BACK during the reload then snaps forward on release.
+  function drawTrebuchet(g, p, e, ax, ay) {
+    const m = Math.min(fs, 1.7);
+    const w = 46 * fs, h = 30 * fs;
+    const pivotY = ay - h * 0.75;
+    g.lineCap = 'round';
+    // base beam + A-frame + cross brace
+    g.strokeStyle = p.ink; g.lineWidth = 2.8 * m;
+    sketchLine(g, ax - w * 0.6, ay + h, ax + w * 0.6, ay + h, e.seed + 2, 0.9);
+    sketchLine(g, ax - w * 0.5, ay + h, ax, pivotY, e.seed, 0.9);
+    sketchLine(g, ax + w * 0.5, ay + h, ax, pivotY, e.seed + 1, 0.9);
+    g.lineWidth = 1.6 * m;
+    sketchLine(g, ax - w * 0.28, ay + h * 0.35, ax + w * 0.28, ay + h * 0.35, e.seed + 7, 0.7);
+    // wheels with spokes
+    g.lineWidth = 2 * m;
+    [-1, 1].forEach((sgn, i) => {
+      const wx = ax + sgn * w * 0.42, wy = ay + h + 7 * fs, r = 8 * fs;
+      sketchCircle(g, wx, wy, r, e.seed + 3 + i, 0.7);
+      g.lineWidth = 1.2 * m;
+      for (let k = 0; k < 4; k++) {
+        const a2 = (k / 4) * Math.PI + e.walk * 0.25 * sgn;
+        g.beginPath(); g.moveTo(wx - Math.cos(a2) * r * 0.85, wy - Math.sin(a2) * r * 0.85);
+        g.lineTo(wx + Math.cos(a2) * r * 0.85, wy + Math.sin(a2) * r * 0.85); g.stroke();
+      }
+      g.lineWidth = 2 * m;
+    });
+    // arm: reload haul-back (wind) → release snap (sling)
+    const wind = e.engaged ? Math.min(1, e.pose || 0) : 0;
+    const rel = e.sling > 0 ? (1 - e.sling / 22) : -1;
+    const a = rel >= 0 ? (-1.35 + rel * 2.35) : (-0.65 - wind * 0.7);
+    const L = 40 * fs;
+    g.strokeStyle = p.ink; g.lineWidth = 3 * m;
+    const tipX = ax + Math.cos(a) * L, tipY = pivotY + Math.sin(a) * L;
+    sketchLine(g, ax - Math.cos(a) * L * 0.35, pivotY - Math.sin(a) * L * 0.35, tipX, tipY, e.seed + 5, 0.6);
+    // sling pouch (loaded while reloading, empty right after release)
+    g.lineWidth = 1.6 * m;
+    const pouchY = tipY + 7 * fs;
+    sketchLine(g, tipX, tipY, tipX, pouchY, e.seed + 12, 0.6);
+    if (rel < 0.3) { g.strokeStyle = p.warn; g.lineWidth = 2 * m; sketchCircle(g, tipX, pouchY + 3 * fs, 4.5 * fs, e.seed + 11, 0.9); }
+    // counterweight crate with straps
+    g.strokeStyle = p.ink; g.lineWidth = 2.2 * m;
+    const cwY = pivotY + 2 * fs + wind * 6 * fs;
+    sketchRect(g, ax - 16 * fs, cwY, 16 * fs, 16 * fs, e.seed + 6, 0.7);
+    g.lineWidth = 1.2 * m; g.strokeStyle = p.ink2;
+    hatch(g, ax - 16 * fs, cwY, 16 * fs, 16 * fs, 5 * fs, e.seed + 40);
+    g.strokeStyle = p.ink; g.lineWidth = 1.6 * m;
+    sketchLine(g, ax - 16 * fs, cwY + 8 * fs, ax, cwY + 8 * fs, e.seed + 44, 0.4);
+    // a crew doodle cranking it, so the engine reads as manned
+    g.lineWidth = 1.8 * m;
+    const crank = Math.sin(frame * 0.12) * 2 * fs;
+    g.beginPath(); g.arc(ax + w * 0.5, ay + h - 9 * fs + crank, 3.4 * fs, 0, 6.2832); g.stroke();
+    g.beginPath();
+    g.moveTo(ax + w * 0.5, ay + h - 5.6 * fs + crank); g.lineTo(ax + w * 0.5, ay + h - 1 * fs);
+    g.moveTo(ax + w * 0.5, ay + h - 4 * fs + crank); g.lineTo(ax + w * 0.34, ay + h - 6 * fs);
+    g.stroke();
+  }
+
+  // Rock: a lumpy tumbling stone (rotates in flight) with a dashed arc trail
+  function drawRock(g, p, e, ax, ay) {
+    const r = 12 * fs, m = Math.min(fs, 1.7), spin = e.spin || 0;
+    g.save();
+    g.translate(ax, ay); g.rotate(spin);
+    g.strokeStyle = p.warn; g.lineWidth = 3 * m;
+    g.fillStyle = p.paper;
+    g.beginPath();
+    for (let i = 0; i <= 8; i++) {
+      const a2 = (i / 8) * 6.2832, rr = r * (0.82 + h01(e.seed * 3 + i) * 0.36);
+      const x2 = Math.cos(a2) * rr, y2 = Math.sin(a2) * rr;
+      if (i === 0) g.moveTo(x2, y2); else g.lineTo(x2, y2);
+    }
+    g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = p.ink; g.lineWidth = 1.4 * m;
+    hatch(g, -r * 0.55, -r * 0.55, r * 1.1, r * 1.1, 5 * fs, e.seed + 9);
+    g.restore();
+    // trail back along the arc it came from
+    g.strokeStyle = p.warn; g.lineWidth = 1.6 * m;
+    for (let i = 1; i <= 3; i++) {
+      const tp = Math.max(0, Math.min(1, (e.t - i * 6) / e.life));
+      const tx2 = e.x0 + (e.tx - e.x0) * tp, ty2 = e.y0 + (e.ty - e.y0) * tp + e.arc * Math.sin(Math.PI * tp);
+      g.beginPath(); g.arc(tx2, ty2, (3.4 - i * 0.8) * fs, 0, 6.2832); g.stroke();
+    }
+  }
+
+  // Rain: a torn page scrap with a jagged bottom edge, swaying as it falls
+  function drawRainScrap(g, p, e, ax, ay) {
+    const m = Math.min(fs, 1.7), w = 22 * fs, h = 15 * fs;
+    const tilt = Math.sin(frame * 0.05 + e.seed) * 0.14;
+    g.save();
+    g.translate(ax, ay); g.rotate(tilt);
+    g.fillStyle = p.paper;
+    g.beginPath();
+    g.moveTo(-w / 2, -h / 2); g.lineTo(w / 2, -h / 2); g.lineTo(w / 2, h * 0.3);
+    for (let i = 4; i >= 0; i--) g.lineTo(-w / 2 + (w / 4) * i, h * 0.3 + (i % 2 ? h * 0.32 : 0));
+    g.closePath(); g.fill();
+    g.strokeStyle = p.ink; g.lineWidth = 2 * m; g.stroke();
+    g.strokeStyle = p.ink2; g.lineWidth = 1.2 * m;
+    g.beginPath(); g.moveTo(-w / 2 + 3 * fs, -h * 0.12); g.lineTo(w / 2 - 4 * fs, -h * 0.12); g.stroke();
+    g.restore();
+    if (e.engaged) {   // landed: it is burning a hole in the parapet until typed away
+      g.strokeStyle = p.warn; g.lineWidth = 1.8 * m;
+      const fl = Math.sin(frame * 0.22 + e.seed) * 2 * fs;
+      for (let i = 0; i < 3; i++) {
+        const fx2 = ax + (i - 1) * 6 * fs;
+        g.beginPath();
+        g.moveTo(fx2, ay + h * 0.5);
+        g.lineTo(fx2 + fl * (i - 1), ay + h * 0.5 + 7 * fs);
+        g.stroke();
+      }
+    }
+  }
+
+  // Supply drop: a crate on the ground with its cargo marked on the lid. The three kinds are
+  // told apart by SHAPE + GLYPH + hue, never hue alone — a repair chest (✚, good), a sand-glass
+  // crate (⧗, accent) and a coin sack (◎, accent) all read at a glance on a phone.
+  function drawCrate(g, p, e, ax, ay) {
+    const s = fs, m = Math.min(s, 1.7);
+    const w = 26 * s, h = 20 * s;
+    const kind = (e.drop && e.drop.kind) || 'bonus';
+    const col = kind === 'repair' ? p.good : p.hi;
+    const bob = Math.sin(e.walk) * 1.2 * s;
+    const fade = e.life ? Math.min(1, (e.life - e.t) / 60) : 1;   // it fades as the crew comes for it
+    g.save();
+    g.globalAlpha = Math.max(0.35, fade);
+    // ground shadow scribble so the crate sits ON the page, not over it
+    g.strokeStyle = p.ink2; g.lineWidth = 1.2 * m;
+    sketchLine(g, ax - w * 0.5, ay + h * 0.5 + 3 * s, ax + w * 0.5, ay + h * 0.5 + 3 * s, e.seed + 71, 0.8);
+    const bx = ax - w / 2, by = ay - h / 2 + bob;
+    g.fillStyle = p.paper; g.fillRect(bx, by, w, h);
+    g.strokeStyle = col; g.lineWidth = 2.6 * m;
+    sketchRect(g, bx, by, w, h, e.seed + 51, 0.8);
+    g.lineWidth = 1.4 * m; g.strokeStyle = p.ink2;
+    sketchLine(g, bx, by + h * 0.28, bx + w, by + h * 0.28, e.seed + 53, 0.5);   // the lid seam
+    if (kind === 'repair') {
+      g.strokeStyle = col; g.lineWidth = 2.6 * m;                                // ✚ a mason's patch
+      g.beginPath();
+      g.moveTo(ax, by + h * 0.44); g.lineTo(ax, by + h * 0.88);
+      g.moveTo(ax - w * 0.16, by + h * 0.66); g.lineTo(ax + w * 0.16, by + h * 0.66);
+      g.stroke();
+    } else if (kind === 'slow') {
+      g.strokeStyle = col; g.lineWidth = 2.2 * m;                                // ⧗ a sand glass
+      g.beginPath();
+      g.moveTo(ax - w * 0.15, by + h * 0.42); g.lineTo(ax + w * 0.15, by + h * 0.42);
+      g.lineTo(ax - w * 0.15, by + h * 0.88); g.lineTo(ax + w * 0.15, by + h * 0.88);
+      g.closePath(); g.stroke();
+    } else {
+      g.strokeStyle = col; g.lineWidth = 2.2 * m;                                // ◎ a coin sack
+      sketchCircle(g, ax, by + h * 0.64, h * 0.2, e.seed + 57, 0.7);
+      g.lineWidth = 1.4 * m;
+      sketchCircle(g, ax, by + h * 0.64, h * 0.09, e.seed + 59, 0.5);
+    }
+    // sparkle ticks so a drop catches the eye without being brighter than a word
+    g.strokeStyle = col; g.lineWidth = 1.3 * m;
+    for (let i = 0; i < 3; i++) {
+      const a = frame * 0.03 + i * 2.09;
+      const r0 = w * 0.62, r1 = w * 0.62 + 4 * s;
+      g.beginPath();
+      g.moveTo(ax + Math.cos(a) * r0, ay + bob + Math.sin(a) * r0 * 0.8);
+      g.lineTo(ax + Math.cos(a) * r1, ay + bob + Math.sin(a) * r1 * 0.8);
+      g.stroke();
+    }
+    g.restore();
+  }
+
+  // Death reaction: the doodle topples, spins a little and fades off the page
+  function drawCorpse(g, p, c) {
+    const t = c.t / c.life;
+    g.save();
+    g.globalAlpha = Math.max(0, 1 - t * t);
+    g.translate(c.x + c.dir * 10 * fs * t, c.y + 8 * fs * t * t);
+    g.rotate(c.dir * 1.5 * t);
+    const fake = { seed: c.seed, walk: c.walk };
+    if (c.type === 'trebuchet') drawTrebuchet(g, p, Object.assign({ sling: 0, wind: 0 }, fake), 0, 0);
+    else if (c.type === 'rock') drawRock(g, p, Object.assign({ t: 0, life: 1, x0: 0, y0: 0, tx: 0, ty: 0, arc: 0, spin: t * 3 }, fake), 0, 0);
+    else if (c.type === 'rain') drawRainScrap(g, p, fake, 0, 0);
+    else drawSoldier(g, p, fake, 0, 0, (c.type === 'boss' ? 1.55 : 1) * fs, c.type === 'boss', 0);
+    g.restore();
+  }
+
+  // ---- the warlord plate: the WHOLE sequence on one label, `word · word · word` ----
+  const SEQ_SEP = ' · ';
+  // Greedy wrap at `size` (font already set by the caller) — a word is never broken.
+  function seqWrap(seq, size, maxW) {
+    const sepW = textW(SEQ_SEP, size);
+    const lines = [];
+    let cur = null;
+    for (let i = 0; i < seq.length; i++) {
+      const ww = textW(seq[i], size);
+      if (cur && cur.w + sepW + ww <= maxW) { cur.segs.push(i); cur.w += sepW + ww; continue; }
+      cur = { segs: [i], w: ww };
+      lines.push(cur);
+    }
+    return lines;
+  }
+  // It is the widest label on the page, so it SHRINKS first (to a legibility floor) and only then
+  // WRAPS — a 360px field never gets a plate hanging off the paper.
+  function seqMetrics(e) {
+    const padX = 8, maxW = Math.max(48, field.w - 6 - padX * 2);
+    const base = fontPx + 3, floor = Math.max(12, Math.round(base * 0.72));
+    let size = base, lines = null;
+    for (;;) {
+      ctx.font = '700 ' + size + 'px "Courier New", ui-monospace, monospace';
+      lines = seqWrap(e.seq, size, maxW);
+      if (lines.length === 1 || size <= floor) break;
+      size--;
+    }
+    let w = 0;
+    for (let i = 0; i < lines.length; i++) w = Math.max(w, lines[i].w);
+    const lineH = Math.round(size * 1.34) + 3;   // glyph band + the caret gutter under it
+    return { size: size, padX: padX, lines: lines, lineH: lineH,
+      w: Math.min(field.w - 6, w + padX * 2), h: lines.length * lineH + 8 };
+  }
+  function tagBox(e, ax, ay) {
+    let m;
+    if (e.seq && e.seq.length > 1) m = seqMetrics(e);
+    else {
+      const size = fontPx + (e.type === 'boss' ? 3 : 0);
+      ctx.font = '700 ' + size + 'px "Courier New", ui-monospace, monospace';
+      m = { size: size, padX: 8, w: textW(e.word, size) + 16, h: size + 11 };
+    }
+    const size = m.size, padX = m.padX, boxW = m.w, boxH = m.h;
+    let bx = ax - boxW / 2;
+    if (bx < field.x + 3) bx = field.x + 3;
+    if (bx + boxW > field.x + field.w - 3) bx = Math.max(field.x + 3, field.x + field.w - 3 - boxW);
+    let by = ay - boxH / 2;
+    if (by < field.y + 2) by = field.y + 2;
+    if (by + boxH > field.y + field.h - 2) by = Math.max(field.y + 2, field.y + field.h - 2 - boxH);
+    return { x: bx, y: by, w: boxW, h: boxH, size: size, padX: padX, lines: m.lines, lineH: m.lineH };
+  }
+  function drawWordTag(g, p, e, box, isLock) {
+    const size = box.size, bx = box.x, by = box.y, boxW = box.w, boxH = box.h;
+    const cy = by + boxH / 2 + 1;
+    g.font = '700 ' + size + 'px "Courier New", ui-monospace, monospace';
+    g.textAlign = 'left'; g.textBaseline = 'middle';
+    // SOLID plate — a translucent plate over a stick figure or a ruled line is what greys text out
+    g.fillStyle = p.paper;
+    g.fillRect(bx, by, boxW, boxH);
+    if (isLock) {
+      g.strokeStyle = p.hi; g.lineWidth = 2.6;
+      sketchRect(g, bx, by, boxW, boxH, e.seed + 21, 0.6);
+      // bracket cue on both sides — a shape, not a shade
+      const bw = Math.max(5, size * 0.34), t = by + 2, b = by + boxH - 2;
+      g.beginPath();
+      g.moveTo(bx - 4 + bw, t - 3); g.lineTo(bx - 4, t - 3); g.lineTo(bx - 4, b + 3); g.lineTo(bx - 4 + bw, b + 3);
+      g.moveTo(bx + boxW + 4 - bw, t - 3); g.lineTo(bx + boxW + 4, t - 3); g.lineTo(bx + boxW + 4, b + 3); g.lineTo(bx + boxW + 4 - bw, b + 3);
+      g.stroke();
+    } else {
+      g.strokeStyle = e.type === 'rock' ? p.warn : p.ink2; g.lineWidth = 1.3;
+      sketchRect(g, bx, by, boxW, boxH, e.seed + 21, 0.9);
+    }
+    if (box.lines) { drawSeqTag(g, p, e, box, isLock); g.textAlign = 'start'; return; }
+    const doneStr = e.word.slice(0, e.idx);
+    const restStr = e.word.slice(e.idx);
+    let x = bx + box.padX;
+    if (doneStr) {
+      g.fillStyle = p.hi;
+      g.fillText(doneStr, x, cy);
+      g.fillText(doneStr, x + 0.6, cy);            // heavier weight = the second cue
+      const dw = textW(doneStr, size);
+      g.fillRect(x, by + boxH - 3.5, dw, 2.4);     // solid accent underline = the third cue
+      x += dw;
+    }
+    g.fillStyle = e.type === 'rock' ? p.warn : p.ink;
+    g.fillText(restStr, x, cy);
+    if (isLock) {  // caret under the letter the next keystroke must match
+      const cw = Math.max(6, textW(restStr.charAt(0) || 'm', size));
+      g.fillStyle = p.hi;
+      g.beginPath();
+      g.moveTo(x + cw / 2 - 4, by + boxH + 3); g.lineTo(x + cw / 2 + 4, by + boxH + 3); g.lineTo(x + cw / 2, by + boxH + 8);
+      g.closePath(); g.fill();
+    }
+    g.textAlign = 'start';
+  }
+
+  // The sequence's three word states, each with a SHAPE cue on top of the hue:
+  //   struck off  dim ink + a line through it        live  full ink + accent prefix + caret
+  //   waiting     dim ink, nothing else
+  function drawSeqTag(g, p, e, box, isLock) {
+    const size = box.size, sepW = textW(SEQ_SEP, size);
+    g.font = '700 ' + size + 'px "Courier New", ui-monospace, monospace';
+    g.textAlign = 'left'; g.textBaseline = 'middle';
+    for (let li = 0; li < box.lines.length; li++) {
+      const line = box.lines[li];
+      const cy = box.y + 4 + box.lineH * li + Math.round(size * 0.52);
+      let x = box.x + box.padX;
+      for (let s = 0; s < line.segs.length; s++) {
+        const i = line.segs[s];
+        const w = e.seq[i], ww = textW(w, size);
+        if (s > 0) { g.fillStyle = p.ink2; g.fillText(SEQ_SEP, x, cy); x += sepW; }
+        if (i < e.si) {
+          g.fillStyle = p.ink2;
+          g.fillText(w, x, cy);
+          g.fillRect(x, cy - 1, ww, 1.8);              // struck through = done, at a glance
+        } else if (i > e.si) {
+          g.fillStyle = p.ink2;
+          g.fillText(w, x, cy);
+        } else {
+          const doneStr = w.slice(0, e.idx), restStr = w.slice(e.idx);
+          let xx = x;
+          if (doneStr) {
+            const dw = textW(doneStr, size);
+            g.fillStyle = p.hi;
+            g.fillText(doneStr, xx, cy);
+            g.fillText(doneStr, xx + 0.6, cy);         // heavier weight = the second cue
+            g.fillRect(xx, cy + size * 0.5, dw, 2.2);  // solid accent underline = the third cue
+            xx += dw;
+          }
+          g.fillStyle = p.ink;
+          g.fillText(restStr, xx, cy);
+          if (isLock) {   // caret under the letter the next keystroke must match
+            const cw = Math.max(6, textW(restStr.charAt(0) || 'm', size));
+            const ct = cy + size * 0.5 + 1;
+            g.fillStyle = p.hi;
+            g.beginPath();
+            g.moveTo(xx + cw / 2 - 4, ct); g.lineTo(xx + cw / 2 + 4, ct); g.lineTo(xx + cw / 2, ct + 5);
+            g.closePath(); g.fill();
+          }
+        }
+        x += ww;
+      }
+    }
+  }
+
+  function exactChipW() { return exact ? Math.round(28 * Math.min(gs, 1.4)) : 0; }
+  function drawTypeBar(g, p) {
+    const y = barY, h = barH;
+    g.fillStyle = p.paper; g.fillRect(field.x, y, field.w, h);   // solid, never translucent
+    g.strokeStyle = p.ink; g.lineWidth = 2;
+    sketchLine(g, field.x + 4, y + 1.5, field.x + field.w - 4, y + 1.5, 811, 0.7);
+    const e = locked();
+    const size = Math.min(34, Math.max(14, h - 18));
+    g.font = '700 ' + size + 'px "Courier New", ui-monospace, monospace';
+    g.textBaseline = 'middle';
+    g.textAlign = 'center';
+    const cy = y + h / 2 + 2;
+    if (e) {
+      const doneStr = e.word.slice(0, e.idx), restStr = e.word.slice(e.idx);
+      const wd = textW(doneStr, size), wr = textW(restStr, size);
+      let x = field.x + field.w / 2 - (wd + wr) / 2;
+      g.textAlign = 'left';
+      if (doneStr) {
+        g.fillStyle = p.hi;
+        g.fillText(doneStr, x, cy); g.fillText(doneStr, x + 0.6, cy);
+        g.fillRect(x, cy + size * 0.52, wd, 2.4);
+        x += wd;
+      }
+      g.fillStyle = e.type === 'rock' ? p.warn : p.ink;
+      g.fillText(restStr, x, cy);
+      g.textAlign = 'center';
+    } else {
+      g.fillStyle = p.ink;
+      g.font = '600 ' + Math.max(12, size - 4) + 'px system-ui, sans-serif';
+      g.fillText(hintText, field.x + field.w / 2, cy);
+    }
+    if (combo > 1) {
+      g.textAlign = 'right';
+      g.fillStyle = p.good;
+      g.font = '800 ' + Math.max(12, size - 2) + 'px system-ui, sans-serif';
+      g.fillText('×' + combo, field.x + field.w - 10, cy);
+    }
+    // MISS receipt: the bar strikes through and flashes for a beat after a wrong key, so the player
+    // sees THAT it was wrong. No text — a rule and an ✕, readable in any language. It never blocks
+    // input; the very next keystroke (usually the correction) still lands.
+    if (fumble > 0) {
+      const t = fumble / Math.max(1, DIFF[diff].fumble);
+      g.strokeStyle = p.warn; g.lineWidth = 3;
+      g.globalAlpha = 0.35 + 0.5 * t;
+      g.beginPath(); g.moveTo(field.x + 4, y + h - 3); g.lineTo(field.x + 4 + (field.w - 8) * t, y + h - 3); g.stroke();
+      g.lineWidth = 2.6;
+      const mx2 = field.x + 12, my2 = cy, r = Math.max(5, size * 0.3);
+      g.beginPath();
+      g.moveTo(mx2 - r, my2 - r); g.lineTo(mx2 + r, my2 + r);
+      g.moveTo(mx2 + r, my2 - r); g.lineTo(mx2 - r, my2 + r);
+      g.stroke();
+      g.globalAlpha = 1;
+    } else if (mode === 'endless') {
+      // ENDLESS difficulty read-out: ⚔ + filled pips = how hard the flood is pushing right now.
+      // A shape, not a sentence — no wave number to imply gates that don't exist.
+      const pips = 10, lit = Math.max(1, Math.min(pips, Math.round(siegeRamp() * 1.2 + 1)));
+      const pw = Math.max(3, Math.min(6, field.w / 90)), pgap = pw + 2;
+      g.font = '700 ' + Math.max(11, size - 6) + 'px system-ui, sans-serif';
+      g.textAlign = 'left'; g.fillStyle = p.ink2;
+      g.fillText('⚔', field.x + 8 + exactChipW(), cy);
+      for (let i = 0; i < pips; i++) {
+        const px = field.x + 26 + exactChipW() + i * pgap;
+        if (px + pw > field.x + field.w * 0.34) break;
+        g.fillStyle = i < lit ? (i >= 7 ? p.warn : p.hi) : p.rule;
+        g.fillRect(px, cy - 5, pw, 10);
+      }
+    }
+    // PERFECTIONIST indicator: a boxed accented letter at the bar's left edge, so a player who
+    // types "zolw" and sees it bounce can tell WHY. A glyph, not a sentence — no translation.
+    if (exact && fumble <= 0) {
+      const cw = exactChipW(), bh2 = Math.min(h - 8, 20);
+      const bx2 = field.x + 6, by2 = cy - bh2 / 2;
+      g.strokeStyle = p.hi; g.lineWidth = 1.6;
+      sketchRect(g, bx2, by2, cw - 6, bh2, 877, 0.5);
+      g.fillStyle = p.hi;
+      g.font = '800 ' + Math.max(10, Math.round(bh2 * 0.66)) + 'px "Courier New", ui-monospace, monospace';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillText('áé', bx2 + (cw - 6) / 2, cy + 1);
+    }
+    g.textAlign = 'start';
+  }
+
+  let hintText = 'Type a word';
+  function render() {
+    const p = pal();
+    ensureBg();
+    const a = (state === 'playing' && KIT.loopAlpha && !(KIT.isPaused && KIT.isPaused())) ? Math.min(1, Math.max(0, KIT.loopAlpha())) : 0;
+    ctx.save();
+    if (shake > 0.4) ctx.translate(wob(frame, 1, shake), wob(frame + 3, 2, shake * 0.6));
+    if (bgC) ctx.drawImage(bgC, 0, 0); else { ctx.fillStyle = p.paper; ctx.fillRect(0, 0, W, H); }
+    drawWall(ctx, p);
+
+    // enemies (interpolated: constant-velocity movers judder on fixed steps alone)
+    const items = [];
+    for (let i = 0; i < enemies.length; i++) {
+      const e = enemies[i];
+      if (e.dead) continue;
+      let ax = e.x, ay = e.y;
+      // constant-velocity movers get the loop's sub-step phase so they glide instead of hitching
+      if (e.type === 'rain') { if (!e.engaged) ay += e.vy * a; }
+      else if (e.type === 'rock' || e.type === 'arrow') {
+        const p2 = Math.min(1, (e.t + a) / e.life);
+        ax = e.x0 + (e.tx - e.x0) * p2;
+        ay = e.y0 + (e.ty - e.y0) * p2 + e.arc * Math.sin(Math.PI * p2);
+      } else if (!e.engaged) ax += e.vx * a;
+      if (ax > field.x + field.w + 26) continue;    // still off the page — nothing to read yet
+      const tagY = e.type === 'rain' ? ay - 18 * fs
+        : e.type === 'rock' ? ay - 24 * fs
+          : e.type === 'crate' ? ay - 22 * fs
+            : e.type === 'boss' ? ay - 50 * fs : ay - 34 * fs;
+      items.push({ e: e, ax: ax, ay: ay, tagY: tagY, wordless: !e.word });
+    }
+    // Label declutter: the enemy closest to the wall keeps its natural spot; anything whose
+    // plate would collide is nudged clear, so two words are never unreadable on top of each other.
+    items.sort((i1, i2) => threat(i1.e) - threat(i2.e));
+    const placed = [];
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.wordless) continue;
+      let box = tagBox(it.e, it.ax, it.tagY);
+      for (let tries = 0; tries < 12; tries++) {
+        let hit = false;
+        for (let j = 0; j < placed.length; j++) {
+          const q = placed[j];
+          if (box.x < q.x + q.w + 3 && q.x < box.x + box.w + 3 && box.y < q.y + q.h + 3 && q.y < box.y + box.h + 3) { hit = true; break; }
+        }
+        if (!hit) break;
+        const dir = (tries % 2 === 0) ? -1 : 1;
+        box = tagBox(it.e, it.ax, it.tagY + dir * (Math.floor(tries / 2) + 1) * (box.h + 4));
+      }
+      it.box = box;
+      it.nudged = Math.abs((box.y + box.h / 2) - it.tagY) > 6;
+      placed.push(box);
+    }
+    // toppled doodles + rubble sit under the living
+    for (let i = 0; i < corpses.length; i++) drawCorpse(ctx, p, corpses[i]);
+    for (let i = 0; i < dust.length; i++) {
+      const d = dust[i];
+      ctx.globalAlpha = Math.max(0, 1 - d.t / d.life);
+      ctx.fillStyle = p.ink2;
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, 6.2832); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    // figures first, then EVERY label on top of them
+    items.sort((i1, i2) => (i1.e.type === 'rock' ? 1 : 0) - (i2.e.type === 'rock' ? 1 : 0));
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i], e = it.e;
+      if (e.type === 'grunt') drawGrunt(ctx, p, e, it.ax, it.ay, false);
+      else if (e.type === 'boss') drawGrunt(ctx, p, e, it.ax, it.ay, true);
+      else if (e.type === 'archer') drawArcher(ctx, p, e, it.ax, it.ay);
+      else if (e.type === 'trebuchet') drawTrebuchet(ctx, p, e, it.ax, it.ay);
+      else if (e.type === 'rock') drawRock(ctx, p, e, it.ax, it.ay);
+      else if (e.type === 'crate') drawCrate(ctx, p, e, it.ax, it.ay);
+      else if (e.type === 'arrow') drawArrow(ctx, p, e, it.ax, it.ay);
+      else drawRainScrap(ctx, p, e, it.ax, it.ay);
+    }
+    // wave banner sits UNDER the labels: it is decoration, the words are the game
+    if (waveBanner > 0 && state === 'playing') {
+      const t = Math.min(1, waveBanner / 30);
+      const size = Math.round(Math.min(34, field.w / 13));
+      const sub = Math.max(11, Math.round(size * 0.42));
+      ctx.globalAlpha = t;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.font = '800 ' + size + 'px system-ui, sans-serif';
+      const bw = Math.max(textW(waveText, size), waveSub ? textW(waveSub, sub) : 0) + 40;
+      const bh = size * 1.5 + (waveSub ? sub * 1.9 : 0);
+      const by = field.y + field.h * 0.48 - bh / 2;
+      ctx.fillStyle = p.paper;
+      ctx.fillRect(field.x + field.w / 2 - bw / 2, by, bw, bh);
+      ctx.strokeStyle = p.hi; ctx.lineWidth = 2.6;
+      ctx.strokeRect(field.x + field.w / 2 - bw / 2, by, bw, bh);
+      ctx.fillStyle = p.ink;
+      ctx.fillText(waveText, field.x + field.w / 2, by + size * 0.85);
+      if (waveSub) {
+        ctx.font = '600 ' + sub + 'px system-ui, sans-serif';
+        ctx.fillStyle = p.ink2;
+        ctx.fillText(waveSub, field.x + field.w / 2, by + size * 1.5 + sub * 0.7);
+      }
+      ctx.globalAlpha = 1;
+      ctx.textAlign = 'start';
+    }
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.wordless || !it.box) continue;
+      // ranks stand at similar depth, so a nudged label gets a leader line back to its owner
+      if (it.nudged) {
+        ctx.strokeStyle = it.e.id === lockId ? p.hi : p.ink2;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.moveTo(it.box.x + it.box.w / 2, it.box.y + it.box.h / 2 < it.tagY ? it.box.y + it.box.h : it.box.y);
+        ctx.lineTo(it.ax, it.tagY);
+        ctx.stroke();
+      }
+      drawWordTag(ctx, p, it.e, it.box, it.e.id === lockId);
+    }
+    // the finished word pops off the page — the receipt for a completed kill
+    for (let i = 0; i < pops.length; i++) {
+      const q = pops[i], t = q.t / q.life;
+      const size = (fontPx + (q.big ? 4 : 0)) * (1 + t * 0.7);
+      ctx.globalAlpha = Math.max(0, 1 - t);
+      ctx.font = '800 ' + size.toFixed(1) + 'px "Courier New", ui-monospace, monospace';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = p.hi;
+      ctx.fillText(q.word, q.x, q.y - 26 * gs * t);
+      ctx.strokeStyle = p.hi; ctx.lineWidth = 2;
+      const rr = (10 + t * 26) * gs;
+      for (let k = 0; k < 6; k++) {
+        const a2 = (k / 6) * 6.2832 + q.t * 0.04;
+        ctx.beginPath();
+        ctx.moveTo(q.x + Math.cos(a2) * rr * 0.6, q.y - 26 * gs * t + Math.sin(a2) * rr * 0.6);
+        ctx.lineTo(q.x + Math.cos(a2) * rr, q.y - 26 * gs * t + Math.sin(a2) * rr);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.textAlign = 'start';
+    }
+
+    // felled puffs — a scribbled poof
+    for (let i = 0; i < puffs.length; i++) {
+      const q = puffs[i], t = q.t / 26;
+      ctx.globalAlpha = Math.max(0, 1 - t);
+      ctx.strokeStyle = p.ink2; ctx.lineWidth = 1.4;
+      const n = q.big ? 7 : 5;
+      for (let j = 0; j < n; j++) {
+        const ang = (j / n) * 6.2832 + q.seed;
+        const d = ((q.big ? 26 : 16) * t + 4) * gs;
+        sketchCircle(ctx, q.x + Math.cos(ang) * d, q.y + Math.sin(ang) * d, (3 + t * 4) * gs, q.seed + j, 1.2);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // supply-drop receipts: a rising glyph (+2♥ / ⏳ / +60) — symbols and digits, no prose
+    for (let i = 0; i < banners.length; i++) {
+      const b = banners[i], t = b.t / b.life;
+      const size = Math.round(fontPx * 1.15);
+      ctx.globalAlpha = Math.max(0, 1 - t * t);
+      ctx.font = '800 ' + size + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = b.kind === 'repair' ? p.good : p.hi;
+      ctx.fillText(b.text, b.x, b.y - 34 * gs * t);
+      ctx.globalAlpha = 1;
+      ctx.textAlign = 'start';
+    }
+    // slow-time is a state the player must SEE: a light frame closing in on the play area
+    if (slowT > 0) {
+      ctx.strokeStyle = p.hi; ctx.lineWidth = 3;
+      ctx.globalAlpha = 0.35 + 0.25 * Math.sin(frame * 0.12);
+      ctx.strokeRect(field.x + 2, field.y + 2, field.w - 4, field.h - 4);
+      ctx.globalAlpha = 1;
+    }
+
+    drawTypeBar(ctx, p);
+    ctx.restore();
+  }
+  let waveText = 'WAVE 1';
+
+  // ---------------------------------------------------------------------------
+  // HUD
+  // ---------------------------------------------------------------------------
+  function setTxt(id, v) { const el = document.getElementById(id); if (el) el.textContent = v; }
+  function clockText() {
+    const s = Math.floor(runSteps / 60);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  }
+  function updateHud() {
+    setTxt('scoreEl', String(score));
+    setTxt('bestEl', String(best));
+    setTxt('wallEl', hp + '/' + hpMax);
+    // Endless has no waves, so its 4th stat is the SIEGE CLOCK under the shared TIME label —
+    // the honest read-out for a continuous flood (the ⚔ pressure pips on the type bar carry
+    // the rest). `game.common.time` is already translated everywhere, so this needs no new key.
+    setTxt('lblWave', mode === 'endless' ? KIT.t('game.common.time', { def: 'TIME' })
+      : KIT.t('game.type-siege.hudWave', { def: 'WAVE' }));
+    setTxt('waveEl', mode === 'stages' ? (wave + '/' + STAGES.length)
+      : mode === 'endless' ? clockText() : String(wave));
+  }
+  function i18nLabels() {
+    setTxt('lblScore', KIT.t('game.common.score', { def: 'SCORE' }).toUpperCase());
+    setTxt('lblBest', KIT.t('game.common.best', { def: 'BEST' }).toUpperCase());
+    setTxt('lblWall', KIT.t('game.type-siege.hudWall', { def: 'WALL' }));
+    hintText = KIT.t('game.type-siege.hintType', { def: 'Type a word to lock on' });
+    const inp = document.getElementById('tsin');
+    if (inp && inp.setAttribute) inp.setAttribute('aria-label', KIT.t('game.type-siege.typeHere', { def: 'Type here' }));
+    const lbl = document.getElementById('tskbl');
+    if (lbl) lbl.textContent = '⌨ ' + KIT.t('game.type-siege.tapToType', { def: 'tap to type' });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Menus
+  // ---------------------------------------------------------------------------
+  // The kit's menu chrome is built for a DARK box (its button fills/borders are white-alpha),
+  // so the box stays dark navy and the PAPER lives in the backdrop — a briefing card pinned
+  // on the notebook. overlay stays light so the paper behind it keeps its colour.
+  const MENU_THEME = { accent: ACCENT, title: ACCENT, best: '#8ef0b8', glow: '0 0 18px rgba(106,214,255,0.40)' };
+
+  // Hero art hugs the LEFT (the keep) and RIGHT (the marching army) edges — the menu box
+  // covers the centre of the screen.
+  // MENU_INK dresses the small mode-card previews, which live INSIDE the dark menu box.
+  const MENU_INK = 'type-siege.ink.blueprint';
+  // The title screen is always MARKER — the boldest of the three inks, and it reads as the same
+  // pencil-on-paper game the player lands in. It is deliberately NOT wired to the player's chosen
+  // ink skin: the menu look is fixed, and it reads the REAL palette values so a retune carries.
+  const BACKDROP_INK = 'type-siege.ink.marker';
+  function menuBackdrop(g, w, h, st, fr) {
+    const t = (fr || 0) / 60;
+    const p = INKS[BACKDROP_INK];
+    g.fillStyle = p.paper; g.fillRect(0, 0, w, h);
+    g.strokeStyle = p.rule; g.lineWidth = 1.2;
+    for (let y = 18; y < h; y += 30) {
+      g.beginPath();
+      for (let x = 0; x <= w; x += 46) { const yy = y + Math.sin(x * 0.01) * 1.2; if (x === 0) g.moveTo(x, yy); else g.lineTo(x, yy); }
+      g.stroke();
+    }
+    g.strokeStyle = p.margin; g.lineWidth = 1.6;
+    [52, 56].forEach(x => { g.beginPath(); g.moveTo(x, 0); g.lineTo(x + 2, h); g.stroke(); });
+    // --- the WALL, left edge (same read as in game: band + full-height battlements + a
+    //     mid-height gate + a cap and banner on top) ---
+    const kx = 74, kw = Math.min(86, Math.max(52, w * 0.11));
+    const ky = h - 6, kt = 46;   // leaves headroom for the banner above the cap
+    const xo = kx + kw, tooth = kw * 0.2, mstep = 22;
+    g.fillStyle = p.paper; g.fillRect(kx, kt, kw, ky - kt);
+    const ggy = kt + (ky - kt) * 0.46, ggh = Math.min((ky - kt) * 0.22, 84);
+    // battlements down the outer face
+    g.strokeStyle = p.ink; g.lineWidth = 2.4; g.lineCap = 'round'; g.lineJoin = 'round';
+    for (let my = kt + 30; my < ky - mstep; my += mstep * 2) {
+      if (my + mstep > ggy - 4 && my < ggy + ggh + 4) continue;
+      g.fillStyle = p.paper; g.fillRect(xo, my, tooth, mstep);
+      g.beginPath();
+      g.moveTo(xo, my); g.lineTo(xo + tooth, my); g.lineTo(xo + tooth, my + mstep); g.lineTo(xo, my + mstep);
+      g.stroke();
+    }
+    g.lineWidth = 2.8;
+    g.beginPath(); g.moveTo(xo, kt + 26); g.lineTo(xo, ky); g.lineTo(kx, ky); g.stroke();
+    // cap + return at the top
+    g.fillStyle = p.paper; g.fillRect(kx, kt, kw + tooth * 0.6, 26);
+    g.beginPath();
+    let cx2 = kx;
+    const cn2 = 3, cw2 = (kw + tooth * 0.6) / (cn2 * 2 - 1);
+    g.moveTo(kx, kt + 11);
+    for (let i = 0; i < cn2 * 2 - 1; i++) {
+      const ty = i % 2 === 0 ? kt : kt + 11;
+      g.lineTo(cx2, ty); cx2 += cw2; g.lineTo(cx2, ty);
+    }
+    g.lineTo(kx + kw + tooth * 0.6, kt + 26); g.lineTo(kx, kt + 26);
+    g.stroke();
+    g.fillStyle = p.paper; g.fillRect(xo, kt + 26, kw * 0.55, 16);
+    g.lineWidth = 2.2;
+    g.beginPath();
+    g.moveTo(xo, kt + 26); g.lineTo(xo + kw * 0.55, kt + 31);
+    g.lineTo(xo + kw * 0.55, kt + 42); g.lineTo(xo, kt + 42);
+    g.stroke();
+    // brick courses
+    g.strokeStyle = p.ink2; g.lineWidth = 1.2;
+    for (let r = 0, yy = kt + 34; yy < ky - 6; r++, yy += 22) {
+      if (yy > ggy - 3 && yy < ggy + ggh + 3) continue;
+      g.beginPath(); g.moveTo(kx + 2, yy); g.lineTo(xo - 2, yy); g.stroke();
+      const off = r % 2 ? kw * 0.5 : kw * 0.25;
+      g.beginPath(); g.moveTo(kx + off, yy); g.lineTo(kx + off, Math.min(ky - 2, yy + 22)); g.stroke();
+    }
+    // the gate, mid-height
+    const ar2 = Math.min(ggh * 0.42, tooth * 1.1 + 5);
+    g.fillStyle = p.paper; g.fillRect(kx, ggy - 3, kw + tooth + ar2, ggh + 6);
+    g.strokeStyle = p.ink; g.lineWidth = 3;
+    g.beginPath();
+    g.moveTo(kx, ggy);
+    g.lineTo(xo + tooth * 0.35, ggy);
+    g.quadraticCurveTo(xo + tooth + ar2, ggy + ggh * 0.5, xo + tooth * 0.35, ggy + ggh);
+    g.lineTo(kx, ggy + ggh);
+    g.stroke();
+    g.strokeStyle = p.ink2; g.lineWidth = 1.1;
+    for (let i = 0; i < kw + ggh; i += 7) {
+      const ax1 = kx + Math.min(i, kw), ay1 = ggy + Math.max(0, i - kw);
+      const ax2 = kx + Math.max(0, i - ggh), ay2 = ggy + Math.min(i, ggh);
+      g.beginPath(); g.moveTo(ax1, ay1); g.lineTo(ax2, ay2); g.stroke();
+    }
+    g.strokeStyle = p.ink; g.lineWidth = 1.6;
+    for (let i = 1; i < 5; i++) {
+      const py = ggy + (ggh / 5) * i;
+      g.beginPath(); g.moveTo(kx + 3, py); g.lineTo(xo + tooth * 0.2, py); g.stroke();
+    }
+    // banner on the corner of the return
+    g.strokeStyle = p.ink; g.lineWidth = 2.2;
+    const bfx = xo + kw * 0.3;
+    g.beginPath(); g.moveTo(bfx, kt + 34); g.lineTo(bfx, kt - 26); g.stroke();
+    g.fillStyle = p.hi;
+    g.beginPath();
+    g.moveTo(bfx, kt - 26); g.lineTo(bfx + 24, kt - 19); g.lineTo(bfx + 13, kt - 16); g.lineTo(bfx, kt - 10);
+    g.closePath(); g.fill();
+    // --- the army, right edge, each with its word ---
+    const b = bank(wlang);
+    const size = 13;
+    for (let i = 0; i < 5; i++) {
+      const ph = t * 0.9 + i * 1.3;
+      const x = w - 52 - i * 66;
+      if (x < w * 0.66) break;
+      const y = h * (0.3 + ((i * 2) % 3) * 0.24);
+      const bob = Math.sin(ph * 3) * 2;
+      g.strokeStyle = p.ink; g.lineWidth = 2.6; g.lineCap = 'round';
+      g.beginPath(); g.arc(x, y - 20 + bob, 7, 0, 6.2832); g.stroke();
+      g.beginPath();
+      g.moveTo(x, y - 13 + bob); g.lineTo(x, y + 6 + bob);
+      g.moveTo(x, y - 8 + bob); g.lineTo(x - 9, y + 2 + bob);
+      g.moveTo(x, y - 8 + bob); g.lineTo(x + 9, y - 2 + bob);
+      g.moveTo(x, y + 6 + bob); g.lineTo(x - 7, y + 20 + bob);
+      g.moveTo(x, y + 6 + bob); g.lineTo(x + 7, y + 20 + bob);
+      g.stroke();
+      g.fillStyle = p.ink;
+      g.beginPath(); g.arc(x - 2.4, y - 21 + bob, 1.2, 0, 6.2832); g.fill();
+      g.beginPath(); g.arc(x + 2.4, y - 21 + bob, 1.2, 0, 6.2832); g.fill();
+      const word = b.short[(i * 17 + 3) % b.short.length];
+      g.font = '700 ' + size + 'px "Courier New", ui-monospace, monospace';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      const tw = (g.measureText ? (g.measureText(word).width || word.length * size * 0.62) : word.length * size * 0.62);
+      g.fillStyle = p.paper; g.fillRect(x - tw / 2 - 6, y - 50 + bob, tw + 12, size + 9);
+      g.strokeStyle = p.ink2; g.lineWidth = 1.2;
+      g.strokeRect(x - tw / 2 - 6, y - 50 + bob, tw + 12, size + 9);
+      g.fillStyle = p.ink;
+      g.fillText(word, x, y - 50 + bob + (size + 9) / 2);
+      g.textAlign = 'start';
+    }
+  }
+
+  function pvMode(g, w, h, kind) {
+    const p = INKS[MENU_INK];
+    g.fillStyle = p.paper; g.fillRect(0, 0, w, h);
+    g.strokeStyle = p.rule; g.lineWidth = 1;
+    for (let y = 10; y < h; y += 13) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    g.strokeStyle = p.margin; g.lineWidth = 1;
+    g.beginPath(); g.moveTo(9, 0); g.lineTo(9, h); g.stroke();
+    const stick = (x, y, s) => {
+      g.lineWidth = 1.8; g.strokeStyle = p.ink;
+      g.beginPath(); g.arc(x, y - 9 * s, 4 * s, 0, 6.2832); g.stroke();
+      g.beginPath();
+      g.moveTo(x, y - 5 * s); g.lineTo(x, y + 4 * s);
+      g.moveTo(x, y - 2 * s); g.lineTo(x - 5 * s, y + 2 * s);
+      g.moveTo(x, y - 2 * s); g.lineTo(x + 5 * s, y - 1 * s);
+      g.moveTo(x, y + 4 * s); g.lineTo(x - 4 * s, y + 11 * s);
+      g.moveTo(x, y + 4 * s); g.lineTo(x + 4 * s, y + 11 * s);
+      g.stroke();
+    };
+    if (kind === 'rain') {
+      g.strokeStyle = p.ink2;
+      for (let i = 0; i < 3; i++) {
+        const x = 22 + i * (w - 40) / 2, y = 14 + ((i * 37) % Math.max(10, h - 46));
+        g.lineWidth = 1.8;
+        g.beginPath(); g.rect(x - 12, y - 7, 24, 14); g.stroke();
+        g.strokeStyle = p.rule; g.lineWidth = 1;
+        g.beginPath(); g.moveTo(x, y + 8); g.lineTo(x, y + 18); g.stroke();
+        g.strokeStyle = p.ink2;
+      }
+      g.strokeStyle = p.ink; g.lineWidth = 2.6;
+      g.beginPath(); g.moveTo(4, h - 9); g.lineTo(w - 4, h - 9); g.stroke();
+      return;
+    }
+    // the WALL on the left (band + battlement teeth + a mid-height gate), the army on the right
+    g.strokeStyle = p.ink; g.lineWidth = 2;
+    const kx = 6, kw = 12, kt = 4, kb = h - 4, gyp = kt + (kb - kt) * 0.45, ghp = (kb - kt) * 0.2;
+    g.beginPath();
+    g.moveTo(kx, kt); g.lineTo(kx + kw, kt); g.lineTo(kx + kw, kb); g.lineTo(kx, kb); g.closePath();
+    g.stroke();
+    g.lineWidth = 1.4;
+    for (let my = kt + 6; my < kb - 5; my += 10) {
+      if (my + 4 > gyp && my < gyp + ghp) continue;
+      g.beginPath(); g.rect(kx + kw, my, 3, 4); g.stroke();
+    }
+    g.strokeStyle = p.hi; g.lineWidth = 1.6;
+    g.beginPath();
+    g.moveTo(kx, gyp); g.lineTo(kx + kw, gyp);
+    g.quadraticCurveTo(kx + kw + 4, gyp + ghp * 0.5, kx + kw, gyp + ghp);
+    g.lineTo(kx, gyp + ghp);
+    g.stroke();
+    g.strokeStyle = p.ink;
+    if (kind === 'endless') {
+      for (let i = 0; i < 5; i++) stick(w - 12 - i * 17, h * 0.32 + (i % 3) * h * 0.24, 0.85);
+    } else {
+      for (let i = 0; i < 3; i++) stick(w - 16 - i * 22, h * 0.36 + (i % 2) * h * 0.3, 1);
+      // eight stage ticks along the bottom
+      g.strokeStyle = p.hi; g.lineWidth = 2;
+      for (let i = 0; i < 8; i++) {
+        const x = 12 + i * (w - 24) / 7;
+        g.beginPath(); g.moveTo(x, h - 5); g.lineTo(x, h - (i < 3 ? 12 : 9)); g.stroke();
+      }
+    }
+  }
+
+  // The kit splits the menu into a card pane + a right-hand rail on a short landscape screen
+  // (its own media query: wider than tall AND <= 560px tall). At that size the box has ~274px
+  // total, so a SECOND action button costs the rail 49px — more than a control is worth. We
+  // mirror the predicate here to decide what the start screen can afford.
+  function isSplit() {
+    try { return KIT.layout.w > KIT.layout.h && KIT.layout.h <= 560; } catch (e) { return false; }
+  }
+  // On a narrow screen the kit hides the mode cards' `desc` and `mech` (its own ≤560px compact-card
+  // rule) — so on a phone the ONLY place a per-mode goal can live is the hint, and the hint only
+  // fits there if the 🌐 language button gives up its row. Explanatory text for a first-timer beats
+  // a set-once preference control (the word language is self-evident from the words on screen, and
+  // it already defaults to the player's UI language; the picker lives in the pause menu).
+  // Can the start screen also carry the 🌐 word-language button? Its second action row costs ~50–60px,
+  // which every size affords EXCEPT the tight landscape split (there the row is taken out of the
+  // 170px rail). When it can't, the language lives in the pause menu and the hint names the current
+  // one — the intent line and the perfectionist setting always win the row.
+  function roomForLang() { return !isSplit(); }
+
+  // The start screen's ONE line of intent: the verb of the game. (What each MODE asks of you is
+  // on that mode's own card, so all three read side by side instead of one at a time.)
+  function playHint(m) {
+    const line = KIT.t('game.type-siege.hintPlay', { def: 'Type the word above an attacker to cut it down.' });
+    // The tight landscape SPLIT is the one size that can't carry the goal too: its rail is 170px and
+    // the difficulty slider + the perfectionist toggle + a 3-line hint already fill it, with no
+    // lower-value row left to cut (the language picker already moved to the pause menu).
+    const goal = isSplit() ? '' : (' ' + modeGoal(m || mode));
+    // where the 🌐 button had to go, the hint states the current word language instead
+    return (roomForLang() ? '' : ('🌐 ' + langLabel() + ' · ')) + line + goal;
+  }
+  // Kept SHORT on purpose: on a phone this text is folded into the one-line hint (see playHint),
+  // and the landscape rail only has room for a couple of lines even after translation.
+  function modeGoal(m) {
+    return m === 'endless' ? KIT.t('game.type-siege.goalEndless', { def: 'Survive a siege that never stops.' })
+      : m === 'rain' ? KIT.t('game.type-siege.goalRain', { def: 'Clear falling words before they land.' })
+        : KIT.t('game.type-siege.goalStages', { def: 'Hold the wall for all 8 stages.' });
+  }
+  function exactLabel() { return KIT.t('game.type-siege.exact', { def: 'Exact accents' }); }
+  function accentNote() {
+    return exact ? KIT.t('game.type-siege.exactOn', { def: 'Accents must be typed exactly — "zolw" will not kill "żółw".' })
+      : KIT.t('game.type-siege.wordLangDesc', { def: 'Accents are optional — typing "zolw" also kills "żółw".' });
+  }
+
+  function langLabel() { return (KIT.langLabel ? KIT.langLabel(wlang) : null) || wlang.toUpperCase(); }
+  // The kit's flag artwork is an inline-SVG MARKUP string with only a viewBox, so it needs an
+  // explicit size to render at flag scale in our own DOM. Empty string on an older build → the
+  // row falls back to the plain native label.
+  function flagHtml(code) {
+    let svg = '';
+    try { svg = (KIT.langFlag && KIT.langFlag(code)) || ''; } catch (e) { svg = ''; }
+    if (!svg) return '';
+    return '<span class="gklang-flag" style="display:block;width:40px;line-height:0" aria-hidden="true">'
+      + svg.replace('<svg', '<svg width="40" height="26" style="display:block;width:100%;height:auto;border-radius:4px"') + '</span>';
+  }
+  // ONE TAP to the list: the 🌐 control opens THIS, and picking a language applies it and closes.
+  // Same eight locales, same flags and the same native labels as the site's own language picker
+  // (kit-owned artwork via KIT.langFlag/langLabel) — but it changes the WORDS IN THE GAME, never
+  // the interface language, which is why the heading says so.
+  let langOv = null;
+  function closeLangPicker() {
+    if (!langOv) return;
+    try { if (langOv.parentNode) langOv.parentNode.removeChild(langOv); } catch (e) {}
+    try { document.removeEventListener('keydown', langKey, true); } catch (e) {}
+    langOv = null;
+  }
+  function langKey(e) {
+    if (e && (e.key === 'Escape' || e.key === 'Esc')) {
+      if (e.preventDefault) e.preventDefault();
+      if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+      closeLangPicker();
+    }
+  }
+  function showLangPicker() {
+    if (typeof document === 'undefined' || !document.body) return;
+    closeLangPicker();
+    const cells = LANGS.map(l => {
+      const nm = (KIT.langLabel ? KIT.langLabel(l.code) : null) || l.label;
+      return '<button class="gklang-cell' + (l.code === wlang ? ' selected' : '') + '" type="button" data-code="' + l.code + '">'
+        + flagHtml(l.code) + '<span class="gklang-name">' + nm + '</span></button>';
+    }).join('');
+    const ov = document.createElement('div');
+    ov.className = 'gamekit-langmenu';
+    ov.innerHTML = '<div class="gklang-box"><button class="gklang-x" type="button" aria-label="Close">✕</button>'
+      + '<h3>⌨️ ' + KIT.t('game.type-siege.wordLang', { def: 'WORD LANGUAGE' }) + '</h3>'
+      + '<div class="gklang-grid">' + cells + '</div>'
+      + '<p style="margin:12px 0 0;font:600 11.5px/1.5 system-ui,sans-serif;opacity:.8;text-align:center">' + accentNote() + '</p></div>';
+    document.body.appendChild(ov);
+    langOv = ov;
+    if (ov.querySelectorAll) Array.prototype.forEach.call(ov.querySelectorAll('.gklang-cell'), cell => {
+      cell.addEventListener('click', () => {
+        const c = cell.getAttribute('data-code');
+        if (WORDS[c]) { wlang = c; savePrefs(); KIT.stampUrl({ mode: mode, diff: diff, wl: wlang, ex: exact ? 1 : 0 }); }
+        closeLangPicker();
+        if (menuReshow && KIT.menu.current()) menuReshow();   // refresh the 🌐 label / hint
+      });
+    });
+    const x = ov.querySelector ? ov.querySelector('.gklang-x') : null;
+    if (x) x.addEventListener('click', closeLangPicker);
+    ov.addEventListener('click', e => { if (e && e.target === ov) closeLangPicker(); });
+    try { document.addEventListener('keydown', langKey, true); } catch (e) {}
+  }
+
+  function showStartMenu() {
+    state = 'ready';
+    dropLock();
+    enemies = []; puffs = []; corpses = []; dust = []; pops = [];
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    best = loadBest(mode);
+    updateHud();
+    menuReshow = showStartMenu;
+    builtSplit = isSplit();
+    KIT.menu.show({
+      kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      title: KIT.t('game.type-siege.menuTitle', { def: 'TYPE SIEGE' }),
+      groups: [
+        {
+          // MODE style follows the layout, because the two layouts have opposite problems.
+          // TALL / desktop → the compact 3-across grid: rich cards force a 92px preview per row
+          // (368px for three) and at 1280×800 (box capped at 100vh−84px) that pushed the
+          // perfectionist toggle and the intent line clean out of the pane (+79px of scroll).
+          // LANDSCAPE SPLIT → rich cards: there they collapse to full-width rows down the left
+          // column and FILL it, where the little grid left 171px of empty black under three tiny
+          // cells — the "unfinished menu" look. Rotating rebuilds the menu (see isSplit), so the
+          // style is re-picked on the flip.
+          id: 'mode', style: isSplit() ? 'cards' : 'grid', default: mode,
+          choices: [
+            { id: 'stages', label: modeDisplay('stages'), kid: true, pvW: 112, pvH: 66,
+              best: () => loadBest('stages'), preview: (g, w, h) => pvMode(g, w, h, 'stages') },
+            { id: 'endless', label: modeDisplay('endless'), pvW: 112, pvH: 66,
+              best: () => loadBest('endless'), preview: (g, w, h) => pvMode(g, w, h, 'endless') },
+            { id: 'rain', label: modeDisplay('rain'), pvW: 112, pvH: 66,
+              best: () => loadBest('rain'), preview: (g, w, h) => pvMode(g, w, h, 'rain') },
+          ],
+        },
+        {
+          // an unlabelled slider whose stops read "Recruit / Soldier / Veteran" does not say
+          // DIFFICULTY to a first-timer — and `game.common.difficulty` is already translated.
+          id: 'diff', label: KIT.t('game.common.difficulty', { def: 'DIFFICULTY' }), style: 'slider', default: diff,
+          choices: DIFFS.map(d => ({ id: d, label: diffDisplay(d) + ' ' + DIFF[d].hp + '♥', kid: d === 'easy' })),
+        },
+      ],
+      // Perfectionist matching. It is difficulty-bearing, so it carries kid:false — the gentlest
+      // state (and the 🐣 Easy-picks default) is forgiving matching.
+      toggles: [{ id: 'ex', label: exactLabel(), default: exact, kid: false }],
+      // ONE line of intent: the verb of the game (each mode's goal lives on its own card).
+      hint: st => playHint(st && st.mode ? st.mode : mode),
+      // WORD LANGUAGE is a set-once PREFERENCE (and it already defaults to the player's UI
+      // language), so it does not earn a permanent row here: on a 640×360 rail that row cost
+      // exactly the space this intent line needs. It lives on a one-tap sub-screen + the pause
+      // menu instead, with the current language shown on the button.
+      actions: [
+        { id: 'play', label: KIT.t('game.type-siege.insertCoin', { def: 'INSERT COIN' }), primary: true },
+      ].concat(roomForLang() ? [{ id: 'lang', label: '🌐 ' + langLabel() }] : []),
+      onAction: id => { if (id === 'lang') showLangPicker(); },
+      onChange: st => {
+        if (st.mode) mode = st.mode;
+        if (st.diff) diff = st.diff;
+        if (st.wl && WORDS[st.wl]) wlang = st.wl;
+        if (st.ex != null) exact = !!st.ex;
+        savePrefs();
+        best = loadBest(mode);
+        updateHud();
+        KIT.stampUrl({ mode: mode, diff: diff, wl: wlang, ex: exact ? 1 : 0 });
+      },
+      onPlay: st => {
+        if (st.mode) mode = st.mode;
+        if (st.diff) diff = st.diff;
+        if (st.wl && WORDS[st.wl]) wlang = st.wl;
+        if (st.ex != null) exact = !!st.ex;
+        savePrefs();
+        startRun();
+      },
+    });
+  }
+
+  function startRun() {
+    closeLangPicker();
+    KIT.menu.hide();
+    hpMax = DIFF[diff].hp; hp = hpMax;
+    score = 0; wave = 1; combo = 0; bestCombo = 0; cleared = 0;
+    hits = 0; misses = 0; typedChars = 0; runSteps = 0; shotsFired = 0;
+    enemies = []; puffs = []; corpses = []; dust = []; pops = []; banners = []; spawnQ = []; lockId = 0; shake = 0; wallFlinch = 0; repaired = 0; outcome = 'end';
+    fumble = 0; slowT = 0; dupKey = ''; dupFrame = -99;
+    crateTimer = Math.round(CRATE_EVERY * 0.55); cratesTaken = 0;
+    recentWords = [];
+    best = loadBest(mode);
+    state = 'playing';
+    resize();
+    if (isRain()) { spawnTimer = 30; waveBanner = 100; }
+    else if (mode === 'endless') { spawnTimer = 20; }
+    else buildWave();
+    if (isRain()) { waveText = KIT.t('game.type-siege.waveN', { n: wave, def: 'WAVE {n}' }); waveSub = tagText('siege'); }
+    KIT.showMenuButton(true); KIT.showPauseButton(true);
+    updateHud();
+    focusInput();
+  }
+
+  function endRun(kind) {
+    if (state === 'over') return;
+    outcome = kind;
+    state = 'over';
+    dropLock();
+    const prevBest = loadBest(mode);
+    const prevStats = (KIT.best && KIT.best(SLUG, modeKey(mode)) || {}).stats || {};
+    const isBest = score > prevBest && score > 0;
+    saveBestNow();
+    best = loadBest(mode);
+    updateHud();
+    KIT.showPauseButton(false);
+    if (kind === 'win') SND.play('victory'); else SND.play('gameover');
+    showEnd(isBest, prevStats);
+  }
+
+  function showEnd(isBest, prevStats) {
+    const st = statsNow();
+    const pb = prevStats || {};
+    lastRecord = { slug: SLUG, mode: modeKey(mode), score: score, time: 0, outcome: outcome, stats: st };
+    menuReshow = () => showEnd(isBest, pb);
+    builtSplit = isSplit();
+    // On a 640×360 screen the kit's rail holds ~121px next to the score card; score + best + FOUR
+    // stat lines overflow it. The two that go are the secondary ones (personal record, longest
+    // chain) — the run's own mode line and its WPM/accuracy are what a typing game is about.
+    const tight = isSplit();
+    KIT.menu.show({
+      kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      title: outcome === 'win' ? KIT.t('game.type-siege.held', { def: 'THE WALL HELD' }) : KIT.t('game.common.gameOver', { def: 'GAME OVER' }),
+      score: score, best: Math.max(best, score), newBest: isBest,
+      record: lastRecord,
+      lines: [
+        outcome === 'win'
+          ? KIT.t('game.type-siege.endWin', { mode: modeDisplay(mode), diff: diffDisplay(diff), def: '{mode} · {diff} · every stage held' })
+          // Endless has no waves to report, so its line is assembled from already-translated
+          // fragments + the siege clock — a "wave N" line there would name gates that don't exist.
+          : mode === 'endless'
+            ? modeDisplay(mode) + ' · ' + diffDisplay(diff) + ' · '
+              + KIT.t('game.common.time', { def: 'TIME' }).toLowerCase() + ' ' + clockText()
+            : KIT.t('game.type-siege.endLine', { mode: modeDisplay(mode), diff: diffDisplay(diff), wave: wave, def: '{mode} · {diff} · wave {wave}' }),
+        KIT.t('game.type-siege.endTyping', { wpm: st.wpm, acc: st.accuracy, def: '{wpm} WPM · {acc}% accuracy' }),
+        // measured against the player's own record for this mode
+        tight ? '' : KIT.t('game.type-siege.endPb', { wpm: Math.max(pb.wpm || 0, st.wpm), wave: Math.max(pb.wave || 0, st.wave),
+          def: 'Your record: {wpm} WPM · wave {wave}' }),
+        !tight && (combo > 1 || bestCombo > 1) ? KIT.t('game.type-siege.endCombo', { n: bestCombo, def: 'Longest chain: {n} words' }) : '',
+      ].filter(Boolean),
+      share: {
+        slug: SLUG, accent: ACCENT, icon: '⌨️', title: KIT.t('game.type-siege.title', { def: 'Type Siege' }),
+        message: () => KIT.t('game.type-siege.shareMsg', { score: score, wpm: st.wpm, def: 'I felled {score} points of doodle army in Type Siege ⌨️ at {wpm} WPM.' }),
+        params: () => ({ mode: mode, diff: diff, wl: wlang, ex: exact ? 1 : 0 }),
+      },
+      actions: [
+        { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true },
+        { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) },
+      ],
+      onAction: id => { if (id === 'again') startRun(); else if (id === 'menu') showStartMenu(); },
+    });
+  }
+
+  function pauseMenu() {
+    if (state !== 'playing') return;
+    // The kit does NOT freeze the loop under a menu (menu.show is not a counted modal, and calling
+    // setPaused here would stack a SECOND pause UI) — so the game's own state is what pauses it:
+    // update() already early-returns for anything other than 'playing'. Without this the siege kept
+    // marching behind the pause box.
+    state = 'paused';
+    menuReshow = pauseMenu;
+    KIT.menu.show({
+      kind: 'pause', theme: MENU_THEME,
+      title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      actions: [
+        { id: 'lang', label: '🌐 ' + langLabel() },
+        { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME' }), primary: true },
+        { id: 'quit', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true, confirm: true },
+      ],
+      onAction: id => { if (id === 'lang') showLangPicker(); else if (id === 'resume') resumeGame(); else if (id === 'quit') { state = 'playing'; showStartMenu(); } },
+      onEsc: () => resumeGame(),
+    });
+  }
+  function resumeGame() {
+    if (state === 'paused') state = 'playing';
+    KIT.menu.hide(); menuReshow = null; focusInput();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Input — physical keyboard (window) + a hidden focused <input> for soft keyboards
+  // ---------------------------------------------------------------------------
+  let kdChar = null;
+  function focusInput() {
+    const inp = document.getElementById('tsin');
+    try { if (inp && inp.focus) inp.focus(); } catch (e) {}
+  }
+  window.addEventListener('keydown', e => {
+    const k = e.key;
+    if (!k) return;
+    if (k === 'Escape') {
+      if (state === 'playing' && lockId) { dropLock(); }
+      else if (state === 'playing') { pauseMenu(); }
+      else if (state === 'paused') { resumeGame(); }
+      return;
+    }
+    if (k === 'Backspace') {
+      // first Backspace clears the typed buffer, a second one (already empty) drops the lock
+      if (state === 'playing') {
+        const l = locked();
+        if (!l) return;
+        const start = firstLive(l.steps, 0);
+        if (l.part || l.idx > start) { l.part = ''; l.idx = start; } else dropLock();
+      }
+      return;
+    }
+    if (k === 'Enter' && state !== 'playing') return;
+    if (k.length === 1) { kdChar = keyOf(k); feed(k); }
+  });
+  {
+    const inp = document.getElementById('tsin');
+    if (inp && inp.addEventListener) {
+      // Soft keyboards (Android GBoard especially) fire keydown with key:"Unidentified";
+      // the input event is the reliable channel there. Dedupe against the keydown above.
+      inp.addEventListener('input', () => {
+        const v = String(inp.value || '');
+        inp.value = '';
+        for (const ch of v) {
+          const f = keyOf(ch);
+          if (kdChar && f === kdChar) { kdChar = null; continue; }
+          feed(ch);
+        }
+        kdChar = null;
+      });
+    }
+    const kb = document.getElementById('tskb');
+    if (kb && kb.addEventListener) kb.addEventListener('pointerdown', () => { focusInput(); });
+    if (canvas.addEventListener) canvas.addEventListener('pointerdown', () => { focusInput(); });
+  }
+  // mark touch devices so the ⌨ hint shows
+  try {
+    if ((navigator.maxTouchPoints || 0) > 0) document.body.classList.add('tstouch');
+    else if (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) document.body.classList.add('tstouch');
+  } catch (e) {}
+
+  // ---------------------------------------------------------------------------
+  // Chrome + boot
+  // ---------------------------------------------------------------------------
+  KIT.nav({
+    slug: SLUG, music: true, home: '../../', theme: MENU_THEME,
+    onMenu: () => showStartMenu(),
+    onPause: () => { if (state === 'playing') pauseMenu(); else if (state === 'paused') resumeGame(); },
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: {
+      title: KIT.t('game.type-siege.controlsTitle', { def: 'Type Siege — Controls' }),
+      note: KIT.t('game.type-siege.controlsNote', { def: 'Your first letter locks the CLOSEST matching enemy — the one working on your wall. Attackers hold their line and keep striking until you finish their word: swordsmen at the wall, archers behind them, trebuchets at the back. Accents are optional ("zolw" kills "żółw") and Ukrainian accepts Latin spelling ("zhaba" kills "жаба").' }),
+      keyboard: [
+        [KIT.t('game.type-siege.ctrlLetters', { def: 'Letters' }), KIT.t('game.type-siege.ctrlLock', { def: 'Lock on & type the word' })],
+        [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.type-siege.ctrlDrop', { def: 'Drop the lock (again = pause)' })],
+        ['Backspace', KIT.t('game.type-siege.ctrlBack', { def: 'Clear / drop the lock' })],
+      ],
+      touch: [[KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.type-siege.ctrlOpenKb', { def: 'Open the on-screen keyboard' })]],
+    },
+  });
+  KIT.music.play('typesiege');
+
+  // ---------------------------------------------------------------------------
+  // __test — the deterministic drive surface (harmless in normal play)
+  // ---------------------------------------------------------------------------
+  window.__test = {
+    get state() { return state; },
+    get score() { return score; },
+    get hp() { return hp; },
+    get hpMax() { return hpMax; },
+    get wave() { return wave; },
+    get mode() { return mode; },
+    get diff() { return diff; },
+    get wordLang() { return wlang; },
+    get exact() { return exact; },
+    setExact(v) { exact = !!v; savePrefs(); return exact; },
+    modeKey() { return modeKey(mode); },
+    get combo() { return combo; },
+    get misses() { return misses; },
+    get hits() { return hits; },
+    get outcome() { return outcome; },
+    get record() { return lastRecord; },
+    get wpm() { return wpm(); },
+    get accuracy() { return accuracy(); },
+    get lockId() { return lockId; },
+    get lockedWord() { const e = locked(); return e ? e.word : null; },
+    get enemies() {
+      return enemies.filter(e => !e.dead).map(e => ({ id: e.id, type: e.type, word: e.word, x: e.x, y: e.y,
+        idx: e.idx, lane: e.lane, engaged: !!e.engaged, range: e.range, atkCd: e.atkCd, pose: e.pose,
+        drop: e.drop ? e.drop.kind : null,
+        // a warlord's ordered sequence + which word of it is live (null for everything else)
+        seq: e.seq ? e.seq.slice() : null, si: e.seq ? e.si : 0 }));
+    },
+    // n freshly rolled warlord sequences, through the real pick path
+    bossSeqs(n) {
+      const out = [], keep = enemies;
+      enemies = [];
+      for (let i = 0; i < n; i++) out.push(bossWords());
+      enemies = keep;
+      return out;
+    },
+    // the label plate a warlord's sequence would draw at the CURRENT viewport (size + wrapped lines)
+    seqPlate(id) {
+      const e = enemies.filter(x => x.id === id && !x.dead)[0];
+      if (!e || !e.seq || e.seq.length < 2) return null;
+      const m = seqMetrics(e);
+      return { size: m.size, w: m.w, h: m.h, lines: m.lines.map(l => l.segs.slice()), fieldW: field.w };
+    },
+    // combined damage-per-second currently landing on the wall (the siege pressure)
+    pressure() { return pressure(); },
+    engageRange(type) { return RANK[type] != null ? field.x + wallW + field.w * RANK[type] : field.x + wallW; },
+    cadence(type) { return cadOf(type); },
+    dmg(type) { return DMG[type] || 1; },
+    get spawnQueue() { return spawnQ.length; },
+    get shots() { return shotsFired; },
+    // freeze every spawner so a test can measure a single attacker in isolation
+    isolate() { spawnQ = []; noSpawn = true; },
+    get ink() { return inkId(); },
+    // ---- mistake penalty ----
+    get fumble() { return fumble; },
+    missCost() { return DIFF[diff].fumble; },
+    // ---- endless: the continuous flood ----
+    ramp() { return siegeRamp(); },
+    tier() { return siegeTier(); },
+    spawnInterval() { return mode === 'endless' ? endlessInterval() : Math.round(waveDef().interval * DIFF[diff].gap); },
+    get spawnTimer() { return spawnTimer; },
+    // ---- supply drops ----
+    get slow() { return slowT; },
+    get cratesTaken() { return cratesTaken; },
+    dropKinds() { return DROPS.map(d => d.kind); },
+    // ---- word mix: mean length of n footman words at the CURRENT difficulty ----
+    sampleWordLen(n) {
+      let sum = 0;
+      const keep = enemies; enemies = [];
+      for (let i = 0; i < n; i++) sum += pickWord(footBand()).length;
+      enemies = keep;
+      return sum / n;
+    },
+    // n consecutive spawn picks from a band, through the real no-repeat path
+    pickWords(n, band) {
+      const out = [];
+      for (let i = 0; i < n; i++) out.push(pickWord(band || 'short'));
+      return out;
+    },
+    get layout() {
+      const pr = KIT.layout.playRect();
+      return {
+        W: W, H: H, topReserve: topInset,
+        board: { x: field.x, y: field.y, w: field.w, h: field.h },
+        field: { x: field.x, y: field.y, w: field.w, h: field.h },
+        playRect: pr,
+        barY: barY, barH: barH, wallW: wallW, wallEdge: wallEdge(), lanes: lanes, fontPx: fontPx, figScale: fs,
+        // fairness: speed is px/step derived from a CONSTANT crossing time, so it must
+        // scale with the field — and crossSteps must NOT change with the viewport.
+        speed: { grunt: speedOf('grunt', 1), trebuchet: speedOf('trebuchet', 1) },
+        crossSteps: CROSS.grunt, diffSpeed: DIFF[diff].speed, rockSteps: DIFF[diff].rockSteps,
+        spawnX: field.x + field.w + 30,
+      };
+    },
+    bandInfo(l) {
+      const b = bank(l || wlang);
+      return { shortMax: b.shortMax, medMax: b.medMax, count: b.count, urgent: b.urgent.length,
+        sizes: { short: b.short.length, medium: b.medium.length, long: b.long.length },
+        avg: { short: b.avg.short, medium: b.avg.medium, long: b.avg.long } };
+    },
+    // ink-on-paper contrast surface (asserted in test.mjs — greys washing out is a real bug class)
+    palettes() { const o = {}; for (const k in INKS) o[k] = Object.assign({}, INKS[k]); return o; },
+    // which REAL ink palette dresses the menu art (never a hand-mixed copy, never the player's skin)
+    menuInks() { return { backdrop: BACKDROP_INK, cards: MENU_INK }; },
+    labelStyle() {
+      const p = pal();
+      return {
+        plate: p.paper, plateAlpha: 1,          // the label plate is SOLID, never translucent
+        text: p.ink, typed: p.hi, urgent: p.warn,
+        lockCues: ['border', 'brackets', 'caret'], typedCues: ['hue', 'weight', 'underline'],
+      };
+    },
+    langs() { return LANGS.map(l => l.code); },
+    start() { startRun(); },
+    startMode(m, d, l, ex) {
+      if (MODES.indexOf(m) >= 0) mode = m;
+      if (DIFFS.indexOf(d) >= 0) diff = d;
+      if (l && WORDS[l]) wlang = l;
+      if (ex != null) exact = !!ex;
+      startRun();
+    },
+    setWordLang(l) { if (WORDS[l]) { wlang = l; savePrefs(); } return wlang; },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+    type(s) { for (const ch of String(s)) feed(ch); },
+    esc() { dropLock(); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    best(m) { return loadBest(m); },
+    setHp(v) { hp = Math.max(0, Math.min(hpMax, v)); updateHud(); },
+    setWave(w) { wave = Math.max(1, w | 0); updateHud(); },
+    // headless spawners — drive the REAL entity code paths
+    spawn(type, word, opts) {
+      const o = opts || {};
+      const e = makeEnemy(type, word, o);
+      if (o.x != null && type !== 'rock') e.x = o.x;
+      if (o.y != null && type !== 'rock') e.y = o.y;
+      return e.id;
+    },
+    clearField() { enemies = []; lockId = 0; },
+    unfumble() { fumble = 0; },
+    // finish the current wave the honest way: empty the spawn queue, fell everything
+    finishWave() {
+      spawnQ = [];
+      for (const e of enemies) if (!e.dead) { if (e.type === 'crate') e.dead = true; else kill(e, true); }
+    },
+    words(l) { return bank(l || wlang).all.slice(); },
+  };
+
+  // ---- boot ----
+  loadPrefs();
+  KIT.layout.archetype('action', { bottom: 44 });  // top HUD headroom + the type bar band
+  i18nLabels();
+  resize();
+  best = loadBest(mode);
+  updateHud();
+  KIT.loop(update, render);
+  KIT.onLang(() => { i18nLabels(); updateHud(); if (KIT.menu.current() && menuReshow) menuReshow(); });
+  { // default the word language to the UI language the first time (no prefs, no ?wl=)
+    let hasPref = false;
+    try { hasPref = !!localStorage.getItem(PREF_KEY); } catch (e) {}
+    const linked = KIT.param && KIT.param('wl');
+    if (!hasPref && !linked) { const ui = KIT.lang && KIT.lang(); if (ui && WORDS[ui]) wlang = ui; }
+  }
+  { // deep links: ?mode= ?diff= ?wl=
+    const P = KIT && KIT.param;
+    if (P) {
+      const pm = P('mode'); if (MODES.indexOf(pm) >= 0) mode = pm;
+      const pd = P('diff'); if (DIFFS.indexOf(pd) >= 0) diff = pd;
+      const pw = P('wl'); if (pw && WORDS[pw]) wlang = pw;
+      const pe = P('ex'); if (pe === '1' || pe === '0') exact = pe === '1';
+    }
+  }
+  if (!WORDS[wlang]) wlang = 'en';
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>
