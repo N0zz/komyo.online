@@ -1198,4 +1198,32 @@ section('type-siege: no repair crate at full health');
   ok(hurt.includes('repair'), 'repair crates come back once the wall is damaged (kinds: ' + [...new Set(hurt)].join(',') + ')');
 }
 
+// ---- Landscape rotate gate: TOUCH only ----
+// A typing game is unplayable in phone landscape (the soft keyboard owns the screen), but desktop
+// landscape is the normal way to play — the gate must key off the pointer, never the orientation.
+section('Type Siege: landscape rotate gate is touch-only');
+{
+  const t = runGame({ w: 360, h: 640, preCode: 'window.ontouchstart = null;' });
+  ok(t.bootErr === null, 'boots on a touch device: ' + t.bootErr);
+  ok(!t.doc.body.classList.contains('gk-rotate-lock'), 'touch portrait plays normally');
+  t.resize(640, 360);
+  ok(t.doc.body.classList.contains('gk-rotate-lock'), 'touch landscape asks the player to rotate');
+  t.resize(360, 640);
+  ok(!t.doc.body.classList.contains('gk-rotate-lock'), 'rotating back clears the prompt');
+
+  const d = runGame({ w: 1280, h: 800 });
+  d.resize(640, 360);
+  ok(!d.doc.body.classList.contains('gk-rotate-lock'), 'a mouse device is never gated in landscape');
+}
+
+// ---- A run pauses behind the rotate splash ----
+section('Type Siege: rotating mid-run pauses');
+{
+  const t = runGame({ w: 360, h: 640, preCode: 'window.ontouchstart = null;' });
+  t.T().start();
+  ok(t.T().state === 'playing', 'run is live before the flip');
+  t.resize(640, 360);
+  ok(t.T().state === 'paused', 'the siege pauses instead of marching behind the splash (got ' + t.T().state + ')');
+}
+
 summary();
