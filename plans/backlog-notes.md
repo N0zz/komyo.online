@@ -260,6 +260,49 @@ friends, meaningless for strangers). Cheap near-term substitute: a **challenge-l
 Twitch chat → richer share targets + story card → Play Store via PWA. Everything else is post-launch
 or parked.
 
+## Games
+
+### Type Siege — math mode (agreed, undesigned)
+
+A fourth mode where the enemy carries an arithmetic problem (`7 × 8`) instead of a word and you type
+the answer. Agreed 2026-07-27 as a **mode inside Type Siege**, not a separate game — see the archive
+guard, and read it before anyone re-pitches the spin-off.
+
+**Why it's worth doing:** it is the only content in Type Siege that costs **zero translation**. The word
+banks are ~1400 words × 8 locales and each new language is a real job; `7 × 8` reads the same in
+all eight. It is generated rather than authored, so it is infinite, seedable for a daily board, and free in
+storage. It also gives the catalogue a genuine kids/practice angle (🐣 Easy picks, a KIDS tag) that
+fits the "kid-safe" promise.
+
+**Why it is NOT a re-skin of `words.js` — three things break:**
+
+- **Auto-lock dies.** Targeting comes from the first keystroke. In a 10-symbol alphabet `56`, `54` and
+  `5` collide constantly, where 26 letters rarely do. Likely fix: Enter-to-submit (type the digits,
+  press Enter, resolve against whichever live enemy matches), which costs the incremental cut-down
+  feedback. The alternative — generating live answers with distinct leading digits — caps concurrent
+  enemies at <10 and gets worse as waves grow.
+- **Difficulty scales on the wrong axis.** Word difficulty is length, which is also typing time, so
+  `crossSteps` tunes off it directly. A hard sum is the same two keystrokes as an easy one but ten
+  times the thinking. Timing has to derive from the operation, not the answer's digit count.
+- **Fewer, slower enemies.** Three lanes of simultaneous arithmetic is unpleasant rather than hard.
+  Two live problems, slower.
+
+**Discoverability without a second tile:** bump `updated:` in games.js when it ships (UPDATED badge +
+the ✨ What's new shelf), add a `MATH` tag (and consider KIDS) beside TYPING/ACTION, put it in the tile
+blurb, and add it to `seo.type-siege.howto` + the `#gk-about` section so the crawler and LLM surfaces
+carry it. Search traffic for "math game" then lands on the Type Siege page, which is the honest
+destination.
+
+**One cost that is not free to undo:** bests are stored per mode label in `gamekit_pb` and a shipped
+mode is announced in the changelog. If it were ever promoted to its own game, the mode either stays
+(duplicate) or is dropped and orphans entries in players' profiles. So pick the mode label
+deliberately the first time rather than something worth renaming later.
+
+**Next step:** write the mode design — problem generation (solvable-by-construction, distinct answers
+among live enemies, tiers from +/− within 20 up to mixed × ÷), the timing model, and the input
+contract — and react to it before any code. Then it follows the normal dev-process gate (POC first; if
+arithmetic-under-pressure is stressful rather than fun, stop there).
+
 ## Marketing experiments
 
 - **Score-card stickers + flyers, local cooperation** — the printed score card is the brand visual

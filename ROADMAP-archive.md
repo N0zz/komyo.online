@@ -7,6 +7,13 @@ holds only open work. Nothing in this file is a task.
 
 ## Decision guards (don't re-propose)
 
+- **No standalone math game** — closed 2026-07-27: a second tile that differs from Type Siege only in
+  whether the enemy carries a word or a sum is catalogue padding, and a curated catalogue is most of
+  what keeps komyo from reading as shovelware. Discoverability does not override that — a tile whose
+  purpose is to be found IS the padding. Math ships as a Type Siege MODE, surfaced via the UPDATED
+  badge, a MATH tag and the page's SEO text. A math game earns its own tile only when it stops being
+  the same game (different enemy behaviour or win condition); a content swap never earns one.
+  → `plans/backlog-notes.md` § Games
 - **No user-facing sort control** — closed 2026-07-06: sortable Favorites + the Recently-played rail
   cover the need; a Featured/Newest/A–Z dropdown adds chrome without value at this catalogue size.
 - **No per-tile personal bests** — every game has many modes, so there's no single best to show, and it

@@ -45,6 +45,8 @@ Dev and marketing run in parallel; top item first within each.
 
 - **Triage the game idea pool** *(planned)* — pick the next batch before starting any build. →
   `plans/games-queue.md`
+- **Type Siege — math mode** *(idea)* — enemies carry sums instead of words; the only Type Siege
+  content that needs no translation. A MODE, never a second game. → `plans/backlog-notes.md`
 - **i18n leftovers** *(open)* — native QA pass + mobile QA across languages × orientations. →
   `plans/i18n-plan.md`
 - **Verify the single-SW migration** *(open)* — an old per-game PWA install must hand over to the root
