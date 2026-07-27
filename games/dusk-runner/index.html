@@ -51,10 +51,23 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   #game { display: block; width: 100vw; height: 100vh; }
   /* the kit HUD pill is dark — light values, not the game's ink tone */
   #hud .val { color: #f2eee2; }
+  /* On-screen pads (touch only). They live in the dead sand strip BELOW the ground line — no
+     obstacle ever reaches there — so they cost the play band nothing. JS sets top/size from the
+     measured strip; a tap anywhere on the canvas still jumps, so the pads are an anchor for the
+     thumb, not a gate. */
+  #pads { position: fixed; left: 0; right: 0; z-index: 6; display: none;
+    justify-content: space-between; padding: 0 14px; pointer-events: none; }
+  body.dr-touch.dr-run #pads { display: flex; }
+  #pads button { pointer-events: auto; font-family: inherit; border-radius: 18px; padding: 0;
+    border: 2px solid rgba(207,224,242,0.45); background: rgba(19,27,38,0.42); color: #e8eef5;
+    font-size: 26px; line-height: 1; touch-action: none; -webkit-user-select: none; user-select: none;
+    display: flex; align-items: center; justify-content: center; transition: background .08s, transform .08s; }
+  #pads button:active, #pads button.on { background: rgba(207,224,242,0.34); transform: scale(0.94); }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
+<div id="pads"><button id="padDuck" type="button" aria-label="Duck">⬇</button><button id="padJump" type="button" aria-label="Jump">⬆</button></div>
 <div id="hud" class="gamekit-hud">
   <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
   <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
@@ -445,7 +458,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
 
   function finish(win) {
-    state = 'over'; won = !!win;
+    state = 'over'; won = !!win; showPads(false);
     const prevBest = loadBest();
     if (KIT) KIT.saveBest(SLUG, modeLabel(), { score: score, time: (mode === 'sprint' && won) ? elapsedMs() : 0 });
     const isBest = score > prevBest && score > 0;
@@ -1103,7 +1116,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
 
   function showStartMenu() {
-    state = 'ready';
+    state = 'ready'; showPads(false);
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
     if (!KIT) return;
     KIT.menu.show({
@@ -1166,7 +1179,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   function pauseGame() {
     if (state !== 'playing' || !KIT) return;
-    state = 'paused';
+    state = 'paused'; showPads(false);
     KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
       lines: [KIT.t('game.dusk-runner.pauseLine', { score: score, def: '{score} m so far' })],
       actions: [
@@ -1175,14 +1188,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       ],
       onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
   }
-  function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
+  function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); showPads(true); }
   function startGame() {
     // Sprint = a daily COURSE seed (same for everyone today, new tomorrow); Endless stays random
     if (mode === 'sprint' && KIT && KIT.utcDayNumber) { useSeed = true; seedState = (KIT.utcDayNumber() * 2654435761) % 4294967296 || 1; }
     else if (!useSeedForced) useSeed = false;
     state = 'playing';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
-    reset();
+    reset(); showPads(true); layoutPads();
   }
   function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
 
@@ -1205,21 +1218,20 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     htCanvas = null; htPattern = null;   // halftone tile is scale-dependent
     if (state === 'playing') speed = Math.max(speed, paceCfg().v0 * S);
     initScenery();
+    syncTouch();
+    layoutPads();
   }
   window.gamekit.layout.on(resize);
 
   // ---------------------------------------------------------------- input
-  let pointerDuck = false;
+  // Touch used to split the canvas at 62% of the band: tap high = jump, tap low = duck. That line
+  // is invisible AND moves with the layout, so the same thumb height meant different things on
+  // different phones. Now: tapping ANYWHERE jumps (the frequent, timing-critical action costs no
+  // aim at all), and duck gets its own held pad.
   canvas.addEventListener('pointerdown', e => {
     if (state === 'over') { const m = KIT.menu.current(); if (m) m.activate('again'); return; }
-    const r = canvas.getBoundingClientRect();
-    const y = (e.clientY - r.top) * (H / (r.height || H));
-    if (y > bandY + bandH * 0.62) { pointerDuck = true; setDuck(true); } else jump();
+    jump();
   });
-  const relDuck = () => { if (pointerDuck) { pointerDuck = false; setDuck(false); } };
-  canvas.addEventListener('pointerup', relDuck);
-  canvas.addEventListener('pointercancel', relDuck);
-  canvas.addEventListener('pointerleave', relDuck);
 
   window.addEventListener('keydown', e => {
     if (e.key === 'Escape' && state === 'playing') { e.preventDefault(); pauseGame(); return; }
@@ -1230,6 +1242,56 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   });
   window.addEventListener('keyup', e => { if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') setDuck(false); });
 
+  // ---- on-screen pads (touch only) ----
+  // Probed on EVERY relayout, not once at boot: DevTools device mode and a laptop's tablet flip
+  // both change the answer after load, and a one-shot check leaves the phone UI showing a mouse
+  // layout (or the reverse). A real touch event latches it on for good — the media query can be
+  // wrong, a finger on the glass cannot. Showing a spare button to a mouse costs nothing, so this
+  // errs generous; Type Siege's rotate gate LOCKS the player out, so it reads `coarse` only.
+  let touched = false, isTouch = false;
+  const padsEl = document.getElementById('pads');
+  const padDuck = document.getElementById('padDuck'), padJump = document.getElementById('padJump');
+  function syncTouch() {
+    let coarse = false, pts = 0;
+    try { coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches; } catch (e) {}
+    try { pts = (typeof navigator !== 'undefined' && navigator.maxTouchPoints) || 0; } catch (e) {}
+    const now = touched || coarse || pts > 0 || (typeof window !== 'undefined' && 'ontouchstart' in window);
+    if (now === isTouch) return;
+    isTouch = now;
+    if (document.body && document.body.classList) document.body.classList.toggle('dr-touch', isTouch);
+  }
+  const onRealTouch = e => { if (!e || e.pointerType === undefined || e.pointerType === 'touch') { touched = true; syncTouch(); } };
+  if (window.addEventListener) {
+    window.addEventListener('pointerdown', onRealTouch, true);
+    window.addEventListener('touchstart', () => { touched = true; syncTouch(); }, { capture: true, passive: true });
+  }
+  function showPads(on) {
+    if (!document.body || !document.body.classList) return;
+    document.body.classList.toggle('dr-run', !!on);
+    if (!on && padDuck && padDuck.classList) { padDuck.classList.remove('on'); setDuck(false); }
+  }
+  // The pads sit in the sand strip between the ground line and the bottom edge — measured, not
+  // guessed, so a short landscape screen shrinks them instead of overlapping the play band.
+  function layoutPads() {
+    if (!padsEl || !padsEl.style) return;   // sized even on a mouse: CSS, not JS, decides visibility
+    const sand = Math.max(0, H - groundY);
+    const size = Math.round(Math.max(50, Math.min(78, sand - 14)));
+    padsEl.style.top = Math.round(groundY + Math.max(6, (sand - size) / 2)) + 'px';
+    [padDuck, padJump].forEach(b => { if (b && b.style) { b.style.width = size + 'px'; b.style.height = size + 'px'; } });
+  }
+  function padHold(btn, on) {
+    if (btn && btn.classList) btn.classList.toggle('on', !!on);
+    setDuck(!!on);
+  }
+  if (padDuck && padDuck.addEventListener) {
+    padDuck.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); padHold(padDuck, true); });
+    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev =>
+      padDuck.addEventListener(ev, () => padHold(padDuck, false)));
+  }
+  if (padJump && padJump.addEventListener) {
+    padJump.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); jump(); });
+  }
+
   // ---------------------------------------------------------------- chrome
   KIT.layout.archetype('action', { bottom: 54 });   // top HUD headroom + the sand plane below the line
   KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME,
@@ -1237,13 +1299,12 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
     confirmLeave: () => (state === 'playing' || state === 'paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
     controls: { title: KIT.t('game.dusk-runner.controlsTitle', { def: 'Chrome Runner — Controls' }),
-      mouse: [[KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.dusk-runner.ctrlJump', { def: 'Jump' })],
-              [KIT.t('game.dusk-runner.ctrlHoldLow', { def: 'Hold low on screen' }), KIT.t('game.dusk-runner.ctrlDuck', { def: 'Duck' })]],
+      mouse: [[KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.dusk-runner.ctrlJump', { def: 'Jump' })]],
       keyboard: [['Space · ↑', KIT.t('game.dusk-runner.ctrlJump', { def: 'Jump' })],
                  ['↓', KIT.t('game.dusk-runner.ctrlDuck', { def: 'Duck' })],
                  [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })]],
-      touch: [[KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.dusk-runner.ctrlJump', { def: 'Jump' })],
-              [KIT.t('game.dusk-runner.ctrlHoldBottom', { def: 'Hold the bottom' }), KIT.t('game.dusk-runner.ctrlDuck', { def: 'Duck' })]] } });
+      touch: [[KIT.t('game.common.tap', { def: 'Tap' }) + ' · ⬆', KIT.t('game.dusk-runner.ctrlJump', { def: 'Jump' })],
+              [KIT.t('game.dusk-runner.ctrlHoldPad', { def: 'Hold ⬇' }), KIT.t('game.dusk-runner.ctrlDuck', { def: 'Duck' })]] } });
   KIT.music.play('duskrunner');
 
   // ---------------------------------------------------------------- test hook
