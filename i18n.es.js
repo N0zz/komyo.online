@@ -3,6 +3,9 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.es = {
   'cat.fhSections': 'Estantes',
+  'changelog.e83.title': 'Un mando más grande en Chrome Runner, y moverlo por fin funciona 🕹️',
+  'changelog.e83.b0': 'Cambio: el mando en pantalla de Chrome Runner es mucho más grande — ahora aciertas en cualquiera de las dos mitades sin apartar la vista de los cactus.',
+  'changelog.e83.b1': 'Corrección: mover el mando ya funciona. Elige «Mover el mando» en el menú de inicio o en el de pausa, arrástralo adonde descansa tu pulgar y toca «Listo». Arrastrarlo por la barrita del centro no funcionaba en el móvil en absoluto.',
   'changelog.e82.title': 'Chrome Runner: un pulgar, un mando 🕹️',
   'changelog.e82.b0': 'Cambio: los dos botones de las esquinas de Chrome Runner son ahora un único mando redondo — la mitad de arriba salta, mantener la de abajo se agacha — así que todo el juego cabe bajo un solo pulgar. Arrástralo por la barra del centro hasta donde de verdad descansa tu pulgar; ahí seguirá la próxima vez. Tocar en cualquier otro sitio sigue saltando.',
   'changelog.e81.title': 'Controles táctiles para Chrome Runner y Type Siege 📱',
@@ -362,6 +365,7 @@ window.KOMYO_I18N.es = {
   'game.common.touchSchemeCap': '— toca para girar, impulsar y disparar',
   'game.common.click': 'Clic',
   'game.common.tap': 'Toca',
+  'game.common.done': 'LISTO',
   'game.common.esc': 'Esc',
   'game.common.spaceEnter': 'Espacio · Enter',
   'game.flappy.menuTitle': '🌸 Vuelo del Prado',
@@ -2099,6 +2103,8 @@ window.KOMYO_I18N.es = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — controles',
   'game.dusk-runner.ctrlJump': 'Saltar',
   'game.dusk-runner.ctrlDuck': 'Agacharse',
+  'game.dusk-runner.movePad': 'MOVER EL MANDO',
+  'game.dusk-runner.placeHint': 'Arrastra el mando adonde descansa tu pulgar',
   'game.dusk-runner.ctrlHoldPad': 'Mantén ⬇',
   'seo.dusk-runner.howto': 'Corre a la derecha sin parar: toca la pantalla o pulsa Espacio para saltar los cactus y mantén Abajo para pasar bajo los pórticos de acero y los pájaros. Pasar rozando da un impulso de rebufo, el ritmo sube cuanto más avanzas y el cielo pasa del día al crepúsculo y a una noche estrellada. El modo Sin fin dura hasta que choques; el Sprint es una contrarreloj de 1000 m donde cada choque te cuesta un tropiezo.',
   'cos.set.dusk-runner.runner': 'Corredores',

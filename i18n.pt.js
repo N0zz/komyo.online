@@ -3,6 +3,9 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.pt = {
   'cat.fhSections': 'Prateleiras',
+  'changelog.e83.title': 'Um comando maior no Chrome Runner, e movê-lo finalmente funciona 🕹️',
+  'changelog.e83.b0': 'Alteração: o comando no ecrã do Chrome Runner é muito maior — já acertas em qualquer das metades sem tirar os olhos dos cactos.',
+  'changelog.e83.b1': 'Correção: mover o comando já funciona. Escolhe «Mover o comando» no menu inicial ou no de pausa, arrasta-o para onde pousa o teu polegar e toca em «Pronto». Arrastá-lo pela barrinha do meio não funcionava de todo no telemóvel.',
   'changelog.e82.title': 'Chrome Runner: um polegar, um comando 🕹️',
   'changelog.e82.b0': 'Alteração: os dois botões nos cantos do Chrome Runner passam a ser um único comando redondo — a metade de cima salta, manter a de baixo agacha — por isso o jogo todo cabe debaixo de um só polegar. Arrasta-o pela barra do meio para onde o teu polegar realmente pousa; fica lá para a próxima. Tocar em qualquer outro sítio continua a saltar.',
   'changelog.e81.title': 'Controlos no telemóvel para Chrome Runner e Type Siege 📱',
@@ -362,6 +365,7 @@ window.KOMYO_I18N.pt = {
   'game.common.touchSchemeCap': '— toque para girar, impulsionar e atirar',
   'game.common.click': 'Clique',
   'game.common.tap': 'Toque',
+  'game.common.done': 'PRONTO',
   'game.common.esc': 'Esc',
   'game.common.spaceEnter': 'Espaço · Enter',
   'game.flappy.menuTitle': '🌸 Voo na Campina',
@@ -2098,6 +2102,8 @@ window.KOMYO_I18N.pt = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — controlos',
   'game.dusk-runner.ctrlJump': 'Saltar',
   'game.dusk-runner.ctrlDuck': 'Agachar',
+  'game.dusk-runner.movePad': 'MOVER O COMANDO',
+  'game.dusk-runner.placeHint': 'Arrasta o comando para onde pousa o teu polegar',
   'game.dusk-runner.ctrlHoldPad': 'Manter ⬇',
   'seo.dusk-runner.howto': 'Corre para a direita e nunca pares: toca no ecrã ou pressiona Espaço para saltar os cactos e mantém Baixo para passar sob os pórticos de aço e os pássaros. Passar a raspar dá um impulso de vácuo, o ritmo sobe quanto mais avanças e o céu passa do dia ao crepúsculo e a uma noite estrelada. O modo Sem fim dura até bateres em algo; o Sprint é um contrarrelógio de 1000 m em que cada toque custa um tropeção.',
   'cos.set.dusk-runner.runner': 'Corredores',

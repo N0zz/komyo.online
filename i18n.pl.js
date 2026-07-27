@@ -3,6 +3,9 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.pl = {
   'cat.fhSections': 'Półki',
+  'changelog.e83.title': 'Większy pad w Chrome Runner, a przesuwanie wreszcie działa 🕹️',
+  'changelog.e83.b0': 'Zmiana: pad na ekranie w Chrome Runner jest znacznie większy — w każdą połowę trafisz teraz bez odrywania wzroku od kaktusów.',
+  'changelog.e83.b1': 'Poprawka: przesuwanie pada wreszcie działa. Wybierz „Przesuń pad” w menu startowym albo w menu pauzy, przeciągnij go tam, gdzie leży twój kciuk, i dotknij „Gotowe”. Przeciąganie za paseczek na środku nie działało na telefonie w ogóle.',
   'changelog.e82.title': 'Chrome Runner: jeden kciuk, jeden pad 🕹️',
   'changelog.e82.b0': 'Zmiana: dwa narożne przyciski w Chrome Runner zastąpił jeden okrągły pad — górna połowa to skok, przytrzymanie dolnej to przykucnięcie — więc cała gra mieści się pod jednym kciukiem. Przeciągnij go za belkę na środku tam, gdzie naprawdę leży twój kciuk; następnym razem zostanie na miejscu. Dotknięcie w dowolnym innym miejscu nadal wykonuje skok.',
   'changelog.e81.title': 'Sterowanie na telefonie w Chrome Runner i Type Siege 📱',
@@ -362,6 +365,7 @@ window.KOMYO_I18N.pl = {
   'game.common.touchSchemeCap': '— dotknij, by obracać, przyspieszać i strzelać',
   'game.common.click': 'Kliknij',
   'game.common.tap': 'Dotknij',
+  'game.common.done': 'GOTOWE',
   'game.common.esc': 'Esc',
   'game.common.spaceEnter': 'Spacja · Enter',
   'game.common.pause': 'Pauza',
@@ -2102,6 +2106,8 @@ window.KOMYO_I18N.pl = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — sterowanie',
   'game.dusk-runner.ctrlJump': 'Skok',
   'game.dusk-runner.ctrlDuck': 'Przykucnij',
+  'game.dusk-runner.movePad': 'PRZESUŃ PAD',
+  'game.dusk-runner.placeHint': 'Przeciągnij pad tam, gdzie leży twój kciuk',
   'game.dusk-runner.ctrlHoldPad': 'Przytrzymaj ⬇',
   'seo.dusk-runner.howto': 'Biegniesz w prawo i nigdy nie zwalniasz: dotknij ekranu albo naciśnij spację, by przeskoczyć kaktusy, przytrzymaj strzałkę w dół, by przemknąć pod niskimi stalowymi bramownicami i ptakami. Przeciśnięcie się o włos daje przyspieszenie, tempo rośnie z każdym metrem, a niebo przechodzi z dnia przez zmierzch w rozgwieżdżoną noc. Tryb bez końca trwa do pierwszego zderzenia, a Sprint to próba czasowa na 1000 m, w której każde zderzenie kosztuje potknięcie.',
   'cos.set.dusk-runner.runner': 'Bohaterowie',

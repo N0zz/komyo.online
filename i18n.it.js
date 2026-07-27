@@ -3,6 +3,9 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.it = {
   'cat.fhSections': 'Ripiani',
+  'changelog.e83.title': 'Un pad più grande in Chrome Runner, e spostarlo finalmente funziona 🕹️',
+  'changelog.e83.b0': 'Modifica: il pad a schermo di Chrome Runner è molto più grande — ora colpisci entrambe le metà senza staccare gli occhi dai cactus.',
+  'changelog.e83.b1': 'Correzione: spostare il pad ora funziona. Scegli «Sposta il pad» nel menu iniziale o in quello di pausa, trascinalo dove appoggia il pollice e tocca «Fatto». Trascinarlo dalla barretta centrale sul telefono non funzionava affatto.',
   'changelog.e82.title': 'Chrome Runner: un pollice, un pad 🕹️',
   'changelog.e82.b0': 'Modifica: i due pulsanti agli angoli di Chrome Runner diventano un unico pad rotondo — la metà superiore salta, tenendo premuta quella inferiore ti abbassi — così tutto il gioco sta sotto un solo pollice. Trascinalo dalla barra centrale dove il pollice appoggia davvero: resterà lì anche la prossima volta. Toccare in qualsiasi altro punto fa comunque saltare.',
   'changelog.e81.title': 'Comandi da telefono per Chrome Runner e Type Siege 📱',
@@ -857,6 +860,7 @@ window.KOMYO_I18N.it = {
   'game.common.touchSchemeCap': '— tocca per ruotare, spingere e sparare',
   'game.common.click': 'Clicca',
   'game.common.tap': 'Tocca',
+  'game.common.done': 'FATTO',
   'game.common.esc': 'Esc',
   'game.common.spaceEnter': 'Spazio · Invio',
   'game.flappy.menuTitle': '🌸 Volo nel Prato',
@@ -2098,6 +2102,8 @@ window.KOMYO_I18N.it = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — comandi',
   'game.dusk-runner.ctrlJump': 'Salta',
   'game.dusk-runner.ctrlDuck': 'Abbassati',
+  'game.dusk-runner.movePad': 'SPOSTA IL PAD',
+  'game.dusk-runner.placeHint': 'Trascina il pad dove appoggia il pollice',
   'game.dusk-runner.ctrlHoldPad': 'Tieni premuto ⬇',
   'seo.dusk-runner.howto': 'Corri verso destra senza fermarti mai: tocca lo schermo o premi Spazio per saltare i cactus, tieni premuto Giù per passare sotto i portali d\'acciaio e gli uccelli. Sfiorare un ostacolo regala una scia che ti accelera, il ritmo sale quanto più avanzi e il cielo passa dal giorno al crepuscolo fino a una notte stellata. La modalità Senza fine dura fino al primo urto; lo Sprint è una prova a cronometro sui 1000 m in cui ogni urto costa un inciampo.',
   'cos.set.dusk-runner.runner': 'Corridori',

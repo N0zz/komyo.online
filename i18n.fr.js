@@ -3,6 +3,9 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.fr = {
   'cat.fhSections': 'Rayons',
+  'changelog.e83.title': 'Une commande plus grande dans Chrome Runner, et la déplacer fonctionne enfin 🕹️',
+  'changelog.e83.b0': 'Changement : la commande à l\'écran de Chrome Runner est bien plus grande — tu atteins chaque moitié sans quitter les cactus des yeux.',
+  'changelog.e83.b1': 'Correction : déplacer la commande fonctionne enfin. Choisis « Déplacer la commande » dans le menu de départ ou celui de pause, fais-la glisser là où ton pouce se pose, puis touche « Terminé ». La faire glisser par la petite barre du milieu ne marchait pas du tout sur téléphone.',
   'changelog.e82.title': 'Chrome Runner : un pouce, une commande 🕹️',
   'changelog.e82.b0': 'Changement : les deux boutons dans les coins de Chrome Runner deviennent une seule commande ronde — la moitié haute saute, maintenir la moitié basse fait se baisser — le jeu entier tient donc sous un seul pouce. Fais-la glisser par la barre du milieu là où ton pouce se pose vraiment ; elle y restera la prochaine fois. Toucher n\'importe où ailleurs saute toujours.',
   'changelog.e81.title': 'Commandes tactiles pour Chrome Runner et Type Siege 📱',
@@ -857,6 +860,7 @@ window.KOMYO_I18N.fr = {
   'game.common.touchSchemeCap': '— touchez pour tourner, propulser et tirer',
   'game.common.click': 'Clic',
   'game.common.tap': 'Toucher',
+  'game.common.done': 'TERMINÉ',
   'game.common.esc': 'Échap',
   'game.common.spaceEnter': 'Espace · Entrée',
   'game.flappy.menuTitle': '🌸 Vol des Prés',
@@ -2098,6 +2102,8 @@ window.KOMYO_I18N.fr = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — commandes',
   'game.dusk-runner.ctrlJump': 'Sauter',
   'game.dusk-runner.ctrlDuck': 'Se baisser',
+  'game.dusk-runner.movePad': 'DÉPLACER LA COMMANDE',
+  'game.dusk-runner.placeHint': 'Fais glisser la commande là où ton pouce se pose',
   'game.dusk-runner.ctrlHoldPad': 'Maintenir ⬇',
   'seo.dusk-runner.howto': 'Courez vers la droite sans jamais vous arrêter : touchez l\'écran ou appuyez sur Espace pour sauter les cactus, maintenez Bas pour passer sous les portiques d\'acier et les oiseaux. Passer au ras déclenche une accélération d\'aspiration, l\'allure grimpe à mesure que vous avancez et le ciel passe du grand jour au crépuscule puis à une nuit étoilée. Le mode Sans fin dure jusqu\'au premier choc ; le Sprint est un contre-la-montre de 1000 m où chaque choc coûte un trébuchement.',
   'cos.set.dusk-runner.runner': 'Coureurs',
