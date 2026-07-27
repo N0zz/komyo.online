@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Chrome Runner — free online endless runner game, no ads | Komyo Games</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#cfe0f2">
+<script>/* PWA manifest only over http(s) — file:// cannot fetch it (CORS from origin "null"); no offline install path anyway */
+if (location.protocol !== "file:") { var m = document.createElement("link"); m.rel = "manifest"; m.href = "manifest.json"; document.head.appendChild(m); }</script>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Chrome Runner">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="Chrome Runner, a free endless runner in your browser — a polished chromium dino, cacti to jump, gantries to duck, and a 1000 m time trial. No ads, works offline.">
+<link rel="canonical" href="https://komyo.online/games/dusk-runner/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Komyo Games">
+<meta property="og:title" content="Chrome Runner — free online endless runner game, no ads">
+<meta property="og:description" content="Chrome Runner, a free endless runner in your browser — a polished chromium dino, cacti to jump, gantries to duck, and a 1000 m time trial. No ads, works offline.">
+<meta property="og:url" content="https://komyo.online/games/dusk-runner/">
+<meta property="og:image" content="https://komyo.online/games/dusk-runner/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Chrome Runner — free online endless runner game, no ads">
+<meta name="twitter:description" content="Chrome Runner, a free endless runner in your browser — a polished chromium dino, cacti to jump, gantries to duck, and a 1000 m time trial. No ads, works offline.">
+<meta name="twitter:image" content="https://komyo.online/games/dusk-runner/icon-512.png">
+<link rel="alternate" hreflang="en" href="https://komyo.online/games/dusk-runner/">
+<link rel="alternate" hreflang="pl" href="https://komyo.online/games/dusk-runner/?lang=pl">
+<link rel="alternate" hreflang="es" href="https://komyo.online/games/dusk-runner/?lang=es">
+<link rel="alternate" hreflang="pt" href="https://komyo.online/games/dusk-runner/?lang=pt">
+<link rel="alternate" hreflang="fr" href="https://komyo.online/games/dusk-runner/?lang=fr">
+<link rel="alternate" hreflang="it" href="https://komyo.online/games/dusk-runner/?lang=it">
+<link rel="alternate" hreflang="cs" href="https://komyo.online/games/dusk-runner/?lang=cs">
+<link rel="alternate" hreflang="uk" href="https://komyo.online/games/dusk-runner/?lang=uk">
+<link rel="alternate" hreflang="x-default" href="https://komyo.online/games/dusk-runner/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Chrome Runner","url":"https://komyo.online/games/dusk-runner/","description":"Chrome Runner, a free endless runner in your browser — a polished chromium dino, cacti to jump, gantries to duck, and a 1000 m time trial. No ads, works offline.","genre":["Arcade","Reflex"],"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"inLanguage":["en","pl","es","pt","fr","it","cs","uk"],"image":"https://komyo.online/games/dusk-runner/icon-512.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Komyo Games","url":"https://komyo.online/"}}</script>
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #131b26; color: #e8eef5;
+    font-family: system-ui, -apple-system, sans-serif; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  /* the kit HUD pill is dark — light values, not the game's ink tone */
+  #hud .val { color: #f2eee2; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
+  <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+  <div class="stat" id="timeStat" style="display:none"><span class="lbl" id="lblTime">TIME</span><span class="val" id="timeEl">0:00.0</span></div>
+  <div class="stat" id="stumbleStat" style="display:none"><span class="lbl" id="lblStumble">STUMBLES</span><span class="val" id="stumbleEl">0/5</span></div>
+  <div class="stat" id="chainStat" style="display:none"><span class="lbl" id="lblChain">SLIPSTREAM</span><span class="val" id="chainEl">×1</span></div>
+</div>
+<!-- crawlable game description — shown to players via the ☰ "How to play" entry (kit aboutModal) -->
+<section id="gk-about" hidden>
+<h1 data-t="game.dusk-runner.title">Chrome Runner</h1>
+<p data-t="game.dusk-runner.blurb">Polished chromium dino — jump the cacti, duck the gantries, chase a faster 1000 m.</p>
+<h2 data-t="kit.howto">How to play</h2>
+<p data-t="seo.dusk-runner.howto">Run right and never stop: tap or press Space to jump the cacti, hold Down to duck under the low steel gantries and the birds. Squeezing past an obstacle grants a slipstream surge that speeds you up, the pace climbs the further you get, and the sky rolls from bright day through dusk into a starry night. Endless runs until you clip something; Sprint is a 1000 m time trial where every clip costs you a stumble.</p>
+<h2 data-t="seo.h.faq">Common questions</h2>
+<p><strong data-t="seo.q.free">Is this game free?</strong> <span data-t="seo.a.free">Yes — every game on Komyo is completely free to play: no ads, no payments, no accounts.</span></p>
+<p><strong data-t="seo.q.offline">Can I play offline?</strong> <span data-t="seo.a.offline">Yes — after your first visit the game works without internet, and you can install it as an app straight from your browser.</span></p>
+<p><strong data-t="seo.q.saves">Where are my scores saved?</strong> <span data-t="seo.a.saves">On your device only — best scores, trophies and cosmetics live in your browser and are never uploaded anywhere.</span></p>
+<h2 data-t="seo.h.more">More free games</h2>
+<p><a href="../flappy/" data-t="game.flappy.title">Meadow Flyer</a> · <a href="../stacker/" data-t="game.stacker.title">Stack</a> · <a href="../breakout/" data-t="game.breakout.title">Brick Breaker</a> · <a href="../../" data-t="seo.allGames">All free games at Komyo</a></p>
+</section>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'dusk-runner';
+  const ACCENT = '#cfe0f2';
+
+  const SND = window.gamekit.sound;
+  SND.define({
+    hop:   c => c.voice({ f: 420, slideTo: 720, dur: 0.09, type: 'triangle', gain: 0.10, filter: 'lowpass', cutoff: 2400 }),
+    tuck:  c => c.noiseHit({ dur: 0.07, gain: 0.07, filter: 'lowpass', cutoff: 900, cutoffTo: 300 }),
+    tick:  c => c.voice({ f: 880, dur: 0.05, type: 'square', gain: 0.06, filter: 'lowpass', cutoff: 3000 }),
+    slip:  c => c.voice({ f: 1180, slideTo: 1760, dur: 0.13, type: 'sine', gain: 0.09, filter: 'highpass', cutoff: 700, reverb: 0.25 }),
+    chain: c => { const t = c.now(); c.seq([880, 1320], 60, f => c.voice({ f, dur: 0.1, type: 'sine', gain: 0.07, reverb: 0.3 })); },
+    stumble: c => { c.noiseHit({ dur: 0.2, gain: 0.16, filter: 'lowpass', cutoff: 800, cutoffTo: 180 });
+      c.voice({ f: 210, slideTo: 120, dur: 0.24, type: 'sawtooth', gain: 0.1 }); },
+    crash: c => c.play('lose'),
+  });
+
+  // ---------------------------------------------------------------- model + tuning
+  // Fairness: runner, obstacles, jump arc and scroll speed all scale with the playable band (S),
+  // and score converts px→metres through the same factor — so a 360px phone and a 1440p desktop
+  // play the same run. No raw desktop pixel constants in gameplay.
+  const REF_BAND = 420;               // band height that S is normalised against
+  const BAND_MAX = 560;               // a runner is a horizontal STRIP — never the whole 1440px sky
+  const RUN_H = 46, RUN_W = 34;       // runner box at S = 1
+  const DUCK_H = 26;
+  const GRAV = 0.78, JUMP_V = 14.2;   // apex ≈ 129px, airtime ≈ 36 steps at S = 1
+  const FAST_FALL = 2.1;              // gravity multiplier while holding duck mid-air
+  const PX_PER_M = 9;                 // px (at S = 1) per scored metre
+  const SPRINT_M = 1000;
+  const SURGE_F = 96;                     // a near-miss surges you for ~1.6 s
+  const CHAIN_MAX = 4, CHAIN_F = 230;     // chained near-misses stack the surge; the chain expires
+  const CHAIN_STEP = 0.09;                // ×1.09 … ×1.36 — the ONLY way to go faster than the ramp
+  const NEAR_PX = 15;                     // vertical clearance (at S=1) that counts as a near miss
+  const STUMBLE_F = 40, STUMBLE_MAX = 5;  // Sprint: a clip costs time, five of them end the run
+  // Sprint par per pace (seconds): beating par needs a real chain, not just a clean run
+  const SPRINT_PAR = { gentle: 26.5, normal: 20.0, brisk: 16.5 };
+  const PACE = {
+    gentle: { v0: 4.4, v1: 8.0,  ramp: 2600, gap: 1.3 },
+    normal: { v0: 5.6, v1: 11.0, ramp: 2000, gap: 1.0 },
+    brisk:  { v0: 7.2, v1: 13.6, ramp: 1500, gap: 0.85 },
+  };
+  const DAY_M = 2400;                 // metres per full day→dusk→night→day cycle (slow: a 900 m
+                                      // cycle flipped the whole screen every ~2 minutes)
+
+  let W = 0, H = 0, topMargin = 48, bandY = 48, bandH = 400, groundY = 400, S = 1;
+  let state = 'ready';                // ready | playing | paused | over
+  let mode = 'endless', pace = 'normal';
+  let score = 0, best = 0, dist = 0, speed = 0, frames = 0, won = false;
+  const runner = { y: 0, vy: 0, onGround: true, ducking: false, legPhase: 0 };
+  let obstacles = [], puffs = [];
+  let groundScroll = 0, dunesScroll = 0, cloudScroll = 0, starTwinkle = 0;
+  let dunes = [], clouds = [], stars = [];
+  let nextGapPx = 0, milestone = 0, hitFlash = 0;
+  let surge = 0, stumbles = 0, stumbleFreeze = 0, nearFlash = 0;   // slipstream surge + Sprint stumbles
+  let chain = 0, chainTimer = 0, bestChain = 0;                    // consecutive near-misses
+  let seedState = 0, useSeed = false, useSeedForced = false;
+  let pows = [];                      // comic-look impact words: {text,x,y,life,max,rot,scale}
+
+  function rnd() {
+    if (!useSeed) return Math.random();
+    seedState = (seedState * 1664525 + 1013904223) % 4294967296;
+    return seedState / 4294967296;
+  }
+
+  const paceCfg = () => PACE[pace] || PACE.normal;
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  // Storage label stays English (best-store key); modeDisplay/paceDisplay render localised names.
+  const labelFor = (m, p) => (m === 'sprint' ? 'Sprint' : 'Endless') + ' · ' + cap(p);
+  const modeLabel = () => labelFor(mode, pace);
+  // explicit keys (never concatenated) so the i18n coverage scanner sees every real key
+  const modeDisplay = m => (m === 'sprint'
+    ? KIT.t('game.dusk-runner.modeSprint', { def: 'SPRINT' })
+    : KIT.t('game.dusk-runner.modeEndless', { def: 'ENDLESS' }));
+  const paceDisplay = p => (p === 'gentle' ? KIT.t('game.dusk-runner.paceGentle', { def: 'Gentle' })
+    : p === 'brisk' ? KIT.t('game.dusk-runner.paceBrisk', { def: 'Brisk' })
+    : KIT.t('game.dusk-runner.paceNormal', { def: 'Normal' }));
+  const loadBest = (m, p) => (KIT ? KIT.bestScore(SLUG, labelFor(m || mode, p || pace)) : 0);
+  // Sprint is time-primary: its best is the fastest CLEAR (ms in the store), never a distance.
+  const loadBestTime = (m, p) => { const r = KIT ? KIT.best(SLUG, labelFor(m || mode, p || pace)) : null; return (r && r.time) ? r.time : 0; };
+
+  // Sprint stores the clear TIME in MILLISECONDS (kit contract); a failed run stores 0 so a fast
+  // death can never beat a real clear (the store keeps the MIN).
+  const elapsedMs = () => Math.round(frames / 60 * 1000);
+  const fmtTime = ms => { const s = ms / 1000; return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0') + '.' + Math.floor((s * 10) % 10); };
+  const metresRun = () => dist / (PX_PER_M * S);
+  const parMs = () => Math.round((SPRINT_PAR[pace] || SPRINT_PAR.normal) * 1000);
+  // Sprint grades against PAR, so the goal is beating a target rather than tying a fixed floor.
+  function medal(ms) { const p = parMs(); return ms <= p ? 'gold' : ms <= p * 1.12 ? 'silver' : ms <= p * 1.3 ? 'bronze' : 'none'; }
+  const medalIcon = m => (m === 'gold' ? '🥇' : m === 'silver' ? '🥈' : m === 'bronze' ? '🥉' : '');
+
+  // ---------------------------------------------------------------- look: whole-game skins
+  // CHROME is the default identity — polished chromium: every entity is a bright metal gradient
+  // with a specular streak and a dark rim, on a deep steel sky. PAPER (unlockable) is the flat
+  // ink-on-paper alternative. A skin owns the palette AND the draw mode, so the two looks are
+  // genuinely different games to look at.
+  //
+  // CONTRAST RULE (the bug this replaces): the old palette interpolated the ink tone from dark to
+  // light THROUGH mid-grey, so at the crossover the silhouettes matched the sky and the screen went
+  // near-blank. Now each skin pins entities to ONE end of the luminance range and clamps the sky to
+  // the other end at every phase — the ink/metal tone never crosses the sky tone.
+  const STYLES = {
+    chrome: {
+      metal: true,
+      // sky stays dark at all phases (chrome reads bright against it); the cycle shifts hue + depth
+      skies: [
+        { t: 0.00, sky: [58, 74, 92],  sky2: [26, 36, 50], far: [92, 108, 126], ink: [232, 240, 248], stars: 0 },
+        { t: 0.40, sky: [86, 92, 104], sky2: [38, 44, 56], far: [116, 124, 138], stars: 0, ink: [236, 242, 248] },
+        { t: 0.62, sky: [104, 72, 74], sky2: [42, 30, 38], far: [132, 96, 96],  stars: 0.2, ink: [244, 238, 232] },
+        { t: 0.80, sky: [40, 44, 68],  sky2: [16, 18, 30], far: [70, 76, 104],  stars: 0.9, ink: [236, 244, 252] },
+        { t: 1.00, sky: [58, 74, 92],  sky2: [26, 36, 50], far: [92, 108, 126], stars: 0, ink: [232, 240, 248] },
+      ],
+      body: '#e8eef5', bodyLo: '#7d8a99', rim: '#0d141c', spec: '#ffffff',
+    },
+    paper: {
+      metal: false,
+      // sky stays LIGHT at all phases (dark ink reads against it) — no more mid-tone mush
+      skies: [
+        { t: 0.00, sky: [244, 241, 232], sky2: [232, 226, 212], far: [188, 183, 170], ink: [38, 38, 38], stars: 0 },
+        { t: 0.40, sky: [248, 230, 205], sky2: [238, 210, 178], far: [199, 172, 152], ink: [46, 38, 36], stars: 0 },
+        { t: 0.62, sky: [240, 196, 168], sky2: [222, 166, 140], far: [186, 140, 124], ink: [48, 32, 34], stars: 0.15 },
+        { t: 0.80, sky: [206, 190, 208], sky2: [176, 160, 186], far: [150, 136, 164], ink: [40, 34, 46], stars: 0.5 },
+        { t: 1.00, sky: [244, 241, 232], sky2: [232, 226, 212], far: [188, 183, 170], ink: [38, 38, 38], stars: 0 },
+      ],
+      body: '#f4f1e8', bodyLo: '#ded8c9', rim: '#2b2b2b', spec: '#ffffff',
+    },
+    comic: {
+      metal: false, comic: true,
+      // bold flat colour + heavy ink, the way a printed panel reads. Ink stays near-black at every
+      // phase and the sky stays bright-to-mid, so the contrast rule holds like the other looks.
+      skies: [
+        { t: 0.00, sky: [104, 196, 248], sky2: [168, 228, 255], far: [214, 176, 112], ink: [22, 20, 28], stars: 0 },
+        { t: 0.40, sky: [255, 208, 104], sky2: [255, 232, 168], far: [222, 150, 70],  ink: [26, 20, 20], stars: 0 },
+        { t: 0.62, sky: [250, 126, 84],  sky2: [255, 172, 118], far: [186, 88, 68],   ink: [28, 16, 22], stars: 0.15 },
+        { t: 0.80, sky: [138, 112, 220], sky2: [178, 156, 238], far: [96, 74, 158],   ink: [24, 18, 34], stars: 0.55 },
+        { t: 1.00, sky: [104, 196, 248], sky2: [168, 228, 255], far: [214, 176, 112], ink: [22, 20, 28], stars: 0 },
+      ],
+      body: '#ffd23f', bodyLo: '#e8a020', rim: '#16141c', spec: '#fff6d6',
+    },
+  };
+  function styleId() {
+    const id = (KIT.cosmetics && KIT.cosmetics.selected) ? KIT.cosmetics.selected('dusk-runner.style') : null;
+    const k = String(id || '').split('.').pop();
+    return STYLES[k] ? k : 'chrome';
+  }
+  const lerp = (a, b, t) => a + (b - a) * t;
+  function palette() {
+    const ST = STYLES[styleId()], SK = ST.skies;
+    const ph = ((metresRun() % DAY_M) + DAY_M) % DAY_M / DAY_M;
+    let a = SK[0], b = SK[SK.length - 1];
+    for (let i = 0; i < SK.length - 1; i++) { if (ph >= SK[i].t && ph <= SK[i + 1].t) { a = SK[i]; b = SK[i + 1]; break; } }
+    const span = Math.max(0.0001, b.t - a.t), k = Math.min(1, Math.max(0, (ph - a.t) / span));
+    const mix = (x, y) => 'rgb(' + Math.round(lerp(x[0], y[0], k)) + ',' + Math.round(lerp(x[1], y[1], k)) + ',' + Math.round(lerp(x[2], y[2], k)) + ')';
+    return { st: ST, sky: mix(a.sky, b.sky), sky2: mix(a.sky2, b.sky2), ink: mix(a.ink, b.ink),
+      far: mix(a.far, b.far), stars: lerp(a.stars, b.stars, k), phase: ph };
+  }
+
+  // Chrome fill for a vertical span: light top → shadowed belly → light rim-lit bottom.
+  function metalFill(y0, y1, P) {
+    if (!P.st.metal) return P.st.body;
+    const g = ctx.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, '#ffffff');
+    g.addColorStop(0.18, P.st.body);
+    g.addColorStop(0.52, P.st.bodyLo);
+    g.addColorStop(0.72, '#5d6a78');
+    g.addColorStop(0.9, P.st.body);
+    g.addColorStop(1, '#c9d3dd');
+    return g;
+  }
+
+  // ---------------------------------------------------------------- obstacles
+  // Two families: cacti (jump) and birds at three heights — the top two need a duck, the low one a
+  // jump. Each kind carries its own box so the hitbox matches the drawing.
+  function cactusKind() {
+    const r = rnd();
+    if (r < 0.42) return { kind: 'cactus1', w: 18, h: 38 };
+    if (r < 0.74) return { kind: 'cactus2', w: 34, h: 40 };
+    return { kind: 'cactus3', w: 48, h: 46 };
+  }
+  function birdKind() {
+    const r = rnd();
+    if (r < 0.34) return { kind: 'bird', w: 34, h: 20, yOff: 4 };    // low — jump it
+    if (r < 0.70) return { kind: 'bird', w: 34, h: 20, yOff: 40 };   // mid — duck
+    return { kind: 'bird', w: 34, h: 20, yOff: 60 };                 // high — run under
+  }
+  function spawnObstacle() {
+    const m = metresRun();
+    // A gantry hangs from the top of the band down to just above ducked height: it CANNOT be jumped,
+    // so ducking is a real mechanic rather than an alternative to jumping.
+    const gantryChance = m < 250 ? 0 : Math.min(0.24, 0.08 + (m - 250) / 3000);
+    const birdChance = m < 180 ? 0 : Math.min(0.34, 0.12 + (m - 180) / 1600);
+    const r0 = rnd();
+    let k;
+    if (r0 < gantryChance) {
+      const clear = 30 * S;                                  // duck clearance under the beam
+      k = { kind: 'gantry', w: 46, h: (groundY - clear - bandY) / S, yOff: clear / S };
+    } else k = (rnd() < birdChance) ? birdKind() : cactusKind();
+    obstacles.push({ x: W + 40 * S, kind: k.kind, w: k.w * S, h: k.h * S, yOff: (k.yOff || 0) * S, flap: rnd() * 6.28, gap: 1e9, passed: false });
+    // Gap is a reaction window in TIME (steps), not pixels — a faster run keeps a fair window.
+    nextGapPx = speed * (34 + rnd() * 40) * paceCfg().gap;
+  }
+
+  function runnerBox() {
+    const ducked = runner.ducking && runner.onGround;
+    const h = (ducked ? DUCK_H : RUN_H) * S;
+    const w = (ducked ? RUN_W * 1.25 : RUN_W) * S;
+    return { x: W * 0.16, y: groundY - h - runner.y, w: w, h: h };
+  }
+
+  function initScenery() {
+    dunes = []; clouds = []; stars = [];
+    const n = Math.max(5, Math.round(W / 260));
+    // dune height comes off the CAPPED band — scaling it off a 1200px band gave 250px spikes
+    const dh = Math.min(bandH, BAND_MAX);
+    for (let i = 0; i < n; i++) dunes.push({ x: (i / n) * W * 1.4, r: (0.1 + rnd() * 0.1) * W, h: (0.14 + rnd() * 0.16) * dh });
+    // clouds spread over the WHOLE sky above the strip (count scales with width) — a 700px sky with
+    // three clouds in the bottom fifth read as an empty page
+    const nc = Math.max(5, Math.round(W / 240));
+    for (let i = 0; i < nc; i++) clouds.push({ x: (i / nc) * W * 1.3, y: topMargin + 12 + rnd() * Math.max(60, groundY - topMargin - 60), r: (16 + rnd() * 18) * S });
+    // stars fill the whole sky above the ground, not just the strip
+    for (let i = 0; i < 70; i++) stars.push({ x: rnd() * W, y: rnd() * (groundY - 20), r: 0.7 + rnd() * 1.5, ph: rnd() * 6.28 });
+  }
+
+  function reset() {
+    score = 0; dist = 0; frames = 0; won = false; milestone = 0; hitFlash = 0;
+    speed = paceCfg().v0 * S;
+    runner.y = 0; runner.vy = 0; runner.onGround = true; runner.ducking = false; runner.legPhase = 0;
+    obstacles = []; puffs = []; pows = [];
+    surge = 0; stumbles = 0; stumbleFreeze = 0; nearFlash = 0; chain = 0; chainTimer = 0; bestChain = 0;
+    nextGapPx = W * 0.8;
+    best = loadBest();
+    initScenery();
+    updateHud();
+  }
+
+  // ---------------------------------------------------------------- update
+  function update() {
+    if (state !== 'playing') return;
+    frames++;
+    const cfg = paceCfg();
+    if (stumbleFreeze > 0) {          // Sprint stumble: the clock runs, the runner does not
+      stumbleFreeze--;
+      if (KIT && KIT.music) KIT.music.intensity(0.35);
+      if (stumbleFreeze === 0) speed = cfg.v0 * S;
+      return;
+    }
+    if (surge > 0) surge--;
+    if (nearFlash > 0) nearFlash--;
+    if (chainTimer > 0 && --chainTimer === 0) chain = 0;      // let the chain lapse and you slow down
+    const mul = (surge > 0 && chain > 0) ? 1 + CHAIN_STEP * chain : 1;
+    speed = (cfg.v0 + (cfg.v1 - cfg.v0) * Math.min(1, metresRun() / cfg.ramp)) * S * mul;
+    dist += speed;
+    const newScore = Math.floor(metresRun());
+    if (newScore !== score) {
+      score = newScore;
+      if (score > 0 && score % 100 === 0) { SND.play('tick'); milestone = 24;
+        if (score % 500 === 0) { const r3 = runnerBox(); pow(powText('game.dusk-runner.powMile', 'NICE!'), r3.x + r3.w * 1.2, r3.y - 20 * S, 1.05); } }
+      updateHud();
+    }
+
+    // runner physics — vy is upward-positive, y is height above the ground line
+    if (!runner.onGround) {
+      runner.vy -= GRAV * S * (runner.ducking ? FAST_FALL : 1);
+      runner.y += runner.vy;
+      if (runner.y <= 0) { runner.y = 0; runner.vy = 0; runner.onGround = true; puff(3); }
+    } else {
+      runner.legPhase += speed / (7 * S);
+    }
+
+    // scenery scroll
+    groundScroll += speed;
+    dunesScroll += speed * 0.22;
+    cloudScroll += speed * 0.1;
+    starTwinkle += 0.03;
+    if (milestone > 0) milestone--;
+    if (hitFlash > 0) hitFlash--;
+
+    // obstacles
+    nextGapPx -= speed;
+    if (nextGapPx <= 0) spawnObstacle();
+    const rb = runnerBox();
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const o = obstacles[i];
+      o.x -= speed * (o.kind === 'bird' ? 1.18 : 1);   // birds close a little faster
+      if (o.kind === 'bird') o.flap += 0.28;
+      if (o.x + o.w < -20 * S) { obstacles.splice(i, 1); continue; }
+      const oy = groundY - o.h - o.yOff;
+      const overlapX = rb.x < o.x + o.w && rb.x + rb.w > o.x;
+      if (overlapX && rb.y < oy + o.h && rb.y + rb.h > oy) { crash(); return; }
+      // slipstream: track the tightest vertical clearance while side by side, and reward a squeeze
+      if (overlapX) o.gap = Math.min(o.gap, Math.max(oy - (rb.y + rb.h), rb.y - (oy + o.h)));
+      else if (!o.passed && o.x + o.w < rb.x) {
+        o.passed = true;
+        if (o.gap <= NEAR_PX * S) {
+          chain = Math.min(CHAIN_MAX, chain + 1); chainTimer = CHAIN_F; bestChain = Math.max(bestChain, chain);
+          surge = SURGE_F; nearFlash = 20; SND.play('slip');
+          { const r2 = runnerBox(); pow(powText('game.dusk-runner.powNear', 'WHOOSH!'), r2.x + r2.w * 1.6, r2.y - 26 * S, 0.9); }
+          if (chain >= 2) SND.play('chain');
+          updateHud();
+        }
+      }
+    }
+
+    for (let i = pows.length - 1; i >= 0; i--) { const w = pows[i]; w.x -= speed * 0.5; w.y -= 0.5 * S; if (--w.life <= 0) pows.splice(i, 1); }
+    for (let i = puffs.length - 1; i >= 0; i--) {
+      const p = puffs[i];
+      p.x -= speed * 0.6; p.y -= p.vy; p.vy *= 0.94; p.life--; p.r += 0.4 * S;
+      if (p.life <= 0) puffs.splice(i, 1);
+    }
+
+    if (mode === 'sprint') {
+      if (score >= SPRINT_M) { finish(true); return; }
+      updateHud();
+    }
+
+    if (KIT && KIT.music) {
+      const ramp = Math.min(1, metresRun() / cfg.ramp);
+      const near = obstacles.length ? Math.max(0, 1 - (obstacles[0].x - rb.x) / (W * 0.6)) : 0;
+      const base = pace === 'gentle' ? 0.3 : 0.42;
+      KIT.music.intensity(Math.min(1, base + ramp * 0.34 + near * 0.2));
+    }
+  }
+
+  // KABOOM / WHOOSH / NICE! — only in the comic look, and only on real events (a crash, a squeeze,
+  // a 100 m milestone), so they read as punctuation rather than decoration.
+  function pow(text, x, y, scale) {
+    if (styleId() !== 'comic') return;
+    if (pows.length > 4) pows.shift();
+    pows.push({ text: text, x: x, y: y, life: 46, max: 46, rot: (rnd() - 0.5) * 0.4, scale: scale || 1 });
+  }
+  function powText(key, def) { return KIT.t(key, { def: def }); }
+
+  function puff(n) {
+    const rb = runnerBox();
+    for (let i = 0; i < n; i++) puffs.push({ x: rb.x + rnd() * rb.w * 0.6, y: groundY - 2, vy: 0.5 + rnd(), r: (2 + rnd() * 3) * S, life: 16 + rnd() * 10 });
+  }
+
+  function jump() {
+    if (state !== 'playing' || !runner.onGround) return;
+    runner.onGround = false; runner.vy = JUMP_V * S; runner.ducking = false;
+    SND.play('hop'); puff(4);
+  }
+  function setDuck(on) {
+    if (state !== 'playing') return;
+    if (on && !runner.ducking && runner.onGround) SND.play('tuck');
+    runner.ducking = !!on;
+  }
+
+  function crash() {
+    hitFlash = 14;
+    { const rb = runnerBox(); pow(powText('game.dusk-runner.powCrash', 'KABOOM!'), rb.x + rb.w * 1.1, rb.y - 22 * S, 1.25); }
+    if (typeof navigator !== 'undefined' && navigator.vibrate) { try { navigator.vibrate(35); } catch (e) {} }
+    // Sprint is a TIME TRIAL: a clip costs you ~0.7 s of stumbling (and the speed ramp), it doesn't
+    // end the run — otherwise every clean 1000 m takes exactly the same time and the clock is fake.
+    if (mode === 'sprint' && stumbles < STUMBLE_MAX - 1) {
+      stumbles++; stumbleFreeze = STUMBLE_F; surge = 0; chain = 0; chainTimer = 0;
+      SND.play('stumble'); puff(8);
+      // clear what's on top of us so the freeze can't chain into a second hit
+      obstacles = obstacles.filter(o => o.x > W * 0.42);
+      updateHud();
+      return;
+    }
+    if (mode === 'sprint') stumbles++;
+    SND.play('crash');
+    finish(false);
+  }
+
+  function finish(win) {
+    state = 'over'; won = !!win;
+    const prevBest = loadBest();
+    if (KIT) KIT.saveBest(SLUG, modeLabel(), { score: score, time: (mode === 'sprint' && won) ? elapsedMs() : 0 });
+    const isBest = score > prevBest && score > 0;
+    best = loadBest();
+    if (KIT && KIT.music) KIT.music.intensity(0.3);
+    showEnd(isBest);
+  }
+
+  // ---------------------------------------------------------------- render
+  function render() {
+    const P = palette();
+    const alpha = (state === 'playing' && KIT.loopAlpha && !(KIT.isPaused && KIT.isPaused())) ? Math.min(1, Math.max(0, KIT.loopAlpha())) : 0;
+    const off = speed * alpha;   // all constant-velocity layers share this render offset
+
+    if (P.st.comic) {
+      // printed page: ONE flat colour, never a gradient. (A two-band split drew a hard line across
+      // mid-sky that read as a second, false horizon.)
+      ctx.fillStyle = P.sky2; ctx.fillRect(0, 0, W, H);
+    } else {
+      const skyG = ctx.createLinearGradient(0, 0, 0, groundY);
+      skyG.addColorStop(0, P.sky2); skyG.addColorStop(1, P.sky);
+      ctx.fillStyle = skyG;
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // comic: Ben-Day dots, then a radial ink burst and speed lines — the page furniture that makes
+    // this a different drawing rather than a recolour
+    if (P.st.comic) { drawHalftone(P); drawBurst(P); drawSpeedLines(P); }
+
+    if (P.stars > 0.02) {
+      ctx.fillStyle = P.ink;
+      for (const s of stars) {
+        ctx.globalAlpha = P.stars * (0.55 + 0.45 * Math.sin(starTwinkle + s.ph));
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // sun / moon — arcs across the sky with the day phase, so the cycle is readable at a glance
+    drawSkyBody(P);
+
+    // clouds — one closed three-lobe outline (a stroked open arc pair read as broken glass)
+    ctx.strokeStyle = P.far; ctx.lineWidth = Math.max(1.4, 2 * S);
+    const cloudSpan = W * 1.3;
+    for (const c of clouds) {
+      const x = ((c.x - cloudScroll - off * 0.1) % cloudSpan + cloudSpan) % cloudSpan;
+      const r = c.r;
+      ctx.beginPath();
+      ctx.moveTo(x - r * 1.25, c.y + r * 0.42);
+      ctx.arc(x - r * 0.6, c.y + r * 0.1, r * 0.62, Math.PI * 0.75, Math.PI * 1.7);
+      ctx.arc(x + r * 0.05, c.y - r * 0.2, r * 0.78, Math.PI * 1.15, Math.PI * 1.95);
+      ctx.arc(x + r * 0.78, c.y + r * 0.12, r * 0.56, Math.PI * 1.3, Math.PI * 0.35);
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    // dunes — soft distant hills, outlined so they read as scenery instead of one solid mass
+    const duneSpan = W * 1.4;
+    ctx.lineWidth = Math.max(1.2, 1.6 * S);
+    for (const d of dunes) {
+      const x = ((d.x - dunesScroll - off * 0.22) % duneSpan + duneSpan) % duneSpan;
+      ctx.globalAlpha = 0.55;
+      ctx.fillStyle = P.far;
+      ctx.beginPath();
+      ctx.moveTo(x - d.r, groundY); ctx.quadraticCurveTo(x, groundY - d.h, x + d.r, groundY);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = P.far;
+      ctx.beginPath();
+      ctx.moveTo(x - d.r, groundY); ctx.quadraticCurveTo(x, groundY - d.h, x + d.r, groundY);
+      ctx.stroke();
+    }
+
+    // floor: a brushed steel plate in chrome, a paper wash in paper
+    if (P.st.metal) {
+      const fg = ctx.createLinearGradient(0, groundY, 0, H);
+      fg.addColorStop(0, '#8d99a6'); fg.addColorStop(0.25, '#5a6672'); fg.addColorStop(1, '#2b333d');
+      ctx.fillStyle = fg; ctx.fillRect(0, groundY, W, H - groundY);
+      ctx.globalAlpha = 0.16; ctx.strokeStyle = '#eaf1f8'; ctx.lineWidth = 1;
+      for (let i = 0; i < 4; i++) {   // faint brush streaks — full-strength lines read as shelves
+        const y = groundY + 10 + i * ((H - groundY) / 4.5);
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      // rim light along the plate edge — where the polish catches the sky
+      ctx.globalAlpha = 0.7; ctx.strokeStyle = '#f2f7fc'; ctx.lineWidth = Math.max(1, 1.4 * S);
+      ctx.beginPath(); ctx.moveTo(0, groundY + 1); ctx.lineTo(W, groundY + 1); ctx.stroke();
+      ctx.globalAlpha = 1;
+    } else if (P.st.comic) {
+      ctx.fillStyle = P.far;                       // flat colour, like a printed panel
+      ctx.fillRect(0, groundY, W, H - groundY);
+      ctx.globalAlpha = 0.22; ctx.fillStyle = P.st.rim;
+      ctx.fillRect(0, groundY, W, Math.max(2, 3 * S));   // ink shadow just under the line
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.globalAlpha = 0.35; ctx.fillStyle = P.far;
+      ctx.fillRect(0, groundY, W, H - groundY);
+      ctx.globalAlpha = 1;
+    }
+
+    // ground line + scrolling dashes
+    ctx.strokeStyle = P.ink; ctx.lineWidth = Math.max(1.6, 2.2 * S);
+    ctx.beginPath(); ctx.moveTo(0, groundY + 0.5); ctx.lineTo(W, groundY + 0.5); ctx.stroke();
+    const dashGap = 62 * S;
+    ctx.lineWidth = Math.max(1.2, 1.6 * S);
+    for (let i = -1; i < W / dashGap + 2; i++) {
+      const x = i * dashGap - ((groundScroll + off) % dashGap);
+      const len = (i % 3 === 0) ? 18 * S : 9 * S;
+      const yo = (i % 2 === 0) ? 8 * S : 15 * S;
+      ctx.beginPath(); ctx.moveTo(x, groundY + yo); ctx.lineTo(x + len, groundY + yo); ctx.stroke();
+    }
+
+    ctx.strokeStyle = P.far; ctx.lineWidth = Math.max(1, 1.4 * S);
+    for (const p of puffs) { ctx.globalAlpha = Math.min(1, p.life / 20); ctx.beginPath(); ctx.arc(p.x - off * 0.6, p.y, p.r, 0, 6.283); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+
+    for (const o of obstacles) drawObstacle(o, P, off);
+    drawRunner(P);
+
+    // slipstream: speed streaks behind the runner while the surge is live
+    if (surge > 0) {
+      const rb = runnerBox();
+      ctx.globalAlpha = Math.min(0.75, surge / 40) * (P.st.metal ? 1 : 0.6);
+      ctx.strokeStyle = P.st.metal ? '#bfe4ff' : '#8a6b4f';
+      ctx.lineWidth = Math.max(1.2, 1.8 * S); ctx.lineCap = 'round';
+      for (let i = 0; i < 5; i++) {
+        const sy = rb.y + rb.h * (0.15 + i * 0.18), len = (14 + i * 6) * S;
+        const wob = Math.sin((frames + i * 7) * 0.4) * 1.6 * S;
+        ctx.beginPath(); ctx.moveTo(rb.x - 6 * S - i * 3 * S, sy + wob); ctx.lineTo(rb.x - 6 * S - i * 3 * S - len, sy + wob); ctx.stroke();
+      }
+      ctx.lineCap = 'butt'; ctx.globalAlpha = 1;
+    }
+    if (nearFlash > 0) {   // the moment of the squeeze
+      const rb = runnerBox();
+      ctx.globalAlpha = nearFlash / 20 * 0.5; ctx.strokeStyle = '#ffffff'; ctx.lineWidth = Math.max(1.4, 2 * S);
+      ctx.beginPath(); ctx.arc(rb.x + rb.w / 2, rb.y + rb.h / 2, (24 - nearFlash) * S, 0, 6.283); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+    if (milestone > 0) {
+      ctx.globalAlpha = Math.min(1, milestone / 24);
+      ctx.fillStyle = P.ink;
+      ctx.font = '700 ' + Math.round(13 * S) + 'px ui-monospace, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(score + ' m', W / 2, bandY + 26 * S);
+      ctx.globalAlpha = 1; ctx.textAlign = 'left';
+    }
+    if (hitFlash > 0) { ctx.globalAlpha = hitFlash / 28; ctx.fillStyle = '#c9463c'; ctx.fillRect(0, 0, W, H); ctx.globalAlpha = 1; }
+
+    // comic: impact words, then the panel frame LAST so it reads as the page's edge
+    if (P.st.comic) {
+      for (const w of pows) drawPow(w, P);
+      drawPanel(P);
+    }
+  }
+
+  // Halftone: one small tile drawn once per resize, then tiled with a pattern — a per-frame dot loop
+  // at 2560×1440 would cost more than the whole game.
+  let htCanvas = null, htPattern = null;
+  function buildHalftone() {
+    if (typeof document === 'undefined' || !document.createElement) return;
+    const step = Math.max(6, Math.round(9 * S));
+    const c = document.createElement('canvas');
+    c.width = step * 2; c.height = step * 2;
+    const g = c.getContext && c.getContext('2d');
+    if (!g) return;
+    g.fillStyle = 'rgba(20,18,28,0.16)';
+    const r = Math.max(0.8, step * 0.16);
+    for (const [dx, dy] of [[0.5, 0.5], [1.5, 1.5]]) { g.beginPath(); g.arc(dx * step, dy * step, r, 0, 6.283); g.fill(); }
+    htCanvas = c;
+    try { htPattern = ctx.createPattern(c, 'repeat'); } catch (e) { htPattern = null; }
+  }
+  function drawHalftone(P) {
+    if (!htPattern) buildHalftone();
+    if (!htPattern) return;
+    ctx.save();
+    ctx.globalAlpha = 0.26; ctx.fillStyle = htPattern;   // a heavier wash greyed the flat colour out
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+
+  // Radial ink burst behind the sun/moon — the classic panel device that says "look here".
+  function drawBurst(P) {
+    const ph = P.phase, night = ph >= 0.72;
+    const k = night ? (ph - 0.72) / 0.28 : ph / 0.72;
+    const x = W * (0.12 + 0.76 * k);
+    const skyTop = topMargin + 18 * S, skyH = Math.max(40, groundY - skyTop - bandH * 0.35);
+    const y = skyTop + skyH * (1 - Math.sin(Math.PI * Math.min(1, Math.max(0, k))) * 0.86);
+    const len = Math.max(44, Math.min(W, H) * 0.2);
+    ctx.save();
+    ctx.globalAlpha = 0.1; ctx.strokeStyle = P.st.rim; ctx.lineCap = 'round';
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2 + 0.09;
+      const w0 = (i % 2 ? 1.2 : 2.4) * S;
+      ctx.lineWidth = w0;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(a) * 24 * S, y + Math.sin(a) * 24 * S);
+      ctx.lineTo(x + Math.cos(a) * (len * (i % 2 ? 0.7 : 1)), y + Math.sin(a) * (len * (i % 2 ? 0.7 : 1)));
+      ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    ctx.restore();
+  }
+
+  // Horizontal speed streaks that scroll with the world — motion drawn as ink, not as blur.
+  function drawSpeedLines(P) {
+    const n = 7, span = W + 240 * S;
+    ctx.save();
+    ctx.strokeStyle = P.st.rim; ctx.lineCap = 'round';
+    for (let i = 0; i < n; i++) {
+      const seed = i * 97;
+      const lowBand = Math.max(40, (groundY - bandY) * 0.45);
+      const y = groundY - 26 * S - ((seed % 100) / 100) * lowBand;
+      const len = (110 + (seed % 5) * 40) * S;
+      const x = span - ((groundScroll * (0.5 + (i % 3) * 0.22) + seed * 37) % span);
+      ctx.globalAlpha = 0.07 + (i % 3) * 0.03;
+      ctx.lineWidth = ((i % 2) ? 1.1 : 1.7) * S;
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - len, y); ctx.stroke();
+    }
+    ctx.lineCap = 'butt';
+    ctx.restore();
+  }
+
+  // The comic page's panel border — a heavy ink frame inset from the viewport edge.
+  function drawPanel(P) {
+    const m = Math.max(5, 7 * S), lw = Math.max(3, 4.5 * S);
+    ctx.strokeStyle = P.st.rim; ctx.lineWidth = lw;
+    ctx.strokeRect(m + lw / 2, m + lw / 2, W - (m + lw / 2) * 2, H - (m + lw / 2) * 2);
+    ctx.globalAlpha = 0.35; ctx.lineWidth = Math.max(1, 1.4 * S);
+    ctx.strokeRect(m + lw * 1.8, m + lw * 1.8, W - (m + lw * 1.8) * 2, H - (m + lw * 1.8) * 2);
+    ctx.globalAlpha = 1;
+  }
+
+  // A starburst badge with bold text — the classic panel SFX.
+  function drawPow(w, P) {
+    const k = 1 - w.life / w.max;                    // 0 → 1 over its life
+    const pop = k < 0.22 ? 0.6 + (k / 0.22) * 0.55 : 1.15 - (k - 0.22) * 0.18;
+    const size = Math.round(15 * S * w.scale * pop);
+    if (size < 6) return;
+    ctx.save();
+    ctx.translate(w.x, w.y);
+    ctx.rotate(w.rot);
+    ctx.globalAlpha = Math.min(1, w.life / 14);
+    ctx.font = '900 ' + size + 'px system-ui, sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const tw = ctx.measureText(w.text).width, rx = tw * 0.62 + size * 0.35, ry = size * 0.95;
+    ctx.beginPath();                                  // starburst
+    for (let i = 0; i < 20; i++) {
+      const a = (i / 20) * Math.PI * 2, out = i % 2 ? 0.66 : 1;
+      const px = Math.cos(a) * rx * out, py = Math.sin(a) * ry * out;
+      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+    }
+    ctx.closePath();
+    ctx.fillStyle = P.st.body; ctx.fill();
+    ctx.lineWidth = Math.max(2, 2.6 * S); ctx.strokeStyle = P.st.rim; ctx.stroke();
+    ctx.fillStyle = P.st.rim;
+    ctx.fillText(w.text, 0, size * 0.06);
+    ctx.restore();
+    ctx.globalAlpha = 1; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  }
+
+  // The sun rides 0→0.78 of the cycle, the moon 0.78→1: a hollow disc with rays by day, a crescent
+  // at night, both arcing over the sky so the phase is legible without reading the palette.
+  function drawSkyBody(P) {
+    const ph = P.phase, night = ph >= 0.72;
+    const k = night ? (ph - 0.72) / 0.28 : ph / 0.72;
+    const x = W * (0.12 + 0.76 * k);
+    const skyTop = topMargin + 18 * S, skyH = Math.max(40, groundY - skyTop - bandH * 0.35);
+    const y = skyTop + skyH * (1 - Math.sin(Math.PI * Math.min(1, Math.max(0, k))) * 0.86);
+    const r = (night ? 13 : 16) * S;
+    // a polished disc: bright metal in chrome, hollow line-art in paper
+    ctx.fillStyle = P.st.metal ? metalFill(y - r, y + r, P) : P.sky;
+    ctx.strokeStyle = P.st.metal ? P.st.rim : P.ink;
+    ctx.lineWidth = Math.max(1.4, 2 * S);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 6.283); ctx.fill(); ctx.stroke();
+    if (night) {
+      ctx.fillStyle = P.sky;                                                                  // crescent bite
+      ctx.beginPath(); ctx.arc(x + r * 0.42, y - r * 0.22, r * 0.92, 0, 6.283); ctx.fill();
+    } else {
+      ctx.strokeStyle = P.st.metal ? '#dfe7ef' : P.ink;
+      for (let i = 0; i < 8; i++) {
+        const a = i * Math.PI / 4;
+        ctx.beginPath();
+        ctx.moveTo(x + Math.cos(a) * r * 1.35, y + Math.sin(a) * r * 1.35);
+        ctx.lineTo(x + Math.cos(a) * r * 1.75, y + Math.sin(a) * r * 1.75);
+        ctx.stroke();
+      }
+    }
+  }
+
+  const RUNNERS = {
+    dino:  { tail: true,  snout: 'long',  ears: false },
+    fox:   { tail: true,  snout: 'short', ears: true },
+    robot: { tail: false, snout: 'box',   ears: false },
+  };
+  function runnerSkin() {
+    const id = (KIT.cosmetics && KIT.cosmetics.selected) ? KIT.cosmetics.selected('dusk-runner.runner') : null;
+    return RUNNERS[String(id || '').split('.').pop()] || RUNNERS.dino;
+  }
+
+  // A chrome part: metal-gradient fill + dark rim + one specular streak near the top.
+  // Ink weight is the loudest difference between the looks: comic gets a heavy contour, chrome a thin
+  // rim. Everything that outlines a shape goes through inkW() so the whole scene stays consistent.
+  const inkW = () => (STYLES[styleId()].comic ? Math.max(2.6, 4 * S) : Math.max(1.4, 2 * S));
+
+  function part(x, y, w, h, r, P) {
+    ctx.fillStyle = metalFill(y, y + h, P);
+    KIT.roundRect(ctx, x, y, w, h, r); ctx.fill();
+    if (P.st.comic) {
+      // hard-edged cel shade on the lower-right — a flat second tone, never a gradient, clipped to
+      // the shape so it reads as printed ink rather than a lighting effect
+      ctx.save();
+      KIT.roundRect(ctx, x, y, w, h, r); ctx.clip();
+      ctx.fillStyle = P.st.bodyLo;
+      ctx.beginPath();
+      ctx.moveTo(x + w * 0.42, y + h);
+      ctx.lineTo(x + w, y + h * 0.28);
+      ctx.lineTo(x + w, y + h);
+      ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    ctx.strokeStyle = P.st.rim; ctx.lineWidth = inkW(); ctx.stroke();
+    if (P.st.metal) {
+      ctx.globalAlpha = 0.75; ctx.fillStyle = P.st.spec;
+      KIT.roundRect(ctx, x + w * 0.14, y + h * 0.14, w * 0.5, Math.max(1.4, h * 0.13), h * 0.07);
+      ctx.fill(); ctx.globalAlpha = 1;
+    } else if (P.st.comic) {
+      ctx.fillStyle = P.st.spec;   // flat highlight chip, hard edges
+      KIT.roundRect(ctx, x + w * 0.16, y + h * 0.13, w * 0.34, Math.max(1.6, h * 0.14), h * 0.06);
+      ctx.fill();
+    }
+  }
+
+  // ---- the runner: an articulated silhouette, not a stack of boxes -------------------------------
+  // Built from one path per limb in a local space (feet at 0,0, +y = up), so poses (run / air /
+  // duck) and the two-segment leg cycle are just angle changes. Chrome fills + rim + specular come
+  // from the active look, so the same rig reads in both skins.
+  function limb(x0, y0, a1, a2, l1, l2, wTop, wBot, P) {
+    // two-segment leg: thigh from the hip at angle a1, shin from the knee at angle a2
+    const kx = x0 + Math.sin(a1) * l1, ky = y0 + Math.cos(a1) * l1;
+    const fx = kx + Math.sin(a2) * l2, fy = ky + Math.cos(a2) * l2;
+    ctx.strokeStyle = P.st.metal ? '#aab7c6' : P.st.rim;
+    ctx.lineCap = 'round';
+    ctx.lineWidth = wTop; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(kx, ky); ctx.stroke();
+    ctx.lineWidth = wBot; ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(fx, fy); ctx.stroke();
+    if (P.st.metal) {   // knee + foot bright caps read as machined joints
+      ctx.fillStyle = '#e8eef5';
+      ctx.beginPath(); ctx.arc(kx, ky, wBot * 0.42, 0, 6.283); ctx.fill();
+    }
+    // foot
+    ctx.strokeStyle = P.st.metal ? '#cdd8e4' : P.st.rim; ctx.lineWidth = wBot * 0.9;
+    ctx.beginPath(); ctx.moveTo(fx, fy); ctx.lineTo(fx + 4.2 * S, fy); ctx.stroke();
+    ctx.lineCap = 'butt';
+    return { fx, fy };
+  }
+
+  function drawRunner(P) {
+    const b = runnerBox(), sk = runnerSkin(), ducked = runner.ducking && runner.onGround;
+    const air = !runner.onGround;
+    const u = S;                                  // unit
+    const feetX = b.x + b.w * 0.42, feetY = groundY - runner.y;
+    const ph = runner.legPhase;
+
+    // contact shadow (tightens in the air)
+    ctx.globalAlpha = (P.st.metal ? 0.42 : 0.2) * (air ? 0.45 : 1);
+    ctx.fillStyle = '#000';
+    ctx.beginPath(); ctx.ellipse(feetX, groundY + 2 * u, b.w * (air ? 0.3 : 0.46), 2.6 * u, 0, 0, 6.283); ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.save();
+    ctx.translate(feetX, feetY);
+
+    // POSE: run / air / duck each get their own skeleton — a squashed run pose does not read as a
+    // duck. Ducking drops the hip, flattens the back and throws the head FORWARD, low and level.
+    const H0 = RUN_H * u;                          // full standing height in px
+    const hipY = (ducked ? -H0 * 0.24 : -H0 * 0.44);
+    const backY = (ducked ? -H0 * 0.40 : -H0 * 0.70);   // feet sit at y=0, so both are negative
+    // ---- legs (behind the body) ----
+    const legL1 = H0 * (ducked ? 0.14 : 0.24), legL2 = H0 * (ducked ? 0.12 : 0.23), wT = Math.max(2.6, 4.2 * u), wB = Math.max(2.2, 3.4 * u);
+    if (air) {
+      limb(-2 * u, hipY, 0.75, 1.15, legL1, legL2, wT, wB, P);      // trailing leg tucked back
+      limb(3 * u, hipY, -0.55, -0.15, legL1, legL2, wT, wB, P);     // lead leg forward
+    } else if (ducked) {
+      limb(-2 * u, hipY, 0.55, 1.15, legL1, legL2, wT, wB, P);
+      limb(4 * u, hipY, -0.25, 0.75, legL1, legL2, wT, wB, P);
+    } else {
+      const sw = Math.sin(ph), sw2 = Math.sin(ph + Math.PI);
+      limb(-1 * u, hipY, sw * 0.7, sw * 0.7 + 0.28 + Math.max(0, -sw) * 0.45, legL1, legL2, wT, wB, P);
+      limb(2.5 * u, hipY, sw2 * 0.7, sw2 * 0.7 + 0.28 + Math.max(0, -sw2) * 0.45, legL1, legL2, wT, wB, P);
+    }
+
+    // ---- tail: a tapering chrome cone that sways with the stride ----
+    if (sk.tail) {
+      const sway = (air ? -0.4 : Math.sin(ph * 0.5) * 0.22);
+      const lift = ducked ? 1 * u : -7 * u;   // ducking straightens the tail out behind
+      ctx.beginPath();
+      ctx.moveTo(-4 * u, hipY - 2 * u);
+      ctx.quadraticCurveTo(-15 * u, hipY + lift + sway * 7 * u, -26 * u, hipY + lift + 4 * u + sway * 10 * u);
+      ctx.quadraticCurveTo(-14 * u, hipY + 2 * u + sway * 5 * u, -4 * u, hipY + 3.5 * u);
+      ctx.closePath();
+      ctx.fillStyle = P.st.metal ? metalFill(hipY + lift - 2 * u, hipY + 5 * u, P) : P.st.rim;
+      ctx.fill();
+      ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1.2, 1.7 * u); ctx.stroke();
+    }
+
+    // ---- torso: a rounded chrome body with a ridged back ----
+    ctx.beginPath();
+    ctx.moveTo(-6 * u, hipY + 4 * u);
+    ctx.quadraticCurveTo(-8 * u, backY, 2 * u, backY - 1 * u);
+    ctx.quadraticCurveTo(11 * u, backY, 12 * u, hipY + 2 * u);
+    ctx.quadraticCurveTo(6 * u, hipY + 7 * u, -6 * u, hipY + 4 * u);
+    ctx.closePath();
+    ctx.fillStyle = metalFill(backY, hipY + 7 * u, P);
+    ctx.fill();
+    ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1.5, 2.1 * u); ctx.stroke();
+    if (P.st.metal) {   // belly shadow + top specular band
+      ctx.globalAlpha = 0.5; ctx.fillStyle = '#4c5a68';
+      ctx.beginPath(); ctx.ellipse(3 * u, hipY + 4 * u, 8 * u, 2.2 * u, 0, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = 0.8; ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.ellipse(2 * u, backY + 3 * u, 6 * u, 1.5 * u, -0.12, 0, 6.283); ctx.fill();
+      ctx.globalAlpha = 1;
+    }
+    // back ridges (dino only)
+    if (sk.snout === 'long') {
+      ctx.fillStyle = P.st.metal ? '#dfe8f2' : P.st.rim;
+      for (let i = 0; i < 4; i++) {
+        const rx = -3 * u + i * 3.4 * u, ry = backY + 1.2 * u + Math.abs(i - 1.5) * 0.6 * u;
+        ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx + 1.6 * u, ry - 2.6 * u); ctx.lineTo(rx + 3.2 * u, ry);
+        ctx.closePath(); ctx.fill();
+      }
+    }
+    // small forearm
+    ctx.strokeStyle = P.st.metal ? '#b9c6d4' : P.st.rim; ctx.lineWidth = Math.max(1.8, 2.6 * u); ctx.lineCap = 'round';
+    const armSw = air ? -0.5 : Math.sin(ph + 1.2) * 0.5;
+    ctx.beginPath(); ctx.moveTo(8 * u, hipY - 1 * u);
+    ctx.lineTo(8 * u + 4 * u * Math.cos(armSw), hipY + 4 * u + 3 * u * Math.sin(armSw));
+    ctx.stroke(); ctx.lineCap = 'butt';
+
+    // ---- neck + head ----
+    const bob = air ? 0 : Math.sin(ph * 2) * 0.9 * u;
+    const neckX = 10 * u, neckY = backY + 1 * u;
+    const headY = (ducked ? backY + 2 * u : backY - H0 * 0.16) + bob;
+    const headX = ducked ? neckX + 8 * u : neckX + 4 * u;
+    ctx.strokeStyle = P.st.metal ? '#c3d0de' : P.st.rim;
+    ctx.lineWidth = Math.max(3, 5 * u); ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(neckX, neckY); ctx.lineTo(headX, headY + 3 * u); ctx.stroke();
+    ctx.lineCap = 'butt';
+    // skull: brow → snout → jaw
+    const snout = sk.snout === 'long' ? 13 * u : sk.snout === 'box' ? 10 * u : 9 * u;
+    ctx.beginPath();
+    ctx.moveTo(headX - 4 * u, headY + 4 * u);
+    ctx.quadraticCurveTo(headX - 4 * u, headY - 4 * u, headX + 2 * u, headY - 4.5 * u);
+    ctx.lineTo(headX + snout, headY - 3 * u);
+    ctx.quadraticCurveTo(headX + snout + 2 * u, headY + 0.5 * u, headX + snout - 1 * u, headY + 2 * u);
+    ctx.lineTo(headX + 2 * u, headY + 4 * u);
+    ctx.closePath();
+    ctx.fillStyle = metalFill(headY - 5 * u, headY + 4 * u, P);
+    ctx.fill();
+    ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1.4, 2 * u); ctx.stroke();
+    // jaw line + nostril
+    ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1, 1.3 * u); ctx.globalAlpha = 0.75;
+    ctx.beginPath(); ctx.moveTo(headX + 3 * u, headY + 1.6 * u); ctx.lineTo(headX + snout - 1.5 * u, headY + 0.6 * u); ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = P.st.rim;
+    ctx.beginPath(); ctx.arc(headX + snout - 2.5 * u, headY - 1.6 * u, Math.max(0.7, u), 0, 6.283); ctx.fill();
+    if (sk.ears) {   // fox ears
+      ctx.fillStyle = metalFill(headY - 9 * u, headY - 3 * u, P);
+      for (const ex of [headX - 2 * u, headX + 3 * u]) {
+        ctx.beginPath(); ctx.moveTo(ex, headY - 3.5 * u); ctx.lineTo(ex + 1.6 * u, headY - 9 * u); ctx.lineTo(ex + 4 * u, headY - 3 * u);
+        ctx.closePath(); ctx.fill(); ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1, 1.4 * u); ctx.stroke();
+      }
+    }
+    if (sk.snout === 'box') {   // robot antenna
+      ctx.strokeStyle = P.st.metal ? '#cfdae6' : P.st.rim; ctx.lineWidth = Math.max(1.2, 1.6 * u);
+      ctx.beginPath(); ctx.moveTo(headX + 1 * u, headY - 4.5 * u); ctx.lineTo(headX + 1 * u, headY - 9 * u); ctx.stroke();
+      ctx.fillStyle = '#ffd76b';
+      ctx.beginPath(); ctx.arc(headX + 1 * u, headY - 10 * u, Math.max(1.2, 1.6 * u), 0, 6.283); ctx.fill();
+    }
+    // eye — blinks every few seconds; a dark socket with a glossy catch-light
+    const blink = (frames % 260) < 8 && !air;
+    ctx.fillStyle = P.st.rim;
+    if (blink) {
+      ctx.fillRect(headX + 2.2 * u, headY - 1.2 * u, 3.4 * u, Math.max(1, 1.2 * u));
+    } else {
+      ctx.beginPath(); ctx.arc(headX + 4 * u, headY - 1.2 * u, Math.max(1.7, 2.3 * u), 0, 6.283); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(headX + 4.7 * u, headY - 1.9 * u, Math.max(0.6, 0.9 * u), 0, 6.283); ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawObstacle(o, P, off) {
+    const x = o.x - off, y = groundY - o.h - o.yOff;
+    ctx.strokeStyle = P.ink; ctx.fillStyle = P.sky; ctx.lineWidth = Math.max(1.5, 2.2 * S);
+    if (o.kind === 'bird') {
+      // The drawing stays INSIDE the hitbox (wings span exactly o.w, everything within o.h) so what
+      // you dodge is what you see. Wings beat as two thick curves — a thin chevron read as punctuation.
+      const cx = x + o.w * 0.5, cy = y + o.h * 0.62, flap = Math.sin(o.flap);
+      const lift = flap * o.h * 0.5;
+      // chrome drone / ink bird: bright wings with a dark rim so it reads against any sky
+      ctx.strokeStyle = P.st.metal ? '#e8eef5' : P.st.rim;
+      ctx.lineWidth = Math.max(2.4, 3.4 * S); ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x, cy - lift);
+      ctx.quadraticCurveTo(x + o.w * 0.28, cy - lift * 0.2, cx - o.w * 0.04, cy);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x + o.w, cy - lift * 0.85);
+      ctx.quadraticCurveTo(x + o.w * 0.72, cy - lift * 0.15, cx + o.w * 0.04, cy);
+      ctx.stroke();
+      if (P.st.metal) {   // dark under-edge = the rim light chrome needs to separate from the sky
+        ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1, 1.4 * S); ctx.globalAlpha = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(x, cy - lift + 1.6 * S);
+        ctx.quadraticCurveTo(x + o.w * 0.28, cy - lift * 0.2 + 1.6 * S, cx - o.w * 0.04, cy + 1.4 * S);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      ctx.lineCap = 'butt';
+      ctx.fillStyle = P.st.metal ? metalFill(cy - o.h * 0.24, cy + o.h * 0.24, P) : P.st.rim;
+      ctx.beginPath(); ctx.ellipse(cx, cy, o.w * 0.17, o.h * 0.26, 0, 0, 6.283); ctx.fill();
+      ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1.2, 1.6 * S); ctx.stroke();
+      ctx.fillStyle = P.st.rim;
+      ctx.beginPath();                                                                          // beak
+      ctx.moveTo(cx + o.w * 0.15, cy - o.h * 0.08);
+      ctx.lineTo(cx + o.w * 0.31, cy);
+      ctx.lineTo(cx + o.w * 0.15, cy + o.h * 0.06);
+      ctx.closePath(); ctx.fill();
+      return;
+    }
+    if (o.kind === 'gantry') {
+      // A hanging gantry: slim riveted mast from the roof + a solid beam at the bottom with hazard
+      // stripes. The whole column is the hitbox (it CANNOT be jumped — that is the point), so the
+      // mast is drawn solid too, just narrower, and the beam marks the bit you duck under.
+      const gw = o.w, top = y - 6 * S, botH = 26 * S, beamY = y + o.h - botH;
+      // roof mount
+      ctx.fillStyle = metalFill(top, top + 8 * S, P);
+      KIT.roundRect(ctx, x - 4 * S, top, gw + 8 * S, 8 * S, 2 * S); ctx.fill();
+      ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1.4, 2 * S); ctx.stroke();
+      // mast
+      const mw = gw * 0.42, mx = x + (gw - mw) / 2;
+      ctx.fillStyle = metalFill(top, beamY, P);
+      KIT.roundRect(ctx, mx, top + 6 * S, mw, beamY - top - 6 * S, 1.5 * S); ctx.fill();
+      ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1.3, 1.8 * S); ctx.stroke();
+      ctx.globalAlpha = 0.5; ctx.fillStyle = P.st.rim;   // rivets down the mast
+      for (let ry = top + 14 * S; ry < beamY - 6 * S; ry += 16 * S) {
+        ctx.beginPath(); ctx.arc(mx + mw * 0.28, ry, Math.max(0.8, 1.1 * S), 0, 6.283); ctx.fill();
+        ctx.beginPath(); ctx.arc(mx + mw * 0.72, ry, Math.max(0.8, 1.1 * S), 0, 6.283); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      // the beam you duck under
+      ctx.fillStyle = metalFill(beamY, beamY + botH, P);
+      KIT.roundRect(ctx, x - 3 * S, beamY, gw + 6 * S, botH, 2 * S); ctx.fill();
+      ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1.5, 2.2 * S); ctx.stroke();
+      const lipH = 7 * S, ly0 = beamY + botH - lipH;
+      ctx.fillStyle = '#ffd76b';
+      ctx.fillRect(x - 3 * S, ly0, gw + 6 * S, lipH);
+      ctx.fillStyle = 'rgba(20,24,32,0.85)';
+      for (let sx = 0; sx < gw + 8 * S; sx += 9 * S) {
+        ctx.beginPath();
+        ctx.moveTo(x - 3 * S + sx, ly0); ctx.lineTo(x - 3 * S + sx + 4 * S, ly0);
+        ctx.lineTo(x - 3 * S + sx, ly0 + lipH); ctx.closePath(); ctx.fill();
+      }
+      ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1, 1.4 * S);
+      ctx.strokeRect(x - 3 * S, ly0, gw + 6 * S, lipH);
+      return;
+    }
+    const cw = o.w, ch = o.h, trunkW = Math.min(cw * 0.4, 13 * S), cx = x + cw / 2;
+    part(cx - trunkW / 2, y, trunkW, ch, trunkW * 0.45, P);
+    if (o.kind !== 'cactus1') {
+      const armH = ch * 0.42, aw = trunkW * 0.8;
+      part(cx - trunkW / 2 - aw * 1.15, y + ch * 0.3, aw, armH, aw * 0.45, P);
+      ctx.strokeStyle = P.st.rim; ctx.lineWidth = Math.max(1.5, 2.2 * S);
+      ctx.beginPath(); ctx.moveTo(cx - trunkW / 2 - aw * 0.65, y + ch * 0.34); ctx.lineTo(cx - trunkW / 2, y + ch * 0.34); ctx.stroke();
+    }
+    if (o.kind === 'cactus3') {
+      const armH = ch * 0.34, aw = trunkW * 0.8;
+      KIT.roundRect(ctx, cx + trunkW / 2 + aw * 0.15, y + ch * 0.42, aw, armH, aw * 0.45); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx + trunkW / 2, y + ch * 0.46); ctx.lineTo(cx + trunkW / 2 + aw * 0.65, y + ch * 0.46); ctx.stroke();
+    }
+  }
+
+  // ---------------------------------------------------------------- HUD
+  function updateHud() {
+    const sc = document.getElementById('scoreEl'), bs = document.getElementById('bestEl');
+    if (sc) sc.textContent = score + ' m';
+    if (bs) {
+      if (mode === 'sprint') { const ms = loadBestTime(); bs.textContent = ms ? fmtTime(ms) : '—'; }
+      else bs.textContent = best + ' m';
+    }
+    const ts = document.getElementById('timeStat'), te = document.getElementById('timeEl');
+    if (ts) ts.style.display = mode === 'sprint' ? '' : 'none';
+    if (te && mode === 'sprint') te.textContent = fmtTime(elapsedMs());
+    const ss = document.getElementById('stumbleStat'), se = document.getElementById('stumbleEl');
+    if (ss) ss.style.display = mode === 'sprint' ? '' : 'none';
+    if (se && mode === 'sprint') se.textContent = stumbles + '/' + STUMBLE_MAX;
+    const cs = document.getElementById('chainStat'), ce = document.getElementById('chainEl');
+    if (cs) cs.style.display = chain > 0 ? '' : 'none';
+    if (ce) ce.textContent = '×' + (1 + CHAIN_STEP * chain).toFixed(2);
+  }
+
+  // ---------------------------------------------------------------- menus
+  // Theme ONLY accent/title/best/glow — the kit's panel is dark and its text is near-white, and
+  // overriding text/bg/scrim here is what made the menu unreadable grey-on-grey.
+  const MENU_THEME = { accent: '#a9c8e4', title: '#f2f8ff', best: '#ffd76b', glow: '0 0 18px rgba(169,200,228,0.30)' };
+
+  // Backdrop: the same silhouettes the game draws, hugging the edges so the centered menu box
+  // never covers the hero content. Signature is (ctx, w, h, state, frame) — time from `frame`.
+  function menuBackdrop(g, w, h, st, fr) {
+    const t = (fr || 0) / 60;
+    g.fillStyle = '#f4f1e8'; g.fillRect(0, 0, w, h);
+    const gy = h * 0.78;
+    g.strokeStyle = '#bcb7aa'; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(0, gy); g.lineTo(w, gy); g.stroke();
+    for (let i = 0; i < 26; i++) {
+      const x = ((i * 74 - t * 44) % (w + 74) + w + 74) % (w + 74) - 37;
+      g.beginPath(); g.moveTo(x, gy + 9); g.lineTo(x + 14, gy + 9); g.stroke();
+    }
+    g.fillStyle = '#2b2b2b';
+    const cac = (cx, sc) => { g.save(); g.translate(cx, gy); g.scale(sc, sc);
+      g.beginPath(); g.roundRect(-6, -54, 12, 54, 6); g.fill();
+      g.beginPath(); g.roundRect(-20, -40, 9, 22, 4.5); g.fill();
+      g.beginPath(); g.roundRect(11, -34, 9, 18, 4.5); g.fill(); g.restore(); };
+    cac(w * 0.05, 1.05); cac(w * 0.16, 0.7); cac(w * 0.95, 1.15);
+    // the runner bobs on the RIGHT third — the centered menu box would hide it at w/2
+    const bob = Math.abs(Math.sin(t * 3)) * 8;
+    g.save(); g.translate(w * 0.84, gy - bob);
+    g.fillStyle = '#f4f1e8'; g.strokeStyle = '#2b2b2b'; g.lineWidth = 2.4;
+    g.beginPath(); g.roundRect(-16, -30, 26, 20, 6); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(-16, -22); g.quadraticCurveTo(-30, -30, -30, -16); g.stroke();
+    g.beginPath(); g.roundRect(8, -44, 16, 14, 5); g.fill(); g.stroke();
+    g.fillStyle = '#2b2b2b'; g.beginPath(); g.arc(20, -38, 2, 0, 6.283); g.fill();
+    g.beginPath();
+    g.moveTo(-8, -10); g.lineTo(-8 + Math.sin(t * 9) * 6, 0);
+    g.moveTo(2, -10); g.lineTo(2 - Math.sin(t * 9) * 6, 0); g.stroke();
+    g.restore();
+  }
+
+  function pvRun(g, w, h) {
+    g.fillStyle = '#f4f1e8'; g.fillRect(0, 0, w, h);
+    const gy = h * 0.72;
+    g.strokeStyle = '#2b2b2b'; g.lineWidth = 2; g.fillStyle = '#f4f1e8';
+    g.beginPath(); g.moveTo(w * 0.06, gy); g.lineTo(w * 0.94, gy); g.stroke();
+    g.beginPath(); g.roundRect(w * 0.16, gy - 24, 20, 14, 5); g.fill(); g.stroke();
+    g.beginPath(); g.roundRect(w * 0.32, gy - 32, 12, 11, 4); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(w * 0.22, gy - 10); g.lineTo(w * 0.2, gy); g.moveTo(w * 0.29, gy - 10); g.lineTo(w * 0.31, gy); g.stroke();
+    g.fillStyle = '#2b2b2b';
+    g.beginPath(); g.roundRect(w * 0.68, gy - 30, 8, 30, 4); g.fill();
+    g.beginPath(); g.roundRect(w * 0.6, gy - 22, 6, 13, 3); g.fill();
+  }
+  function pvSprint(g, w, h) {
+    pvRun(g, w, h);
+    g.fillStyle = '#8a6b4f'; g.font = '700 11px ui-monospace, monospace'; g.textAlign = 'center';
+    g.fillText('1000 m', w / 2, h * 0.95);
+    g.textAlign = 'left';
+  }
+
+  function showStartMenu() {
+    state = 'ready';
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    KIT.menu.show({
+      kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      title: KIT.t('game.dusk-runner.menuTitle', { def: 'CHROME RUNNER' }),
+      groups: [
+        { id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode, choices: [
+          { id: 'endless', kid: true, label: modeDisplay('endless'), preview: pvRun,
+            best: st => loadBest('endless', st.pace) + ' m',
+            mech: [KIT.t('game.dusk-runner.mechEndless1', { def: 'Runs forever' }), KIT.t('game.dusk-runner.mechEndless2', { def: 'Pace climbs' })] },
+          { id: 'sprint', label: modeDisplay('sprint'), preview: pvSprint,
+            best: st => { const ms = loadBestTime('sprint', st.pace); return ms ? fmtTime(ms) : '—'; },
+            mech: [KIT.t('game.dusk-runner.mechSprint1', { def: '1000 m race' }), KIT.t('game.dusk-runner.mechSprint2', { def: 'Timed' })] },
+        ] },
+        { id: 'pace', label: KIT.t('game.dusk-runner.paceLabel', { def: 'PACE' }), style: 'slider', default: pace, choices: [
+          { id: 'gentle', kid: true, label: paceDisplay('gentle') },
+          { id: 'normal', label: paceDisplay('normal') },
+          { id: 'brisk', label: paceDisplay('brisk') },
+        ] },
+      ],
+      hint: st => st.mode === 'sprint'
+        ? KIT.t('game.dusk-runner.hintSprint', { par: SPRINT_PAR[st.pace] || SPRINT_PAR.normal, def: 'Race today\'s course to 1000 m. Par {par}s — chain slipstreams to beat it.' })
+        : KIT.t('game.dusk-runner.hintEndless', { def: 'Jump the cacti, duck the gantries. Shave past an obstacle for a slipstream boost.' }),
+      actions: [{ id: 'play', label: KIT.t('game.dusk-runner.go', { def: 'START RUNNING' }), primary: true }],
+      onChange: st => { mode = st.mode; pace = st.pace; best = loadBest(); KIT.stampUrl({ mode: st.mode, pace: st.pace }); updateHud(); },
+      onPlay: st => { mode = st.mode; pace = st.pace; startGame(); },
+    });
+  }
+
+  function shareMsg() {
+    return (mode === 'sprint' && won)
+      ? KIT.t('game.dusk-runner.shareSprint', { time: fmtTime(elapsedMs()), def: 'I ran 1000 m in {time} in Chrome Runner 🦖' })
+      : KIT.shareText({ score: score, unit: 'm', game: KIT.t('game.dusk-runner.title', { def: 'Chrome Runner' }), emoji: '🦖', mode: modeDisplay(mode) });
+  }
+
+  function showEnd(isBest) {
+    if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
+    if (!KIT) return;
+    const sprintClear = mode === 'sprint' && won;
+    KIT.menu.show({
+      kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      title: sprintClear ? (medalIcon(medal(elapsedMs())) + ' ' + KIT.t('game.dusk-runner.cleared', { def: '1000 m CLEARED' })).trim() : KIT.t('game.common.gameOver', { def: 'GAME OVER' }),
+      record: { slug: SLUG, mode: modeLabel(), score: score, time: sprintClear ? elapsedMs() : 0,
+        outcome: sprintClear ? 'win' : 'lose', stats: { metres: score, chain: bestChain, stumbles: stumbles } },
+      score: score, scoreText: sprintClear ? fmtTime(elapsedMs()) : (score + ' m'), best: best, newBest: isBest,
+      lines: [KIT.t('game.dusk-runner.endLine', { mode: modeDisplay(mode), pace: paceDisplay(pace), def: '{mode} · {pace}' })].concat(
+        mode === 'sprint'
+          ? [KIT.t('game.dusk-runner.endPar', { par: fmtTime(parMs()), def: 'Par {par}' }),
+             KIT.t('game.dusk-runner.endStumbles', { n: stumbles, def: '{n} stumbles' })]
+          : (bestChain > 1 ? [KIT.t('game.dusk-runner.endChain', { n: bestChain, def: 'Best slipstream chain ×{n}' })] : [])),
+      share: { slug: SLUG, accent: ACCENT, icon: '🦖', title: KIT.t('game.dusk-runner.title', { def: 'Chrome Runner' }),
+        message: () => shareMsg(), params: () => ({ mode: mode, pace: pace }) },
+      actions: [
+        { id: 'again', label: KIT.t('game.common.playAgain', { def: 'RUN AGAIN' }), primary: true },
+        { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) },
+      ],
+      onAction: id => { if (id === 'again') startGame(); else if (id === 'menu') toMenu(); },
+    });
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    state = 'paused';
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines: [KIT.t('game.dusk-runner.pauseLine', { score: score, def: '{score} m so far' })],
+      actions: [
+        { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
+        { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true },
+      ],
+      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
+  }
+  function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); }
+  function startGame() {
+    // Sprint = a daily COURSE seed (same for everyone today, new tomorrow); Endless stays random
+    if (mode === 'sprint' && KIT && KIT.utcDayNumber) { useSeed = true; seedState = (KIT.utcDayNumber() * 2654435761) % 4294967296 || 1; }
+    else if (!useSeedForced) useSeed = false;
+    state = 'playing';
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    reset();
+  }
+  function toMenu() { if (KIT) KIT.menu.hide(); showStartMenu(); }
+
+  // ---------------------------------------------------------------- layout
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    const pr = KIT.layout.playRect();
+    topMargin = pr.y;
+    // The runner lives in a horizontal strip: capped height, pushed to the lower part of the safe
+    // rect so tall screens get sky above instead of an empty 1400px void (and S stays sane).
+    // What matters is where the GROUND LINE sits, not how tall the band is: a tall portrait phone
+    // needs the runner in the lower-MIDDLE with desert below, not pinned to the bottom edge.
+    // Landscape keeps the line low (short screens have no sky to spare).
+    bandY = pr.y;
+    groundY = pr.y + pr.h * (KIT.layout.portrait ? 0.72 : 0.88);
+    bandH = Math.max(120, groundY - bandY);
+    // Scale off a CAPPED band so the runner doesn't balloon on a 1440p screen
+    S = Math.max(0.62, Math.min(1.35, Math.min(bandH, BAND_MAX) / REF_BAND));
+    htCanvas = null; htPattern = null;   // halftone tile is scale-dependent
+    if (state === 'playing') speed = Math.max(speed, paceCfg().v0 * S);
+    initScenery();
+  }
+  window.gamekit.layout.on(resize);
+
+  // ---------------------------------------------------------------- input
+  let pointerDuck = false;
+  canvas.addEventListener('pointerdown', e => {
+    if (state === 'over') { const m = KIT.menu.current(); if (m) m.activate('again'); return; }
+    const r = canvas.getBoundingClientRect();
+    const y = (e.clientY - r.top) * (H / (r.height || H));
+    if (y > bandY + bandH * 0.62) { pointerDuck = true; setDuck(true); } else jump();
+  });
+  const relDuck = () => { if (pointerDuck) { pointerDuck = false; setDuck(false); } };
+  canvas.addEventListener('pointerup', relDuck);
+  canvas.addEventListener('pointercancel', relDuck);
+  canvas.addEventListener('pointerleave', relDuck);
+
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && state === 'playing') { e.preventDefault(); pauseGame(); return; }
+    if (e.key === ' ' || e.key === 'Enter' || e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') {
+      if (state === 'over') { const m = KIT.menu.current(); if (m) { e.preventDefault(); m.activate('again'); } return; }
+      e.preventDefault(); jump();
+    } else if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') { e.preventDefault(); setDuck(true); }
+  });
+  window.addEventListener('keyup', e => { if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') setDuck(false); });
+
+  // ---------------------------------------------------------------- chrome
+  KIT.layout.archetype('action', { bottom: 54 });   // top HUD headroom + the sand plane below the line
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME,
+    onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); else if (state === 'paused') resumeGame(); },
+    confirmLeave: () => (state === 'playing' || state === 'paused') ? KIT.t('confirm.leave', { def: "Leave this run? You'll lose your progress." }) : false,
+    controls: { title: KIT.t('game.dusk-runner.controlsTitle', { def: 'Chrome Runner — Controls' }),
+      mouse: [[KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.dusk-runner.ctrlJump', { def: 'Jump' })],
+              [KIT.t('game.dusk-runner.ctrlHoldLow', { def: 'Hold low on screen' }), KIT.t('game.dusk-runner.ctrlDuck', { def: 'Duck' })]],
+      keyboard: [['Space · ↑', KIT.t('game.dusk-runner.ctrlJump', { def: 'Jump' })],
+                 ['↓', KIT.t('game.dusk-runner.ctrlDuck', { def: 'Duck' })],
+                 [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })]],
+      touch: [[KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.dusk-runner.ctrlJump', { def: 'Jump' })],
+              [KIT.t('game.dusk-runner.ctrlHoldBottom', { def: 'Hold the bottom' }), KIT.t('game.dusk-runner.ctrlDuck', { def: 'Duck' })]] } });
+  KIT.music.play('duskrunner');
+
+  // ---------------------------------------------------------------- test hook
+  window.__test = {
+    get state() { return state; },
+    get score() { return score; },
+    get best() { return best; },
+    get mode() { return mode; },
+    get pace() { return pace; },
+    get speed() { return speed; },
+    get dist() { return dist; },
+    get won() { return won; },
+    get stumbles() { return stumbles; },
+    get surge() { return surge; },
+    get chain() { return chain; },
+    get bestChain() { return bestChain; },
+    get parMs() { return parMs(); },
+    medalFor(ms) { return medal(ms); },
+    get speedBase() { const c = paceCfg(); return (c.v0 + (c.v1 - c.v0) * Math.min(1, metresRun() / c.ramp)) * S; },
+    get obstacles() { return obstacles.length; },
+    get onGround() { return runner.onGround; },
+    get ducking() { return runner.ducking; },
+    get elapsedMs() { return elapsedMs(); },
+    get phase() { return palette().phase; },
+    get look() { return styleId(); },
+    get pows() { return pows.map(w => w.text); },
+    get sky() { return palette().sky; },
+    get ink() { return palette().ink; },
+    get layout() {
+      const pr = KIT.layout.playRect(), rb = runnerBox();
+      return { W, H, topReserve: topMargin, groundY, bandY, bandH, S,
+        board: { x: pr.x, y: pr.y, w: pr.w, h: pr.h },
+        runner: { x: rb.x, y: rb.y, w: rb.w, h: rb.h },
+        obstacles: obstacles.map(o => ({ x: o.x, y: groundY - o.h - o.yOff, w: o.w, h: o.h, kind: o.kind, gap: o.gap, passed: o.passed })) };
+    },
+    seed(n) { useSeed = true; useSeedForced = true; seedState = (n | 0) || 1; },
+    start() { startGame(); },
+    startMode(m, p) { mode = m || mode; pace = p || pace; startGame(); },
+    jump: jump,
+    setDuck: setDuck,
+    spawnGantry(x) {
+      const clear = 30 * S;
+      obstacles.push({ x: x == null ? W * 0.5 : x, kind: 'gantry', w: 46 * S, h: (groundY - clear - bandY), yOff: clear, flap: 0, gap: 1e9, passed: false });
+    },
+    spawnAt(kind, yOff, x) {
+      obstacles.push({ x: x == null ? W * 0.5 : x, kind: kind || 'cactus1', w: 20 * S, h: 38 * S, yOff: (yOff || 0) * S, flap: 0, gap: 1e9, passed: false });
+    },
+    clearObstacles() { obstacles = []; nextGapPx = 1e9; },
+    setDist(m) { dist = m * PX_PER_M * S; score = Math.floor(m); updateHud(); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    bestFor(m, p) { return loadBest(m, p); },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+    render() { render(); },   // suite hook: a painter exception must FAIL a test, not just log
+  };
+
+  resize();
+  if (KIT) {
+    const L = { lblScore: ['game.common.score', 'SCORE'], lblBest: ['game.common.best', 'BEST'], lblTime: ['game.common.time', 'TIME'],
+      lblStumble: ['game.dusk-runner.stumbles', 'STUMBLES'], lblChain: ['game.dusk-runner.slipstream', 'SLIPSTREAM'] };
+    for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
+  }
+  const pMode = KIT.param('mode'), pPace = KIT.param('pace');
+  if (pMode === 'sprint' || pMode === 'endless') mode = pMode;
+  if (pPace && PACE[pPace]) pace = pPace;
+  best = loadBest();
+  updateHud();
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>
