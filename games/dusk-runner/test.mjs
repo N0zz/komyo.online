@@ -86,7 +86,7 @@ section('dusk-runner: jump + duck');
 
 // ---- Tapping the canvas ALWAYS jumps ----
 // Touch used to duck when the tap landed below 62% of the band — an invisible, layout-dependent
-// line. Duck now lives on its own pad, so no canvas tap may ever duck.
+// line. Duck now lives on the puck's lower half, so no canvas tap may ever duck.
 section('dusk-runner: canvas tap always jumps');
 {
   const gs = runGame({ seed: 3 });
@@ -103,31 +103,62 @@ section('dusk-runner: canvas tap always jumps');
   }
 }
 
-// ---- The on-screen pads drive the same actions as the keys ----
-section('dusk-runner: touch pads');
+// ---- The touch puck drives the same actions as the keys ----
+section('dusk-runner: touch puck');
 {
   const gs = runGame({ seed: 7 });
   const T = gs.T;
   T().start();
   T().clearObstacles();
-  const duck = gs.el('padDuck'), jump = gs.el('padJump'), body = gs.doc.body;
+  const down = gs.el('puckDown'), up = gs.el('puckUp'), body = gs.doc.body;
 
-  duck.fire('pointerdown', {});
-  ok(T().ducking === true, '⬇ pad ducks while held');
-  duck.fire('pointerup', {});
-  ok(T().ducking === false, 'releasing ⬇ stands back up');
+  down.fire('pointerdown', {});
+  ok(T().ducking === true, 'the lower half ducks while held');
+  down.fire('pointerup', {});
+  ok(T().ducking === false, 'releasing it stands back up');
 
   while (!T().onGround) T().step(1);
-  jump.fire('pointerdown', {});
-  ok(T().onGround === false, '⬆ pad jumps');
+  up.fire('pointerdown', {});
+  ok(T().onGround === false, 'the upper half jumps');
 
-  // a pad left held when the run ends must not leave the next run crouching
-  duck.fire('pointerdown', {});
+  // a half left held when the run ends must not leave the next run crouching
+  down.fire('pointerdown', {});
   T().setDist(10);
-  gs.win.__test.menu();           // touch the menu path the way the game does
   T().start();
-  ok(T().ducking === false, 'a held pad is released when the run ends');
-  ok(body.classList.contains('dr-run'), 'pads are shown for a live run');
+  ok(T().ducking === false, 'a held half is released when the run ends');
+  ok(body.classList.contains('dr-run'), 'the puck is shown for a live run');
+}
+
+// ---- The puck stays on screen, out of the band, and remembers where it was dragged ----
+section('dusk-runner: puck placement');
+{
+  const gs = runGame({ seed: 8 });
+  const T = gs.T;
+  T().start();
+  for (const [w, h] of [[360, 640], [640, 360], [480, 360], [1280, 800], [2560, 1440]]) {
+    gs.resize(w, h);
+    const p = T().puck, L = T().layout;
+    ok(p.x >= 0 && p.x + p.size <= w, `${w}×${h}: puck fits horizontally (x ${Math.round(p.x)} + ${p.size} ≤ ${w})`);
+    ok(p.y >= 0 && p.y + p.size <= h, `${w}×${h}: puck fits vertically (y ${Math.round(p.y)} + ${p.size} ≤ ${h})`);
+    // its default home is the sand strip: at most a graze into the play band on a short screen
+    ok(p.y >= L.groundY - 12, `${w}×${h}: puck defaults below the ground line (y ${Math.round(p.y)} vs ground ${Math.round(L.groundY)})`);
+  }
+
+  // dragging the grip moves it AND survives a reload
+  gs.resize(360, 640);
+  const grip = gs.el('puckGrip');
+  grip.fire('pointerdown', { clientX: 300, clientY: 560 });
+  grip.fire('pointermove', { clientX: 60, clientY: 300 });
+  grip.fire('pointerup', {});
+  const dragged = T().puck;
+  ok(dragged.moved === true, 'a drag marks the puck as placed by the player');
+  ok(dragged.x < 120, 'the puck follows the drag to the left (x ' + Math.round(dragged.x) + ')');
+
+  const again = runGame({ seed: 8, store: gs.store, w: 360, h: 640 });
+  again.T().start();
+  ok(again.T().puck.moved === true, 'the dragged spot is remembered next session');
+  ok(Math.abs(again.T().puck.x - dragged.x) <= 2, 'and it comes back where it was left');
+  ok(Object.keys(gs.store).filter(k => k.startsWith('dusk-runner_')).length === 1, 'exactly one dusk-runner_ key is persisted');
 }
 
 // ---- Collision ends the run ----
