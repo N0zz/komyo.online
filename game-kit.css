@@ -119,7 +119,7 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
   background: rgba(8, 12, 20, 0.6); border: 1px solid rgba(255, 255, 255, 0.16);
   -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
   font: 600 13px/1.1 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 1px; color: #fff; pointer-events: none; text-align: center; }
-.gamekit-hud .lbl { display: block; font-size: 9px; letter-spacing: 1.5px; opacity: .5; margin-bottom: 2px; }
+.gamekit-hud .lbl { display: block; font-size: 9px; letter-spacing: 1.5px; opacity: 1; color: #c9d6e8; margin-bottom: 2px; }
 /* Overlap fix that does NOT waste vertical space (dropping the pill on a short landscape screen +
    reserving 92px squeezes the board — the earlier mistake):
    - PORTRAIT (tall, narrow): nav + HUD + cluster can't share the top row, so drop the HUD below the
@@ -347,7 +347,10 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
   .gamekit-menu.gkm-split .gkm-shop-c3 .gkm-shop-desc { display: none; } /* rail focdesc carries it */
   .gamekit-menu.gkm-split .gkm-shop-c2 { grid-template-columns: repeat(2, 1fr); }
   /* thumbnail grid auto-fits the pane width (more flyers → more columns, not more scrolling) */
-  .gamekit-menu.gkm-split .gkm-grid { grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); margin: 0; }
+  /* level-select grids: auto-fill lands on 3 columns in the ~317px landscape pane, which adds a
+     4th row and overflows. 4 fixed columns fit — both puzzle games needed this identical
+     override locally, so it lives here. */
+  .gamekit-menu.gkm-split .gkm-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0; }
   .gamekit-menu.gkm-split .gkm-gcell { padding: 7px 4px 6px; }
   .gamekit-menu.gkm-split .gkm-gcv { width: 36px; height: auto; }
   .gamekit-menu.gkm-split .gkm-gnm { font-size: 11px; }
@@ -418,7 +421,7 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
   color: var(--gkm-accent, #9fe8ff); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--gkm-accent, #9fe8ff); }
 .gamekit-menu .gkm-card-best { font: 12px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: .5px; white-space: nowrap; flex: 0 0 auto;
   color: var(--gkm-best, var(--gkm-new, #ffd166)); font-variant-numeric: tabular-nums; }
-.gamekit-menu .gkm-card-best .l { color: #6b7a90; font-size: 9px; letter-spacing: 1.5px; margin-right: 6px; }
+.gamekit-menu .gkm-card-best .l { color: #93a3b8; font-size: 9px; letter-spacing: 1.5px; margin-right: 6px; }
 .gamekit-menu .gkm-card-desc { color: #93a5bd; font: 13.5px/1.5 var(--gkm-font-body, system-ui, sans-serif); }
 .gamekit-menu .gkm-card-mech { display: flex; flex-wrap: wrap; gap: 6px; }
 .gamekit-menu .gkm-card-mech span { font: 10px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: .4px; color: #9fb2c9;
@@ -448,6 +451,13 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
    menus keep it; a light-box menu (e.g. Meadow day, dark text) sets --gkm-scrim to a light tint. */
 .gamekit-menu .gkm-box::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: var(--gkm-scrim, rgba(8, 12, 20, 0.32)); }
 .gamekit-menu .gkm-scroll { overflow-x: hidden; }
+/* Room for the selected-chip ring below (`.gkm-choice.gkm-on::after` sits at inset -4px, and an
+   absolutely-positioned descendant DOES count toward an ancestor scroller's scrollHeight). Without
+   it every menu whose last row holds a selected chip reads as "scrolls +3px" — which games had been
+   working around by trimming their own content. Bottom only: scrollHeight never grows upward.
+   Scoped with :has() to panes that actually hold chips — card panes highlight with a box-shadow (no
+   abspos ring) and 4px there is pure cost that tipped three card menus over the gate. */
+.gamekit-menu .gkm-scroll:has(.gkm-choice), .gamekit-menu .gkm-rail:has(.gkm-choice) { padding-bottom: 4px; }
 
 /* selector-button highlight: an outer ring deliberately CUT with a vertical line on both sides
    (clip-path), identical on every button; keyboard focus is a clean inset ring (never clipped) */
@@ -825,7 +835,15 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 .gamekit-shoppanel .gksp-cell.gksp-dim { opacity: 0.5; }
 .gamekit-shoppanel .gksp-sw { flex: 0 0 auto; width: 40px; height: 40px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.18); }
 .gamekit-shoppanel .gksp-txt { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.gamekit-shoppanel .gksp-nm { font-size: 12px; font-weight: 700; letter-spacing: 0.3px; color: #eaf3ff; line-height: 1.15; overflow-wrap: anywhere; word-break: break-word; hyphens: auto; }
+/* `overflow-wrap: anywhere` broke mid-WORD, so a 9-letter skin name rendered as "Blueprin" + a
+   lone "t" on the next line. Wrap at spaces only; a single word that still doesn't fit shrinks
+   one step and then ellipsises — an orphaned letter reads as a rendering bug, an ellipsis doesn't. */
+.gamekit-shoppanel .gksp-nm { font-size: 12px; font-weight: 700; letter-spacing: 0.2px; color: #eaf3ff;
+  line-height: 1.15; overflow-wrap: normal; word-break: keep-all; hyphens: none;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  text-overflow: ellipsis; }
+/* names longer than ~8 characters get the smaller step so they still fit the cell on one line */
+.gamekit-shoppanel .gksp-nm.gksp-long { font-size: 10.5px; letter-spacing: 0; }
 .gamekit-shoppanel .gksp-sub { font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px; color: #93a5bd; }
 .gamekit-shoppanel .gksp-sub .gksp-on { color: var(--gkm-accent, #9fe8ff); }
 .gamekit-shoppanel .gksp-empty { color: #8294ac; font-size: 12.5px; padding: 18px 4px; text-align: center; }
@@ -1274,3 +1292,47 @@ body:has(.gamekit-menu) .side-stack { z-index:70; }
     45% { transform:scale(1.03); } 100% { transform:scale(1); filter:none; } }
   @keyframes idChip { 0% { opacity:0; transform:translateY(4px); } 12%,80% { opacity:1; transform:translateY(0); } 100% { opacity:0; } }
   @media (prefers-reduced-motion: reduce){ .pf-titlebar.pf-reveal { animation:none; } .pf-titlebar.pf-reveal::after { animation:none; } }
+
+/* ---- shared hint affordance (gamekit.hintButton) — one bottom-centre button + a toast that is
+   laid out ABOVE it, so the text can never sit under the tap target. Games reserve `reserve` px
+   of bottom band via layout.archetype so the board never grows under it. ---- */
+.gamekit-hintwrap { position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 6;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; max-width: min(94vw, 560px); }
+.gamekit-hintbtn { pointer-events: auto; font: 700 12px/1 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  letter-spacing: 1.5px; color: var(--gkm-text, #eef2f8); background: rgba(8, 12, 20, 0.72);
+  border: 1px solid var(--gkm-accent, #9fe8ff); border-radius: 999px; padding: 9px 18px; cursor: pointer;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gamekit-hintbtn:hover { background: rgba(16, 24, 38, 0.86); }
+.gamekit-hinttip { display: none; pointer-events: none; text-align: center;
+  font: 600 12px/1.45 ui-monospace, "SFMono-Regular", Menlo, monospace; color: #eef2f8;
+  background: rgba(8, 12, 20, 0.88); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px;
+  padding: 8px 12px; max-width: 100%; }
+.gamekit-hinttip.show { display: block; }
+/* Toast opens DOWNWARD (gamekit.hintButton({tipBelow:true})): the tip leaves the flow and hangs
+   under the button, so the wrap itself stays exactly the height of the button (it fits the reserved
+   band) and the text covers whatever the game keeps below it — its own control strip — instead of
+   the play area above. DOM order is untouched (tip first, button last). */
+.gamekit-hintwrap.gk-hint-tipdown .gamekit-hinttip { position: absolute; top: calc(100% + 6px);
+  left: 50%; transform: translateX(-50%); width: min(94vw, 460px); max-width: 94vw; }
+.gamekit-hintwrap.gk-hint-side.gk-hint-tipdown .gamekit-hinttip,
+.gamekit-hintwrap.gk-hint-side-r.gk-hint-tipdown .gamekit-hinttip { width: 100%; left: 0; transform: none; }
+/* tap the text to dismiss it — the point of tipBelow is that it may sit over the game's own keys */
+.gamekit-hinttip.show { pointer-events: auto; cursor: pointer; }
+/* Landscape dock (gamekit.hintButton().dock('left')): a left-edge rail instead of a bottom strip —
+   a short screen cannot spare 46px of height for a button, but it has width to burn. Vertically
+   centred so it clears the top nav; the toast stacks under the button inside the rail. */
+.gamekit-hintwrap.gk-hint-side { left: 6px; right: auto; bottom: auto; top: 50%;
+  transform: translateY(-50%); align-items: stretch; width: 134px; max-width: 134px; }
+.gamekit-hintwrap.gk-hint-side .gamekit-hintbtn { width: 100%; padding: 8px 6px; }
+.gamekit-hintwrap.gk-hint-side .gamekit-hinttip { text-align: left; font-size: 10.5px; line-height: 1.4; padding: 7px 9px; }
+/* right rail, anchored under the HUD — for a game whose own control strip owns the bottom of that
+   column in landscape (Sudoku's number pad docks bottom-right) */
+.gamekit-hintwrap.gk-hint-side-r { left: auto; right: 6px; bottom: auto; top: 58px; transform: none;
+  align-items: stretch; width: 158px; max-width: 158px; }
+.gamekit-hintwrap.gk-hint-side-r .gamekit-hintbtn { width: 100%; padding: 8px 6px; }
+.gamekit-hintwrap.gk-hint-side-r .gamekit-hinttip { text-align: left; font-size: 10.5px; line-height: 1.4; padding: 7px 9px; }
+@media (max-height: 420px) {   /* landscape phones: keep it tight so the board keeps its height */
+  .gamekit-hintwrap { bottom: 4px; }
+  .gamekit-hintbtn { padding: 6px 14px; font-size: 11px; }
+  .gamekit-hinttip { font-size: 11px; padding: 6px 10px; }
+}

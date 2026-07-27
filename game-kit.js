@@ -230,31 +230,41 @@
   var NEAR = function (v, arr) { return arr.reduce(function (a, b) { return Math.abs(b - v) < Math.abs(a - v) ? b : a; }); };
   var TRACKS = {
     snake:        { kind: 'remaster', bpm: 122, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4, 0, 5, 6, 4], cutoff: 1900 },
-    snakebanger:  { kind: 'modern', bpm: 122, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4, 0, 5, 6, 4], cutoff: 1900, kit: 'electronic', groove: 'banger', pad: 'square', bass: 'square', lead: 'square', pluck: true, detune: 8, kf0: 150, kf1: 48, prod: 'dance' },
-    asteroids:    { kind: 'modern', bpm: 124, root: 130.81, scale: [0, 2, 3, 5, 7, 10], prog: [0, 6, 5, 3, 0, 4, 6, 5], cutoff: 1800, kit: 'epic', prod: 'epic', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', leadSuper: true, detune: 14, choir: true },
-    asteroidsplus:{ kind: 'modern', bpm: 126, root: 130.81, scale: [0, 2, 3, 5, 7, 10], prog: [0, 0, 3, 6, 0, 5, 3, 6], cutoff: 1800, kit: 'techno', groove: 'rave', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', bassSuper: true, leadSuper: true, detune: 16, riser: true, swing: 0.03, kf0: 160, kf1: 50, prod: 'dance' },
-    forcefield:   { kind: 'modern', bpm: 128, root: 164.81, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 4, 7, 5, 0, 4, 3, 5], cutoff: 2000, kit: 'electronic', groove: 'trance', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', leadSuper: true, detune: 14, kf0: 150, kf1: 48, prod: 'dance' },
-    range:        { kind: 'modern', bpm: 126, root: 130.81, scale: [0, 2, 3, 7, 8, 10], prog: [0, 1, 5, 4, 0, 1, 3, 4], cutoff: 1300, kit: 'tactical', groove: 'tactical', pad: 'sawtooth', bass: 'square', lead: 'sawtooth', leadSuper: true, detune: 12, kf0: 110, kf1: 44, prod: 'tactical' },
-    breakout:     { kind: 'modern', bpm: 98, root: 110, scale: [0, 3, 5, 7, 10], prog: [0, 3, 4, 3, 5, 4, 3, 0], cutoff: 1500, kit: 'synthwave', prod: 'synthwave', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', leadSuper: true, detune: 12, halftime: true, kf0: 130, kf1: 45 },
-    bubbles:      { kind: 'modern', bpm: 110, root: 174.61, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 2, 5, 4, 0, 6, 2, 5], cutoff: 2600, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'triangle', pluck: true, detune: 8, kf0: 150, kf1: 52, prod: 'dance' },
-    frogbonk:     { kind: 'modern', bpm: 86, root: 110, scale: [0, 2, 3, 5, 7, 8, 12], prog: [0, 6, 4, 2, 0, 3, 5, 2], cutoff: 1700, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, detune: 8, swing: 0.06, kf0: 130, kf1: 50, prod: 'dance' },
-    keep:         { kind: 'modern', bpm: 86, root: 110, scale: [0, 2, 3, 5, 7, 8, 12], prog: [0, 3, 6, 4, 0, 5, 3, 6], cutoff: 1700, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },
-    stacker:      { kind: 'modern', bpm: 96, root: 220, scale: [0, 3, 5, 7, 10, 12], prog: [0, 4, 5, 3, 0, 4, 2, 3], cutoff: 2000, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'sine', lead: 'triangle', softLead: true, vibrato: 4 },
-    sudoku:       { kind: 'modern', bpm: 80, root: 155.56, scale: [0, 2, 4, 7, 9, 12], prog: [0, 5, 1, 4, 0, 2, 5, 4], cutoff: 2200, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 3 },
-    minesweeper:  { kind: 'modern', bpm: 88, root: 130.81, scale: [0, 2, 3, 5, 7, 9, 10], prog: [0, 4, 2, 6, 0, 3, 5, 1], cutoff: 1600, kit: 'techno', groove: 'trance', pad: 'triangle', bass: 'sine', lead: 'sine', softLead: true, detune: 6 },
-    '2048':       { kind: 'modern', bpm: 104, root: 196, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 1, 0, 5, 4, 2], cutoff: 2100, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'sine', softLead: true, pluck: true, detune: 5 },
-    trapthecat:   { kind: 'modern', bpm: 112, root: 220, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 5, 3, 2, 0, 4, 1, 5], cutoff: 2300, kit: 'soft', prod: 'lush', pad: 'triangle', bass: 'sine', lead: 'triangle', softLead: true, pluck: true, vibrato: 6 },
-    glowsays:     { kind: 'modern', bpm: 100, root: 261.63, scale: [0, 2, 4, 7, 9, 12], prog: [0, 1, 4, 5, 0, 2, 5, 3], cutoff: 2500, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'sine', lead: 'triangle', softLead: true, vibrato: 5 },
-    balloonpop:   { kind: 'modern', bpm: 118, root: 233.08, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 1, 5, 0, 3, 5, 2], cutoff: 2600, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'triangle', softLead: true, pluck: true, swing: 0.08 },
-    crittermatch: { kind: 'modern', bpm: 94, root: 174.61, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 2, 5, 4, 0, 1, 3, 5], cutoff: 2200, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'triangle', lead: 'triangle', softLead: true, vibrato: 4, swing: 0.05 },
-    meadow:       { kind: 'modern', bpm: 90, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 5, 0, 2, 4, 5], cutoff: 2400, kit: 'soft', prod: 'lush', pad: 'triangle', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 5 },
+    snakebanger:  { kind: 'modern', sig: 'octave', bpm: 122, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4, 0, 5, 6, 4], cutoff: 1900, kit: 'electronic', groove: 'banger', pad: 'square', bass: 'square', lead: 'square', pluck: true, detune: 8, kf0: 150, kf1: 48, prod: 'dance' },
+    asteroids:    { kind: 'modern', sig: 'horn', bpm: 124, root: 130.81, scale: [0, 2, 3, 5, 7, 10], prog: [0, 6, 5, 3, 0, 4, 6, 5], cutoff: 1800, kit: 'epic', prod: 'epic', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', leadSuper: true, detune: 14, choir: true },
+    asteroidsplus:{ kind: 'modern', sig: 'sub', bpm: 126, root: 130.81, scale: [0, 2, 3, 5, 7, 10], prog: [0, 0, 3, 6, 0, 5, 3, 6], cutoff: 1800, kit: 'techno', groove: 'rave', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', bassSuper: true, leadSuper: true, detune: 16, riser: true, swing: 0.03, kf0: 160, kf1: 50, prod: 'dance' },
+    forcefield:   { kind: 'modern', sig: 'glass', bpm: 128, root: 164.81, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 4, 7, 5, 0, 4, 3, 5], cutoff: 2000, kit: 'electronic', groove: 'trance', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', leadSuper: true, detune: 14, kf0: 150, kf1: 48, prod: 'dance' },
+    range:        { kind: 'modern', sig: 'roll', bpm: 126, root: 130.81, scale: [0, 2, 3, 7, 8, 10], prog: [0, 1, 5, 4, 0, 1, 3, 4], cutoff: 1300, kit: 'tactical', groove: 'tactical', pad: 'sawtooth', bass: 'square', lead: 'sawtooth', leadSuper: true, detune: 12, kf0: 110, kf1: 44, prod: 'tactical' },
+    breakout:     { kind: 'modern', sig: 'octave', bpm: 98, root: 110, scale: [0, 3, 5, 7, 10], prog: [0, 3, 4, 3, 5, 4, 3, 0], cutoff: 1500, kit: 'synthwave', prod: 'synthwave', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', leadSuper: true, detune: 12, halftime: true, kf0: 130, kf1: 45 },
+    // candy-pop rather than club: the soft kit (shakers, a kick only at full tilt) over the banger
+    // arrangement — it used to be electronic/banger, a 4-on-the-floor twin of 2048.
+    bubbles:      { kind: 'modern', sig: 'bell', bpm: 111, root: 174.61, scale: [0, 2, 4, 7, 9, 11], prog: [0, 2, 5, 4, 0, 6, 2, 5], cutoff: 2600, kit: 'soft', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'triangle', pluck: true, detune: 8, kf0: 150, kf1: 52, prod: 'dance' },
+    frogbonk:     { kind: 'modern', sig: 'ride', bpm: 86, root: 110, scale: [0, 2, 3, 5, 7, 8, 12], prog: [0, 6, 4, 2, 0, 3, 5, 2], cutoff: 1700, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, detune: 8, swing: 0.06, kf0: 130, kf1: 50, prod: 'dance' },
+    keep:         { kind: 'modern', sig: 'taiko', bpm: 86, root: 110, scale: [0, 2, 3, 5, 7, 8, 12], prog: [0, 3, 6, 4, 0, 5, 3, 6], cutoff: 1700, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },
+    stacker:      { kind: 'modern', sig: 'ride', bpm: 96, root: 220, scale: [0, 3, 5, 7, 10, 12], prog: [0, 4, 5, 3, 0, 4, 2, 3], cutoff: 2000, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'sine', lead: 'triangle', softLead: true, vibrato: 4 },
+    sudoku:       { kind: 'modern', sig: 'harp', bpm: 80, root: 155.56, scale: [0, 2, 4, 7, 9, 12], prog: [0, 5, 1, 4, 0, 2, 5, 4], cutoff: 2200, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 3 },
+    minesweeper:  { kind: 'modern', sig: 'toms', bpm: 88, root: 130.81, scale: [0, 2, 3, 5, 7, 9, 10], prog: [0, 4, 2, 6, 0, 3, 5, 1], cutoff: 1600, kit: 'techno', groove: 'trance', pad: 'triangle', bass: 'sine', lead: 'sine', softLead: true, detune: 6 },
+    '2048':       { kind: 'modern', sig: 'pulse', bpm: 104, root: 196, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 1, 0, 5, 4, 2], cutoff: 2100, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'sine', softLead: true, pluck: true, detune: 5 },
+    trapthecat:   { kind: 'modern', sig: 'glass', bpm: 112, root: 220, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 5, 3, 2, 0, 4, 1, 5], cutoff: 2300, kit: 'soft', prod: 'lush', pad: 'triangle', bass: 'sine', lead: 'triangle', softLead: true, pluck: true, vibrato: 6 },
+    // neon-memory synth-pop: techno kit + lush pads, on a suspended scale nothing else uses — it was
+    // a third soft/lush track sharing Sudoku's mode.
+    glowsays:     { kind: 'modern', sig: 'pulse', bpm: 100, root: 261.63, scale: [0, 2, 5, 7, 9, 12], prog: [0, 4, 6, 2, 0, 5, 1, 3], cutoff: 2500, kit: 'techno', prod: 'lush', pad: 'sine', bass: 'sine', lead: 'triangle', softLead: true, vibrato: 5 },
+    balloonpop:   { kind: 'modern', sig: 'shaker', bpm: 118, root: 233.08, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 1, 5, 0, 3, 5, 2], cutoff: 2600, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'triangle', softLead: true, pluck: true, swing: 0.08 },
+    // warm chill-house instead of a fourth soft/lush pad bed (it read as Trap the Cat's twin):
+    // electronic kit with a soft-tuned kick, lush pads, mixolydian.
+    crittermatch: { kind: 'modern', sig: 'bell', bpm: 94, root: 174.61, scale: [0, 2, 4, 5, 7, 9, 10], prog: [0, 2, 5, 4, 0, 1, 3, 5], cutoff: 2200, kit: 'electronic', prod: 'lush', pad: 'sine', bass: 'triangle', lead: 'triangle', softLead: true, vibrato: 4, swing: 0.05, kf0: 120, kf1: 50 },
+    floodgate:    { kind: 'modern', sig: 'swell', bpm: 78, root: 196, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 6, 2, 0, 5, 1, 4], cutoff: 2300, kit: 'soft', groove: 'trance', pad: 'sine', bass: 'sine', lead: 'sine', softLead: true, vibrato: 3 },
+    mirrormaze:   { kind: 'modern', sig: 'stab', bpm: 112, root: 233.08, scale: [0, 2, 4, 6, 7, 9, 11], prog: [0, 6, 4, 1, 0, 2, 5, 3], cutoff: 2900, kit: 'techno', groove: 'banger', pad: 'sawtooth', bass: 'sawtooth', lead: 'square', leadSuper: true, pluck: true, detune: 10, kf0: 155, kf1: 50, prod: 'dance' },
+    typesiege:    { kind: 'modern', sig: 'toms', bpm: 138, root: 98, scale: [0, 1, 3, 5, 7, 8, 10], prog: [0, 5, 1, 6, 0, 4, 2, 7], cutoff: 1450, kit: 'tactical', groove: 'banger', pad: 'triangle', bass: 'square', lead: 'sawtooth', pluck: true, swing: 0.04, kf0: 105, kf1: 40, prod: 'dance' },
+    duskrunner:   { kind: 'modern', sig: 'arp', bpm: 132, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 7, 3, 5, 0, 6, 2, 4], cutoff: 2400, kit: 'electronic', groove: 'rave', pad: 'triangle', bass: 'square', lead: 'square', pluck: true, detune: 4, kf0: 145, kf1: 47, prod: 'dance' },
+    meadow:       { kind: 'modern', sig: 'octave', bpm: 90, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 5, 0, 2, 4, 5], cutoff: 2400, kit: 'soft', prod: 'lush', pad: 'triangle', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 5 },
     // Keep Defender per-biome (epic palette; each biome keeps its own key/tempo/mode for mood)
-    kd_grass:   { kind: 'modern', bpm: 96, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 4, 0, 2, 4, 3], cutoff: 2500, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },
-    kd_ice:     { kind: 'modern', bpm: 76, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4, 0, 3, 5, 4], cutoff: 3200, kit: 'epic', prod: 'epic', pad: 'sine', bass: 'sine', lead: 'sine', choir: true },
-    kd_lava:    { kind: 'modern', bpm: 118, root: 98, scale: [0, 2, 3, 5, 7, 8, 11], prog: [0, 0, 5, 0, 3, 4, 5, 0], cutoff: 1500, kit: 'epic', prod: 'epic', pad: 'sawtooth', bass: 'sawtooth', lead: 'square', pluck: true, choir: true },
-    kd_desert:  { kind: 'modern', bpm: 100, root: 123.47, scale: [0, 1, 3, 5, 7, 8, 10], prog: [0, 3, 1, 4, 0, 5, 3, 1], cutoff: 2000, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'sawtooth', pluck: true, choir: true },
-    kd_dungeon: { kind: 'modern', bpm: 72, root: 82.41, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 3, 4, 0, 5, 3, 4, 0], cutoff: 1400, kit: 'epic', prod: 'epic', pad: 'sine', bass: 'sine', lead: 'square', pluck: true, choir: true },
-    kd_marsh:   { kind: 'modern', bpm: 84, root: 92.5, scale: [0, 2, 3, 5, 7, 9, 10], prog: [0, 3, 4, 2, 0, 4, 3, 2], cutoff: 1150, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'triangle', pluck: true, choir: true },
+    kd_grass:   { kind: 'modern', sig: 'bell', bpm: 96, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 4, 0, 2, 4, 3], cutoff: 2500, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },
+    kd_ice:     { kind: 'modern', sig: 'glass', bpm: 76, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4, 0, 3, 5, 4], cutoff: 3200, kit: 'epic', prod: 'epic', pad: 'sine', bass: 'sine', lead: 'sine', choir: true },
+    kd_lava:    { kind: 'modern', sig: 'roll', bpm: 118, root: 98, scale: [0, 2, 3, 5, 7, 8, 11], prog: [0, 0, 5, 0, 3, 4, 5, 0], cutoff: 1500, kit: 'epic', prod: 'epic', pad: 'sawtooth', bass: 'sawtooth', lead: 'square', pluck: true, choir: true },
+    kd_desert:  { kind: 'modern', sig: 'shaker', bpm: 100, root: 123.47, scale: [0, 1, 3, 5, 7, 8, 10], prog: [0, 3, 1, 4, 0, 5, 3, 1], cutoff: 2000, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'sawtooth', pluck: true, choir: true },
+    kd_dungeon: { kind: 'modern', sig: 'sub', bpm: 72, root: 82.41, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 3, 4, 0, 5, 3, 4, 0], cutoff: 1400, kit: 'epic', prod: 'epic', pad: 'sine', bass: 'sine', lead: 'square', pluck: true, choir: true },
+    kd_marsh:   { kind: 'modern', sig: 'harp', bpm: 65, root: 92.5, scale: [0, 2, 3, 5, 7, 9, 10], prog: [0, 5, 2, 6, 3, 1, 4, 2], cutoff: 1150, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'triangle', pluck: true, choir: true },
   };
   // Back-compat: old theme names games still pass → the game's track.
   var ALIAS = { neon: 'snake', space: 'asteroids', synthwave: 'breakout', candy: 'bubbles', pastel: 'stacker', tactical: 'range', castle: 'keep' };
@@ -307,7 +317,7 @@
   }
   function duck(t) { if (!musicPad) return; try { musicPad.gain.cancelScheduledValues(t); musicPad.gain.setValueAtTime(0.22, t); musicPad.gain.linearRampToValueAtTime(1, t + 0.26); } catch (e) {} }
 
-  function perc(T, pump, s, phraseEnd, tt) {
+  function perc(T, pump, s, phraseEnd, tt, bar) {
     var K = T.kit;
     if (K === 'electronic') {
       if (pres(0.25) > 0.02 && (s === 0 || (pres(0.45) > 0.02 && s === 8) || (pump && pres(0.55) > 0.02 && s % 4 === 0))) { mKick({ t: tt, gain: 0.44 * (s === 0 ? 1 : pres(0.25)), f0: T.kf0 || 150, f1: T.kf1 || 48, dur: 0.13, click: 0.14 }); if (pump) duck(tt); }
@@ -342,6 +352,49 @@
       if (pres(0.65) > 0.02 && s % 2 === 1) mHat({ t: tt, open: false, gain: 0.01 * pres(0.65), cut: 9000 });
       if (pres(0.6) > 0.02 && (s === 7 || s === 11)) mnoise({ t: tt, dur: 0.04, gain: 0.03 * pres(0.6), filter: 'highpass', cutoff: 3200, out: musicDrum });
       if (pres(0.8) > 0.02 && phraseEnd && s >= 12) { for (var kk = 0; kk < 4; kk++) mnoise({ t: tt + kk * 0.04, dur: 0.035, gain: 0.045 * pres(0.8), filter: 'highpass', cutoff: 2400, out: musicDrum }); }
+    }
+
+    // ---- per-track HIGH-INTENSITY SIGNATURE (opt-in via T.sig) ----------------------------------
+    // The layer thresholds mean every track has ALL of its layers on once intensity peaks, so the
+    // arrangements converge exactly when the action does — two different tracks end up as "kick +
+    // hats + lead, fast". This adds ONE element that only appears up there and differs per track, so
+    // peak moments stay recognisable. Tracks without `sig` are untouched (released games unchanged).
+    if (T.sig && pres(0.7) > 0.02) {
+      var sg = pres(0.7), rootHz = T.root || 130.81, sc = T.scale || [0, 2, 3, 5, 7, 8, 10];
+      var deg = (T.prog && T.prog.length) ? T.prog[((bar || 0) % T.prog.length + T.prog.length) % T.prog.length] : 0;
+      var noteAt = function (n) { var sd = sc[((deg + n) % sc.length + sc.length) % sc.length]; return rootHz * Math.pow(2, sd / 12); };
+      if (T.sig === 'arp') {            // sixteenth arpeggio that only exists at full tilt
+        var ai = [0, 2, 4, 2, 5, 4, 2, 0][s % 8];
+        mvoice({ f: noteAt(ai) * 4, dur: 0.055, type: T.lead || 'square', gain: 0.03 * sg, filter: 'lowpass', cutoff: 5200, out: musicGain, t: tt });
+      } else if (T.sig === 'stab') {    // off-beat chord stabs — precise, machine-like
+        if (s % 4 === 2) [0, 2, 4].forEach(function (n) { mvoice({ f: noteAt(n) * 2, dur: 0.1, type: T.pad || 'sawtooth', gain: 0.026 * sg, filter: 'lowpass', cutoff: 3400, out: musicGain, t: tt }); });
+      } else if (T.sig === 'toms') {    // marching tom fill under the beat — martial
+        if (s % 4 === 3 || s === 14) mTom({ t: tt, f0: 168 - (s % 8) * 8, f1: 92, dur: 0.2, gain: 0.13 * sg });
+      } else if (T.sig === 'swell') {   // slow filtered pad swell, no extra percussion — calm games
+        if (s === 0) mvoice({ f: noteAt(0), dur: 1.9, type: T.pad || 'sine', gain: 0.05 * sg, attack: 0.7, filter: 'lowpass', cutoff: 1500, cutoffTo: 3000, reverb: 0.4, out: musicGain, t: tt });
+      } else if (T.sig === 'bell') {    // bright bell triad on the downbeats
+        if (s === 0 || s === 8) [0, 2, 4].forEach(function (n, i) { mvoice({ f: noteAt(n) * 4, dur: 0.9, type: 'sine', gain: 0.024 * sg, attack: 0.004, reverb: 0.45, out: musicGain, t: tt + i * 0.02 }); });
+      } else if (T.sig === 'harp') {    // descending run through the second half of the bar
+        if (s >= 8) mvoice({ f: noteAt(14 - s) * 2, dur: 0.14, type: 'triangle', gain: 0.02 * sg, filter: 'lowpass', cutoff: 4200, reverb: 0.3, out: musicGain, t: tt });
+      } else if (T.sig === 'glass') {   // sparse high sparkle, deliberately off the grid
+        if (s === 3 || s === 10 || s === 13) mvoice({ f: noteAt(s % 5) * 8, dur: 0.3, type: 'sine', gain: 0.015 * sg, reverb: 0.5, out: musicGain, t: tt });
+      } else if (T.sig === 'octave') {  // the lead doubled an octave down under the downbeat
+        if (s % 8 === 0) mvoice({ f: noteAt(0) / 2, dur: 0.4, type: T.lead || 'triangle', gain: 0.03 * sg, filter: 'lowpass', cutoff: 1400, out: musicGain, t: tt });
+      } else if (T.sig === 'ride') {    // ride-cymbal ping on the eighths
+        if (s % 2 === 0) mnoise({ t: tt, dur: 0.22, gain: 0.012 * sg, filter: 'bandpass', cutoff: 7200, q: 1.2, reverb: 0.35, out: musicDrum });
+      } else if (T.sig === 'pulse') {   // octave-jumping sixteenth bass pulse
+        mvoice({ f: noteAt(0) * (s % 2 ? 2 : 1), dur: 0.06, type: T.bass || 'square', gain: 0.024 * sg, filter: 'lowpass', cutoff: 900, out: musicGain, t: tt });
+      } else if (T.sig === 'taiko') {   // one huge war drum, twice a bar
+        if (s === 0 || s === 6) mTom({ t: tt, f0: 96, f1: 52, dur: 0.42, gain: 0.2 * sg });
+      } else if (T.sig === 'shaker') {  // dry offbeat shaker, panned alternately
+        if (s % 2 === 1) mnoise({ t: tt, dur: 0.035, gain: 0.02 * sg, filter: 'highpass', cutoff: 6200, pan: s % 4 === 1 ? 0.25 : -0.25, out: musicDrum });
+      } else if (T.sig === 'horn') {    // low brass swell answering the phrase
+        if (s === 12) [0, 4].forEach(function (n) { mvoice({ f: noteAt(n), dur: 0.8, type: 'sawtooth', gain: 0.028 * sg, attack: 0.25, filter: 'lowpass', cutoff: 900, cutoffTo: 1600, reverb: 0.4, out: musicGain, t: tt }); });
+      } else if (T.sig === 'roll') {    // tightening snare roll into the phrase end
+        if (phraseEnd && s >= 12) { for (var rr = 0; rr < 4; rr++) mnoise({ t: tt + rr * 0.028, dur: 0.05, gain: (0.018 + rr * 0.007) * sg, filter: 'highpass', cutoff: 2200, out: musicDrum }); }
+      } else if (T.sig === 'sub') {     // sub-bass drop at the top of the bar
+        if (s === 0) mvoice({ f: Math.max(38, noteAt(0) / 4), dur: 0.7, type: 'sine', gain: 0.05 * sg, filter: 'lowpass', cutoff: 200, out: musicGain, t: tt });
+      }
     }
   }
 
@@ -379,7 +432,7 @@
         if (bf) { if (T.bassSuper) mSuper({ f: bf, dur: spb * 3.2, type: T.bass, gain: 0.1, voices: 3, spread: 9, filter: 'lowpass', cutoff: 430 + I * 320, q: 6, out: padOut, t: tt }); else mvoice({ f: bf, dur: spb * (T.halftime ? 3.6 : 3.2), type: T.bass, gain: 0.16, filter: 'lowpass', cutoff: 500 + I * 380, q: 4, out: padOut, t: tt }); } }
       if (rave && pres(0.65) > 0.02 && (s === 6 || s === 14)) { var bf2 = NT(T.root / 2, T.scale, chord); if (bf2) mvoice({ f: bf2, dur: spb * 1.4, type: T.bass, gain: 0.09 * pres(0.65), filter: 'lowpass', cutoff: 640, out: padOut, t: tt }); }
     }
-    perc(T, pump, s, phraseEnd, tt);
+    perc(T, pump, s, phraseEnd, tt, bar);
     // lead / arp
     if (banger && pres(0.45) > 0.02) {
       var shp = [0, 2, 4, 7, 4, 2, 7, 4], baf = NT(T.root, T.scale, chord + L + shp[step % shp.length]), bg = pres(0.45);
@@ -1966,7 +2019,7 @@
             if (isCrt) { cv = mkEl('div', 'gksp-sw gk-crt-sw'); }
             else { cv = mkEl('canvas', 'gksp-sw'); try { cv.width = 40; cv.height = 40; } catch (e) {} if (it.painter) { try { drawPreview(cv, function (g, w, h) { it.painter(g, w, h); }); } catch (e) {} } }
             var txt = mkEl('div', 'gksp-txt');
-            var nm = mkEl('div', 'gksp-nm', cosName(it)), sub = mkEl('div', 'gksp-sub');
+            var nm = mkEl('div', 'gksp-nm' + (String(cosName(it) || '').replace(/\s.*$/, '').length > 8 ? ' gksp-long' : ''), cosName(it)), sub = mkEl('div', 'gksp-sub');
             txt.appendChild(nm); txt.appendChild(sub);
             cell.appendChild(cv); cell.appendChild(txt);
             var idx = cells.length;
@@ -2171,6 +2224,10 @@
     'breakout': { 'Classic': 'game.breakout.modeClassic', 'Endless': 'game.breakout.modeEndless', 'Survival': 'game.breakout.modeSurvival' },
     'bubbles': { 'Arcade': 'game.bubbles.mode.arcade', 'Endless': 'game.bubbles.mode.endless', 'Zen': 'game.bubbles.mode.zen' },
     'critter-match': { 'Small': 'game.critter-match.modeSmall', 'Medium': 'game.critter-match.modeMedium', 'Large': 'game.critter-match.modeLarge', 'Speedrun': 'game.critter-match.speedrun' },
+    'floodgate': { 'Campaign': 'game.floodgate.modeCampaign', 'Daily': 'game.floodgate.modeDaily', 'Endless': 'game.floodgate.modeEndless' },
+    'mirror-maze': { 'Campaign': 'game.mirror-maze.modeCampaign', 'Daily': 'game.mirror-maze.modeDaily', 'Endless': 'game.mirror-maze.modeEndless' },
+    'type-siege': { 'Stages': 'game.type-siege.modeStages', 'Endless': 'game.type-siege.modeEndless', 'Rain': 'game.type-siege.modeRain', 'Exact': 'game.type-siege.exactBadge', 'Recruit': 'game.type-siege.diffEasy', 'Soldier': 'game.type-siege.diffNormal', 'Veteran': 'game.type-siege.diffHard' },
+    'dusk-runner': { 'Endless': 'game.dusk-runner.modeEndless', 'Sprint': 'game.dusk-runner.modeSprint', 'Gentle': 'game.dusk-runner.paceGentle', 'Normal': 'game.dusk-runner.paceNormal', 'Brisk': 'game.dusk-runner.paceBrisk' },
     'forcefield': { 'Lives': 'game.forcefield.modeLives', 'Timed': 'game.forcefield.modeTimed', 'Easy': 'game.forcefield.diffEasy', 'Medium': 'game.forcefield.diffMedium', 'Hard': 'game.forcefield.diffHard' },
     'frog-bonk': { 'Waves': 'game.frog-bonk.modeWaves', 'Endless': 'game.frog-bonk.modeEndless', 'Zen': 'game.frog-bonk.modeZen', 'Easy': 'game.frog-bonk.diffEasy', 'Medium': 'game.frog-bonk.diffMedium', 'Hard': 'game.frog-bonk.diffHard' },
     'glow-says': { 'Classic': 'game.glow-says.modeClassic', 'Chill': 'game.glow-says.modeChill', 'Hard': 'game.glow-says.modeHard', 'Expert': 'game.glow-says.modeExpert' },
@@ -3901,8 +3958,17 @@
         if (gone) return; gone = true;
         el.className = 'gamekit-tap gk-hide'; var rm = function () { try { if (el.parentNode) el.parentNode.removeChild(el); } catch (e2) {} }; if (typeof setTimeout === 'function') setTimeout(rm, 320); else rm();
       };
-      el.addEventListener('click', dismiss);
-      try { document.addEventListener('keydown', dismiss, { once: true, capture: true }); } catch (e) { try { document.addEventListener('keydown', dismiss, true); } catch (_) {} }
+      // The key hook must be removed by NAME when the splash is dismissed by a click — otherwise a
+      // capture-phase listener for a gone overlay eats the player's first keypress (first jump, first
+      // typed letter) in every game.
+      var onKey = function (e) { unkey(); dismiss(e); };
+      var unkey = function () {
+        try { document.removeEventListener('keydown', onKey, { capture: true }); } catch (e) {}
+        try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
+      };
+      el.addEventListener('click', function (e) { unkey(); dismiss(e); });
+      try { document.addEventListener('keydown', onKey, { once: true, capture: true }); }
+      catch (e) { try { document.addEventListener('keydown', onKey, true); } catch (_) {} }
       document.body.appendChild(el);
     } catch (e) {}
   }
@@ -4779,7 +4845,194 @@
     } catch (e) {}
   })();
 
-  var api = { lock: lock, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
+  // ---------- level select + hints: the ONE shared shape for campaign puzzles -----------------------
+  // Floodgate and Mirror Maze both needed "pick a level from a grid" and "give me a hint", and were
+  // solving them differently (a bespoke grid screen vs a popup group; a hand-rolled hint button vs
+  // none). Sudoku has a hint too. So both live here now: one screen, one hint contract, one analytics
+  // event — a game supplies only what is game-specific (status per level, the par number, the
+  // preview painter, and the solver behind the hint).
+  //
+  //   gamekit.levelsScreen({ count, status(i), par(i), preview(g,w,h,i), onPick(i), onBack, … })
+  //   gamekit.hints(slug) → { begin(), use(item), used(), clean(), badge() }
+  //   gamekit.hintButton({ onHint, label, cost }) → { el, toast(text), remove(), reserve }
+  //
+  // levelsScreen is a MENU SCREEN of its own (not a group inside the start menu) — that is the shape
+  // that fits 12 cells at 360×640, which an inline grid does not.
+  function levelsScreen(cfg) {
+    cfg = cfg || {};
+    var n = Math.max(1, cfg.count | 0);
+    var pick = Math.min(n - 1, Math.max(0, cfg.default != null ? (cfg.default | 0) : 0));
+    var stat = function (i) { return (typeof cfg.status === 'function') ? (cfg.status(i) || 'open') : 'open'; };
+    var parOf = function (i) { return (typeof cfg.par === 'function') ? cfg.par(i) : null; };
+    var parText = function (i) { var p = parOf(i); return (p == null) ? '' : t('menu.levelPar', { par: p, def: 'PAR ' + p }); };
+    var subOf = function (i) {
+      var st = stat(i), p = parText(i);
+      if (st === 'done') return '✓ ' + p;
+      if (st === 'next') return '▶ ' + p;
+      return p;
+    };
+    var playLabel = function (i) {
+      return (typeof cfg.playLabel === 'function') ? cfg.playLabel(i)
+        : t('game.common.play', { def: 'PLAY' }) + ' · #' + (i + 1);
+    };
+    var handle = null;
+    handle = menu.show({
+      kind: 'start', theme: cfg.theme, backdrop: cfg.backdrop, backdropAnimate: !!cfg.backdropAnimate,
+      title: cfg.title || t('menu.levelSelect', { def: 'SELECT LEVEL' }),
+      groups: [{ id: 'level', style: 'grid', default: String(pick),
+        choices: (function () {
+          var out = [];
+          for (var i = 0; i < n; i++) out.push((function (i) {
+            return { id: String(i), label: String(i + 1),
+              locked: function () { return stat(i) === 'locked'; },
+              lockedLabel: function () { return parText(i); },
+              sub: function () { return subOf(i); },
+              preview: cfg.preview ? function (g, w, h) { return cfg.preview(g, w, h, i); } : null,
+              pvW: cfg.pvW || 40, pvH: cfg.pvH || 20 };
+          })(i));
+          return out;
+        })() }],
+      hint: function (st) {
+        var i = +(st && st.level) || 0;
+        if (typeof cfg.hint === 'function') return cfg.hint(i, stat(i));
+        var s = stat(i);
+        return t('menu.levelOf', { n: i + 1, total: n, def: 'Level {n} of {total}' }) + ' · ' +
+          (s === 'done' ? t('menu.levelDone', { def: 'CLEARED' })
+            : s === 'next' ? t('menu.levelNext', { def: 'NEXT UP' }) : parText(i));
+      },
+      // id 'start', never 'play': the caller's own PLAY already counted this run's game_start
+      actions: [{ id: 'start', label: playLabel(pick), primary: true },
+                { id: 'back', label: '‹ ' + t('game.common.back', { def: 'BACK' }) }],
+      onChange: function (st) {
+        pick = +(st && st.level) || 0;
+        try {  // re-label the primary in place (the kit builds action labels once)
+          var b = handle && handle.el && handle.el.querySelector ? handle.el.querySelector('.gkm-action.primary') : null;
+          if (b) b.textContent = playLabel(pick);
+        } catch (e) {}
+        if (typeof cfg.onChange === 'function') cfg.onChange(pick, stat(pick));
+      },
+      onAction: function (id, st) {
+        if (id === 'back') { if (typeof cfg.onBack === 'function') cfg.onBack(); return; }
+        if (id !== 'start') return;
+        var i = +((st && st.level) != null ? st.level : pick) || 0;
+        if (stat(i) === 'locked') { if (typeof cfg.onLocked === 'function') cfg.onLocked(i); return; }
+        if (typeof cfg.onPick === 'function') cfg.onPick(i);
+      },
+      onEsc: function () { if (typeof cfg.onBack === 'function') cfg.onBack(); },
+    });
+    // cols: the grid group has no column option, so set it on the rendered element (CSS reads it)
+    if (cfg.cols) {
+      try {
+        var g = handle && handle.el && handle.el.querySelector ? handle.el.querySelector('.gkm-grid') : null;
+        if (g && g.style && g.style.setProperty) g.style.setProperty('grid-template-columns', 'repeat(' + (cfg.cols | 0) + ', 1fr)');
+      } catch (e) {}
+    }
+    return handle;
+  }
+
+  // Per-run hint accounting. The SOLVER stays in the game (only it knows what a hint means); the kit
+  // owns the count, the "was this run clean" flag that gates par-or-better praise, the badge string,
+  // and the ONE analytics event — so every puzzle game reports hints identically.
+  function makeHints(slug) {
+    var used = 0;
+    return {
+      // begin(n): a RESUMED run carries its hint count, so quitting to the menu and continuing can't
+      // launder the cost. Both adopters needed a local carry for this — it belongs here.
+      begin: function (n) { used = Math.max(0, n | 0); },
+      use: function (item) {
+        used++;
+        track('run_choice', { slug: slug || currentSlug() || 'unknown', item_id: String(item || 'hint'), choice_kind: 'hint' });
+        return used;
+      },
+      used: function () { return used; },
+      clean: function () { return used === 0; },   // gate "par or better" on this
+      badge: function () { return used ? ('💡' + used) : ''; },
+    };
+  }
+
+  // The hint affordance: a bottom-centre button (plus the H key) and a toast that is guaranteed to
+  // sit CLEAR of the button — a game that rolled its own put the text under the tap target.
+  function hintButton(opts) {
+    opts = opts || {};
+    if (typeof document === 'undefined' || !document.createElement) {
+      return { el: null, toast: function () {}, remove: function () {}, reserve: 0, label: function () {} };
+    }
+    var band = opts.reserve || 46;
+    var RAIL_W = 146;                 // left-rail width in landscape (keep in sync with .gk-hint-side)
+    // tipBelow: the toast opens DOWNWARD, over whatever is under the button instead of over the play
+    // area. For a game whose own control strip sits below the band (Sudoku's number pad): covering
+    // keys you are not pressing while you read beats covering the board rows the hint is about.
+    var tipBelow = !!opts.tipBelow;
+    var wrap = document.createElement('div');
+    wrap.className = 'gamekit-hintwrap' + (tipBelow ? ' gk-hint-tipdown' : '');
+    var tip = document.createElement('div');
+    tip.className = 'gamekit-hinttip';
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'gamekit-hintbtn';
+    var baseLabel = opts.label || ('🔍 ' + t('menu.hint', { def: 'HINT' }));
+    btn.textContent = opts.cost ? (baseLabel + ' ' + opts.cost) : baseLabel;
+    wrap.appendChild(tip); wrap.appendChild(btn);
+    try { document.body.appendChild(wrap); } catch (e) {}
+    var tipTid = 0;
+    // The toast is TAP-TO-DISMISS. It matters most with tipBelow, where it hangs over the game's own
+    // controls: one tap on the text gets the keys back instead of waiting out the timeout.
+    tip.addEventListener('click', function (e) {
+      e.preventDefault(); e.stopPropagation();
+      tip.classList.remove('show');
+      if (tipTid) { clearTimeout(tipTid); tipTid = 0; }
+    });
+    var fire = function () { if (typeof opts.onHint === 'function') opts.onHint(); };
+    btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); fire(); });
+    var key = function (e) { if ((e.key === 'h' || e.key === 'H') && !e.metaKey && !e.ctrlKey && !e.altKey) { e.preventDefault(); fire(); } };
+    try { window.addEventListener('keydown', key); } catch (e) {}
+    var dockAt = 'bottom';
+    if (opts.offset) wrap.style.bottom = (8 + (opts.offset | 0)) + 'px';
+    return {
+      el: btn, wrap: wrap, reserve: band, railWidth: RAIL_W,
+      // Dock it bottom-centre (portrait) or as an edge rail (landscape phones, where a bottom strip
+      // costs the board a quarter of its height): 'left' is centred vertically, 'right' is anchored
+      // under the HUD — for a game whose own controls already own the bottom of that column
+      // (Sudoku's number pad). The GAME owns the matching reserve — it knows what else shares the
+      // band: `layout.reserve('left', hb.railWidth)` vs `('bottom', hb.reserve)`.
+      dock: function (where) {
+        dockAt = (where === 'left' || where === 'right') ? where : 'bottom';
+        try {
+          wrap.classList.toggle('gk-hint-side', dockAt === 'left');
+          wrap.classList.toggle('gk-hint-side-r', dockAt === 'right');
+        } catch (e) {}
+        return dockAt !== 'bottom';
+      },
+      docked: function () { return dockAt; },
+      // Lift the bottom dock clear of a control strip the game owns (px above the screen edge).
+      offset: function (px) { try { wrap.style.bottom = (8 + (px | 0)) + 'px'; } catch (e) {} },
+      // Cap the whole affordance (px) — an edge rail shares its column with the game's own controls
+      // (Sudoku's number pad), and a long explanation would otherwise grow straight over them. The
+      // toast scrolls inside the cap rather than being truncated.
+      limit: function (px) {
+        try {
+          var v = px > 0 ? (px | 0) + 'px' : '';
+          wrap.style.maxHeight = v;
+          tip.style.maxHeight = v ? 'calc(' + v + ' - 46px)' : '';
+          tip.style.overflowY = v ? 'auto' : '';
+        } catch (e) {}
+      },
+      label: function (s) { btn.textContent = s; },
+      show: function (on) { wrap.style.display = on === false ? 'none' : ''; },
+      toast: function (text, ms) {
+        tip.textContent = text || '';
+        tip.classList.toggle('show', !!text);
+        if (tipTid) { clearTimeout(tipTid); tipTid = 0; }
+        if (text) tipTid = setTimeout(function () { tip.classList.remove('show'); }, ms || 4200);
+      },
+      remove: function () {
+        try { window.removeEventListener('keydown', key); } catch (e) {}
+        try { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); } catch (e) {}
+      },
+    };
+  }
+
+  var api = { lock: lock, levelsScreen: levelsScreen, hints: makeHints, hintButton: hintButton, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langFlag: function (code) { return I18N_FLAG_SVG[String(code || '').toLowerCase()] || ''; }, langLabel: function (code) { var c = String(code || '').toLowerCase(); for (var i = 0; i < I18N_LANGS.length; i++) if (I18N_LANGS[i].code === c) return I18N_LANGS[i].label; return c; }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
