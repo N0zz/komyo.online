@@ -19,24 +19,36 @@ function load(src) {
 
 const cur = load(fs.readFileSync('changelog.js', 'utf8'));
 
+// RE-POST mode (workflow_dispatch): send entries chosen by hand instead of by diff — for a post that
+// went out wrong or never went out. REPOST is a count of newest entries, or a YYYY-MM-DD.
+const REPOST = (process.env.REPOST || '').trim();
+let picked = null;
+if (REPOST) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(REPOST)) picked = cur.filter(r => r.date === REPOST);
+  else if (/^\d{1,2}$/.test(REPOST)) picked = cur.slice(0, Math.min(cur.length, +REPOST));
+  else { console.error('REPOST must be a count (1-99) or YYYY-MM-DD, got: ' + REPOST); process.exit(1); }
+  if (!picked.length) { console.log('Nothing matches REPOST=' + REPOST + ' — nothing to post.'); process.exit(0); }
+  console.log('RE-POST ' + picked.length + ' entry(ies): ' + picked.map(r => r.date + ' ' + r.title).join(' | '));
+}
+
 // Previous version of the file at the push base (skip on new-branch/force-push zero SHA).
 // execFileSync (argv array, no shell) + a strict hex guard → BEFORE can't inject anything.
 // prev === null means "no baseline to diff against" (file absent at base, or unknown SHA);
 // in that case we skip rather than dump the whole existing changelog as if it were new.
 let prev = null;
-if (/^[0-9a-f]{40}$/.test(BEFORE)) {
+if (!picked && /^[0-9a-f]{40}$/.test(BEFORE)) {
   try { prev = load(execFileSync('git', ['show', `${BEFORE}:changelog.js`], { encoding: 'utf8' })); }
   catch { prev = null; }
 }
-if (prev === null) { console.log('No previous changelog.js to diff against — skipping (baseline).'); process.exit(0); }
+if (!picked && prev === null) { console.log('No previous changelog.js to diff against — skipping (baseline).'); process.exit(0); }
 
 // An item is "new" if its (date, exact text) pair wasn't present before.
 const seen = new Set();
-for (const r of prev) for (const it of (r.items || [])) seen.add(r.date + '\0' + it);
+for (const r of prev || []) for (const it of (r.items || [])) seen.add(r.date + '\0' + it);
 
 const fresh = [];
-for (const r of cur) {
-  const items = (r.items || []).filter(it => !seen.has(r.date + '\0' + it));
+for (const r of (picked || cur)) {
+  const items = picked ? (r.items || []) : (r.items || []).filter(it => !seen.has(r.date + '\0' + it));
   if (items.length) fresh.push({ date: r.date, title: r.title, items });
 }
 
