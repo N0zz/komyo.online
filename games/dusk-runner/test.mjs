@@ -129,35 +129,57 @@ section('dusk-runner: touch puck');
   ok(body.classList.contains('dr-run'), 'the puck is shown for a live run');
 }
 
-// ---- The puck stays on screen, out of the band, and remembers where it was dragged ----
-section('dusk-runner: puck placement');
+// ---- The puck stays on screen and each half stays thumb-sized ----
+section('dusk-runner: puck size + placement');
 {
   const gs = runGame({ seed: 8 });
   const T = gs.T;
   T().start();
   for (const [w, h] of [[360, 640], [640, 360], [480, 360], [1280, 800], [2560, 1440]]) {
     gs.resize(w, h);
-    const p = T().puck, L = T().layout;
+    const p = T().puck;
     ok(p.x >= 0 && p.x + p.size <= w, `${w}×${h}: puck fits horizontally (x ${Math.round(p.x)} + ${p.size} ≤ ${w})`);
     ok(p.y >= 0 && p.y + p.size <= h, `${w}×${h}: puck fits vertically (y ${Math.round(p.y)} + ${p.size} ≤ ${h})`);
-    // its default home is the sand strip: at most a graze into the play band on a short screen
-    ok(p.y >= L.groundY - 12, `${w}×${h}: puck defaults below the ground line (y ${Math.round(p.y)} vs ground ${Math.round(L.groundY)})`);
+    // each half must stay a target you can hit WITHOUT looking — the 44px version failed on this
+    ok(p.size / 2 >= 60, `${w}×${h}: each half is thumb-sized (${Math.round(p.size / 2)}px ≥ 60)`);
   }
-
-  // dragging the grip moves it AND survives a reload
   gs.resize(360, 640);
-  const grip = gs.el('puckGrip');
-  grip.fire('pointerdown', { clientX: 300, clientY: 560 });
-  grip.fire('pointermove', { clientX: 60, clientY: 300 });
-  grip.fire('pointerup', {});
-  const dragged = T().puck;
-  ok(dragged.moved === true, 'a drag marks the puck as placed by the player');
-  ok(dragged.x < 120, 'the puck follows the drag to the left (x ' + Math.round(dragged.x) + ')');
+  ok(T().puck.x > 180, 'defaults to the right side for a right thumb (x ' + Math.round(T().puck.x) + ')');
+}
+
+// ---- Placement mode: the ONLY way to move the puck, and never mid-run ----
+// The previous build let you drag a 14px grip during play. Chrome's touch adjustment snapped every
+// such touch onto the flanking buttons, so the grip received zero events and the puck could not be
+// moved at all. Here the whole puck is the handle and the halves are inert.
+section('dusk-runner: puck placement mode');
+{
+  const gs = runGame({ seed: 8, w: 360, h: 640 });
+  const T = gs.T;
+  const puck = gs.el('puck'), body = gs.doc.body;
+
+  T().start();
+  const home = T().puck.x;
+  puck.fire('pointerdown', { clientX: home + 40, clientY: 500 });
+  puck.fire('pointermove', { clientX: 60, clientY: 300 });
+  puck.fire('pointerup', {});
+  ok(Math.abs(T().puck.x - home) < 1, 'dragging the puck during a run does nothing');
+
+  T().placePad();
+  ok(body.classList.contains('dr-place'), 'placement mode is on');
+  puck.fire('pointerdown', { clientX: home + 40, clientY: 500 });
+  puck.fire('pointermove', { clientX: 60, clientY: 300 });
+  const moved = T().puck;
+  ok(moved.x < 120, 'the puck follows the drag to the left (x ' + Math.round(moved.x) + ')');
+  ok(T().ducking === false, 'dragging over the lower half never ducks');
+  puck.fire('pointerup', {});
+  gs.el('puckDone').fire('click', {});
+  ok(!body.classList.contains('dr-place'), 'Done leaves placement mode');
+  ok(T().puck.moved === true, 'the spot is marked as player-placed');
 
   const again = runGame({ seed: 8, store: gs.store, w: 360, h: 640 });
   again.T().start();
-  ok(again.T().puck.moved === true, 'the dragged spot is remembered next session');
-  ok(Math.abs(again.T().puck.x - dragged.x) <= 2, 'and it comes back where it was left');
+  ok(again.T().puck.moved === true, 'the placed spot is remembered next session');
+  ok(Math.abs(again.T().puck.x - moved.x) <= 2, 'and it comes back where it was left');
   ok(Object.keys(gs.store).filter(k => k.startsWith('dusk-runner_')).length === 1, 'exactly one dusk-runner_ key is persisted');
 }
 
