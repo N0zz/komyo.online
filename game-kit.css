@@ -323,9 +323,14 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
   /* overflow-y:auto silently flips overflow-x from visible→auto, so a vertical scrollbar (or any
      1px graze) spawned a horizontal one — clamp x and let children shrink instead */
   .gamekit-menu.gkm-split .gkm-rail { grid-area: rail; min-height: 0; overflow-y: auto; overflow-x: hidden;
-    display: flex; flex-direction: column; gap: 8px; }
+    display: flex; flex-direction: column; gap: 6px; }
   .gamekit-menu.gkm-split .gkm-rail > * { min-width: 0; max-width: 100%; flex-shrink: 0; }
-  .gamekit-menu.gkm-split .gkm-actions { grid-area: actions; align-self: end; margin: 0; padding: 0; border-top: none; }
+  .gamekit-menu.gkm-split .gkm-actions { grid-area: actions; align-self: end; margin: 0; padding: 0; border-top: none; gap: 7px; }
+  /* Landscape phones stack the actions in a short column, so every px of button chrome comes
+     straight out of the rail beside it — a second action used to push the rail into scrolling.
+     Compact them here (this block only; portrait and desktop keep the full-size buttons). */
+  .gamekit-menu.gkm-split .gkm-action { padding: 9px 14px; font-size: 12.5px; letter-spacing: 0.6px; }
+  .gamekit-menu.gkm-split .gkm-action.primary { padding: 11px 14px; font-size: 14.5px; letter-spacing: 1.2px; }
   .gamekit-menu.gkm-split .gkm-sec { margin: 0 0 8px; }
   .gamekit-menu.gkm-split .gkm-rail .gkm-sec { margin: 0; }
   .gamekit-menu.gkm-split .gkm-hint { margin: 0; text-align: left; }
