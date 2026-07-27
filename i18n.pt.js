@@ -3,6 +3,8 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.pt = {
   'cat.fhSections': 'Prateleiras',
+  'changelog.e82.title': 'Chrome Runner: um polegar, um comando 🕹️',
+  'changelog.e82.b0': 'Alteração: os dois botões nos cantos do Chrome Runner passam a ser um único comando redondo — a metade de cima salta, manter a de baixo agacha — por isso o jogo todo cabe debaixo de um só polegar. Arrasta-o pela barra do meio para onde o teu polegar realmente pousa; fica lá para a próxima. Tocar em qualquer outro sítio continua a saltar.',
   'changelog.e81.title': 'Controlos no telemóvel para Chrome Runner e Type Siege 📱',
   'changelog.e81.b0': 'Correção: o Chrome Runner passa a ter botões no ecrã no telemóvel — ⬆ para saltar, manter ⬇ para te agachares — e tocar em qualquer outro sítio continua a saltar. Antes, a parte de cima do ecrã saltava e a de baixo agachava, com uma linha divisória invisível que ficava num sítio diferente em cada telemóvel.',
   'changelog.e81.b1': 'Correção: abrir o teclado no Type Siege já não empurra o campo de batalha para fora do ecrã.',

@@ -3,6 +3,8 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.fr = {
   'cat.fhSections': 'Rayons',
+  'changelog.e82.title': 'Chrome Runner : un pouce, une commande 🕹️',
+  'changelog.e82.b0': 'Changement : les deux boutons dans les coins de Chrome Runner deviennent une seule commande ronde — la moitié haute saute, maintenir la moitié basse fait se baisser — le jeu entier tient donc sous un seul pouce. Fais-la glisser par la barre du milieu là où ton pouce se pose vraiment ; elle y restera la prochaine fois. Toucher n\'importe où ailleurs saute toujours.',
   'changelog.e81.title': 'Commandes tactiles pour Chrome Runner et Type Siege 📱',
   'changelog.e81.b0': 'Correction : Chrome Runner a enfin de vrais boutons à l\'écran sur téléphone — ⬆ pour sauter, maintenir ⬇ pour se baisser — et toucher n\'importe où ailleurs saute toujours. Avant, le haut de l\'écran sautait et le bas se baissait, avec une ligne de séparation invisible qui tombait à un endroit différent sur chaque téléphone.',
   'changelog.e81.b1': 'Correction : ouvrir le clavier dans Type Siege ne pousse plus le champ de bataille hors de l\'écran.',

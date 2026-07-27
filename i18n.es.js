@@ -3,6 +3,8 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.es = {
   'cat.fhSections': 'Estantes',
+  'changelog.e82.title': 'Chrome Runner: un pulgar, un mando 🕹️',
+  'changelog.e82.b0': 'Cambio: los dos botones de las esquinas de Chrome Runner son ahora un único mando redondo — la mitad de arriba salta, mantener la de abajo se agacha — así que todo el juego cabe bajo un solo pulgar. Arrástralo por la barra del centro hasta donde de verdad descansa tu pulgar; ahí seguirá la próxima vez. Tocar en cualquier otro sitio sigue saltando.',
   'changelog.e81.title': 'Controles táctiles para Chrome Runner y Type Siege 📱',
   'changelog.e81.b0': 'Corrección: Chrome Runner ya tiene botones en pantalla en el móvil — ⬆ para saltar, mantén ⬇ para agacharte — y tocar en cualquier otro sitio sigue saltando. Antes, la parte de arriba de la pantalla saltaba y la de abajo se agachaba, con una línea divisoria invisible que caía en un sitio distinto en cada móvil.',
   'changelog.e81.b1': 'Corrección: abrir el teclado en Type Siege ya no empuja el campo de batalla fuera de la pantalla.',

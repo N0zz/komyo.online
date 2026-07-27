@@ -3,6 +3,8 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.cs = {
   'cat.fhSections': 'Police',
+  'changelog.e82.title': 'Chrome Runner: jeden palec, jeden ovladač 🕹️',
+  'changelog.e82.b0': 'Změna: dvě tlačítka v rozích Chrome Runneru nahradil jeden kulatý ovladač — horní půlka skáče, podržení dolní se krčí — takže celá hra se vejde pod jeden palec. Přetáhni ho za proužek uprostřed tam, kde ti palec doopravdy leží; příště tam zůstane. Klepnutí kamkoli jinam pořád skáče.',
   'changelog.e81.title': 'Ovládání na telefonu pro Chrome Runner a Type Siege 📱',
   'changelog.e81.b0': 'Oprava: Chrome Runner má konečně na telefonu opravdová tlačítka na obrazovce — ⬆ pro skok, podrž ⬇ pro krčení — a klepnutí kamkoli jinam pořád skáče. Dřív horní část obrazovky skákala a spodní se krčila, přičemž neviditelná dělicí čára padla na každém telefonu jinam.',
   'changelog.e81.b1': 'Oprava: otevření klávesnice v Type Siege už nevytlačí bojiště mimo obrazovku.',

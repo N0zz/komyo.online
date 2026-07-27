@@ -3,6 +3,8 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.it = {
   'cat.fhSections': 'Ripiani',
+  'changelog.e82.title': 'Chrome Runner: un pollice, un pad 🕹️',
+  'changelog.e82.b0': 'Modifica: i due pulsanti agli angoli di Chrome Runner diventano un unico pad rotondo — la metà superiore salta, tenendo premuta quella inferiore ti abbassi — così tutto il gioco sta sotto un solo pollice. Trascinalo dalla barra centrale dove il pollice appoggia davvero: resterà lì anche la prossima volta. Toccare in qualsiasi altro punto fa comunque saltare.',
   'changelog.e81.title': 'Comandi da telefono per Chrome Runner e Type Siege 📱',
   'changelog.e81.b0': 'Correzione: Chrome Runner ha finalmente veri pulsanti a schermo sul telefono — ⬆ per saltare, tieni premuto ⬇ per abbassarti — e toccare in qualsiasi altro punto fa comunque saltare. Prima la parte alta dello schermo faceva saltare e quella bassa abbassare, con una linea di separazione invisibile che cadeva in un punto diverso su ogni telefono.',
   'changelog.e81.b1': 'Correzione: aprire la tastiera in Type Siege non spinge più il campo di battaglia fuori dallo schermo.',
