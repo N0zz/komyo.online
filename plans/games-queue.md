@@ -27,15 +27,12 @@ block them on it.
 
 | Game | Effort | Build notes |
 | --- | --- | --- |
-| **Dusk Runner** 🦖 `ARCADE`+`REFLEX` | low | Chrome offline-dino style — mono line-art, ground runner, jump/duck, obstacle spawner, speed ramp, day→night palette shift |
 | **Pump Stop** ⛽ `SKILL` (+`STRATEGY` manager) | trivial–low (solo) · med (manager) | Solo: hold to pump, **stop at the target** with momentum/overrun, scored by closeness. **Tolerance is tight (~1%):** $20 off by 20¢ = fine, by 50¢ = too far under. **Manager expansion (idea, discuss later):** run **4 pumps** — cars arrive with a paid limit, stop each near its limit. Over = free-gas penalty (costs the station); tiny-under = fine; a car left under-served/unattended → patience runs out → it **blocks the pump**; **all 4 blocked = game over**. Attention is the scarce resource → triage is the game. **Open decisions:** (a) cars **auto-fill and you only tap *stop*** vs you actively ***pump*** each; (b) **one active pump at a time** vs **all at once**; (c) tolerance band (~1%? scales with difficulty?). Tension: a tight ~1% band is hard to hit while juggling 4 pumps — (a)/(b) set how forgiving it must be. |
-| **Keyfall** ⌨️ `TYPING`+`SKILL` | low–med | falling words — type each before it lands; speed ramp, combos, WPM. Opens a wider WORD/TYPING lane (more later: anagram, spelling, Wordle-style guesser) |
 | **Word Hunt** 🔍 `WORD`+`PUZZLE` | low–med | letter-grid word search — drag to circle, timer, themed packs; word-placement generator |
 | **Sky Sling** 🎈 `SKILL`+`ARCADE` | med | bottom slingshot — drag back to aim & set power, release to fire at floating balloons; projectile physics (gravity + shifting wind), ricochets, multi-pop combos, ammo limits. Physics-aim — distinct from the kids tap-only Balloon Pop |
 | **Blink** 👁️ `LOGIC`+`PUZZLE` | med | observation/memory — items cross the screen ~10–30s, then Q&A ("how many ducks?") incl. **trick questions** about things never shown (background color, an item that wasn't there) |
 | **Pocket Rally** 🏎️ `RACING`+`ARCADE` | med | top-down multi-lane straight — weave the traffic, don't clip a bumper, distance + speed score |
 | **Market Parking** 🅿️ `SKILL`+`RACING` | med | packed lot, too few spots — race rivals to an empty space and park before them; P1–4 (bots fill the solo game) |
-| **Floodgate** 🚰 `LOGIC`+`PUZZLE` | med | pipe-routing — rotate tiles to connect source→drain before the flood; **solvable-by-construction**, leak-plug variant, grid + timer scaling |
 | **Invaders** 👾 `SHOOTER`+`ARCADE` | med | formation movement, descending rows, shields, escalating waves |
 | **Road Hop** 🐸 `ARCADE`+`CASUAL` | med | lane spawns, log-riding, endless scroll. **Direction (2026-07-26):** don't cross *between* the cars — hop **across car roofs**, with road signs as the obstacles you must duck/avoid. Cars move, so the landing target moves; the frogger-style crossing stays the fallback reading |
 | **Arcane** 🔮 `ACTION`+`SHOOTER` | med–high | spell variety + wave AI (scope-dependent) |
@@ -94,6 +91,7 @@ parents+teens marketing lane.
 | **Mouse maze to the chest** | low | walk a floor grid in 4 directions to reach a chest, but the floor has **edges** — step off and you fall into the crocodile river. Hazard-avoidance rather than route puzzling; can share tech with Memory maze (same grid + fall) |
 | **Swing monkey variation** | low–med | rope/grapple swinging — attach, ride the arc, release at the right moment to carry momentum to the next anchor; distance or height score. Timing-skill, no balance tuning. `gamekit.loopAlpha()` matters here (fast linear motion) |
 | **Sliding-tile puzzle** (15-puzzle) | low | promoted out of the puzzle-lane list into its own candidate — shuffle-then-solve, always solvable by construction (shuffle from the solved state), move counter + timer, picture mode as a cosmetic. Daily-seeded board is free |
+| **Plumber Jack** (leak-chasing action) | med | The ORIGINAL Floodgate idea, kept as its own game (2026-07-26): a board of pipework where you *control a plumber* with tools and run between **cracks that spring leaks**. Fix one, another bursts elsewhere; the water level rises while a leak is unattended, and if it reaches the top you're flooded and lose. Score = leaks sealed / time survived. Attention-routing under pressure, not rotation puzzling — the shipped Floodgate is the rotate-the-pipes puzzle, this is the arcade cousin. Knobs: leak spawn rate, walk speed vs board size, tool swap time, a wrench/patch/valve kit. Watch the balance-heavy guard: keep it to ONE board and a single rising-water meter before adding upgrades |
 | **Base + run-and-gun** | med–high | walk and shoot; return to **base** to buy better weapons/armor; enemies attack both you and the base; your death = respawn at base (keep progress), **base destroyed = game over**. ⚠️ Collides with the avoid-balance-heavy guard — economy × waves × upgrades is exactly the tuning load that ate the tower-defense builds. Only take it on deliberately, and scope it small (one map, ~4 upgrades) if so |
 
 ## Kids-first (ages 6–10)
@@ -145,4 +143,7 @@ day one, ~≤100 KB budget.
 ## Shipped from this pool
 
 Forcefield · Frog Bonk (was "Frog Rush") · Sudoku · Minesweeper · 2048 · Trap the Cat · Glow Says ·
-Balloon Pop · Critter Match. Full history in `ROADMAP-archive.md`.
+Balloon Pop · Critter Match · **Chrome Runner** (was "Dusk Runner"; slug stays `dusk-runner`) ·
+**Floodgate** (the rotate-the-pipes puzzle — the plumber-action original lives on as **Plumber Jack**
+above) · **Mirror Maze** · **Type Siege** (was "Keyfall"; the falling-words idea survives as its Rain
+mode). Full history in `ROADMAP-archive.md`.

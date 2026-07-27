@@ -1,6 +1,6 @@
 // Real-browser menu-fit gate. Loads every live game in headless Chromium at the two tight viewports
-// and asserts the START menu AND a representative END screen (score card + New best + stat line) do
-// NOT scroll (box / scroll pane / landscape rail all fit). Unlike the
+// and asserts the START menu, the game's own PAUSE menu and a representative END screen (score card +
+// New best + stat line) do NOT scroll (box / scroll pane / landscape rail all fit). Unlike the
 // old JS model, this uses the real CSS layout engine — it can't give a false "fits". Service workers
 // are blocked so it always tests the on-disk CSS, never a cached build. Live games are auto-discovered
 // from games.js (a new game is covered automatically). Dev-only: needs `npm i` (playwright).
@@ -73,6 +73,30 @@ for (const g of games) {
       const endOver = Math.max(e.box, e.pane, e.rail);
       if (endOver > 1) fails.push(`${g} (${v.n}) END: menu SCROLLS +${endOver}px (${e.rail > 1 ? 'rail' : e.pane > 1 ? 'card pane' : 'box'})`);
     }
+
+    // PAUSE menu — the game's OWN pause screen (not a kit stand-in), reached through its `__test`
+    // hooks. It carries content the start menu doesn't (display prefs, a hint action, quit), so it
+    // has its own fit budget: Mirror Maze's pause pane scrolled while its start menu fitted.
+    const ps = await page.evaluate(async () => {
+      const T = window.__test, K = window.gamekit;
+      if (!T || !T.start) return { skip: 'no __test.start' };
+      try {
+        K.menu.hide(); T.start();
+        await new Promise(r => setTimeout(r, 140));
+        if (T.pause) T.pause();
+        else window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+        await new Promise(r => setTimeout(r, 260));
+      } catch (err) { return { err: String(err) }; }
+      const box = document.querySelector('.gkm-box');
+      if (!box || !K.menu.current()) return { skip: 'pause menu did not open' };
+      const ov = el => el ? Math.max(0, el.scrollHeight - el.clientHeight) : 0, q = s => document.querySelector(s);
+      return { box: ov(box), pane: ov(q('.gkm-scroll')), rail: ov(q('.gkm-rail')) };
+    });
+    if (ps.skip) skips.push(`${g} (${v.n}) PAUSE: ${ps.skip}`);
+    else if (!ps.err) {
+      const pauseOver = Math.max(ps.box, ps.pane, ps.rail);
+      if (pauseOver > 1) fails.push(`${g} (${v.n}) PAUSE: menu SCROLLS +${pauseOver}px (${ps.rail > 1 ? 'rail' : ps.pane > 1 ? 'pane' : 'box'})`);
+    }
   }
 }
 
@@ -85,4 +109,4 @@ if (fails.length) {
   fails.forEach(f => console.error('  - ' + f));
   process.exit(1);
 }
-console.log(`\n✓ menu-fit: all ${games.length} live games × ${VPS.length} viewports (start + end) — no menu scrolls.`);
+console.log(`\n✓ menu-fit: all ${games.length} live games × ${VPS.length} viewports (start + pause + end) — no menu scrolls.`);
