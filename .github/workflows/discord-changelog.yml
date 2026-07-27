@@ -14,6 +14,15 @@ on:
   push:
     branches: [main]
     paths: ['changelog.js']
+  # Manual RE-POST — for when a post went out wrong (or not at all) and Discord needs the entry
+  # again. `repost` = how many NEWEST entries to send, or a YYYY-MM-DD to send that date's entries.
+  # It skips the diff entirely, so it never depends on which commit the entry landed in.
+  workflow_dispatch:
+    inputs:
+      repost:
+        description: 'Newest-N entries to re-post (e.g. 2) or a date (YYYY-MM-DD)'
+        required: true
+        default: '1'
 
 jobs:
   notify:
@@ -26,6 +35,7 @@ jobs:
         env:
           WEBHOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
           BEFORE: ${{ github.event.before }}
+          REPOST: ${{ inputs.repost }}
         run: |
           if [ -z "$WEBHOOK" ]; then echo "DISCORD_CHANGELOG_WEBHOOK not set — skipping."; exit 0; fi
           node scripts/post-changelog.mjs
