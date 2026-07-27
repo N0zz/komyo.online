@@ -42,6 +42,12 @@ for (const r of cur) {
 
 if (!fresh.length) { console.log('No new changelog entries — nothing to post.'); process.exit(0); }
 
+// POST OLDEST FIRST. changelog.js is newest-first (that is how the 🗒️ modal reads, top of the page
+// = latest), but a chat channel appends downward, so posting in file order makes a multi-entry push
+// read backwards: fixes to a game announced before the message announcing the game. Reversing gives
+// the channel the same chronology as the rest of its history. A single-entry push is unaffected.
+fresh.reverse();
+
 // Discord caps message content at 2000 chars. Never truncate mid-sentence: build one block per
 // release, splitting an over-long release on bullet boundaries (re-heading the continuation), then
 // pack blocks into as few messages as fit and post them in order.

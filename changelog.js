@@ -4,14 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
-  { date: '2026-07-27', title: 'Sideways phones, fast typists and tidier shelves 📐', items: [
-    'Fix: Type Siege no longer swallows the letter you type right after a typo — the mistake still costs points and your combo, but the correction always lands.',
-    'New: on a phone held sideways, Mirror Maze and Floodgate move the 🔍 HINT button — and Floodgate\'s colour key — to a rail on the left, so the board is up to 40% bigger.',
-    'Fix: Mirror Maze\'s pause menu no longer scrolls on a landscape phone. (Every game\'s menus gained a little breathing room around the selected button.)',
+  { date: '2026-07-27', title: 'Home-page shelves, weeklies and Sudoku hints 🧹', items: [
     'New: the Filter panel can hide shelves you don\'t want — Favorites, Recently played, ✨ What\'s new and 💡 For you — so the home page can show just All games.',
     'Change: weekly challenges are now always about variety or volume ("play 5 different games this week"). "Play this one game", stretched over seven days, asked for nothing.',
-    'Fix: Type Siege\'s start screen no longer leaves half the menu empty on a sideways phone — the three modes read as full rows.',
-    'Change: Type Siege stops dropping repair crates while your wall is at full health — the word was never worth typing.',
     'Change: Sudoku\'s hint now uses the same 🔍 HINT button as the other puzzle games (the 💡 pad key is gone, H still works) — tap the explanation to tuck it away.',
   ] },
   { date: '2026-07-27', title: 'Every game sounds like itself 🎵', items: [
