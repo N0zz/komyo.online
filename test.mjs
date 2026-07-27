@@ -1552,6 +1552,49 @@ testTD();
 testLiveGames();
 await testKit();
 testKitChrome();
+// ---------------- shared word banks (words.js) ----------------
+// One place a word lives, so every word game inherits the same vocabulary AND the same matching
+// rules. The checks below are the ones that actually bite: a word that isn't unique after diacritic
+// FOLDING (or, for Ukrainian, after LATIN TRANSLITERATION) is indistinguishable from its twin while
+// playing, and a bank that quietly shrinks makes one language feel repetitive.
+function testWords() {
+  section('word banks (words.js)');
+  const w = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(DIR, 'words.js'), 'utf8'), w);
+  const K = w.window.KOMYO_WORDS;
+  ok(!!K && !!K.banks, 'words.js defines window.KOMYO_WORDS.banks');
+  if (!K || !K.banks) return;
+  // every locale that has translations must have a bank (a word game shipping 8 UI languages and 2
+  // word banks is exactly the inconsistency this catches)
+  const locales = fs.readdirSync(DIR).filter(f => /^i18n\.[a-z]{2}\.js$/.test(f)).map(f => f.split('.')[1]).concat(['en']);
+  const missing = locales.filter(l => !Array.isArray(K.banks[l]));
+  ok(missing.length === 0, 'every populated locale has a word bank' + (missing.length ? ' — missing: ' + missing.join(', ') : ''));
+  for (const code of Object.keys(K.banks)) {
+    const list = K.banks[code];
+    ok(list.length >= 1400, code + ': bank has >= 1400 words (' + list.length + ')');
+    ok(new Set(list).size === list.length, code + ': no duplicate words');
+    ok(new Set(list.map(K.fold)).size === list.length, code + ': still unique after diacritic folding');
+    if (code === 'uk') ok(new Set(list.map(K.translit)).size === list.length, 'uk: still unique after Latin transliteration');
+    const bad = list.filter(x => !/^[\p{L}]+$/u.test(x));
+    ok(bad.length === 0, code + ': letters only, no spaces/digits/punctuation' + (bad.length ? ' — e.g. ' + bad.slice(0, 3).join(', ') : ''));
+    const len = list.filter(x => x.length < 3 || x.length > 14);
+    ok(len.length === 0, code + ': every word is 3-14 characters' + (len.length ? ' — e.g. ' + len.slice(0, 3).join(', ') : ''));
+    const b = K.bands(code);
+    ok(b.short.length > 0 && b.medium.length > 0 && b.long.length > 0, code + ': splits into three non-empty difficulty bands');
+    const avg = a => a.reduce((t, x) => t + x.length, 0) / a.length;
+    ok(avg(b.long) > avg(b.short) + 1, code + ': the long band really is longer than the short one (' + avg(b.short).toFixed(1) + ' → ' + avg(b.long).toFixed(1) + ')');
+  }
+  ok(K.fold('żółw') === 'zolw', "fold() handles Polish ł + combining marks ('żółw' → 'zolw')");
+  ok(K.translit('жаба') === 'zhaba', "translit() maps Ukrainian Cyrillic to Latin ('жаба' → 'zhaba')");
+  // words.js is opt-in per game and must be cached for offline play by any game that loads it
+  const sw = fs.readFileSync(path.join(DIR, 'sw.js'), 'utf8');
+  const users = fs.readdirSync(path.join(DIR, 'games')).filter(g => {
+    const f = path.join(DIR, 'games', g, 'index.html');
+    return fs.existsSync(f) && fs.readFileSync(f, 'utf8').includes('words.js');
+  });
+  if (users.length) ok(sw.includes("'./words.js'"), 'words.js is in the root sw.js SHELL (used by: ' + users.join(', ') + ')');
+}
+
 testFullscreen();
 testRecentlyPlayed();
 testI18n();
@@ -1561,4 +1604,5 @@ testCosmetics();
 testServiceWorkers();
 testSEO();
 testQR();
+testWords();
 summary();
