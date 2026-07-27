@@ -53,28 +53,42 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   #hud .val { color: #f2eee2; }
   /* On-screen control (touch only): ONE round puck, jump on top, duck below, so the whole thing
      sits under a single thumb. A circle — not a diamond — because a diamond spends its width on
-     the horizontal axis, which is the one axis this control has no actions on. The middle band is
-     the drag grip (drag it anywhere; the spot is remembered), which doubles as the visual line
-     between the two halves. A tap anywhere else on the canvas still jumps, so the puck is an
-     anchor for the thumb, never a gate. */
+     the horizontal axis, which is the one axis this control has no actions on. Sized so each half
+     is a ~68px target: at 44px you have to LOOK at the puck to hit it, and looking at the control
+     is looking away from the cacti.
+     The divider is decoration only (pointer-events: none). It was briefly a drag handle, which
+     could never work: Chrome's touch adjustment snaps any touch near a thin non-interactive strip
+     onto the big <button>s flanking it, so the handle received literally zero events. Repositioning
+     lives in the menus instead — see placement mode, where the whole puck is the handle and the
+     halves are inert. */
   #puck { position: fixed; z-index: 6; display: none; flex-direction: column; overflow: hidden;
     border-radius: 50%; border: 2px solid rgba(207,224,242,0.45); background: rgba(19,27,38,0.42);
     touch-action: none; -webkit-user-select: none; user-select: none; opacity: 1;
     transition: opacity .35s ease; }
-  body.dr-touch.dr-run #puck { display: flex; }
-  #puck.dim { opacity: .4; }
+  body.dr-touch.dr-run #puck, body.dr-touch.dr-place #puck { display: flex; }
+  #puck.dim { opacity: .42; }
   #puck button { flex: 1; min-height: 0; font-family: inherit; border: 0; padding: 0;
-    background: transparent; color: #e8eef5; font-size: 24px; line-height: 1; touch-action: none;
+    background: transparent; color: #e8eef5; font-size: 30px; line-height: 1; touch-action: none;
     display: flex; align-items: center; justify-content: center; transition: background .08s; }
   #puck button:active, #puck button.on { background: rgba(207,224,242,0.30); }
-  #puckGrip { height: 14px; flex: none; cursor: move; touch-action: none;
-    background: rgba(207,224,242,0.26); display: flex; align-items: center; justify-content: center; }
-  #puckGrip i { width: 22px; height: 2px; border-radius: 2px; background: rgba(232,238,245,0.55); }
+  #puckGrip { height: 3px; flex: none; pointer-events: none; background: rgba(207,224,242,0.30); }
+  /* placement mode: the puck becomes one draggable object and stops being a control */
+  body.dr-place #puck { opacity: 1; cursor: move; border-color: rgba(207,224,242,0.9);
+    box-shadow: 0 0 0 3px rgba(207,224,242,0.22); }
+  body.dr-place #puck button { pointer-events: none; }
+  #puckBar { position: fixed; left: 0; right: 0; top: 0; z-index: 82; display: none;
+    padding: 10px 12px; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+    background: rgba(19,27,38,0.92); color: #e8eef5; font-size: 13px; text-align: center; }
+  body.dr-place #puckBar { display: flex; }
+  #puckBar button { font-family: inherit; font-size: 13px; font-weight: 700; letter-spacing: .06em;
+    padding: 9px 20px; border-radius: 10px; cursor: pointer; color: #131b26;
+    border: 0; background: #cfe0f2; }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="puck"><button id="puckUp" type="button" aria-label="Jump">⬆</button><div id="puckGrip"><i></i></div><button id="puckDown" type="button" aria-label="Duck">⬇</button></div>
+<div id="puck"><button id="puckUp" type="button" aria-label="Jump">⬆</button><div id="puckGrip"></div><button id="puckDown" type="button" aria-label="Duck">⬇</button></div>
+<div id="puckBar"><span id="puckHint"></span><button id="puckDone" type="button"></button></div>
 <div id="hud" class="gamekit-hud">
   <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
   <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
@@ -1147,7 +1161,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       hint: st => st.mode === 'sprint'
         ? KIT.t('game.dusk-runner.hintSprint', { par: SPRINT_PAR[st.pace] || SPRINT_PAR.normal, def: 'Race today\'s course to 1000 m. Par {par}s — chain slipstreams to beat it.' })
         : KIT.t('game.dusk-runner.hintEndless', { def: 'Jump the cacti, duck the gantries. Shave past an obstacle for a slipstream boost.' }),
-      actions: [{ id: 'play', label: KIT.t('game.dusk-runner.go', { def: 'START RUNNING' }), primary: true }],
+      actions: [{ id: 'play', label: KIT.t('game.dusk-runner.go', { def: 'START RUNNING' }), primary: true }].concat(
+        isTouch ? [{ id: 'movepad', label: '🕹️ ' + KIT.t('game.dusk-runner.movePad', { def: 'MOVE THE PAD' }) }] : []),
+      onAction: id => { if (id === 'movepad') startPlacing(showStartMenu); },
       onChange: st => { mode = st.mode; pace = st.pace; best = loadBest(); KIT.stampUrl({ mode: st.mode, pace: st.pace }); updateHud(); },
       onPlay: st => { mode = st.mode; pace = st.pace; startGame(); },
     });
@@ -1191,10 +1207,12 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       lines: [KIT.t('game.dusk-runner.pauseLine', { score: score, def: '{score} m so far' })],
       actions: [
         { id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
-        { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true },
-      ],
-      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
+      ].concat(isTouch ? [{ id: 'movepad', label: '🕹️ ' + KIT.t('game.dusk-runner.movePad', { def: 'MOVE THE PAD' }) }] : [],
+        [{ id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true }]),
+      onAction: id => { if (id === 'resume') resumeGame(); else if (id === 'movepad') startPlacing(rePause); else if (id === 'menu') toMenu(); }, onEsc: resumeGame });
   }
+  // placement mode leaves the run paused with no menu up; pauseGame() only opens from 'playing'
+  function rePause() { if (state === 'paused') state = 'playing'; pauseGame(); }
   function resumeGame() { if (state !== 'paused') return; state = 'playing'; if (KIT) KIT.menu.hide(); showPads(true); }
   function startGame() {
     // Sprint = a daily COURSE seed (same for everyone today, new tomorrow); Endless stays random
@@ -1256,8 +1274,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // wrong, a finger on the glass cannot. Showing a spare button to a mouse costs nothing, so this
   // errs generous; Type Siege's rotate gate LOCKS the player out, so it reads `coarse` only.
   let touched = false, isTouch = false;
-  const puckEl = document.getElementById('puck'), puckGrip = document.getElementById('puckGrip');
+  const puckEl = document.getElementById('puck');
   const puckUp = document.getElementById('puckUp'), puckDown = document.getElementById('puckDown');
+  const puckDoneEl = document.getElementById('puckDone'), puckHintEl = document.getElementById('puckHint');
+  if (puckDoneEl) puckDoneEl.textContent = KIT.t('game.common.done', { def: 'DONE' });
+  if (puckHintEl) puckHintEl.textContent = KIT.t('game.dusk-runner.placeHint', { def: 'Drag the pad where your thumb sits' });
   function syncTouch() {
     let coarse = false, pts = 0;
     try { coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches; } catch (e) {}
@@ -1290,27 +1311,26 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (!puckPos) return;
     try { localStorage.setItem(PUCK_KEY, JSON.stringify({ v: 1, fx: +puckPos.fx.toFixed(4), fy: +puckPos.fy.toFixed(4) })); } catch (e) {}
   }
+  // ~68px per half. The first cut was 44px and you had to LOOK at the puck to hit it — which is
+  // exactly the attention the control was supposed to give back to the gameplay.
   function puckSize() {
-    const sand = Math.max(0, H - groundY);
-    let s = Math.max(76, Math.min(118, Math.min(W, H) * 0.28));
-    // Landscape has barely any sand: cap so the puck's default spot only just grazes the play band
-    // instead of floating a third of the way up it.
-    if (KIT.layout.landscape) s = Math.min(s, sand + 2);
-    return Math.round(Math.max(72, s));
+    return Math.round(Math.max(132, Math.min(172, Math.min(W, H) * 0.42)));
+  }
+  function puckBounds(size) {
+    return { maxX: Math.max(0, W - size - 12), maxY: Math.max(0, H - size - 8) };
   }
   function layoutPads() {
     if (!puckEl || !puckEl.style) return;   // sized even on a mouse: CSS, not JS, decides visibility
-    const size = puckSize(), sand = Math.max(0, H - groundY);
-    const maxX = Math.max(0, W - size - 12), maxY = Math.max(0, H - size - 8);
+    const size = puckSize(), sand = Math.max(0, H - groundY), b = puckBounds(size);
     let x, y;
-    if (puckPos) { x = puckPos.fx * maxX; y = puckPos.fy * maxY; }
-    else {  // default: right thumb, tucked into the sand strip below the ground line
-      x = maxX;
-      y = Math.min(maxY, groundY + Math.max(4, (sand - size) / 2));
+    if (puckPos) { x = puckPos.fx * b.maxX; y = puckPos.fy * b.maxY; }
+    else {  // default: right thumb, as low as the screen allows — the puck no longer fits the sand
+      x = b.maxX;                                        // strip at this size, so it rides the band
+      y = Math.min(b.maxY, groundY + Math.max(4, (sand - size) / 2));
     }
     puckEl.style.width = size + 'px'; puckEl.style.height = size + 'px';
-    puckEl.style.left = Math.round(Math.max(12, Math.min(maxX, x))) + 'px';
-    puckEl.style.top = Math.round(Math.max(0, Math.min(maxY, y))) + 'px';
+    puckEl.style.left = Math.round(Math.max(12, Math.min(b.maxX, x))) + 'px';
+    puckEl.style.top = Math.round(Math.max(0, Math.min(b.maxY, y))) + 'px';
   }
   // The puck fades back once you stop touching it, so a control you are not using stops competing
   // with the obstacles for attention.
@@ -1318,7 +1338,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function undim() {
     if (puckEl && puckEl.classList) puckEl.classList.remove('dim');
     try { clearTimeout(dimT); } catch (e) {}
-    try { dimT = setTimeout(() => { if (puckEl && puckEl.classList && state === 'playing') puckEl.classList.add('dim'); }, 2600); } catch (e) {}
+    try { dimT = setTimeout(() => { if (puckEl && puckEl.classList && state === 'playing' && !placing) puckEl.classList.add('dim'); }, 2600); } catch (e) {}
   }
   function puckHold(on) {
     if (puckDown && puckDown.classList) puckDown.classList.toggle('on', !!on);
@@ -1326,38 +1346,55 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     undim();
   }
   if (puckDown && puckDown.addEventListener) {
-    puckDown.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); puckHold(true); });
+    puckDown.addEventListener('pointerdown', e => { if (placing) return; e.preventDefault(); e.stopPropagation(); puckHold(true); });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev =>
-      puckDown.addEventListener(ev, () => puckHold(false)));
+      puckDown.addEventListener(ev, () => { if (!placing) puckHold(false); }));
   }
   if (puckUp && puckUp.addEventListener) {
-    puckUp.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); jump(); undim(); });
+    puckUp.addEventListener('pointerdown', e => { if (placing) return; e.preventDefault(); e.stopPropagation(); jump(); undim(); });
   }
-  // ---- drag the puck by its middle band ----
-  let dragDx = 0, dragDy = 0, dragging = false;
-  if (puckGrip && puckGrip.addEventListener) {
-    puckGrip.addEventListener('pointerdown', e => {
+
+  // ---- placement mode: reposition the puck from a menu, never mid-run ----
+  // Dragging DURING play was the previous attempt and it was unusable twice over: the handle had to
+  // be thin to leave the halves room, and a thin handle between two buttons is unreachable (Chrome
+  // snaps the touch to the buttons). Here the whole puck is the handle, the halves are inert, and
+  // nothing is chasing you while you place it.
+  let placing = false, dragDx = 0, dragDy = 0, dragging = false;
+  function startPlacing(back) {
+    placing = true; placeBack = back || null;
+    if (KIT.menu.current()) KIT.menu.hide();
+    if (document.body && document.body.classList) document.body.classList.add('dr-place');
+    if (puckEl && puckEl.classList) puckEl.classList.remove('dim');
+    layoutPads();
+  }
+  function stopPlacing() {
+    placing = false; dragging = false;
+    if (document.body && document.body.classList) document.body.classList.remove('dr-place');
+    savePuck();
+    const back = placeBack; placeBack = null;
+    if (back) back();
+  }
+  let placeBack = null;
+  if (puckEl && puckEl.addEventListener) {
+    puckEl.addEventListener('pointerdown', e => {
+      if (!placing) return;
       e.preventDefault(); e.stopPropagation();
       const r = puckEl.getBoundingClientRect ? puckEl.getBoundingClientRect() : { left: 0, top: 0 };
       dragDx = (e.clientX || 0) - r.left; dragDy = (e.clientY || 0) - r.top; dragging = true;
-      try { if (puckGrip.setPointerCapture && e.pointerId != null) puckGrip.setPointerCapture(e.pointerId); } catch (er) {}
-      undim();
+      try { if (puckEl.setPointerCapture && e.pointerId != null) puckEl.setPointerCapture(e.pointerId); } catch (er) {}
     });
-    puckGrip.addEventListener('pointermove', e => {
-      if (!dragging) return;
+    puckEl.addEventListener('pointermove', e => {
+      if (!placing || !dragging) return;
       e.preventDefault();
-      const size = puckSize();
-      const maxX = Math.max(0, W - size - 12), maxY = Math.max(0, H - size - 8);
-      const x = Math.max(12, Math.min(maxX, (e.clientX || 0) - dragDx));
-      const y = Math.max(0, Math.min(maxY, (e.clientY || 0) - dragDy));
+      const b = puckBounds(puckSize());
+      const x = Math.max(12, Math.min(b.maxX, (e.clientX || 0) - dragDx));
+      const y = Math.max(0, Math.min(b.maxY, (e.clientY || 0) - dragDy));
       puckEl.style.left = Math.round(x) + 'px'; puckEl.style.top = Math.round(y) + 'px';
-      puckPos = { fx: maxX ? x / maxX : 0, fy: maxY ? y / maxY : 0 };
+      puckPos = { fx: b.maxX ? x / b.maxX : 0, fy: b.maxY ? y / b.maxY : 0 };
     });
-    ['pointerup', 'pointercancel'].forEach(ev => puckGrip.addEventListener(ev, () => {
-      if (!dragging) return;
-      dragging = false; savePuck(); undim();
-    }));
+    ['pointerup', 'pointercancel'].forEach(ev => puckEl.addEventListener(ev, () => { dragging = false; }));
   }
+  if (puckDoneEl && puckDoneEl.addEventListener) puckDoneEl.addEventListener('click', () => stopPlacing());
 
   // ---------------------------------------------------------------- chrome
   KIT.layout.archetype('action', { bottom: 54 });   // top HUD headroom + the sand plane below the line
@@ -1400,6 +1437,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     get pows() { return pows.map(w => w.text); },
     get sky() { return palette().sky; },
     get ink() { return palette().ink; },
+    placePad() { startPlacing(null); },
+    get placing() { return placing; },
     get puck() {
       const s = puckSize();
       return { size: s, x: parseFloat(puckEl && puckEl.style ? puckEl.style.left : 0) || 0,
