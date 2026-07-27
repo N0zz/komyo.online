@@ -51,23 +51,30 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   #game { display: block; width: 100vw; height: 100vh; }
   /* the kit HUD pill is dark — light values, not the game's ink tone */
   #hud .val { color: #f2eee2; }
-  /* On-screen pads (touch only). They live in the dead sand strip BELOW the ground line — no
-     obstacle ever reaches there — so they cost the play band nothing. JS sets top/size from the
-     measured strip; a tap anywhere on the canvas still jumps, so the pads are an anchor for the
-     thumb, not a gate. */
-  #pads { position: fixed; left: 0; right: 0; z-index: 6; display: none;
-    justify-content: space-between; padding: 0 14px; pointer-events: none; }
-  body.dr-touch.dr-run #pads { display: flex; }
-  #pads button { pointer-events: auto; font-family: inherit; border-radius: 18px; padding: 0;
-    border: 2px solid rgba(207,224,242,0.45); background: rgba(19,27,38,0.42); color: #e8eef5;
-    font-size: 26px; line-height: 1; touch-action: none; -webkit-user-select: none; user-select: none;
-    display: flex; align-items: center; justify-content: center; transition: background .08s, transform .08s; }
-  #pads button:active, #pads button.on { background: rgba(207,224,242,0.34); transform: scale(0.94); }
+  /* On-screen control (touch only): ONE round puck, jump on top, duck below, so the whole thing
+     sits under a single thumb. A circle — not a diamond — because a diamond spends its width on
+     the horizontal axis, which is the one axis this control has no actions on. The middle band is
+     the drag grip (drag it anywhere; the spot is remembered), which doubles as the visual line
+     between the two halves. A tap anywhere else on the canvas still jumps, so the puck is an
+     anchor for the thumb, never a gate. */
+  #puck { position: fixed; z-index: 6; display: none; flex-direction: column; overflow: hidden;
+    border-radius: 50%; border: 2px solid rgba(207,224,242,0.45); background: rgba(19,27,38,0.42);
+    touch-action: none; -webkit-user-select: none; user-select: none; opacity: 1;
+    transition: opacity .35s ease; }
+  body.dr-touch.dr-run #puck { display: flex; }
+  #puck.dim { opacity: .4; }
+  #puck button { flex: 1; min-height: 0; font-family: inherit; border: 0; padding: 0;
+    background: transparent; color: #e8eef5; font-size: 24px; line-height: 1; touch-action: none;
+    display: flex; align-items: center; justify-content: center; transition: background .08s; }
+  #puck button:active, #puck button.on { background: rgba(207,224,242,0.30); }
+  #puckGrip { height: 14px; flex: none; cursor: move; touch-action: none;
+    background: rgba(207,224,242,0.26); display: flex; align-items: center; justify-content: center; }
+  #puckGrip i { width: 22px; height: 2px; border-radius: 2px; background: rgba(232,238,245,0.55); }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
-<div id="pads"><button id="padDuck" type="button" aria-label="Duck">⬇</button><button id="padJump" type="button" aria-label="Jump">⬆</button></div>
+<div id="puck"><button id="puckUp" type="button" aria-label="Jump">⬆</button><div id="puckGrip"><i></i></div><button id="puckDown" type="button" aria-label="Duck">⬇</button></div>
 <div id="hud" class="gamekit-hud">
   <div class="stat"><span class="lbl" id="lblScore">SCORE</span><span class="val" id="scoreEl">0</span></div>
   <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
@@ -1249,8 +1256,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // wrong, a finger on the glass cannot. Showing a spare button to a mouse costs nothing, so this
   // errs generous; Type Siege's rotate gate LOCKS the player out, so it reads `coarse` only.
   let touched = false, isTouch = false;
-  const padsEl = document.getElementById('pads');
-  const padDuck = document.getElementById('padDuck'), padJump = document.getElementById('padJump');
+  const puckEl = document.getElementById('puck'), puckGrip = document.getElementById('puckGrip');
+  const puckUp = document.getElementById('puckUp'), puckDown = document.getElementById('puckDown');
   function syncTouch() {
     let coarse = false, pts = 0;
     try { coarse = typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches; } catch (e) {}
@@ -1268,28 +1275,88 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function showPads(on) {
     if (!document.body || !document.body.classList) return;
     document.body.classList.toggle('dr-run', !!on);
-    if (!on && padDuck && padDuck.classList) { padDuck.classList.remove('on'); setDuck(false); }
+    if (on) undim(); else if (puckDown && puckDown.classList) { puckDown.classList.remove('on'); setDuck(false); }
   }
-  // The pads sit in the sand strip between the ground line and the bottom edge — measured, not
-  // guessed, so a short landscape screen shrinks them instead of overlapping the play band.
-  function layoutPads() {
-    if (!padsEl || !padsEl.style) return;   // sized even on a mouse: CSS, not JS, decides visibility
+  // Position is stored as a FRACTION of the free area, not px: a phone that rotates would otherwise
+  // strand the puck off-screen or on top of the runner. {v:1} from day one, one tiny record, written
+  // on drag end only.
+  const PUCK_KEY = SLUG + '_puck';
+  let puckPos = null;   // {fx, fy} in 0..1, or null = the default corner
+  try {
+    const raw = JSON.parse(localStorage.getItem(PUCK_KEY) || 'null');
+    if (raw && raw.v === 1 && isFinite(raw.fx) && isFinite(raw.fy)) puckPos = { fx: raw.fx, fy: raw.fy };
+  } catch (e) {}
+  function savePuck() {
+    if (!puckPos) return;
+    try { localStorage.setItem(PUCK_KEY, JSON.stringify({ v: 1, fx: +puckPos.fx.toFixed(4), fy: +puckPos.fy.toFixed(4) })); } catch (e) {}
+  }
+  function puckSize() {
     const sand = Math.max(0, H - groundY);
-    const size = Math.round(Math.max(50, Math.min(78, sand - 14)));
-    padsEl.style.top = Math.round(groundY + Math.max(6, (sand - size) / 2)) + 'px';
-    [padDuck, padJump].forEach(b => { if (b && b.style) { b.style.width = size + 'px'; b.style.height = size + 'px'; } });
+    let s = Math.max(76, Math.min(118, Math.min(W, H) * 0.28));
+    // Landscape has barely any sand: cap so the puck's default spot only just grazes the play band
+    // instead of floating a third of the way up it.
+    if (KIT.layout.landscape) s = Math.min(s, sand + 2);
+    return Math.round(Math.max(72, s));
   }
-  function padHold(btn, on) {
-    if (btn && btn.classList) btn.classList.toggle('on', !!on);
+  function layoutPads() {
+    if (!puckEl || !puckEl.style) return;   // sized even on a mouse: CSS, not JS, decides visibility
+    const size = puckSize(), sand = Math.max(0, H - groundY);
+    const maxX = Math.max(0, W - size - 12), maxY = Math.max(0, H - size - 8);
+    let x, y;
+    if (puckPos) { x = puckPos.fx * maxX; y = puckPos.fy * maxY; }
+    else {  // default: right thumb, tucked into the sand strip below the ground line
+      x = maxX;
+      y = Math.min(maxY, groundY + Math.max(4, (sand - size) / 2));
+    }
+    puckEl.style.width = size + 'px'; puckEl.style.height = size + 'px';
+    puckEl.style.left = Math.round(Math.max(12, Math.min(maxX, x))) + 'px';
+    puckEl.style.top = Math.round(Math.max(0, Math.min(maxY, y))) + 'px';
+  }
+  // The puck fades back once you stop touching it, so a control you are not using stops competing
+  // with the obstacles for attention.
+  let dimT = 0;
+  function undim() {
+    if (puckEl && puckEl.classList) puckEl.classList.remove('dim');
+    try { clearTimeout(dimT); } catch (e) {}
+    try { dimT = setTimeout(() => { if (puckEl && puckEl.classList && state === 'playing') puckEl.classList.add('dim'); }, 2600); } catch (e) {}
+  }
+  function puckHold(on) {
+    if (puckDown && puckDown.classList) puckDown.classList.toggle('on', !!on);
     setDuck(!!on);
+    undim();
   }
-  if (padDuck && padDuck.addEventListener) {
-    padDuck.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); padHold(padDuck, true); });
+  if (puckDown && puckDown.addEventListener) {
+    puckDown.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); puckHold(true); });
     ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev =>
-      padDuck.addEventListener(ev, () => padHold(padDuck, false)));
+      puckDown.addEventListener(ev, () => puckHold(false)));
   }
-  if (padJump && padJump.addEventListener) {
-    padJump.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); jump(); });
+  if (puckUp && puckUp.addEventListener) {
+    puckUp.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); jump(); undim(); });
+  }
+  // ---- drag the puck by its middle band ----
+  let dragDx = 0, dragDy = 0, dragging = false;
+  if (puckGrip && puckGrip.addEventListener) {
+    puckGrip.addEventListener('pointerdown', e => {
+      e.preventDefault(); e.stopPropagation();
+      const r = puckEl.getBoundingClientRect ? puckEl.getBoundingClientRect() : { left: 0, top: 0 };
+      dragDx = (e.clientX || 0) - r.left; dragDy = (e.clientY || 0) - r.top; dragging = true;
+      try { if (puckGrip.setPointerCapture && e.pointerId != null) puckGrip.setPointerCapture(e.pointerId); } catch (er) {}
+      undim();
+    });
+    puckGrip.addEventListener('pointermove', e => {
+      if (!dragging) return;
+      e.preventDefault();
+      const size = puckSize();
+      const maxX = Math.max(0, W - size - 12), maxY = Math.max(0, H - size - 8);
+      const x = Math.max(12, Math.min(maxX, (e.clientX || 0) - dragDx));
+      const y = Math.max(0, Math.min(maxY, (e.clientY || 0) - dragDy));
+      puckEl.style.left = Math.round(x) + 'px'; puckEl.style.top = Math.round(y) + 'px';
+      puckPos = { fx: maxX ? x / maxX : 0, fy: maxY ? y / maxY : 0 };
+    });
+    ['pointerup', 'pointercancel'].forEach(ev => puckGrip.addEventListener(ev, () => {
+      if (!dragging) return;
+      dragging = false; savePuck(); undim();
+    }));
   }
 
   // ---------------------------------------------------------------- chrome
@@ -1333,6 +1400,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     get pows() { return pows.map(w => w.text); },
     get sky() { return palette().sky; },
     get ink() { return palette().ink; },
+    get puck() {
+      const s = puckSize();
+      return { size: s, x: parseFloat(puckEl && puckEl.style ? puckEl.style.left : 0) || 0,
+        y: parseFloat(puckEl && puckEl.style ? puckEl.style.top : 0) || 0, moved: !!puckPos };
+    },
     get layout() {
       const pr = KIT.layout.playRect(), rb = runnerBox();
       return { W, H, topReserve: topMargin, groundY, bandY, bandH, S,
