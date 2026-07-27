@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<!-- interactive-widget=resizes-content: the ONLY game here that focuses a real <input>, so the soft
+     keyboard must SHRINK the layout viewport rather than overlay it — otherwise the browser scrolls
+     the 100vh canvas up to reveal the input and the whole board leaves the screen. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no, interactive-widget=resizes-content">
 <title>Type Siege — free online typing game in 8 languages, no ads | Komyo Games</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="theme-color" content="#6ad6ff">
@@ -468,7 +471,37 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     el.style.bottom = lift + 'px';
     el.style.height = barH + 'px';
   }
+  // Safari ignores interactive-widget, and opening the keyboard makes it scroll the focused <input>
+  // into view — which drags the whole 100vh canvas up and off the screen. There is no way to opt out
+  // of that scroll, so we undo it: the page is overflow:hidden and has nothing to scroll to anyway.
+  function pinScroll() {
+    try { if (window.scrollY || window.pageYOffset) window.scrollTo(0, 0); } catch (e) {}
+  }
+  try {
+    const vv = window.visualViewport;
+    if (vv && vv.addEventListener) { vv.addEventListener('resize', pinScroll); vv.addEventListener('scroll', pinScroll); }
+    if (window.addEventListener) window.addEventListener('scroll', pinScroll, { passive: true });
+  } catch (e) {}
   KIT.layout.on(resize);
+  KIT.layout.on(pinScroll);
+  // Landscape on a phone is unplayable: the soft keyboard is the input device here and it eats the
+  // whole short viewport, leaving nothing to read the words in. So a coarse-pointer device gets the
+  // kit's rotate splash. Desktop landscape is the NORMAL way to play — gate on touch only, never on
+  // orientation alone. A run in progress pauses, so rotating back lands on RESUME, not a lost keep.
+  // Re-probed per relayout (DevTools device mode flips it after load), and `coarse` ONLY: a
+  // touchscreen laptop reports maxTouchPoints > 0 while its primary input is still a mouse and a
+  // real keyboard, and this gate would lock that player out of the game entirely.
+  function isTouch() {
+    try { if (typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches) return true; } catch (e) {}
+    return typeof window !== 'undefined' && 'ontouchstart' in window;
+  }
+  function orientGate() {
+    if (!isTouch()) return true;
+    const ok = KIT.layout.requireOrientation('portrait');
+    if (!ok && state === 'playing') pauseMenu();
+    return ok;
+  }
+  KIT.layout.on(orientGate);
   // Rotating between the tall layout and the tight landscape SPLIT changes what a menu can afford
   // (see isSplit — the start screen's 🌐 button, the end screen's secondary stat lines), and the kit
   // re-parents rather than rebuilds. So rebuild the open menu ourselves on a flip.
@@ -2851,7 +2884,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let kdChar = null;
   function focusInput() {
     const inp = document.getElementById('tsin');
-    try { if (inp && inp.focus) inp.focus(); } catch (e) {}
+    try { if (inp && inp.focus) inp.focus({ preventScroll: true }); } catch (e) {
+      try { if (inp && inp.focus) inp.focus(); } catch (e2) {}
+    }
+    // the browser's own scroll-into-view lands a frame later — undo it then, not now
+    try { if (window.requestAnimationFrame) window.requestAnimationFrame(pinScroll); } catch (e) {}
   }
   window.addEventListener('keydown', e => {
     const k = e.key;
@@ -3098,6 +3135,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
   if (!WORDS[wlang]) wlang = 'en';
   showStartMenu();
+  orientGate();
 })();
   window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
 </script>
