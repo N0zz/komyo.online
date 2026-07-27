@@ -1,0 +1,1837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Floodgate — free online pipe rotation puzzle game, no ads | Komyo Games</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#5fb8d9">
+<script>/* PWA manifest only over http(s) — file:// cannot fetch it (CORS from origin "null"); no offline install path anyway */
+if (location.protocol !== "file:") { var m = document.createElement("link"); m.rel = "manifest"; m.href = "manifest.json"; document.head.appendChild(m); }</script>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Floodgate">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="description" content="Rotate the pipes to route water from source to drain — plug every leak and keep hot, cold and power apart. Free logic puzzle, no ads, works offline.">
+<link rel="canonical" href="https://komyo.online/games/floodgate/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Komyo Games">
+<meta property="og:title" content="Floodgate — free online pipe rotation puzzle game, no ads">
+<meta property="og:description" content="Rotate the pipes to route water from source to drain — plug every leak and keep hot, cold and power apart. Free logic puzzle, no ads, works offline.">
+<meta property="og:url" content="https://komyo.online/games/floodgate/">
+<meta property="og:image" content="https://komyo.online/games/floodgate/icon-512.png">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Floodgate — free online pipe rotation puzzle game, no ads">
+<meta name="twitter:description" content="Rotate the pipes to route water from source to drain — plug every leak and keep hot, cold and power apart. Free logic puzzle, no ads, works offline.">
+<meta name="twitter:image" content="https://komyo.online/games/floodgate/icon-512.png">
+<link rel="alternate" hreflang="en" href="https://komyo.online/games/floodgate/">
+<link rel="alternate" hreflang="pl" href="https://komyo.online/games/floodgate/?lang=pl">
+<link rel="alternate" hreflang="es" href="https://komyo.online/games/floodgate/?lang=es">
+<link rel="alternate" hreflang="pt" href="https://komyo.online/games/floodgate/?lang=pt">
+<link rel="alternate" hreflang="fr" href="https://komyo.online/games/floodgate/?lang=fr">
+<link rel="alternate" hreflang="it" href="https://komyo.online/games/floodgate/?lang=it">
+<link rel="alternate" hreflang="cs" href="https://komyo.online/games/floodgate/?lang=cs">
+<link rel="alternate" hreflang="uk" href="https://komyo.online/games/floodgate/?lang=uk">
+<link rel="alternate" hreflang="x-default" href="https://komyo.online/games/floodgate/">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"VideoGame","name":"Floodgate","url":"https://komyo.online/games/floodgate/","description":"Rotate the pipes to route water from source to drain — plug every leak and keep hot, cold and power apart. Free logic puzzle, no ads, works offline.","genre":["Puzzle","Logic"],"gamePlatform":"Web browser","applicationCategory":"Game","operatingSystem":"Any","isAccessibleForFree":true,"inLanguage":["en","pl","es","pt","fr","it","cs","uk"],"image":"https://komyo.online/games/floodgate/icon-512.png","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"},"publisher":{"@type":"Organization","name":"Komyo Games","url":"https://komyo.online/"}}</script>
+<!-- Atomic <head> unit — DO NOT reorder or add defer to game-kit.js (window.gamekit must
+     exist before the inline IIFE runs). The root sw.js SHELL lists these same files. -->
+<script src="../../analytics.js" defer></script>
+<link rel="stylesheet" href="../../game-kit.css">
+<script src="../../version.js"></script>
+<script src="../../game-kit.js"></script>
+<script src="../../challenges.js"></script>
+<script src="../../cosmetics.js"></script>
+<script src="../../i18n.js"></script>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #061320; color: #fff;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; user-select: none; touch-action: none; }
+  #game { display: block; width: 100vw; height: 100vh; }
+  #hud .val { color: #5fb8d9; }
+  /* the kit dims a locked grid cell to 55%, where its default grey sub-label falls under AA — the
+     locked blueprint's par prints near-white so it still composites back over 4.5:1 */
+  .gamekit-menu .gkm-gcell.gkm-locked .gkm-gsub { color: #edf5ff; }
+  /* our card tags carry NUMBERS (campaign progress, the Daily star rating) rather than a "SOON"
+     word — at the kit's 9px the ★/☆ pair was indistinguishable */
+  .gamekit-menu .gkm-card-nm .gkm-tag { font-size: 11px; letter-spacing: 1px; }
+  /* our banners are sentences, not the credit counter the kit's 22px/2px-tracking headline was cut
+     for — at that size the Endless stage line wrapped and pushed the start menu into a scroll */
+  .gamekit-menu .gkm-banner { font-size: 16px; letter-spacing: 1px; }
+  @media (orientation: landscape) and (max-height: 560px) {
+    /* all twelve blueprints have to fit the split pane without scrolling: 4 across, 3 down */
+    .gamekit-menu.gkm-split .gkm-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 2px 0 4px; }
+    .gamekit-menu.gkm-split .gkm-gsub { white-space: nowrap; }
+  }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="hud" class="gamekit-hud">
+  <div class="stat"><span class="lbl" id="lblBoard">BOARD</span><span class="val" id="boardEl">1</span></div>
+  <div class="stat"><span class="lbl" id="lblTime">TIME</span><span class="val" id="timeEl">0:00</span></div>
+  <div class="stat"><span class="lbl" id="lblTurns">TURNS</span><span class="val" id="turnsEl">0/0</span></div>
+  <div class="stat"><span class="lbl" id="lblLeaks">LEAKS</span><span class="val" id="leaksEl">0</span></div>
+  <div class="stat" id="bestStat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
+</div>
+<!-- crawlable game description — shown to players via the ☰ "How to play" entry (kit aboutModal) -->
+<section id="gk-about" hidden>
+<h1 data-t="game.floodgate.title">Floodgate</h1>
+<p data-t="game.floodgate.blurb">Rotate the pipes to route water source-to-drain — plug the leaks, beat the timer.</p>
+<h2 data-t="kit.howto">How to play</h2>
+<p data-t="seo.floodgate.howto">Tap or click a pipe to rotate it a quarter turn clockwise; right-click or long-press turns it the other way. Connect every bolted inlet to its matching outlet with an unbroken run of pipe and leave no open end — an open end is a leak, and a leaking line never seals. Later blueprints add a second hot line with crossover cells that carry two utilities through one square, plus an electrical cable that shorts out if it shares a square with water outside an insulated conduit. Campaign works through twelve fixed blueprints, Daily gives everyone the same board each day, and Endless keeps growing the grid until the clock beats you.</p>
+<h2 data-t="seo.h.faq">Common questions</h2>
+<p><strong data-t="seo.q.free">Is this game free?</strong> <span data-t="seo.a.free">Yes — every game on Komyo is completely free to play: no ads, no payments, no accounts.</span></p>
+<p><strong data-t="seo.q.offline">Can I play offline?</strong> <span data-t="seo.a.offline">Yes — after your first visit the game works without internet, and you can install it as an app straight from your browser.</span></p>
+<p><strong data-t="seo.q.saves">Where are my scores saved?</strong> <span data-t="seo.a.saves">On your device only — best scores, trophies and cosmetics live in your browser and are never uploaded anywhere.</span></p>
+<h2 data-t="seo.h.more">More free games</h2>
+<p><a href="../sudoku/" data-t="game.sudoku.title">Sudoku</a> · <a href="../minesweeper/" data-t="game.minesweeper.title">Minesweeper</a> · <a href="../2048/" data-t="game.2048.title">2048</a> · <a href="../../" data-t="seo.allGames">All free games at Komyo</a></p>
+</section>
+<script>
+(() => {
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d');
+  const KIT = window.gamekit;
+  const SLUG = 'floodgate';
+  const ACCENT = '#5fb8d9';
+
+  const SND = window.gamekit.sound;
+  SND.define({
+    turn:   c => c.voice({ f: 300, slideTo: 380, dur: 0.05, type: 'square', gain: 0.07, filter: 'lowpass', cutoff: 1500 }),
+    snap:   c => c.voice({ f: 620, slideTo: 880, dur: 0.08, type: 'triangle', gain: 0.09, filter: 'lowpass', cutoff: 2600 }),
+    bolted: c => c.voice({ f: 150, slideTo: 120, dur: 0.09, type: 'sawtooth', gain: 0.06, filter: 'lowpass', cutoff: 600 }),
+    fault:  c => { c.voice({ f: 200, slideTo: 90, dur: 0.24, type: 'sawtooth', gain: 0.09, filter: 'lowpass', cutoff: 900 });
+                   c.noiseHit({ dur: 0.12, gain: 0.07, filter: 'highpass', cutoff: 1800 }); },
+    sealed: c => c.seq([392, 523, 659, 784], 55, f => c.voice({ f, dur: 0.16, type: 'sine', gain: 0.075, reverb: 0.3 })),
+    fanfare: c => c.play('victory'),
+    tick:   c => c.voice({ f: 1200, dur: 0.02, type: 'sine', gain: 0.04 }),
+    timeup: c => c.play('lose'),
+  });
+
+  // ================= board model =================
+  // dirs 0=N 1=E 2=S 3=W · bit = 1<<d · axis = d%2 (0 vertical, 1 horizontal)
+  const DX = [0, 1, 0, -1], DY = [-1, 0, 1, 0];
+  const rotCW = m => ((m << 1) | (m >> 3)) & 15;
+  const rotN = (m, n) => { n = ((n % 4) + 4) % 4; for (let i = 0; i < n; i++) m = rotCW(m); return m; };
+  const rng32 = a => () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const UTYPE = { cold: 'water', hot: 'water', power: 'power' };
+  const UCOL = { cold: '#57d3ff', hot: '#ff8a5c', power: '#ffd54a' };
+  const tierUtils = t => t <= 1 ? ['cold'] : t === 2 ? ['cold', 'hot'] : ['cold', 'hot', 'power'];
+  const shuffled = (arr, rnd) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = (rnd() * (i + 1)) | 0; const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+
+  // One routing attempt: place terminals, route every utility, scatter decoys. null = retry.
+  function attempt(seed, tier, w, h) {
+    const rnd = rng32(seed >>> 0), n = w * h;
+    const B = { w, h, n, tier, utils: tierUtils(tier), sol: new Uint8Array(n), xover: new Uint8Array(n),
+      insul: new Uint8Array(n), owner: new Int8Array(n).fill(-1), locked: new Uint8Array(n),
+      term: new Array(n).fill(null), src: [], drn: [] };
+    const rows = shuffled(Array.from({ length: h }, (_, i) => i), rnd);
+    const cols = shuffled(Array.from({ length: Math.max(1, w - 2) }, (_, i) => i + 1), rnd);
+    const plan = []; let ri = 0, ci = 0;
+    for (const u of B.utils) {
+      // hot runs top→bottom, water/power left→right — perpendicular lines make crossings likely
+      if (u === 'hot') plan.push({ src: cols[ci++ % cols.length], drn: w * (h - 1) + cols[ci++ % cols.length], srcDir: 2, arrDir: 2 });
+      else plan.push({ src: rows[ri++ % rows.length] * w, drn: rows[ri++ % rows.length] * w + w - 1, srcDir: 1, arrDir: 1 });
+    }
+    const ids = plan.reduce((a, p) => a.concat([p.src, p.drn]), []);
+    if (new Set(ids).size !== ids.length) return null;
+    plan.forEach((p, u) => { B.term[p.src] = { u, kind: 'src' }; B.term[p.drn] = { u, kind: 'drn' };
+      B.locked[p.src] = 1; B.locked[p.drn] = 1; B.src[u] = p.src; B.drn[u] = p.drn; });
+    for (let u = 0; u < plan.length; u++) {
+      const p = plan[u], steps = route(B, p.src, p.srcDir, p.drn, p.arrDir, rnd);
+      if (!steps) return null;
+      for (const s of steps) {
+        B.sol[s.from] |= 1 << s.d; B.sol[s.to] |= 1 << ((s.d + 2) % 4);
+        if (s.mid >= 0) {                       // passed straight through another line → crossover cell
+          const prev = B.owner[s.mid];
+          B.sol[s.mid] |= (1 << s.d) | (1 << ((s.d + 2) % 4)); B.xover[s.mid] = 1;
+          if (UTYPE[B.utils[u]] === 'power' || UTYPE[B.utils[prev]] === 'power') B.insul[s.mid] = 1;
+        }
+        if (B.owner[s.from] < 0) B.owner[s.from] = u;
+        if (B.owner[s.to] < 0) B.owner[s.to] = u;
+      }
+    }
+    decoys(B, rnd);
+    return B;
+  }
+
+  // Randomised DFS from src to drn. Biased toward the target so paths stay short enough to leave
+  // room for the next utility; may step THROUGH an owned straight on the perpendicular axis.
+  function route(B, src, srcDir, drn, arrDir, rnd) {
+    const w = B.w, h = B.h, seen = new Uint8Array(B.n), steps = [];
+    const tx = drn % w, ty = drn / w | 0;
+    const man = Math.abs(src % w - tx) + Math.abs((src / w | 0) - ty);
+    const maxLen = Math.min(B.n - 2, man + 2 + Math.ceil(B.n * 0.55));
+    let ops = 0;
+    seen[src] = 1;
+    const dfs = (cur, forced, inDir, depth) => {
+      if (depth > maxLen || ops++ > 4000) return false;
+      let dirs = shuffled([0, 1, 2, 3], rnd);
+      if (forced != null) dirs = [forced];
+      else {
+        const r = rnd(), cx = cur % w, cy = cur / w | 0;
+        if (r < 0.55) dirs.sort((a, b) => (Math.abs(cx + DX[a] - tx) + Math.abs(cy + DY[a] - ty)) - (Math.abs(cx + DX[b] - tx) + Math.abs(cy + DY[b] - ty)));
+        else if (r < 0.8 && inDir != null) dirs = [inDir].concat(dirs.filter(d => d !== inDir));
+      }
+      for (const d of dirs) {
+        const x = cur % w + DX[d], y = (cur / w | 0) + DY[d];
+        if (x < 0 || y < 0 || x >= w || y >= h) continue;
+        const j = y * w + x;
+        if (j === drn) { if (d !== arrDir || seen[j]) continue; steps.push({ from: cur, d, mid: -1, to: j }); return true; }
+        if (seen[j] || B.term[j]) continue;
+        if (B.owner[j] < 0) {
+          seen[j] = 1; steps.push({ from: cur, d, mid: -1, to: j });
+          if (dfs(j, null, d, depth + 1)) return true;
+          steps.pop(); seen[j] = 0;
+        } else {
+          if (B.xover[j]) continue;
+          const m = B.sol[j], ax = d % 2;
+          if (!((ax === 0 && m === (2 | 8)) || (ax === 1 && m === (1 | 4)))) continue;
+          const x2 = x + DX[d], y2 = y + DY[d];
+          if (x2 < 0 || y2 < 0 || x2 >= w || y2 >= h) continue;
+          const k = y2 * w + x2;
+          if (k === drn) { if (d !== arrDir || seen[k]) continue; seen[j] = 1; steps.push({ from: cur, d, mid: j, to: k }); return true; }
+          if (seen[k] || B.term[k] || B.owner[k] >= 0) continue;
+          seen[j] = 1; seen[k] = 1; steps.push({ from: cur, d, mid: j, to: k });
+          if (dfs(k, null, d, depth + 1)) return true;
+          steps.pop(); seen[j] = 0; seen[k] = 0;
+        }
+      }
+      return false;
+    };
+    return dfs(src, srcDir, null, 0) ? steps : null;
+  }
+
+  // Decoy pipework in the leftover cells. Never touches a live line, so in the SOLVED rotation no
+  // decoy is ever connected (a live cell's ports point only at its own path neighbours).
+  function decoys(B, rnd) {
+    const w = B.w, h = B.h, free = [];
+    for (let i = 0; i < B.n; i++) if (B.owner[i] < 0 && !B.term[i]) free.push(i);
+    if (!free.length) return;
+    const used = new Uint8Array(B.n), want = Math.floor(free.length * 0.72);
+    let got = 0, guard = 0;
+    while (got < want && guard++ < 400) {
+      const start = free[(rnd() * free.length) | 0];
+      if (used[start]) continue;
+      used[start] = 1; got++;
+      let cur = start;
+      const len = 1 + ((rnd() * 4) | 0);
+      for (let s = 0; s < len; s++) {
+        let moved = false;
+        for (const d of shuffled([0, 1, 2, 3], rnd)) {
+          const x = cur % w + DX[d], y = (cur / w | 0) + DY[d];
+          if (x < 0 || y < 0 || x >= w || y >= h) continue;
+          const j = y * w + x;
+          if (used[j] || B.owner[j] >= 0 || B.term[j]) continue;
+          B.sol[cur] |= 1 << d; B.sol[j] |= 1 << ((d + 2) % 4);
+          used[j] = 1; got++; cur = j; moved = true; break;
+        }
+        if (!moved) break;
+      }
+    }
+    for (let i = 0; i < B.n; i++) {   // lone stubs read as junk — grow them into elbows, and turn a
+      if (B.owner[i] >= 0 || B.term[i] || !B.sol[i]) continue;   // few 2-port decoys into tees
+      let bits = 0; for (let d = 0; d < 4; d++) if (B.sol[i] & (1 << d)) bits++;
+      if (bits > 2 || (bits === 2 && rnd() > 0.28)) continue;
+      for (const d of shuffled([0, 1, 2, 3], rnd)) {
+        if (B.sol[i] & (1 << d)) continue;
+        const x = i % w + DX[d], y = (i / w | 0) + DY[d];
+        if (x < 0 || y < 0 || x >= w || y >= h) continue;
+        B.sol[i] |= 1 << d; break;
+      }
+    }
+  }
+
+  // Deterministic retry: the same seed always yields the same board, and tier 2/3 boards are
+  // guaranteed a crossover (tier 3 also a conduit) when one is reachable at that size. If a grid
+  // is too cramped for the requested tier it degrades a tier rather than ever returning nothing.
+  function makeBoard(seed, tier, w, h) {
+    for (let t = Math.max(1, tier); t >= 1; t--) {
+      let best = null, bestScore = -1, fallback = null;
+      for (let k = 0; k < 40; k++) {
+        const cand = attempt((seed + k * 0x9e3779b1 + t * 0x85ebca6b) >>> 0, t, w, h);
+        if (!cand) continue;
+        if (!fallback) fallback = cand;
+        let x = 0, ins = 0, run = 0;
+        for (let i = 0; i < cand.n; i++) { if (cand.xover[i]) x++; if (cand.insul[i]) ins++; if (cand.owner[i] >= 0) run++; }
+        // qualify on the tier's fittings, then keep the MEATIEST board — the longest runs mean the
+        // most real turns to make, so a big grid never deals a two-move puzzle
+        const okTier = t <= 1 || (t === 2 && x > 0) || (t === 3 && x > 0 && ins > 0);
+        if (!okTier) continue;
+        const sc = run * 10 + x * 3 + ins * 3;
+        if (sc > bestScore) { bestScore = sc; best = cand; }
+        if (run >= cand.n * 0.5) break;          // already a meaty board — don't burn frames searching
+      }
+      if (best || fallback) return best || fallback;
+    }
+    return null;
+  }
+
+  // Flow / leak / fault analysis for the CURRENT rotations. State = (cell, channel); a crossover
+  // keeps its two axes apart, everything else mixes whatever reaches it.
+  function analyze(B, rot) {
+    const w = B.w, h = B.h, n = B.n, mask = i => rotN(B.sol[i], rot[i]);
+    const ch = [new Uint8Array(n), new Uint8Array(n)], cellU = new Uint8Array(n);
+    // dep[channel][cell] = hops from the source that first filled it — drives flow direction and
+    // the source-to-drain seal wave. -1 = dry.
+    const dep = [new Int16Array(n).fill(-1), new Int16Array(n).fill(-1)];
+    let maxDep = 0;
+    const leakKeys = new Set(), leaks = [];
+    for (let u = 0; u < B.utils.length; u++) {
+      const s = B.src[u], seen = new Uint8Array(n * 2), q = [s * 2], qd = [0];
+      seen[s * 2] = 1;
+      for (let qi = 0; qi < q.length; qi++) {          // FIFO → qd holds true hop counts
+        const i = q[qi] >> 1, c = q[qi] & 1, d0 = qd[qi];
+        ch[c][i] |= 1 << u; cellU[i] |= 1 << u;
+        if (dep[c][i] < 0) dep[c][i] = d0;
+        if (d0 > maxDep) maxDep = d0;
+        const m = mask(i);
+        for (let d = 0; d < 4; d++) {
+          if (!(m & (1 << d))) continue;
+          if (B.xover[i] && d % 2 !== c) continue;
+          const x = i % w + DX[d], y = (i / w | 0) + DY[d], key = i * 4 + d;
+          if (x < 0 || y < 0 || x >= w || y >= h) { if (!leakKeys.has(key)) { leakKeys.add(key); leaks.push({ i, d }); } continue; }
+          const j = y * w + x, mj = mask(j);
+          if (!(mj & (1 << ((d + 2) % 4)))) { if (!leakKeys.has(key)) { leakKeys.add(key); leaks.push({ i, d }); } continue; }
+          const cj = B.xover[j] ? d % 2 : 0, k = j * 2 + cj;
+          if (seen[k]) continue; seen[k] = 1; q.push(k); qd.push(d0 + 1);
+        }
+      }
+    }
+    const has = (set, pred) => { for (let u = 0; u < B.utils.length; u++) if (((set >> u) & 1) && pred(B.utils[u])) return true; return false; };
+    const faults = [];
+    for (let i = 0; i < n; i++) {
+      // scald = hot and cold in the SAME channel (a crossover legitimately carries both, apart)
+      for (let c = 0; c < 2; c++) { const s = ch[c][i];
+        if (has(s, x => x === 'hot') && has(s, x => x === 'cold')) { faults.push({ i, kind: 'scald' }); break; } }
+      // short = the cable shares a CELL with any water line, insulated conduits excepted
+      if (has(cellU[i], x => UTYPE[x] === 'power') && has(cellU[i], x => UTYPE[x] === 'water') && !B.insul[i]) faults.push({ i, kind: 'short' });
+    }
+    const drains = B.utils.map((_, u) => !!((cellU[B.drn[u]] >> u) & 1));
+    return { ch, cellU, dep, maxDep, leaks, faults, drains, solved: drains.every(Boolean) && !leaks.length && !faults.length };
+  }
+
+  function scrambleRot(B, seed) {
+    const rnd = rng32((seed ^ 0x9e3779b9) >>> 0), rot = new Uint8Array(B.n);
+    // rotation-invariant tiles (crossovers, blanks) are never scrambled — turning them is a no-op
+    for (let i = 0; i < B.n; i++) if (!B.locked[i] && rotCW(B.sol[i]) !== B.sol[i]) rot[i] = (rnd() * 4) | 0;
+    if (analyze(B, rot).solved) for (let i = 0; i < B.n; i++) {   // never deal a solved board
+      if (B.locked[i] || B.owner[i] < 0 || rotCW(B.sol[i]) === B.sol[i]) continue;
+      rot[i] = (rot[i] + 1) % 4; break;
+    }
+    return rot;
+  }
+
+  // ================= modes =================
+  // Campaign levels are SEEDS, not data — the generator rebuilds the exact board from each one.
+  // Seeds hand-picked so PAR climbs 6 → 27 across the twelve blueprints: a real difficulty curve
+  // rather than twelve random boards. (par per level in the trailing comments.)
+  // `par` mirrors what computePar() returns for that seed — the blueprint picker prints all twelve
+  // pars at once, and generating twelve boards to read them would hitch the menu open. The suite
+  // asserts table == computed for every level, so the generator can never drift away from it.
+  const LEVELS = [
+    { seed: 1010, tier: 1, w: 4, h: 4, par: 6 },
+    { seed: 1001, tier: 1, w: 5, h: 4, par: 8 },
+    { seed: 1002, tier: 1, w: 5, h: 5, par: 10 },
+    { seed: 1032, tier: 1, w: 5, h: 5, par: 12 },
+    { seed: 1058, tier: 2, w: 5, h: 5, par: 12 },   // hot line joins
+    { seed: 1008, tier: 2, w: 5, h: 6, par: 14 },
+    { seed: 1004, tier: 2, w: 6, h: 6, par: 16 },
+    { seed: 1089, tier: 2, w: 6, h: 6, par: 18 },
+    { seed: 1015, tier: 3, w: 6, h: 6, par: 18 },   // cable + conduits join
+    { seed: 1013, tier: 3, w: 6, h: 7, par: 21 },
+    { seed: 1016, tier: 3, w: 7, h: 7, par: 24 },
+    { seed: 1072, tier: 3, w: 7, h: 7, par: 27 },
+  ];
+  const MODE_ORDER = ['campaign', 'daily', 'endless'];
+  const MODE_LABEL = { campaign: 'Campaign', daily: 'Daily', endless: 'Endless' };   // storage keys — stay English
+
+  // Endless escalates in NAMED stages the player sees announced: first the utilities arrive, then
+  // the grid grows, then the clock itself tightens board by board.
+  // every key written out in full — the i18n coverage scanner only sees literal t() keys
+  const STAGE_NAME = {
+    cold:      () => KIT.t('game.floodgate.stageCold', { def: 'COLD LINE' }),
+    hotcold:   () => KIT.t('game.floodgate.stageHotCold', { def: 'HOT & COLD' }),
+    full:      () => KIT.t('game.floodgate.stageFull', { def: 'FULL SERVICE' }),
+    expansion: () => KIT.t('game.floodgate.stageExpansion', { def: 'EXPANSION' }),
+    mains:     () => KIT.t('game.floodgate.stageMains', { def: 'MAINS PRESSURE' }),
+  };
+  function endlessCfg(k) {                    // k = 1-based board number
+    if (k <= 1) return { tier: 1, w: 4, h: 4, stage: 'cold', mult: 1 };
+    if (k === 2) return { tier: 1, w: 5, h: 5, stage: 'cold', mult: 1 };
+    if (k === 3) return { tier: 2, w: 5, h: 5, stage: 'hotcold', mult: 1 };
+    if (k === 4) return { tier: 2, w: 5, h: 6, stage: 'hotcold', mult: 1 };
+    if (k === 5) return { tier: 2, w: 6, h: 6, stage: 'hotcold', mult: 1 };
+    if (k <= 8) return { tier: 3, w: [6, 6, 7][k - 6], h: [6, 7, 7][k - 6], stage: 'full', mult: 1 };
+    if (k <= 11) return { tier: 3, w: [7, 8, 8][k - 9], h: [8, 8, 8][k - 9], stage: 'expansion', mult: 0.95 };
+    return { tier: 3, w: 8, h: 8, stage: 'mains', mult: Math.max(0.45, Math.pow(0.93, k - 11)) };
+  }
+  const stageName = s => (STAGE_NAME[s] || STAGE_NAME.cold)();
+  // one board per UTC day, same for everyone — tier and size cycle off the day number, and each
+  // tier only ever gets a grid it can actually be routed on
+  const DAILY_SIZES = { 1: [[4, 4], [5, 5], [5, 4], [4, 5]], 2: [[5, 5], [5, 6], [6, 5], [6, 6]], 3: [[6, 6], [6, 7], [7, 6], [7, 7]] };
+  function dailyCfg(day) {
+    day = day | 0;
+    const tier = 1 + (((day % 3) + 3) % 3);
+    const s = DAILY_SIZES[tier][((day % 4) + 4) % 4];
+    return { tier, w: s[0], h: s[1], seed: (day * 2654435761) >>> 0 };
+  }
+  const boardSeconds = c => Math.round((20 + c.w * c.h * 2.2 * (1 + 0.15 * (c.tier - 1))) * (c.mult || 1));
+  // Daily is scored on EFFICIENCY against par, not on "did you finish" — 3 stars is a par run.
+  const starsFor = (mv, p) => (p <= 0 ? 3 : mv <= Math.ceil(p * 1.25) ? 3 : mv <= Math.ceil(p * 2) ? 2 : 1);
+
+  // ================= state =================
+  let W = 0, H = 0, topMargin = 48;
+  let state = 'ready';                        // ready | playing | over
+  let menuScreen = null;                      // which kit menu is up: start | levels | pause | end
+  let mode = 'campaign';
+  let level = 0;                              // campaign level index
+  let boardNo = 1;                            // endless board number
+  let B = null, rot = null, A = null;
+  let score = 0, moves = 0, playFrames = 0, frame = 0;
+  let timed = false, remain = 0, boardLimit = 0;
+  let markers = true;                         // the leak crosses (the display toggle — M, not a hint)
+  let solvedFx = 0, faultFx = 0, holdFx = null;
+  let toast = null;                           // {text, t}
+  let anim = null, animDir = null;            // per-cell rotation tween (view only)
+  let resumedRun = false;
+  let done = loadDone();
+  let cs = 40, bx = 0, by = 0, legend = { x: 0, y: 0, w: 0, h: 0 };
+  let par = 0, stage = 'cold', stageFx = null, lastStars = 0, ripples = [];
+  let movesTotal = 0, parTotal = 0;           // run totals, banked when a board seals
+  const ANIM = 11;                            // rotation tween length in fixed steps (~0.18 s)
+
+  // ---- hints (kit-owned accounting, kit-owned button) ----
+  // HINTS.used() counts THIS run; hintCarry is what a resumed run already spent, so quitting to the
+  // menu and continuing can never launder the cost away. Everything player-facing reads hintsUsed().
+  const HINTS = KIT ? KIT.hints(SLUG) : null;
+  let hintCell = -1;                          // the pipe the ring is currently on (-1 = none)
+  const hintSeen = [];                        // pipes already hinted on this board, so hints cycle
+  let hintCarry = 0, hintTipT = 0;            // hintTipT = steps the kit toast still owns the legend band
+  const HINT_SECONDS = 10;                    // Endless price — see giveHint()
+  const HINT_FLOOR = 3;                       // the clock never drops below this: a hint is never fatal
+  const hintsUsed = () => (HINTS ? HINTS.used() : 0) + hintCarry;
+  const hintsClean = () => hintsUsed() === 0;
+  const hintBadge = () => (hintsUsed() ? '💡' + hintsUsed() : '');
+  let HB = null;                              // the kit hint button (created after nav)
+
+  const modeLabel = m => MODE_LABEL[m || mode];
+  const modeDisplay = m => {
+    m = m || mode;
+    return m === 'campaign' ? KIT.t('game.floodgate.modeCampaign', { def: 'Campaign' })
+      : m === 'daily' ? KIT.t('game.floodgate.modeDaily', { def: 'Daily' })
+      : KIT.t('game.floodgate.modeEndless', { def: 'Endless' });
+  };
+  const loadBest = m => KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0;
+  const fmtTime = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const cellMask = i => rotN(B.sol[i], rot[i]);
+
+  // ---- display prefs: one tiny versioned key, written only on a change ----
+  // The leak-marker toggle is a PREFERENCE, so it has to outlive a refresh — it used to reset to
+  // on every load, which quietly undid the choice of anyone who plays without the crosses.
+  const UI_KEY = SLUG + '_ui';
+  function loadUi() {
+    try {
+      const o = JSON.parse(localStorage.getItem(UI_KEY) || 'null');
+      if (o && o.v === 1) return { markers: o.markers !== false };
+    } catch (e) {}
+    return { markers: true };
+  }
+  function saveUi() { try { localStorage.setItem(UI_KEY, JSON.stringify({ v: 1, markers: !!markers })); } catch (e) {} }
+
+  // ---- campaign completion: one tiny versioned key, written only when a level clears ----
+  function loadDone() {
+    try {
+      const o = JSON.parse(localStorage.getItem('floodgate_done') || 'null');
+      if (o && o.v === 1 && Array.isArray(o.done)) return o.done.filter(n => n >= 0 && n < LEVELS.length).slice(0, LEVELS.length);
+    } catch (e) {}
+    return [];
+  }
+  function saveDone(i) {
+    if (done.indexOf(i) >= 0) return;
+    done = done.concat([i]).sort((a, b) => a - b).slice(0, LEVELS.length);
+    try { localStorage.setItem('floodgate_done', JSON.stringify({ v: 1, done })); } catch (e) {}
+  }
+  const isDone = i => done.indexOf(i) >= 0;
+  const nextLevel = () => { for (let i = 0; i < LEVELS.length; i++) if (!isDone(i)) return i; return LEVELS.length - 1; };
+  const levelUnlocked = i => i === 0 || isDone(i) || isDone(i - 1);
+  // ONE source for the picker's per-blueprint state, so the cells, the hint and the tests agree
+  const levelStatus = i => !levelUnlocked(i) ? 'locked' : isDone(i) ? 'done' : (i === nextLevel() ? 'next' : 'open');
+
+  // ---- resume (kit progress store): ONE slot; the board is a seed + a rotation string ----
+  const PROG = KIT ? KIT.progress(SLUG, { max: 1 }) : null;
+  let saveDirty = false;
+  function saveState() {
+    if (!PROG || state !== 'playing' || !B) return;
+    PROG.save({ id: 'run', mode, level, boardNo, score, moves, par, stage, mt: movesTotal, pt: parTotal, playFrames, remain: Math.round(remain),
+      hn: hintsUsed(), seed: curSeed, tier: B.tier, bw: B.w, bh: B.h, rot: Array.from(rot).join('') });
+    saveDirty = false;
+  }
+  function clearSave() { if (PROG) PROG.remove('run'); saveDirty = false; }
+  function resumeRun(s) {
+    if (!s || !s.rot || s.bw == null) return false;
+    mode = MODE_LABEL[s.mode] ? s.mode : 'campaign';
+    level = s.level || 0; boardNo = s.boardNo || 1;
+    if (HINTS) HINTS.begin();
+    hintCarry = Math.max(0, s.hn | 0);          // the hint COST survives a resume
+    loadBoard(s.seed >>> 0, s.tier || 1, s.bw, s.bh);
+    if (s.rot.length === B.n) for (let i = 0; i < B.n; i++) if (!B.locked[i]) rot[i] = (+s.rot[i] || 0) % 4;
+    score = s.score || 0; moves = s.moves || 0; playFrames = s.playFrames || 0;
+    par = s.par || par; stage = s.stage || stage;
+    movesTotal = s.mt || 0; parTotal = s.pt || 0;
+    timed = mode === 'endless';
+    boardLimit = boardSeconds({ tier: B.tier, w: B.w, h: B.h });
+    remain = timed ? Math.max(1, s.remain || boardLimit) : 0;
+    resumedRun = true; state = 'playing'; menuScreen = null;
+    A = analyze(B, rot);
+    layoutBoard(); updateHud();
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    syncHintBtn();
+    return true;
+  }
+
+  // ================= board lifecycle =================
+  let curSeed = 0;
+  // PAR = the rotations the generated solution needs from the dealt scramble (shortest turn each
+  // way, honouring rotational symmetry). Shown before and after every board.
+  function computePar() {
+    let p = 0;
+    for (let i = 0; i < B.n; i++) {
+      // only the live runs need turning — decoy pipework can be left exactly as dealt
+      if (B.locked[i] || !B.sol[i] || B.owner[i] < 0) continue;
+      let best = 9;
+      for (let k = 0; k < 4; k++) if (rotN(B.sol[i], (rot[i] + k) % 4) === B.sol[i]) best = Math.min(best, Math.min(k, 4 - k));
+      if (best < 9) p += best;
+    }
+    return p;
+  }
+  function loadBoard(seed, tier, w, h) {
+    curSeed = seed >>> 0;
+    B = makeBoard(curSeed, tier, w, h);
+    rot = scrambleRot(B, curSeed);
+    anim = new Float32Array(B.n); animDir = new Int8Array(B.n);
+    A = analyze(B, rot);
+    par = computePar();
+    moves = 0;                                 // TURNS is per board, measured against that board's par
+    solvedFx = 0; faultFx = 0; toast = null; holdFx = null; ripples = [];
+    hintCell = -1; hintSeen.length = 0;         // the cycle is per board; the COUNT is per run
+    layoutBoard();
+  }
+
+  // ---- hints: one genuinely wrong pipe, proved against the generator's own solution ----
+  // The generated solution is rot === 0 on every cell, and Floodgate rotations are INDEPENDENT — any
+  // pipe can be turned back at any time — so that solution never stops being reachable, however far
+  // the player has drifted off-route. No search needed. Two filters keep the answer honest rather
+  // than merely plausible:
+  //   · only LIVE pipes (owner >= 0). Decoy pipework never has to move — water never enters it, so
+  //     its rotation cannot break a sealed board — and naming one would be a lie (par skips them too).
+  //   · every offered pipe is PROVED wrong: with the whole board at its solution and this one pipe
+  //     left exactly as the player has it, the REAL analyzer says the board does not seal.
+  function wrongPipes() {
+    if (!B || !A || A.solved) return [];
+    const out = [];
+    for (let i = 0; i < B.n; i++) {
+      if (B.locked[i] || B.owner[i] < 0 || !B.sol[i]) continue;
+      if (rotCW(B.sol[i]) === B.sol[i]) continue;          // rotation-invariant — turning it is a no-op
+      if (rotN(B.sol[i], rot[i]) === B.sol[i]) continue;   // already in a solution orientation
+      const probe = new Uint8Array(B.n); probe[i] = rot[i];
+      if (analyze(B, probe).solved) continue;              // would still seal as-is → not wrong
+      out.push(i);
+    }
+    return out;
+  }
+  // The kit toast sits in the band just under the board, which is where the canvas legend row lives —
+  // so the legend steps aside for as long as the toast is up (the kit hides it after ~4.2s).
+  const hintToast = s => { if (HB) HB.toast(s); hintTipT = 258; };
+  function giveHint() {
+    // the kit binds H globally, so this also has to refuse under any kit overlay (the drawers,
+    // the shop, the profile — all of which freeze the game)
+    if (state !== 'playing' || !B || solvedFx > 0 || menuScreen || (KIT && KIT.isPaused())) return false;
+    const wrong = wrongPipes();
+    if (!wrong.length) {
+      SND.play('bolted');
+      hintToast(KIT.t('game.floodgate.hintNone', { def: 'No hint to give — every pipe is already turned the right way.' }));
+      return false;
+    }
+    // repeated hints CYCLE: never re-ring a pipe already hinted on this board until every wrong one
+    // has had a turn. Within that, prefer pipes the water already reaches — turning one of those
+    // changes something the player can see right now.
+    let pool = wrong.filter(i => hintSeen.indexOf(i) < 0);
+    if (!pool.length) { hintSeen.length = 0; pool = wrong.slice(); }
+    const wet = pool.filter(i => A.cellU[i] !== 0);
+    hintCell = (wet.length ? wet : pool)[0];
+    hintSeen.push(hintCell);
+    if (HINTS) HINTS.use('pipe');               // the kit counts it AND fires the one run_choice event
+    // Endless charges the ONE resource that mode is about — the board clock, right there in the HUD.
+    // Clamped so it can never run the clock out: at HINT_FLOOR or below the hint is simply free.
+    if (timed) remain = Math.max(Math.min(remain, HINT_FLOOR), remain - HINT_SECONDS);
+    toast = null;                               // one message at a time — the canvas row steps aside
+    hintToast(KIT.t('game.floodgate.hintTip', { def: 'HINT — the ringed pipe is turned the wrong way. Ask again for a different one.' }));
+    SND.play('snap');
+    saveDirty = true;
+    updateHud();
+    return true;
+  }
+  const hintLabel = () => '🔍 ' + (timed
+    ? KIT.t('game.floodgate.hintCost', { n: HINT_SECONDS, def: 'HINT −{n}s' })
+    : KIT.t('menu.hint', { def: 'HINT' }));
+  // the button belongs to a LIVE board only: no menu screen up, and not the seal animation
+  function syncHintBtn() {
+    if (!HB) return;
+    HB.label(hintLabel());
+    HB.show(state === 'playing' && !menuScreen);
+  }
+
+  function objectiveLine() {
+    const goal = B && B.tier >= 3 ? KIT.t('game.floodgate.goalTier3', { def: 'Cold, hot and the cable — conduits are the only shared cells.' })
+      : B && B.tier === 2 ? KIT.t('game.floodgate.goalTier2', { def: 'Cold and hot both — cross them, never join them.' })
+      : KIT.t('game.floodgate.goalTier1', { def: 'Run the cold line end to end, no open ends.' });
+    return KIT.t('game.floodgate.briefLine', { par, goal, def: 'PAR {par} · {goal}' });
+  }
+  function announceBoard(newStage) {
+    toastNow(objectiveLine(), 210);
+    if (newStage) stageFx = { label: stageName(stage), t: 100 };
+  }
+
+  function startBoard(announce) {
+    if (mode === 'campaign') {
+      const L = LEVELS[Math.max(0, Math.min(LEVELS.length - 1, level))];
+      loadBoard(L.seed, L.tier, L.w, L.h);
+      stage = L.tier === 1 ? 'cold' : L.tier === 2 ? 'hotcold' : 'full';
+      timed = false; remain = 0;
+    } else if (mode === 'daily') {
+      const c = dailyCfg(KIT ? KIT.utcDayNumber() : 0);
+      loadBoard(c.seed, c.tier, c.w, c.h);
+      stage = c.tier === 1 ? 'cold' : c.tier === 2 ? 'hotcold' : 'full';
+      timed = false; remain = 0;
+    } else {
+      const c = endlessCfg(boardNo), prevStage = stage;
+      loadBoard(((boardNo * 0x2545f491) ^ 0x5bf03635) >>> 0, c.tier, c.w, c.h);
+      stage = c.stage;
+      timed = true; boardLimit = boardSeconds(c); remain = boardLimit;
+      if (announce !== false) announceBoard(stage !== prevStage || boardNo === 1);
+      updateHud();
+      return;
+    }
+    if (announce !== false) announceBoard(false);
+    updateHud();
+  }
+
+  function startRun(m, startLevel) {
+    mode = m || mode;
+    level = mode === 'campaign' ? Math.max(0, Math.min(LEVELS.length - 1, startLevel != null ? startLevel : nextLevel())) : 0;
+    boardNo = 1; score = 0; moves = 0; playFrames = 0; movesTotal = 0; parTotal = 0; lastStars = 0;
+    resumedRun = false; clearSave();
+    hintCarry = 0; if (HINTS) HINTS.begin();
+    startBoard();
+    state = 'playing'; menuScreen = null;
+    if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
+    updateHud(); syncHintBtn();
+  }
+
+  function rotateCell(x, y, cw) {
+    if (state !== 'playing' || solvedFx > 0 || !B) return false;
+    if (x < 0 || y < 0 || x >= B.w || y >= B.h) return false;
+    const i = y * B.w + x;
+    if (B.locked[i]) { holdFx = { i, t: 16 }; SND.play('bolted'); toastNow(KIT.t('game.floodgate.lockedTile', { def: 'Inlets and outlets are bolted down.' })); return false; }
+    if (!B.sol[i]) return false;                       // blank plate — nothing to turn
+    // a crossover is the same tile in every orientation — turning it would be a phantom move
+    if (rotCW(B.sol[i]) === B.sol[i]) { holdFx = { i, t: 16 }; SND.play('bolted'); toastNow(KIT.t('game.floodgate.fixedTile', { def: 'Crossovers are fixed — they only ever cross.' })); return false; }
+    rot[i] = ((rot[i] + (cw ? 1 : 3)) % 4);
+    if (i === hintCell) hintCell = -1;                 // the hint was acted on — stop ringing it
+    anim[i] = ANIM; animDir[i] = cw ? 1 : -1;
+    ripples.push({ i, t: 18 });
+    if (ripples.length > 8) ripples.shift();          // bounded — view-only fx list
+    moves++;
+    const before = A;
+    A = analyze(B, rot);
+    SND.play('turn');
+    // a port that just latched onto a live neighbour gets its own confirm
+    const gained = A.cellU[i] && !before.cellU[i];
+    if (gained || (A.leaks.length < before.leaks.length && A.drains.filter(Boolean).length >= before.drains.filter(Boolean).length)) SND.play('snap');
+    const newFault = A.faults.length > before.faults.length;
+    if (newFault) {
+      faultFx = 26; SND.play('fault');
+      const k = A.faults[A.faults.length - 1].kind;
+      toastNow(k === 'scald' ? KIT.t('game.floodgate.hintScald', { def: 'Hot met cold — cross them, never join them.' })
+                             : KIT.t('game.floodgate.hintShort', { def: 'Cable in water — route it through a conduit.' }));
+      if (navigator.vibrate) { try { navigator.vibrate(40); } catch (e) {} }
+    }
+    saveDirty = true;
+    updateHud();
+    if (A.solved) onSolved();
+    return true;
+  }
+
+  function toastNow(text, t) { toast = { text, t: t || 190 }; }
+
+  function onSolved() {
+    solvedFx = 1;
+    // three stars IS "par or better", so a hinted run cannot earn it however few turns it took —
+    // same forfeit the end screen's turns line applies
+    lastStars = Math.min(hintsClean() ? 3 : 2, starsFor(moves, par));
+    movesTotal += moves; parTotal += par;
+    score += mode === 'daily' ? lastStars : 1;        // Daily scores EFFICIENCY, the rest count boards
+    SND.play('sealed');
+    if (mode === 'campaign') saveDone(level);
+    clearSave();
+    if (navigator.vibrate) { try { navigator.vibrate([20, 40, 20]); } catch (e) {} }
+    updateHud();
+  }
+
+  function advance() {
+    solvedFx = 0;
+    if (mode === 'campaign') {
+      if (level + 1 >= LEVELS.length) { endRun('done'); return; }
+      level++; startBoard();
+    } else if (mode === 'daily') {
+      endRun('win');
+    } else {
+      boardNo++; startBoard(); SND.play('tick');
+    }
+    saveDirty = true;
+  }
+
+  // The end screen is queued in GAME STEPS (not setTimeout) so it is deterministic and drivable
+  // headless — and so it can never fire while a kit overlay has the game frozen.
+  let endPend = null;
+  function endRun(reason) {
+    if (state === 'over') return;
+    state = 'over';
+    const prev = loadBest(mode);
+    const isBest = score > prev && score > 0;   // computed BEFORE the single end-of-run save
+    if (KIT) KIT.saveBest(SLUG, modeLabel(mode), { score, stats: { moves: movesTotal + moves, par: parTotal + par } });
+    clearSave();
+    if (reason === 'timeup') SND.play('timeup');
+    else if (reason === 'done' || reason === 'win') SND.play('fanfare');
+    updateHud(); syncHintBtn();
+    if (reason === 'quit') { showEnd(reason, isBest); return; }
+    endPend = { reason, isBest, t: 24 };
+  }
+
+  // ================= update =================
+  function update() {
+    frame++;
+    if (holdFx && holdFx.t > 0) holdFx.t--;
+    if (faultFx > 0) faultFx--;
+    if (toast && toast.t > 0) toast.t--;
+    if (hintTipT > 0) hintTipT--;
+    if (stageFx && stageFx.t > 0) stageFx.t--;
+    if (anim) for (let i = 0; i < anim.length; i++) if (anim[i] > 0) anim[i]--;
+    for (let k = ripples.length - 1; k >= 0; k--) { ripples[k].t--; if (ripples[k].t <= 0) ripples.splice(k, 1); }
+    if (endPend) { if (endPend.t > 0) endPend.t--; else { const e = endPend; endPend = null; showEnd(e.reason, e.isBest); } }
+    if (state === 'playing') {
+      playFrames++;
+      if (solvedFx > 0) { solvedFx++; if (solvedFx > 78) advance(); }   // wave + hold before the next board
+      else if (timed) {
+        remain -= 1 / 60;
+        if (remain <= 0) { remain = 0; endRun('timeup'); }
+        else if (remain < 10 && playFrames % 60 === 0) SND.play('tick');
+      }
+      if (playFrames % 15 === 0) updateHud();
+      if (saveDirty && playFrames % 30 === 0) saveState();      // debounced: on events, never per frame
+      if (KIT && KIT.music) {
+        const live = A ? A.drains.filter(Boolean).length / Math.max(1, A.drains.length) : 0;
+        const press = timed && boardLimit > 0 ? 1 - remain / boardLimit : 0;
+        const fault = A && (A.faults.length || A.leaks.length > 4) ? 0.12 : 0;
+        KIT.music.intensity(Math.min(1, 0.3 + 0.28 * live + 0.3 * press + fault));
+      }
+    } else if (KIT && KIT.music) KIT.music.intensity(0.3);
+  }
+
+  // ================= layout =================
+  function layoutBoard() {
+    if (!B) return;
+    const short = H < 500;
+    // a 5-stat pill wraps to two rows on a short landscape phone and eats the board — BEST is on
+    // both menus anyway, so it steps out of the way there
+    const bs = document.getElementById('bestStat');
+    if (bs) bs.style.display = H < 560 ? 'none' : '';
+    const lh = short ? 26 : 34;
+    // Landscape phones: the key AND the 🔍 HINT button move to a left rail, so the board gets the
+    // whole height back (a bottom strip cost a 640×360 board a quarter of its size). Portrait keeps
+    // the horizontal key row + bottom hint button.
+    const side = KIT.layout.landscape && KIT.layout.h <= 520;
+    if (HB) HB.dock(side ? 'left' : 'bottom');
+    KIT.layout.reserve('left', side ? (HB ? HB.railWidth : 0) : 0);
+    // the legend row PLUS the band the kit's 🔍 HINT button owns — the board must never grow under it
+    KIT.layout.reserve('bottom', side ? 0 : lh + 10 + (HB ? HB.reserve : 0));
+    const pr = KIT.layout.playRect();
+    const pad = 8;
+    const availW = Math.max(20, pr.w - pad * 2), availH = Math.max(20, pr.h - pad * 2);
+    // cell cap scales with the screen so a small grid fills a big display instead of floating in it
+    const cap = Math.max(88, Math.min(200, Math.min(W, H) * 0.2));
+    cs = Math.max(8, Math.min(cap, Math.floor(Math.min(availW / B.w, availH / B.h))));
+    const bw = cs * B.w, bh = cs * B.h;
+    bx = Math.round(pr.x + (pr.w - bw) / 2);
+    by = Math.round(pr.y + (pr.h - bh) / 2);
+    legend = side
+      ? { x: 8, y: Math.round(pr.y), w: Math.max(0, (HB ? HB.railWidth : 0) - 16), h: Math.max(0, pr.h), vertical: true }
+      : { x: pr.x + 6, y: Math.round(pr.y + pr.h + 4), w: Math.max(0, pr.w - 12), h: lh };
+  }
+
+  function resize() {
+    W = window.innerWidth; H = window.innerHeight;
+    KIT.fitCanvas(canvas, W, H);
+    topMargin = KIT.layout.playRect().y;
+    layoutBoard();
+    topMargin = KIT.layout.playRect().y;
+  }
+  window.gamekit.layout.on(resize);
+
+  // ================= cosmetics / palette =================
+  // The skin changes the METAL of dry pipework and the drafting accent only. Utility colours are
+  // rule-bearing information (cold / hot / cable) and are never re-skinned.
+  const SKINS = {
+    'floodgate.pipe.copper': { ink: '#a8763f', inkHi: '#e0a468', inkLo: '#5d3d1c', plate: '#0d2231', line: 'rgba(120,190,225,0.16)', frame: '#7fd0ec', glow: 0 },
+    'floodgate.pipe.brass':  { ink: '#b09a43', inkHi: '#efdc8a', inkLo: '#5f5117', plate: '#12222a', line: 'rgba(180,190,140,0.16)', frame: '#e6d489', glow: 0 },
+    'floodgate.pipe.neon':   { ink: '#4e88a8', inkHi: '#a8e6ff', inkLo: '#1d3d52', plate: '#081826', line: 'rgba(120,220,255,0.18)', frame: '#9df0ff', glow: 1 },
+  };
+  const UHI = { cold: '#d6f4ff', hot: '#ffd8bd', power: '#fff2b8' };   // specular highlight per fluid
+  const ULO = { cold: '#1d6f96', hot: '#a53f18', power: '#9a7200' };   // shaded underside per fluid
+  function skin() {
+    const id = KIT && KIT.cosmetics ? KIT.cosmetics.selected('floodgate.pipe') : null;
+    return SKINS[id] || SKINS['floodgate.pipe.copper'];
+  }
+
+  // ================= render =================
+  const cellRect = i => ({ px: bx + (i % B.w) * cs, py: by + ((i / B.w) | 0) * cs });
+  const portXY = (px, py, d) => d === 0 ? [px + cs / 2, py] : d === 1 ? [px + cs, py + cs / 2] : d === 2 ? [px + cs / 2, py + cs] : [px, py + cs / 2];
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+  // which utility fills (cell, channel) — null when dry
+  function armUtil(i, chan) {
+    if (!A) return null;
+    const set = A.ch[chan][i];
+    for (let u = 0; u < B.utils.length; u++) if ((set >> u) & 1) return B.utils[u];
+    return null;
+  }
+  // has the seal wave reached this arm yet? (source-to-drain fill on a solved board)
+  function sealFront() { return solvedFx > 0 ? (solvedFx / 40) * (A.maxDep + 2) : -1; }
+
+  function drawPaper(g) {
+    const bg = g.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#0c2032'); bg.addColorStop(0.55, '#081827'); bg.addColorStop(1, '#050e18');
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    // drafting paper: fine grid + a stronger major grid every 5 squares
+    const fine = 13, major = fine * 5;
+    g.lineWidth = 1;
+    g.strokeStyle = 'rgba(110,190,225,0.045)';
+    g.beginPath();
+    for (let x = (W / 2) % fine; x < W; x += fine) { g.moveTo(x + 0.5, 0); g.lineTo(x + 0.5, H); }
+    for (let y = (H / 2) % fine; y < H; y += fine) { g.moveTo(0, y + 0.5); g.lineTo(W, y + 0.5); }
+    g.stroke();
+    g.strokeStyle = 'rgba(110,190,225,0.10)';
+    g.beginPath();
+    for (let x = (W / 2) % major; x < W; x += major) { g.moveTo(x + 0.5, 0); g.lineTo(x + 0.5, H); }
+    for (let y = (H / 2) % major; y < H; y += major) { g.moveTo(0, y + 0.5); g.lineTo(W, y + 0.5); }
+    g.stroke();
+  }
+
+  function drawFrame(g, S) {
+    const bw = cs * B.w, bh = cs * B.h, o = Math.max(6, cs * 0.1);
+    // recessed plate with a soft inner shade
+    g.fillStyle = S.plate; g.fillRect(bx, by, bw, bh);
+    const sh = g.createLinearGradient(bx, by, bx, by + bh);
+    sh.addColorStop(0, 'rgba(0,0,0,0.30)'); sh.addColorStop(0.35, 'rgba(0,0,0,0)'); sh.addColorStop(1, 'rgba(0,0,0,0.22)');
+    g.fillStyle = sh; g.fillRect(bx, by, bw, bh);
+    // cell seams + rivets at the intersections
+    g.strokeStyle = S.line; g.lineWidth = 1;
+    g.beginPath();
+    for (let x = 1; x < B.w; x++) { g.moveTo(bx + x * cs + 0.5, by); g.lineTo(bx + x * cs + 0.5, by + bh); }
+    for (let y = 1; y < B.h; y++) { g.moveTo(bx, by + y * cs + 0.5); g.lineTo(bx + bw, by + y * cs + 0.5); }
+    g.stroke();
+    if (cs >= 40) {
+      g.fillStyle = 'rgba(150,210,240,0.14)';
+      const rr = Math.max(1, cs * 0.022);
+      for (let y = 1; y < B.h; y++) for (let x = 1; x < B.w; x++) {
+        g.beginPath(); g.arc(bx + x * cs, by + y * cs, rr, 0, Math.PI * 2); g.fill();
+      }
+    }
+    // double drafting border + registration ticks
+    g.strokeStyle = S.frame; g.globalAlpha = 0.8; g.lineWidth = 1.5;
+    g.strokeRect(bx - 0.5, by - 0.5, bw + 1, bh + 1);
+    g.globalAlpha = 0.3;
+    g.strokeRect(bx - o - 0.5, by - o - 0.5, bw + o * 2 + 1, bh + o * 2 + 1);
+    g.globalAlpha = 0.9; g.lineWidth = 2;
+    const t = Math.max(6, cs * 0.24);
+    g.beginPath();
+    for (const [cxp, cyp, sx, sy] of [[bx, by, 1, 1], [bx + bw, by, -1, 1], [bx, by + bh, 1, -1], [bx + bw, by + bh, -1, -1]]) {
+      g.moveTo(cxp + sx * t, cyp - sy * o); g.lineTo(cxp - sx * o, cyp - sy * o); g.lineTo(cxp - sx * o, cyp + sy * t);
+    }
+    g.stroke(); g.globalAlpha = 1;
+  }
+
+  // ---- pipe geometry: a cell is a set of SEGMENTS (smooth run, quarter bend, stub, bridge hop) ----
+  const HOPR = () => cs * 0.19;
+  function nbDepth(i, d) {
+    const x = i % B.w + DX[d], y = (i / B.w | 0) + DY[d];
+    if (x < 0 || y < 0 || x >= B.w || y >= B.h) return -1;
+    const j = y * B.w + x, cj = B.xover[j] ? d % 2 : 0;
+    return A ? A.dep[cj][j] : -1;
+  }
+  function cellPaths(i, m) {
+    const { px, py } = cellRect(i), cxp = px + cs / 2, cyp = py + cs / 2;
+    const P = d => portXY(px, py, d);
+    const ports = []; for (let d = 0; d < 4; d++) if (m & (1 << d)) ports.push(d);
+    const out = [];
+    if (B.xover[i]) {                                   // horizontal run + a vertical bridge over it
+      out.push({ t: 'line', a: P(1), b: P(3), ports: [1, 3], chan: 1 });
+      out.push({ t: 'line', a: P(0), b: [cxp, cyp - HOPR()], ports: [0], chan: 0 });
+      out.push({ t: 'line', a: P(2), b: [cxp, cyp + HOPR()], ports: [2], chan: 0 });
+      out.push({ t: 'hop', ports: [], chan: 0 });
+      return out;
+    }
+    if (ports.length === 2) {
+      const d1 = ports[0], d2 = ports[1];
+      if ((d1 + 2) % 4 === d2) out.push({ t: 'line', a: P(d1), b: P(d2), ports: [d1, d2], chan: 0 });
+      else {
+        // a true quarter bend: a cs/2 arc about the corner the two ports share
+        const key = [d1, d2].sort().join('');
+        const corner = key === '01' ? [px + cs, py] : key === '12' ? [px + cs, py + cs]
+          : key === '23' ? [px, py + cs] : [px, py];
+        const p1 = P(d1), p2 = P(d2);
+        out.push({ t: 'bend', cx: corner[0], cy: corner[1], r: cs / 2,
+          a0: Math.atan2(p1[1] - corner[1], p1[0] - corner[0]),
+          a1: Math.atan2(p2[1] - corner[1], p2[0] - corner[0]),
+          ports: [d1, d2], chan: 0 });
+      }
+      return out;
+    }
+    if (ports.length === 3) {                           // tee: straight run + a branch off the collar
+      let thru = null;
+      for (const d of ports) if (ports.indexOf((d + 2) % 4) >= 0) { thru = [d, (d + 2) % 4]; break; }
+      if (thru) {
+        const branch = ports.filter(d => thru.indexOf(d) < 0)[0];
+        out.push({ t: 'line', a: P(thru[0]), b: P(thru[1]), ports: thru, chan: 0 });
+        out.push({ t: 'line', a: P(branch), b: [cxp, cyp], ports: [branch], chan: 0 });
+        out.push({ t: 'fit', chan: 0, scale: 1.12 });
+        return out;
+      }
+    }
+    for (const d of ports) out.push({ t: 'line', a: P(d), b: [cxp, cyp], ports: [d], chan: 0 });
+    if (ports.length > 1) out.push({ t: 'fit', chan: 0, scale: 0.95 });
+    return out;
+  }
+
+  function traceSeg(g, i, seg, rev) {
+    const { px, py } = cellRect(i), cxp = px + cs / 2, cyp = py + cs / 2;
+    if (seg.t === 'hop') {
+      g.beginPath();
+      g.arc(cxp, cyp, HOPR(), rev ? Math.PI / 2 : -Math.PI / 2, rev ? -Math.PI / 2 : Math.PI / 2, !!rev);
+      return;
+    }
+    if (seg.t === 'bend') {
+      let a0 = rev ? seg.a1 : seg.a0, a1 = rev ? seg.a0 : seg.a1;
+      let d = a1 - a0;
+      while (d > Math.PI) d -= Math.PI * 2;
+      while (d < -Math.PI) d += Math.PI * 2;
+      g.beginPath(); g.arc(seg.cx, seg.cy, seg.r, a0, a0 + d, d < 0);
+      return;
+    }
+    const A0 = rev ? seg.b : seg.a, B0 = rev ? seg.a : seg.b;
+    g.beginPath(); g.moveTo(A0[0], A0[1]); g.lineTo(B0[0], B0[1]);
+  }
+
+  // casing → shaded underside → body → specular → braid → collars → travelling flow
+  function drawSeg(g, i, seg, S) {
+    if (seg.t === 'fit') { drawHub(g, i, armUtil(i, seg.chan), S, seg.scale); return; }
+    const util = armUtil(i, seg.chan);
+    const front = sealFront();
+    const sealed = front >= 0 && util != null && A.dep[seg.chan][i] <= front;
+    const isCable = util === 'power';
+    const body = util ? UCOL[util] : S.ink;
+    const hi = util ? UHI[util] : S.inkHi;
+    const lo = util ? ULO[util] : S.inkLo;
+    const wBody = Math.max(2.5, cs * (isCable ? 0.115 : 0.155));
+    const off = Math.max(0.6, cs * 0.014);
+    // flow runs from the shallower end to the deeper one; a dead end always sprays outward
+    let rev = false;
+    if (seg.ports.length === 2) rev = nbDepth(i, seg.ports[0]) > nbDepth(i, seg.ports[1]) && nbDepth(i, seg.ports[1]) >= 0;
+    else if (seg.ports.length === 1) {
+      const nd = nbDepth(i, seg.ports[0]), md = A ? A.dep[seg.chan][i] : -1;
+      rev = !(nd < 0 || nd > md);                        // inward when the neighbour feeds us
+    }
+    g.lineCap = seg.t === 'hop' ? 'round' : 'round';
+    g.strokeStyle = 'rgba(0,0,0,0.5)'; g.lineWidth = wBody + Math.max(3, cs * 0.075);
+    traceSeg(g, i, seg, false); g.stroke();
+    g.strokeStyle = lo; g.lineWidth = wBody;
+    traceSeg(g, i, seg, false); g.stroke();
+    g.save(); g.translate(-off, -off);
+    if (util && (S.glow || sealed)) { g.shadowColor = body; g.shadowBlur = cs * (sealed ? 0.3 : 0.16); }
+    g.strokeStyle = body; g.lineWidth = wBody * 0.86;
+    traceSeg(g, i, seg, false); g.stroke();
+    g.shadowBlur = 0;
+    g.restore();
+    g.save(); g.translate(-off * 2.2, -off * 2.2);
+    g.strokeStyle = hi; g.globalAlpha = 0.5; g.lineWidth = Math.max(0.8, wBody * 0.2);
+    traceSeg(g, i, seg, false); g.stroke();
+    g.globalAlpha = 1; g.restore();
+    if (isCable && cs >= 34 && g.setLineDash) {          // insulated cable reads as a braid
+      g.setLineDash([Math.max(1.2, cs * 0.03), Math.max(1.8, cs * 0.045)]);
+      g.strokeStyle = 'rgba(0,0,0,0.4)'; g.lineWidth = wBody * 0.78;
+      traceSeg(g, i, seg, false); g.stroke();
+      g.setLineDash([]);
+    }
+    // bolted collars where the run crosses a cell edge
+    if (cs >= 26) {
+      const { px, py } = cellRect(i), cxp = px + cs / 2, cyp = py + cs / 2;
+      const cw = wBody * 1.6, ct = Math.max(2, cs * 0.05);
+      for (const d of seg.ports) {
+        const e = portXY(px, py, d);
+        const mx = cxp + (e[0] - cxp) * 0.9, my = cyp + (e[1] - cyp) * 0.9;
+        g.save(); g.translate(mx, my); g.rotate(d % 2 === 0 ? 0 : Math.PI / 2);
+        g.fillStyle = lo;
+        KIT.roundRect(g, -cw / 2, -ct / 2, cw, ct, ct * 0.4); g.fill();
+        g.fillStyle = 'rgba(255,255,255,0.26)';
+        KIT.roundRect(g, -cw / 2, -ct / 2, cw, ct * 0.42, ct * 0.2); g.fill();
+        g.restore();
+      }
+    }
+    if (util && g.setLineDash) {                         // travelling flow
+      const dash = Math.max(2.5, cs * 0.10), gapl = Math.max(3, cs * 0.17);
+      g.setLineDash([dash, gapl]);
+      g.lineDashOffset = -((frame * cs * 0.028) % (dash + gapl));
+      g.strokeStyle = hi; g.globalAlpha = sealed ? 0.95 : 0.6;
+      g.lineWidth = Math.max(1.4, wBody * 0.42);
+      traceSeg(g, i, seg, rev); g.stroke();
+      g.setLineDash([]); g.lineDashOffset = 0; g.globalAlpha = 1;
+    }
+  }
+
+  function drawHub(g, i, util, S, scale) {
+    const { px, py } = cellRect(i);
+    const cxp = px + cs / 2, cyp = py + cs / 2;
+    const r = Math.max(2.4, cs * 0.115) * (scale || 1);
+    const body = util ? UCOL[util] : S.ink, lo = util ? ULO[util] : S.inkLo, hi = util ? UHI[util] : S.inkHi;
+    g.fillStyle = 'rgba(0,0,0,0.45)';
+    g.beginPath(); g.arc(cxp, cyp, r * 1.22, 0, Math.PI * 2); g.fill();
+    const grd = g.createRadialGradient(cxp - r * 0.4, cyp - r * 0.45, r * 0.15, cxp, cyp, r);
+    grd.addColorStop(0, hi); grd.addColorStop(0.45, body); grd.addColorStop(1, lo);
+    g.fillStyle = grd;
+    g.beginPath(); g.arc(cxp, cyp, r, 0, Math.PI * 2); g.fill();
+    if (cs >= 44) {
+      g.fillStyle = 'rgba(255,255,255,0.30)';
+      for (let k = 0; k < 3; k++) { const ang = k * Math.PI * 2 / 3 - 0.4;
+        g.beginPath(); g.arc(cxp + Math.cos(ang) * r * 0.62, cyp + Math.sin(ang) * r * 0.62, Math.max(0.8, cs * 0.017), 0, Math.PI * 2); g.fill(); }
+    }
+  }
+
+  function drawTerminal(g, i, S) {
+    const t = B.term[i], { px, py } = cellRect(i), u = B.utils[t.u];
+    const live = A && ((A.cellU[i] >> t.u) & 1);
+    const col = UCOL[u], lo = ULO[u], hi = UHI[u];
+    const cxp = px + cs / 2, cyp = py + cs / 2;
+    for (const seg of cellPaths(i, B.sol[i])) drawSeg(g, i, seg, S);
+    const r = Math.max(5.5, cs * 0.205);
+    if (t.kind === 'src') {
+      // VALVE: bolted body + a handwheel that spins while it feeds
+      g.fillStyle = 'rgba(0,0,0,0.5)';
+      KIT.roundRect(g, cxp - r * 1.12, cyp - r * 1.12, r * 2.24, r * 2.24, r * 0.36); g.fill();
+      const grd = g.createLinearGradient(cxp - r, cyp - r, cxp + r, cyp + r);
+      grd.addColorStop(0, live ? hi : S.inkHi); grd.addColorStop(0.5, live ? col : S.ink); grd.addColorStop(1, live ? lo : S.inkLo);
+      g.fillStyle = grd;
+      KIT.roundRect(g, cxp - r, cyp - r, r * 2, r * 2, r * 0.3); g.fill();
+      g.strokeStyle = 'rgba(255,255,255,0.45)'; g.lineWidth = Math.max(1, cs * 0.016);
+      KIT.roundRect(g, cxp - r, cyp - r, r * 2, r * 2, r * 0.3); g.stroke();
+      const spin = live ? frame * 0.035 : 0.4;
+      g.strokeStyle = live ? '#ffffff' : 'rgba(255,255,255,0.5)';
+      g.lineWidth = Math.max(1.2, cs * 0.026);
+      g.beginPath(); g.arc(cxp, cyp, r * 0.58, 0, Math.PI * 2); g.stroke();
+      g.beginPath();
+      for (let k = 0; k < 4; k++) { const ang = spin + k * Math.PI / 2;
+        g.moveTo(cxp + Math.cos(ang) * r * 0.16, cyp + Math.sin(ang) * r * 0.16);
+        g.lineTo(cxp + Math.cos(ang) * r * 0.58, cyp + Math.sin(ang) * r * 0.58); }
+      g.stroke();
+    } else {
+      // DRAIN: recessed grate; swirls once the line lands
+      g.fillStyle = 'rgba(0,0,0,0.55)';
+      g.beginPath(); g.arc(cxp, cyp, r * 1.16, 0, Math.PI * 2); g.fill();
+      g.fillStyle = live ? lo : '#0a1a26';
+      g.beginPath(); g.arc(cxp, cyp, r, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = live ? col : S.ink; g.lineWidth = Math.max(1.6, cs * 0.04);
+      g.beginPath(); g.arc(cxp, cyp, r, 0, Math.PI * 2); g.stroke();
+      g.strokeStyle = live ? hi : S.inkHi; g.lineWidth = Math.max(1.2, cs * 0.028);
+      g.beginPath();
+      for (let k = -1; k <= 1; k++) {
+        const yy = cyp + k * r * 0.5, half = Math.sqrt(Math.max(0, r * r - (yy - cyp) * (yy - cyp))) * 0.82;
+        g.moveTo(cxp - half, yy); g.lineTo(cxp + half, yy);
+      }
+      g.stroke();
+      if (live) {
+        g.strokeStyle = hi; g.globalAlpha = 0.75; g.lineWidth = Math.max(1, cs * 0.022);
+        g.beginPath();
+        for (let k = 0; k <= 14; k++) { const ang = frame * 0.06 + k * 0.42, rr = r * 0.78 * (1 - k / 16);
+          const xx = cxp + Math.cos(ang) * rr, yy = cyp + Math.sin(ang) * rr;
+          if (k === 0) g.moveTo(xx, yy); else g.lineTo(xx, yy); }
+        g.stroke(); g.globalAlpha = 1;
+      }
+    }
+    // bolts = bolted down, cannot be turned
+    g.fillStyle = 'rgba(230,245,255,0.34)';
+    const bo = Math.max(1.2, cs * 0.042), inset = cs * 0.13;
+    for (const oxy of [[inset, inset], [cs - inset, inset], [inset, cs - inset], [cs - inset, cs - inset]]) {
+      g.beginPath(); g.arc(px + oxy[0], py + oxy[1], bo, 0, Math.PI * 2); g.fill();
+    }
+  }
+
+  function drawPipe(g, i, S) {
+    const m = cellMask(i), { px, py } = cellRect(i);
+    const cxp = px + cs / 2, cyp = py + cs / 2;
+    if (!m) {                                            // blank plate: a drilled bolt hole
+      g.fillStyle = 'rgba(0,0,0,0.34)';
+      g.beginPath(); g.arc(cxp, cyp, Math.max(1.4, cs * 0.05), 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(190,225,245,0.10)';
+      g.beginPath(); g.arc(cxp, cyp - Math.max(0.5, cs * 0.012), Math.max(1, cs * 0.035), 0, Math.PI * 2); g.fill();
+      return;
+    }
+    g.save();
+    if (anim[i] > 0) {                                   // eased quarter turn with a touch of overshoot
+      const pr = anim[i] / ANIM, e = easeOut(1 - pr);
+      const ang = (1 - e) * (Math.PI / 2) + Math.sin((1 - pr) * Math.PI) * 0.055;
+      g.translate(cxp, cyp); g.rotate(-animDir[i] * ang); g.translate(-cxp, -cyp);
+    }
+    if (B.insul[i]) {                                    // insulated conduit sleeve + earth mark
+      const ins = cs * 0.075;
+      g.fillStyle = 'rgba(255,213,74,0.07)';
+      KIT.roundRect(g, px + ins, py + ins, cs - ins * 2, cs - ins * 2, cs * 0.17); g.fill();
+      g.strokeStyle = 'rgba(255,213,74,0.55)'; g.lineWidth = Math.max(1.1, cs * 0.018);
+      if (g.setLineDash) g.setLineDash([Math.max(2, cs * 0.09), Math.max(2, cs * 0.07)]);
+      KIT.roundRect(g, px + ins, py + ins, cs - ins * 2, cs - ins * 2, cs * 0.17); g.stroke();
+      if (g.setLineDash) g.setLineDash([]);
+      if (cs >= 46) {
+        g.strokeStyle = 'rgba(255,213,74,0.7)'; g.lineWidth = Math.max(1, cs * 0.016);
+        const ex2 = px + cs - cs * 0.18, ey2 = py + cs - cs * 0.15, s2 = cs * 0.05;
+        g.beginPath();
+        g.moveTo(ex2, ey2 - s2 * 1.6); g.lineTo(ex2, ey2 - s2 * 0.4);
+        g.moveTo(ex2 - s2, ey2 - s2 * 0.4); g.lineTo(ex2 + s2, ey2 - s2 * 0.4);
+        g.moveTo(ex2 - s2 * 0.62, ey2 + s2 * 0.2); g.lineTo(ex2 + s2 * 0.62, ey2 + s2 * 0.2);
+        g.moveTo(ex2 - s2 * 0.28, ey2 + s2 * 0.8); g.lineTo(ex2 + s2 * 0.28, ey2 + s2 * 0.8);
+        g.stroke();
+      }
+    }
+    for (const seg of cellPaths(i, m)) drawSeg(g, i, seg, S);
+    g.restore();
+  }
+
+  function drawMarkers(g) {
+    if (!A) return;
+    // leaks: pulsing cross + falling drips (or sparks for the cable)
+    for (const lk of A.leaks) {
+      if (anim[lk.i] > 0) continue;
+      const { px, py } = cellRect(lk.i);
+      const [ex, ey] = portXY(px, py, lk.d);
+      const cxp = px + cs / 2, cyp = py + cs / 2;
+      const ox = (ex - cxp) / (cs / 2), oy = (ey - cyp) / (cs / 2);
+      const chan = B.xover[lk.i] ? lk.d % 2 : 0;
+      const u = armUtil(lk.i, chan);
+      const col = u ? UCOL[u] : '#ff5f6d';
+      for (let k = 0; k < 3; k++) {                      // drips / sparks spilling out of the port
+        const ph = ((frame * 0.022) + k / 3) % 1;
+        const dx2 = ex + ox * cs * 0.12 + ox * ph * cs * 0.3;
+        const dy2 = ey + oy * cs * 0.12 + oy * ph * cs * 0.12 + ph * ph * cs * 0.34;
+        g.globalAlpha = (1 - ph) * 0.85;
+        g.fillStyle = u === 'power' ? '#fff2b8' : col;
+        const rr = Math.max(1, cs * 0.045 * (1 - ph * 0.5));
+        g.beginPath(); g.arc(dx2, dy2, rr, 0, Math.PI * 2); g.fill();
+        g.globalAlpha = 1;
+      }
+      if (markers) {
+        const mx = ex - ox * cs * 0.14, my = ey - oy * cs * 0.14;
+        const s = Math.max(4.5, cs * 0.12), pulse = 0.55 + 0.45 * Math.sin(frame * 0.14);
+        g.strokeStyle = '#ff6b78'; g.lineWidth = Math.max(2.2, cs * 0.06);
+        g.globalAlpha = pulse;
+        g.beginPath(); g.moveTo(mx - s, my - s); g.lineTo(mx + s, my + s); g.moveTo(mx + s, my - s); g.lineTo(mx - s, my + s); g.stroke();
+        g.globalAlpha = 1;
+      }
+    }
+    // faults: shaking red cell + rule glyph
+    for (const f of A.faults) {
+      const { px, py } = cellRect(f.i);
+      const pulse = 0.5 + 0.5 * Math.sin(frame * 0.2);
+      const jitter = faultFx > 0 ? Math.sin(frame * 1.4) * Math.min(3, cs * 0.03) * (faultFx / 26) : 0;
+      g.save(); g.translate(jitter, 0);
+      g.fillStyle = 'rgba(255,70,90,' + (0.15 + 0.1 * pulse) + ')';
+      g.fillRect(px + 1, py + 1, cs - 2, cs - 2);
+      g.strokeStyle = 'rgba(255,110,124,' + (0.6 + 0.35 * pulse) + ')';
+      g.lineWidth = Math.max(2, cs * 0.075);
+      KIT.roundRect(g, px + 2.5, py + 2.5, cs - 5, cs - 5, cs * 0.16); g.stroke();
+      g.font = '700 ' + Math.round(cs * 0.34) + 'px system-ui, sans-serif';
+      g.textAlign = 'center'; g.textBaseline = 'middle';
+      g.fillStyle = '#fff0f1';
+      g.fillText(f.kind === 'scald' ? '♨' : '⚡', px + cs / 2, py + cs * 0.24);
+      g.restore();
+    }
+    // rotation ripple: an expanding ring on the tile you just turned
+    for (const rp of ripples) {
+      const { px, py } = cellRect(rp.i);
+      const p = 1 - rp.t / 18;
+      g.strokeStyle = 'rgba(190,235,255,' + (0.45 * (1 - p)) + ')';
+      g.lineWidth = Math.max(1.2, cs * 0.03);
+      KIT.roundRect(g, px + 2 - p * cs * 0.1, py + 2 - p * cs * 0.1, cs - 4 + p * cs * 0.2, cs - 4 + p * cs * 0.2, cs * 0.18);
+      g.stroke();
+    }
+    if (holdFx && holdFx.t > 0) {
+      const { px, py } = cellRect(holdFx.i);
+      const k = holdFx.t / 16;
+      g.strokeStyle = 'rgba(255,255,255,' + k * 0.75 + ')'; g.lineWidth = Math.max(1.6, cs * 0.035);
+      KIT.roundRect(g, px + 2, py + 2, cs - 4, cs - 4, cs * 0.16); g.stroke();
+    }
+    // the hinted pipe: a DOUBLE violet ring. Violet is a colour no utility, leak or fault ever uses,
+    // and the doubled outline is a shape cue no other marker has (the conduit ring is single+dashed,
+    // the fault ring single+jittering), so it reads without relying on colour alone.
+    if (hintCell >= 0 && !A.solved) {
+      const { px, py } = cellRect(hintCell);
+      const pulse = 0.55 + 0.45 * Math.sin(frame * 0.13);
+      g.strokeStyle = 'rgba(203,164,255,' + (0.5 + 0.45 * pulse) + ')';
+      g.lineWidth = Math.max(1.8, cs * 0.045);
+      const o1 = Math.max(2, cs * 0.045), o2 = o1 + Math.max(3, cs * 0.1);
+      KIT.roundRect(g, px + o1, py + o1, cs - o1 * 2, cs - o1 * 2, cs * 0.18); g.stroke();
+      g.lineWidth = Math.max(1.2, cs * 0.028);
+      KIT.roundRect(g, px + o2, py + o2, cs - o2 * 2, cs - o2 * 2, cs * 0.12); g.stroke();
+    }
+  }
+
+  function drawSeal(g) {
+    if (solvedFx <= 0) return;
+    const bw = cs * B.w, bh = cs * B.h;
+    const p = Math.min(1, solvedFx / 40);
+    // the pressure wave rides the pipes (drawSeg brightens sealed runs) — this is the flash + stamp
+    g.fillStyle = 'rgba(120,225,255,' + (0.16 * (1 - p)) + ')';
+    g.fillRect(bx, by, bw, bh);
+    if (solvedFx < 26) return;
+    const q = Math.min(1, (solvedFx - 26) / 52);           // stamp window: steps 26 → 78
+    const label = KIT.t('game.floodgate.statusSealed', { def: 'SEALED' });
+    const pop = q < 0.12 ? q / 0.12 : 1;                   // quick scale-in
+    const fs = Math.min(bw * 0.16, cs * 0.8) * (0.82 + 0.18 * pop);
+    g.font = '800 ' + Math.round(fs) + 'px ui-monospace, monospace';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    let tw = 0;
+    try { const mt = g.measureText(label); tw = (mt && mt.width) || 0; } catch (e) {}
+    if (!tw) tw = label.length * fs * 0.62;
+    const padx = fs * 0.55, plw = Math.min(bw * 0.94, tw + padx * 2), plh = fs * 1.5;
+    const yy = by + bh / 2 - q * cs * 0.18;
+    g.globalAlpha = q > 0.88 ? (1 - q) / 0.12 : 1;
+    g.fillStyle = 'rgba(4,14,22,0.94)';
+    KIT.roundRect(g, bx + bw / 2 - plw / 2, yy - plh / 2, plw, plh, plh * 0.22); g.fill();
+    g.strokeStyle = '#8de6ff'; g.lineWidth = Math.max(1.5, fs * 0.035);
+    KIT.roundRect(g, bx + bw / 2 - plw / 2, yy - plh / 2, plw, plh, plh * 0.22); g.stroke();
+    g.fillStyle = '#f2fdff';
+    g.fillText(label, bx + bw / 2, yy);
+    if (lastStars) {
+      const sfs = Math.max(12, fs * 0.42);
+      g.font = '700 ' + Math.round(sfs) + 'px system-ui, sans-serif';
+      const stars = '★'.repeat(lastStars) + '☆'.repeat(3 - lastStars);
+      const sw = Math.min(bw * 0.8, stars.length * sfs * 1.15);
+      g.fillStyle = 'rgba(4,14,22,0.94)';
+      KIT.roundRect(g, bx + bw / 2 - sw / 2, yy + plh * 0.62, sw, sfs * 1.5, sfs * 0.4); g.fill();
+      g.fillStyle = '#ffd54a';
+      g.fillText(stars, bx + bw / 2, yy + plh * 0.62 + sfs * 0.75);
+    }
+    g.globalAlpha = 1;
+  }
+
+  function drawStage(g) {
+    if (!stageFx || stageFx.t <= 0) return;
+    const p = 1 - stageFx.t / 100;
+    const bw = cs * B.w;
+    const a = p < 0.12 ? p / 0.12 : p > 0.78 ? (1 - p) / 0.22 : 1;
+    g.globalAlpha = Math.max(0, Math.min(1, a));
+    const fs = Math.max(13, Math.min(30, bw * 0.068));
+    g.font = '800 ' + Math.round(fs) + 'px ui-monospace, monospace';
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    let tw = 0;
+    try { const mt = g.measureText(stageFx.label); tw = (mt && mt.width) || 0; } catch (e) {}
+    if (!tw) tw = stageFx.label.length * fs * 0.62;
+    const plw = Math.min(bw * 0.96, tw + fs * 1.6), plh = fs * 1.75;
+    const yy = by + Math.max(plh * 0.75, cs * 0.8);
+    g.fillStyle = 'rgba(4,14,22,0.94)';
+    KIT.roundRect(g, bx + bw / 2 - plw / 2, yy - plh / 2, plw, plh, plh * 0.3); g.fill();
+    g.strokeStyle = '#8de6ff'; g.lineWidth = Math.max(1.4, fs * 0.055);
+    KIT.roundRect(g, bx + bw / 2 - plw / 2, yy - plh / 2, plw, plh, plh * 0.3); g.stroke();
+    g.fillStyle = '#eafaff';
+    g.fillText(stageFx.label, bx + bw / 2, yy);
+    g.globalAlpha = 1;
+  }
+
+  // items shown in the key: whichever utilities this board uses, plus the leak mark
+  function legendItems() {
+    const out = [];
+    if (B) for (const u of B.utils) out.push({ c: UCOL[u], t: u === 'cold' ? KIT.t('game.floodgate.legendCold', { def: 'COLD' })
+      : u === 'hot' ? KIT.t('game.floodgate.legendHot', { def: 'HOT' }) : KIT.t('game.floodgate.legendPower', { def: 'POWER' }) });
+    out.push({ c: '#ff6b78', t: KIT.t('game.floodgate.legendLeak', { def: 'LEAK' }), x: true });
+    return out;
+  }
+  function mark(g, it, px, cy, fs) {
+    g.strokeStyle = it.c; g.fillStyle = it.c;
+    if (it.x) { const s = fs * 0.34; g.lineWidth = 1.8;
+      g.beginPath(); g.moveTo(px - s, cy - s); g.lineTo(px + s, cy + s); g.moveTo(px + s, cy - s); g.lineTo(px - s, cy + s); g.stroke(); }
+    else {
+      g.beginPath(); g.arc(px, cy, fs * 0.32, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.5)';
+      g.beginPath(); g.arc(px - fs * 0.09, cy - fs * 0.1, fs * 0.1, 0, Math.PI * 2); g.fill();
+    }
+  }
+  // The landscape rail: the key stacked at the top, the game's own toast wrapped at the bottom (the
+  // kit's 🔍 button sits between them, and its tip takes over the rail while it shows).
+  function drawRail(g) {
+    const L = legend, fs = 11;
+    g.font = '600 ' + fs + 'px ui-monospace, monospace';
+    g.textBaseline = 'middle'; g.textAlign = 'left';
+    const items = legendItems();
+    items.forEach((it, k) => {
+      const cy = L.y + 10 + k * (fs + 7);
+      mark(g, it, L.x + fs * 0.5, cy, fs);
+      g.fillStyle = '#dbeaf6';
+      g.fillText(it.t, L.x + fs * 1.4, cy, L.w - fs * 1.4);
+    });
+    if (!toast || toast.t <= 0) return;
+    const words = String(toast.text).split(/\s+/), lines = [];
+    let cur = '';
+    for (const wd of words) {
+      const test = cur ? cur + ' ' + wd : wd;
+      let tw; try { tw = g.measureText(test).width; } catch (e) { tw = test.length * fs * 0.6; }
+      if (tw > L.w && cur) { lines.push(cur); cur = wd; } else cur = test;
+    }
+    if (cur) lines.push(cur);
+    const lh2 = fs + 4, maxLines = Math.max(1, Math.floor((L.h * 0.34) / lh2));
+    const show = lines.slice(0, maxLines);
+    g.globalAlpha = Math.min(1, toast.t / 40);
+    g.fillStyle = '#e8f6ff';
+    show.forEach((ln, k) => g.fillText(ln, L.x, L.y + L.h - (show.length - k) * lh2 - 4));
+    g.globalAlpha = 1;
+  }
+  function drawLegend(g, S) {
+    const L = legend;
+    if (L.h <= 0 || L.w <= 0) return;
+    if (hintTipT > 0) return;                 // the kit hint toast is standing in this band
+    if (L.vertical) return drawRail(g);
+    const fs = Math.max(9, Math.min(13, Math.round(L.h * 0.42)));
+    g.font = '600 ' + fs + 'px ui-monospace, monospace';
+    g.textBaseline = 'middle';
+    const textW = s => { try { const m = g.measureText(s); return (m && m.width) || s.length * fs * 0.6; } catch (e) { return s.length * fs * 0.6; } };
+    if (toast && toast.t > 0) {
+      g.textAlign = 'center';
+      g.globalAlpha = Math.min(1, toast.t / 40);
+      g.fillStyle = '#e8f6ff';
+      g.fillText(toast.text, L.x + L.w / 2, L.y + L.h / 2, L.w - 8);
+      g.globalAlpha = 1;
+      return;
+    }
+    const items = legendItems();
+    g.textAlign = 'left';
+    const widths = items.map(it => textW(it.t) + fs * 2.1);
+    const total = widths.reduce((a, b) => a + b, 0);
+    let px = L.x + Math.max(0, (L.w - total) / 2);
+    const cy = L.y + L.h / 2;
+    items.forEach((it, k) => {
+      mark(g, it, px, cy, fs);
+      g.fillStyle = '#dbeaf6';
+      g.fillText(it.t, px + fs * 0.75, cy);
+      px += widths[k];
+    });
+  }
+
+  function render() {
+    const S = skin();
+    drawPaper(ctx);
+    if (!B) return;
+    drawFrame(ctx, S);
+    for (let i = 0; i < B.n; i++) if (!B.term[i]) drawPipe(ctx, i, S);
+    for (let i = 0; i < B.n; i++) if (B.term[i]) drawTerminal(ctx, i, S);
+    drawMarkers(ctx);
+    drawSeal(ctx);
+    drawStage(ctx);
+    if (faultFx > 0) { ctx.fillStyle = 'rgba(255,60,80,' + (0.09 * faultFx / 26) + ')'; ctx.fillRect(0, 0, W, H); }
+    drawLegend(ctx, S);
+  }
+
+  // ================= HUD =================
+  function updateHud() {
+    const bEl = document.getElementById('boardEl'), tEl = document.getElementById('timeEl'),
+      lEl = document.getElementById('leaksEl'), sEl = document.getElementById('bestEl'),
+      mEl = document.getElementById('turnsEl');
+    if (bEl) bEl.textContent = mode === 'campaign' ? (level + 1) + '/' + LEVELS.length
+      : mode === 'daily' ? 'T' + (B ? B.tier : 1) : '#' + boardNo;
+    if (tEl) tEl.textContent = timed ? fmtTime(remain) : fmtTime(playFrames / 60);
+    if (mEl) mEl.textContent = moves + '/' + par;
+    if (lEl) lEl.textContent = !A ? '0'
+      : A.faults.length ? (A.faults[0].kind === 'scald' ? KIT.t('game.floodgate.statusScald', { def: 'SCALD' }) : KIT.t('game.floodgate.statusShort', { def: 'SHORT' }))
+      : A.solved ? KIT.t('game.floodgate.statusSealed', { def: 'SEALED' })
+      : A.leaks.length ? String(A.leaks.length)
+      : KIT.t('game.floodgate.statusDry', { def: 'DRY' });
+    if (sEl) sEl.textContent = loadBest(mode);
+  }
+
+  // ================= menus =================
+  const MENU_THEME = { accent: ACCENT, title: ACCENT };
+
+  function pvBoard(g, w, h, tier) {
+    const n = tier === 1 ? 4 : tier === 2 ? 5 : 6;
+    const s = Math.max(4, Math.floor(Math.min(w / n, h / n)));
+    const ox = (w - s * n) / 2, oy = (h - s * n) / 2;
+    g.fillStyle = '#0c2130'; g.fillRect(ox, oy, s * n, s * n);
+    g.strokeStyle = '#153649'; g.lineWidth = 1;
+    for (let k = 1; k < n; k++) { g.beginPath(); g.moveTo(ox + k * s, oy); g.lineTo(ox + k * s, oy + s * n);
+      g.moveTo(ox, oy + k * s); g.lineTo(ox + s * n, oy + k * s); g.stroke(); }
+    const cols = tier === 1 ? ['#57d3ff'] : tier === 2 ? ['#57d3ff', '#ff8a5c'] : ['#57d3ff', '#ff8a5c', '#ffd54a'];
+    g.lineCap = 'round'; g.lineWidth = Math.max(1.6, s * 0.2);
+    cols.forEach((c, k) => {
+      g.strokeStyle = c;
+      const row = 1 + k * 2 >= n ? n - 1 : 1 + k * 2;
+      g.beginPath();
+      g.moveTo(ox + s * 0.5, oy + row * s + s * 0.5);
+      g.lineTo(ox + s * (n - 1.5), oy + row * s + s * 0.5);
+      g.lineTo(ox + s * (n - 1.5), oy + Math.max(0.5, row - 1) * s + s * 0.5);
+      g.lineTo(ox + s * (n - 0.5), oy + Math.max(0.5, row - 1) * s + s * 0.5);
+      g.stroke();
+    });
+  }
+
+  function menuBackdrop(g, w, h, st, fr) {
+    const tt = (fr || 0) / 60, S = skin();
+    const bg = g.createLinearGradient(0, 0, 0, h);
+    bg.addColorStop(0, '#0b1e2c'); bg.addColorStop(1, '#050f19');
+    g.fillStyle = bg; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(95,184,217,0.06)'; g.lineWidth = 1;
+    g.beginPath();
+    for (let x = 0; x < w; x += 26) { g.moveTo(x + 0.5, 0); g.lineTo(x + 0.5, h); }
+    for (let y = 0; y < h; y += 26) { g.moveTo(0, y + 0.5); g.lineTo(w, y + 0.5); }
+    g.stroke();
+    // drifting schematic pipe runs hugging the edges (the box owns the centre)
+    const cols = ['#57d3ff', '#ff8a5c', '#ffd54a'];
+    g.lineCap = 'round'; g.lineWidth = 5;
+    for (let k = 0; k < 6; k++) {
+      const side = k % 2 === 0, yy = ((k * 137 + tt * 16) % (h + 140)) - 70;
+      const x0 = side ? -20 : w - 130, len = 150;
+      g.strokeStyle = cols[k % cols.length];
+      g.globalAlpha = 0.22;
+      g.beginPath();
+      g.moveTo(x0, yy); g.lineTo(x0 + len * 0.6, yy);
+      g.lineTo(x0 + len * 0.6, yy + 46); g.lineTo(x0 + len, yy + 46);
+      g.stroke();
+      g.globalAlpha = 0.5;
+      g.fillStyle = cols[k % cols.length];
+      g.beginPath(); g.arc(x0 + len * 0.6, yy, 4, 0, Math.PI * 2); g.fill();
+      g.globalAlpha = 1;
+    }
+    g.strokeStyle = S.frame; g.globalAlpha = 0.25; g.lineWidth = 2;
+    g.strokeRect(14.5, 14.5, w - 29, h - 29); g.globalAlpha = 1;
+  }
+
+  // The primary action is MODE-BOUND: its label AND what it does both come from the lit mode card,
+  // so the highlighted button can never start a mode the player didn't pick (a saved board resumes
+  // from its own labelled secondary button instead of stealing the primary).
+  const primaryLabel = m => m === 'daily' ? KIT.t('game.floodgate.playDaily', { def: "PLAY TODAY'S BOARD" })
+    : m === 'endless' ? KIT.t('game.floodgate.playEndless', { def: 'START ENDLESS RUN' })
+    : KIT.t('game.floodgate.playCampaign', { def: 'PLAY · PICK BLUEPRINT' });
+  // the kit builds action labels once; the primary is the one that has to follow the selection, so
+  // it's re-labelled in place on change (cosmetic only — the routing below reads menu state)
+  function setPrimaryLabel(h, text) {
+    try { const b = h && h.el && h.el.querySelector && h.el.querySelector('.gkm-action.primary'); if (b) b.textContent = text; } catch (e) {}
+  }
+
+  function showStartMenu() {
+    state = 'ready';
+    if (!KIT) return;
+    menuScreen = 'start';
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    syncHintBtn();
+    const cont = PROG ? PROG.current() : null;
+    const nx = nextLevel(), sealed = done.length, stars = loadBest('daily');
+    const mech = {
+      campaign: [KIT.t('game.floodgate.mechLevels', { def: '12 blueprints' })],
+      daily: [KIT.t('game.floodgate.mechOneBoard', { def: 'One board a day' })],
+      endless: [KIT.t('game.floodgate.mechTimed', { def: 'Timed · grows' })],
+    };
+    const desc = {
+      campaign: KIT.t('game.floodgate.descCampaign', { def: 'Twelve fixed blueprints, one utility at a time.' }),
+      daily: KIT.t('game.floodgate.descDaily', { def: "Everyone gets the same board today." }),
+      endless: KIT.t('game.floodgate.descEndless', { def: 'Bigger grids, tighter clock, until it beats you.' }),
+    };
+    // the kit hides card blurbs AND chips on narrow/landscape phones (only name + tag + best survive),
+    // so the hint is where each mode says what it is and what the player is chasing — one line, always
+    const chase = {
+      campaign: KIT.t('game.floodgate.hintCampaign', { done: sealed, total: LEVELS.length, n: nx + 1,
+        def: 'Play opens the blueprint picker — {done} of {total} sealed, next up is #{n}.' }),
+      daily: KIT.t('game.floodgate.hintDaily', { def: "One board, the same for everyone today — finish near par for three stars." }),
+      endless: KIT.t('game.floodgate.hintEndless', { def: 'Grids grow and the clock tightens — seal as many boards as you can.' }),
+    };
+    // tags ride in the card NAME line, the one place a narrow phone still shows them: campaign
+    // progress, and Daily's best star rating (a bare "BEST 3" there would read as a board count;
+    // "★ 2/3" instead of ★★☆ because filled-vs-hollow stars are a coin toss at pill size)
+    const tag = { campaign: sealed + '/' + LEVELS.length,
+      daily: stars ? '★ ' + stars + '/3' : null, endless: null };
+    let handle = null;
+    handle = KIT.menu.show({ kind: 'start', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      title: KIT.t('game.floodgate.menuTitle', { def: 'FLOODGATE' }),
+      groups: [{ id: 'mode', label: KIT.t('game.common.modeLabel', { def: 'MODE' }), style: 'cards', default: mode,
+        choices: MODE_ORDER.map(m => ({ id: m, kid: m === 'campaign', label: modeDisplay(m), tag: tag[m] || undefined,
+          mech: mech[m], desc: desc[m], best: m === 'daily' ? undefined : () => loadBest(m),
+          preview: (g, w, h) => pvBoard(g, w, h, m === 'campaign' ? 1 : m === 'daily' ? 2 : 3) })) }],
+      toggles: [{ id: 'markers', kid: true, label: KIT.t('game.floodgate.hints', { def: 'Leak markers' }), default: markers }],
+      hint: st => chase[st.mode] || '',
+      // a short landscape phone gives the kit a 2-column split with a tight right rail — the
+      // headline banner is the one line that can go without losing information (the hint repeats it)
+      banner: st => (KIT.layout.h < 500 && KIT.layout.landscape) ? '' : st.mode === 'campaign'
+        ? (sealed >= LEVELS.length
+          ? KIT.t('game.floodgate.bannerCampaign', { done: sealed, total: LEVELS.length, def: '{done} of {total} blueprints sealed' })
+          : KIT.t('game.floodgate.bannerNext', { n: nx + 1, par: LEVELS[nx].par, def: 'BLUEPRINT {n} · PAR {par}' }))
+        : st.mode === 'daily'
+          ? KIT.t('game.floodgate.bannerDaily', { date: KIT.utcDateStr(), def: 'Board of {date}' })
+          : KIT.t('game.floodgate.bannerEndless', { stage: stageName('mains'), def: 'Stages: cold → hot → cable → {stage}' }),
+      actions: [{ id: 'play', label: primaryLabel(mode), primary: true }].concat(cont
+        ? [{ id: 'continue', label: KIT.t('game.common.continue', { def: 'Continue' }) + ' · ' + modeDisplay(cont.mode) }]
+        : []),
+      onChange: st => { mode = st.mode; markers = !!st.markers; saveUi(); KIT.stampUrl({ mode: st.mode }); setPrimaryLabel(handle, primaryLabel(mode)); },
+      // campaign play is a two-step: choosing which of the twelve blueprints IS the campaign's
+      // start screen (the kit already counted this tap as game_start, so the picker's own start
+      // action is not called 'play' — it must not count twice)
+      onPlay: st => { mode = st.mode; markers = !!st.markers; saveUi(); if (mode === 'campaign') showLevelMenu(); else startRun(mode); },
+      onAction: id => { if (id === 'continue' && cont) resumeRun(cont); },
+    });
+    return handle;
+  }
+
+  // Locked/cleared state is drawn as high-contrast VECTOR art in the cell preview (padlock / tick):
+  // the kit dims a locked cell to 55% opacity, so anything that has to read there needs the contrast
+  // headroom — that's also why the locked par label gets a near-white override in our CSS.
+  function pvLevel(g, w, h, i) {
+    const L = LEVELS[i];
+    if (!levelUnlocked(i)) {
+      g.fillStyle = '#0a1826'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = 'rgba(150,200,225,0.28)'; g.lineWidth = 1;
+      g.strokeRect(0.5, 0.5, w - 1, h - 1);
+      const s = Math.min(w, h) * 0.62, cxp = w / 2, cyp = h / 2 + s * 0.08;
+      g.strokeStyle = '#e8f4ff'; g.lineWidth = Math.max(1.6, s * 0.14);
+      g.beginPath(); g.arc(cxp, cyp - s * 0.22, s * 0.24, Math.PI, 0); g.stroke();
+      g.fillStyle = '#e8f4ff';
+      KIT.roundRect(g, cxp - s * 0.36, cyp - s * 0.12, s * 0.72, s * 0.52, s * 0.1); g.fill();
+      g.fillStyle = '#0a1826';
+      g.beginPath(); g.arc(cxp, cyp + s * 0.14, s * 0.08, 0, Math.PI * 2); g.fill();
+      return;
+    }
+    pvBoard(g, w, h, L.tier);
+    if (isDone(i)) {
+      const s = Math.min(w, h) * 0.5;
+      g.fillStyle = 'rgba(6,18,28,0.6)'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = '#7ef2c0'; g.lineWidth = Math.max(2, s * 0.22); g.lineCap = 'round';
+      g.beginPath();
+      g.moveTo(w / 2 - s * 0.4, h / 2); g.lineTo(w / 2 - s * 0.08, h / 2 + s * 0.32); g.lineTo(w / 2 + s * 0.42, h / 2 - s * 0.34);
+      g.stroke();
+    }
+  }
+
+  // STEP TWO OF PLAY for the campaign, not a side door: reached from the start menu's primary
+  // action, and BACK / Esc always lands back on that menu rather than dead-ending here.
+  // The SCREEN is the kit's (gamekit.levelsScreen) — grid, ✓/▶/lock sub-labels, the live-relabelled
+  // primary, BACK and Esc all come from there, so Floodgate and every other campaign puzzle pick a
+  // level the same way. Only what is Floodgate's stays here: which blueprints are open, their par,
+  // and the preview painter.
+  function showLevelMenu() {
+    if (!KIT) return;
+    state = 'ready';
+    menuScreen = 'levels';
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    syncHintBtn();
+    const pick = nextLevel();
+    let handle = null;
+    handle = KIT.levelsScreen({
+      count: LEVELS.length, default: pick, theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      title: KIT.t('game.floodgate.selectLevel', { def: 'SELECT BLUEPRINT' }),
+      status: levelStatus,
+      par: i => LEVELS[i].par,
+      preview: pvLevel,
+      onPick: i => startRun('campaign', i),
+      onLocked: () => SND.play('bolted'),
+      onBack: () => showStartMenu(),
+      // the kit re-labels its primary through '.gkm-act.primary', a class the menu builder never
+      // emits ('.gkm-action.primary' is the real one), so the label would freeze on the opening pick
+      onChange: i => setPrimaryLabel(handle, KIT.t('game.common.play', { def: 'PLAY' }) + ' · #' + (i + 1)),
+    });
+    // all twelve fit every measured viewport now, but keep the belt: a big font scale or a long
+    // locale could still push the preselected blueprint out of view, and it must open in sight
+    try {
+      const cell = handle && handle.el && handle.el.querySelectorAll('.gkm-gcell')[pick];
+      if (cell && cell.scrollIntoView) cell.scrollIntoView({ block: 'nearest' });
+    } catch (e) {}
+  }
+
+  function shareMsg() {
+    if (mode === 'daily') return KIT.t('game.floodgate.shareDaily', { def: "I sealed today's Floodgate blueprint 🚰" });
+    if (mode === 'campaign') return KIT.t('game.floodgate.shareCampaign', { count: score, def: 'I sealed {count} Floodgate blueprints in one run 🚰' });
+    return KIT.t('game.floodgate.shareEndless', { count: score, def: 'I sealed {count} Floodgate boards before the clock won 🚰' });
+  }
+
+  // What did the player actually achieve, against par?
+  const runTurns = () => (parTotal > 0 ? movesTotal : moves);
+  const runPar = () => (parTotal > 0 ? parTotal : par);
+  function endLines(reason, line) {
+    // the star rating rides ON the mode line rather than taking one of its own — in the
+    // short-landscape rail that fourth line was what made the end screen scroll
+    const out = [line + ((mode === 'daily' && lastStars) ? ' · ' + '★'.repeat(lastStars) + '☆'.repeat(3 - lastStars) : '')];
+    const mv = runTurns(), pr = runPar();
+    // A hinted run forfeits the par verdict however few turns it took — and the hint tally takes that
+    // slot, so it reads as the reason the praise is missing (same trade Mirror Maze makes).
+    const vsPar = hintsUsed() ? hintBadge()
+      : mv === 0 ? '' : mv < pr ? KIT.t('game.floodgate.underPar', { n: pr - mv, def: '{n} under par' })
+      : mv === pr ? KIT.t('game.floodgate.onPar', { def: 'dead on par' })
+      : KIT.t('game.floodgate.overPar', { n: mv - pr, def: '{n} over par' });
+    out.push(KIT.t('game.floodgate.turnsLine', { moves: mv, par: pr, vs: vsPar, def: 'Turns {moves} · par {par} · {vs}' }));
+    if (mode === 'endless') out.push(KIT.t('game.floodgate.stageLine', { stage: stageName(stage), def: 'Stage reached: {stage}' }));
+    return out;
+  }
+
+  function showEnd(reason, isBest) {
+    if (!KIT) return;
+    menuScreen = 'end';
+    KIT.showMenuButton(false); KIT.showPauseButton(false);
+    syncHintBtn();
+    const title = reason === 'done' ? KIT.t('game.floodgate.campaignDone', { def: 'BLUEPRINT SET COMPLETE' })
+      : reason === 'win' ? KIT.t('game.floodgate.boardSealed', { def: 'LINE SEALED' })
+      : reason === 'timeup' ? KIT.t('game.floodgate.timeUp', { def: "TIME'S UP" })
+      : KIT.t('game.floodgate.runEnded', { def: 'RUN ENDED' });
+    const line = mode === 'campaign' ? KIT.t('game.floodgate.endLineCampaign', { level: level + 1, total: LEVELS.length, def: 'Campaign · reached blueprint {level} of {total}' })
+      : mode === 'daily' ? KIT.t('game.floodgate.endLineDaily', { def: 'Daily blueprint' })
+      : KIT.t('game.floodgate.endLineEndless', { count: boardNo, def: 'Endless · board {count}' });
+    KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      title,
+      // record: the ONE recording path. Never time-primary → time stays 0.
+      record: { slug: SLUG, mode: modeLabel(mode), modeText: modeDisplay(mode), score, time: 0,
+        outcome: (reason === 'done' || reason === 'win') ? 'win' : reason === 'timeup' ? 'lose' : 'end',
+        stats: { moves: runTurns(), par: runPar() } },
+      score, best: loadBest(mode), newBest: !!isBest,
+      lines: endLines(reason, line),
+      share: { slug: SLUG, accent: ACCENT, icon: '🚰', title: KIT.t('game.floodgate.title', { def: 'Floodgate' }),
+        message: () => shareMsg(), params: () => ({ mode }) },
+      actions: [{ id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true },
+                { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) }],
+      onAction: id => { if (id === 'again') startRun(mode, mode === 'campaign' ? nextLevel() : 0); else if (id === 'menu') toMenu(); } });
+  }
+
+  function pauseGame() {
+    if (state !== 'playing' || !KIT) return;
+    menuScreen = 'pause';
+    syncHintBtn();
+    const resume = () => { KIT.menu.hide(); menuScreen = null; syncHintBtn(); };
+    KIT.menu.show({ kind: 'pause', theme: MENU_THEME, title: KIT.t('game.common.paused', { def: 'PAUSED' }),
+      lines: [objectiveLine(),
+        KIT.t('game.floodgate.pauseLine', { leaks: A ? A.leaks.length : 0, moves, def: 'Leaks: {leaks} · Turns: {moves}' })],
+      // a hint is reachable from here too, for a player who paused BECAUSE they were stuck
+      actions: [{ id: 'resume', label: KIT.t('game.common.resume', { def: 'RESUME (ESC)' }), primary: true },
+                { id: 'hint', label: hintLabel() },
+                { id: 'menu', label: KIT.t('game.common.quitToMenu', { def: 'QUIT TO MENU' }), danger: true }],
+      onAction: id => { if (id === 'resume') resume(); else if (id === 'hint') { resume(); giveHint(); } else if (id === 'menu') quitRun(); },
+      onEsc: resume });
+  }
+
+  function quitRun() {
+    if (state === 'playing' && score > 0) { KIT.menu.hide(); endRun('quit'); return; }
+    toMenu();
+  }
+  function toMenu() {
+    if (state === 'playing') saveState();
+    if (KIT) KIT.menu.hide();
+    showStartMenu();
+  }
+
+  // ================= input =================
+  function toCanvas(e, r) { return { x: (e.clientX - r.left) * (W / r.width), y: (e.clientY - r.top) * (H / r.height) }; }
+  function cellAt(px, py) {
+    if (!B) return null;
+    const x = Math.floor((px - bx) / cs), y = Math.floor((py - by) / cs);
+    if (x < 0 || y < 0 || x >= B.w || y >= B.h) return null;
+    return { x, y };
+  }
+
+  let pDown = null, pLong = null, pLongFired = false;
+  canvas.addEventListener('pointerdown', e => {
+    if (state !== 'playing') return;
+    const r = canvas.getBoundingClientRect(), p = toCanvas(e, r), c = cellAt(p.x, p.y);
+    pDown = p; pLongFired = false;
+    if (!c) return;
+    if (e.button === 2) { pLongFired = true; rotateCell(c.x, c.y, false); return; }
+    if (e.pointerType !== 'mouse') {
+      pLong = setTimeout(() => { pLongFired = true; rotateCell(c.x, c.y, false);
+        if (navigator.vibrate) { try { navigator.vibrate(25); } catch (err) {} } }, 400);
+    }
+  });
+  canvas.addEventListener('pointerup', e => {
+    if (pLong) { clearTimeout(pLong); pLong = null; }
+    if (!pDown || pLongFired || state !== 'playing') { pDown = null; return; }
+    const r = canvas.getBoundingClientRect(), p = toCanvas(e, r);
+    const drag = Math.hypot(p.x - pDown.x, p.y - pDown.y);
+    pDown = null;
+    if (drag > cs * 0.7) return;
+    const c = cellAt(p.x, p.y);
+    if (c && e.button !== 2) rotateCell(c.x, c.y, true);
+  });
+  canvas.addEventListener('pointercancel', () => { if (pLong) { clearTimeout(pLong); pLong = null; } pDown = null; });
+  canvas.addEventListener('contextmenu', e => e.preventDefault());
+  window.addEventListener('keydown', e => {
+    if (state !== 'playing') return;
+    if (e.key === 'Escape') { e.preventDefault(); pauseGame(); }
+    // H belongs to the kit's hint button now — the leak-marker display toggle moved to M
+    else if (e.key === 'm' || e.key === 'M') { markers = !markers; saveUi(); SND.play('turn'); }
+  });
+
+  // ================= nav + music =================
+  KIT.nav({ slug: SLUG, music: true, home: '../../', theme: MENU_THEME, onMenu: () => toMenu(),
+    onPause: () => { if (state === 'playing') pauseGame(); },
+    confirmLeave: false,   // the board auto-saves and "Continue" resumes it
+    controls: { title: KIT.t('game.floodgate.controlsTitle', { def: 'Floodgate — Controls' }),
+      mouse: [[KIT.t('game.common.click', { def: 'Click' }), KIT.t('game.floodgate.ctrlRotate', { def: 'Rotate a pipe clockwise' })],
+              [KIT.t('game.floodgate.rightClick', { def: 'Right-click' }), KIT.t('game.floodgate.ctrlRotateCcw', { def: 'Rotate counter-clockwise' })]],
+      keyboard: [['H', KIT.t('game.floodgate.ctrlHint', { def: 'Ring a pipe that is turned the wrong way' })],
+                 ['M', KIT.t('game.floodgate.ctrlHints', { def: 'Toggle leak markers' })],
+                 [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })]],
+      touch: [[KIT.t('game.common.tap', { def: 'Tap' }), KIT.t('game.floodgate.ctrlRotate', { def: 'Rotate a pipe clockwise' })],
+              [KIT.t('game.floodgate.longPress', { def: 'Long-press' }), KIT.t('game.floodgate.ctrlRotateCcw', { def: 'Rotate counter-clockwise' })]] } });
+  KIT.music.play('floodgate');
+  // the kit hint affordance: bottom-centre button + the H key + a toast that always clears the button
+  HB = KIT.hintButton({ onHint: giveHint, label: hintLabel() });
+  HB.show(false);
+
+  // ================= __test =================
+  window.__test = {
+    get state() { return state; },
+    get score() { return score; },
+    get mode() { return mode; },
+    get level() { return level; },
+    get boardNo() { return boardNo; },
+    get tier() { return B ? B.tier : 0; },
+    get cols() { return B ? B.w : 0; },
+    get rows() { return B ? B.h : 0; },
+    get moves() { return moves; },
+    get solved() { return !!(A && A.solved); },
+    get leaks() { return A ? A.leaks.length : 0; },
+    get faults() { return A ? A.faults.map(f => f.kind) : []; },
+    get drains() { return A ? A.drains.slice() : []; },
+    get utils() { return B ? B.utils.slice() : []; },
+    get timed() { return timed; },
+    get timeLeft() { return remain; },
+    get timeSec() { return playFrames / 60; },
+    get markers() { return markers; }, set markers(v) { markers = !!v; saveUi(); },
+    // hints: the answer, the accounting and the price
+    hint() { return giveHint(); },
+    get hintCell() { return hintCell; },
+    get hintsUsed() { return hintsUsed(); },
+    get hintClean() { return hintsClean(); },
+    get hintBadge() { return hintBadge(); },
+    get hintCost() { return HINT_SECONDS; },
+    get starCap() { return hintsClean() ? 3 : 2; },
+    // the end screen's own lines, so the par-verdict forfeit is asserted on what a player reads
+    endLine() { return endLines('win', 'x'); },
+    wrongPipes() { return wrongPipes(); },
+    // is this cell in a solution orientation right now? (a hint must never name one that is)
+    isRight(i) { return !!(B && rotN(B.sol[i], rot[i]) === B.sol[i]); },
+    isLive(i) { return !!(B && B.owner[i] >= 0 && B.sol[i] && !B.locked[i] && rotCW(B.sol[i]) !== B.sol[i]); },
+    get seed() { return curSeed; },
+    get xovers() { let c = 0; if (B) for (let i = 0; i < B.n; i++) if (B.xover[i]) c++; return c; },
+    get conduits() { let c = 0; if (B) for (let i = 0; i < B.n; i++) if (B.insul[i]) c++; return c; },
+    mask(x, y) { return B ? cellMask(y * B.w + x) : 0; },
+    solMask(x, y) { return B ? B.sol[y * B.w + x] : 0; },
+    isLocked(x, y) { return !!(B && B.locked[y * B.w + x]); },
+    rotate(x, y, cw) { return rotateCell(x, y, cw !== false); },
+    // drive the generator's own solution: rotate every tile back to its generated orientation
+    // through the REAL rotate path, so the live solve detection is what proves solvability.
+    solve() {
+      if (!B) return false;
+      for (let i = 0; i < B.n; i++) {
+        let guard = 0;
+        while (rot[i] !== 0 && guard++ < 4) rotateCell(i % B.w, (i / B.w) | 0, true);
+      }
+      return !!(A && A.solved);
+    },
+    owner(x, y) { return B ? B.owner[y * B.w + x] : -1; },
+    solutionRot() { return B ? new Array(B.n).fill(0) : []; },
+    // read-only: run the REAL analyzer over an arbitrary rotation vector (fault-rule asserts)
+    probe(arr) {
+      if (!B) return null;
+      const r = new Uint8Array(B.n);
+      for (let i = 0; i < B.n; i++) r[i] = B.locked[i] ? 0 : ((+arr[i] || 0) % 4);
+      const p = analyze(B, r);
+      return { solved: p.solved, leaks: p.leaks.length, faults: p.faults.map(f => f.kind), drains: p.drains.slice() };
+    },
+    // pure generator check: build a board and confirm its own generated rotations analyse as sealed
+    boardOk(seed, tier, w, h) {
+      const b = makeBoard(seed >>> 0, tier, w, h);
+      if (!b) return null;
+      const a = analyze(b, new Uint8Array(b.n));
+      let x = 0, ins = 0, run = 0;
+      for (let i = 0; i < b.n; i++) { if (b.xover[i]) x++; if (b.insul[i]) ins++; if (b.owner[i] >= 0) run++; }
+      const r0 = scrambleRot(b, seed >>> 0);
+      let pr = 0;
+      for (let i = 0; i < b.n; i++) {
+        if (b.locked[i] || !b.sol[i] || b.owner[i] < 0) continue;
+        let bestK = 9;
+        for (let k = 0; k < 4; k++) if (rotN(b.sol[i], (r0[i] + k) % 4) === b.sol[i]) bestK = Math.min(bestK, Math.min(k, 4 - k));
+        if (bestK < 9) pr += bestK;
+      }
+      return { tier: b.tier, solved: a.solved, leaks: a.leaks.length, faults: a.faults.length, xovers: x, conduits: ins, run, par: pr };
+    },
+    dailySeed(day) { return dailyCfg(day == null ? (KIT ? KIT.utcDayNumber() : 0) : day).seed; },
+    dailyConfig(day) { return dailyCfg(day == null ? (KIT ? KIT.utcDayNumber() : 0) : day); },
+    campaignDone() { return done.slice(); },
+    levelCount() { return LEVELS.length; },
+    unlocked(i) { return levelUnlocked(i); },
+    get menuScreen() { return menuScreen; },
+    levelPar(i) { return LEVELS[i].par; },
+    // what the game hands the kit picker for blueprint i (the kit owns the ✓/▶/lock rendering)
+    levelCell(i) {
+      return { label: String(i + 1), status: levelStatus(i), locked: !levelUnlocked(i), par: LEVELS[i].par };
+    },
+    setTimeLeft(s) { remain = s; },
+    get layout() {
+      return { W, H, topReserve: topMargin,
+        board: { x: bx, y: by, w: B ? cs * B.w : 0, h: B ? cs * B.h : 0, cell: cs, cols: B ? B.w : 0, rows: B ? B.h : 0 },
+        legend: { x: legend.x, y: legend.y, w: legend.w, h: legend.h, vertical: !!legend.vertical } };
+    },
+    start() { startRun('campaign', 0); },
+    startMode(m, lv) { startRun(m, lv); },
+    menu() { return KIT ? KIT.menu.current() : null; },
+    step(n) { for (let i = 0; i < (n || 1); i++) update(); },
+    render() { render(); },      // the kit loop swallows render throws — tests call it directly
+    hasSave() { return PROG ? PROG.has() : false; },
+    savedRun() { return PROG ? PROG.current() : null; },
+    saveNow() { saveState(); },
+    resume() { return resumeRun(PROG ? PROG.current() : null); },
+    get resumedRun() { return resumedRun; },
+    toMenu() { toMenu(); },
+    quit() { quitRun(); },
+    pause() { pauseGame(); },
+    get par() { return par; },
+    get movesTotal() { return movesTotal; },
+    get parTotal() { return parTotal; },
+    get stars() { return lastStars; },
+    get stage() { return stage; },
+    get stageFxT() { return stageFx ? stageFx.t : 0; },
+    get boardSeconds() { return boardLimit; },
+  };
+
+  // ================= boot =================
+  // layout contract: centered grid fitted in playRect(), with the legend row + the kit hint button's
+  // band reserved at the bottom (layoutBoard refines the number per viewport)
+  KIT.layout.archetype('board', { bottom: 44 + (HB ? HB.reserve : 0) });
+  resize();
+  if (KIT) {
+    const L = { lblBoard: ['game.floodgate.hudBoard', 'BOARD'], lblTime: ['game.common.time', 'TIME'],
+      lblTurns: ['game.floodgate.hudTurns', 'TURNS'],
+      lblLeaks: ['game.floodgate.hudLeaks', 'LEAKS'], lblBest: ['game.common.best', 'BEST'] };
+    for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
+    const dm = KIT.param && KIT.param('mode');
+    if (dm && MODE_LABEL[dm]) mode = dm;
+  }
+  markers = loadUi().markers;      // before showStartMenu — the toggle's default reads it
+  level = nextLevel();
+  startBoard();                    // a real board sits behind the menu
+  state = 'ready';
+  updateHud();
+  KIT.loop(update, render);
+  showStartMenu();
+})();
+  window.gamekit.pwa('../../sw.js'); // registers the ONE root-scope SW — AFTER the IIFE closes
+</script>
+</body>
+</html>
