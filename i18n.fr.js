@@ -3,6 +3,10 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.fr = {
   'cat.fhSections': 'Rayons',
+  'changelog.e81.title': 'Commandes tactiles pour Chrome Runner et Type Siege 📱',
+  'changelog.e81.b0': 'Correction : Chrome Runner a enfin de vrais boutons à l\'écran sur téléphone — ⬆ pour sauter, maintenir ⬇ pour se baisser — et toucher n\'importe où ailleurs saute toujours. Avant, le haut de l\'écran sautait et le bas se baissait, avec une ligne de séparation invisible qui tombait à un endroit différent sur chaque téléphone.',
+  'changelog.e81.b1': 'Correction : ouvrir le clavier dans Type Siege ne pousse plus le champ de bataille hors de l\'écran.',
+  'changelog.e81.b2': 'Correction : Type Siege te demande maintenant de remettre le téléphone en portrait — en paysage, le clavier occupe tout l’écran et il ne reste plus rien pour jouer.',
   'changelog.e80.title': 'Rayons de la page d\'accueil, défis hebdomadaires et indices du Sudoku 🧹',
   'changelog.e80.b0': 'Nouveau : le panneau de filtres peut masquer les rayons dont vous ne voulez pas — Favoris, Joués récemment, ✨ Nouveautés et 💡 Pour vous — pour n\'afficher que Tous les jeux.',
   'changelog.e80.b1': 'Changement : les défis hebdomadaires portent désormais toujours sur la variété ou le volume (« jouez à 5 jeux différents cette semaine »). « Jouez à ce jeu », étalé sur sept jours, ne demandait rien.',
@@ -2092,8 +2096,7 @@ window.KOMYO_I18N.fr = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — commandes',
   'game.dusk-runner.ctrlJump': 'Sauter',
   'game.dusk-runner.ctrlDuck': 'Se baisser',
-  'game.dusk-runner.ctrlHoldLow': 'Maintenir en bas',
-  'game.dusk-runner.ctrlHoldBottom': 'Maintenir le bas',
+  'game.dusk-runner.ctrlHoldPad': 'Maintenir ⬇',
   'seo.dusk-runner.howto': 'Courez vers la droite sans jamais vous arrêter : touchez l\'écran ou appuyez sur Espace pour sauter les cactus, maintenez Bas pour passer sous les portiques d\'acier et les oiseaux. Passer au ras déclenche une accélération d\'aspiration, l\'allure grimpe à mesure que vous avancez et le ciel passe du grand jour au crépuscule puis à une nuit étoilée. Le mode Sans fin dure jusqu\'au premier choc ; le Sprint est un contre-la-montre de 1000 m où chaque choc coûte un trébuchement.',
   'cos.set.dusk-runner.runner': 'Coureurs',
   'cos.dusk-runner.runner.dino.name': 'Dino',

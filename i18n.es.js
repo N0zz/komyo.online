@@ -3,6 +3,10 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.es = {
   'cat.fhSections': 'Estantes',
+  'changelog.e81.title': 'Controles táctiles para Chrome Runner y Type Siege 📱',
+  'changelog.e81.b0': 'Corrección: Chrome Runner ya tiene botones en pantalla en el móvil — ⬆ para saltar, mantén ⬇ para agacharte — y tocar en cualquier otro sitio sigue saltando. Antes, la parte de arriba de la pantalla saltaba y la de abajo se agachaba, con una línea divisoria invisible que caía en un sitio distinto en cada móvil.',
+  'changelog.e81.b1': 'Corrección: abrir el teclado en Type Siege ya no empuja el campo de batalla fuera de la pantalla.',
+  'changelog.e81.b2': 'Corrección: Type Siege ahora te pide girar el móvil de vuelta a vertical — en horizontal el teclado ocupa toda la pantalla y no queda nada con lo que jugar.',
   'changelog.e80.title': 'Estantes de la portada, retos semanales y pistas de Sudoku 🧹',
   'changelog.e80.b0': 'Novedad: el panel de filtros puede ocultar los estantes que no quieras —Favoritos, Jugados recientemente, ✨ Novedades y 💡 Para ti—, así la portada puede mostrar solo Todos los juegos.',
   'changelog.e80.b1': 'Cambio: los retos semanales van siempre de variedad o cantidad («juega a 5 juegos distintos esta semana»). «Juega a este juego», repartido en siete días, no pedía nada.',
@@ -2093,8 +2097,7 @@ window.KOMYO_I18N.es = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — controles',
   'game.dusk-runner.ctrlJump': 'Saltar',
   'game.dusk-runner.ctrlDuck': 'Agacharse',
-  'game.dusk-runner.ctrlHoldLow': 'Mantén pulsado abajo',
-  'game.dusk-runner.ctrlHoldBottom': 'Mantén la parte baja',
+  'game.dusk-runner.ctrlHoldPad': 'Mantén ⬇',
   'seo.dusk-runner.howto': 'Corre a la derecha sin parar: toca la pantalla o pulsa Espacio para saltar los cactus y mantén Abajo para pasar bajo los pórticos de acero y los pájaros. Pasar rozando da un impulso de rebufo, el ritmo sube cuanto más avanzas y el cielo pasa del día al crepúsculo y a una noche estrellada. El modo Sin fin dura hasta que choques; el Sprint es una contrarreloj de 1000 m donde cada choque te cuesta un tropiezo.',
   'cos.set.dusk-runner.runner': 'Corredores',
   'cos.dusk-runner.runner.dino.name': 'Dino',

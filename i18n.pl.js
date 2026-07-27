@@ -3,6 +3,10 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.pl = {
   'cat.fhSections': 'Półki',
+  'changelog.e81.title': 'Sterowanie na telefonie w Chrome Runner i Type Siege 📱',
+  'changelog.e81.b0': 'Poprawka: Chrome Runner ma wreszcie prawdziwe przyciski na ekranie telefonu — ⬆ skok, przytrzymaj ⬇ żeby przykucnąć — a dotknięcie w dowolnym innym miejscu nadal wykonuje skok. Wcześniej górna część ekranu skakała, dolna kucała, a niewidzialna granica między nimi wypadała na każdym telefonie gdzie indziej.',
+  'changelog.e81.b1': 'Poprawka: otwarcie klawiatury w Type Siege nie wypycha już pola bitwy poza górną krawędź ekranu.',
+  'changelog.e81.b2': 'Poprawka: Type Siege prosi teraz o obrócenie telefonu z powrotem do pionu — w poziomie klawiatura zakrywa cały ekran i nie zostaje nic do grania.',
   'changelog.e80.title': 'Półki na stronie głównej, wyzwania tygodniowe i podpowiedzi w Sudoku 🧹',
   'changelog.e80.b0': 'Nowość: panel filtrów może ukryć niepotrzebne półki — Ulubione, Ostatnio grane, ✨ Nowości i 💡 Dla Ciebie — więc strona główna może pokazywać tylko Wszystkie gry.',
   'changelog.e80.b1': 'Zmiana: wyzwania tygodniowe dotyczą teraz zawsze różnorodności albo liczby gier („zagraj w 5 różnych gier w tym tygodniu”). „Zagraj w tę jedną grę” rozłożone na siedem dni nie wymagało niczego.',
@@ -2096,8 +2100,7 @@ window.KOMYO_I18N.pl = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — sterowanie',
   'game.dusk-runner.ctrlJump': 'Skok',
   'game.dusk-runner.ctrlDuck': 'Przykucnij',
-  'game.dusk-runner.ctrlHoldLow': 'Przytrzymaj nisko',
-  'game.dusk-runner.ctrlHoldBottom': 'Przytrzymaj dolną część',
+  'game.dusk-runner.ctrlHoldPad': 'Przytrzymaj ⬇',
   'seo.dusk-runner.howto': 'Biegniesz w prawo i nigdy nie zwalniasz: dotknij ekranu albo naciśnij spację, by przeskoczyć kaktusy, przytrzymaj strzałkę w dół, by przemknąć pod niskimi stalowymi bramownicami i ptakami. Przeciśnięcie się o włos daje przyspieszenie, tempo rośnie z każdym metrem, a niebo przechodzi z dnia przez zmierzch w rozgwieżdżoną noc. Tryb bez końca trwa do pierwszego zderzenia, a Sprint to próba czasowa na 1000 m, w której każde zderzenie kosztuje potknięcie.',
   'cos.set.dusk-runner.runner': 'Bohaterowie',
   'cos.dusk-runner.runner.dino.name': 'Dino',
