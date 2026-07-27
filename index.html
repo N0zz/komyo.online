@@ -33,26 +33,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
 <meta name="twitter:image" content="https://komyo.online/og-image.png?v=7">
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[
   {"@type":"WebSite","name":"Komyo Games","url":"https://komyo.online/","description":"A hand-picked arcade of polished free browser games — unlock cosmetics and titles, chase daily challenges. Works offline, no accounts, no ads.","inLanguage":["en","pl","es","pt","fr","it","cs","uk"]},
-  {"@type":"ItemList","name":"All games","itemListElement":[
-    {"@type":"ListItem","position":1,"name":"Asteroids","url":"https://komyo.online/games/asteroids/"},
-    {"@type":"ListItem","position":2,"name":"Asteroids+","url":"https://komyo.online/games/asteroids-plus/"},
-    {"@type":"ListItem","position":3,"name":"Keep Defender","url":"https://komyo.online/games/tower-defense/"},
-    {"@type":"ListItem","position":4,"name":"Forcefield","url":"https://komyo.online/games/forcefield/"},
-    {"@type":"ListItem","position":5,"name":"Bubble Pop","url":"https://komyo.online/games/bubbles/"},
-    {"@type":"ListItem","position":6,"name":"Frog Bonk","url":"https://komyo.online/games/frog-bonk/"},
-    {"@type":"ListItem","position":7,"name":"Brick Breaker","url":"https://komyo.online/games/breakout/"},
-    {"@type":"ListItem","position":8,"name":"Sudoku","url":"https://komyo.online/games/sudoku/"},
-    {"@type":"ListItem","position":9,"name":"Stack","url":"https://komyo.online/games/stacker/"},
-    {"@type":"ListItem","position":10,"name":"Trap the Cat","url":"https://komyo.online/games/trap-the-cat/"},
-    {"@type":"ListItem","position":11,"name":"Meadow Flyer","url":"https://komyo.online/games/flappy/"},
-    {"@type":"ListItem","position":12,"name":"Range","url":"https://komyo.online/games/aim-trainer/"},
-    {"@type":"ListItem","position":13,"name":"Neon Snake","url":"https://komyo.online/games/snake/"},
-    {"@type":"ListItem","position":14,"name":"2048","url":"https://komyo.online/games/2048/"},
-    {"@type":"ListItem","position":15,"name":"Minesweeper","url":"https://komyo.online/games/minesweeper/"},
-    {"@type":"ListItem","position":16,"name":"Balloon Pop","url":"https://komyo.online/games/balloon-pop/"},
-    {"@type":"ListItem","position":17,"name":"Critter Match","url":"https://komyo.online/games/critter-match/"},
-    {"@type":"ListItem","position":18,"name":"Glow Says","url":"https://komyo.online/games/glow-says/"}
-  ]}
+  {"@type":"ItemList","name":"All games","itemListElement":[{"@type":"ListItem","position":1,"name":"Asteroids","url":"https://komyo.online/games/asteroids/"},{"@type":"ListItem","position":2,"name":"Asteroids+","url":"https://komyo.online/games/asteroids-plus/"},{"@type":"ListItem","position":3,"name":"Keep Defender","url":"https://komyo.online/games/tower-defense/"},{"@type":"ListItem","position":4,"name":"Forcefield","url":"https://komyo.online/games/forcefield/"},{"@type":"ListItem","position":5,"name":"Bubble Pop","url":"https://komyo.online/games/bubbles/"},{"@type":"ListItem","position":6,"name":"Frog Bonk","url":"https://komyo.online/games/frog-bonk/"},{"@type":"ListItem","position":7,"name":"Brick Breaker","url":"https://komyo.online/games/breakout/"},{"@type":"ListItem","position":8,"name":"Sudoku","url":"https://komyo.online/games/sudoku/"},{"@type":"ListItem","position":9,"name":"Stack","url":"https://komyo.online/games/stacker/"},{"@type":"ListItem","position":10,"name":"Trap the Cat","url":"https://komyo.online/games/trap-the-cat/"},{"@type":"ListItem","position":11,"name":"Meadow Flyer","url":"https://komyo.online/games/flappy/"},{"@type":"ListItem","position":12,"name":"Range","url":"https://komyo.online/games/aim-trainer/"},{"@type":"ListItem","position":13,"name":"Neon Snake","url":"https://komyo.online/games/snake/"},{"@type":"ListItem","position":14,"name":"2048","url":"https://komyo.online/games/2048/"},{"@type":"ListItem","position":15,"name":"Type Siege","url":"https://komyo.online/games/type-siege/"},{"@type":"ListItem","position":16,"name":"Chrome Runner","url":"https://komyo.online/games/dusk-runner/"},{"@type":"ListItem","position":17,"name":"Floodgate","url":"https://komyo.online/games/floodgate/"},{"@type":"ListItem","position":18,"name":"Mirror Maze","url":"https://komyo.online/games/mirror-maze/"},{"@type":"ListItem","position":19,"name":"Minesweeper","url":"https://komyo.online/games/minesweeper/"},{"@type":"ListItem","position":20,"name":"Balloon Pop","url":"https://komyo.online/games/balloon-pop/"},{"@type":"ListItem","position":21,"name":"Critter Match","url":"https://komyo.online/games/critter-match/"},{"@type":"ListItem","position":22,"name":"Glow Says","url":"https://komyo.online/games/glow-says/"}]}
 ]}</script>
 <link rel="alternate" hreflang="en" href="https://komyo.online/">
 <link rel="alternate" hreflang="pl" href="https://komyo.online/?lang=pl">
@@ -623,12 +604,13 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   .seg button.on { background:#9fe8ff; color:#06121a; font-weight:700; border-color:#9fe8ff; }
   .fchk { display:flex; align-items:center; gap:8px; padding:5px 2px; font-size:13px; color:var(--text); cursor:pointer; }
   .fchk input { accent-color:#9fe8ff; }
-  /* themed "Show coming soon" checkbox (matches the palette instead of the default white box) */
-  #showSoon { appearance:none; -webkit-appearance:none; flex:none; width:16px; height:16px; margin:0; border:1px solid var(--border);
+  /* themed filter-panel checkboxes (shelf toggles + "Show coming soon") — match the palette instead
+     of the default white box */
+  .fchk input[type=checkbox] { appearance:none; -webkit-appearance:none; flex:none; width:16px; height:16px; margin:0; border:1px solid var(--border);
     border-radius:5px; background:var(--surface); cursor:pointer; position:relative; }
-  #showSoon:checked { background:#9fe8ff; border-color:#9fe8ff; }
-  #showSoon:checked::after { content:"✓"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#06121a; font-size:11px; font-weight:800; }
-  #showSoon:focus-visible { outline:2px solid #9fe8ff; outline-offset:2px; }
+  .fchk input[type=checkbox]:checked { background:#9fe8ff; border-color:#9fe8ff; }
+  .fchk input[type=checkbox]:checked::after { content:"✓"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#06121a; font-size:11px; font-weight:800; }
+  .fchk input[type=checkbox]:focus-visible { outline:2px solid #9fe8ff; outline-offset:2px; }
   /* search "?" help button + hover/focus tip */
   .search-help { position:relative; flex:none; width:21px; height:21px; padding:0; border-radius:50%; border:1px solid var(--border);
     background:var(--surface-2); color:var(--faint); font-family:var(--mono); font-size:12px; font-weight:700; line-height:1; cursor:help;
@@ -858,6 +840,11 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
             </div>
             <div class="fh" data-t="cat.fhGenre">Genre</div>
             <div id="genreList"></div>
+            <div class="fh" data-t="cat.fhSections">Shelves</div>
+            <label class="fchk"><input type="checkbox" class="secchk" data-sec="fav" checked> <span data-t="cat.favorites">★ Favorites</span></label>
+            <label class="fchk"><input type="checkbox" class="secchk" data-sec="recent" checked> <span data-t="cat.recentlyPlayed">Recently played</span></label>
+            <label class="fchk"><input type="checkbox" class="secchk" data-sec="discover-new" checked> <span data-t="cat.discoverNew">✨ What's new</span></label>
+            <label class="fchk"><input type="checkbox" class="secchk" data-sec="discover-you" checked> <span data-t="cat.discoverForYou">💡 For you</span></label>
             <label class="fchk"><input type="checkbox" id="showSoon" checked> <span data-t="cat.showSoon">Show coming soon</span></label>
             <button type="button" class="filter-clear" id="filterClear" data-t="cat.holdClearFilters">Hold to clear filters</button>
           </div>
@@ -885,6 +872,10 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         <a href="games/aim-trainer/">Range</a> ·
         <a href="games/snake/">Neon Snake</a> ·
         <a href="games/2048/">2048</a> ·
+        <a href="games/type-siege/">Type Siege</a> ·
+        <a href="games/dusk-runner/">Chrome Runner</a> ·
+        <a href="games/floodgate/">Floodgate</a> ·
+        <a href="games/mirror-maze/">Mirror Maze</a> ·
         <a href="games/minesweeper/">Minesweeper</a> ·
         <a href="games/balloon-pop/">Balloon Pop</a> ·
         <a href="games/critter-match/">Critter Match</a> ·
@@ -1587,7 +1578,12 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     // live filter state, driven by the search box + the Filter ▾ dropdown.
     // Chips/type/soon survive a game visit within the tab (sessionStorage) — "show me NEW,
     // open a game, come back" keeps the filter. A fresh tab starts clean.
-    const FILTER = { q: '', genres: new Set(), badges: new Set(), type: 'all', showSoon: true };
+    // the hideable shelves, in panel order (never 'all' — see below)
+    const SECTION_KEYS = ['fav', 'recent', 'discover-new', 'discover-you'];
+    // `hide` = section keys the player folded away from the filter panel (fav / recent / the two
+    // Discover rails). 'all games' is never hideable — it is the canonical index. Coming soon keeps
+    // its own flag because it also removes those games from search results and counts.
+    const FILTER = { q: '', genres: new Set(), badges: new Set(), type: 'all', showSoon: true, hide: new Set() };
     try {
       const sf = JSON.parse(sessionStorage.getItem('komyo_filters') || 'null');
       if (sf) {
@@ -1595,10 +1591,11 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         (sf.b || []).forEach(x => FILTER.badges.add(x));
         if (sf.t) FILTER.type = sf.t;
         if (typeof sf.s === 'boolean') FILTER.showSoon = sf.s;
+        (sf.h || []).forEach(x => FILTER.hide.add(x));
       }
     } catch (e) {}
     function saveFilters() {
-      try { sessionStorage.setItem('komyo_filters', JSON.stringify({ g: [...FILTER.genres], b: [...FILTER.badges], t: FILTER.type, s: FILTER.showSoon })); } catch (e) {}
+      try { sessionStorage.setItem('komyo_filters', JSON.stringify({ g: [...FILTER.genres], b: [...FILTER.badges], t: FILTER.type, s: FILTER.showSoon, h: [...FILTER.hide] })); } catch (e) {}
     }
     function passes(g) {
       if (!FILTER.showSoon && g.soon) return false;
@@ -1627,6 +1624,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const bd = p.get('badge'); if (bd) bd.split(',').forEach(k => { if (k) FILTER.badges.add(k); });
         const ty = p.get('type'); if (ty === 'single' || ty === 'mp') FILTER.type = ty;
         if (p.get('soon') === '0') FILTER.showSoon = false;
+        const hd = p.get('hide'); if (hd) hd.split(',').forEach(k => { if (SECTION_KEYS.indexOf(k) >= 0) FILTER.hide.add(k); });
       } catch (e) {}
     }
     function syncURL() {
@@ -1638,6 +1636,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         if (FILTER.badges.size) p.set('badge', [...FILTER.badges].join(','));
         if (FILTER.type !== 'all') p.set('type', FILTER.type);
         if (!FILTER.showSoon) p.set('soon', '0');
+        if (FILTER.hide.size) p.set('hide', [...FILTER.hide].join(','));
         if (openPanel) p.set('m', openPanel); // keep an open panel in the URL across filter changes
         const qs = p.toString();
         const base = (typeof location !== 'undefined' && location.pathname) ? location.pathname : '';
@@ -1667,14 +1666,14 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       // ordered by the STORED favorites array (manually reorderable), not games.js's fixed order —
       // f may reference a filtered-out/soon slug, so map+filter rather than sort all by indexOf(f)
       const favList = f.map(slug => all.find(g => !g.soon && g.slug === slug)).filter(Boolean);
-      if (favList.length) sections.push({ key: 'fav', label: T('cat.favorites', '★ Favorites'), list: favList, favs: true });
+      if (favList.length && !FILTER.hide.has('fav')) sections.push({ key: 'fav', label: T('cat.favorites', '★ Favorites'), list: favList, favs: true });
       // recently played — full game cards in a horizontal rail; recency order from the kit
       // (recorded when a mode was chosen and Play pressed, not on page-open). Favorited games
       // appear here TOO (a duplicate beats a hole in your recent history).
       const recent = ((window.gamekit && window.gamekit.recentlyPlayed) ? window.gamekit.recentlyPlayed() : [])
         .map(r => all.find(g => !g.soon && g.slug === (r && r.slug)))
         .filter(Boolean).slice(0, 10);
-      if (recent.length) sections.push({ key: 'recent', label: T('cat.recentlyPlayed', 'Recently played'), list: recent, carousel: true });
+      if (recent.length && !FILTER.hide.has('recent')) sections.push({ key: 'recent', label: T('cat.recentlyPlayed', 'Recently played'), list: recent, carousel: true });
       // ✨💡 Discover rails (plans/discover-plan.md) — TWO untried-only carousels: "What's new"
       // (fresh arrivals/updates ≤30 days) and "For you" (the rest, affinity-ordered). "Tried" =
       // any gamekit_pb entry (finished run) OR a Recent-rail slot (launched); so neither rail
@@ -1715,8 +1714,8 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const yours = untried.filter(g => !newSet.has(g.slug))
           .sort((a, b) => (easy ? kid(b) - kid(a) : 0) || (w(b) + aff(b)) - (w(a) + aff(a)) || rot(a.slug) - rot(b.slug))
           .slice(0, 8);
-        if (news.length) sections.push({ key: 'discover-new', label: T('cat.discoverNew', "✨ What's new"), list: news, carousel: true });
-        if (yours.length) sections.push({ key: 'discover-you', label: T('cat.discoverForYou', '💡 For you'), list: yours, carousel: true });
+        if (news.length && !FILTER.hide.has('discover-new')) sections.push({ key: 'discover-new', label: T('cat.discoverNew', "✨ What's new"), list: news, carousel: true });
+        if (yours.length && !FILTER.hide.has('discover-you')) sections.push({ key: 'discover-you', label: T('cat.discoverForYou', '💡 For you'), list: yours, carousel: true });
       }
       // all games (single + multi together — MP tiles keep their 👥 pill; the Type filter still splits)
       let rest = all.filter(g => !g.soon && !isFav(g));
@@ -1809,17 +1808,18 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     }
 
     function fcountUpdate() {
-      const n = FILTER.genres.size + FILTER.badges.size + (FILTER.type !== 'all' ? 1 : 0) + (FILTER.showSoon ? 0 : 1);
+      const n = FILTER.genres.size + FILTER.badges.size + (FILTER.type !== 'all' ? 1 : 0) + (FILTER.showSoon ? 0 : 1) + FILTER.hide.size;
       const b = document.getElementById('fcount');
       if (b) { if (n) { b.textContent = n; b.hidden = false; } else { b.hidden = true; } }
       saveFilters();
     }
     function clearFilters() {
-      FILTER.q = ''; FILTER.genres.clear(); FILTER.badges.clear(); FILTER.type = 'all'; FILTER.showSoon = true;
+      FILTER.q = ''; FILTER.genres.clear(); FILTER.badges.clear(); FILTER.type = 'all'; FILTER.showSoon = true; FILTER.hide.clear();
       const s = document.getElementById('search'); if (s) s.value = '';
       document.querySelectorAll('#genreList .chip, #badgeList .chip').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); });
       document.querySelectorAll('#typeSeg button').forEach(b => b.classList.toggle('on', b.dataset.type === 'all'));
       const ss = document.getElementById('showSoon'); if (ss) ss.checked = true;
+      document.querySelectorAll('#filterPop .secchk').forEach(c => { c.checked = true; });
       fcountUpdate(); render();
     }
     readURL(); render();
@@ -1891,6 +1891,13 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       });
       const ss = document.getElementById('showSoon');
       if (ss) ss.addEventListener('change', e => { FILTER.showSoon = e.target.checked; trackCat('catalogue_filter', { filter_kind: 'showSoon', filter_value: e.target.checked ? 'on' : 'off' }); fcountUpdate(); render(); });
+      // shelf checkboxes: unchecking hides that section (All games always stays)
+      document.querySelectorAll('#filterPop .secchk').forEach(c => c.addEventListener('change', e => {
+        const k = e.target.dataset.sec;
+        if (e.target.checked) FILTER.hide.delete(k); else FILTER.hide.add(k);
+        trackCat('catalogue_filter', { filter_kind: 'shelf', filter_value: k + (e.target.checked ? '_on' : '_off') });
+        fcountUpdate(); render();
+      }));
       // on the narrow layout the panel is a full-width sheet — lock the page behind it so it
       // doesn't scroll under the open filters.
       // Filter panel sizing: default = centered under the button at a comfy width; the native resize
@@ -1915,8 +1922,13 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
             pop.style.left = (leftV - wr.left) + 'px';
             pop.style.right = 'auto';
             pop.style.maxWidth = Math.max(240, window.innerWidth - leftV - 8) + 'px';
+            // the CSS 82vh cap ignores how far DOWN the panel starts, so a tall panel (the Shelves
+            // group pushed it ~120px taller) ran off the bottom of a short window — clamp to what
+            // is actually left below the button and let the panel scroll inside that.
+            const pr = pop.getBoundingClientRect();
+            pop.style.maxHeight = Math.max(200, window.innerHeight - pr.top - 12) + 'px';
             try { requestAnimationFrame(() => { fsuppress = false; }); } catch (e) { fsuppress = false; }
-          } else { pop.style.left = ''; pop.style.right = ''; pop.style.width = ''; pop.style.height = ''; pop.style.maxWidth = ''; }
+          } else { pop.style.left = ''; pop.style.right = ''; pop.style.width = ''; pop.style.height = ''; pop.style.maxWidth = ''; pop.style.maxHeight = ''; }
         } catch (e) {}
       };
       // remember a user resize (ResizeObserver — native resize fires no DOM event)
@@ -1961,6 +1973,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       if (badgeList) badgeList.querySelectorAll('.chip').forEach(b => { const on = FILTER.badges.has(b.dataset.badge); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
       if (seg) seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.type === FILTER.type));
       if (ss) ss.checked = FILTER.showSoon;
+      document.querySelectorAll('#filterPop .secchk').forEach(c => { c.checked = !FILTER.hide.has(c.dataset.sec); });
       fcountUpdate();
     })();
 
