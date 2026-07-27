@@ -3,6 +3,10 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.pt = {
   'cat.fhSections': 'Prateleiras',
+  'changelog.e81.title': 'Controlos no telemóvel para Chrome Runner e Type Siege 📱',
+  'changelog.e81.b0': 'Correção: o Chrome Runner passa a ter botões no ecrã no telemóvel — ⬆ para saltar, manter ⬇ para te agachares — e tocar em qualquer outro sítio continua a saltar. Antes, a parte de cima do ecrã saltava e a de baixo agachava, com uma linha divisória invisível que ficava num sítio diferente em cada telemóvel.',
+  'changelog.e81.b1': 'Correção: abrir o teclado no Type Siege já não empurra o campo de batalha para fora do ecrã.',
+  'changelog.e81.b2': 'Correção: o Type Siege pede-te agora para voltar a rodar o telemóvel para vertical — na horizontal o teclado ocupa o ecrã todo e não sobra nada para jogar.',
   'changelog.e80.title': 'Prateleiras da página inicial, desafios semanais e dicas do Sudoku 🧹',
   'changelog.e80.b0': 'Novo: o painel de filtros pode esconder as prateleiras que não queres — Favoritos, Jogados recentemente, ✨ Novidades e 💡 Para ti — para a página inicial mostrar só Todos os jogos.',
   'changelog.e80.b1': 'Alteração: os desafios semanais são sempre de variedade ou volume («joga 5 jogos diferentes esta semana»). «Joga este jogo», esticado por sete dias, não pedia nada.',
@@ -2092,8 +2096,7 @@ window.KOMYO_I18N.pt = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — controlos',
   'game.dusk-runner.ctrlJump': 'Saltar',
   'game.dusk-runner.ctrlDuck': 'Agachar',
-  'game.dusk-runner.ctrlHoldLow': 'Manter em baixo',
-  'game.dusk-runner.ctrlHoldBottom': 'Manter a parte de baixo',
+  'game.dusk-runner.ctrlHoldPad': 'Manter ⬇',
   'seo.dusk-runner.howto': 'Corre para a direita e nunca pares: toca no ecrã ou pressiona Espaço para saltar os cactos e mantém Baixo para passar sob os pórticos de aço e os pássaros. Passar a raspar dá um impulso de vácuo, o ritmo sobe quanto mais avanças e o céu passa do dia ao crepúsculo e a uma noite estrelada. O modo Sem fim dura até bateres em algo; o Sprint é um contrarrelógio de 1000 m em que cada toque custa um tropeção.',
   'cos.set.dusk-runner.runner': 'Corredores',
   'cos.dusk-runner.runner.dino.name': 'Dino',

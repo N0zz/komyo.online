@@ -3,6 +3,10 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.it = {
   'cat.fhSections': 'Ripiani',
+  'changelog.e81.title': 'Comandi da telefono per Chrome Runner e Type Siege 📱',
+  'changelog.e81.b0': 'Correzione: Chrome Runner ha finalmente veri pulsanti a schermo sul telefono — ⬆ per saltare, tieni premuto ⬇ per abbassarti — e toccare in qualsiasi altro punto fa comunque saltare. Prima la parte alta dello schermo faceva saltare e quella bassa abbassare, con una linea di separazione invisibile che cadeva in un punto diverso su ogni telefono.',
+  'changelog.e81.b1': 'Correzione: aprire la tastiera in Type Siege non spinge più il campo di battaglia fuori dallo schermo.',
+  'changelog.e81.b2': 'Correzione: Type Siege ora ti chiede di rimettere il telefono in verticale — in orizzontale la tastiera copre tutto lo schermo e non resta nulla su cui giocare.',
   'changelog.e80.title': 'Ripiani della home, sfide settimanali e aiuti nel Sudoku 🧹',
   'changelog.e80.b0': 'Novità: il pannello dei filtri può nascondere i ripiani che non vuoi — Preferiti, Giocati di recente, ✨ Novità e 💡 Per te — così la home può mostrare solo Tutti i giochi.',
   'changelog.e80.b1': 'Modifica: le sfide settimanali riguardano sempre varietà o quantità («gioca a 5 giochi diversi questa settimana»). «Gioca a questo gioco», spalmato su sette giorni, non chiedeva nulla.',
@@ -2092,8 +2096,7 @@ window.KOMYO_I18N.it = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — comandi',
   'game.dusk-runner.ctrlJump': 'Salta',
   'game.dusk-runner.ctrlDuck': 'Abbassati',
-  'game.dusk-runner.ctrlHoldLow': 'Tieni premuto in basso',
-  'game.dusk-runner.ctrlHoldBottom': 'Tieni la parte bassa',
+  'game.dusk-runner.ctrlHoldPad': 'Tieni premuto ⬇',
   'seo.dusk-runner.howto': 'Corri verso destra senza fermarti mai: tocca lo schermo o premi Spazio per saltare i cactus, tieni premuto Giù per passare sotto i portali d\'acciaio e gli uccelli. Sfiorare un ostacolo regala una scia che ti accelera, il ritmo sale quanto più avanzi e il cielo passa dal giorno al crepuscolo fino a una notte stellata. La modalità Senza fine dura fino al primo urto; lo Sprint è una prova a cronometro sui 1000 m in cui ogni urto costa un inciampo.',
   'cos.set.dusk-runner.runner': 'Corridori',
   'cos.dusk-runner.runner.dino.name': 'Dino',

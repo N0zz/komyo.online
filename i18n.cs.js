@@ -3,6 +3,10 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.cs = {
   'cat.fhSections': 'Police',
+  'changelog.e81.title': 'Ovládání na telefonu pro Chrome Runner a Type Siege 📱',
+  'changelog.e81.b0': 'Oprava: Chrome Runner má konečně na telefonu opravdová tlačítka na obrazovce — ⬆ pro skok, podrž ⬇ pro krčení — a klepnutí kamkoli jinam pořád skáče. Dřív horní část obrazovky skákala a spodní se krčila, přičemž neviditelná dělicí čára padla na každém telefonu jinam.',
+  'changelog.e81.b1': 'Oprava: otevření klávesnice v Type Siege už nevytlačí bojiště mimo obrazovku.',
+  'changelog.e81.b2': 'Oprava: Type Siege tě teď požádá, abys telefon otočil zpět na výšku — na šířku klávesnice zabere celou obrazovku a nezbude nic, na čem by se dalo hrát.',
   'changelog.e80.title': 'Police na domovské stránce, týdenní výzvy a nápovědy v Sudoku 🧹',
   'changelog.e80.b0': 'Novinka: panel filtrů umí skrýt police, které nechceš — Oblíbené, Nedávno hrané, ✨ Novinky a 💡 Pro tebe — takže domovská stránka může zobrazit jen Všechny hry.',
   'changelog.e80.b1': 'Změna: týdenní výzvy jsou teď vždy o pestrosti nebo počtu („zahraj si 5 různých her tento týden“). „Zahraj si tuhle jednu hru“ rozložené na sedm dní nechtělo nic.',
@@ -2092,8 +2096,7 @@ window.KOMYO_I18N.cs = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — ovládání',
   'game.dusk-runner.ctrlJump': 'Skok',
   'game.dusk-runner.ctrlDuck': 'Krčit se',
-  'game.dusk-runner.ctrlHoldLow': 'Držet dole',
-  'game.dusk-runner.ctrlHoldBottom': 'Držet spodní část',
+  'game.dusk-runner.ctrlHoldPad': 'Držet ⬇',
   'seo.dusk-runner.howto': 'Běž doprava a nikdy nezastavuj: klepnutím nebo mezerníkem přeskočíš kaktusy, podržením šipky dolů se skrčíš pod nízké ocelové rámy a ptáky. Protáhnout se o vlásek ti dá zrychlení, tempo roste s každým metrem a nebe se mění ze dne přes soumrak do hvězdné noci. Nekonečný běh trvá do prvního nárazu, Sprint je časovka na 1000 metrů, kde každý náraz znamená zakopnutí.',
   'cos.set.dusk-runner.runner': 'Běžci',
   'cos.dusk-runner.runner.dino.name': 'Dino',
