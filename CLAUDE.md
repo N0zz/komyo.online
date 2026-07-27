@@ -526,11 +526,22 @@ and name landscape explicitly in what to check.
   when you ship a batch of player-facing changes, **prepend a new entry** for it (multiple entries may
   share a date; that's fine and expected). Do NOT retro-edit an already-shipped entry to tack on new
   bullets — the Discord poster diffs against the push base, so editing an old entry mis-posts it; a
-  fresh entry posts cleanly. Keep bullets plain-language and about what a *player* notices (a new game,
-  a bug they'd hit, a mode/feature) — **never** internal/kit/test/build/refactor work. Write it for
-  players, not as a commit log. **Discord:** a push that edits `changelog.js` triggers `.github/
-  workflows/discord-changelog.yml` → `post-changelog.mjs`, which posts **only the entries added in that
-  push** (diff vs the push base), so Discord mirrors this file exactly. Non-changelog pushes post nothing.
+  fresh entry posts cleanly (test-enforced: a shipped entry may only ever LOSE bullets — removing one
+  and retitling are safe, adding or rewording one is not). Keep bullets plain-language and about what a
+  *player* notices (a new game, a bug they'd hit, a mode/feature) — **never** internal/kit/test/build/
+  refactor work. Write it for players, not as a commit log.
+  **A PRE-RELEASE FIX IS NOT A CHANGELOG LINE.** If the game ships in the SAME push, every bug found
+  while building it was fixed before a single player could meet it — so it gets no bullet, and
+  especially not a "Fix:" one next to the entry announcing the game (2026-07-27: the launch push
+  announced four games and also "fixed" their typo handling, menus and drop rules, which reads as
+  "here is a broken game we already patched"). Only a change to something ALREADY LIVE — another game,
+  the kit, the catalogue, the challenges — earns a bullet. The launch entry sells the game; the build
+  history stays in git.
+  **Discord:** a push that edits `changelog.js` triggers `.github/workflows/discord-changelog.yml` →
+  `post-changelog.mjs`, which posts **only the entries added in that push** (diff vs the push base),
+  **oldest first** — this file is newest-first, but a chat channel appends downward, so posting in file
+  order makes a multi-entry push read backwards (fixes to a game before the message announcing it).
+  Non-changelog pushes post nothing.
 - Monetization is optional only: **Buy Me a Coffee** (footer) + GitHub Sponsors (README badge
   only — the footer Sponsor link was removed; footer = coffee + a GitHub-icon repo link).
 

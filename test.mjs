@@ -1085,11 +1085,27 @@ function testI18nCoverage() {
       headCh = evalData(src, 'changelog.js@HEAD').CHANGELOG || null;
     } catch (e) { /* no git (fresh archive?) → skip, CI always has it */ }
     if (headCh) {
-      const sig = r => JSON.stringify([r.date, r.title, r.items]);
+      // What actually breaks: ADDING or REWORDING a bullet in a shipped entry. The Discord poster
+      // diffs on (date, exact text) pairs, so a new/edited line inside an old entry re-posts that
+      // entry days later; and a bullet inserted mid-list shifts every reverse-index translation
+      // after it. REMOVING a bullet (a pre-release fix that should never have been announced) and
+      // retitling are both safe — they produce no fresh pair and no shift below the cut.
       const tail = CH.slice(CH.length - headCh.length);
-      const changed = headCh.map((r, i) => sig(r) !== sig(tail[i]) ? ('e' + (headCh.length - 1 - i)) : null).filter(Boolean);
-      ok(CH.length >= headCh.length && changed.length === 0,
-        'changelog is prepend-only vs HEAD — shipped entries untouched' + (changed.length ? ' — EDITED/SHIFTED: ' + changed.join(',') + ' (add a NEW entry instead of editing a shipped one)' : ''));
+      const broken = [];
+      headCh.forEach((was, i) => {
+        const now = tail[i], id = 'e' + (headCh.length - 1 - i);
+        if (!now || now.date !== was.date) { broken.push(id + ' (date/order)'); return; }
+        const old = was.items || [], cur2 = now.items || [];
+        const added = cur2.filter(it => old.indexOf(it) < 0);
+        if (added.length) { broken.push(id + ' (' + added.length + ' new/reworded bullet(s))'); return; }
+        // a kept bullet must not jump above one that is still present — that is the shift case
+        const kept = old.filter(it => cur2.indexOf(it) >= 0);
+        const order = kept.map(it => cur2.indexOf(it));
+        if (order.some((v, k) => k && v < order[k - 1])) broken.push(id + ' (bullets reordered)');
+      });
+      ok(CH.length >= headCh.length && broken.length === 0,
+        'shipped changelog entries only ever lose bullets, never gain or reword them'
+        + (broken.length ? ' — ' + broken.join(', ') + ' (add a NEW entry instead)' : ''));
     } else ok(true, 'changelog prepend-guard skipped (no git history available)');
   }
 
