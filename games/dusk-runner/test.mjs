@@ -84,6 +84,52 @@ section('dusk-runner: jump + duck');
   ok(T().layout.runner.h === hStand, 'releasing duck restores the hitbox');
 }
 
+// ---- Tapping the canvas ALWAYS jumps ----
+// Touch used to duck when the tap landed below 62% of the band — an invisible, layout-dependent
+// line. Duck now lives on its own pad, so no canvas tap may ever duck.
+section('dusk-runner: canvas tap always jumps');
+{
+  const gs = runGame({ seed: 3 });
+  const T = gs.T;
+  T().start();
+  T().clearObstacles();
+  const cv = gs.el('game');
+  for (const frac of [0.1, 0.5, 0.95]) {
+    T().setDuck(false);
+    while (!T().onGround) T().step(1);
+    cv.fire('pointerdown', { clientY: T().layout.H * frac, clientX: 100 });
+    ok(T().onGround === false, 'tap at ' + Math.round(frac * 100) + '% height jumps');
+    ok(T().ducking === false, 'tap at ' + Math.round(frac * 100) + '% height never ducks');
+  }
+}
+
+// ---- The on-screen pads drive the same actions as the keys ----
+section('dusk-runner: touch pads');
+{
+  const gs = runGame({ seed: 7 });
+  const T = gs.T;
+  T().start();
+  T().clearObstacles();
+  const duck = gs.el('padDuck'), jump = gs.el('padJump'), body = gs.doc.body;
+
+  duck.fire('pointerdown', {});
+  ok(T().ducking === true, '⬇ pad ducks while held');
+  duck.fire('pointerup', {});
+  ok(T().ducking === false, 'releasing ⬇ stands back up');
+
+  while (!T().onGround) T().step(1);
+  jump.fire('pointerdown', {});
+  ok(T().onGround === false, '⬆ pad jumps');
+
+  // a pad left held when the run ends must not leave the next run crouching
+  duck.fire('pointerdown', {});
+  T().setDist(10);
+  gs.win.__test.menu();           // touch the menu path the way the game does
+  T().start();
+  ok(T().ducking === false, 'a held pad is released when the run ends');
+  ok(body.classList.contains('dr-run'), 'pads are shown for a live run');
+}
+
 // ---- Collision ends the run ----
 section('dusk-runner: collision');
 {
