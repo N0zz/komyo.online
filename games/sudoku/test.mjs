@@ -1,8 +1,11 @@
 // Headless tests for Sudoku — boots via the shared harness, drives window.__test.
-import { bootGame, ok, section, summary, runLayoutSuite } from '../../test-harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { bootGame, ok, section, summary, runLayoutSuite, ROOT } from '../../test-harness.mjs';
 
 const FILE = 'games/sudoku/index.html';
 const runGame = (opts) => bootGame(FILE, opts);
+const SRC = fs.readFileSync(path.join(ROOT, FILE), 'utf8');
 
 // ---- Boot ----
 section('sudoku: boot');
@@ -120,7 +123,8 @@ section('sudoku: zen');
 // ---- Logical hints ----
 section('sudoku: logical hints');
 {
-  const T = runGame().T;
+  const gh = runGame();
+  const T = gh.T;
   T().newGame({ mode: 'classic', band: 1, seed: 17 });
   T().hint();
   const h = T().hintInfo;
@@ -131,6 +135,9 @@ section('sudoku: logical hints');
   T().hint();   // second tap applies
   ok(T().grid[cell] === digit, 'second hint() applies the placement');
   ok(T().hintsUsed === 1, 'hint counted (got ' + T().hintsUsed + ')');
+  // the affordance is the KIT's now (gamekit.hintButton) — the bespoke #hintbar is gone
+  ok(!/id="hintbar"/.test(SRC), 'no bespoke hint bar element left in the page');
+  ok(/KIT\.hintButton\(/.test(SRC), 'hints run through the kit affordance (gamekit.hintButton)');
   ok(T().mistakes === 0, 'hint costs no strike');
   // wrong entry → hint points at it
   const givens = T().givens, sol = T().solution;

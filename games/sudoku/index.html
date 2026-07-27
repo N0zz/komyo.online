@@ -65,20 +65,18 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   #pad button.done { opacity: .28; pointer-events: none; }
   #pad button small { position: absolute; right: 5px; bottom: 3px; font-size: 10px; font-weight: 600; color: #f0b429aa; }
   #pad button.on small { color: #22262caa; }
-  #hintbar { position: fixed; left: 50%; transform: translateX(-50%);
-    bottom: calc(122px + env(safe-area-inset-bottom, 0px)); width: min(94vw, 460px);
-    background: rgba(30,36,44,.94); border: 1px solid #f0b42966; border-radius: 12px;
-    color: #f5e9c8; font: 500 13px/1.35 system-ui, -apple-system, sans-serif; padding: 8px 12px;
-    text-align: center; display: none; z-index: 31; }
-  #hintbar.show { display: block; }
-  #hintbar b { color: #f0b429; }
+  /* The hint affordance is the KIT's now (gamekit.hintButton — the same 🔍 button + toast Mirror
+     Maze and Floodgate use), so the old bespoke #hintbar is gone. Sudoku only tells it where to sit:
+     above the number pad in portrait, in the right rail when the pad docks right.
+     Its toast opens DOWNWARD over the pad (tipBelow), so it has to paint ABOVE the pad's z-index:30
+     — otherwise the digit keys show straight through the explanation. */
+  .gamekit-hintwrap { z-index: 32; }
   /* short landscape screens: the pad docks on the right instead of below */
   #pad.side { width: 172px; left: auto; right: 10px; bottom: 10px; transform: none; }
   #pad.side .row { flex-wrap: wrap; }
   #pad.side .row button { flex: 0 0 31%; height: 42px; font-size: 18px; }
   #pad.side .row.tools button { flex: 0 0 23%; height: 38px; }
-  /* …and the hint bar joins the right column (never over the board) */
-  #hintbar.side { left: auto; right: 10px; bottom: auto; top: 60px; transform: none; width: 172px; font-size: 12px; }
+  /* the kit's hint rail joins the same right column (never over the board) — see dockHint() */
 </style>
 </head>
 <body>
@@ -88,7 +86,6 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   <div class="stat"><span class="lbl" id="lblMiss">MISTAKES</span><span class="val" id="missEl">0/3</span></div>
   <div class="stat"><span class="lbl" id="lblBest">BEST</span><span class="val" id="bestEl">0</span></div>
 </div>
-<div id="hintbar"></div>
 <div id="pad">
   <div class="row" id="padDigits"></div>
   <div class="row tools" id="padTools"></div>
@@ -504,7 +501,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   // board geometry (all CSS px, JS-computed — the layout getter reports these)
   const PAD_H = 122;                   // bottom number-pad height + gap the board must clear
-  const HINT_H = 50;                   // hint-bar strip above the pad — reserved so it never covers the board
+  let hb = null;                       // gamekit.hintButton — the 🔍 button + its toast
+  const PAD_SIDE_H = 190;              // the right-docked pad's height (3 digit rows + tools)
+  const HINT_LABEL = '🔍 ' + (window.gamekit ? window.gamekit.t('menu.hint', { def: 'HINT' }) : 'HINT');
+  let HINT_H = 50;                     // the strip the hint button owns above the pad (kit's band)
   const SIDE_W = 192;                  // right-docked pad width + gap (short landscape screens)
   let bx = 0, by = 0, bsize = 300, cell = 33, sideMode = false, safeB = 0;
   function measureSafeB() {
@@ -882,9 +882,12 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (!hintActive) return;
     try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: SLUG, item_id: 'hint', choice_kind: 'hint' }); } catch (e) {}
     SND.play('lamp');
-    const bar = document.getElementById('hintbar');
-    bar.textContent = '💡 ' + hintActive.text + ' — ' + KIT.t('game.sudoku.hintApply', { def: 'tap 💡 again to apply' });
-    bar.classList.add('show');
+    // the kit toast carries the explanation; the button itself becomes the APPLY affordance, so the
+    // two-step (explain → apply) reads without naming a key
+    if (hb) {
+      hb.toast('💡 ' + hintActive.text + ' — ' + KIT.t('game.sudoku.hintApply', { def: 'tap again to apply' }), 9000);
+      hb.label('✓ ' + KIT.t('game.sudoku.hintApplyBtn', { def: 'APPLY' }));
+    }
   }
   function applyHint() {
     const h = hintActive;
@@ -906,7 +909,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     refreshPad();
   }
   function clearHint() { hintActive = null; hideHintBar(); }
-  function hideHintBar() { document.getElementById('hintbar').classList.remove('show'); }
+  function hideHintBar() { if (hb) { hb.toast(''); hb.label(HINT_LABEL); } }
 
   // ==================================================================================
   // HUD / pad DOM
@@ -957,7 +960,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     padPencilBtn = mk('✏️', KIT.t('game.sudoku.toolPencil', { def: 'Pencil marks' }), () => setPencil(!pencil));
     mk('⌫', KIT.t('game.sudoku.toolErase', { def: 'Erase' }), erase);
     mk('↺', KIT.t('game.sudoku.toolUndo', { def: 'Undo' }), undo);
-    mk('💡', KIT.t('game.sudoku.toolHint', { def: 'Logical hint' }), hint);
+    // (no 💡 tool key — the kit's 🔍 HINT button owns hints now, and two controls for one action
+    // is duplicate chrome. The H key still works, via the kit.)
   }
   function setPencil(v) { pencil = v; if (padPencilBtn) padPencilBtn.classList.toggle('on', pencil); }
   function refreshPad() {
@@ -969,7 +973,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       padDigitCounts[d - 1].textContent = left > 0 && left < 9 ? left : '';
     }
   }
-  function setPadVisible(v) { document.getElementById('pad').classList.toggle('show', v); }
+  function setPadVisible(v) {
+    document.getElementById('pad').classList.toggle('show', v);
+    if (hb) hb.show(v);           // the 🔍 button belongs to live play, like the pad
+  }
 
   // ==================================================================================
   // update / render
@@ -1341,9 +1348,17 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     by = sideMode ? pr.y + Math.max(4, (pr.h - 12 - bsize) / 2)
                   : pr.y + Math.max(6, Math.min(40, (pr.h - 12 - bsize) * 0.25));
     cell = (bsize - bsize * 0.062) / 9;              // inset = cell*0.28 on each side ≈ 6.2% total
-    const pad = document.getElementById('pad'), bar = document.getElementById('hintbar');
+    const pad = document.getElementById('pad');
     if (pad) pad.classList.toggle('side', sideMode);
-    if (bar) bar.classList.toggle('side', sideMode);
+    // the kit hint affordance follows the pad: right rail beside it in side mode, otherwise the strip
+    // directly above it (offset lifts it clear of the pad instead of sitting on top of it)
+    if (hb) {
+      hb.dock(sideMode ? 'right' : 'bottom');
+      hb.offset(sideMode ? 0 : PAD_H + safeB);
+      // in side mode the rail shares the right column with the pad, which is docked at its bottom —
+      // cap the rail at the clear room above the pad so a long explanation can never cover the keys
+      hb.limit(sideMode ? Math.max(96, H - 10 - PAD_SIDE_H - 58 - 8) : 0);
+    }
   }
   window.gamekit.layout.on(resize);
 
@@ -1456,6 +1471,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   // ==================================================================================
   // Boot
+  // the shared hint affordance (same 🔍 button + toast as Mirror Maze / Floodgate). Sudoku's hint is
+  // a two-step teacher — first press explains, second applies — so onHint is just its own hint().
+  // tipBelow: the toast opens DOWN over the number pad. Sudoku's board fills its playRect, so an
+  // upward toast covered the very rows a hint is about — and reserving room for it would cost the
+  // board ~12% on a phone for a strip that is empty most of the time.
+  hb = KIT.hintButton({ onHint: hint, label: HINT_LABEL, tipBelow: true });
+  hb.show(false);
+  HINT_H = hb.reserve;
   KIT.layout.archetype('board'); // layout contract: board fitted in playRect() (resize sets pad reserves)
   resize();
   function i18nHudLabels() {
