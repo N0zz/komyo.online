@@ -4,6 +4,30 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-27', title: 'Sideways phones, fast typists and tidier shelves 📐', items: [
+    'Fix: Type Siege no longer swallows the letter you type right after a typo — the mistake still costs points and your combo, but the correction always lands.',
+    'New: on a phone held sideways, Mirror Maze and Floodgate move the 🔍 HINT button — and Floodgate\'s colour key — to a rail on the left, so the board is up to 40% bigger.',
+    'Fix: Mirror Maze\'s pause menu no longer scrolls on a landscape phone. (Every game\'s menus gained a little breathing room around the selected button.)',
+    'New: the Filter panel can hide shelves you don\'t want — Favorites, Recently played, ✨ What\'s new and 💡 For you — so the home page can show just All games.',
+    'Change: weekly challenges are now always about variety or volume ("play 5 different games this week"). "Play this one game", stretched over seven days, asked for nothing.',
+    'Fix: Type Siege\'s start screen no longer leaves half the menu empty on a sideways phone — the three modes read as full rows.',
+    'Change: Type Siege stops dropping repair crates while your wall is at full health — the word was never worth typing.',
+    'Change: Sudoku\'s hint now uses the same 🔍 HINT button as the other puzzle games (the 💡 pad key is gone, H still works) — tap the explanation to tuck it away.',
+  ] },
+  { date: '2026-07-27', title: 'Every game sounds like itself 🎵', items: [
+    'New: Frog Bonk has its own music at last — it used to borrow Keep Defender\'s theme.',
+    'New: every soundtrack grows one extra layer when the action peaks — a war drum, a bell, a shaker, a low drop — so the loudest moment of a run sounds like that game and not like every other one.',
+    'New: fresh arrangements for Bubble Pop, Glow Says, Critter Match and Keep Defender\'s marsh — they used to lean on the same handful of sounds as their neighbours.',
+  ] },
+  { date: '2026-07-27', title: 'Four new games 🦖 🚰 🔆 ⌨️', items: [
+    'New: Chrome Runner 🦖 — a polished chromium dino on a steel plain. Jump the cacti, duck the hanging gantries, and shave past obstacles for a slipstream speed boost. Run forever, or race a 1000 m Sprint against par for a medal.',
+    'New: Floodgate 🚰 — rotate the pipes to seal the line from inlet to outlet with no open ends. Twelve blueprints, one daily board everyone shares, and an endless run where the clock keeps tightening. Later boards add a hot line and an electrical cable that must never share a cell with water.',
+    'New: Mirror Maze 🔆 — spin mirrors to bend a laser, split it through prisms and light every target in its own colour. Twelve mazes that teach one piece at a time, a daily maze, and an endless run. Stuck? A hint rings a mirror that is facing the wrong way.',
+    'New: Type Siege ⌨️ — doodle armies lay siege to your keep. Type the word above an enemy to cut it down; they hold their line and hammer the wall until you do. Over 1400 English words, eight languages to choose from, and accents are optional unless you switch on Exact accents.',
+    'New: colour-blind help in Mirror Maze — beams and target rings now say how many colours they carry (solid, dashed or double), so you never have to tell green from cyan by hue alone, plus a colour-blind palette.',
+    'New: cosmetics for all four — runner shapes plus whole paper-sketch and comic-book looks for Chrome Runner, pipe metals, beam palettes, and ink-and-paper styles for Type Siege.',
+    'Fix: the score pill and the "best" labels on mode cards are easier to read in every game — they were too faint against the dark background.',
+  ] },
   { date: '2026-07-26', title: 'Your profile and challenges speak your language 🌍', items: [
     'Fix: your profile now translates fully — game names, every mode and difficulty, the title line, the Collection bar and the "since" date all follow the language you picked.',
     'Fix: completed challenges in your history now read in your current language instead of the one you played them in.',

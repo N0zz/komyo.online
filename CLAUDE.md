@@ -40,6 +40,11 @@ analytics.js    GA4 loader, consent-gated (see "Analytics")
 version.js      build stamp {sha, built} — 'dev' locally, stamped by the Pages deploy workflow
 game-kit.js     SHARED game shell — see "Shared kit" (nav, menus, sound, loop, layout, best store, PWA)
 game-kit.css    shared shell styles (nav/menus/HUD/share row)
+words.js        SHARED word banks — window.KOMYO_WORDS = {banks:{<locale>:[word,…]}, fold, translit,
+                byLength, locales}; 8 locales, ≥1400 words each, all lowercase single tokens, deduped
+                after diacritic folding. THE source for every word game (Type Siege reads it; no game
+                keeps its own list). In the SW SHELL + preloaded by test-harness.mjs; `node test.mjs`
+                validates size/uniqueness/letters-only per locale.
 qr.js           REUSABLE QR encoder (no deps) — window.KOMYO_QR.encode(text)→{size,modules} | null
                 (byte mode, EC-M, versions 1–6). LAZY-loaded by game-kit on score-card render (not in
                 the atomic head); cached in the root sw.js SHELL for offline. Use for any future QR need.
@@ -51,6 +56,10 @@ test-harness.mjs  the ONE shared headless harness (sandbox/bootGame/runLayoutSui
 scripts/        post-changelog.mjs (Discord changelog action) + gen-icon.mjs (icon generation) + bench.sh
                 + package-game.mjs (<slug> → dist-portal/<slug>.zip: self-contained portal build for itch/Newgrounds)
                 + ga4-define.sh (register GA4 custom dimensions/metrics — see "Analytics events")
+                + audio-lint.mjs (music distinctness — reads the LIVE TRACKS registry in game-kit.js;
+                  redesign ≥68% / siblings 55–68%, exits non-zero on a redesign-level clash)
+                + set-release-date.sh <YYYY-MM-DD> (stamps an unreleased batch's REAL go-live date into
+                  games.js `added` + challenges.js `playableSince` + its changelog entry, together)
 sw.js           the ONE site-wide service worker (root scope) — SHELL covers the catalogue, the shared
                 head files, every locale AND every live game (slug list in games.js order, test-enforced)
 manifest.json favicon.svg og-image.png logo-*.png   CNAME .nojekyll .gitignore
@@ -241,6 +250,20 @@ Games alias the API once: `const KIT = window.gamekit;`.
   (`gamekit.goodRunBonus()` → `{count,cap,per}`; one `gr#YYYY-MM-DD` entry in `gamekit_done`); the end
   menu's "✓ Good run" line is the receipt. **Titles are worn, not just earned:** the ladder's unlocked
   ranks are tap-to-equip (`gamekit_title_sel`); a new higher tier auto-switches (`gamekit_title_adopted`).
+- **Levels + hints (kit-owned, shared by every level-based puzzle):**
+  `gamekit.levelsScreen({count, status, par, preview, onPick, …})` — the level picker as its OWN menu
+  screen (a 12-cell grid fits 360×640; an inline group does not); `gamekit.hints(slug)` — the hint
+  budget/economy (`begin(n)`, `use(item)` → also fires the ONE shared
+  `run_choice{choice_kind:'hint'}` event, so a game never tracks hints itself);
+  `gamekit.hintButton({onHint, label, cost, offset, tipBelow})` → `{el, wrap, reserve, railWidth,
+  show, label, toast, dock, docked, offset, limit, remove}` — the 🔍 button + its toast (H key
+  included). **The GAME owns the matching reserve**: `dock('bottom')` + `layout.reserve('bottom',
+  hb.reserve)`, or on a landscape phone `dock('left'|'right')` + `layout.reserve('left',
+  hb.railWidth)` — a bottom strip costs a 640×360 board a quarter of its height, an edge rail costs
+  nothing (Mirror Maze/Floodgate dock left, Sudoku right because its number pad owns that column).
+  `offset(px)` lifts the bottom dock over a control strip, `limit(px)` caps a rail sharing its column,
+  `tipBelow: true` opens the toast DOWNWARD (over the game's own keys, never the play area — Sudoku).
+  The toast is tap-to-dismiss. Reference: `games/mirror-maze/`, `games/floodgate/`, `games/sudoku/`.
 - `gamekit.shareRow(el, { slug, title, message })` — **score-card-first**: renders the neon score
   card inline + ONE **Share** button that opens the image menu (native share attaches the card image
   **+** the link/text together, plus Copy image / Download). No X/Reddit/copy-link buttons — a link
@@ -337,7 +360,9 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
 - **Menu-fit is enforced by a REAL browser** (`test-menu-browser.mjs`; `npm run test:menus`):
   headless Chromium (Playwright, **dev-only dep** — the shipped site stays dependency-free) loads
   every live game (auto-discovered from `games.js`) at the two tight viewports (360×640, 640×360)
-  and asserts the start menu **does not scroll** (box / `.gkm-scroll` pane / landscape `.gkm-rail`
+  and asserts the start menu, **the game's own pause menu** (opened through its `__test.start` +
+  `__test.pause`; games without those hooks are listed as skips, never silently passed) and a
+  representative end screen **do not scroll** (box / `.gkm-scroll` pane / landscape `.gkm-rail`
   all fit). It uses the real CSS layout engine and **blocks service workers**, so it can't give a
   false pass or test a stale build. This replaced an earlier JS *model* that gave false greens
   (it couldn't see the cascade / real metrics) — **for CSS/menu layout, only a real browser is
