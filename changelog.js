@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-27', title: 'A bigger pad for Chrome Runner, and moving it actually works 🕹️', items: [
+    'Change: Chrome Runner\'s on-screen pad is much bigger — each half is now a target you can hit without looking away from the cacti.',
+    'Fix: moving the pad works now. Pick "Move the pad" in the start menu or the pause menu, drag it wherever your thumb rests, tap Done. Dragging it by the little bar across its middle never worked on a phone at all.',
+  ] },
   { date: '2026-07-27', title: 'Chrome Runner: one thumb, one pad 🕹️', items: [
     'Change: Chrome Runner\'s two corner buttons are now a single round pad — jump on the top half, hold the bottom half to duck — so the whole game fits under one thumb. Drag it by the bar across its middle to put it wherever your thumb actually rests; it stays there next time. Tapping anywhere else still jumps.',
   ] },

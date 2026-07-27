@@ -3,6 +3,9 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.cs = {
   'cat.fhSections': 'Police',
+  'changelog.e83.title': 'Větší ovladač v Chrome Runneru a přesouvání konečně funguje 🕹️',
+  'changelog.e83.b0': 'Změna: ovladač na obrazovce v Chrome Runneru je mnohem větší — do obou půlek teď trefíš, aniž bys spustil kaktusy z očí.',
+  'changelog.e83.b1': 'Oprava: přesouvání ovladače konečně funguje. Vyber „Přesunout ovladač“ v úvodním menu nebo v menu pauzy, přetáhni ho tam, kde ti leží palec, a klepni na „Hotovo“. Tažení za proužek uprostřed na telefonu nefungovalo vůbec.',
   'changelog.e82.title': 'Chrome Runner: jeden palec, jeden ovladač 🕹️',
   'changelog.e82.b0': 'Změna: dvě tlačítka v rozích Chrome Runneru nahradil jeden kulatý ovladač — horní půlka skáče, podržení dolní se krčí — takže celá hra se vejde pod jeden palec. Přetáhni ho za proužek uprostřed tam, kde ti palec doopravdy leží; příště tam zůstane. Klepnutí kamkoli jinam pořád skáče.',
   'changelog.e81.title': 'Ovládání na telefonu pro Chrome Runner a Type Siege 📱',
@@ -857,6 +860,7 @@ window.KOMYO_I18N.cs = {
   'game.common.touchSchemeCap': '— klepnutím otáčej, zrychluj a střílej',
   'game.common.click': 'Kliknutí',
   'game.common.tap': 'Klepnutí',
+  'game.common.done': 'HOTOVO',
   'game.common.esc': 'Esc',
   'game.common.spaceEnter': 'Mezerník · Enter',
   'game.flappy.menuTitle': '🌸 Luční letec',
@@ -2098,6 +2102,8 @@ window.KOMYO_I18N.cs = {
   'game.dusk-runner.controlsTitle': 'Dusk Runner — ovládání',
   'game.dusk-runner.ctrlJump': 'Skok',
   'game.dusk-runner.ctrlDuck': 'Krčit se',
+  'game.dusk-runner.movePad': 'PŘESUNOUT OVLADAČ',
+  'game.dusk-runner.placeHint': 'Přetáhni ovladač tam, kde ti leží palec',
   'game.dusk-runner.ctrlHoldPad': 'Držet ⬇',
   'seo.dusk-runner.howto': 'Běž doprava a nikdy nezastavuj: klepnutím nebo mezerníkem přeskočíš kaktusy, podržením šipky dolů se skrčíš pod nízké ocelové rámy a ptáky. Protáhnout se o vlásek ti dá zrychlení, tempo roste s každým metrem a nebe se mění ze dne přes soumrak do hvězdné noci. Nekonečný běh trvá do prvního nárazu, Sprint je časovka na 1000 metrů, kde každý náraz znamená zakopnutí.',
   'cos.set.dusk-runner.runner': 'Běžci',
