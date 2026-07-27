@@ -3,6 +3,8 @@
 window.KOMYO_I18N = window.KOMYO_I18N || {};
 window.KOMYO_I18N.pl = {
   'cat.fhSections': 'Półki',
+  'changelog.e82.title': 'Chrome Runner: jeden kciuk, jeden pad 🕹️',
+  'changelog.e82.b0': 'Zmiana: dwa narożne przyciski w Chrome Runner zastąpił jeden okrągły pad — górna połowa to skok, przytrzymanie dolnej to przykucnięcie — więc cała gra mieści się pod jednym kciukiem. Przeciągnij go za belkę na środku tam, gdzie naprawdę leży twój kciuk; następnym razem zostanie na miejscu. Dotknięcie w dowolnym innym miejscu nadal wykonuje skok.',
   'changelog.e81.title': 'Sterowanie na telefonie w Chrome Runner i Type Siege 📱',
   'changelog.e81.b0': 'Poprawka: Chrome Runner ma wreszcie prawdziwe przyciski na ekranie telefonu — ⬆ skok, przytrzymaj ⬇ żeby przykucnąć — a dotknięcie w dowolnym innym miejscu nadal wykonuje skok. Wcześniej górna część ekranu skakała, dolna kucała, a niewidzialna granica między nimi wypadała na każdym telefonie gdzie indziej.',
   'changelog.e81.b1': 'Poprawka: otwarcie klawiatury w Type Siege nie wypycha już pola bitwy poza górną krawędź ekranu.',

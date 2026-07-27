@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-27', title: 'Chrome Runner: one thumb, one pad 🕹️', items: [
+    'Change: Chrome Runner\'s two corner buttons are now a single round pad — jump on the top half, hold the bottom half to duck — so the whole game fits under one thumb. Drag it by the bar across its middle to put it wherever your thumb actually rests; it stays there next time. Tapping anywhere else still jumps.',
+  ] },
   { date: '2026-07-27', title: 'Phone controls for Chrome Runner and Type Siege 📱', items: [
     'Fix: Chrome Runner has real on-screen buttons on phones — ⬆ to jump, hold ⬇ to duck — and tapping anywhere else still jumps. Before, the top of the screen jumped and the bottom ducked, with an invisible dividing line that sat somewhere different on every phone.',
     'Fix: opening the keyboard in Type Siege no longer shoves the battlefield off the top of the screen.',
