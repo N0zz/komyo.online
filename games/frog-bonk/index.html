@@ -1619,7 +1619,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     state = 'playing';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     if (gameMode === 'waves') startWave(1);
-    KIT.music.play(gameMode === 'zen' ? 'meadow' : 'castle');
+    KIT.music.play(gameMode === 'zen' ? 'meadow' : 'frogbonk');
     i18nHudLabels();
     updateHud();
   }
@@ -1980,7 +1980,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     menuReshow = showStartMenu;
     state = 'ready';
     if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
-    KIT.music.play('castle');
+    KIT.music.play('frogbonk');
     if (!KIT) return;
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: t('game.frog-bonk.menuTitle', { def: 'FROG BONK' }), backdrop: menuBackdrop, backdropAnimate: true,
       groups: [
@@ -2132,7 +2132,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       mouse: [ [t('game.common.click', { def: 'Click' }), t('game.frog-bonk.ctrlBonk', { def: 'Bonk a frog' })] ],
       keyboard: [ [t('game.common.esc', { def: 'Esc' }), t('game.common.pause', { def: 'Pause' })] ],
       touch: [ [t('game.common.tap', { def: 'Tap' }), t('game.frog-bonk.ctrlBonk', { def: 'Bonk a frog' })] ] } });
-  KIT.music.play('castle');
+  KIT.music.play('frogbonk');
 
   // ---- __test hook + layout getter ----
   window.__test = {
