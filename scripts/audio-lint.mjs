@@ -1,23 +1,28 @@
 #!/usr/bin/env node
-// Detective linter for the Audio Lab. Each game's MODERN track is DATA (theme + palette overrides),
-// so distinctness is a pure data-diff — no audio analysis. This version PARSES plans/audio-lab.html
-// directly (GAMES + THEMES + PALETTES) so it can never drift out of sync. Run: node plans/audio-lint.mjs
+// Music distinctness linter.  Run: node scripts/audio-lint.mjs
+//
+// Each game's track is DATA (musical params + sound palette) in the TRACKS registry inside
+// game-kit.js, so distinctness is a pure data-diff — no audio analysis needed.
+//
+// It reads the LIVE registry. The previous version parsed plans/audio-lab.html, a design mock that
+// only ever held 11 of the tracks — which is how a shipped pair scoring 83% similar passed the lint
+// clean. Anything that grades what ships has to read what ships.
 import { readFileSync } from 'node:fs';
 
-const src = readFileSync(new URL('./audio-lab.html', import.meta.url), 'utf8');
+const ROOT = new URL('../', import.meta.url);
+const src = readFileSync(new URL('game-kit.js', ROOT), 'utf8');
 
-// pull a `var NAME = {…}|[…]` literal out of the file and evaluate it.
-// SAFETY: this is a dev-only linter that reads our OWN committed audio-lab.html (not user input,
-// not network data); the extracted slices are pure config literals (numbers/strings/arrays/bools).
-// eval is used deliberately to parse JS object-literal syntax (unquoted keys / single quotes) that
-// JSON.parse can't handle. If audio-lab.html is ever fed untrusted content, swap for a real JS parser.
+// Pull `var NAME = {…}` out of the file and evaluate it.
+// SAFETY: dev-only tool reading our OWN committed game-kit.js (not user input, not network data);
+// the slice is a config literal
+// (numbers/strings/arrays/bools). eval parses JS object-literal syntax (unquoted keys, single
+// quotes) that JSON.parse cannot.
 function grab(name) {
   const i = src.indexOf('var ' + name + ' =');
   if (i < 0) throw new Error('not found: ' + name);
   let j = src.indexOf('=', i) + 1; while (/\s/.test(src[j])) j++;
   const open = src[j], close = open === '{' ? '}' : ']';
-  let depth = 0, inStr = false, q = '';
-  let k = j;
+  let depth = 0, inStr = false, q = '', k = j;
   for (; k < src.length; k++) {
     const c = src[k];
     if (inStr) { if (c === q && src[k - 1] !== '\\') inStr = false; continue; }
@@ -27,73 +32,107 @@ function grab(name) {
   }
   return eval('(' + src.slice(j, k) + ')');
 }
-const GAMES = grab('GAMES'), THEMES = grab('THEMES'), PALETTES = grab('PALETTES');
 
-// effective MODERN track = theme merged with palette proposal overrides
-const tracks = GAMES.map(g => {
-  const T = THEMES[g.theme], P = PALETTES[g.key] || {};
-  return {
-    game: g.name,
-    root: P.root ?? T.root, bpm: P.bpm ?? T.bpm, scale: P.scale || T.scale, prog: P.prog || T.prog,
-    kit: P.kit || '?', style: P.groove || P.prod || '?',
-    cur: { root: T.root, bpm: T.bpm, scale: (T.scale || []).join(','), prog: (T.prog || []).join(',') },
-  };
-});
+const TRACKS = grab('TRACKS');
+const ALIAS = grab('ALIAS');
 
-const W = { prog: 0.26, style: 0.24, kit: 0.18, tempo: 0.12, scale: 0.10, root: 0.10 };
-const SOFT = 0.55, HARD = 0.68;
-
-const bandIdx = b => (b < 95 ? 0 : b < 116 ? 1 : 2);
-const progSim = (a, b) => { const n = Math.min(a.length, b.length); let m = 0; for (let i = 0; i < n; i++) if (a[i] === b[i]) m++; return m / Math.max(a.length, b.length); };
-const scaleSim = (a, b) => { const A = new Set(a), B = new Set(b); let x = 0; A.forEach(v => B.has(v) && x++); return x / (A.size + B.size - x); };
-const tempoSim = (a, b) => { const d = Math.abs(bandIdx(a) - bandIdx(b)); return d === 0 ? 1 : d === 1 ? 0.5 : 0; };
-
-function sim(a, b) {
-  const parts = { prog: progSim(a.prog, b.prog), style: a.style === b.style ? 1 : 0, kit: a.kit === b.kit ? 1 : 0, tempo: tempoSim(a.bpm, b.bpm), scale: scaleSim(a.scale, b.scale), root: a.root === b.root ? 1 : 0 };
-  let s = 0; for (const k in W) s += W[k] * parts[k];
-  return { score: s, parts };
+// which game plays which track (a track nobody plays is dead weight; a live game with no track
+// falls back to a default and sounds like somebody else)
+const gamesSrc = readFileSync(new URL('games.js', ROOT), 'utf8');
+const win = {};
+new Function('window', gamesSrc)(win);
+const played = {};
+for (const g of (win.GAMES || []).filter(x => !x.soon)) {
+  let html = '';
+  try { html = readFileSync(new URL('games/' + g.slug + '/index.html', ROOT), 'utf8'); } catch (e) { continue; }
+  for (const call of html.matchAll(/music\.play\(([^;]{0,200}?)\)\s*;/g)) {
+    for (const lit of call[1].matchAll(/['"]([\w-]+)['"]/g)) {
+      const id = ALIAS[lit[1]] || lit[1];
+      if (TRACKS[id] && !(played[id] || []).includes(g.title)) (played[id] = played[id] || []).push(g.title);
+    }
+  }
 }
-const label = { prog: 'progression', style: 'groove/style family', kit: 'drum kit', tempo: 'tempo band', scale: 'scale/mode', root: 'root/key' };
-const shared = p => Object.keys(W).filter(k => p[k] >= 0.75);
-const suggest = p => { const s = shared(p).sort((x, y) => W[y] - W[x]); return s.length ? 'change ' + label[s[0]] : '—'; };
-const axStr = p => Object.keys(W).filter(k => p[k] >= 0.6).map(k => label[k] + (p[k] < 1 ? ` ${(p[k] * 100) | 0}%` : '')).join(', ') || '—';
 
+// ---- similarity model -------------------------------------------------------------------------
+// Weighted so what an EAR notices most carries most: drum kit and arrangement family dominate, then
+// the chord progression, then mode/tempo/key. Two tracks sharing kit+groove start at 50% before a
+// single note is compared — which is why choosing an UNUSED kit+groove pairing is the strongest
+// lever a new game has.
+const W = { kit: 0.25, groove: 0.25, prog: 0.20, scale: 0.15, bpm: 0.10, root: 0.05 };
+const fam = t => t.groove || t.prod || '';
+function similarity(a, b) {
+  let s = 0;
+  if ((a.kit || '') === (b.kit || '')) s += W.kit;
+  if (fam(a) === fam(b)) s += W.groove;
+  const pa = a.prog || [], pb = b.prog || [];
+  if (pa.length && pb.length) s += W.prog * (pa.filter((v, i) => pb[i] === v).length / Math.max(pa.length, pb.length));
+  if ((a.scale || []).join() === (b.scale || []).join()) s += W.scale;
+  if (Math.abs((a.bpm || 0) - (b.bpm || 0)) <= 6) s += W.bpm;
+  if (Math.abs((a.root || 0) - (b.root || 0)) < 1) s += W.root;
+  // a per-track high-intensity signature layer pulls them apart exactly where the engine converges
+  if ((a.sig || '') && (a.sig || '') === (b.sig || '')) s += 0.05;
+  else if ((a.sig || '') !== (b.sig || '')) s -= 0.05;
+  return Math.max(0, s);
+}
+function why(a, b) {
+  const out = [];
+  if ((a.kit || '') === (b.kit || '')) out.push('drum kit ' + a.kit);
+  if (fam(a) === fam(b)) out.push('arrangement ' + fam(a));
+  const pa = a.prog || [], pb = b.prog || [];
+  const ov = pa.length ? pa.filter((v, i) => pb[i] === v).length / pa.length : 0;
+  if (ov >= 0.5) out.push('progression ' + Math.round(ov * 100) + '%');
+  if ((a.scale || []).join() === (b.scale || []).join()) out.push('same mode');
+  if (Math.abs((a.bpm || 0) - (b.bpm || 0)) <= 6) out.push('bpm ±6');
+  if (Math.abs((a.root || 0) - (b.root || 0)) < 1) out.push('same key');
+  if (!a.sig && !b.sig) out.push('no high-intensity signature');
+  return out.join(', ');
+}
+
+const REDESIGN = 0.68, SIBLING = 0.55;
+const ids = Object.keys(TRACKS);
+const variantPair = (x, y) => x.startsWith(y) || y.startsWith(x);   // snake / snakebanger = one game
 const pairs = [];
-for (let i = 0; i < tracks.length; i++) for (let j = i + 1; j < tracks.length; j++) pairs.push({ a: tracks[i], b: tracks[j], ...sim(tracks[i], tracks[j]) });
-pairs.sort((x, y) => y.score - x.score);
-const pct = x => (x * 100).toFixed(0).padStart(3) + '%';
-
-console.log(`\n🎧  AUDIO LAB — DISTINCTNESS REPORT   (${tracks.length} tracks, ${pairs.length} pairs · parsed live from audio-lab.html)\n`);
-
-const hard = pairs.filter(p => p.score >= HARD);
-console.log(`── ❌ TOO SIMILAR — redesign (≥ ${HARD * 100 | 0}%) ` + '─'.repeat(30));
-if (!hard.length) console.log('  ✅ none.');
-for (const p of hard) console.log(`  ${pct(p.score)}  ${p.a.game} ✕ ${p.b.game}\n        shared: ${axStr(p.parts)}   → ${suggest(p.parts)}`);
-
-const soft = pairs.filter(p => p.score >= SOFT && p.score < HARD);
-console.log(`\n── ⚠️  GENRE SIBLINGS — review (${SOFT * 100 | 0}–${HARD * 100 | 0}%) ` + '─'.repeat(24));
-if (!soft.length) console.log('  ✅ none.');
-for (const p of soft) console.log(`  ${pct(p.score)}  ${p.a.game} ✕ ${p.b.game}   [${axStr(p.parts)}]`);
-
-console.log('\n── MODERN PROGRESSIONS (must all be unique) ' + '─'.repeat(20));
-const byProg = {};
-for (const t of tracks) (byProg[t.prog.join(',')] ||= []).push(t.game);
-let dup = 0;
-for (const k in byProg) if (byProg[k].length > 1) { dup++; console.log(`  ⚠️  [${k}]  ${byProg[k].join(', ')}`); }
-for (let i = 0; i < tracks.length; i++) for (let j = i + 1; j < tracks.length; j++) {
-  const s = progSim(tracks[i].prog, tracks[j].prog);
-  if (s >= 0.75 && tracks[i].prog.join() !== tracks[j].prog.join()) { dup++; console.log(`  ⚠️  ${(s * 100) | 0}% ${tracks[i].game} ≈ ${tracks[j].game}`); }
+for (let i = 0; i < ids.length; i++) {
+  for (let j = i + 1; j < ids.length; j++) {
+    pairs.push({ a: ids[i], b: ids[j], v: similarity(TRACKS[ids[i]], TRACKS[ids[j]]), variant: variantPair(ids[i], ids[j]) });
+  }
 }
-if (!dup) console.log('  ✅ all 11 progressions are distinct (<75% overlap).');
+pairs.sort((x, y) => y.v - x.v);
 
-console.log('\n── ℹ️  IDENTICAL "CURRENT" TRACKS (in-game today) ' + '─'.repeat(16));
-console.log('  (games sharing the same theme play identical music in the Current column — the Modern proposals fix this)');
-const seen = {};
-for (let n = 0; n < tracks.length; n++) { const c = tracks[n].cur; const key = [c.root, c.bpm, c.scale, c.prog].join('|'); (seen[key] ||= []).push(tracks[n].game); }
-let cd = 0;
-for (const k in seen) if (seen[k].length > 1) { cd++; console.log('  ⚠️  ' + seen[k].join('  =  ')); }
-if (!cd) console.log('  ✅ none.');
+const label = id => id + (played[id] ? ' (' + played[id].join(', ') + ')' : '');
+console.log(`\n🎧  MUSIC DISTINCTNESS — ${ids.length} tracks, ${pairs.length} pairs · live TRACKS in game-kit.js\n`);
 
-const worst = pairs[0].score;
-console.log(`\n  Summary: ${hard.length} to-redesign · ${soft.length} siblings · worst pair ${pct(worst)}\n`);
-process.exit(hard.length ? 1 : 0);
+const bad = pairs.filter(p => p.v >= REDESIGN && !p.variant);
+console.log('── ❌ TOO SIMILAR — redesign (≥ ' + REDESIGN * 100 + '%) ' + '─'.repeat(22));
+if (!bad.length) console.log('  ✅ none.');
+for (const p of bad) console.log(`  ${Math.round(p.v * 100)}%  ${label(p.a)} ✕ ${label(p.b)}   [${why(TRACKS[p.a], TRACKS[p.b])}]`);
+
+const sib = pairs.filter(p => p.v >= SIBLING && p.v < REDESIGN && !p.variant);
+console.log('\n── ⚠️  GENRE SIBLINGS — review (' + SIBLING * 100 + '–' + REDESIGN * 100 + '%) ' + '─'.repeat(18));
+if (!sib.length) console.log('  ✅ none.');
+for (const p of sib) console.log(`  ${Math.round(p.v * 100)}%  ${label(p.a)} ✕ ${label(p.b)}   [${why(TRACKS[p.a], TRACKS[p.b])}]`);
+
+// a duplicated progression is the cheapest thing to fix and among the most audible
+console.log('\n── PROGRESSIONS (unique per game) ' + '─'.repeat(28));
+const byProg = {};
+for (const id of ids) if (TRACKS[id].prog) (byProg[TRACKS[id].prog.join(',')] = byProg[TRACKS[id].prog.join(',')] || []).push(id);
+const dup = Object.entries(byProg).filter(([, v]) => v.length > 1 && v.some(x => v.some(y => y !== x && !variantPair(x, y))));
+if (!dup.length) console.log('  ✅ every game has its own chord progression.');
+for (const [p, v] of dup) console.log(`  ⚠️  [${p}] shared by ${v.join(' + ')}`);
+
+// the engine stacks every layer at high intensity, so tracks converge exactly when the action peaks
+console.log('\n── HIGH-INTENSITY SIGNATURES ' + '─'.repeat(32));
+const noSig = ids.filter(id => !TRACKS[id].sig && !/^kd_/.test(id));
+console.log('  with a signature: ' + ids.filter(id => TRACKS[id].sig).map(id => id + ':' + TRACKS[id].sig).join(', ') || '  none');
+if (noSig.length) console.log('  without one (converge when all layers are on): ' + noSig.join(', '));
+
+console.log('\n── COVERAGE ' + '─'.repeat(48));
+const orphan = ids.filter(id => !played[id] && !/^kd_/.test(id) && !ids.some(o => o !== id && variantPair(id, o) && played[o]));
+const heard = Object.values(played).flat();
+const silent = (win.GAMES || []).filter(g => !g.soon).map(g => g.title).filter(t => !heard.includes(t));
+console.log('  tracks with no game:', orphan.length ? orphan.join(', ') : 'none');
+console.log('  live games with no track:', silent.length ? silent.join(', ') : 'none');
+
+const worst = pairs.find(p => !p.variant);
+console.log(`\n  Summary: ${bad.length} to-redesign · ${sib.length} siblings · worst pair ${Math.round(worst.v * 100)}% (${worst.a} ✕ ${worst.b})\n`);
+process.exit(bad.length ? 1 : 0);

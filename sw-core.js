@@ -20,6 +20,8 @@
   var MEDIA_RE = /\/games\/[^/]+\/(?:trailer|shot)\.[\w.-]+\.(?:mp4|webp|png)$/;
   var SHELL = self.SHELL || [];
   var ORIGIN = self.location.origin;
+  // Local preview: VERSION is the constant 'dev', so the cache never rotates on an edit.
+  var DEV = /^(localhost|127\.0\.0\.1|\[::1\]|.*\.local)$/.test(self.location.hostname);
 
   self.addEventListener('install', function (e) {
     e.waitUntil(
@@ -81,9 +83,15 @@
             if (resp && resp.ok) { try { cache.put(e.request, resp.clone()); } catch (x) {} }
             return resp;
           }).catch(function () { return null; });
-          if (cached) return cached;                       // stale-while-revalidate: cached now, refresh in bg
+          // Production: stale-while-revalidate — cached now, refresh in the background.
+          // DEV ORIGINS INVERT IT (network first, cache only as the offline fallback): every local
+          // edit was otherwise read one reload late, so a fixed bug still threw in the console and
+          // a fresh build got reported as broken. Offline still works locally — the cache is the
+          // fallback, just no longer the first answer.
+          if (cached && !DEV) return cached;
           return network.then(function (r) {
             if (r) return r;
+            if (cached) return cached;
             if (e.request.mode === 'navigate') {            // offline + uncached page → this scope's shell
               return cache.match('./index.html').then(function (i) { return i || cache.match('./'); });
             }
