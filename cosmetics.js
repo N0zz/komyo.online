@@ -729,6 +729,158 @@
   add('critter-match', 'critters', 'jungle', 'Jungle Crew',   50,  'Lions, monkeys and parrots.',    critterCard('🦁'));
   add('critter-match', 'critters', 'ocean',  'Ocean Pals',    100, 'Fish, octopuses and whales.',    critterCard('🐙'));
 
+  // ---- 🦖 Chrome Runner — whole-look skins + the runner silhouette (shape, not colour) ----
+  // A 46x40 swatch is too small for outline art — draw a chunky FILLED silhouette instead, so the
+  // three runners are told apart at a glance (snout length, ears, square vs round).
+  function runnerSwatch(kind) {
+    return function (g, w, h) {
+      g.fillStyle = '#f4f1e8'; g.fillRect(0, 0, w, h);
+      const gy = h * 0.82, u = Math.min(w, h) / 40;   // unit
+      g.strokeStyle = '#c3bcab'; g.lineWidth = Math.max(1, 1.2 * u);
+      g.beginPath(); g.moveTo(w * 0.04, gy); g.lineTo(w * 0.96, gy); g.stroke();
+      g.fillStyle = '#2b2b2b';
+      const bw = 15 * u, bh = 11 * u, bx = w * 0.5 - bw * 0.62, by = gy - bh - 2.4 * u;
+      const rr = (x, y, ww, hh, r) => { g.beginPath(); if (g.roundRect) g.roundRect(x, y, ww, hh, r); else g.rect(x, y, ww, hh); g.fill(); };
+      rr(bx, by, bw, bh, kind === 'robot' ? 1.5 * u : 4 * u);                       // body
+      if (kind !== 'robot') {                                                        // tail
+        g.beginPath();
+        g.moveTo(bx + 1 * u, by + bh * 0.35);
+        g.quadraticCurveTo(bx - 9 * u, by + bh * 0.1, bx - 7 * u, by + bh * 0.95);
+        g.quadraticCurveTo(bx - 4 * u, by + bh * 0.5, bx + 1 * u, by + bh * 0.75);
+        g.fill();
+      }
+      const hw = (kind === 'dino' ? 12 : 9) * u, hh = 7.5 * u;
+      const hx = bx + bw - 2 * u, hy = by - hh + 1.5 * u;
+      rr(hx, hy, hw, hh, kind === 'robot' ? 1 * u : 3 * u);                          // head
+      if (kind === 'fox') {                                                          // ears
+        g.beginPath(); g.moveTo(hx + hw * 0.1, hy + 1 * u); g.lineTo(hx + hw * 0.22, hy - 4.2 * u);
+        g.lineTo(hx + hw * 0.5, hy + 1 * u); g.closePath(); g.fill();
+      }
+      if (kind === 'robot') {                                                        // antenna
+        g.fillRect(hx + hw * 0.45, hy - 4 * u, 1.4 * u, 4 * u);
+        g.beginPath(); g.arc(hx + hw * 0.45 + 0.7 * u, hy - 4.6 * u, 1.5 * u, 0, 6.283); g.fill();
+      }
+      g.fillStyle = '#f4f1e8';                                                        // eye (knockout)
+      g.beginPath(); g.arc(hx + hw * 0.72, hy + hh * 0.42, 1.5 * u, 0, 6.283); g.fill();
+      g.fillStyle = '#2b2b2b';                                                        // legs
+      g.fillRect(bx + bw * 0.22, by + bh, 1.8 * u, gy - (by + bh));
+      g.fillRect(bx + bw * 0.62, by + bh, 1.8 * u, gy - (by + bh));
+    };
+  }
+  // whole-game LOOK skins: the entire palette + draw mode, not just one entity
+  function lookSwatch(kind) {
+    return function (g, w, h) {
+      const gy = h * 0.78, u = Math.min(w, h) / 40;
+      if (kind === 'comic') {
+        g.fillStyle = '#7ec8f0'; g.fillRect(0, 0, w, h);
+        g.fillStyle = 'rgba(20,18,28,0.18)';                  // halftone
+        for (let y = 2; y < gy; y += 5) for (let x = (y % 10 ? 2 : 4); x < w; x += 5) { g.beginPath(); g.arc(x, y, 0.9, 0, 6.283); g.fill(); }
+        g.fillStyle = '#c9a26a'; g.fillRect(0, gy, w, h - gy);
+        g.strokeStyle = '#16141c'; g.lineWidth = 2; g.strokeRect(1.5, 1.5, w - 3, h - 3);
+      } else if (kind === 'chrome') {
+        const sk = g.createLinearGradient(0, 0, 0, gy);
+        sk.addColorStop(0, '#1a2432'); sk.addColorStop(1, '#3a4a5c');
+        g.fillStyle = sk; g.fillRect(0, 0, w, h);
+        const fl = g.createLinearGradient(0, gy, 0, h);
+        fl.addColorStop(0, '#8d99a6'); fl.addColorStop(1, '#2b333d');
+        g.fillStyle = fl; g.fillRect(0, gy, w, h - gy);
+      } else {
+        g.fillStyle = '#f4f1e8'; g.fillRect(0, 0, w, h);
+        g.fillStyle = '#ded8c9'; g.fillRect(0, gy, w, h - gy);
+      }
+      // one runner-ish blob in the skin's own material, so the swatch shows the LOOK
+      const bw = 15 * u, bh = 10 * u, bx = w * 0.5 - bw * 0.5, by = gy - bh - 3 * u;
+      if (kind === 'comic') { g.fillStyle = '#ffd23f'; }
+      else if (kind === 'chrome') {
+        const mg = g.createLinearGradient(0, by, 0, by + bh);
+        mg.addColorStop(0, '#ffffff'); mg.addColorStop(0.45, '#e8eef5');
+        mg.addColorStop(0.72, '#5d6a78'); mg.addColorStop(1, '#c9d3dd');
+        g.fillStyle = mg;
+      } else g.fillStyle = '#2b2b2b';
+      g.beginPath();
+      if (g.roundRect) g.roundRect(bx, by, bw, bh, 3 * u); else g.rect(bx, by, bw, bh);
+      g.fill();
+      if (kind === 'chrome' || kind === 'comic') { g.strokeStyle = kind === 'comic' ? '#16141c' : '#0d141c'; g.lineWidth = Math.max(1, u * (kind === 'comic' ? 1.4 : 1)); g.stroke(); }
+      g.fillStyle = kind === 'chrome' ? '#e8eef5' : kind === 'comic' ? '#16141c' : '#2b2b2b';
+      g.fillRect(bx + bw * 0.2, by + bh, 1.6 * u, gy - (by + bh));
+      g.fillRect(bx + bw * 0.66, by + bh, 1.6 * u, gy - (by + bh));
+    };
+  }
+  add('dusk-runner', 'style', 'chrome', 'Chrome',      0,  'Polished chromium — the factory finish.', lookSwatch('chrome'));
+  add('dusk-runner', 'style', 'paper',  'Paper Sketch', 25, 'Flat ink on warm drawing paper.',        lookSwatch('paper'));
+  add('dusk-runner', 'style', 'comic',  'Comic Panel',  50, 'Halftone dots, heavy ink and a KABOOM when you clip.', lookSwatch('comic'));
+
+  add('dusk-runner', 'runner', 'dino',  'Dino',  0,  'The little desert lizard.', runnerSwatch('dino'));
+  add('dusk-runner', 'runner', 'fox',   'Fox',   25, 'Pointy ears, bushy tail.',  runnerSwatch('fox'));
+  add('dusk-runner', 'runner', 'robot', 'Robot', 50, 'All boxes and right angles.', runnerSwatch('robot'));
+
+  // ---- 🚰 Floodgate — pipe metals (DRY pipework + the drafting accent; the utility colours are
+  //      rule-bearing and never re-skinned) ----
+  function pipeSwatch(body, hi, lo, accent) {
+    return function (g, w, h) {
+      g.fillStyle = '#0b1b26'; g.fillRect(0, 0, w, h);
+      g.strokeStyle = accent; g.globalAlpha = 0.35; g.lineWidth = 1;
+      for (let x = w * 0.2; x < w; x += w * 0.2) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.stroke(); }
+      g.globalAlpha = 1;
+      const t = Math.max(5, h * 0.3), y = (h - t) / 2;
+      const grd = g.createLinearGradient(0, y, 0, y + t);
+      grd.addColorStop(0, hi); grd.addColorStop(0.45, body); grd.addColorStop(1, lo);
+      g.fillStyle = grd; g.fillRect(w * 0.06, y, w * 0.88, t);
+      g.fillStyle = lo;                                  // bolted collars
+      g.fillRect(w * 0.24, y - 1.5, Math.max(2, w * 0.05), t + 3);
+      g.fillRect(w * 0.66, y - 1.5, Math.max(2, w * 0.05), t + 3);
+      g.globalAlpha = 0.8; g.fillStyle = '#ffffff';
+      g.fillRect(w * 0.06, y + t * 0.16, w * 0.88, Math.max(1, t * 0.12));
+      g.globalAlpha = 1;
+    };
+  }
+  add('floodgate', 'pipe', 'copper', 'Copper',    0,  'Standard copper run, warm and workmanlike.', pipeSwatch('#b87333', '#e8b98a', '#7b4a1f', '#5fb8d9'));
+  add('floodgate', 'pipe', 'brass',  'Brass',     25, 'Polished brass fittings for a heritage plant room.', pipeSwatch('#c89a2a', '#f0dc9a', '#8a6712', '#5fb8d9'));
+  add('floodgate', 'pipe', 'neon',   'Blueprint', 50, 'Cold steel that glows like the drawing it came from.', pipeSwatch('#7fb6cf', '#dff2ff', '#3d6a80', '#2ee8c8'));
+
+  // ---- ⌨️ Type Siege — ink & paper looks (the whole page, not one entity) ----
+  function inkSwatch(paper, rule, ink, accent) {
+    return function (g, w, h) {
+      g.fillStyle = paper; g.fillRect(0, 0, w, h);
+      g.strokeStyle = rule; g.lineWidth = 1;
+      for (let y = h * 0.22; y < h; y += Math.max(4, h * 0.2)) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+      g.strokeStyle = accent; g.beginPath(); g.moveTo(w * 0.16, 0); g.lineTo(w * 0.16, h); g.stroke();
+      // a doodle soldier: head, body, spear
+      g.strokeStyle = ink; g.lineWidth = Math.max(1.4, w * 0.045); g.lineCap = 'round';
+      const cx = w * 0.55, base = h * 0.78, bh = h * 0.34;
+      g.beginPath(); g.arc(cx, base - bh - h * 0.08, Math.max(2, w * 0.07), 0, 6.283); g.stroke();
+      g.beginPath(); g.moveTo(cx, base - bh); g.lineTo(cx, base - bh * 0.3); g.stroke();
+      g.beginPath(); g.moveTo(cx - w * 0.09, base); g.lineTo(cx, base - bh * 0.3); g.lineTo(cx + w * 0.09, base); g.stroke();
+      g.beginPath(); g.moveTo(cx + w * 0.14, base - bh * 1.25); g.lineTo(cx + w * 0.14, base - h * 0.02); g.stroke();
+      g.lineCap = 'butt';
+    };
+  }
+  add('type-siege', 'ink', 'pencil',    'Pencil',    0,   'Graphite on warm ruled paper — the default doodle.', inkSwatch('#f6f1e4', '#dfeaf4', '#1e2126', '#f0c7cc'));
+  add('type-siege', 'ink', 'blueprint', 'Blueprint', 50,  'Chalk-white lines on dark navy grid paper: the siege as a battle plan.', inkSwatch('#0b2130', '#1c4761', '#e4f3ff', '#2f7093'));
+  add('type-siege', 'ink', 'marker',    'Marker',    100, 'Thick black marker on kraft card, with rust-orange banners.', inkSwatch('#f0e3ca', '#dcc9a4', '#1f160f', '#b6431a'));
+
+  // ---- 🔆 Mirror Maze — beam palettes (the whole spectrum the puzzle draws with) ----
+  function beamSwatch(cols) {
+    return function (g, w, h) {
+      g.fillStyle = '#050b12'; g.fillRect(0, 0, w, h);
+      const n = cols.length, pad = Math.max(2, w * 0.08), bw = (w - pad * 2) / n;
+      for (let i = 0; i < n; i++) {
+        const x = pad + i * bw;
+        g.globalAlpha = 0.28; g.fillStyle = cols[i];
+        g.fillRect(x, h * 0.16, bw - 1, h * 0.68);                 // glow
+        g.globalAlpha = 1; g.fillStyle = cols[i];
+        g.fillRect(x + bw * 0.28, h * 0.16, Math.max(1.4, bw * 0.34), h * 0.68);   // core
+      }
+      g.globalAlpha = 1;
+      g.strokeStyle = 'rgba(255,255,255,0.22)'; g.lineWidth = 1;
+      g.strokeRect(0.5, 0.5, w - 1, h - 1);
+    };
+  }
+  add('mirror-maze', 'beam', 'neon',     'Neon',     0,   'The default arcade spectrum — hot pink, mint and ice blue.', beamSwatch(['#ff4d6d', '#4dffa1', '#4db8ff', '#ffe14d']));
+  add('mirror-maze', 'beam', 'sunset',   'Sunset',   25,  'Warm desert light: ember red, lime and violet.',             beamSwatch(['#ff4a2b', '#9fe870', '#8a6bff', '#ffc247']));
+  add('mirror-maze', 'beam', 'spectrum', 'Spectrum', 50,  'Pure saturated RGB, straight off the prism.',                beamSwatch(['#ff0040', '#00ff6a', '#2b7fff', '#ffe600']));
+  add('mirror-maze', 'beam', 'aurora',   'Aurora',   100, 'Soft polar glow — pastel beams on a black sky.',             beamSwatch(['#ff6f91', '#6ef2a0', '#69a6ff', '#ffe066']));
+
   // ---- 🌐 Forcefield — bolt colours + planet skins ----
   add('forcefield', 'marker', 'default', 'Classic', 0,  'A clean golden bolt.', forcefieldMarker('#ffd36b'));
   add('forcefield', 'marker', 'magma',   'Magma',   25, 'A molten-orange bolt.', forcefieldMarker('#ff8a3d'));
@@ -773,6 +925,11 @@
       'glow-says.pads':      { label: 'Lantern shapes' },
       'balloon-pop.balloons': { label: 'Balloon styles' },
       'critter-match.critters': { label: 'Critter sets' },
+      'dusk-runner.style': { label: 'Look' },
+      'dusk-runner.runner': { label: 'Runners' },
+      'mirror-maze.beam': { label: 'Beam palettes' },
+      'type-siege.ink': { label: 'Ink & paper' },
+      'floodgate.pipe': { label: 'Pipe metals' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -795,6 +952,10 @@
       'glow-says':     { title: 'Glow Says', icon: '🟢', accent: '#7ee787' },
       'balloon-pop':   { title: 'Balloon Pop', icon: '🎈', accent: '#ff9ec2' },
       'critter-match': { title: 'Critter Match', icon: '🐾', accent: '#ffb86b' },
+      'dusk-runner':   { title: 'Chrome Runner', icon: '🦖', accent: '#cfe0f2' },
+      'mirror-maze':   { title: 'Mirror Maze', icon: '🔆', accent: '#7fe8ff' },
+      'type-siege':    { title: 'Type Siege', icon: '⌨️', accent: '#6ad6ff' },
+      'floodgate':     { title: 'Floodgate', icon: '🚰', accent: '#5fb8d9' },
     },
   };
 })();

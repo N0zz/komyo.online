@@ -48,6 +48,14 @@ window.CHALLENGES = {
     'bal-pop-2':  { slug: 'balloon-pop',  title: 'Pop 60 in one Balloon Pop run',       metric: 'score', target: 60 },
     'critter-1':  { slug: 'critter-match', title: 'Match every critter on a board',      metric: 'score', target: 60 },
     'critter-2':  { slug: 'critter-match', title: 'Score 160 in Critter Match',          metric: 'score', target: 160 },
+    'dusk-1':     { slug: 'dusk-runner',  title: 'Run 400 m in Chrome Runner',          metric: 'score', target: 400 },
+    'dusk-2':     { slug: 'dusk-runner',  title: 'Run 900 m in Chrome Runner',          metric: 'score', target: 900 },
+    'mirror-1':   { slug: 'mirror-maze',  title: 'Score 200 in one Mirror Maze run',      metric: 'score', target: 200 },
+    'mirror-2':   { slug: 'mirror-maze',  title: 'Score 1200 in one Mirror Maze run',     metric: 'score', target: 1200 },
+    'siege-1':    { slug: 'type-siege',   title: 'Score 400 in Type Siege',             metric: 'score', target: 400 },
+    'siege-2':    { slug: 'type-siege',   title: 'Score 900 in Type Siege',             metric: 'score', target: 900 },
+    'flood-1':    { slug: 'floodgate',    title: 'Seal 3 boards in one Floodgate run',  metric: 'score', target: 3 },
+    'flood-2':    { slug: 'floodgate',    title: 'Seal 5 boards in one Floodgate run',  metric: 'score', target: 5 },
     // ---- cross-game / meta (today) ----
     'play2':      { title: 'Play 2 different games today',  scope: 'cross', range: 'day', metric: 'distinctGames',  target: 2 },
     'play3':      { title: 'Play 3 different games today',  scope: 'cross', range: 'day', metric: 'distinctGames',  target: 3 },
@@ -55,7 +63,6 @@ window.CHALLENGES = {
     'good3':      { title: 'Have 3 good runs today',         scope: 'cross', range: 'day', metric: 'goodRuns',       target: 3 },
     // ---- random pick (slug + title resolved at render time; drives discovery) ----
     'rand-daily':  { scope: 'random', range: 'day',  title: "Play today's random pick" },
-    'rand-weekly': { scope: 'random', range: 'week', title: "Play this week's random pick" },
     // ---- weekly = more WORK, not harder (volume / variety over the week) ----
     'wk-distinct5': { title: 'Play 5 different games this week', scope: 'cross', range: 'week', metric: 'distinctGames',  target: 5 },
     'wk-play12':    { title: 'Play 12 games this week',          scope: 'cross', range: 'week', metric: 'totalGames',     target: 12 },
@@ -70,9 +77,11 @@ window.CHALLENGES = {
     'play3', 'stk-1', 'astp-1', 'genres2', 'rand-daily', 'snake-2', 'bub-2', 'aim-2',
     'brk-2', 'fly-2', 'stk-2', 'td-wave10', 'astp-2', 'ast-1', 'ast-2', 'forcefield-1', 'forcefield-2',
     'frog-1', 'frog-2', 'sudoku-1', 'sudoku-2', 'mines-1', 'mines-2', '2048-1', '2048-2',
-    'cat-1', 'cat-2', 'glow-1', 'glow-2', 'bal-pop-1', 'bal-pop-2', 'critter-1', 'critter-2',
+    'cat-1', 'cat-2', 'glow-1', 'glow-2', 'bal-pop-1', 'bal-pop-2', 'critter-1', 'critter-2', 'dusk-1', 'dusk-2', 'mirror-1', 'mirror-2', 'siege-1', 'siege-2', 'flood-1', 'flood-2',
   ],
-  weekly: ['wk-distinct5', 'wk-play12', 'rand-weekly', 'wk-genres3', 'wk-good10'],
+  // A weekly is VOLUME / VARIETY over the week. A single-game goal (the old 'rand-weekly' random
+  // pick) belongs in the daily pool: stretched over seven days it asks for nothing.
+  weekly: ['wk-distinct5', 'wk-play12', 'wk-genres3', 'wk-good10'],
 };
 
 // "Good run" bar per game — a run scoring at least this counts toward the goodRuns challenge
@@ -85,7 +94,7 @@ window.CHALLENGES.goodRun = {
   snake: 300, bubbles: 5000, breakout: 1500, stacker: 50, flappy: 50,
   'aim-trainer': 600, 'tower-defense': 8000, asteroids: 8000, 'asteroids-plus': 30000,
   forcefield: 1200, 'frog-bonk': 2000, sudoku: 1500, minesweeper: 118, '2048': 12000, 'trap-the-cat': 50,
-  'glow-says': 8, 'balloon-pop': 60, 'critter-match': 160,
+  'glow-says': 8, 'balloon-pop': 60, 'critter-match': 160, 'dusk-runner': 900, 'mirror-maze': 1200, 'type-siege': 900, floodgate: 5,
 };
 
 // THE canonical pool for scope:'random' picks — window.GAMES non-soon slugs in games.js order,
@@ -95,7 +104,7 @@ window.CHALLENGES.goodRun = {
 // mid-week/mid-day never re-resolves an already-seen pick to a different target.
 window.CHALLENGES.playable = [
   'asteroids', 'asteroids-plus', 'tower-defense', 'forcefield', 'bubbles', 'frog-bonk',
-  'breakout', 'sudoku', 'stacker', 'trap-the-cat', 'flappy', 'aim-trainer', 'snake', '2048', 'minesweeper',
+  'breakout', 'sudoku', 'stacker', 'trap-the-cat', 'flappy', 'aim-trainer', 'snake', '2048', 'type-siege', 'dusk-runner', 'floodgate', 'mirror-maze', 'minesweeper',
   'balloon-pop', 'critter-match', 'glow-says',
 ];
 window.CHALLENGES.playableSince = {
@@ -104,7 +113,7 @@ window.CHALLENGES.playableSince = {
   sudoku: '2026-07-10',
   stacker: '2026-06-26', flappy: '2026-06-26', 'aim-trainer': '2026-06-26', snake: '2026-06-26',
   minesweeper: '2026-07-12', '2048': '2026-07-12', 'trap-the-cat': '2026-07-12', 'glow-says': '2026-07-12',
-  'balloon-pop': '2026-07-12', 'critter-match': '2026-07-12',
+  'balloon-pop': '2026-07-12', 'critter-match': '2026-07-12', 'dusk-runner': '2026-07-27', 'mirror-maze': '2026-07-27', 'type-siege': '2026-07-27', floodgate: '2026-07-27',
 };
 // ^ playableSince = the PUBLIC go-live (push) date, never a local build date. The kit admits a
 // game's goals + random-pick slot only from the period AFTER this date, so a mid-day push can't
