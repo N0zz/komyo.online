@@ -2426,4 +2426,10 @@ window.KOMYO_I18N.es = {
   'cos.setnote.site.fx': 'en todo el sitio',
   'cat.installHelp': '<b>Instala en tu pantalla de inicio</b> — pantalla completa y sin conexión:<br><b>Android (Chrome):</b> menú ⋮ → «Añadir a pantalla de inicio»<br><b>iPhone (Safari):</b> Compartir → «Añadir a pantalla de inicio»<br><b>Escritorio (Chrome/Edge):</b> este botón, o el icono de instalación en la barra de direcciones.<br><span style="opacity:.8">¿Solo quieres un juego? Cada juego se instala por su cuenta — ábrelo y usa Añadir a pantalla de inicio / Instalar.</span><br><span style="opacity:.8">¿Ya está instalado? Ábrelo desde tu pantalla de inicio, o con el icono «Abrir en la aplicación» de la barra de direcciones.</span>',
   'game.minesweeper.hudLives': 'VIDAS',
+  'changelog.e85.title': 'Tu idioma, hasta dentro de los juegos 🌍',
+  'changelog.e85.b0': 'Corrección: cuatro juegos mantenían su nombre en inglés en todas partes — Arcano, Asedio de Palabras, Corredor Cromado y Laberinto de Espejos ya llevan un nombre de verdad en tu idioma: en la tarjeta, en la pantalla de inicio, en los desafíos y en la tarjeta de puntuación que compartes.',
+  'changelog.e85.b1': 'Corrección: Corredor Cromado se presentaba como «DUSK RUNNER» — su antiguo nombre de trabajo — en la pantalla de inicio en todos los idiomas menos el inglés.',
+  'changelog.e85.b2': 'Corrección: el panel de puntuación dentro de los juegos seguía en inglés dondequiera que jugaras. LONGITUD, VIDAS, NIVEL, MINAS, PAREJAS, RONDA y los demás ya están traducidos.',
+  'changelog.e85.b3': 'Corrección: las instrucciones de instalación 📱 están en tu idioma, con las palabras que usa el menú de tu propio teléfono — y con ellas los botones y las descripciones del sitio que aún estaban en inglés.',
+  'changelog.e85.b4': 'Corrección: en portugués, el menú de inicio de Serpiente Neón ya no necesita desplazarse en un teléfono pequeño.',
 };

@@ -2425,4 +2425,10 @@ window.KOMYO_I18N.cs = {
   'cos.setnote.site.fx': 'na celém webu',
   'cat.installHelp': '<b>Přidej si to na plochu</b> — celá obrazovka a offline:<br><b>Android (Chrome):</b> menu ⋮ → „Přidat na plochu“<br><b>iPhone (Safari):</b> Sdílet → „Přidat na plochu“<br><b>Počítač (Chrome/Edge):</b> tohle tlačítko, nebo ikona instalace v adresním řádku.<br><span style="opacity:.8">Chceš jen jednu hru? Každá hra se instaluje samostatně — otevři ji a použij Přidat na plochu / Instalovat.</span><br><span style="opacity:.8">Už máš nainstalováno? Otevři to z plochy, nebo ikonou „Otevřít v aplikaci“ v adresním řádku.</span>',
   'game.minesweeper.hudLives': 'ŽIVOTY',
+  'changelog.e85.title': 'Tvůj jazyk až dovnitř her 🌍',
+  'changelog.e85.b0': 'Oprava: čtyři hry si všude držely anglický název — Tajemná magie, Obležení slov, Chromový běžec a Zrcadlový labyrint teď mají skutečné jméno ve tvém jazyce: na kartě, na úvodní obrazovce, ve výzvách i na kartě skóre, kterou posíláš.',
+  'changelog.e85.b1': 'Oprava: Chromový běžec se na úvodní obrazovce představoval jako „DUSK RUNNER“ — svým starým pracovním názvem — ve všech jazycích kromě angličtiny.',
+  'changelog.e85.b2': 'Oprava: panel skóre ve hrách zůstával anglický, ať jsi hrál kdekoli. DÉLKA, ŽIVOTY, ÚROVEŇ, MINY, PÁRY, KOLO a ostatní jsou přeložené.',
+  'changelog.e85.b3': 'Oprava: návod k instalaci 📱 je ve tvém jazyce, se slovy, která používá menu tvého telefonu — a s ním i tlačítka a popisky po celém webu, které byly ještě anglicky.',
+  'changelog.e85.b4': 'Oprava: v portugalštině se úvodní menu Neonového hada už nemusí na malém telefonu posouvat.',
 };

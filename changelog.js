@@ -4,6 +4,13 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-28', title: 'Your language, all the way into the games 🌍', items: [
+    'Fix: four games kept their English names everywhere — Arcane, Type Siege, Chrome Runner and Mirror Maze now carry a real name in your language, on the tile, the start screen, the challenges and the score card you share. Air Hockey got its Portuguese name too.',
+    'Fix: Chrome Runner introduced itself as "DUSK RUNNER" — its old working title — on the start screen in every language but English.',
+    'Fix: the score panel inside games stayed English wherever you played. LENGTH, LIVES, LEVEL, MINES, PAIRS, ROUND and the rest are translated now.',
+    'Fix: the 📱 install instructions are in your language, with the wording your own phone menu uses — along with the buttons and tooltips around the site that were still English.',
+    'Fix: in Portuguese, Neon Snake\'s start menu no longer needs scrolling on a small phone.',
+  ] },
   { date: '2026-07-28', title: 'A dot when there is something new to read 🔔', items: [
     'New: the ☰ menu gets a small dot when a release you haven\'t read yet is waiting, and the dot repeats on the 🗒️ Changelog row inside. Opening it clears both.',
     'Fix: the ⚙️ Settings dot that says "a new version of the site is ready" now appears on its own. Before, it only ever lit up after you opened Settings — which is exactly where it was trying to send you.',

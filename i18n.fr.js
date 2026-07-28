@@ -2425,4 +2425,10 @@ window.KOMYO_I18N.fr = {
   'cos.setnote.site.fx': 'sur tout le site',
   'cat.installHelp': '<b>Installe sur ton écran d\'accueil</b> — plein écran et hors ligne :<br><b>Android (Chrome) :</b> menu ⋮ → « Ajouter à l\'écran d\'accueil »<br><b>iPhone (Safari) :</b> Partager → « Sur l\'écran d\'accueil »<br><b>Ordinateur (Chrome/Edge) :</b> ce bouton, ou l\'icône d\'installation dans la barre d\'adresse.<br><span style="opacity:.8">Tu ne veux qu\'un seul jeu ? Chaque jeu s\'installe aussi tout seul — ouvre-le et utilise Ajouter à l\'écran d\'accueil / Installer.</span><br><span style="opacity:.8">Déjà installé ? Ouvre-le depuis ton écran d\'accueil, ou via l\'icône « Ouvrir dans l\'application » de la barre d\'adresse.</span>',
   'game.minesweeper.hudLives': 'VIES',
+  'changelog.e85.title': 'Ta langue, jusque dans les jeux 🌍',
+  'changelog.e85.b0': 'Correction : quatre jeux gardaient partout leur nom anglais — Arcanes, Siège des Mots, Coureur Chromé et Labyrinthe de Miroirs portent enfin un vrai nom dans ta langue : sur la tuile, sur l\'écran d\'accueil du jeu, dans les défis et sur la carte de score que tu partages.',
+  'changelog.e85.b1': 'Correction : Coureur Chromé se présentait comme « DUSK RUNNER » — son ancien nom de travail — sur l\'écran de démarrage, dans toutes les langues sauf l\'anglais.',
+  'changelog.e85.b2': 'Correction : le panneau de score dans les jeux restait en anglais où que tu joues. LONGUEUR, VIES, NIVEAU, MINES, PAIRES, MANCHE et les autres sont traduits.',
+  'changelog.e85.b3': 'Correction : les instructions d\'installation 📱 sont dans ta langue, avec les mots qu\'utilise le menu de ton propre téléphone — et avec elles les boutons et les infobulles du site qui étaient encore en anglais.',
+  'changelog.e85.b4': 'Correction : en portugais, le menu de départ de Serpent Néon n\'a plus besoin d\'être défilé sur un petit téléphone.',
 };
