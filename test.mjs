@@ -1077,8 +1077,14 @@ function testI18nCoverage() {
   const add = k => { if (KEY_RE.test(k)) used.add(k); };
   for (const f of files) {
     const src = fs.readFileSync(path.join(DIR, f), 'utf8'); let m;
-    const attr = /\bdata-t[hpat]?="([^"]+)"/g; while ((m = attr.exec(src))) add(m[1]);
+    const attr = /\bdata-t[hpati]?="([^"]+)"/g; while ((m = attr.exec(src))) add(m[1]);
     const call = /(?:[^\w$]|^)[tT]\(\s*'([^']+)'\s*[,)]/g; while ((m = call.exec(src))) add(m[1]);
+    // keys passed as DATA, not as a literal t() argument — the shape several games use for their
+    // HUD labels: `{ lblScore: ['game.snake.hudScore', 'SCORE'] }` / `[['lenLbl', 'game.snake.
+    // hudLength', 'LENGTH']]`. The call-site scan above cannot see these, so 13 HUD labels once
+    // shipped as English in all 7 locales with a green suite (2026-07-28). A trailing `+` means
+    // the literal is a PREFIX (`t('game.2048.mode' + m)`) and stays unverifiable — skip those.
+    const data = /'(game\.[a-z0-9-]+\.[A-Za-z][\w-]*)'(?!\s*\+)/g; while ((m = data.exec(src))) add(m[1]);
   }
   // 2) data-driven keys that are dynamic in code but MUST be translated. The static scan above
   // can't see t('pre.' + var) — every such family is derived from its registry here instead,
