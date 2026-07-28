@@ -670,11 +670,15 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   /* drawer identity card: the compact title box IS the profile button */
   .idcard { display:block; width:100%; background:none; border:none; padding:0; margin:2px 0 8px; cursor:pointer; text-align:left; font:inherit; color:inherit; }
   .idcard .pf-titlebar { margin-bottom:0; transition:border-color .15s ease; }
-  /* title-unlock: dot on ☰ until the drawer is opened, then a one-shot reveal shine on the card */
+  /* the shared notification dot: ⚙️ (a site update is ready) and ☰ + its 🗒️ Changelog row (a
+     release you haven't seen). A drawer row hosts the dot centered on its right edge instead. */
   .tb-btn.tb-notify, .ibtn.tb-notify { position:relative; animation:tbNotify 1.9s ease-in-out infinite; }
   .tb-btn.tb-notify::after, .ibtn.tb-notify::after { content:""; position:absolute; top:-3px; right:-3px; width:9px; height:9px; border-radius:50%;
     background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
   @keyframes tbNotify { 0%,100% { border-color:var(--border); } 50% { border-color:#ffd166; } }
+  .ditem.tb-notify { position:relative; }
+  .ditem.tb-notify::after { content:""; position:absolute; top:50%; right:11px; transform:translateY(-50%); width:9px; height:9px; border-radius:50%;
+    background:#ffd166; box-shadow:0 0 6px 1px rgba(255,209,102,0.9); }
   .idcard.pf-reveal { position:relative; animation:idReveal 1.4s cubic-bezier(.2,1.2,.4,1); }
   .idcard.pf-reveal .pf-titlebar { border-color:#ffd166; }
   .idcard.pf-reveal::after { content:"★ NEW TITLE"; position:absolute; top:-9px; right:10px; z-index:2; padding:3px 8px; border-radius:999px;
@@ -1833,14 +1837,17 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       if (window.__renderChallenges) window.__renderChallenges();
       if (window.__syncChalDot) window.__syncChalDot();
       if (window.__syncTitleNotify) window.__syncTitleNotify();
+      if (window.__syncClDot) window.__syncClDot();
       if (window.__refreshSideStack) window.__refreshSideStack();
     });
     // a tab left open across the UTC midnight / weekly flip: light the dots when it comes back
-    // to the foreground (the drawer itself re-renders on open, the dot is the fresh signal)
+    // to the foreground (the drawer itself re-renders on open, the dot is the fresh signal).
+    // The changelog dot resyncs here too — a background update can land a new release mid-session.
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState !== 'visible') return;
       if (window.__syncChalDot) window.__syncChalDot();
       if (window.__syncTitleNotify) window.__syncTitleNotify();
+      if (window.__syncClDot) window.__syncClDot();
     });
 
     // ---- Search (instant, client-side) ----
@@ -2336,6 +2343,15 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     })();
 
     // ---- Changelog (centered modal; date-grouped releases, lazy-loaded + search incl. dates) ----
+    // ☰ notification dot — the OR of every named source living inside the drawer, so a second
+    // source can light it without stomping the first (same shape as the side stack's __setStackDot).
+    const drawerDots = {};
+    window.__setDrawerDot = (id, on) => {
+      drawerDots[id] = !!on;
+      const mb = document.getElementById('menuBtn');
+      if (mb && mb.classList) mb.classList.toggle('tb-notify', Object.keys(drawerDots).some(k => drawerDots[k]));
+    };
+
     // Changelog data lives in changelog.js (window.CHANGELOG) — shared with the Discord Action.
     const CHANGELOG = (typeof window !== 'undefined' && window.CHANGELOG) || [];
     (function () {
@@ -2379,7 +2395,25 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         fill();
       };
       const lock = v => { try { document.body.style.overflow = v ? 'hidden' : ''; } catch (e) {} };
-      if (btn) btn.addEventListener('click', () => { modal.showModal(); reset(); lock(true); });
+      // "a release you haven't seen" dot, on ☰ and on the 🗒️ row it leads to. Keyed by the newest
+      // entry's date + title (dates repeat across entries, so the date alone isn't identity).
+      // A first-ever visitor is SEEDED silently: the dot only ever means "something shipped since
+      // your last visit", never "here is a history you've never read".
+      const CL_SEEN = 'arcade_cl_seen';
+      const clKey = () => { const r = CHANGELOG[0]; return r ? (r.date + '|' + r.title) : ''; };
+      const clSeen = () => { try { return localStorage.getItem(CL_SEEN); } catch (e) { return null; } };
+      const markClSeen = () => { try { localStorage.setItem(CL_SEEN, clKey()); } catch (e) {} };
+      const syncClDot = () => {
+        const k = clKey(); if (!k) return;
+        const s = clSeen();
+        if (s === null) markClSeen();
+        const fresh = s !== null && s !== k;
+        window.__setDrawerDot('changelog', fresh);
+        if (btn && btn.classList) btn.classList.toggle('tb-notify', fresh);
+      };
+      window.__syncClDot = syncClDot;
+      syncClDot();
+      if (btn) btn.addEventListener('click', () => { modal.showModal(); reset(); lock(true); markClSeen(); syncClDot(); });
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
       modal.addEventListener('close', () => lock(false));
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
