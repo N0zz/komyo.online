@@ -2390,4 +2390,7 @@ window.KOMYO_I18N.pt = {
   // ---- ⌨️ boss word sequence ----
   'game.type-siege.warlordSeq': 'escreve cada palavra por sua vez',
 
+  'changelog.e84.title': 'Um ponto quando há algo novo para ler 🔔',
+  'changelog.e84.b0': 'Novo: o menu ☰ mostra um pequeno ponto quando está à espera uma novidade que ainda não leste, e o ponto repete-se lá dentro, na linha 🗒️ Lista de alterações. Ao abri-la, os dois apagam-se.',
+  'changelog.e84.b1': 'Correção: o ponto em ⚙️ Configurações que avisa que «está pronta uma nova versão do site» já aparece sozinho. Antes só acendia depois de abrires as Configurações — precisamente para onde te queria mandar.',
 };

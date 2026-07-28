@@ -2391,4 +2391,7 @@ window.KOMYO_I18N.es = {
   // ---- ⌨️ boss word sequence ----
   'game.type-siege.warlordSeq': 'escribe cada palabra por turno',
 
+  'changelog.e84.title': 'Un punto cuando hay algo nuevo que leer 🔔',
+  'changelog.e84.b0': 'Novedad: el menú ☰ muestra un pequeño punto cuando hay una novedad que aún no has leído, y el punto se repite dentro, en la fila 🗒️ Novedades. Al abrirla, los dos se apagan.',
+  'changelog.e84.b1': 'Corrección: el punto de ⚙️ Ajustes que avisa de que «hay una nueva versión del sitio» ya aparece por su cuenta. Antes solo se encendía después de abrir Ajustes — justo el sitio al que quería llevarte.',
 };

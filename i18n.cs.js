@@ -2390,4 +2390,7 @@ window.KOMYO_I18N.cs = {
   // ---- ⌨️ boss word sequence ----
   'game.type-siege.warlordSeq': 'piš slova po sobě',
 
+  'changelog.e84.title': 'Tečka, když je něco nového ke čtení 🔔',
+  'changelog.e84.b0': 'Novinka: u menu ☰ se objeví malá tečka, když čeká novinka, kterou jsi ještě nečetl — a tatáž tečka se opakuje vevnitř u položky 🗒️ Seznam změn. Otevřením zmizí obě.',
+  'changelog.e84.b1': 'Oprava: tečka u ⚙️ Nastavení, která hlásí „je připravená nová verze stránky“, se teď objeví sama. Dřív se rozsvítila teprve po otevření Nastavení — tedy přesně tam, kam tě chtěla poslat.',
 };
