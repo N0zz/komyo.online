@@ -2394,4 +2394,7 @@ window.KOMYO_I18N.pl = {
   // ---- ⌨️ boss word sequence ----
   'game.type-siege.warlordSeq': 'wpisuj słowa po kolei',
 
+  'changelog.e84.title': 'Kropka, gdy jest coś nowego do przeczytania 🔔',
+  'changelog.e84.b0': 'Nowość: przy menu ☰ pojawia się mała kropka, kiedy czeka nieprzeczytany wpis — ta sama kropka powtarza się w środku, przy pozycji 🗒️ Lista zmian. Otwarcie jej gasi obie.',
+  'changelog.e84.b1': 'Poprawka: kropka przy ⚙️ Ustawieniach, która mówi „jest nowa wersja strony”, pojawia się teraz sama z siebie. Wcześniej zapalała się dopiero po otwarciu Ustawień — czyli dokładnie tam, gdzie miała cię wysłać.',
 };

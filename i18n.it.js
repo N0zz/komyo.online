@@ -2390,4 +2390,7 @@ window.KOMYO_I18N.it = {
   // ---- ⌨️ boss word sequence ----
   'game.type-siege.warlordSeq': 'scrivi ogni parola a turno',
 
+  'changelog.e84.title': 'Un punto quando c\'è qualcosa di nuovo da leggere 🔔',
+  'changelog.e84.b0': 'Novità: il menu ☰ mostra un puntino quando ti aspetta una novità che non hai ancora letto, e il puntino si ripete dentro, sulla riga 🗒️ Novità. Aprirla spegne entrambi.',
+  'changelog.e84.b1': 'Correzione: il puntino su ⚙️ Impostazioni che dice «è pronta una nuova versione del sito» ora appare da solo. Prima si accendeva soltanto dopo aver aperto le Impostazioni — esattamente dove voleva mandarti.',
 };
