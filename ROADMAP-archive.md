@@ -41,6 +41,13 @@ holds only open work. Nothing in this file is a task.
 
 ## ✅ Done
 
+- **Single-SW migration — DONE (verified 2026-07-28).** No per-game `sw.js` remains anywhere under
+  `games/`; the ONE root-scope `sw.js` + `sw-core.js` serve the whole site, and `gamekit.pwa()`
+  unregisters every non-root scope on boot (`game-kit.js` § pwa migration sweep), so a pre-migration
+  install can't shadow the root worker. The only thing no test can fake — the hand-over on a phone
+  that still has an old per-game PWA installed — is not worth tracking as a task; the sweep is
+  unconditional and runs on every game page load.
+
 - **🐣 Easy picks — DONE (2026-07-12).** Optional Settings switch for young players: every
   difficulty-bearing menu group/toggle in every game carries a `kid:` flag — when the switch is on,
   the kit marks the gentlest option with 🐣 AND makes it the menu default, and KIDS-tagged tiles
@@ -404,6 +411,17 @@ Their numbering is still live in `ROADMAP.md` (referenced from `plans/*`); only 
 
 ## Dropped (not doing)
 
+- **Privacy policy — counsel review as a tracked item** — dropped 2026-07-28: v1 is published and
+  consent-gated, and it stands as-is. A lawyer read happens if one becomes available; it is not
+  launch-blocking, has no owner and no date, so tracking it only kept a permanently-blocked line on the
+  roadmap. Fold any edits in if a review ever returns — don't re-file it as work.
+- **Branded 404 page** — dropped 2026-07-28: a themed root `404.html` is pure polish on a path almost
+  nobody hits (the catalogue is one page deep and every game URL is linked), and Pages can't customise
+  any other status code anyway.
+- **CI check: the `updated` badge stays honest** — dropped 2026-07-28: the honest-badge rule is a
+  convention in CLAUDE.md, and a diff-based check can't tell a notable update from a typo fix — so it
+  would either nag on every bugfix or be silenced with an exempt list. Keep bumping `updated:` by hand
+  when a game gains a mode or feature.
 - **Pre-launch QA as a formal gate** — organic test-and-report via friends/family instead (the tester pool
   isn't big enough to staff a checklist; see Decision guards).
 - **Wrapped-style profile expansion** — the profile v1 is enough for launch.
