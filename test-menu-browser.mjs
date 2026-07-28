@@ -6,6 +6,12 @@
 // from games.js (a new game is covered automatically). Dev-only: needs `npm i` (playwright).
 //
 // Run: `npm run test:menus`  (or `node test-menu-browser.mjs`).  Exits non-zero on any overflow.
+//
+// LOCALE: `KOMYO_LANG=fr node test-menu-browser.mjs` runs the whole sweep in that language (it seeds
+// `localStorage.gamekit_lang` before any page script, which is what both `i18n.js` and the kit read).
+// `KOMYO_LANG=all` loops every locale in `KOMYO_I18N_AVAILABLE`. Translated UI text is LONGER than the
+// English it replaces — French averages ~111% of Polish — so an English-only pass can't prove the menus
+// fit; this is the only automated check that can.
 import { chromium } from 'playwright';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -32,27 +38,41 @@ const base = `http://127.0.0.1:${server.address().port}`;
 
 const VPS = [{ w: 360, h: 640, n: 'portrait 360×640' }, { w: 640, h: 360, n: 'landscape 640×360' }];
 const browser = await chromium.launch();
-const ctx = await browser.newContext({ serviceWorkers: 'block' });
-const page = await ctx.newPage();
+let ctx = await browser.newContext({ serviceWorkers: 'block' });
+let page = await ctx.newPage();
 
-// discover live (not `soon`) games straight from games.js
+// discover live (not `soon`) games + the shipped locales straight from the site's own manifests
 await page.goto(base + '/', { waitUntil: 'domcontentloaded' });
 const games = await page.evaluate(() => (window.GAMES || []).filter(g => !g.soon).map(g => g.slug));
+const avail = await page.evaluate(() => (window.KOMYO_I18N_AVAILABLE || []).slice());
+
+const want = (process.env.KOMYO_LANG || 'en').toLowerCase();
+const langs = want === 'all' ? ['en'].concat(avail) : [want];
+if (want !== 'all' && want !== 'en' && !avail.includes(want)) {
+  console.error(`✗ KOMYO_LANG=${want} is not a shipped locale (have: en, ${avail.join(', ')})`);
+  process.exit(1);
+}
 
 const fails = [], skips = [];
+for (const lang of langs) {
+const tag = langs.length > 1 || lang !== 'en' ? `[${lang}] ` : '';
+await ctx.close();
+ctx = await browser.newContext({ serviceWorkers: 'block' });
+if (lang !== 'en') await ctx.addInitScript(`try { localStorage.setItem('gamekit_lang', ${JSON.stringify(lang)}); } catch (e) {}`);
+page = await ctx.newPage();
 for (const g of games) {
   for (const v of VPS) {
     await page.setViewportSize({ width: v.w, height: v.h });
     await page.goto(`${base}/games/${g}/`, { waitUntil: 'load' });
     const hasMenu = await page.waitForSelector('.gkm-box', { timeout: 8000 }).then(() => true).catch(() => false);
-    if (!hasMenu) { skips.push(`${g} (${v.n}): no gamekit start menu (custom start UI)`); continue; }
+    if (!hasMenu) { skips.push(`${tag}${g} (${v.n}): no gamekit start menu (custom start UI)`); continue; }
     const ovExpr = `(() => { const ov=e=>e?Math.max(0,e.scrollHeight-e.clientHeight):0,q=s=>document.querySelector(s);
       return { box: ov(q('.gkm-box')), pane: ov(q('.gkm-scroll')), rail: ov(q('.gkm-rail')) }; })()`;
 
     // START menu
     const r = await page.evaluate(ovExpr);
     const startOver = Math.max(r.box, r.pane, r.rail);
-    if (startOver > 1) fails.push(`${g} (${v.n}) START: menu SCROLLS +${startOver}px (${r.rail > 1 ? 'rail' : r.pane > 1 ? 'card pane' : 'box'})`);
+    if (startOver > 1) fails.push(`${tag}${g} (${v.n}) START: menu SCROLLS +${startOver}px (${r.rail > 1 ? 'rail' : r.pane > 1 ? 'card pane' : 'box'})`);
 
     // END screen — render a representative end menu through THIS game's kit + theme (the share card is
     // the tall element; a stat line + New best exercise the busy case). Kit-owned layout, real theme.
@@ -71,7 +91,7 @@ for (const g of games) {
     }, g);
     if (!e.skip && !e.err) {
       const endOver = Math.max(e.box, e.pane, e.rail);
-      if (endOver > 1) fails.push(`${g} (${v.n}) END: menu SCROLLS +${endOver}px (${e.rail > 1 ? 'rail' : e.pane > 1 ? 'card pane' : 'box'})`);
+      if (endOver > 1) fails.push(`${tag}${g} (${v.n}) END: menu SCROLLS +${endOver}px (${e.rail > 1 ? 'rail' : e.pane > 1 ? 'card pane' : 'box'})`);
     }
 
     // PAUSE menu — the game's OWN pause screen (not a kit stand-in), reached through its `__test`
@@ -92,12 +112,13 @@ for (const g of games) {
       const ov = el => el ? Math.max(0, el.scrollHeight - el.clientHeight) : 0, q = s => document.querySelector(s);
       return { box: ov(box), pane: ov(q('.gkm-scroll')), rail: ov(q('.gkm-rail')) };
     });
-    if (ps.skip) skips.push(`${g} (${v.n}) PAUSE: ${ps.skip}`);
+    if (ps.skip) skips.push(`${tag}${g} (${v.n}) PAUSE: ${ps.skip}`);
     else if (!ps.err) {
       const pauseOver = Math.max(ps.box, ps.pane, ps.rail);
-      if (pauseOver > 1) fails.push(`${g} (${v.n}) PAUSE: menu SCROLLS +${pauseOver}px (${ps.rail > 1 ? 'rail' : ps.pane > 1 ? 'pane' : 'box'})`);
+      if (pauseOver > 1) fails.push(`${tag}${g} (${v.n}) PAUSE: menu SCROLLS +${pauseOver}px (${ps.rail > 1 ? 'rail' : ps.pane > 1 ? 'pane' : 'box'})`);
     }
   }
+}
 }
 
 await browser.close();
@@ -109,4 +130,4 @@ if (fails.length) {
   fails.forEach(f => console.error('  - ' + f));
   process.exit(1);
 }
-console.log(`\n✓ menu-fit: all ${games.length} live games × ${VPS.length} viewports (start + pause + end) — no menu scrolls.`);
+console.log(`\n✓ menu-fit: ${games.length} live games × ${VPS.length} viewports × ${langs.length} locale(s) [${langs.join(', ')}] (start + pause + end) — no menu scrolls.`);
