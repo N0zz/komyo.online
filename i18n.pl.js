@@ -2429,4 +2429,10 @@ window.KOMYO_I18N.pl = {
   'cos.setnote.site.fx': 'na całej stronie',
   'cat.installHelp': '<b>Zainstaluj na ekranie głównym</b> — pełny ekran i tryb offline:<br><b>Android (Chrome):</b> menu ⋮ → „Dodaj do ekranu głównego”<br><b>iPhone (Safari):</b> Udostępnij → „Dodaj do ekranu głównego”<br><b>Komputer (Chrome/Edge):</b> ten przycisk albo ikona instalacji w pasku adresu.<br><span style="opacity:.8">Chcesz tylko jedną grę? Każda gra instaluje się osobno — otwórz ją i użyj „Dodaj do ekranu głównego” / „Instaluj”.</span><br><span style="opacity:.8">Już zainstalowane? Otwórz z ekranu głównego albo ikoną „Otwórz w aplikacji” w pasku adresu.</span>',
   'game.minesweeper.hudLives': 'ŻYCIA',
+  'changelog.e85.title': 'Twój język — aż do wnętrza gier 🌍',
+  'changelog.e85.b0': 'Poprawka: cztery gry wszędzie trzymały angielskie nazwy — Magia Tajemna, Oblężenie Słów, Chromowany Biegacz i Labirynt Luster mają teraz prawdziwą nazwę w Twoim języku: na kafelku, na ekranie startowym, w wyzwaniach i na karcie wyniku, którą wysyłasz.',
+  'changelog.e85.b1': 'Poprawka: Chromowany Biegacz przedstawiał się na ekranie startowym jako „DUSK RUNNER” — swoją starą roboczą nazwą — w każdym języku poza angielskim.',
+  'changelog.e85.b2': 'Poprawka: panel wyniku w grach zostawał angielski, gdziekolwiek grałeś. DŁUGOŚĆ, ŻYCIA, POZIOM, MINY, PARY, RUNDA i pozostałe są już przetłumaczone.',
+  'changelog.e85.b3': 'Poprawka: instrukcja instalacji 📱 jest w Twoim języku, ze słowami, których używa menu Twojego telefonu — a razem z nią przyciski i podpowiedzi w całym serwisie, które wciąż były po angielsku.',
+  'changelog.e85.b4': 'Poprawka: po portugalsku menu startowe Neonowego Węża nie wymaga już przewijania na małym telefonie.',
 };

@@ -2425,4 +2425,10 @@ window.KOMYO_I18N.it = {
   'cos.setnote.site.fx': 'su tutto il sito',
   'cat.installHelp': '<b>Installa nella schermata Home</b> — a schermo intero e offline:<br><b>Android (Chrome):</b> menu ⋮ → «Aggiungi a schermata Home»<br><b>iPhone (Safari):</b> Condividi → «Aggiungi a Home»<br><b>Computer (Chrome/Edge):</b> questo pulsante, o l\'icona di installazione nella barra degli indirizzi.<br><span style="opacity:.8">Vuoi un solo gioco? Ogni gioco si installa da solo — aprilo e usa Aggiungi a schermata Home / Installa.</span><br><span style="opacity:.8">Già installato? Aprilo dalla schermata Home, o con l\'icona «Apri nell\'app» nella barra degli indirizzi.</span>',
   'game.minesweeper.hudLives': 'VITE',
+  'changelog.e85.title': 'La tua lingua, fino dentro i giochi 🌍',
+  'changelog.e85.b0': 'Correzione: quattro giochi tenevano il nome inglese da ogni parte — Arcani, Assedio di Parole, Corridore Cromato e Labirinto di Specchi hanno finalmente un nome vero nella tua lingua: sulla tessera, sulla schermata iniziale, nelle sfide e sulla card del punteggio che condividi.',
+  'changelog.e85.b1': 'Correzione: Corridore Cromato si presentava come «DUSK RUNNER» — il suo vecchio nome di lavoro — sulla schermata iniziale in tutte le lingue tranne l\'inglese.',
+  'changelog.e85.b2': 'Correzione: il pannello del punteggio dentro i giochi restava in inglese dovunque giocassi. LUNGHEZZA, VITE, LIVELLO, MINE, COPPIE, TURNO e gli altri sono tradotti.',
+  'changelog.e85.b3': 'Correzione: le istruzioni di installazione 📱 sono nella tua lingua, con le parole che usa il menu del tuo telefono — e con loro i pulsanti e i suggerimenti del sito che erano ancora in inglese.',
+  'changelog.e85.b4': 'Correzione: in portoghese il menu iniziale di Serpente Neon non ha più bisogno di essere scorso su un telefono piccolo.',
 };

@@ -2425,4 +2425,10 @@ window.KOMYO_I18N.pt = {
   'cos.setnote.site.fx': 'em todo o site',
   'cat.installHelp': '<b>Instala no teu ecrã principal</b> — ecrã inteiro e offline:<br><b>Android (Chrome):</b> menu ⋮ → «Adicionar ao ecrã principal»<br><b>iPhone (Safari):</b> Partilhar → «Adicionar ao ecrã principal»<br><b>Computador (Chrome/Edge):</b> este botão, ou o ícone de instalação na barra de endereço.<br><span style="opacity:.8">Só queres um jogo? Cada jogo instala-se sozinho — abre-o e usa Adicionar ao ecrã principal / Instalar.</span><br><span style="opacity:.8">Já está instalado? Abre-o do ecrã principal, ou pelo ícone «Abrir na aplicação» na barra de endereço.</span>',
   'game.minesweeper.hudLives': 'VIDAS',
+  'changelog.e85.title': 'A tua língua, até dentro dos jogos 🌍',
+  'changelog.e85.b0': 'Correção: quatro jogos mantinham o nome em inglês em todo o lado — Arcano, Cerco de Palavras, Corredor Cromado e Labirinto de Espelhos têm agora um nome a sério na tua língua: no cartão, no ecrã inicial, nos desafios e no cartão de pontuação que partilhas. O Hóquei de Ar também ganhou o nome português.',
+  'changelog.e85.b1': 'Correção: o Corredor Cromado apresentava-se como «DUSK RUNNER» — o seu antigo nome de trabalho — no ecrã inicial em todas as línguas menos o inglês.',
+  'changelog.e85.b2': 'Correção: o painel de pontuação dentro dos jogos continuava em inglês onde quer que jogasses. TAMANHO, VIDAS, FASE, MINAS, PARES, RONDA e os restantes já estão traduzidos.',
+  'changelog.e85.b3': 'Correção: as instruções de instalação 📱 estão na tua língua, com as palavras que o menu do teu telemóvel usa — e com elas os botões e as dicas do site que ainda estavam em inglês.',
+  'changelog.e85.b4': 'Correção: em português, o menu inicial da Cobra Neon já não precisa de ser deslizado num telemóvel pequeno.',
 };
