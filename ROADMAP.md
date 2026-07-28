@@ -118,6 +118,8 @@ Small or unscheduled; each is one line, detail in `plans/backlog-notes.md` unles
 - **More share targets + story card** *(idea)* — WhatsApp/Telegram/Bluesky/Mastodon/Threads intents +
   a vertical story score-card.
 - **Per-game OG/Twitter cards** *(idea)* — static per-game share images.
+- **Changelog inside games** *(idea)* — a 🗒️ item in the kit's ☰ so a game can carry the "new release"
+  dot too; today the modal is catalogue-only.
 - **Challenge-link duel** *(idea)* — "beat my 4,320, same seed" via URL params; the zero-infra stand-in
   for a live duel lobby.
 - **Cloud-sync the Export blob** *(idea)* — opt-in OAuth to the player's own Drive/Dropbox; no komyo
