@@ -1832,6 +1832,7 @@
     function cosName(it) { return t('cos.' + it.id + '.name', { def: it.name }); }
     function cosDesc(it) { return t('cos.' + it.id + '.desc', { def: it.desc || '' }); }
     function cosSetLabel(sid, def) { return t('cos.set.' + sid, { def: def || sid }); }
+    function cosSetNote(sid, def) { return t('cos.setnote.' + sid, { def: def || '' }); }
     function shopGameTitle(slug, def) { return t('game.' + slug + '.title', { def: def || slug }); }
     // themed game filter (replaces the native <select> so it matches the kit look): a trigger button
     // showing the current pick, opening a langMenu-style themed overlay list. Picking sets .value +
@@ -2003,7 +2004,7 @@
           var setItems = gameItems.filter(function (it) { return it.set === setId; });
           if (!setItems.length) return;
           var sm = setsMeta[setId] || {};
-          if (gameSets.length > 1 || sm.note) scroll.appendChild(mkEl('div', 'gksp-set', cosSetLabel(setId, sm.label) + (sm.note ? ' <span class="gksp-note">· ' + sm.note + '</span>' : '')));
+          if (gameSets.length > 1 || sm.note) scroll.appendChild(mkEl('div', 'gksp-set', cosSetLabel(setId, sm.label) + (sm.note ? ' <span class="gksp-note">· ' + cosSetNote(setId, sm.note) + '</span>' : '')));
           var grid = mkEl('div', 'gksp-grid');
           setItems.forEach(function (it) {
             var cell = mkEl('div', 'gksp-cell');
@@ -2034,7 +2035,7 @@
               cell.addEventListener('click', crtPv); // touch: selecting it previews too
             }
             if (it.music) { // music tracks: a ▶/⏸ button previews the track without buying
-              var pvb = mkEl('button', 'gksp-crt-caret gksp-pv', '▶'); try { pvb.type = 'button'; pvb.setAttribute('aria-label', 'Preview'); } catch (e) {}
+              var pvb = mkEl('button', 'gksp-crt-caret gksp-pv', '▶'); try { pvb.type = 'button'; pvb.setAttribute('aria-label', t('shop.preview', { def: 'Preview' })); } catch (e) {}
               (function (b, item) { b.addEventListener('click', function (e) { if (e && e.stopPropagation) e.stopPropagation(); togglePv(b, item); }); })(pvb, it);
               cell.appendChild(pvb);
             }
@@ -2730,7 +2731,7 @@
     _sideMounted = true;
     mountProfilePanels();
     var host = document.createElement('div'); host.className = 'side-stack'; host.id = 'sideStack';
-    host.innerHTML = '<button class="side-tab" id="sideTab" type="button" aria-label="Show quick menu">‹‹</button>'
+    host.innerHTML = '<button class="side-tab" id="sideTab" type="button" aria-label="' + t('side.showQuick', { def: 'Show quick menu' }) + '">‹‹</button>'
       + '<div class="side-clip" id="sideClip"><div class="side-panel" id="sidePanel">'
       + '<button class="side-btn side-profile" id="profileQuick" type="button" aria-label="' + t('drawer.myProfile', { def: 'My profile' }) + '" data-ta="drawer.myProfile">'
       + '<span class="ico" id="spIco">🎖️</span><span class="lbl" data-t="cat.profileBtn">' + t('cat.profileBtn', { def: 'Profile' }) + '</span><span class="side-sub" id="spSub"></span></button>'
@@ -3113,7 +3114,7 @@
     if (typeof document !== 'undefined' && document.body) {
       var wrap = document.createElement('div'); wrap.className = 'gamekit-nav';
       wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">' + t('nav.menu') + '</button>'
-        + '<a class="gamekit-back gamekit-home" id="gamekitHome" draggable="false" href="' + localHref(opts.home || '../../') + '" aria-label="Komyo — home"><svg class="gamekit-home-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.4 12 4l9 7.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10.3V19h13v-8.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="gamekit-home-label">Komyo</span></a>';
+        + '<a class="gamekit-back gamekit-home" id="gamekitHome" draggable="false" href="' + localHref(opts.home || '../../') + '" aria-label="' + t('nav.homeAria', { def: 'Komyo — home' }) + '"><svg class="gamekit-home-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.4 12 4l9 7.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10.3V19h13v-8.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="gamekit-home-label">Komyo</span></a>';
       document.body.appendChild(wrap);
       _navEl = wrap;
       var menu = document.getElementById('gamekitMenu');
@@ -4740,8 +4741,8 @@
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'gamekit-langbtn' + (opts.className ? ' ' + opts.className : '');
-    b.setAttribute('aria-label', opts.label || 'Language');
-    b.title = opts.label || 'Language';
+    b.setAttribute('aria-label', opts.label || t('lang.label', { def: 'Language' }));
+    b.title = opts.label || t('lang.label', { def: 'Language' });
     b.innerHTML = langGlyphHTML(lang()) + (opts.label ? '<span class="gk-lang-lbl">' + opts.label + '</span>' : '');
     b.addEventListener('click', function () { langMenu(opts); });
     onLang(function (code) { try { b.innerHTML = langGlyphHTML(code) + (opts.label ? '<span class="gk-lang-lbl">' + (opts.label || '') + '</span>' : ''); } catch (e) {} });

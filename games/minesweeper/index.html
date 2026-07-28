@@ -792,7 +792,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   KIT.layout.archetype('board'); // layout contract: centered grid fitted in playRect()
   resize();
   if (KIT) {
-    const L = { lblMines: ['game.minesweeper.hudMines', 'MINES'], lblTime: ['game.common.time', 'TIME'], lblBest: ['game.common.best', 'BEST'] };
+    const L = { lblMines: ['game.minesweeper.hudMines', 'MINES'], lblLives: ['game.minesweeper.hudLives', 'LIVES'], lblTime: ['game.common.time', 'TIME'], lblBest: ['game.common.best', 'BEST'] };
     for (const id in L) { const el = document.getElementById(id); if (el) el.textContent = KIT.t(L[id][0], { def: L[id][1] }); }
     const dl = KIT.param && KIT.param('diff');
     if (dl && DIFFS[dl]) diff = dl;
