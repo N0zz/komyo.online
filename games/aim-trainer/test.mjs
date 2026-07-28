@@ -52,8 +52,10 @@ section('seeded RNG');
   function seededPositions(seed) {
     const gi = runGame();
     const Ti = gi.T;
-    Ti().start();
+    // seed BEFORE start(): start() spawns the first target immediately, so seeding after it leaves
+    // that target on unseeded Math.random — the source of a 1-in-12 flake in the portrait section
     Ti().setSeed(seed);
+    Ti().start();
     Ti().step(5);
     const first = Ti().targets[0];
     if (first) Ti().shootAt(first.x, first.y);
@@ -66,8 +68,8 @@ section('seeded RNG');
 
   const gBounds = runGame();
   const Tb = gBounds.T;
-  Tb().start();
   Tb().setSeed(0xffffffff);
+  Tb().start();
   const firstTgt = Tb().targets[0];
   if (firstTgt) Tb().shootAt(firstTgt.x, firstTgt.y);
   Tb().step(1);
@@ -279,8 +281,8 @@ section('portrait HUD clearance: targets spawn below nav + HUD band');
   const gp = runGame({ w: 400, h: 900 });
   const Tp = gp.T;
   ok(gp.bootErr === null, 'portrait boots without error: ' + gp.bootErr);
-  Tp().start();
   Tp().setSeed(3);
+  Tp().start();
   Tp().step(2);
   const ys = Tp().targets.map(t => t.y);
   ok(ys.length >= 1, 'portrait has a target after start');

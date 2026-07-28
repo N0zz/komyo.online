@@ -222,7 +222,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 0x100000000; };
   }
 
-  let _rng = Math.random;
+  let _rng = Math.random, _seeded = false;
   function spawnTarget() {
     const s = pscale(), pad = 80 * s;
     const x = PLAY.x + pad + _rng() * (PLAY.w - pad * 2);
@@ -288,7 +288,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   function startGame() {
     reset();
-    _rng = Math.random;
+    if (!_seeded) _rng = Math.random;   // a __test seed must survive the restart — the first target spawns below
     state = 'playing';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     spawnTarget();
@@ -791,7 +791,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     shootAt(x, y) { shoot(x, y); },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
     render() { render(); }, // headless: exercise the draw path (target + hit-marker skins)
-    setSeed(s) { _rng = seededRng(s); },
+    setSeed(s) { _rng = seededRng(s); _seeded = true; },
   };
 
   KIT.layout.archetype('action'); // layout contract: top HUD only, playfield = playRect()
