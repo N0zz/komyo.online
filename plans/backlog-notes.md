@@ -255,6 +255,16 @@ friends, meaningless for strangers). Cheap near-term substitute: a **challenge-l
 - **Per-game OG/Twitter cards** — static per-game share images so a shared *game* link looks good, not
   just the homepage.
 
+### Changelog inside games (idea, 2026-07-28)
+
+The 🗒️ Changelog modal is catalogue-only, so the "a release you haven't read" dot (shipped 2026-07-28 on
+the home page's ☰ + its Changelog row) can't exist in a game — a dot there would point at nothing
+openable. To extend it: add a 🗒️ item to the kit's ☰ panel (`more` in `game-kit.js`'s `nav()`), lift the
+modal's renderer out of `index.html` into the kit so both surfaces share one implementation, then reuse
+the same `arcade_cl_seen` key and light `#gamekitMore`. Deliberately NOT done at the time: a player deep
+in a game is the one audience we don't interrupt, and it means a second dot source on a button that
+carries the game menu. Worth it only if release notes turn out to be something players actively chase.
+
 ### Ranked pick if/when we act on integrations
 
 Twitch chat → richer share targets + story card → Play Store via PWA. Everything else is post-launch
