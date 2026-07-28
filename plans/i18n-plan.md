@@ -526,8 +526,16 @@ section('i18n coverage');
 
 **Files:** Modify `i18n.js` (corrections). Test: local browser.
 
-- [ ] **Step 1:** Polish reviewed by the author (native). Spanish/Portuguese/French: review MT for tone (kid-friendly, playful — matches the English voice), plural correctness, and false friends. Fix in place.
-- [ ] **Step 2:** Verify game names / brand stay correct (untranslated where intended; `Neon Snake` etc. — decide per name whether to localize the *common* nouns, e.g. keep `Asteroids`, translate descriptive blurbs).
+- **DROPPED (2026-07-28) — Step 1, a native review per language, is not something this project does.** No
+  native reviewer is available for 7 languages and waiting for one blocked the whole task indefinitely.
+  Tone/plural/false-friend correctness stands as translated; a real player report is what will correct it.
+- [x] **Step 2 (2026-07-28):** Game-name policy settled and applied: **descriptive titles are localized in
+  every locale, loanword/number titles are not.** `Sudoku` and `2048` stay as-is on purpose (uk transliterates
+  Sudoku, matching its script). The four that were still English everywhere — `Arcane`, `Type Siege`,
+  `Chrome Runner`, `Mirror Maze` — were localized across all 7 locales, together with every string that
+  embeds the name (share messages, controls titles, challenge goals, `menuTitle`) with the per-language
+  case/preposition handled; `air-hockey` was backfilled for `pt`. `dusk-runner`'s `menuTitle` also said
+  `DUSK RUNNER` (the slug) in every locale instead of the game's name — fixed in the same pass.
 - [ ] **Step 3:** Commit `fix(i18n): translation review corrections`.
 
 ---
@@ -538,10 +546,59 @@ section('i18n coverage');
 
 **Files:** Fixes as needed across CSS/games. Test: local browser (device mode).
 
-- [ ] **Step 1:** For each language, load the catalogue + each game in **portrait (390×780), landscape (780×390), desktop (1280×800)** (per the repo's layout-suite viewports). Look for: text overflow in tiles/buttons/HUD/menu cards, wrapped nav, clipped canvas card text, truncated challenge/cosmetic descriptions.
-- [ ] **Step 2:** Fix overflows via CSS (`min-width`, wrapping, font-fit) — not by shortening translations unless a string is genuinely too long for a fixed control.
-- [ ] **Step 3:** Re-run **all** suites: `node test.mjs` + every `node games/<slug>/test.mjs` → all PASS.
+- [x] **Step 1 (2026-07-28) — AUTOMATED, don't do this by hand.** `test-menu-browser.mjs` now takes
+  `KOMYO_LANG=<code>|all`: it seeds `localStorage.gamekit_lang` before any page script and re-runs the whole
+  real-browser menu-fit gate in that language. `KOMYO_LANG=all` = every live game × 360×640 + 640×360 ×
+  8 locales (start + the game's own pause + a representative end screen). That is the pass this step asked
+  for, minus the clicking, and it can't give a false green. Baseline measured while writing it: **fr is the
+  longest locale (~111% of pl per key), cs the shortest (~94%)** — so `KOMYO_LANG=fr` is the cheap
+  single-locale smoke test.
+- [x] **Step 2 (2026-07-28):** The sweep found exactly ONE overflow across 8 locales: `pt` Neon Snake's start
+  menu scrolled +4px at 360×640, because two of its three mode cards wrapped their title to a second line
+  (52px → 64px each) where every other locale wraps at most one. Fixed by dropping the redundant noun from
+  `game.snake.solidLabel` (`Paredes sólidas` → `Sólidas` — the group header right above it already says
+  `PAREDES`), which puts pt at the same 430px content height as fr/es/pl. No CSS change was warranted: the
+  card is a ~100px fixed control, so 2-line titles are normal and legitimate there.
+- [x] **Step 3 (2026-07-28):** `node test.mjs` → 726 PASS / 0 FAIL; `KOMYO_LANG=all npm run test:menus` → green.
 - [ ] **Step 4:** Commit `fix(i18n): rendering fixes for longer-string languages`.
+
+### Task 25b: Untranslated strings the coverage test could not see — DONE (2026-07-28)
+
+Found by an **en-vs-locale DOM diff**: load the site twice, once in `en` and once in the target locale, collect
+every text node + `aria-label`/`title`/`placeholder`/`data-tip` (drawers and modals included — closed ones are
+in the DOM, kit modals opened via their API), then treat any string that is *byte-identical in both* as a
+suspect. Cheap, complete, and it self-filters: what remains is brand tokens (Komyo Games, GitHub, Discord),
+numbers, and words that legitimately match (`Collection`, `Compact`, `Expert` in fr). Re-run it after touching
+player-facing markup — it took the catalogue from 39 suspects to 20, all legitimate.
+
+- [x] **19 new keys for strings that had no key at all** (× 7 locales = 133 values): `cat.openMenuAria`,
+  `cat.installAria`, `cat.installTip`, `cat.installHelp`, `cat.mascotAria`, `cat.githubAria`,
+  `cat.githubTitle`, `cat.shareSiteAria`, `cat.buildCommitAria`, `cat.dragResize`, `cat.chalDrawerAria`,
+  `cat.trophiesHelp`, `cat.backToTop`, `shop.preview`, `side.showQuick`, `nav.homeAria`, `lang.label`,
+  `cos.setnote.site.cursor`, `cos.setnote.site.fx`. Two sites reuse keys that already existed
+  (`kit.fullscreen`, `game.common.menu`) instead of minting new ones.
+- [x] **`data-tip` had no translate hook** — added `data-ti` alongside `data-ta`/`data-tt`/`data-tp` in
+  `index.html`'s i18n pass. It is used exactly once (the 📱 button), which is why it was never noticed.
+- [x] **The install popover `#tipPop`** (~6 lines of install instructions, the only *visible* item in this
+  group) is now one `data-th` key keeping its `<b>`/`<br>` structure, with each platform's own localized menu
+  wording ("Dodaj do ekranu głównego", «Ajouter à l'écran d'accueil», …). Verified in uk at 1280×800: markup
+  intact, 340×363 box, no clipping; it is `display:none` on narrow screens so there is no phone overflow risk.
+- [x] **Five hardcoded strings in `game-kit.js`** now go through `t()`: the shop's ▶ preview button (the ▾
+  button right beside it was already keyed), the side-stack `‹‹` tab, the in-game home link, the language
+  button's label/tooltip, and cosmetics set notes (via a new `cosSetNote`, mirroring `cosSetLabel`).
+- [x] **13 HUD label keys** added (× 7 locales): `game.{snake.hudScore,snake.hudLength,2048.hudTile,`
+  `breakout.hudScore,breakout.hudLevel,breakout.hudLives,trap-the-cat.hudHedges,balloon-pop.hudPops,`
+  `critter-match.hudPairs,glow-says.hudRound,minesweeper.hudMines,minesweeper.hudLives,dusk-runner.slipstream}`.
+  Words mirror what each locale already ships (`game.common.score` for SCORE, `game.bubbles.hudLevel` for
+  LEVEL — note pt says *Fase*, not *Nível*); `slipstream` uses each language's own motorsport term (fr
+  *ASPIRATION*, it *SCIA*, cs *ZÁVĚS*). Minesweeper's `LIVES` label was additionally **never wired at all** —
+  the element existed but was absent from the game's own label map; added.
+- [x] **The blind spot is now closed in `test.mjs`.** `testI18nCoverage` only saw literal `t('key')` calls,
+  but several games pass the key as *data* — `{ lblScore: ['game.snake.hudScore', 'SCORE'] }` — so those keys
+  silently fell back to English in all 7 locales with a green suite. The scan now also collects
+  `'game.<slug>.<name>'` literals **not** followed by `+` (a trailing `+` means it is a prefix like
+  `t('game.2048.mode' + m)`, which stays unverifiable). Confirmed the rule bites: deleting one HUD key from
+  `pl` fails the suite with that key named.
 
 ### Task 26: Changelog + docs + roadmap
 

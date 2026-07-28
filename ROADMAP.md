@@ -38,8 +38,6 @@ Dev and marketing run in parallel; top item first within each.
 - **Reddit drip — AI + parents lanes next** *(in progress)* — indie/sideproject/gaming side is done.
   The AI lane carries the "publicly AI-made" branding risk (weigh before posting); held one-shots:
   r/InternetIsBeautiful, Show HN, Product Hunt. → `plans/marketing_plan.md`
-- **Privacy policy — counsel review** *(blocked — not launch-blocking)* — v1 published and
-  consent-gated; fold in edits when the review returns.
 
 ## Next — dev
 
@@ -49,14 +47,8 @@ Dev and marketing run in parallel; top item first within each.
   content that needs no translation. A MODE, never a second game. → `plans/backlog-notes.md`
 - **i18n leftovers** *(open)* — native QA pass + mobile QA across languages × orientations. →
   `plans/i18n-plan.md`
-- **Verify the single-SW migration** *(open)* — an old per-game PWA install must hand over to the root
-  worker cleanly.
 - **Sitemap: add the static pages** *(open)* — `tos.html` / `privacy.html`; cross-check `llms.txt` +
   `robots.txt`. → `plans/backlog-notes.md`
-- **Branded 404 page** *(idea)* — root `404.html` is supported by Pages; other codes aren't. →
-  `plans/backlog-notes.md`
-- **CI check: the `updated` badge stays honest** *(idea)* — fail when a game's own files change without
-  a date bump; kit/shared diffs exempt. → `plans/backlog-notes.md`
 - **Discord Activity polish** *(open)* — fix the proxied-feedback "network error", verify webhook + GA4
   in-Activity. → `plans/backlog-notes.md`
 - **Review local Claude memories about komyo** *(open)* — prune stale entries so future sessions don't
