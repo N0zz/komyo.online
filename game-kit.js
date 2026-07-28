@@ -1598,12 +1598,6 @@
     }
     return false;
   }
-  var _chNotifyEl = null, _chNotifyTabEl = null, _chNotifySlug = '', _chNotifySeen = false;
-  function syncChNotify() {
-    var on = !_chNotifySeen && chActiveUndone(_chNotifySlug);
-    if (_chNotifyEl && _chNotifyEl.classList) _chNotifyEl.classList.toggle('gkm-notify', on);
-    if (_chNotifyTabEl && _chNotifyTabEl.classList) _chNotifyTabEl.classList.toggle('gkm-notify', on);
-  }
   // aggregate the week containing refDay (default: today); a PAST week reads its full Mon–Sun
   // window from whatever played-logs survive retention — the catalogue's weekly back-fill needs it
   function chWeekAgg(refDay) {
@@ -2201,7 +2195,7 @@
     if (rec.stats && isFinite(+rec.stats.wave)) ev.wave = +rec.stats.wave;
     _runStartMs = 0; // one duration per run — a menu re-show must not re-time the same run
     track('game_play', ev);
-    try { syncChNotify(); } catch (e) {} // this run may have just completed the active challenge
+    try { if (typeof window !== 'undefined' && window.__syncChalDot) window.__syncChalDot(); } catch (e) {} // this run may have just completed the active challenge → drop its dot
     try { if (typeof window !== 'undefined' && window.__syncTitleNotify) window.__syncTitleNotify(); } catch (e) {} // …or crossed a titles-ladder tier → dot the Profile button
     return rec;
   }
@@ -2973,8 +2967,9 @@
       if (moreOpen && !(t === moreBtn || (t && t.closest && (t.closest('#gamekitMore') || t.closest('#gamekitMorePanel'))))) setMore(false);
     });
     // ☰ version row + update button: the button IS the status — greyed "✓ Up to date" when current
-    // (checked live on every panel open), lit "🔆 Update now" when a new build is ready. The badge
-    // dot on ☰ mirrors "an update is ready" without interrupting anyone.
+    // (checked live on every panel open), lit "🔆 Update now" when a new build is ready. No dot on ☰
+    // for it: the update nudge lives on the catalogue's ⚙️ Settings button, which is where the player
+    // actually decides to update; a game is the one place we don't interrupt.
     var verEl = document.getElementById('gamekitMoreVer'), upBtn = document.getElementById('gamekitUpdate');
     function renderMoreVer() {
       var b = buildInfo(), st = _upState;
@@ -2988,7 +2983,6 @@
           : t('update.upToDate');
         upBtn.disabled = busy || !st.available;
       }
-      if (moreBtn && moreBtn.classList) moreBtn.classList.toggle('gkm-notify', !!st.available && st.status !== 'refreshing');
     }
     updates.onChange(renderMoreVer);
     renderMoreVer();
@@ -3706,7 +3700,24 @@
   // ONE root-scope worker serves the whole site (catalogue + every game). Pages under /games/<slug>/
   // register it as '../../sw.js'; the catalogue as 'sw.js'.
   function pwa(file) {
-    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    // The update dot has to be able to light with NO player action. Before this, upCheck() only ran
+    // when the player OPENED the very panel the dot points at (catalogue Settings / game ☰), so the
+    // dot could never lead anywhere — check the live version.js on load and whenever the tab returns
+    // to the foreground (throttled), which also makes `available` re-derive itself on every reload.
+    var _lastAuto = -Infinity;
+    var autoCheck = function () {
+      var n = nowMs();
+      if (n - _lastAuto < 300000) return;
+      _lastAuto = n;
+      try { upCheck(); } catch (e) {}
+    };
+    if (typeof window !== 'undefined' && window.addEventListener) window.addEventListener('load', autoCheck);
+    if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') autoCheck();
+    });
+    // `'serviceWorker' in navigator` is TRUE but navigator.serviceWorker is UNDEFINED when workers are
+    // blocked (private windows, enterprise policy, the menu-browser suite) — read the object itself.
+    if (typeof navigator === 'undefined' || !navigator.serviceWorker) return;
     // file:// (downloaded / pendrive copy): a SW can't register there and the browser logs a
     // "protocol not supported" console error a JS .catch can't suppress. The files are already local,
     // so a SW serves no purpose offline — skip it entirely and keep the console clean.

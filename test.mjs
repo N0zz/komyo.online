@@ -39,6 +39,42 @@ function testCatalogue() {
     g.win.__syncTitleNotify();
     ok(!mb.classList.contains('tb-notify'), '⚙️ drops the dot once the update state clears');
   }
+  // "new changelog" dot on ☰ + its 🗒️ row: keyed by the newest entry (date|title) vs arcade_cl_seen.
+  // A first visit seeds silently (no dot for history you've never read); a stale key lights both;
+  // opening the modal clears both. Needs changelog.js preloaded — window.CHANGELOG drives the key.
+  {
+    const changelog = fs.readFileSync(path.join(DIR, 'changelog.js'), 'utf8');
+    const boot = store => bootGame('index.html', { preCode: [games, challenges, changelog], store });
+    const c1 = boot({});
+    const newest = c1.win.CHANGELOG && c1.win.CHANGELOG[0];
+    ok(newest && newest.date && newest.title, 'changelog.js exposes a newest entry with date + title');
+    const key = newest ? newest.date + '|' + newest.title : '';
+    ok(typeof c1.win.__syncClDot === 'function', '__syncClDot is exposed for the changelog dot');
+    ok(!c1.getEl('menuBtn').classList.contains('tb-notify'), 'first-ever visit: ☰ has NO changelog dot');
+    ok(!c1.getEl('changelogBtn').classList.contains('tb-notify'), 'first-ever visit: 🗒️ row has no dot');
+    ok(c1.store.arcade_cl_seen === key, 'first visit seeds arcade_cl_seen with the newest entry (got ' + c1.store.arcade_cl_seen + ')');
+
+    const c2 = boot({ arcade_cl_seen: '1970-01-01|ancient release' });
+    ok(c2.getEl('menuBtn').classList.contains('tb-notify'), 'a release you have not seen lights the ☰ dot');
+    ok(c2.getEl('changelogBtn').classList.contains('tb-notify'), '…and the 🗒️ Changelog row it leads to');
+    c2.getEl('changelogBtn').fire('click');
+    ok(c2.store.arcade_cl_seen === key, 'opening the changelog marks the newest entry seen');
+    ok(!c2.getEl('menuBtn').classList.contains('tb-notify'), 'opening the changelog clears the ☰ dot');
+    ok(!c2.getEl('changelogBtn').classList.contains('tb-notify'), '…and the row dot');
+
+    const c3 = boot({ arcade_cl_seen: key });
+    ok(!c3.getEl('menuBtn').classList.contains('tb-notify'), 'nothing new since last visit → no dot');
+    // the ☰ dot is an OR over named sources, so a future second source cannot stomp the changelog one
+    c3.win.__setDrawerDot('probe', true);
+    ok(c3.getEl('menuBtn').classList.contains('tb-notify'), 'any other drawer source can light ☰ too');
+    c3.win.__setDrawerDot('probe', false);
+    ok(!c3.getEl('menuBtn').classList.contains('tb-notify'), 'clearing the only lit source clears ☰');
+  }
+  // the in-game top bar carries no dots any more — the update nudge lives on the catalogue's ⚙️ only
+  ok(!fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8').includes('gkm-notify'),
+    'no gkm-notify left in game-kit.js (the dead in-game dot system is gone)');
+  ok(!fs.readFileSync(path.join(DIR, 'game-kit.css'), 'utf8').includes('gkm-notify'),
+    'no gkm-notify left in game-kit.css');
   // density toggle: cozy ⇄ compact
   const db = g.getEl('densityBtn'); db.fire('click');
   ok(g.getEl('grid').classList.contains('compact'), 'density toggle → compact');
