@@ -1585,6 +1585,19 @@ function testSEO() {
     } catch (e) { badLD.push(s); }
   }
   bad('every live game has valid VideoGame JSON-LD', badLD);
+  // The atomic head unit is a hard contract (CLAUDE.md), and a MISSING entry fails silently: 11 of 23
+  // games had shipped without games.js, so window.GAMES was undefined there — the in-game profile
+  // modal had no titles or icons, and the challenges' slug→genre map had nothing to derive from.
+  // Nothing caught it because every one of those games still booted fine.
+  {
+    const HEAD_UNIT = ['game-kit.css', 'version.js', 'game-kit.js', 'challenges.js', 'cosmetics.js', 'games.js', 'i18n.js'];
+    const missing = [];
+    for (const [s, h] of pages) {
+      const head = h.split('</head>')[0];
+      for (const f of HEAD_UNIT) if (!head.includes('../../' + f)) missing.push(s + ' → ' + f);
+    }
+    bad('every live game loads the whole shared head unit', missing);
+  }
   bad('every live game ships the crawlable #gk-about section (howto key + catalogue link)',
     pages.filter(([s, h]) => !(h.includes('id="gk-about"') && h.includes('data-t="seo.' + s + '.howto"') && h.includes('href="../../"'))).map(([s]) => s));
   // the "More free games" links are a crawler surface, so a link to a `soon:` slug (no folder on
