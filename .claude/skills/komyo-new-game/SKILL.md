@@ -123,6 +123,12 @@ screenshot-driven, unless its identity is deliberately flat/glow.
   `plans/progress-save-api-plan.md`.
 
 ### 7 · Register the game
+
+**The changelog entry is written LAST, and it is ONE bullet.** A new game = one
+entry, one or two sentences saying what it is. Never a bullet per mode / hazard /
+control / cosmetic, and never anything about pre-release iteration — each bullet
+costs a translation in every locale and is thrown away when the mechanic changes.
+Do not create the entry while still building. See `references/registration.md` §8.
 Edit the shared files (see `references/registration.md` for exact shapes):
 `games.js` (entry with `added: "YYYY-MM-DD"`, no `soon:`), `sitemap.xml`,
 `llms.txt`, the homepage's `nojs-games` list + `ItemList` JSON-LD in
