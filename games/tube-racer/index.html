@@ -43,6 +43,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <style>
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -74,7 +75,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <p><strong data-t="seo.q.offline">Can I play offline?</strong> <span data-t="seo.a.offline">Yes — after your first visit the game works without internet, and you can install it as an app straight from your browser.</span></p>
 <p><strong data-t="seo.q.saves">Where are my scores saved?</strong> <span data-t="seo.a.saves">On your device only — best scores, trophies and cosmetics live in your browser and are never uploaded anywhere.</span></p>
 <h2 data-t="seo.h.more">More free games</h2>
-<p><a href="../tron/" data-t="game.tron.title">Light Cycles</a> · <a href="../dusk-runner/" data-t="game.dusk-runner.title">Chrome Runner</a> · <a href="../asteroids/" data-t="game.asteroids.title">Asteroids</a> · <a href="../../" data-t="seo.allGames">All free games at Komyo</a></p>
+<p><a href="../flappy/" data-t="game.flappy.title">Flappy Meadow</a> · <a href="../dusk-runner/" data-t="game.dusk-runner.title">Chrome Runner</a> · <a href="../asteroids/" data-t="game.asteroids.title">Asteroids</a> · <a href="../../" data-t="seo.allGames">All free games at Komyo</a></p>
 </section>
 
 <script>
@@ -215,6 +216,24 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       e.master.gain.setTargetAtTime(live ? bed : 0, t, 0.1);
     } catch (err) { engOff = true; }
   }
+  // The drone's gain is only ever written from render(), and the drone owns a private AudioContext
+  // that nothing else suspends — so backgrounding the tab at Mach 2 stopped rAF (correctly freezing
+  // the game) while WebAudio kept rendering the last gain it was handed, droning on from a tab you
+  // are not looking at. Silence and suspend it on hide; engineUpdate already resumes a suspended
+  // context on the first frame back.
+  function engineVisibility() {
+    if (!eng) return;
+    const hidden = typeof document !== 'undefined' && document.hidden;
+    try {
+      if (hidden) {
+        eng.master.gain.setTargetAtTime(0, eng.ac.currentTime, 0.05);
+        setTimeout(() => { try { if (document.hidden && eng) eng.ac.suspend(); } catch (e) {} }, 150);
+      } else if (eng.ac.state === 'suspended') { eng.ac.resume(); }
+    } catch (e) {}
+  }
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('visibilitychange', engineVisibility);
+  }
 
   // ==================================================================================
   // Seeded RNG — track generation must be reproducible (deterministic suites + a future
@@ -338,6 +357,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     tier: 0,                                         // score-gated mechanic unlocks
     feats: [], nextObs: 0, nextCool: 0, nextAcc: 0, nextFriction: 0, nextShear: 0,
     nextPlug: 0, nextSent: 0,
+    // balance telemetry for the run (reported once, at game over)
+    nCool: 0, nAcc: 0, boostFrames: 0, hitBy: '',
   };
 
   // ---- score-gated mechanic tiers -------------------------------------------------
@@ -398,27 +419,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       return Math.max(ov(box), ov(q('.gkm-scroll')), ov(q('.gkm-rail'))) > 8;
     } catch (e) { return false; }
   }
-  // The two toggles belong side by side, not stacked — but the kit renders them as siblings of a
-  // flex COLUMN pane, so no stylesheet can pair them. Measure and pull the second one up beside
-  // the first (margin-left:auto is the cross-axis end in a column). Saves a whole row of height.
-  function pairToggles() {
-    try {
-      const rows = document.querySelectorAll('.gamekit-menu .gkm-checkrow');
-      if (rows.length !== 2 || W < 420) return;
-      const a = rows[0], b = rows[1];
-      const h = a.getBoundingClientRect().height;
-      if (!h) return;
-      const p = getComputedStyle(a.parentElement);
-      const gap = parseFloat(p.rowGap || p.gap || '0') || 0;
-      a.style.width = b.style.width = 'calc(50% - 4px)';
-      b.style.marginLeft = 'auto';
-      b.style.marginTop = (-(h + gap)) + 'px';
-    } catch (e) {}
-  }
-
+  // Pairing the two toggles into one row is the KIT's job now (`.gkm-checks-pair`, pure CSS) — this
+  // used to measure the rows and write inline width/margins onto kit-owned elements from a timer,
+  // which overlapped them in any locale where one label wrapped and the other did not.
   function fitMenuLater() {
     if (typeof setTimeout !== 'function') return;
-    setTimeout(pairToggles, 40);        // must happen BEFORE the overflow measurement below
     setTimeout(() => {
       if (state !== 'ready' || menuLevel >= 2) return;
       if (!menuOverflows()) return;
@@ -435,7 +440,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // storage label stays ENGLISH (the best store keys on it); only the display name is translated
   const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
   const modeLabel = m => cap(m || mode);
-  const modeDisplay = m => KIT.t('game.tube-racer.mode' + cap(m), { def: cap(m) });
+  // defaults to the live mode, exactly like modeLabel above — the asymmetry threw on modeDisplay()
+  const modeDisplay = m => { const k = cap(m || mode); return KIT.t('game.tube-racer.mode' + k, { def: k }); };
   const loadBest = m => KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0;
   const bestTime = m => { const b = KIT && KIT.best ? KIT.best(SLUG, modeLabel(m)) : null; return b && b.time ? b.time : 0; };
   const isSprint = () => mode === 'sprint';
@@ -574,6 +580,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       if (!onPlayer(f, HW_LANE)) continue;
       if (f.k === 'cool') onCool = true; else onAcc = true;
     }
+    // Balance counters, tallied silently and reported ONCE at game over as per-km rates (an event per
+    // lane would be dozens per run — an action, not a decision). Counting the ENTRY is what makes it
+    // "lanes taken"; boostFrames is the share of the run you dared hold the throttle, which is the
+    // dial the whole thermal economy turns on. Must run BEFORE S.onCool is overwritten below —
+    // otherwise the false→true edge is already gone and every rate reads zero.
+    if (onCool && !S.onCool) S.nCool++;
+    if (onAcc && !S.onAcc) S.nAcc++;
+    if (boost) S.boostFrames++;
     S.onCool = onCool; S.onAcc = onAcc; S.inFriction = inFriction;
 
     // ---- speed + heat: the whole economy.
@@ -637,6 +651,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     S.dist += S.spd * DT;
     S.mach = S.spd * KMH / MACH1;
     S.score += S.spd * DT * (1 + Math.max(0, S.mach - 0.5) * 1.2);
+    // Passing your old best is the best thing that happens in a run, so it gets a moment WHILE you
+    // are still flying: the kit announces it (banner + stinger, once per run), and we add the
+    // in-engine half with the flash/shake the game already owns — white, not red, because this is an
+    // achievement and red is what a hull hit looks like. Sprint records on time, not score, so its
+    // bar is the clock and this would be meaningless there.
+    if (!isSprint() && KIT.bestTick && KIT.bestTick(Math.floor(S.score))) {
+      S.flash = 0.55; S.flashHot = false; S.shake = 7;
+    }
 
     // ---- score-gated unlocks. Silent by design: a new hazard type simply starts appearing.
     // Announcing each one with a banner + sting was pure clutter mid-run.
@@ -660,6 +682,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       }
       if (f.k !== 'wall' && f.k !== 'beam' && f.k !== 'plug') continue;
       if (S.inv > 0 || !onPlayer(f, HW_HIT)) continue;
+      // remember WHAT hit us, from a closed set — this is what makes "which hazard is doing the
+      // killing" answerable at all, and the hazard variants are only distinguishable here
+      S.hitBy = f.homes ? 'sentinel' : f.k === 'plug' ? 'plug' : f.x ? 'xcross' : f.k === 'beam' ? 'rotor' : 'wall';
       S.hull--; S.spd *= 0.5;
       S.heat = Math.max(S.heat, Math.min(S.heat + HIT_HEAT, HIT_HEAT_MAX));
       S.shake = 22; S.flash = 0.8; S.flashHot = true; S.inv = 0.9; SND.play('scrape');
@@ -1121,6 +1146,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     // each readout sits beside its own arc: speed on the left flank, temperature on the right
     const sx = side ? board.x - pad : Math.max(pad, board.x);
     const sy = side ? cy0 : H - 14;
+    // The second row (MACH / HEAT) goes BELOW the number in the side gutters, where there is room,
+    // but ABOVE it in the bottom strip — at +15 its baseline landed on H+1, i.e. one pixel off the
+    // canvas, so on every portrait phone the Mach readout and the red HEAT label were shaved away.
+    // −15 keeps both rows inside the COCKPIT_H px the layout already reserves.
+    const row2 = side ? 29 : -15;
     const hx = side ? board.x + board.w + pad : Math.min(W - pad, board.x + board.w);
     const hy = sy;
     ctx.save();
@@ -1138,7 +1168,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (m >= 1) {
       ctx.font = '700 12px ui-monospace, Menlo, monospace';
       ctx.fillStyle = m >= 2 ? '#ff3d8b' : '#ffb43d';
-      ctx.fillText(KIT.t('game.tube-racer.mach', { def: 'MACH' }) + ' ' + m.toFixed(2), sx, sy + (side ? 29 : 15));
+      ctx.fillText(KIT.t('game.tube-racer.mach', { def: 'MACH' }) + ' ' + m.toFixed(2), sx, sy + row2);
     }
 
     // ---- TEMPERATURE (right), mirrored against the heat arc
@@ -1155,7 +1185,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (S.alarm >= 1) {
       ctx.font = '700 11px ui-monospace, Menlo, monospace';
       ctx.fillStyle = S.alarm >= 2 ? '#ff2d5e' : '#ffb43d';
-      ctx.fillText(KIT.t('game.tube-racer.heat', { def: 'HEAT' }), hx, hy + (side ? 29 : 15));
+      ctx.fillText(KIT.t('game.tube-racer.heat', { def: 'HEAT' }), hx, hy + row2);
     }
 
     // ---- run context, kept away from the gauges
@@ -1207,9 +1237,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     S.shake = 0; S.flash = 0; S.flashHot = false; S.inv = 0; S.lock = 0;
     S.coolCd = 0; S.warnPh = 1; S.frames = 0; S.cleared = false; S.why = '';
     S.onCool = false; S.onAcc = false; S.inFriction = false;
+    S.nCool = 0; S.nAcc = 0; S.boostFrames = 0; S.hitBy = '';
     S.heatRate = 0; S.ttl = Infinity; S.alarm = 0;
     genReset(seedFor(mode));
     best = loadBest();
+    if (KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel());   // arm the live new-best pulse for this run
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     engineRetune();
     i18nHudLabels(); updateHud();
@@ -1450,8 +1482,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
         startMode(st.mode || mode);
       },
     });
-    pairToggles();      // synchronously, so the FIRST painted frame is already paired
-    fitMenuLater();
+    fitMenuLater();     // pairing is CSS now, so the first painted frame is already paired
   }
   const MODE_MECH = { classic: 'Endless', sprint: '30 km', redline: 'No brakes', cruise: 'Relaxed' };
   const MODE_DESC = {
@@ -1480,9 +1511,26 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     ];
     KIT.menu.show({
       kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true, title,
-      record: { slug: SLUG, mode: modeLabel(), score: scoreVal, time: timeMs,
+      // `mode` stays the ENGLISH store key (saveBest keys on it); `modeText` is what the player
+      // reads. Without it the kit falls back to the key, so the score card you share and the profile
+      // both said "Redline" in Polish — the translated names already existed, they were just never
+      // handed over. 20 of the other games pass this.
+      record: { slug: SLUG, mode: modeLabel(), modeText: modeDisplay(), score: scoreVal, time: timeMs,
                 outcome: cleared ? 'win' : 'lose',
-                stats: { dist: Math.round(km(S.dist) * 100) / 100, mach: Math.round(S.topMach * 100) / 100 } },
+                // WHY the run ended, from a closed vocabulary — `outcome` only says win/lose, and
+                // balance work needs to know whether the heat economy or one specific hazard is
+                // doing the killing.
+                endCause: cleared ? 'cleared' : S.why === 'overheat' ? 'overheat' : (S.hitBy || 'wall'),
+                stats: { dist: Math.round(km(S.dist) * 100) / 100, mach: Math.round(S.topMach * 100) / 100,
+                  // RATES, not counts: a count mostly measures how long the run was, so it can't be
+                  // compared between a 2-minute and a 20-minute run — which is the whole point.
+                  rates: {
+                    cools_per_km: km(S.dist) > 0.05 ? S.nCool / km(S.dist) : 0,
+                    lanes_per_km: km(S.dist) > 0.05 ? S.nAcc / km(S.dist) : 0,
+                    // clamped: the frame the run dies on counts its boost but never reaches S.frames++,
+                    // so an all-throttle run reported 1.0025 — a "share" above 1 poisons the average
+                    boost_share: Math.min(1, S.boostFrames / Math.max(1, S.frames)),
+                  } } },
       // Sprint's RECORD is a time, so BOTH numbers on the end screen have to be clocks: passing the
       // score best here printed "01:19.02 · BEST 2,204 ★ New best!" — a new-best badge beside a bigger
       // number, in a mode whose record is a time. `isBest` already comes from the CLOCK (finish()).
@@ -1551,12 +1599,25 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // Capture phase, so this runs BEFORE the kit menu's own window listener and can stop it.
   let endGuard = false;
   const GUARDED = ['Space', 'Enter', 'ShiftLeft', 'ShiftRight'];
+  // The kit's own overlays carry text fields the player can reach from inside a game — the 🎨
+  // Collection's search box and the profile name editor — and they are reachable MID-RUN via the
+  // side stack. Swallowing Space and the arrows unconditionally meant "tube racer" typed as
+  // "tuberacer" and the caret could not be moved, so the search found nothing.
+  const typing = e => {
+    const el = e.target;
+    if (!el || el === window || el === document) return false;
+    const tag = (el.tagName || '').toUpperCase();
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable === true;
+  };
+
   window.addEventListener('keydown', e => {
+    if (typing(e)) return;
     if (endGuard && GUARDED.indexOf(e.code) >= 0) { e.preventDefault(); e.stopImmediatePropagation(); }
   }, true);
   window.addEventListener('keyup', e => { if (GUARDED.indexOf(e.code) >= 0) endGuard = false; }, true);
 
   window.addEventListener('keydown', e => {
+    if (typing(e)) return;
     if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Space'].indexOf(e.code) >= 0) e.preventDefault();
     keys[e.code] = true;
     if (state === 'playing' && e.key === 'Escape') { e.preventDefault(); pauseGame(); }
@@ -1578,8 +1639,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
                  [KIT.t('game.common.esc', { def: 'Esc' }), KIT.t('game.common.pause', { def: 'Pause' })]],
       touch: [[KIT.t('game.tube-racer.ctrlTapSide', { def: 'Hold left / right' }), KIT.t('game.tube-racer.ctrlRoll', { def: 'Roll around the pipe' })],
               [KIT.t('game.tube-racer.ctrlTapMid', { def: 'Hold lower middle' }), KIT.t('game.tube-racer.ctrlBoost', { def: 'Boost' })],
-              [KIT.t('game.tube-racer.ctrlTapMidUp', { def: 'Hold upper middle' }), KIT.t('game.tube-racer.ctrlBrake', { def: 'Brake — sheds heat, costs score' })]] },
-    genres: ['racing', 'arcade'] });
+              [KIT.t('game.tube-racer.ctrlTapMidUp', { def: 'Hold upper middle' }), KIT.t('game.tube-racer.ctrlBrake', { def: 'Brake — sheds heat, costs score' })]] } });
+  // no `genres:` — the kit derives slug→genre from games.js itself. This used to pass THIS game's own
+  // genres as an array, but the kit indexes that map by game SLUG, so distinctGenres always read 0.
   KIT.music.play('tuberacer');
 
   // ==================================================================================
@@ -1600,6 +1662,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     get feats() { return S.feats.length; },
     get tier() { return S.tier; },
     get alarm() { return S.alarm; },
+    // screen-feedback state: a suite can assert that an EVENT was felt (new best, hit, sonic boom)
+    get flash() { return S.flash; },
+    get flashHot() { return S.flashHot; },
+    get shake() { return S.shake; },
+    // balance counters, so a suite can prove they count entries and not frames
+    get coolsTaken() { return S.nCool; },
+    get lanesTaken() { return S.nAcc; },
+    get hitBy() { return S.hitBy; },
     get ttl() { return S.ttl; },
     get heatRate() { return S.heatRate; },
     get rising() { return S.rising; },
@@ -1615,7 +1685,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       return { W, H, topReserve: topMargin,
         board: { x: board.x, y: board.y, w: board.w, h: board.h },
         cx: board.x + board.w / 2, cy: board.y + board.h / 2,
-        wallR: rad(PZ), gutter };
+        wallR: rad(PZ), gutter,
+        // both cockpit text baselines, so a suite can catch a row drawn off the canvas
+        cockpit: gutter === 'side' ? { row1: board.y + board.h / 2, row2: board.y + board.h / 2 + 29 }
+                                  : { row1: H - 14, row2: H - 29 } };
     },
     start() { startMode(mode); },
     startMode,
