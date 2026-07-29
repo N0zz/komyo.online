@@ -2488,6 +2488,8 @@ window.KOMYO_I18N.pt = {
   'cos.tube-racer.bike.ghost.desc': 'Quase não está lá, e desapareceu antes de olhar.',
   'challenge.goal.tube-1': 'Faça 800 pontos no Corredor de Tubo',
   'challenge.goal.tube-2': 'Faça 2.000 pontos no Corredor de Tubo',
+  'changelog.e87.title': 'Corredor Cromado: o teu recorde de sprint, como tempo ⏱️',
+  'changelog.e87.b0': 'Correção: depois de terminar um sprint no Corredor Cromado, a linha MELHOR abaixo do teu tempo final mostrava uma distância em vez do teu melhor tempo — por isso nunca te dizia se tinhas mesmo batido o teu recorde.',
   'changelog.e86.title': 'Novo jogo: Corredor de Tubo 🌀',
   'changelog.e86.b0': 'Novo: Corredor de Tubo — está preso magneticamente ao interior de um tubo gigante a velocidade supersónica. Não há bordo esquerdo nem direito: roda por toda a parede para se alinhar com a brecha de cada barreira. O turbo pontua mais depressa, mas derrete o motor, e as faixas azuis brilhantes são a única forma de o arrefecer. Clássico sem fim, um Sprint de 30 km contra o relógio, Zona Vermelha com o turbo preso e Passeio para andar com calma.',
   'game.tube-racer.camOrbit': 'Tubo fixo',

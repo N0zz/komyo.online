@@ -2488,6 +2488,8 @@ window.KOMYO_I18N.cs = {
   'cos.tube-racer.bike.ghost.desc': 'Skoro tam není a je pryč, než ses podíval.',
   'challenge.goal.tube-1': 'Získej 800 bodů v Tunelovém jezdci',
   'challenge.goal.tube-2': 'Získej 2 000 bodů v Tunelovém jezdci',
+  'changelog.e87.title': 'Chromový běžec: tvůj rekord ve sprintu jako čas ⏱️',
+  'changelog.e87.b0': 'Oprava: po dokončení sprintu v Chromovém běžci řádek NEJLEPŠÍ pod tvým výsledným časem ukazoval vzdálenost místo tvého nejlepšího času — takže ti nikdy neřekl, jestli jsi svůj rekord opravdu překonal.',
   'changelog.e86.title': 'Nová hra: Tunelový jezdec 🌀',
   'changelog.e86.b0': 'Novinka: Tunelový jezdec — jsi magneticky přisátý k vnitřní stěně obří trubky a letíš nadzvukovou rychlostí. Není tu levý ani pravý okraj: otáčíš se dokola po celé stěně, abys se srovnal s mezerou v každé zábraně. Zrychlení dává víc bodů, ale rozpouští motor a svítící modré pásy jsou jediný způsob, jak ho zchladit. Nekonečná Klasika, Sprint na 30 km s časem, Červená zóna se zaseknutým zrychlením a Klid na pohodovou jízdu.',
   'game.tube-racer.camOrbit': 'Nehybná trubka',

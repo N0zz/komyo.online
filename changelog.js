@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-29', title: 'Chrome Runner: your sprint record, as a time ⏱️', items: [
+    'Fix: after clearing a Chrome Runner sprint, the BEST line under your finishing time showed a distance instead of your best time — so it never told you whether you had actually beaten your record.',
+  ] },
   { date: '2026-07-29', title: 'New game: Tube Racer 🌀', items: [
     'New: Tube Racer — you are magnetically stuck to the inside of a giant pipe at supersonic speed. There is no left or right edge: you roll all the way around the wall to line up with the gap in each barrier. Boost to score faster, but boosting melts the engine and the glowing blue strips are the only way to cool it. Endless Classic, a 30 km Sprint against the clock, Redline with the boost jammed on, and Cruise for an easy ride.',
   ] },

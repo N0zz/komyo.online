@@ -2488,6 +2488,8 @@ window.KOMYO_I18N.fr = {
   'cos.tube-racer.bike.ghost.desc': 'À peine là, et parti avant que vous n\'ayez regardé.',
   'challenge.goal.tube-1': 'Marquez 800 dans Coureur de Tube',
   'challenge.goal.tube-2': 'Marquez 2 000 dans Coureur de Tube',
+  'changelog.e87.title': 'Coureur Chromé : votre record de sprint, en temps ⏱️',
+  'changelog.e87.b0': 'Correction : après avoir terminé un sprint dans Coureur Chromé, la ligne MEILLEUR sous votre temps final affichait une distance au lieu de votre meilleur temps — elle ne vous disait donc jamais si vous aviez vraiment battu votre record.',
   'changelog.e86.title': 'Nouveau jeu : Coureur de Tube 🌀',
   'changelog.e86.b0': 'Nouveau : Coureur de Tube — vous êtes collé magnétiquement à l\'intérieur d\'un tuyau géant, à vitesse supersonique. Il n\'y a ni bord gauche ni bord droit : vous roulez tout autour de la paroi pour vous aligner sur la brèche de chaque barrière. Le turbo fait monter le score, mais il fait fondre le moteur, et les bandes bleues lumineuses sont le seul moyen de le refroidir. Classique sans fin, un Sprint de 30 km contre le chrono, Zone Rouge turbo bloqué, et Balade pour rouler tranquille.',
   'game.tube-racer.camOrbit': 'Tube fixe',

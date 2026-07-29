@@ -2492,6 +2492,8 @@ window.KOMYO_I18N.pl = {
   'cos.tube-racer.bike.ghost.desc': 'Prawie go nie ma, a zniknął, zanim spojrzałeś.',
   'challenge.goal.tube-1': 'Zdobądź 800 punktów w Rurze Wyścigowej',
   'challenge.goal.tube-2': 'Zdobądź 2000 punktów w Rurze Wyścigowej',
+  'changelog.e87.title': 'Chromowany Biegacz: twój rekord sprintu jako czas ⏱️',
+  'changelog.e87.b0': 'Poprawka: po ukończeniu sprintu w Chromowanym Biegaczu wiersz NAJLEPSZY pod twoim czasem końcowym pokazywał odległość, a nie twój najlepszy czas — więc nigdy nie mówił, czy naprawdę pobiłeś swój rekord.',
   'changelog.e86.title': 'Nowa gra: Rura Wyścigowa 🌀',
   'changelog.e86.b0': 'Nowość: Rura Wyścigowa — jesteś magnetycznie przyczepiony do wnętrza gigantycznej rury i pędzisz z prędkością ponaddźwiękową. Nie ma tu lewej ani prawej krawędzi: obracasz się dookoła całej ściany, żeby ustawić się w przerwie każdej zapory. Dopalacz daje więcej punktów, ale rozpuszcza silnik, a świecące niebieskie pasy to jedyny sposób, by go schłodzić. Klasyk bez końca, Sprint na 30 km z zegarem, Czerwona strefa z zablokowanym dopalaczem i Spokojny na lekką jazdę.',
   'game.tube-racer.camOrbit': 'Nieruchoma rura',
