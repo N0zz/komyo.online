@@ -359,11 +359,15 @@
   // ---- audio builders (`audio` on an item) ----------------------------------------------------
   // A cosmetic that IS a sound but not a music track (an engine drone, a thruster) carries
   // `audio: (ac, out) => tune`, which wires a continuous graph into `out` and returns
-  // `tune(t, sp, boost)` — t = ac.currentTime, sp = 0..1 intensity (may reach ~1.1), boost = bool.
+  // `tune(t, sp)` — t = ac.currentTime, sp = 0..1 intensity (may reach ~1.1). SPEED is the only
+  // input: there used to be a third `boost` flag, but it was hard-coded false at both call sites for
+  // its whole life, and once wired up its deltas (a few hundred Hz, a Q nudge) were inaudible next to
+  // what sp already does — and one of the three engines never read it at all. Dropped rather than
+  // inflated: the engines are distinct enough on speed alone.
   // It lives HERE, not in the game, because cosmetics.js is loaded by the catalogue too: the shop's
   // ▶ preview has to make the noise on a page where the game's own code never runs.
   // Tube Racer's three engines (auditioned in plans/tube-engine-lab.html); their frequency ranges
-  // are the game's cruise→boost+lane span (14→52 units/s) folded into sp.
+  // are the game's cruise→top-speed span (14→52 units/s) folded into sp.
   function engReactor(ac, out) {   // a throb whose RATE rises with speed — the engine audibly races
     var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 600;
     var saw = ac.createOscillator(); saw.type = 'sawtooth'; saw.frequency.value = 70;
@@ -374,11 +378,10 @@
     saw.connect(sg); sg.connect(lp); lp.connect(trem); trem.connect(out);
     lfo.connect(lg); lg.connect(trem.gain);
     saw.start(); lfo.start();
-    return function (t, sp, boost) {
+    return function (t, sp) {
       saw.frequency.setTargetAtTime(80.4 + sp * 98.8, t, 0.06);
-      lp.frequency.setTargetAtTime(720 + sp * 1140 + (boost ? 400 : 0), t, 0.1);
+      lp.frequency.setTargetAtTime(720 + sp * 1140, t, 0.1);
       lfo.frequency.setTargetAtTime(3.5 + sp * 13, t, 0.12);
-      lg.gain.setTargetAtTime(boost ? 0.75 : 0.55, t, 0.12);
     };
   }
   function engMaglev(ac, out) {    // clean sines a fifth apart with a shimmer — leaves room for the music
@@ -407,12 +410,11 @@
     var bg = ac.createGain(); bg.gain.value = 0.26;
     a.connect(ag); ag.connect(bp); b.connect(bg); bg.connect(bp); bp.connect(out);
     a.start(); b.start();
-    return function (t, sp, boost) {
+    return function (t, sp) {
       var f = 121.6 + sp * 167.2;
       a.frequency.setTargetAtTime(f, t, 0.06);
       b.frequency.setTargetAtTime(f * 1.01, t, 0.06);
-      bp.frequency.setTargetAtTime(940 + sp * 1140 + (boost ? 300 : 0), t, 0.09);
-      bp.Q.setTargetAtTime(boost ? 2.2 : 1.4, t, 0.1);
+      bp.frequency.setTargetAtTime(940 + sp * 1140, t, 0.09);
     };
   }
 

@@ -1958,7 +1958,7 @@
             var t = ac.currentTime;
             var p = Math.min(elapsed / PV_MS, 1);
             var sp = Math.sin(p * Math.PI);     // 0 → 1 → 0: the whole envelope, cruise to near-top
-            tune(t, sp, false);
+            tune(t, sp);
             // Audible even with SFX muted — the same deliberate exception musicPreview makes
             // (it force-unmutes the music bus for the preview's duration). A ▶ that plays silence
             // reads as a broken button, and this is the only way to audition a paid item before
