@@ -2489,6 +2489,8 @@ window.KOMYO_I18N.es = {
   'cos.tube-racer.bike.ghost.desc': 'Apenas está ahí, y se fue antes de que mirases.',
   'challenge.goal.tube-1': 'Haz 800 puntos en Corredor de Tubo',
   'challenge.goal.tube-2': 'Haz 2.000 puntos en Corredor de Tubo',
+  'changelog.e88.title': 'Batir tu récord ya es todo un momento ★',
+  'changelog.e88.b0': 'Nuevo: batir tu propio récord por fin se celebra — en el instante en que lo superas la pantalla destella y aparece un cartel de «¡Nuevo récord!», y la pantalla de puntuación te recibe con confeti y un sonido. En todos los juegos.',
   'changelog.e87.title': 'Corredor Cromado: tu récord de sprint, como tiempo ⏱️',
   'changelog.e87.b0': 'Corrección: al terminar un sprint en Corredor Cromado, la línea MEJOR debajo de tu tiempo final mostraba una distancia en lugar de tu mejor tiempo, así que nunca te decía si de verdad habías batido tu récord.',
   'changelog.e86.title': 'Nuevo juego: Corredor de Tubo 🌀',

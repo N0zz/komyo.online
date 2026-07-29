@@ -1610,6 +1610,19 @@
     }
     return { slugs: slugs, totalScore: totalScore, count: count, goodRuns: goodRuns };
   }
+  // slug → its primary genre, derived from window.GAMES (already in the atomic head for the profile
+  // modal). Every caller used to have to hand this in, which meant one game passed an ARRAY of its
+  // own genres — `['racing','arcade']['asteroids']` is undefined, so distinctGenres silently scored 0
+  // in that game's 🏆 panel. Deriving it here makes the argument unnecessary and the bug unreachable.
+  function genreMap() {
+    var out = {}, list = (typeof window !== 'undefined' && window.GAMES) || [];
+    for (var i = 0; i < list.length; i++) {
+      var g = list[i]; if (!g || !g.slug) continue;
+      var tags = Array.isArray(g.tags) ? g.tags : (g.tag ? [g.tag] : []);
+      out[g.slug] = tags[0] || '';
+    }
+    return out;
+  }
   function chCrossVal(m, a, genreOf) {
     if (m === 'distinctGames') return a.slugs.length;
     if (m === 'totalGames') return a.count;
@@ -1631,7 +1644,7 @@
   function chEval(goal, opts) {
     if (!goal) return null;
     opts = opts || {};
-    var genreOf = opts.genres || null, dStr = opts.day || utcDateStr(), val = 0;
+    var genreOf = opts.genres || genreMap(), dStr = opts.day || utcDateStr(), val = 0;
     if (goal.scope === 'random') {
       var C = chGoals(), isWeek = goal.range === 'week', dn = chDayNum(dStr);
       var idx = isWeek ? Math.floor((dn - CH_WEEK_ANCHOR) / 7) : dn;
@@ -1665,7 +1678,7 @@
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body || !document.createElement) return;
     track('feature_open', { feature: 'challenges', place: 'game' });
-    var slug = opts.slug, genreOf = opts.genres || null, ct = chToday();
+    var slug = opts.slug, genreOf = opts.genres || genreMap(), ct = chToday();
     function card(entry, kindLabel, kind) {
       if (!entry || !entry.goal) return '<div class="gkch-empty">' + t('challenges.noneKind', { kind: kindLabel.toLowerCase() }) + '</div>';
       var g = entry.goal, e = chEval(g, { genres: genreOf, id: entry.id }), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
@@ -1946,7 +1959,11 @@
             var p = Math.min(elapsed / PV_MS, 1);
             var sp = Math.sin(p * Math.PI);     // 0 → 1 → 0: the whole envelope, cruise to near-top
             tune(t, sp, false);
-            master.gain.setTargetAtTime(sound.isMuted() ? 0 : (0.05 + sp * 0.06) * sound.volume(), t, 0.08);
+            // Audible even with SFX muted — the same deliberate exception musicPreview makes
+            // (it force-unmutes the music bus for the preview's duration). A ▶ that plays silence
+            // reads as a broken button, and this is the only way to audition a paid item before
+            // spending trophies on it. The volume slider still applies, exactly as it does for music.
+            master.gain.setTargetAtTime((0.05 + sp * 0.06) * sound.volume(), t, 0.08);
           } catch (e) {}
           if (elapsed >= PV_MS) { if (_pvBtn === btn) stopPv(); else stopPvAudio(); }
         }, 60);
@@ -2241,6 +2258,22 @@
     // wave is the one stat several games already record (asteroids(+), tower-defense, frog-bonk) —
     // forwarding it costs no new event and gives "average wave reached per mode" = the difficulty curve
     if (rec.stats && isFinite(+rec.stats.wave)) ev.wave = +rec.stats.wave;
+    // WHY the run ended, from a closed per-game vocabulary the game supplies (never free text).
+    // `outcome` only says win/lose; balance work needs to know whether the heat system or a specific
+    // hazard is doing the killing — one GLOBAL param, so any game can answer the same question.
+    if (data.endCause) ev.end_cause = String(data.endCause).slice(0, 24);
+    // Per-run RATES the game chose to report. Rates, not counts: a raw count mostly measures how long
+    // the run was, so it cannot be compared between a 2-minute and a 20-minute run — which is exactly
+    // the comparison balance work needs. Numeric only, capped, and only the keys a game opts into via
+    // stats.rates — everything else in stats stays local (profile/best store) as before.
+    if (rec.stats && rec.stats.rates) {
+      var R = rec.stats.rates;
+      for (var rk in R) {
+        if (!Object.prototype.hasOwnProperty.call(R, rk)) continue;
+        var rv = +R[rk];
+        if (isFinite(rv)) ev[rk] = Math.round(rv * 100) / 100;
+      }
+    }
     _runStartMs = 0; // one duration per run — a menu re-show must not re-time the same run
     track('game_play', ev);
     try { if (typeof window !== 'undefined' && window.__syncChalDot) window.__syncChalDot(); } catch (e) {} // this run may have just completed the active challenge → drop its dot
@@ -4159,6 +4192,95 @@
       try { el.style.setProperty(k.indexOf('--') === 0 ? k : '--gkm-' + k, String(v)); } catch (e) {}
     }
   }
+  // ---- live new-best pulse: the moment DURING a run when you pass your old best -------------
+  // The end-screen celebration below rewards you after the fact; this is the one you actually feel,
+  // because it lands while you are still playing. Kit-owned so every game gets the same announcement
+  // from two calls: bestWatch() at run start (captures the bar and re-arms), bestTick(score) per
+  // update. Fires at most once per run, never when there is no previous best to beat (your first ever
+  // run is not a comeback), and never for a score of 0. The GAME adds its own in-engine feedback —
+  // a flash, a shake — because only it knows how to draw on its own canvas.
+  var _bpBar = 0, _bpFired = true;
+  function bestWatch(slug, mode) {
+    var b = 0;
+    try { b = +getBestScore(slug, mode) || 0; } catch (e) { b = 0; }
+    _bpBar = b; _bpFired = !(b > 0);        // no previous best → nothing to beat, stay disarmed
+  }
+  function bestTick(score) {
+    if (_bpFired || !(+score > _bpBar) || !(+score > 0)) return false;
+    _bpFired = true;
+    try { sound.play('newbest'); } catch (e) {}
+    try {
+      if (typeof document === 'undefined' || !document.body || !document.createElement) return true;
+      var el = mkEl('div', 'gamekit-bestpulse', t('menu.newBest', { def: '★ New best!' }));
+      document.body.appendChild(el);
+      setTimeout(function () { try { if (el.parentNode) el.parentNode.removeChild(el); } catch (e2) {} }, 1700);
+    } catch (e) {}
+    return true;
+  }
+
+  // ---- new-best celebration (kit-owned, so every game gets it) ------------------------------
+  // A personal best was only ever a small gold "New best!" tag, and players told us it deserved more.
+  // Two rules shape this: it must add NO layout (the menu-fit budget at 360×640 / 640×360 has no room
+  // to spare, so the burst is an absolutely-positioned overlay, never content), and it must be over
+  // fast — this fires on the screen you use to hit Play again, so anything lingering becomes a tax.
+  // The `newbest` stinger has existed in the kit since day one and nothing ever played it; now it does.
+  function celebrateBest(ov, box) {
+    if (!ov || !box) return;
+    try { sound.play('newbest'); } catch (e) {}
+    try { var tag = box.querySelector && box.querySelector('.gkm-new'); if (tag && tag.classList) tag.classList.add('gkm-new-pop'); } catch (e) {}
+    var reduce = false;
+    try { reduce = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+    if (reduce || typeof requestAnimationFrame !== 'function') return;   // the tag + the sound still land
+    var cv;
+    try {
+      cv = mkEl('canvas', 'gkm-burst');
+      var r = box.getBoundingClientRect ? box.getBoundingClientRect() : { width: 320, height: 240, left: 0, top: 0 };
+      var w = Math.max(80, Math.round(r.width)), h = Math.max(80, Math.round(r.height));
+      var dpr = Math.min(2, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+      cv.width = w * dpr; cv.height = h * dpr;
+      cv.style.width = w + 'px'; cv.style.height = h + 'px';
+      // Mounted on the OVERLAY, not the box: .gkm-box is deliberately not a containing block (its
+      // ::before scrim spans the overlay), so making it one to host this would resize every menu's
+      // scrim. The overlay is position:fixed inset:0, so the box's viewport rect maps straight to
+      // left/top here — and the confetti gets to spill past the card instead of being clipped by it.
+      cv.style.left = Math.round(r.left || 0) + 'px';
+      cv.style.top = Math.round(r.top || 0) + 'px';
+      ov.appendChild(cv);
+      var g = cv.getContext && cv.getContext('2d');
+      if (!g) { try { ov.removeChild(cv); } catch (e2) {} return; }
+      g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // colours come from the menu's own theme, so the burst belongs to the game it fired in
+      var cs = (typeof window !== 'undefined' && window.getComputedStyle) ? window.getComputedStyle(ov) : null;
+      var pick = function (name, dflt) { try { var v = cs && cs.getPropertyValue(name); return (v && v.trim()) || dflt; } catch (e) { return dflt; } };
+      var cols = [pick('--gkm-new', '#ffd166'), pick('--gkm-accent', '#9fe8ff'), '#ffffff'];
+      var P = [], n = 46;
+      for (var i = 0; i < n; i++) {
+        var a = (Math.PI * 2) * (i / n) + Math.random() * 0.2;
+        var sp = 2.6 + Math.random() * 4.4;
+        P.push({ x: w / 2, y: h * 0.34, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 1.6,
+                 s: 2 + Math.random() * 3, c: cols[i % cols.length], rot: Math.random() * 6.28,
+                 vr: (Math.random() - 0.5) * 0.3 });
+      }
+      var t0 = 0, DUR = 1100;
+      var step = function (ts) {
+        if (_menuEl !== ov) { try { ov.removeChild(cv); } catch (e3) {} return; }   // menu changed under us
+        if (!t0) t0 = ts;
+        var el = ts - t0, k = Math.min(1, el / DUR);
+        g.clearRect(0, 0, w, h);
+        g.globalAlpha = 1 - k * k;
+        for (var j = 0; j < P.length; j++) {
+          var p = P[j];
+          p.x += p.vx; p.y += p.vy; p.vy += 0.16; p.vx *= 0.99; p.rot += p.vr;
+          g.save(); g.translate(p.x, p.y); g.rotate(p.rot);
+          g.fillStyle = p.c; g.fillRect(-p.s / 2, -p.s / 2, p.s, p.s * 1.7);
+          g.restore();
+        }
+        if (k < 1) requestAnimationFrame(step);
+        else { try { ov.removeChild(cv); } catch (e4) {} }
+      };
+      requestAnimationFrame(step);
+    } catch (e) { try { if (cv && cv.parentNode) cv.parentNode.removeChild(cv); } catch (e5) {} }
+  }
   function fmtScore(n) { return (typeof n === 'number' && n.toLocaleString) ? n.toLocaleString() : String(n); }
   function mkEl(tag, cls, html) {
     var e = document.createElement(tag);
@@ -4467,12 +4589,19 @@
     });
 
     var toggleRefs = [];
+    // Toggles live in ONE container so the stylesheet can lay them out — with exactly two of them and
+    // room to spare it pairs them side by side, saving a whole row of menu height. This used to be
+    // impossible from CSS (they were siblings of a flex column), so tube-racer measured the rows and
+    // wrote inline width/margin/negative-margin onto these kit elements from a timer. That broke in
+    // any locale where one label wrapped and the other didn't, and only test:menus [en] ever saw it.
+    var togWrap = toggles.length ? mkEl('div', 'gkm-checks' + (toggles.length === 2 ? ' gkm-checks-pair' : '')) : null;
+    if (togWrap) scroll.appendChild(togWrap);
     toggles.forEach(function (t) {
       var rowT = mkEl('div', 'gkm-checkrow');
       var lab = mkEl('label', 'gkm-check');
       lab.appendChild(mkEl('span', 'gkm-check-box'));
       lab.appendChild(mkEl('span', 'gkm-check-txt', t.label + (EASY && t.kid === true ? ' 🐣' : '') + (t.caption ? ' <span class="cap">' + t.caption + '</span>' : '')));
-      rowT.appendChild(lab); scroll.appendChild(rowT);
+      rowT.appendChild(lab); togWrap.appendChild(rowT);
       var ref = { el: lab, kind: 'toggle', id: t.id, cfg: t };
       lab.addEventListener('click', function (e) { if (e && e.preventDefault) e.preventDefault(); toggleOne(ref); setFocusEl(lab); });
       lab.addEventListener('mouseenter', function () { setFocusEl(lab); });
@@ -4571,6 +4700,7 @@
         _bdRaf = requestAnimationFrame(bdLoop);
       }
     }
+    if (kind === 'end' && cfg.newBest) celebrateBest(ov, box);
     if (shareHost) { try { shareRow(shareHost, cfg.share); } catch (e) {} }
 
     var focusables = choiceRefs.concat(pickRefs).concat(toggleRefs).concat(popupRefs).concat(actionRefs);
@@ -5097,7 +5227,7 @@
     };
   }
 
-  var api = { lock: lock, levelsScreen: levelsScreen, hints: makeHints, hintButton: hintButton, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langFlag: function (code) { return I18N_FLAG_SVG[String(code || '').toLowerCase()] || ''; }, langLabel: function (code) { var c = String(code || '').toLowerCase(); for (var i = 0; i < I18N_LANGS.length; i++) if (I18N_LANGS[i].code === c) return I18N_LANGS[i].label; return c; }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
+  var api = { lock: lock, levelsScreen: levelsScreen, hints: makeHints, hintButton: hintButton, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, bestWatch: bestWatch, bestTick: bestTick, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langFlag: function (code) { return I18N_FLAG_SVG[String(code || '').toLowerCase()] || ''; }, langLabel: function (code) { var c = String(code || '').toLowerCase(); for (var i = 0; i < I18N_LANGS.length; i++) if (I18N_LANGS[i].code === c) return I18N_LANGS[i].label; return c; }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

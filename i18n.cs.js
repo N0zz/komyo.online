@@ -2488,6 +2488,8 @@ window.KOMYO_I18N.cs = {
   'cos.tube-racer.bike.ghost.desc': 'Skoro tam není a je pryč, než ses podíval.',
   'challenge.goal.tube-1': 'Získej 800 bodů v Tunelovém jezdci',
   'challenge.goal.tube-2': 'Získej 2 000 bodů v Tunelovém jezdci',
+  'changelog.e88.title': 'Překonání rekordu je teď událost ★',
+  'changelog.e88.b0': 'Novinka: překonání vlastního rekordu se konečně slaví — ve chvíli, kdy ho překonáš, obrazovka blikne a objeví se nápis „Nový rekord!“, a obrazovka výsledku tě přivítá konfetami a zvukem. V každé hře.',
   'changelog.e87.title': 'Chromový běžec: tvůj rekord ve sprintu jako čas ⏱️',
   'changelog.e87.b0': 'Oprava: po dokončení sprintu v Chromovém běžci řádek NEJLEPŠÍ pod tvým výsledným časem ukazoval vzdálenost místo tvého nejlepšího času — takže ti nikdy neřekl, jestli jsi svůj rekord opravdu překonal.',
   'changelog.e86.title': 'Nová hra: Tunelový jezdec 🌀',

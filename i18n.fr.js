@@ -2488,6 +2488,8 @@ window.KOMYO_I18N.fr = {
   'cos.tube-racer.bike.ghost.desc': 'À peine là, et parti avant que vous n\'ayez regardé.',
   'challenge.goal.tube-1': 'Marquez 800 dans Coureur de Tube',
   'challenge.goal.tube-2': 'Marquez 2 000 dans Coureur de Tube',
+  'changelog.e88.title': 'Battre son record est enfin un événement ★',
+  'changelog.e88.b0': 'Nouveau : battre votre propre record est enfin célébré — à l\'instant où vous le dépassez, l\'écran clignote et une bannière « Nouveau record ! » apparaît, et l\'écran de score vous accueille avec des confettis et un son. Dans tous les jeux.',
   'changelog.e87.title': 'Coureur Chromé : votre record de sprint, en temps ⏱️',
   'changelog.e87.b0': 'Correction : après avoir terminé un sprint dans Coureur Chromé, la ligne MEILLEUR sous votre temps final affichait une distance au lieu de votre meilleur temps — elle ne vous disait donc jamais si vous aviez vraiment battu votre record.',
   'changelog.e86.title': 'Nouveau jeu : Coureur de Tube 🌀',
