@@ -297,6 +297,37 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
   .gamekit-menu .gkm-action.primary { padding: 12px; }
 }
 .gamekit-menu .gkm-best .gkm-new { color: var(--gkm-new, #ffd86b); opacity: 1; }
+/* The live pulse: fires mid-run the moment you pass your old best. Sits above the HUD but below the
+   menu layer (z 60), never takes pointer events, and is gone in 1.7s — it must not become something
+   you wait out. Centred high so it does not cover the middle of the play area. */
+.gamekit-bestpulse { position: fixed; left: 50%; top: 22%; transform: translate(-50%, -50%); z-index: 55;
+  pointer-events: none; font: 800 clamp(20px, 6vw, 34px)/1 var(--gkm-font, ui-monospace, "SFMono-Regular", Menlo, monospace);
+  letter-spacing: 2px; white-space: nowrap; color: var(--gkm-new, #ffd86b);
+  text-shadow: 0 0 12px rgba(255, 216, 107, .85), 0 0 34px rgba(255, 216, 107, .45), 0 2px 6px rgba(0, 0, 0, .7);
+  animation: gkm-bestpulse 1700ms ease-out both; }
+@keyframes gkm-bestpulse {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.55); }
+  12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.22); }
+  26%  { transform: translate(-50%, -50%) scale(1); }
+  72%  { opacity: 1; transform: translate(-50%, -62%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -86%) scale(.96); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gamekit-bestpulse { animation: gkm-bestpulse-fade 1700ms linear both; }
+  @keyframes gkm-bestpulse-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+}
+/* New-best celebration. The burst is position:absolute inside .gkm-box and pointer-events:none, so it
+   adds NO height — the menu-fit budget at 360×640 / 640×360 has none to give — and never blocks a tap
+   on "Play again" underneath it. .gkm-box is overflow:hidden, which also clips the confetti to the card. */
+.gamekit-menu .gkm-burst { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 3; }
+.gamekit-menu .gkm-best .gkm-new.gkm-new-pop { display: inline-block; animation: gkm-newpop 620ms cubic-bezier(.2, 1.5, .4, 1) both;
+  text-shadow: 0 0 10px var(--gkm-new, #ffd86b); }
+@keyframes gkm-newpop {
+  0%   { transform: scale(.6) rotate(-4deg); opacity: 0; }
+  45%  { transform: scale(1.35) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .gamekit-menu .gkm-best .gkm-new.gkm-new-pop { animation: none; } }
 .gamekit-menu .gkm-line { margin: 2px 0; font-size: 12px; opacity: .7; }
 /* a description line right after a group's button row (e.g. Meadow Flyer's Day/Night) needs breathing room */
 .gamekit-menu .gkm-row + .gkm-line { margin-top: 14px; }
@@ -610,6 +641,18 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
 
 /* ---- boolean checkbox (toggles) ---- */
 .gamekit-menu .gkm-checkrow { display: flex; justify-content: center; margin-top: 16px; }
+/* Exactly two toggles pair into one row wherever there is width for it — a whole row of height back,
+   which is what lets four mode cards AND the toggles fit a 640×360 landscape phone. Grid (not measured
+   margins) means a label that wraps in cs/uk/pl grows its own cell instead of overlapping its
+   neighbour. Below 420px they stack again: two half-width rows there clip their labels. */
+.gamekit-menu .gkm-checks { display: contents; }
+@media (min-width: 420px) {
+  .gamekit-menu .gkm-checks-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px;
+    align-items: start; margin-top: 16px; }
+  .gamekit-menu .gkm-checks-pair .gkm-checkrow { margin-top: 0; }
+  .gamekit-menu .gkm-checks-pair .gkm-checkrow:first-child { justify-content: flex-end; }
+  .gamekit-menu .gkm-checks-pair .gkm-checkrow:last-child { justify-content: flex-start; }
+}
 .gamekit-menu .gkm-check { display: inline-flex; align-items: center; gap: 11px; cursor: pointer; -webkit-user-select: none; user-select: none;
   background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 11px; padding: 10px 16px;
   transition: border-color .14s, box-shadow .14s; }
@@ -901,7 +944,11 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
    (the CRT caret already owns the top-right) and keep only the short price/On line clear of it, so
    the name gets the cell's full text column and wraps like any other item. */
 .gamekit-shoppanel .gksp-cell.gksp-has-pv .gksp-pv { position: absolute; right: 6px; bottom: 6px; margin: 0; }
-.gamekit-shoppanel .gksp-cell.gksp-has-pv .gksp-sub { padding-right: 28px; }
+/* padding-right RESERVES the ▶'s corner but cannot stop a single unbreakable word from spilling into
+   it: the column is ~45px and "Default" is ~46px, so it slid straight under the button. Let the label
+   break mid-word instead — two short lines beat an overlap, and it degrades the same way in every
+   locale (Domyślne / Padrão / За замовчуванням are all longer than the English). */
+.gamekit-shoppanel .gksp-cell.gksp-has-pv .gksp-sub { padding-right: 26px; overflow-wrap: break-word; }
 .gamekit-shoppanel .gksp-pv { color: var(--gkm-accent, #9fe8ff); font-size: 11px; }
 /* anchored CRT colour dropdown (fixed-positioned near the caret; lives at body level, so unscoped) */
 .gksp-crt-dd { display: flex; flex-direction: column; gap: 3px; min-width: 152px; padding: 6px;

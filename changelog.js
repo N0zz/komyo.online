@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-29', title: 'Beating your record is an event now ★', items: [
+    'New: breaking your own best is finally celebrated — the moment you pass it mid-run the screen flashes and a "New best!" banner drops in, and the score screen greets you with confetti and a sound. In every game.',
+  ] },
   { date: '2026-07-29', title: 'Chrome Runner: your sprint record, as a time ⏱️', items: [
     'Fix: after clearing a Chrome Runner sprint, the BEST line under your finishing time showed a distance instead of your best time — so it never told you whether you had actually beaten your record.',
   ] },

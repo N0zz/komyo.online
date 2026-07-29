@@ -2492,6 +2492,8 @@ window.KOMYO_I18N.pl = {
   'cos.tube-racer.bike.ghost.desc': 'Prawie go nie ma, a zniknął, zanim spojrzałeś.',
   'challenge.goal.tube-1': 'Zdobądź 800 punktów w Rurze Wyścigowej',
   'challenge.goal.tube-2': 'Zdobądź 2000 punktów w Rurze Wyścigowej',
+  'changelog.e88.title': 'Pobicie rekordu to teraz wydarzenie ★',
+  'changelog.e88.b0': 'Nowość: pobicie własnego rekordu jest wreszcie celebrowane — w chwili gdy go przekraczasz, ekran błyska i pojawia się napis „Nowy rekord!”, a ekran wyniku wita cię konfetti i dźwiękiem. W każdej grze.',
   'changelog.e87.title': 'Chromowany Biegacz: twój rekord sprintu jako czas ⏱️',
   'changelog.e87.b0': 'Poprawka: po ukończeniu sprintu w Chromowanym Biegaczu wiersz NAJLEPSZY pod twoim czasem końcowym pokazywał odległość, a nie twój najlepszy czas — więc nigdy nie mówił, czy naprawdę pobiłeś swój rekord.',
   'changelog.e86.title': 'Nowa gra: Rura Wyścigowa 🌀',
