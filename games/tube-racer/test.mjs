@@ -204,6 +204,16 @@ section('Tube Racer: Sprint records a TIME in milliseconds, only on a clear');
   ok(g2.T().cleared === false, 'a dead sprint is not a clear');
   const rec2 = pb(g2.store, 'Sprint');
   ok(!rec2.time, 'a failed sprint records time 0 (got ' + rec2.time + ')');
+
+  // ...and the START MENU has to show that time. The Sprint card was hardcoded to a best of 0, so
+  // it read "BEST 0" forever — a stored record the player could never see.
+  const fresh = runGame();
+  ok(fresh.T().cardBest('sprint') === '—', 'with no sprint record the card shows a dash, not 0');
+  ok(typeof fresh.T().cardBest('classic') === 'number', 'score modes still show a number');
+  const withPb = runGame({ store: { gamekit_pb: JSON.stringify({ 'tube-racer': {
+    Sprint: { score: 2204, time: 83450, plays: 2 }, Classic: { score: 14238, plays: 9 } } }) } });
+  ok(withPb.T().cardBest('sprint') === '01:23.45', 'the sprint card shows the best TIME as mm:ss.cs (got ' + withPb.T().cardBest('sprint') + ')');
+  ok(withPb.T().cardBest('classic') === 14238, 'the classic card still shows the best score');
 }
 
 section('Tube Racer: best score persists + end menu flow');
