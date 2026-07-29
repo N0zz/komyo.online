@@ -36,7 +36,7 @@ i18n.js         i18n LOADER + the en (def-source) dict; each other locale is its
 cosmetics.js    window.COSMETICS — the cosmetics registry (skins per game + site-wide cursors, painters,
                 prices in 🏆 trophies); loaded like challenges.js (catalogue AND games, in the SW SHELL).
                 A cosmetic that IS a sound carries `music` (kit track id) or **`audio: (ac,out)=>tune`**
-                (`tune(t, sp01, boost)`, a continuous graph — an engine drone); both get the shop's ▶
+                (`tune(t, sp01)`, a continuous graph — an engine drone); both get the shop's ▶
                 preview. The BUILDER lives on the item, not in the game: the shop also opens on the
                 catalogue, where the game's own code never loads (that's why Tube Racer's engines moved
                 here). Games read the equipped one from the registry — see `ENGINES` in tube-racer.
