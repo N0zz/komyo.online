@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tube Racer — render lab (speed feel + far-field rotation)</title>
+<style>
+  :root { --cy:#4ff2ff; --mag:#ff3d8b; --amb:#ffb43d; --ink:#dff6ff; }
+  *{box-sizing:border-box}
+  body { margin:0; background:#05080f; color:var(--ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding:18px 16px 60px; }
+  h1 { font-size:17px; letter-spacing:2px; margin:0 0 4px; color:#fff }
+  .sub { font-size:12px; opacity:.62; margin-bottom:14px; line-height:1.6; max-width:1100px }
+  .tabs { display:flex; gap:8px; margin-bottom:14px }
+  .tabs button { font-size:12px; letter-spacing:1px }
+  .bar { position:sticky; top:0; background:linear-gradient(#05080f 76%, rgba(5,8,15,0));
+    padding:8px 0 12px; margin-bottom:10px; z-index:3 }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:7px }
+  label { font-size:11px; letter-spacing:1px; opacity:.72 }
+  input[type=range] { width:210px; accent-color:var(--cy) }
+  button { background:#0d1a26; color:var(--ink); border:1px solid rgba(79,242,255,.3);
+    border-radius:9px; padding:7px 12px; font:inherit; font-size:11.5px; cursor:pointer }
+  button:hover { border-color:var(--cy) }
+  button.on { background:#12303d; border-color:var(--cy); box-shadow:0 0 12px rgba(79,242,255,.22) }
+  button.warn.on { background:#331226; border-color:var(--mag); box-shadow:0 0 12px rgba(255,61,139,.25) }
+  .stage { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-start }
+  .pane { flex:1 1 420px; min-width:300px; max-width:620px }
+  .pane h3 { font-size:12px; letter-spacing:1.5px; margin:0 0 6px; color:#fff; opacity:.85 }
+  .pane h3 em { font-style:normal; font-size:10px; opacity:.55; margin-left:7px; letter-spacing:1px }
+  canvas { width:100%; aspect-ratio:1/1; display:block; border:1px solid rgba(255,255,255,.12);
+    border-radius:12px; background:#03050c }
+  .cues { flex:1 1 260px; min-width:250px }
+  .cue { border:1px solid rgba(255,255,255,.11); border-radius:10px; padding:9px 11px; margin-bottom:8px;
+    background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,0)) }
+  .cue.live { border-color:var(--cy) }
+  .cue .hd { display:flex; gap:9px; align-items:center; margin-bottom:5px }
+  .cue .hd b { font-size:12px; color:#fff; letter-spacing:.5px }
+  .cue p { font-size:11px; line-height:1.5; opacity:.7; margin:0 }
+  .cue .src { font-size:10px; letter-spacing:1px; color:var(--amb); opacity:.9 }
+  .hide { display:none !important }
+  .note { font-size:11px; opacity:.5; margin-top:22px; line-height:1.7; max-width:1100px }
+  .verdict { font-size:11.5px; line-height:1.6; opacity:.8; border-left:2px solid var(--mag);
+    padding:2px 0 2px 11px; margin:12px 0 0; max-width:620px }
+  .readout { font-size:11px; opacity:.7 }
+  .big { font-size:20px; font-weight:700; color:#fff }
+</style>
+</head>
+<body>
+
+<h1>TUBE RACER — RENDER LAB</h1>
+<div class="sub">
+  Two questions, one tunnel. The engine below is the game's own projection and painter, copied verbatim,
+  so what you see is what the game does — the toggles are the only difference.
+</div>
+
+<div class="tabs">
+  <button id="tabSpeed" class="on">1 · SPEED FEEL (A/B)</button>
+  <button id="tabRot">2 · FAR-FIELD ROTATION</button>
+</div>
+
+<!-- ============================== SPEED ============================== -->
+<div id="paneSpeed">
+  <div class="bar">
+    <div class="row">
+      <label>SPEED</label><input id="spd" type="range" min="10" max="42" step="0.5" value="42">
+      <span class="readout"><span class="big" id="kmh">2058</span> km/h · M <span id="mach">1.68</span>
+        · <span id="spdU">42</span> u/s</span>
+      <button id="cycle">▶ CRUISE ⇄ BOOST</button>
+    </div>
+    <div class="row">
+      <button id="allOn">ALL CUES ON</button>
+      <button id="allOff">ALL OFF</button>
+      <label>· right pane only; left pane is always today's build</label>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="pane">
+      <h3>SHIPS TODAY <em>reference</em></h3>
+      <canvas id="cvA"></canvas>
+    </div>
+    <div class="pane">
+      <h3>WITH CUES <em>toggle at right</em></h3>
+      <canvas id="cvB"></canvas>
+    </div>
+    <div class="cues" id="cueList"></div>
+  </div>
+
+  <div class="verdict">
+    Why it reads slow today: <b>PERSP = 0.55</b> flattens the projection, so things grow at about half
+    the rate a real 1/z view gives — and growth rate (looming) is the main speed signal the eye uses.
+    That flattening is deliberate and worth keeping (it's what makes a barrier readable 40 units out),
+    so every cue below adds speed information <i>without</i> touching it.
+  </div>
+</div>
+
+<!-- ============================ ROTATION ============================ -->
+<div id="paneRot" class="hide">
+  <div class="bar">
+    <div class="row">
+      <label>SPEED</label><input id="rspd" type="range" min="0" max="42" step="0.5" value="16">
+      <span class="readout"><span id="rspdR">16</span> u/s</span>
+      <label>YOUR ROLL</label><input id="rroll" type="range" min="-100" max="100" step="1" value="55">
+      <span class="readout" id="rrollR">+2.5 rad/s</span>
+    </div>
+    <div class="row">
+      <button id="rPause">❙❙ FREEZE</button>
+      <button id="rSlow">SLOW-MO ×0.2</button>
+      <button id="rFixAll" class="warn">↯ APPLY ALL FIXES</button>
+      <button id="rRaw">↺ BACK TO TODAY</button>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="pane">
+      <h3>FAR FIELD <em>watch an obstacle from the fog to your face</em></h3>
+      <canvas id="cvR"></canvas>
+    </div>
+    <div class="cues" id="rotList"></div>
+  </div>
+
+  <div class="verdict">
+    What to do: freeze the roll (set YOUR ROLL to 0) and watch a far obstacle. If it still crawls sideways
+    as it approaches, that is <b>not</b> a mechanic — it's the offset clamp in <code>ctr()</code>. Each
+    obstacle is drawn as one wedge between two arcs on <i>two independently clamped centres</i>, and the
+    near end's clamp tightens as it comes at you, so the wedge shears a little more every frame. Sliding
+    sideways while growing is exactly "rolling along the pipe towards us".
+  </div>
+</div>
+
+<div class="note">
+  Both panes run the real numbers: PZ 1.6 · ZFAR 104 · RING 0.8 · PERSP 0.55 · 49 km/h per unit/s ·
+  cruise 14 → vmax 42 u/s (686 → 2058 km/h, M 0.56 → 1.68). The feature track is seeded, so both A/B
+  canvases show the identical world at the identical instant.
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var TAU = Math.PI * 2;
+  var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+  var lerp = function (a, b, t) { return a + (b - a) * t; };
+
+  // ================= verbatim from games/tube-racer/index.html =================
+  var PZ = 1.6, STRIP_NEAR = 3.5, ZFAR = 104, RING = 0.8, PERSP = 0.55;
+  var KMH = 49, MACH1 = 1225;
+  var CURVE_X = 0.0006, CURVE_Y = 0.00035;
+  var curveX = function (z) { return Math.sin(z * 0.0072) * CURVE_X + Math.sin(z * 0.0191 + 1.7) * CURVE_X * 0.5; };
+  var curveY = function (z) { return Math.sin(z * 0.0104 + 0.6) * CURVE_Y + Math.sin(z * 0.0263) * CURVE_Y * 0.4; };
+  var OFF_N = 58, OFF_H = ZFAR / OFF_N;
+  var PAL = {
+    coolFill: '110,190,255', coolRim: '190,235,255',
+    accFill: '255,190,80', accRim: '255,225,150',
+    fricFill: '226,84,20', fricHatch: '255,132,52', fricRim: '255,96,32',
+    wallBody: '90,10,40', wallFace: '255,61,139', wallEdge: '255,190,220',
+    sentBody: '46,16,74', sentFace: '186,104,255', sentEdge: '228,196,255',
+    plugBody: '30,40,52', plugFace: '120,146,168', plugEdge: '196,222,240'
+  };
+  var pal = function (k, a) { return 'rgba(' + PAL[k] + ',' + (+a).toFixed(3) + ')'; };
+  var TB = { ring: [79, 242, 255], seam: [255, 180, 61], fog: [30, 86, 130], bg: ['#0a1c33', '#061021'] };
+  var rgba = function (c, a) { return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a.toFixed(3) + ')'; };
+
+  // ---- per-canvas view (the game keeps this in module state; the lab needs two) ----
+  function mkView(id) {
+    var cv = document.getElementById(id);
+    return { cv: cv, g: cv.getContext('2d'), W: 0, H: 0, bcx: 0, bcy: 0, bHalf: 1, focal: 1,
+             offX: new Float64Array(OFF_N + 1), offY: new Float64Array(OFF_N + 1) };
+  }
+  function fit(V) {
+    var r = V.cv.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    V.W = Math.max(80, Math.round(r.width)); V.H = V.W;
+    V.cv.width = V.W * dpr; V.cv.height = V.H * dpr;
+    V.g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    V.bcx = V.W / 2; V.bcy = V.H / 2; V.bHalf = V.W / 2;
+    V.focal = (V.bHalf * 0.93) * Math.pow(PZ, PERSP);
+  }
+  var rad = function (V, z) { return V.focal / Math.pow(z, PERSP); };
+  function buildOffsets(V, dist) {
+    var hx = 0, hy = 0, x = 0, y = 0;
+    V.offX[0] = 0; V.offY[0] = 0;
+    for (var i = 1; i <= OFF_N; i++) {
+      var wz = dist + (i - 0.5) * OFF_H;
+      hx += curveX(wz) * OFF_H; hy += curveY(wz) * OFF_H;
+      x += hx * OFF_H; y += hy * OFF_H;
+      V.offX[i] = x; V.offY[i] = y;
+    }
+  }
+  // `rFix` = the proposed fix: clamp ONCE per feature (at its near edge) and reuse that factor for
+  // both arcs, so a wedge can never shear. `rOff` = no clamp at all, to prove the clamp is the cause.
+  function ctr(V, z, r, mode, shared) {
+    var u = clamp(z / OFF_H, 0, OFF_N), i = u | 0, f = u - i, j = Math.min(OFF_N, i + 1);
+    var X = (V.offX[i] + (V.offX[j] - V.offX[i]) * f) * r;
+    var Y = (V.offY[i] + (V.offY[j] - V.offY[i]) * f) * r;
+    if (mode === 'off') return [V.bcx + X, V.bcy + Y];
+    if (mode === 'shared' && shared != null) return [V.bcx + X * shared, V.bcy + Y * shared];
+    var room = Math.max(0, V.bHalf - r);
+    return [V.bcx + clamp(X, -room, room), V.bcy + clamp(Y, -room, room)];
+  }
+  // how much the clamp at zA would squeeze — reused for both arcs in 'shared' mode
+  function shareFactor(V, z, r) {
+    var u = clamp(z / OFF_H, 0, OFF_N), i = u | 0, f = u - i, j = Math.min(OFF_N, i + 1);
+    var X = (V.offX[i] + (V.offX[j] - V.offX[i]) * f) * r;
+    var Y = (V.offY[i] + (V.offY[j] - V.offY[i]) * f) * r;
+    var room = Math.max(0, V.bHalf - r), m = Math.max(Math.abs(X), Math.abs(Y));
+    return m > room && m > 0 ? room / m : 1;
+  }
+  function sector(V, zA, rA, zB, rB, a0, a1, mode, shared) {
+    var A = ctr(V, zA, rA, mode, shared), B = ctr(V, zB, rB, mode, shared);
+    var g = V.g;
+    g.beginPath();
+    g.arc(A[0], A[1], rA, a0, a1);
+    g.arc(B[0], B[1], rB, a1, a0, true);
+    g.closePath();
+  }
+
+  // ---- seeded track (same shapes the game spawns) ----
+  var rngS = 1;
+  var srand = function (s) { rngS = (s | 0) || 1; };
+  var rnd = function () { rngS = (rngS * 1664525 + 1013904223) & 0x7fffffff; return rngS / 0x7fffffff; };
+  function buildTrack(span, spin) {
+    srand(20260729);
+    var out = [];
+    for (var z = 24; z < span; z += 16 + rnd() * 20) {
+      var r = rnd(), a = rnd() * TAU;
+      if (r < 0.22) out.push({ k: 'wall', z: z, len: 1.5, a: a, w: TAU - 2.6 });
+      else if (r < 0.42) { // ROTOR — the bars that spin. This is what looks wrong at range.
+        var av = (rnd() < 0.5 ? -1 : 1) * (0.5 + rnd() * 0.7);
+        for (var i = 0; i < 2; i++) out.push({ k: 'beam', z: z, len: 1.5, a: a + i * Math.PI, w: 0.9, av: spin ? av : 0, x: true });
+      }
+      else if (r < 0.56) out.push({ k: 'beam', z: z, len: 1.6, a: a, w: 0.62, homes: 0 });
+      else if (r < 0.78) out.push({ k: 'cool', z: z, len: 30 + rnd() * 24, a: a, w: 0.7 });
+      else if (r < 0.93) out.push({ k: 'acc', z: z, len: 40 + rnd() * 22, a: a, w: 0.4 });
+      else out.push({ k: 'friction', z: z, len: 26 + rnd() * 14, a: 0, w: TAU });
+    }
+    return out;
+  }
+
+  // ================= the painter (game's paintTube + the lab's toggles) =================
+  function paint(V, feats, dRender, saFn, machF, O) {
+    var g = V.g, W = V.W, H = V.H;
+    buildOffsets(V, dRender);
+    // speed-coupled focal pull — the "world rushes in" cue. Never touches PERSP.
+    var baseFocal = (V.bHalf * 0.93) * Math.pow(PZ, PERSP);
+    V.focal = baseFocal * (O.focalPull ? (1 - clamp((machF - 0.56) / 1.12, 0, 1) * 0.06) : 1);
+
+    g.fillStyle = '#03050c'; g.fillRect(0, 0, W, H);
+    var bg = g.createRadialGradient(V.bcx, V.bcy, 0, V.bcx, V.bcy, Math.max(W, H) * 0.7);
+    bg.addColorStop(0, TB.bg[0]); bg.addColorStop(0.5, TB.bg[1]); bg.addColorStop(1, '#02040a');
+    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+
+    var sf = clamp((machF - 0.56) / 1.12, 0, 1);     // 0 at cruise, 1 at vmax
+
+    // ---- rings
+    if (O.rings !== false) {
+      var kA = Math.ceil((dRender + PZ) / RING), kB = Math.floor((dRender + ZFAR) / RING);
+      for (var k = kB; k >= kA; k--) {
+        var z = k * RING - dRender;
+        var lod = z < 7 ? 1 : z < 18 ? 2 : z < 40 ? 4 : 8;
+        if (O.ringSpeed && sf > 0.5 && z >= 40) lod = 4;   // more texture in the far field at speed
+        if (k % lod) continue;
+        var r = rad(V, z), t = 1 - z / ZFAR, lit = (k % 8 === 0);
+        var a;
+        if (O.ringSpeed) {
+          // pull the r-cutoff in from 30px to 14px (30 erases the far HALF of the tube) and lift
+          // contrast modestly with speed. The near field must stay the brightest thing on screen —
+          // boosting the far rings hard just turns the vanishing point into a glowing blob.
+          a = Math.pow(t, 1.2) * (lit ? 0.6 : 0.24) * (1 + sf * 0.3) * clamp((r - 14) / 38, 0, 1);
+        } else {
+          a = Math.pow(t, 1.2) * (lit ? 0.6 : 0.24) * clamp((r - 30) / 45, 0, 1);
+        }
+        if (a < 0.012) continue;
+        if (O.farOnly && z < 34) continue;
+        var C = ctr(V, z, r, O.clampMode);
+        g.lineWidth = (lit ? 2 : 1) * (O.ringSpeed ? 1 + sf * 0.35 : 1);
+        g.strokeStyle = rgba(TB.ring, Math.min(1, a));
+        g.beginPath(); g.arc(C[0], C[1], r, 0, TAU); g.stroke();
+      }
+      // extra dense near-field rings, only above cruise: cheap, strong flow right where the eye is
+      if (O.nearRings && sf > 0.05) {
+        var step = 0.4, k2A = Math.ceil((dRender + PZ) / step), k2B = Math.floor((dRender + 7) / step);
+        for (var k2 = k2B; k2 >= k2A; k2--) {
+          if (k2 % 2 === 0) continue;                      // interleave, don't double the real rings
+          var z2 = k2 * step - dRender, r2 = rad(V, z2);
+          var C2 = ctr(V, z2, r2, O.clampMode);
+          g.lineWidth = 1; g.strokeStyle = rgba(TB.ring, 0.10 * sf);
+          g.beginPath(); g.arc(C2[0], C2[1], r2, 0, TAU); g.stroke();
+        }
+      }
+    }
+
+    // ---- fog at the vanishing point
+    var ZFOG = ZFAR * 0.173, rfog = rad(V, ZFOG), F = ctr(V, ZFOG, rfog, O.clampMode);
+    var fg = g.createRadialGradient(F[0], F[1], 0, F[0], F[1], rfog);
+    fg.addColorStop(0, rgba(TB.fog, 0.55)); fg.addColorStop(0.5, rgba(TB.fog, 0.26)); fg.addColorStop(1, rgba(TB.fog, 0));
+    g.fillStyle = fg; g.beginPath(); g.arc(F[0], F[1], rfog, 0, TAU); g.fill();
+
+    // ---- seams (run ALONG z, so they never flow past you — that's part of the speed problem)
+    if (O.seams !== false) {
+      var SEG = 12;
+      for (var i2 = 0; i2 < 16; i2++) {
+        var aa = saFn(i2 * TAU / 16), c = Math.cos(aa), s = Math.sin(aa), key = (i2 === 0);
+        g.strokeStyle = key ? rgba(TB.seam, 0.55) : rgba(TB.ring, 0.2);
+        g.lineWidth = key ? 2.5 : 1;
+        g.beginPath();
+        for (var j2 = 0; j2 <= SEG; j2++) {
+          var zz = PZ * Math.pow(ZFAR / PZ, j2 / SEG), rr = rad(V, zz), P = ctr(V, zz, rr, O.clampMode);
+          var X = P[0] + c * rr, Y = P[1] + s * rr;
+          if (j2) g.lineTo(X, Y); else g.moveTo(X, Y);
+        }
+        g.stroke();
+      }
+    }
+
+    var vis = feats.filter(function (f) { return f.z + f.len > dRender - 1 && f.z < dRender + ZFAR; })
+                   .sort(function (a, b) { return b.z - a.z; });
+
+    // ---- strips
+    for (var vi = 0; vi < vis.length; vi++) {
+      var f = vis[vi];
+      if (f.k !== 'cool' && f.k !== 'acc') continue;
+      var zn = Math.max(STRIP_NEAR, f.z - dRender), zf = Math.min(ZFAR, f.z + f.len - dRender);
+      if (zf <= zn) continue;
+      var a0 = saFn(f.a), a1 = saFn(f.a + f.w);
+      var steps = clamp(Math.ceil((zf - zn) / 5), 1, 24);
+      for (var s3 = 0; s3 < steps; s3++) {
+        var za = zn + (zf - zn) * s3 / steps, zb = zn + (zf - zn) * (s3 + 1) / steps;
+        var al = 0.08 + Math.pow(1 - za / ZFAR, 1.6) * 0.34;
+        g.fillStyle = f.k === 'cool' ? pal('coolFill', al) : pal('accFill', al * 0.9);
+        sector(V, za, rad(V, za), zb, rad(V, zb), a0, a1, O.clampMode); g.fill();
+      }
+    }
+
+    // ---- friction bands
+    for (var vi2 = 0; vi2 < vis.length; vi2++) {
+      var ff = vis[vi2];
+      if (ff.k !== 'friction') continue;
+      var fzn = Math.max(STRIP_NEAR, ff.z - dRender), fzf = Math.min(ZFAR, ff.z + ff.len - dRender);
+      if (fzf <= fzn) continue;
+      var fsteps = clamp(Math.ceil((fzf - fzn) / 6), 1, 16);
+      for (var s4 = 0; s4 < fsteps; s4++) {
+        var fza = fzn + (fzf - fzn) * s4 / fsteps, fzb = fzn + (fzf - fzn) * (s4 + 1) / fsteps;
+        g.fillStyle = pal('fricFill', 0.07 + Math.pow(1 - fza / ZFAR, 1.6) * 0.24);
+        sector(V, fza, rad(V, fza), fzb, rad(V, fzb), 0, TAU, O.clampMode); g.fill();
+      }
+      var frn = rad(V, fzn), N = ctr(V, fzn, frn, O.clampMode);
+      g.strokeStyle = pal('fricRim', 0.28 + Math.pow(1 - fzn / ZFAR, 2) * 0.58);
+      g.lineWidth = 2.5; g.beginPath(); g.arc(N[0], N[1], frn * 0.985, 0, TAU); g.stroke();
+    }
+
+    // ---- obstacles
+    for (var vi3 = 0; vi3 < vis.length; vi3++) {
+      var o = vis[vi3];
+      if (o.k !== 'wall' && o.k !== 'beam' && o.k !== 'plug') continue;
+      var ozn = Math.max(PZ, o.z - dRender), ozf = Math.min(ZFAR, o.z + o.len - dRender);
+      if (ozf <= ozn) continue;
+      if (O.farOnly && ozn < 34) continue;
+      var oa0 = saFn(o.a), oa1 = saFn(o.a + o.w);
+      var RN = rad(V, ozn), RF = rad(V, ozf), near = 1 - ozf / ZFAR, gl = Math.pow(near, 2.2);
+      // THE PROPOSED FIX: obstacles get the rings' own distance fade, so they emerge out of the fog
+      // instead of hanging in it at full contrast with no tube left around them for reference.
+      var fade = O.obsFade ? clamp((RN - 8) / 34, 0, 1) : 1;
+      var kind = o.k === 'plug' ? 'plug' : o.homes ? 'sent' : 'wall';
+      var shared = O.clampMode === 'shared' ? shareFactor(V, ozn, RN) : null;
+      sector(V, ozn, RN, ozf, RF * 0.8, oa0, oa1, O.clampMode, shared);
+      g.fillStyle = 'rgba(' + PAL[kind + 'Body'] + ',' + ((0.4 + gl * 0.42) * fade).toFixed(3) + ')'; g.fill();
+      sector(V, ozf, RF, ozf, RF * 0.8, oa0, oa1, O.clampMode, shared);
+      g.fillStyle = 'rgba(' + PAL[kind + 'Face'] + ',' + ((0.14 + gl * 0.45) * fade).toFixed(3) + ')'; g.fill();
+      sector(V, ozn, RN, ozn, RN * 0.78, oa0, oa1, O.clampMode, shared);
+      g.fillStyle = 'rgba(' + PAL[kind + 'Face'] + ',' + ((0.28 + gl * 0.6) * fade).toFixed(3) + ')'; g.fill();
+      g.strokeStyle = 'rgba(' + PAL[kind + 'Edge'] + ',' + ((0.3 + gl * 0.7) * fade).toFixed(3) + ')';
+      g.lineWidth = 2; g.stroke();
+      if (o.x) {
+        var am = (oa0 + oa1) / 2, Hb = ctr(V, ozn, RN, O.clampMode, shared);
+        g.strokeStyle = 'rgba(' + PAL[kind + 'Edge'] + ',' + ((0.2 + gl * 0.5) * fade).toFixed(3) + ')';
+        g.lineWidth = Math.max(1.5, RN * 0.012);
+        g.beginPath();
+        g.moveTo(Hb[0] + Math.cos(am) * RN * 0.78, Hb[1] + Math.sin(am) * RN * 0.78);
+        g.lineTo(Hb[0] + Math.cos(am) * RN * 0.1, Hb[1] + Math.sin(am) * RN * 0.1);
+        g.stroke();
+      }
+      // debug: mark each obstacle's TRUE world angle, so "is it rolling?" stops being a guess
+      if (O.debug) {
+        var dm = (oa0 + oa1) / 2, D = ctr(V, ozn, RN, O.clampMode, shared);
+        g.strokeStyle = 'rgba(120,255,150,.85)'; g.lineWidth = 1;
+        g.beginPath(); g.moveTo(D[0], D[1]);
+        g.lineTo(D[0] + Math.cos(dm) * RN, D[1] + Math.sin(dm) * RN); g.stroke();
+        g.fillStyle = 'rgba(160,255,180,.9)'; g.font = '10px ui-monospace, monospace';
+        g.fillText('z' + (o.z - dRender).toFixed(0) + ' a' + (o.a).toFixed(2),
+                   D[0] + Math.cos(dm) * RN * 0.6, D[1] + Math.sin(dm) * RN * 0.6);
+      }
+    }
+
+    // ---- speed streaks
+    if (O.streaks === 'flow') {
+      // world-anchored streaks: fixed angle + world z, length scaled by speed. They FLOW instead of
+      // flickering, which is the whole difference between "sparkles" and "we are moving fast".
+      g.strokeStyle = 'rgba(220,250,255,' + (0.07 + sf * 0.30).toFixed(3) + ')';
+      g.lineWidth = 1 + sf * 0.9;
+      // how MANY draw also scales with speed — the count is a speed cue in its own right
+      var shown = Math.round(STREAK.length * (0.18 + sf * 0.82));
+      for (var si = 0; si < shown; si++) {
+        var st = STREAK[si], sz = st.z - dRender;
+        if (sz < PZ * 1.02 || sz > STREAK_SPAN + PZ) continue;
+        var L = (0.7 + sf * 5.2) * (0.6 + st.l);
+        var zA2 = sz, zB2 = Math.max(PZ * 1.02, sz - L);
+        var rA2 = rad(V, zA2), rB2 = rad(V, zB2);
+        var CA = ctr(V, zA2, rA2, O.clampMode), CB = ctr(V, zB2, rB2, O.clampMode);
+        var cc = Math.cos(st.a), ss = Math.sin(st.a);
+        g.beginPath();
+        g.moveTo(CA[0] + cc * rA2, CA[1] + ss * rA2);
+        g.lineTo(CB[0] + cc * rB2, CB[1] + ss * rB2);
+        g.stroke();
+      }
+    } else if (O.streaks === 'flicker' && machF > 0.55) {
+      var n = Math.round((machF - 0.55) * 36);
+      g.strokeStyle = 'rgba(220,250,255,' + clamp((machF - 0.55) * 0.35, 0, 0.4).toFixed(3) + ')';
+      g.lineWidth = 1.2;
+      for (var i5 = 0; i5 < n; i5++) {
+        var a5 = Math.random() * TAU, c5 = Math.cos(a5), s5 = Math.sin(a5);
+        var z05 = PZ + Math.random() * 7, z15 = Math.max(PZ, z05 * 0.45);
+        var r05 = rad(V, z05), r15 = rad(V, z15);
+        var C05 = ctr(V, z05, r05, O.clampMode), C15 = ctr(V, z15, r15, O.clampMode);
+        g.beginPath();
+        g.moveTo(C05[0] + c5 * r05, C05[1] + s5 * r05);
+        g.lineTo(C15[0] + c5 * r15, C15[1] + s5 * r15); g.stroke();
+      }
+    }
+
+    // ---- speed vignette: peripheral darkening is where the eye reads flow
+    if (O.vignette && sf > 0.02) {
+      var vg = g.createRadialGradient(V.bcx, V.bcy, V.bHalf * (0.72 - sf * 0.22), V.bcx, V.bcy, V.bHalf * 1.05);
+      vg.addColorStop(0, 'rgba(0,0,0,0)');
+      vg.addColorStop(1, 'rgba(0,0,0,' + (0.30 + sf * 0.34).toFixed(3) + ')');
+      g.fillStyle = vg; g.fillRect(0, 0, W, H);
+    }
+
+    // the craft, so there is something to judge motion against
+    var pr = Math.min(rad(V, PZ), V.bHalf - 26), P2 = ctr(V, PZ, pr, O.clampMode);
+    var ba = O.craftAng != null ? O.craftAng : Math.PI / 2;
+    var px = P2[0] + Math.cos(ba) * pr * 0.9, py = P2[1] + Math.sin(ba) * pr * 0.9;
+    g.fillStyle = '#eafcff';
+    g.beginPath(); g.moveTo(px, py - 11); g.lineTo(px + 8, py + 8); g.lineTo(px - 8, py + 8); g.closePath(); g.fill();
+  }
+
+  // Persistent streak field, world-anchored. The FIRST pass spread 90 streaks over 900 world units,
+  // so only ~2 were ever inside the visible z 1.6→22 band — flow, but 95% FEWER marks than today's
+  // ~40-per-frame flicker, which reads as slower, not faster. The recycle span is now the visible band
+  // itself, so the count on screen is the count in the array: denser than today at boost, and faded
+  // out at cruise so the tube is still clean when you are not moving fast.
+  // The band is deliberately SHORT (z 1.6 → ~11): rad() is largest near the camera, so near-field
+  // streaks sit out at the screen EDGES where peripheral flow is actually read. A deeper band puts
+  // them down the pipe near the vanishing point, where they read as debris rather than speed.
+  var STREAK_SPAN = 9.5, STREAK_N = 150;
+  var STREAK = [];
+  (function () { srand(4242); for (var i = 0; i < STREAK_N; i++) STREAK.push({ a: rnd() * TAU, z: rnd() * STREAK_SPAN, l: rnd() }); })();
+  function recycleStreaks(dist) {
+    for (var i = 0; i < STREAK.length; i++) {
+      var s = STREAK[i];
+      if (s.z < dist + PZ) s.z += STREAK_SPAN;
+      else if (s.z > dist + STREAK_SPAN + PZ) s.z -= STREAK_SPAN;
+    }
+  }
+
+  // ================= SPEED pane =================
+  var VA = mkView('cvA'), VB = mkView('cvB');
+  var CUES = [
+    { id: 'streaksFlow', name: 'Persistent streaks', src: 'BIGGEST WIN', on: true,
+      desc: 'Today the streaks are re-randomised every frame, so they sparkle instead of flowing, and ' +
+            'they only span z 1.6→7. This anchors each one to a fixed angle and world z and scales its ' +
+            'length with speed, so the near field visibly rushes past you.' },
+    { id: 'ringSpeed', name: 'Ring contrast + reach', src: 'FIXES A DEAD ZONE', on: true,
+      desc: 'Rings are the only texture that runs across your path — and today they fade to nothing ' +
+            'below 30px radius, which erases the far half of the tube. This drops that cutoff and lifts ' +
+            'ring contrast and thickness with speed, so at boost the pipe strobes past.' },
+    { id: 'nearRings', name: 'Dense near rings', src: 'ABOVE CRUISE ONLY', on: true,
+      desc: 'Extra faint rings every 0.4 units inside z<7, appearing only once you are above cruise. ' +
+            'Doubles the flow rate right where the eye is looking, and costs nothing at low speed ' +
+            'because they are not drawn there.' },
+    { id: 'focalPull', name: 'Focal pull', src: 'DOES NOT TOUCH PERSP', on: true,
+      desc: 'Pulls the focal length in by up to 6% across the speed range — a mild wide-angle push, the ' +
+            '"the world rushes in" cue. Deliberately small: it must not change how readable a far ' +
+            'obstacle is, which is what PERSP is protecting.' },
+    { id: 'vignette', name: 'Speed vignette', src: 'PERIPHERAL FLOW', on: true,
+      desc: 'Darkens and tightens the corners with speed. Peripheral vision is where flow is actually ' +
+            'measured, so squeezing the frame raises the felt rate without any extra motion on screen.' }
+  ];
+  var O_A = { streaks: 'flicker', clampMode: 'raw', seams: true, rings: true };
+  var O_B = { streaks: 'flow', ringSpeed: true, nearRings: true, focalPull: true, vignette: true,
+              clampMode: 'raw', seams: true, rings: true };
+  var cueEls = {};
+  var cueList = document.getElementById('cueList');
+  CUES.forEach(function (c) {
+    var el = document.createElement('div');
+    el.className = 'cue live';
+    el.innerHTML = '<div class="hd"><button class="on" data-t="1">ON</button><b>' + c.name +
+                   '</b><span class="src">' + c.src + '</span></div><p>' + c.desc + '</p>';
+    var b = el.querySelector('[data-t]');
+    b.addEventListener('click', function () {
+      var v = !b.classList.contains('on');
+      setCue(c.id, v);
+    });
+    cueList.appendChild(el); cueEls[c.id] = { el: el, btn: b };
+  });
+  function setCue(id, v) {
+    if (id === 'streaksFlow') O_B.streaks = v ? 'flow' : 'flicker'; else O_B[id] = v;
+    cueEls[id].btn.classList.toggle('on', v);
+    cueEls[id].btn.textContent = v ? 'ON' : 'OFF';
+    cueEls[id].el.classList.toggle('live', v);
+  }
+  document.getElementById('allOn').addEventListener('click', function () { CUES.forEach(function (c) { setCue(c.id, true); }); });
+  document.getElementById('allOff').addEventListener('click', function () { CUES.forEach(function (c) { setCue(c.id, false); }); });
+
+  var trackS = buildTrack(1400, true);
+  var spdEl = document.getElementById('spd'), kmhEl = document.getElementById('kmh');
+  var machEl = document.getElementById('mach'), spdUEl = document.getElementById('spdU');
+  var cycling = false, cycT = 0;
+  document.getElementById('cycle').addEventListener('click', function () {
+    cycling = !cycling; this.classList.toggle('on', cycling);
+  });
+
+  // ================= ROTATION pane =================
+  var VR = mkView('cvR');
+  var trackR = buildTrack(1400, true);
+  var ROT = [
+    { id: 'clampShared', name: 'Un-shear the wedge', src: 'PRIME SUSPECT · A BUG', on: false,
+      desc: 'Each obstacle is one wedge drawn between two arcs, and today each arc gets its own ' +
+            'independently clamped centre in ctr(). The near end\'s clamp tightens as it approaches, so ' +
+            'the wedge shears more every frame — sliding sideways while it grows, which is exactly ' +
+            '"rolling along the pipe towards us". This clamps once per obstacle and reuses it for both arcs.' },
+    { id: 'clampOff', name: 'Clamp off entirely', src: 'PROOF, NOT A FIX', on: false,
+      desc: 'Removes the offset clamp altogether. Not shippable — the clamp is what guarantees every ' +
+            'slice stays inside the board — but if the weirdness vanishes here, the clamp is the cause ' +
+            'and the toggle above is the fix.' },
+    { id: 'obsFade', name: 'Fade obstacles into fog', src: 'SECOND CAUSE', on: false,
+      desc: 'Rings fade out below 30px radius; obstacles have no distance fade at all, so a far rotor ' +
+            'sits at full contrast in empty fog with no tube left around it to judge against. This gives ' +
+            'them the rings\' own fade, so they emerge instead of hanging there.' },
+    { id: 'noSpin', name: 'Freeze obstacle spin', src: 'ISOLATE', on: false,
+      desc: 'Zeroes every rotor\'s own angular velocity. If it still looks like it is rolling with this ' +
+            'on, the spin is innocent and the render is at fault.' },
+    { id: 'farOnly', name: 'Far field only', src: 'ISOLATE', on: false,
+      desc: 'Draws nothing nearer than z=34, so the far end is all you see and nothing near distracts.' },
+    { id: 'debug', name: 'Show z + true angle', src: 'MEASURE IT', on: false,
+      desc: 'Draws each obstacle\'s real world angle as a spoke plus its z and angle as text. If the ' +
+            'numbers hold steady while the shape appears to roll, the roll is not in the model.' },
+    { id: 'noSeams', name: 'Hide seams', src: 'ISOLATE', on: false,
+      desc: 'The 16 longitudinal seams are the only cue for absolute roll. Hiding them shows how much ' +
+            'of the effect is "I cannot tell what is rotating because there is no reference".' }
+  ];
+  var O_R = { streaks: 'flicker', clampMode: 'raw', seams: true, rings: true, debug: false };
+  var rotEls = {};
+  var rotList = document.getElementById('rotList');
+  ROT.forEach(function (c) {
+    var el = document.createElement('div');
+    el.className = 'cue';
+    el.innerHTML = '<div class="hd"><button data-t="1">OFF</button><b>' + c.name +
+                   '</b><span class="src">' + c.src + '</span></div><p>' + c.desc + '</p>';
+    var b = el.querySelector('[data-t]');
+    b.addEventListener('click', function () { setRot(c.id, !b.classList.contains('on')); });
+    rotList.appendChild(el); rotEls[c.id] = { el: el, btn: b };
+  });
+  function setRot(id, v) {
+    if (id === 'clampShared') { O_R.clampMode = v ? 'shared' : 'raw'; if (v) setRotBtn('clampOff', false); }
+    else if (id === 'clampOff') { O_R.clampMode = v ? 'off' : 'raw'; if (v) setRotBtn('clampShared', false); }
+    else if (id === 'noSpin') { trackR.forEach(function (f) { f.av0 = (f.av0 === undefined ? f.av : f.av0); f.av = v ? 0 : f.av0; }); }
+    else if (id === 'noSeams') { O_R.seams = !v; }
+    else O_R[id] = v;
+    setRotBtn(id, v);
+  }
+  function setRotBtn(id, v) {
+    var e = rotEls[id]; if (!e) return;
+    e.btn.classList.toggle('on', v); e.btn.textContent = v ? 'ON' : 'OFF'; e.el.classList.toggle('live', v);
+  }
+  document.getElementById('rFixAll').addEventListener('click', function () {
+    setRot('clampShared', true); setRot('obsFade', true);
+    setRot('clampOff', false); setRot('noSpin', false); setRot('farOnly', false); setRot('debug', false);
+    setRot('noSeams', false);
+  });
+  document.getElementById('rRaw').addEventListener('click', function () {
+    ROT.forEach(function (c) { setRot(c.id, false); });
+  });
+  var rPaused = false, rSlow = false;
+  document.getElementById('rPause').addEventListener('click', function () {
+    rPaused = !rPaused; this.classList.toggle('on', rPaused);
+  });
+  document.getElementById('rSlow').addEventListener('click', function () {
+    rSlow = !rSlow; this.classList.toggle('on', rSlow);
+  });
+  var rspdEl = document.getElementById('rspd'), rspdR = document.getElementById('rspdR');
+  var rrollEl = document.getElementById('rroll'), rrollR = document.getElementById('rrollR');
+
+  // ================= tabs =================
+  var paneSpeed = document.getElementById('paneSpeed'), paneRot = document.getElementById('paneRot');
+  var tabS = document.getElementById('tabSpeed'), tabR = document.getElementById('tabRot');
+  var mode = 'speed';
+  function setTab(m) {
+    mode = m;
+    paneSpeed.classList.toggle('hide', m !== 'speed');
+    paneRot.classList.toggle('hide', m !== 'rot');
+    tabS.classList.toggle('on', m === 'speed'); tabR.classList.toggle('on', m === 'rot');
+    requestAnimationFrame(function () { fit(VA); fit(VB); fit(VR); });
+  }
+  tabS.addEventListener('click', function () { setTab('speed'); });
+  tabR.addEventListener('click', function () { setTab('rot'); });
+
+  // ================= loop =================
+  var distS = 0, distR = 0, angR = 0, last = 0;
+  function frame(now) {
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016; last = now;
+
+    if (mode === 'speed') {
+      if (cycling) { cycT += dt; spdEl.value = String(lerp(14, 42, 0.5 - 0.5 * Math.cos(cycT * 0.8))); }
+      var spd = +spdEl.value;
+      kmhEl.textContent = Math.round(spd * KMH); machEl.textContent = (spd * KMH / MACH1).toFixed(2);
+      spdUEl.textContent = spd.toFixed(0);
+      distS += spd * dt;
+      recycleStreaks(distS);
+      for (var i = 0; i < trackS.length; i++) if (trackS[i].av) trackS[i].a += trackS[i].av * dt;
+      var machF = clamp(spd * KMH / MACH1, 0, 3);
+      var sa = function (a) { return a + Math.PI / 2; };
+      paint(VA, trackS, distS, sa, machF, O_A);
+      paint(VB, trackS, distS, sa, machF, O_B);
+    } else {
+      var rs = +rspdEl.value, rv = (+rrollEl.value / 100) * 4.6;
+      rspdR.textContent = rs.toFixed(0);
+      rrollR.textContent = (rv >= 0 ? '+' : '') + rv.toFixed(1) + ' rad/s';
+      var d = rPaused ? 0 : dt * (rSlow ? 0.2 : 1);
+      distR += rs * d; angR += rv * d;
+      for (var j = 0; j < trackR.length; j++) if (trackR[j].av) trackR[j].a += trackR[j].av * d;
+      // world-spin camera, exactly like the game: drawn angle = world angle − your roll
+      var saR = function (a) { return a - angR + Math.PI / 2; };
+      paint(VR, trackR, distR, saR, clamp(rs * KMH / MACH1, 0, 3), O_R);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  window.addEventListener('resize', function () { fit(VA); fit(VB); fit(VR); });
+  fit(VA); fit(VB); fit(VR);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

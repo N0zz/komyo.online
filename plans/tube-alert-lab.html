@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tube Racer — overheat alert lab</title>
+<style>
+  :root { --cy:#4ff2ff; --mag:#ff3d8b; --amb:#ffb43d; --ink:#dff6ff; }
+  *{box-sizing:border-box}
+  body { margin:0; background:#05080f; color:var(--ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding:22px 18px 60px; }
+  h1 { font-size:18px; letter-spacing:2px; margin:0 0 4px; color:#fff }
+  .sub { font-size:12px; opacity:.62; margin-bottom:16px; line-height:1.6; max-width:1080px }
+  .rules { border:1px solid rgba(255,180,61,.28); border-radius:12px; padding:12px 15px; margin-bottom:18px;
+    background:rgba(255,180,61,.05); font-size:11.5px; line-height:1.65; max-width:1080px }
+  .rules b { color:#fff }
+  .rules h3 { font-size:11.5px; letter-spacing:1.5px; margin:0 0 7px; color:var(--amb) }
+  .rules ul { margin:0; padding-left:18px }
+  .rules li { margin-bottom:3px }
+  .bar { position:sticky; top:0; background:linear-gradient(#05080f 74%, rgba(5,8,15,0));
+    padding:10px 0 14px; margin-bottom:6px; z-index:2 }
+  .row { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:8px }
+  label { font-size:11px; letter-spacing:1px; opacity:.7 }
+  input[type=range] { width:220px; accent-color:var(--cy) }
+  button { background:#0d1a26; color:var(--ink); border:1px solid rgba(79,242,255,.3);
+    border-radius:9px; padding:8px 13px; font:inherit; font-size:12px; cursor:pointer }
+  button:hover { border-color:var(--cy) }
+  button.on { background:#12303d; border-color:var(--cy); box-shadow:0 0 14px rgba(79,242,255,.25) }
+  button.stop { border-color:rgba(255,61,139,.5) }
+  button.tiny { padding:5px 9px; font-size:11px }
+  h2.grp { font-size:12.5px; letter-spacing:1.5px; margin:26px 0 3px; color:#fff }
+  h2.grp em { font-style:normal; font-size:10.5px; color:var(--amb); letter-spacing:1px; margin-left:8px }
+  .glead { font-size:11.5px; opacity:.66; line-height:1.55; margin:0 0 11px; max-width:1000px }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(272px,1fr)); gap:12px }
+  .card { border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:13px 14px;
+    background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0)) }
+  .card.playing { border-color:var(--cy); box-shadow:0 0 0 1px var(--cy), 0 0 26px rgba(79,242,255,.2) }
+  .card.ref { border-color:rgba(255,180,61,.35) }
+  .card h4 { font-size:13.5px; margin:0 0 3px; color:#fff; letter-spacing:.4px }
+  .card .src { font-size:10px; letter-spacing:1px; color:var(--amb); display:block; margin-bottom:7px }
+  .card p { font-size:11.5px; line-height:1.55; opacity:.72; margin:0 0 10px }
+  .card .spec { font-size:10.5px; line-height:1.5; opacity:.5; margin:0 0 11px }
+  .btns { display:flex; gap:8px }
+  .readout { font-size:11px; opacity:.68 }
+  .big { font-size:22px; font-weight:700; color:#fff }
+  .tier { font-size:11px; letter-spacing:1px; color:var(--amb) }
+  .note { font-size:11px; opacity:.5; margin-top:28px; line-height:1.7; max-width:1080px }
+  .note a { color:var(--cy) }
+</style>
+</head>
+<body>
+
+<h1>TUBE RACER — OVERHEAT ALERT LAB</h1>
+<div class="sub">
+  Round two. The first batch was me inventing beeps; this one starts from how alert sounds are actually
+  designed — <b>cockpit alerting</b> (Airbus ECAM/EICAS families), <b>the medical alarm standard</b>
+  (IEC 60601-1-8, which is where "3 pulses = caution, 10 pulses = warning" comes from), <b>the fire
+  evacuation pattern</b> (ISO 8201 temporal-three), and the <b>urgency research</b> (Edworthy 1991,
+  which measured which acoustic knobs actually raise felt urgency). Card 1 is what ships today.
+</div>
+
+<div class="rules">
+  <h3>WHAT THE RESEARCH ACTUALLY SAYS</h3>
+  <ul>
+    <li><b>Urgency comes from four knobs</b> (Edworthy/Loxley/Dennis 1991): faster rate, higher pitch,
+      <b>irregular harmonics</b>, and a sharp attack. Rate and pitch are the strongest — and this game
+      already spends the rate knob (tempo goes 0.28 s → 0.11 s), so the per-blip design should spend
+      <b>pitch and harmonic content</b>, not add more events.</li>
+    <li><b>Pulses, not tones.</b> The medical standard builds every alarm from short pulses
+      (~75–200 ms, soft-ish attack/decay in the 7.5–100 ms range) grouped into a <b>burst</b>: 3 pulses
+      for medium priority, 10 for high. The burst is the message; the pulse is just its carrier.</li>
+    <li><b>Harmonically rich, mid-band.</b> The fundamental sits 150–1000 Hz with at least four or five
+      harmonics between 150 Hz and 4 kHz, within ~15 dB of each other. That is why real alarms cut
+      through noise where a pure sine does not — and it is exactly what a bare square wave fails at.</li>
+    <li><b>Cockpit practice separates by grammar, not volume:</b> a <b>single chime</b> means caution, a
+      <b>continuous repetitive chime</b> means warning, and a few alerts get their own melody
+      (the "cavalry charge", the C-chord) so they are identifiable without looking.</li>
+    <li><b>Fire alarms are one pattern worldwide</b> (ISO 8201 T-3: three 0.5 s pulses, 1.5 s gap,
+      forever) — proof that a <i>rhythm</i> is more recognisable than a timbre.</li>
+  </ul>
+</div>
+
+<div class="bar">
+  <div class="row">
+    <label>HEAT</label><input id="heat" type="range" min="68" max="100" step="0.5" value="72">
+    <span class="readout"><span class="big" id="heatR">72</span>% ·
+      <span class="tier" id="tierR">TIER 1</span> · blip every <span id="ivR">0.26</span>s</span>
+  </div>
+  <div class="row">
+    <button id="rampBoost">▶ RAMP · boost (2.1s)</button>
+    <button id="rampSlow">▶ RAMP · passive (6.0s)</button>
+    <button id="stopAll" class="stop">■ STOP</button>
+    <label>VOLUME</label><input id="vol" type="range" min="0" max="200" value="100">
+    <span class="readout" id="volR">100%</span>
+  </div>
+</div>
+
+<h2 class="grp">GROUP 1 · COCKPIT FAMILY <em>identifiable without looking</em></h2>
+<p class="glead">
+  Airbus-style alerting: the sound is a <i>chime</i> — a struck, harmonically rich body with a fast attack
+  and a decaying tail — and the message lives in how often it repeats. This is the closest match to what
+  Tube Racer already does, because the game is already coding urgency in tempo.
+</p>
+<div class="grid" id="g1"></div>
+
+<h2 class="grp">GROUP 2 · STANDARDS-SHAPED PULSES <em>IEC 60601-1-8 / ISO 8201</em></h2>
+<p class="glead">
+  Pulse-and-burst construction, built to the standards' shape rather than their letter: mid-band
+  fundamental, a stack of harmonics, softened attack so it does not click, grouped into recognisable
+  rhythms. These are the least fatiguing per unit of urgency, which matters when it fires nine times a second.
+</p>
+<div class="grid" id="g2"></div>
+
+<h2 class="grp">GROUP 3 · MACHINE-ROOM <em>it is a pipe, not an airliner</em></h2>
+<p class="glead">
+  The same principles pointed at the game's own fiction: a hot metal tube at Mach 1.7. Harmonically
+  irregular (the strongest urgency knob after rate), lower fundamental, more industrial. Riskier —
+  irregular partials are urgent <i>and</i> tiring.
+</p>
+<div class="grid" id="g3"></div>
+
+<div class="note">
+  Sources · <a href="https://journals.sagepub.com/doi/10.1177/001872089103300206">Edworthy, Loxley &amp; Dennis, "Improving auditory warning design", Human Factors 33(2), 1991</a>
+  · <a href="https://www.digikey.com/en/articles/iec-60601-1-8-guidance-for-designing-medical-equipment-alarms">IEC 60601-1-8 alarm design guidance</a>
+  · <a href="https://www.sameskydevices.com/blog/a-guide-to-iec-60601-1-8-and-medical-alarm-systems">IEC 60601-1-8 harmonic/frequency requirements</a>
+  · <a href="https://firewize.com.au/learn/t3-temporal-evacuation-tone">ISO 8201 / T-3 evacuation tone timing</a>
+  · <a href="https://termaviation.com/what-is-crc-on-airbus-a320/">Airbus CRC (continuous repetitive chime)</a><br>
+  Exact Airbus tone frequencies are not public (they live in the FCOM), so the cockpit candidates
+  reproduce the <i>grammar</i> — chime timbre, attack/decay, repetition — not a sampled sound.
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+  var lerp = function (a, b, t) { return a + (b - a) * t; };
+
+  // ---- faithful shim of the kit's SFX primitives, so a pick pastes into SND.define unchanged ----
+  var ac = null, master = null, verb = null, VOL = 0.8;
+  function ensure() {
+    if (ac) return ac;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    ac = new AC();
+    master = ac.createGain(); master.gain.value = 1; master.connect(ac.destination);
+    try {
+      verb = ac.createConvolver();
+      var len = ac.sampleRate * 2.0, buf = ac.createBuffer(2, len, ac.sampleRate);
+      for (var c = 0; c < 2; c++) { var d = buf.getChannelData(c);
+        for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.4); }
+      verb.buffer = buf; verb.connect(master);
+    } catch (e) { verb = null; }
+    return ac;
+  }
+  function voice(o) {
+    if (!ensure()) return; o = o || {};
+    try {
+      var t = (o.t != null) ? o.t : ac.currentTime, dur = o.dur || 0.2;
+      var osc = ac.createOscillator(); osc.type = o.type || 'sine';
+      osc.frequency.setValueAtTime(o.f || 440, t);
+      if (o.slideTo) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.slideTo), t + dur);
+      if (o.detune) osc.detune.value = o.detune;
+      var g = ac.createGain(), peak = (o.gain != null ? o.gain : 0.2) * VOL,
+          a = (o.attack != null ? o.attack : 0.006);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + a);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      var node = osc;
+      if (o.filter) { var bq = ac.createBiquadFilter(); bq.type = o.filter;
+        bq.frequency.setValueAtTime(o.cutoff || 1200, t);
+        if (o.cutoffTo) bq.frequency.exponentialRampToValueAtTime(Math.max(40, o.cutoffTo), t + dur);
+        if (o.q) bq.Q.value = o.q; node.connect(bq); node = bq; }
+      node.connect(g); g.connect(master);
+      if (o.reverb && verb) { var s = ac.createGain(); s.gain.value = o.reverb; g.connect(s); s.connect(verb); }
+      osc.start(t); osc.stop(t + dur + 0.05);
+    } catch (e) {}
+  }
+  function noiseHit(o) {
+    if (!ensure()) return; o = o || {};
+    try {
+      var t = (o.t != null) ? o.t : ac.currentTime, dur = o.dur || 0.2;
+      var src = ac.createBufferSource(), len = Math.max(1, ac.sampleRate * dur);
+      var b = ac.createBuffer(1, len, ac.sampleRate), dt = b.getChannelData(0);
+      for (var i = 0; i < len; i++) dt[i] = (Math.random() * 2 - 1) * (1 - i / len);
+      src.buffer = b;
+      var bq = ac.createBiquadFilter(); bq.type = o.filter || 'lowpass';
+      bq.frequency.setValueAtTime(o.cutoff || 900, t);
+      if (o.cutoffTo) bq.frequency.exponentialRampToValueAtTime(Math.max(40, o.cutoffTo), t + dur);
+      if (o.q) bq.Q.value = o.q;
+      var g = ac.createGain(); g.gain.setValueAtTime((o.gain != null ? o.gain : 0.2) * VOL, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      src.connect(bq); bq.connect(g); g.connect(master);
+      if (o.reverb && verb) { var s = ac.createGain(); s.gain.value = o.reverb; g.connect(s); s.connect(verb); }
+      src.start(t);
+    } catch (e) {}
+  }
+  var c = { voice: voice, noiseHit: noiseHit, now: function () { return ensure() ? ac.currentTime : 0; } };
+
+  // ---- a chime = one struck body: a partial stack over a shared decay. This is the piece the first
+  //      batch was missing — the standards all require 4–5 harmonics within ~15 dB, and that harmonic
+  //      stack is what makes a sound read as "an instrument alerting me" instead of "a console beep".
+  function chime(c, f, dur, gain, partials, t0, type) {
+    var t = t0 != null ? t0 : c.now();
+    for (var i = 0; i < partials.length; i++) {
+      var p = partials[i];
+      c.voice({ f: f * p[0], dur: dur * (p[2] || 1), type: type || 'sine',
+                gain: gain * p[1], attack: 0.004, t: t });
+    }
+  }
+
+  // ---- the game's own numbers ----
+  var ALARM_AT = [0.68, 0.80, 0.88], WARN_SLOW = 0.28, WARN_FAST = 0.11;
+  var pOf = function (h) { return clamp((h - ALARM_AT[0]) / (1 - ALARM_AT[0]), 0, 1); };
+  var interval = function (h) {
+    return lerp(WARN_SLOW, WARN_FAST, clamp((h - ALARM_AT[0]) / (ALARM_AT[2] - ALARM_AT[0]), 0, 1));
+  };
+  var tierOf = function (h) { return h >= ALARM_AT[2] ? 3 : h >= ALARM_AT[1] ? 2 : 1; };
+
+  // ==================================================================================
+  var GROUPS = [
+    { host: 'g1', cands: [
+
+      { id: 'current', name: 'Sizzle', src: 'SHIPS TODAY', ref: true,
+        spec: 'broadband highpass hiss + sagging sawtooth + steam whistle past p=0.45',
+        desc: 'Physically accurate and grammatically wrong: it is the pipe making a noise rather than an ' +
+              'instrument warning you, it has almost no pitch to raise, and it lives in the same high ' +
+              'noise band as the scrape and the engine.',
+        fn: function (c, p) {
+          var t = c.now();
+          c.noiseHit({ dur: 0.09, gain: 0.11 + p * 0.07, filter: 'highpass', cutoff: lerp(2600, 4300, p) });
+          c.voice({ f: lerp(215, 265, p), slideTo: lerp(178, 205, p), dur: 0.07, type: 'sawtooth',
+                    gain: 0.085, filter: 'lowpass', cutoff: 900, cutoffTo: 480 });
+          if (p > 0.45) c.noiseHit({ dur: 0.08, gain: 0.045 * p, filter: 'bandpass',
+                                     cutoff: lerp(3300, 4700, p), q: 14, t: t + 0.015 });
+        } },
+
+      { id: 'sc', name: 'Single chime', src: 'AIRBUS · CAUTION',
+        spec: 'struck bell, f0 700→900 Hz, partials 1 / 2 / 2.76 / 5.4, 180 ms decay',
+        desc: 'The cockpit caution chime: one struck body, harmonically rich, decaying. Instantly reads as ' +
+              '"the machine is telling you something" and is impossible to confuse with anything the pipe ' +
+              'itself does. The tempo ramp then carries the urgency, exactly as CRC does in a cockpit.',
+        fn: function (c, p) {
+          chime(c, lerp(700, 900, p), 0.18, 0.055 + p * 0.03,
+                [[1, 1, 1], [2, 0.5, 0.8], [2.76, 0.32, 0.6], [5.4, 0.14, 0.4]]);
+        } },
+
+      { id: 'crc', name: 'Repetitive chime', src: 'AIRBUS · WARNING',
+        spec: 'same body, brighter partials, 120 ms — designed to be heard back-to-back',
+        desc: 'The warning-grade version of the card above: shorter, brighter, tuned so that overlapping ' +
+              'copies at max tempo still sound deliberate instead of smeared. If you like the chime idea ' +
+              'but the caution version feels too calm at tier 3, this is the one.',
+        fn: function (c, p) {
+          chime(c, lerp(820, 1080, p), 0.12, 0.05 + p * 0.035,
+                [[1, 1, 1], [2, 0.62, 0.85], [3.01, 0.4, 0.65], [4.2, 0.2, 0.5], [6.1, 0.1, 0.35]]);
+        } },
+
+      { id: 'cchord', name: 'C-chord', src: 'AIRBUS · ALTITUDE',
+        spec: 'two-note chord (f0 + minor third), 150 ms, shared decay',
+        desc: 'Two partial stacks a minor third apart struck together. A chord is more identifiable than a ' +
+              'single pitch, so it survives being buried under the engine drone — and the interval gives ' +
+              'the cue a "colour" that a lone tone lacks. Slightly heavier in the mix as the price.',
+        fn: function (c, p) {
+          var f = lerp(660, 850, p), t = c.now();
+          chime(c, f, 0.15, 0.042 + p * 0.025, [[1, 1, 1], [2, 0.45, 0.8], [3.2, 0.22, 0.55]], t);
+          chime(c, f * 1.19, 0.15, 0.034 + p * 0.022, [[1, 1, 1], [2, 0.4, 0.8]], t + 0.006);
+        } },
+
+      { id: 'cavalry', name: 'Cavalry charge', src: 'AIRBUS · AP DISCONNECT',
+        spec: '3 rising notes, 45 ms apart, bugle-like square+triangle stack',
+        desc: 'The one Airbus alert everyone can hum. A rising three-note figure is unmistakable and needs ' +
+              'no learning — but it is a MELODY, and at 0.11 s tempo a melody overlaps itself into mush. ' +
+              'Here to be heard on the slow ramp, where it is genuinely great, and rejected on the fast one.',
+        fn: function (c, p) {
+          var t = c.now(), f = lerp(560, 700, p), st = [1, 1.26, 1.5];
+          for (var i = 0; i < 3; i++)
+            chime(c, f * st[i], 0.09, 0.05 + p * 0.03,
+                  [[1, 1, 1], [2, 0.4, 0.8], [3, 0.18, 0.6]], t + i * 0.045, 'triangle');
+        } },
+
+      { id: 'triclick', name: 'Triple click', src: 'AIRBUS · ATTENTION',
+        spec: '3 filtered noise clicks, 5 ms each, 55 ms apart',
+        desc: 'Airbus\'s pure attention-getter: not a tone at all, three dry clicks that say "look now" ' +
+              'without claiming a priority. Costs almost nothing in the mix and cannot clash with any ' +
+              'pitched material. Weakest at conveying "you are about to die", strongest at not annoying you.',
+        fn: function (c, p) {
+          var t = c.now();
+          for (var i = 0; i < 3; i++)
+            c.noiseHit({ dur: 0.012, gain: 0.09 + p * 0.05, filter: 'bandpass',
+                         cutoff: lerp(1800, 2600, p), q: 1.2, t: t + i * 0.055 });
+        } }
+    ] },
+
+    { host: 'g2', cands: [
+
+      { id: 'iec3', name: 'Medium-priority burst', src: 'IEC 60601-1-8 · 3 PULSES',
+        spec: '3 pulses × 90 ms, 5-partial stack, f0 500→640 Hz, 8 ms attack',
+        desc: 'The medical caution shape, straight off the standard: three harmonically rich pulses at one ' +
+              'pitch. Softened attack means it never clicks, and the harmonic stack is what lets it stay ' +
+              'quiet and still cut through. Recognisable as an alarm without being aggressive.',
+        fn: function (c, p) {
+          var t = c.now(), f = lerp(500, 640, p);
+          for (var i = 0; i < 3; i++)
+            chime(c, f, 0.09, 0.038 + p * 0.022,
+                  [[1, 1, 1], [2, 0.6, 1], [3, 0.42, 0.9], [4, 0.26, 0.8], [5, 0.14, 0.7]],
+                  t + i * 0.055, 'sine');
+        } },
+
+      { id: 'iec5', name: 'High-priority burst', src: 'IEC 60601-1-8 · 3+2 RHYTHM',
+        spec: '5 pulses × 70 ms in a 3-then-2 rhythm, f0 620→820 Hz',
+        desc: 'The standard\'s high-priority pattern compressed to fit: three fast pulses, a beat, then two ' +
+              'more. Rhythm is what the ear files, so this is identifiable even when it is quiet — and the ' +
+              'gap inside the burst stops it becoming a solid tone at max tempo. My pick of this group.',
+        fn: function (c, p) {
+          var t = c.now(), f = lerp(620, 820, p), at = [0, 0.05, 0.1, 0.185, 0.235];
+          for (var i = 0; i < at.length; i++)
+            chime(c, f, 0.07, 0.034 + p * 0.02,
+                  [[1, 1, 1], [2, 0.58, 1], [3, 0.36, 0.85], [4.5, 0.2, 0.7]], t + at[i], 'sine');
+        } },
+
+      { id: 't3', name: 'Temporal-three', src: 'ISO 8201 · EVACUATE',
+        spec: '3 pulses × 90 ms with even gaps — the fire-alarm rhythm, sped up',
+        desc: 'The world\'s most recognised "get out now" rhythm, scaled from its 0.5 s pulses down to ' +
+              'something that fits a 0.11 s repeat. Everybody has been trained on this pattern by every ' +
+              'building they have ever been in, which is an unfair advantage no invented cue can match.',
+        fn: function (c, p) {
+          var t = c.now(), f = lerp(760, 940, p);
+          for (var i = 0; i < 3; i++)
+            chime(c, f, 0.085, 0.036 + p * 0.024,
+                  [[1, 1, 1], [2, 0.5, 0.9], [3.4, 0.28, 0.7], [5, 0.12, 0.5]], t + i * 0.075, 'sine');
+        } },
+
+      { id: 'twotone', name: 'Two-tone pulse pair', src: 'PITCH DOES THE WORK',
+        spec: '2 pulses × 80 ms, second a fifth up, f0 600→780 Hz',
+        desc: 'The cheapest way to spend the pitch knob the research says matters most: a rising pair, so ' +
+              'the cue escalates within itself even after the tempo ramp has run out of room at tier 3. ' +
+              'Two events per blip instead of three or five, so it is the least cluttered of this group.',
+        fn: function (c, p) {
+          var t = c.now(), f = lerp(600, 780, p);
+          chime(c, f, 0.08, 0.04 + p * 0.022, [[1, 1, 1], [2, 0.5, 0.9], [3, 0.25, 0.7]], t, 'sine');
+          chime(c, f * 1.5, 0.085, 0.042 + p * 0.024, [[1, 1, 1], [2, 0.5, 0.9], [3, 0.25, 0.7]], t + 0.062, 'sine');
+        } }
+    ] },
+
+    { host: 'g3', cands: [
+
+      { id: 'inharm', name: 'Inharmonic strike', src: 'EDWORTHY · IRREGULAR PARTIALS',
+        spec: 'partials at 1 / 2.41 / 3.83 / 6.12 — deliberately non-integer',
+        desc: 'The 1991 study found irregularly spaced harmonics raise perceived urgency on their own. This ' +
+              'is the chime with its partials pushed off the harmonic series, so it reads as struck metal ' +
+              'under stress rather than a bell. Same tempo, more alarm, no extra loudness.',
+        fn: function (c, p) {
+          chime(c, lerp(520, 680, p), 0.15, 0.045 + p * 0.028,
+                [[1, 1, 1], [2.41, 0.55, 0.8], [3.83, 0.34, 0.62], [6.12, 0.16, 0.45]], null, 'sine');
+        } },
+
+      { id: 'buzz', name: 'Relay buzzer', src: 'INDUSTRIAL',
+        spec: 'f0 300→400 Hz square pair, 12 cent beat, lowpass 1.6→2.4 kHz',
+        desc: 'Two squares beating against each other behind a lowpass: a contactor buzzing, not avionics. ' +
+              'Suits a giant pipe better than a bell does, and its low fundamental keeps it clear of the ' +
+              'scrape and the whistle. Harshest option here — judge it only on the boost ramp.',
+        fn: function (c, p) {
+          var f = lerp(300, 400, p), t = c.now();
+          c.voice({ f: f, dur: 0.075, type: 'square', gain: 0.05 + p * 0.03,
+                    filter: 'lowpass', cutoff: lerp(1600, 2400, p) });
+          c.voice({ f: f, detune: 12, dur: 0.075, type: 'square', gain: 0.045 + p * 0.028,
+                    filter: 'lowpass', cutoff: lerp(1600, 2400, p), t: t + 0.002 });
+        } },
+
+      { id: 'pressure', name: 'Pressure knock', src: 'THE PIPE ITSELF',
+        spec: 'low struck body + a 6 ms click, f0 220→290 Hz',
+        desc: 'A dull metallic knock with a transient on top — the tube protesting. Keeps the current cue\'s ' +
+              'fiction while swapping hiss for pitch, so it can rise with heat. Lowest, warmest option: ' +
+              'least fatiguing over a long ramp, but easiest to miss in a busy mix.',
+        fn: function (c, p) {
+          var t = c.now();
+          c.noiseHit({ dur: 0.006, gain: 0.05 + p * 0.03, filter: 'bandpass', cutoff: 2200, q: 0.8 });
+          chime(c, lerp(220, 290, p), 0.16, 0.06 + p * 0.035,
+                [[1, 1, 1], [2.7, 0.42, 0.7], [4.4, 0.2, 0.5]], t + 0.004, 'triangle');
+        } },
+
+      { id: 'hybrid', name: 'Chime + sizzle', src: 'KEEPS TODAY\'S FICTION',
+        spec: 'single chime leading, current hiss at a third of its level behind it',
+        desc: 'The compromise: the chime does the alerting, a much quieter version of today\'s hiss stays ' +
+              'behind it so you can still hear the engine cooking. Pick this if the sizzle bothers you as a ' +
+              'foreground sound but you do not want to lose it entirely.',
+        fn: function (c, p) {
+          var t = c.now();
+          chime(c, lerp(760, 980, p), 0.14, 0.045 + p * 0.026,
+                [[1, 1, 1], [2, 0.5, 0.85], [3.1, 0.28, 0.6]], t);
+          c.noiseHit({ dur: 0.06, gain: 0.03 + p * 0.02, filter: 'highpass',
+                       cutoff: lerp(2800, 4200, p), t: t + 0.02 });
+        } }
+    ] }
+  ];
+
+  // ---- UI ----
+  var heatEl = document.getElementById('heat'), heatR = document.getElementById('heatR');
+  var tierR = document.getElementById('tierR'), ivR = document.getElementById('ivR');
+  var volEl = document.getElementById('vol'), volR = document.getElementById('volR');
+  var cards = {}, byId = {}, loopId = null, loopTimer = null, rampTimer = null, rampT0 = 0, rampDur = 0;
+  var heat = function () { return +heatEl.value / 100; };
+
+  function readout() {
+    var h = heat();
+    heatR.textContent = (h * 100).toFixed(0);
+    tierR.textContent = 'TIER ' + tierOf(h);
+    ivR.textContent = interval(h).toFixed(2);
+  }
+  function paint() { for (var id in cards) cards[id].classList.toggle('playing', id === loopId); }
+  function fire(id) {
+    var cand = byId[id]; if (!cand) return;
+    if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
+    try { cand.fn(c, pOf(heat())); } catch (e) {}
+  }
+  // tempo re-read on every blip, never latched — the game's phase-accumulator behaviour
+  function tick() { if (!loopId) return; fire(loopId); loopTimer = setTimeout(tick, interval(heat()) * 1000); }
+  function stopLoop() { loopId = null; if (loopTimer) { clearTimeout(loopTimer); loopTimer = null; } paint(); }
+  function startLoop(id) { if (loopId === id) { stopLoop(); return; } stopLoop(); loopId = id; paint(); tick(); }
+  function stopRamp() { if (rampTimer) { cancelAnimationFrame(rampTimer); rampTimer = null; } }
+  function ramp(dur) {
+    stopRamp();
+    if (!loopId) startLoop(GROUPS[0].cands[1].id);      // default to the single chime, not the sizzle
+    rampDur = dur; rampT0 = performance.now();
+    var step = function () {
+      var f = clamp((performance.now() - rampT0) / (rampDur * 1000), 0, 1);
+      heatEl.value = String(lerp(68, 100, f)); readout();
+      if (f < 1) rampTimer = requestAnimationFrame(step);
+      else { rampTimer = null; setTimeout(stopLoop, 300); }
+    };
+    step();
+  }
+
+  var n = 0;
+  GROUPS.forEach(function (grp) {
+    var host = document.getElementById(grp.host);
+    grp.cands.forEach(function (cand) {
+      n++; byId[cand.id] = cand;
+      var el = document.createElement('div');
+      el.className = 'card' + (cand.ref ? ' ref' : '');
+      el.innerHTML = '<h4>' + n + '. ' + cand.name + '</h4><span class="src">' + cand.src + '</span>' +
+                     '<p>' + cand.desc + '</p><p class="spec">' + cand.spec + '</p>' +
+                     '<div class="btns"><button data-loop="1">▶ LOOP</button>' +
+                     '<button class="tiny" data-once="1">1×</button></div>';
+      el.querySelector('[data-loop]').addEventListener('click', function () { startLoop(cand.id); });
+      el.querySelector('[data-once]').addEventListener('click', function () { fire(cand.id); });
+      host.appendChild(el); cards[cand.id] = el;
+    });
+  });
+
+  heatEl.addEventListener('input', function () { stopRamp(); readout(); });
+  volEl.addEventListener('input', function () {
+    VOL = (+volEl.value / 100) * 0.8;          // 100% = the kit's default SFX volume
+    volR.textContent = volEl.value + '%';
+  });
+  document.getElementById('rampBoost').addEventListener('click', function () { ramp(2.1); });
+  document.getElementById('rampSlow').addEventListener('click', function () { ramp(6.0); });
+  document.getElementById('stopAll').addEventListener('click', function () { stopRamp(); stopLoop(); });
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' || e.key === ' ') { stopRamp(); stopLoop(); e.preventDefault(); }
+  });
+
+  readout(); paint();
+})();
+</script>
+</body>
+</html>
