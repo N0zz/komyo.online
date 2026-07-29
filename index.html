@@ -360,6 +360,14 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
      the frame, never overlaps out of it. The frame keeps overflow:visible so the corner ✕ badge
      still protrudes (its 13px overhang is why the cap leaves 15px margins). */
   dialog#settingsModal[open] { max-height:calc(100vh - 30px); display:flex; flex-direction:column; overflow:visible; }
+  /* 100vh is the LARGE viewport: it deliberately ignores the browser/system chrome that comes and
+     goes, so in an installed PWA (Android especially) it can be taller than what you can actually
+     see — the dialog then overflows both ends and the corner ✕ is clipped off the top. svh is the
+     SMALL viewport, i.e. the smallest the visible area ever gets, which is exactly the guarantee a
+     modal that must always fit needs. Kept behind @supports so pre-2022 browsers keep the vh cap. */
+  @supports (height: 100svh) {
+    dialog#settingsModal[open] { max-height:calc(100svh - 30px); }
+  }
   dialog#settingsModal .about { max-height:none; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; }
   /* wide screens (landscape phones AND desktop): two balanced 4-row columns, column-first, so the
      order reads sound+play (left) | data+danger (right). The grid holds only true SETTINGS — the
