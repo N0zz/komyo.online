@@ -257,6 +257,7 @@
     mirrormaze:   { kind: 'modern', sig: 'stab', bpm: 112, root: 233.08, scale: [0, 2, 4, 6, 7, 9, 11], prog: [0, 6, 4, 1, 0, 2, 5, 3], cutoff: 2900, kit: 'techno', groove: 'banger', pad: 'sawtooth', bass: 'sawtooth', lead: 'square', leadSuper: true, pluck: true, detune: 10, kf0: 155, kf1: 50, prod: 'dance' },
     typesiege:    { kind: 'modern', sig: 'toms', bpm: 138, root: 98, scale: [0, 1, 3, 5, 7, 8, 10], prog: [0, 5, 1, 6, 0, 4, 2, 7], cutoff: 1450, kit: 'tactical', groove: 'banger', pad: 'triangle', bass: 'square', lead: 'sawtooth', pluck: true, swing: 0.04, kf0: 105, kf1: 40, prod: 'dance' },
     duskrunner:   { kind: 'modern', sig: 'arp', bpm: 132, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 7, 3, 5, 0, 6, 2, 4], cutoff: 2400, kit: 'electronic', groove: 'rave', pad: 'triangle', bass: 'square', lead: 'square', pluck: true, detune: 4, kf0: 145, kf1: 47, prod: 'dance' },
+    tuberacer:    { kind: 'modern', sig: 'stab', bpm: 148, root: 116.54, scale: [0, 1, 4, 5, 7, 8, 10], prog: [0, 7, 5, 2, 0, 1, 6, 3], cutoff: 2600, kit: 'tactical', groove: 'trance', pad: 'sawtooth', bass: 'square', lead: 'sawtooth', leadSuper: true, detune: 12, riser: true, kf0: 128, kf1: 44, prod: 'dance' },
     meadow:       { kind: 'modern', sig: 'octave', bpm: 90, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 5, 0, 2, 4, 5], cutoff: 2400, kit: 'soft', prod: 'lush', pad: 'triangle', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 5 },
     // Keep Defender per-biome (epic palette; each biome keeps its own key/tempo/mode for mood)
     kd_grass:   { kind: 'modern', sig: 'bell', bpm: 96, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 4, 0, 2, 4, 3], cutoff: 2500, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },
@@ -1913,10 +1914,55 @@
       });
       syncHeader(); syncFocus();
     }
-    // music-track items: ▶ preview (toggle) + apply the chosen track live when it's equipped in-game
-    var _pvBtn = null;
-    function stopPv() { if (_pvBtn) { try { _pvBtn.textContent = '▶'; } catch (e) {} _pvBtn = null; } try { music.stopPreview(); } catch (e) {} }
-    function togglePv(btn, it) { if (_pvBtn === btn) { stopPv(); return; } stopPv(); _pvBtn = btn; try { btn.textContent = '⏸'; } catch (e) {} try { music.preview(it.music); } catch (e) {} }
+    // items that carry SOUND get a ▶ preview (toggle): either a music track id (`music`), or an
+    // `audio` graph builder on the item itself (an engine drone — see cosmetics.js). The builder
+    // has to live on the item because the shop also opens on the catalogue, where the game that
+    // would otherwise synthesise it is never loaded. Audio previews ride the SFX channel.
+    var _pvBtn = null, _pvA = null;
+    var PV_MS = 1600;                          // one rev up and back down
+    function stopPvAudio() {
+      var a = _pvA; if (!a) return; _pvA = null;
+      try { clearInterval(a.iv); } catch (e) {}
+      try { a.master.gain.setTargetAtTime(0, a.ac.currentTime, 0.06); } catch (e) {}
+      // let the fade land before tearing the context down (a hard close clicks)
+      try { setTimeout(function () { try { a.ac.close(); } catch (e) {} }, 320); } catch (e) { try { a.ac.close(); } catch (e2) {} }
+    }
+    function playPvAudio(it, btn) {
+      var AC = (typeof AudioContext !== 'undefined' && AudioContext) ||
+               (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext));
+      if (!AC) return;                                                        // headless: silent no-op
+      try {
+        var ac = new AC();
+        var master = ac.createGain(); master.gain.value = 0; master.connect(ac.destination);
+        var tune = it.audio(ac, master);
+        if (typeof tune !== 'function') { try { ac.close(); } catch (e) {} return; }
+        var a = _pvA = { ac: ac, master: master, iv: 0 };
+        var elapsed = 0;
+        a.iv = setInterval(function () {
+          elapsed += 60;
+          try {
+            if (ac.state === 'suspended') ac.resume();
+            var t = ac.currentTime;
+            var p = Math.min(elapsed / PV_MS, 1);
+            var sp = Math.sin(p * Math.PI);     // 0 → 1 → 0: the whole envelope, cruise to near-top
+            tune(t, sp, false);
+            master.gain.setTargetAtTime(sound.isMuted() ? 0 : (0.05 + sp * 0.06) * sound.volume(), t, 0.08);
+          } catch (e) {}
+          if (elapsed >= PV_MS) { if (_pvBtn === btn) stopPv(); else stopPvAudio(); }
+        }, 60);
+      } catch (e) { stopPvAudio(); }
+    }
+    function stopPv() {
+      if (_pvBtn) { try { _pvBtn.textContent = '▶'; } catch (e) {} _pvBtn = null; }
+      stopPvAudio();
+      try { music.stopPreview(); } catch (e) {}
+    }
+    function togglePv(btn, it) {
+      if (_pvBtn === btn) { stopPv(); return; }
+      stopPv(); _pvBtn = btn; try { btn.textContent = '⏸'; } catch (e) {}
+      if (it.music) { try { music.preview(it.music); } catch (e) {} }
+      else playPvAudio(it, btn);
+    }
     function applyMusic(it) { if (it && it.music) { stopPv(); if (music.current()) { try { music.play(it.music); } catch (e) {} } } }
     // buy the focused unowned item (via the BUY button), OR equip a focused owned one
     function confirmFocused() {
@@ -2034,9 +2080,10 @@
               cell.addEventListener('mouseleave', function () { crt.previewStop(); });
               cell.addEventListener('click', crtPv); // touch: selecting it previews too
             }
-            if (it.music) { // music tracks: a ▶/⏸ button previews the track without buying
+            if (it.music || it.audio) { // sound items: a ▶/⏸ button previews them without buying
               var pvb = mkEl('button', 'gksp-crt-caret gksp-pv', '▶'); try { pvb.type = 'button'; pvb.setAttribute('aria-label', t('shop.preview', { def: 'Preview' })); } catch (e) {}
               (function (b, item) { b.addEventListener('click', function (e) { if (e && e.stopPropagation) e.stopPropagation(); togglePv(b, item); }); })(pvb, it);
+              cell.classList.add('gksp-has-pv');   // CSS lifts it out of the flow — see .gksp-has-pv
               cell.appendChild(pvb);
             }
             grid.appendChild(cell);
@@ -4231,6 +4278,12 @@
       if (BIG_STYLES[g2.style] && secEl) bigNodes.push(secEl); // the big list keeps its heading in its pane
       if (g2.style === 'cards') {
         var list = mkEl('div', 'gkm-cards');
+        // `cols: 2` = a multi-column card grid instead of one per row, which roughly halves the
+        // screen the group needs — that's what lets four mode cards AND a toggle row coexist at
+        // 640×360. Only above 420px wide: two cards side by side on a 360 phone squeezes the
+        // previews, and a portrait screen has the height anyway. The CSS handles the knock-ons
+        // (compact cards in the tight-height band, stacked record, ellipsized name).
+        if (+g2.cols > 1) { list.classList.add('gkm-cards-multi'); try { list.style.setProperty('--gkm-cols', String(Math.min(3, +g2.cols))); } catch (e) {} }
         (g2.choices || []).forEach(function (c) {
           var card = mkEl('div', 'gkm-card');
           var pv = mkEl('canvas', 'gkm-card-pv'); try { pv.width = c.pvW || 120; pv.height = c.pvH || 120; } catch (e) {}
