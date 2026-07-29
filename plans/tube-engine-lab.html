@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tube Racer — engine sound lab</title>
+<style>
+  :root { --cy:#4ff2ff; --mag:#ff3d8b; --amb:#ffb43d; --ink:#dff6ff; }
+  *{box-sizing:border-box}
+  body { margin:0; background:#05080f; color:var(--ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding:22px 18px 60px; }
+  h1 { font-size:18px; letter-spacing:2px; margin:0 0 4px; color:#fff }
+  .sub { font-size:12px; opacity:.6; margin-bottom:18px; line-height:1.6 }
+  .bar { position:sticky; top:0; background:linear-gradient(#05080f 70%, rgba(5,8,15,0));
+    padding:10px 0 14px; margin-bottom:6px; z-index:2 }
+  .row { display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:8px }
+  label { font-size:11px; letter-spacing:1px; opacity:.7 }
+  input[type=range] { width:230px; accent-color:var(--cy) }
+  button { background:#0d1a26; color:var(--ink); border:1px solid rgba(79,242,255,.3);
+    border-radius:9px; padding:8px 13px; font:inherit; font-size:12px; cursor:pointer }
+  button:hover { border-color:var(--cy) }
+  button.on { background:#12303d; border-color:var(--cy); box-shadow:0 0 14px rgba(79,242,255,.25) }
+  button.stop { border-color:rgba(255,61,139,.5) }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:12px }
+  .card { border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:13px 14px;
+    background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0)) }
+  .card.playing { border-color:var(--cy); box-shadow:0 0 0 1px var(--cy), 0 0 26px rgba(79,242,255,.2) }
+  .card h2 { font-size:14px; margin:0 0 5px; color:#fff; letter-spacing:.5px }
+  .card h2 em { font-style:normal; font-size:10px; color:var(--amb); letter-spacing:1px; margin-left:6px }
+  .card p { font-size:11.5px; line-height:1.55; opacity:.72; margin:0 0 11px; min-height:52px }
+  .readout { font-size:11px; opacity:.65; margin-top:4px }
+  .kmh { font-size:22px; font-weight:700; color:#fff }
+  .note { font-size:11px; opacity:.5; margin-top:26px; line-height:1.7 }
+  kbd { background:rgba(79,242,255,.12); border:1px solid rgba(79,242,255,.3); border-radius:4px;
+    padding:1px 5px; font-size:10.5px }
+</style>
+</head>
+<body>
+
+<h1>TUBE RACER — ENGINE SOUND LAB</h1>
+<div class="sub">
+  Ten candidates for the continuous engine drone. Click one to hear it; click again to stop.<br>
+  Drag <b>SPEED</b> to hear it across the range, or hit <b>SWEEP</b> to ride cruise → top speed and back.
+  <b>BOOST</b> adds the gain/filter kick the game applies while accelerating.<br>
+  <b>VOLUME</b> at 100% is exactly the level the game plays now, so what you hear is what you'd get. Nudge it and tell me the percentage if it wants changing.
+</div>
+
+<div class="bar">
+  <div class="row">
+    <label>SPEED</label><input id="spd" type="range" min="0" max="100" value="35">
+    <span class="readout"><span class="kmh" id="kmh">1000</span> km/h · <span id="mach">M 0.82</span></span>
+  </div>
+  <div class="row">
+    <button id="sweep">▶ SWEEP</button>
+    <button id="boost">BOOST</button>
+    <button id="stopAll" class="stop">■ STOP</button>
+    <label>VOLUME</label><input id="vol" type="range" min="0" max="200" value="100">
+    <span class="readout" id="volR">100%</span>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="note">
+  Speed maps exactly as in the game: 0% = cruise (14 units/s ≈ 686 km/h), 100% = boost + acceleration
+  lane (52 units/s ≈ 2548 km/h, Mach 2.08). Mach 1 lands at 47% on the slider.<br>
+  Not a shipped page — a scratch audition tool, deliberately absent from sitemap.xml and llms.txt.
+</div>
+
+<script>
+(() => {
+  const AC = window.AudioContext || window.webkitAudioContext;
+  let ac = null, master = null;
+  const KMH = 49, CRUISE = 14, VMAX_LANE = 52;
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+  let noiseBuf = null;
+  function noise() {
+    if (!noiseBuf) {
+      noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true; s.start();
+    return s;
+  }
+  const osc = (type, f, detune) => { const o = ac.createOscillator(); o.type = type; o.frequency.value = f;
+    if (detune) o.detune.value = detune; o.start(); return o; };
+  const gain = v => { const g = ac.createGain(); g.gain.value = v; return g; };
+  const filt = (type, f, q) => { const b = ac.createBiquadFilter(); b.type = type; b.frequency.value = f;
+    if (q != null) b.Q.value = q; return b; };
+  const at = (param, v, tc) => param.setTargetAtTime(v, ac.currentTime, tc == null ? 0.08 : tc);
+
+  // Each engine: build(out) → { update(sp01, boost) }. Frequencies follow the same
+  // speed mapping the game uses, so relative behaviour is faithful, not just the timbre.
+  const ENGINES = [
+    { id: 'ion', name: 'Ion drive', tag: 'RETIRED',
+      desc: 'Sawtooth + square an octave apart, slightly detuned so they beat, through a lowpass that opens with speed. Bandpassed wind on top.',
+      build(out) {
+        const lp = filt('lowpass', 500), o1 = osc('sawtooth', 60), o2 = osc('square', 30, -9);
+        const g1 = gain(0.55), g2 = gain(0.3), w = noise(), bp = filt('bandpass', 900, 0.6), wg = gain(0);
+        o1.connect(g1); g1.connect(lp); o2.connect(g2); g2.connect(lp); lp.connect(out);
+        w.connect(bp); bp.connect(wg); wg.connect(out);
+        return { update(sp, b) { const u = lerp(CRUISE, VMAX_LANE, sp), f = 44 + u * 3.4;
+          at(o1.frequency, f); at(o2.frequency, f * 0.5);
+          at(lp.frequency, 340 + u * 32 + (b ? 520 : 0), 0.09);
+          at(wg.gain, sp * 0.55); at(bp.frequency, 700 + u * 22, 0.15); } };
+      } },
+
+    { id: 'turbine', name: 'Turbine',
+      desc: 'Jet spool: a high triangle whine an order above the fundamental, plus a broad air roar. The whine climbs much faster than the body.',
+      build(out) {
+        const body = osc('triangle', 90), bg = gain(0.3), whine = osc('triangle', 900), wq = gain(0.06);
+        const w = noise(), bp = filt('bandpass', 1800, 0.8), wg = gain(0.1), hp = filt('highpass', 400);
+        body.connect(bg); bg.connect(out); whine.connect(wq); wq.connect(out);
+        w.connect(bp); bp.connect(wg); wg.connect(hp); hp.connect(out);
+        return { update(sp, b) { const u = lerp(CRUISE, VMAX_LANE, sp);
+          at(body.frequency, 70 + u * 2.2); at(whine.frequency, 620 + u * 46);
+          at(wq.gain, (0.03 + sp * 0.07) * (b ? 1.3 : 1));
+          at(bp.frequency, 1400 + u * 40, 0.12); at(wg.gain, 0.08 + sp * 0.16); } };
+      } },
+
+    { id: 'v8', name: 'V8 rumble',
+      desc: 'Muscle-car register: a fat sawtooth under a steep lowpass with a sub an octave down. Guttural rather than fast.',
+      build(out) {
+        const lp = filt('lowpass', 320, 6), saw = osc('sawtooth', 55), sub = osc('sine', 27);
+        const sg = gain(0.5), subg = gain(0.45);
+        saw.connect(sg); sg.connect(lp); lp.connect(out); sub.connect(subg); subg.connect(out);
+        return { update(sp, b) { const u = lerp(CRUISE, VMAX_LANE, sp), f = 38 + u * 2.1;
+          at(saw.frequency, f); at(sub.frequency, f * 0.5);
+          at(lp.frequency, 220 + u * 20 + (b ? 320 : 0), 0.1); at(lp.Q, b ? 9 : 6); } };
+      } },
+
+    { id: 'twostroke', name: 'Two-stroke', tag: 'SHORTLIST · ?engine=twostroke',
+      desc: 'Buzzy and mean: two squares beating hard against each other with a bright bandpass. Reads small and angry, not heavy.',
+      build(out) {
+        const bp = filt('bandpass', 700, 1.4), a = osc('square', 90), b2 = osc('square', 91, 28);
+        const ag = gain(0.3), bg = gain(0.26);
+        a.connect(ag); ag.connect(bp); b2.connect(bg); bg.connect(bp); bp.connect(out);
+        return { update(sp, b) { const u = lerp(CRUISE, VMAX_LANE, sp), f = 60 + u * 4.4;
+          at(a.frequency, f); at(b2.frequency, f * 1.01);
+          at(bp.frequency, 520 + u * 30 + (b ? 300 : 0), 0.09); at(bp.Q, b ? 2.2 : 1.4); } };
+      } },
+
+    { id: 'maglev', name: 'Maglev', tag: 'SHORTLIST · ?engine=maglev',
+      desc: 'Almost no grit: two clean sines a fifth apart with a slow shimmer. Very sci-fi, very quiet — leaves the whole mix to the music.',
+      build(out) {
+        const a = osc('sine', 80), b2 = osc('sine', 120), ag = gain(0.3), bg = gain(0.16);
+        const lfo = osc('sine', 0.7), lg = gain(6);
+        a.connect(ag); ag.connect(out); b2.connect(bg); bg.connect(out);
+        lfo.connect(lg); lg.connect(b2.frequency);
+        return { update(sp, b) { const u = lerp(CRUISE, VMAX_LANE, sp);
+          at(a.frequency, 62 + u * 3.6); at(b2.frequency, (62 + u * 3.6) * 1.5);
+          at(bg.gain, 0.1 + sp * 0.14); at(lg.gain, 4 + sp * 14); } };
+      } },
+
+    { id: 'reactor', name: 'Reactor pulse', tag: 'IN GAME NOW',
+      desc: 'A throb: the drone is gated by an LFO whose rate rises with speed, so the engine visibly races. Dramatic, and rhythmically busy.',
+      build(out) {
+        const lp = filt('lowpass', 600), saw = osc('sawtooth', 70), sg = gain(0.5);
+        const trem = gain(1), lfo = osc('sine', 4), lg = gain(0.6);
+        saw.connect(sg); sg.connect(lp); lp.connect(trem); trem.connect(out);
+        lfo.connect(lg); lg.connect(trem.gain);
+        return { update(sp, b) { const u = lerp(CRUISE, VMAX_LANE, sp);
+          at(saw.frequency, 44 + u * 2.6); at(lp.frequency, 300 + u * 30 + (b ? 400 : 0), 0.1);
+          at(lfo.frequency, 3.5 + sp * 13, 0.12); at(lg.gain, b ? 0.75 : 0.55); } };
+      } },
+
+    { id: 'ramjet', name: 'Ramjet roar',
+      desc: 'Nearly pure noise: a resonant peak sweeping up through a broadband roar, with barely any pitch. Enormous at speed, muddy at cruise.',
+      build(out) {
+        const w = noise(), lp = filt('lowpass', 2200), res = filt('peaking', 500, 1.2); res.gain.value = 14;
+        const g = gain(0.16), sub = osc('sine', 40), sg = gain(0.22);
+        w.connect(res); res.connect(lp); lp.connect(g); g.connect(out); sub.connect(sg); sg.connect(out);
+        return { update(sp, b) { const u = lerp(CRUISE, VMAX_LANE, sp);
+          at(res.frequency, 260 + u * 34, 0.1); at(lp.frequency, 1200 + u * 90, 0.12);
+          at(g.gain, (0.1 + sp * 0.16) * (b ? 1.25 : 1)); at(sub.frequency, 34 + u * 0.7); } };
+      } },
+
+    { id: 'gearbox', name: 'Gear whine',
+      desc: 'Two layers you can hear separately: a low mechanical rumble plus a high gear whine at eight times the pitch. Industrial, machined.',
+      build(out) {
+        const lp = filt('lowpass', 260), low = osc('sawtooth', 50), lg2 = gain(0.5);
+        const whine = osc('sawtooth', 400), wg = gain(0.035), wbp = filt('bandpass', 2000, 6);
+        low.connect(lg2); lg2.connect(lp); lp.connect(out);
+        whine.connect(wg); wg.connect(wbp); wbp.connect(out);
+        return { update(sp, b) { const u = lerp(CRUISE, VMAX_LANE, sp), f = 36 + u * 1.9;
+          at(low.frequency, f); at(whine.frequency, f * 8);
+          at(wbp.frequency, f * 8, 0.1); at(wg.gain, (0.02 + sp * 0.05) * (b ? 1.4 : 1));
+          at(lp.frequency, 200 + u * 16 + (b ? 240 : 0), 0.1); } };
+      } },
+
+    { id: 'hollow', name: 'Hollow tube',
+      desc: 'Leans on the setting: a resonant comb tuned like a pipe, so it sounds like the tunnel itself is ringing around you rather than an engine.',
+      build(out) {
+        const w = noise(), r1 = filt('bandpass', 180, 22), r2 = filt('bandpass', 360, 18), r3 = filt('bandpass', 540, 14);
+        const g = gain(0.5), sub = osc('sine', 45), sg = gain(0.18);
+        [r1, r2, r3].forEach(r => { w.connect(r); r.connect(g); });
+        g.connect(out); sub.connect(sg); sg.connect(out);
+        return { update(sp, b) { const u = lerp(CRUISE, VMAX_LANE, sp), f = 120 + u * 5.5;
+          at(r1.frequency, f); at(r2.frequency, f * 2); at(r3.frequency, f * 3);
+          at(g.gain, (0.36 + sp * 0.5) * (b ? 1.2 : 1)); at(sub.frequency, 38 + u * 0.8); } };
+      } },
+
+    { id: 'sub', name: 'Sub pressure',
+      desc: 'Chest-first: mostly a very low sine with a slow tremolo and a whisper of grit. Big on speakers, nearly inaudible on a laptop.',
+      build(out) {
+        const sub = osc('sine', 38), sg = gain(0.55), trem = gain(1), lfo = osc('sine', 2.2), lg = gain(0.25);
+        const grit = osc('sawtooth', 76), gg = gain(0.05), lp = filt('lowpass', 200);
+        sub.connect(sg); sg.connect(trem); trem.connect(out); lfo.connect(lg); lg.connect(trem.gain);
+        grit.connect(gg); gg.connect(lp); lp.connect(out);
+        return { update(sp, b) { const u = lerp(CRUISE, VMAX_LANE, sp), f = 30 + u * 1.1;
+          at(sub.frequency, f); at(grit.frequency, f * 2);
+          at(lfo.frequency, 1.8 + sp * 5); at(gg.gain, (0.03 + sp * 0.07) * (b ? 1.5 : 1)); } };
+      } },
+  ];
+
+  // ---- UI ----
+  const grid = document.getElementById('grid');
+  const spdEl = document.getElementById('spd'), volEl = document.getElementById('vol');
+  const kmhEl = document.getElementById('kmh'), machEl = document.getElementById('mach');
+  const volR = document.getElementById('volR');
+  const live = new Map();       // id -> { node, api, card }
+  let boost = false, sweeping = 0;
+
+  const sp01 = () => +spdEl.value / 100;
+  function refreshReadout() {
+    const u = lerp(CRUISE, VMAX_LANE, sp01()), k = Math.round(u * KMH);
+    kmhEl.textContent = k;
+    machEl.textContent = 'M ' + (k / 1225).toFixed(2);
+  }
+
+  function ensureAC() {
+    if (!ac) {
+      ac = new AC();
+      master = ac.createGain(); master.gain.value = 1; master.connect(ac.destination);
+    }
+    if (ac.state === 'suspended') ac.resume();
+  }
+
+  function stop(id) {
+    const e = live.get(id); if (!e) return;
+    e.node.gain.setTargetAtTime(0, ac.currentTime, 0.06);
+    e.card.classList.remove('playing');
+    live.delete(id);
+  }
+  function toggle(def, card) {
+    ensureAC();
+    if (live.has(def.id)) { stop(def.id); return; }
+    // the game's live level: 0.021 base + 0.025 at full rev, x the kit's 0.8 SFX volume
+    const node = ac.createGain(); node.gain.value = 0; node.connect(master);
+    const api = def.build(node);
+    live.set(def.id, { node, api, card });
+    card.classList.add('playing');
+    tick();
+  }
+
+  function tick() {
+    if (!ac) return;
+    const sp = sp01(), vol = (+volEl.value / 100) * 0.8;
+    const level = (0.021 + sp * 0.025) * vol;
+    live.forEach(e => { e.api.update(sp, boost); at(e.node.gain, level, 0.1); });
+  }
+
+  ENGINES.forEach(def => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = '<h2>' + def.name + (def.tag ? '<em>' + def.tag + '</em>' : '') + '</h2>'
+      + '<p>' + def.desc + '</p>';
+    const btn = document.createElement('button');
+    btn.textContent = '▶ LISTEN';
+    btn.onclick = () => { toggle(def, card); btn.textContent = live.has(def.id) ? '■ STOP' : '▶ LISTEN'; };
+    card.appendChild(btn);
+    grid.appendChild(card);
+  });
+
+  spdEl.oninput = () => { refreshReadout(); tick(); };
+  volEl.oninput = () => { volR.textContent = volEl.value + '%'; tick(); };
+  document.getElementById('boost').onclick = e => {
+    boost = !boost; e.target.classList.toggle('on', boost); tick();
+  };
+  document.getElementById('stopAll').onclick = () => {
+    [...live.keys()].forEach(stop);
+    document.querySelectorAll('.card button').forEach(b => b.textContent = '▶ LISTEN');
+  };
+  document.getElementById('sweep').onclick = e => {
+    if (sweeping) { clearInterval(sweeping); sweeping = 0; e.target.classList.remove('on'); return; }
+    e.target.classList.add('on');
+    let v = 0, dir = 1;
+    sweeping = setInterval(() => {
+      v += dir * 1.6; if (v >= 100) { v = 100; dir = -1; } if (v <= 0) { v = 0; dir = 1; }
+      spdEl.value = v; refreshReadout(); tick();
+    }, 40);
+  };
+  addEventListener('keydown', ev => { if (ev.code === 'Space') { ev.preventDefault(); document.getElementById('boost').click(); } });
+
+  refreshReadout();
+  setInterval(tick, 120);      // keeps params tracking even without input
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,561 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Tube Racer — POC (komyo)</title>
+<style>
+  :root{ --cy:#4ff2ff; --mag:#ff3d8b; --amb:#ffb43d; --blu:#5aa8ff; }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#03050c;overflow:hidden;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#dff6ff;
+    -webkit-user-select:none;user-select:none;touch-action:none}
+  #cv{display:block;position:fixed;inset:0}
+  .hud{position:fixed;left:0;right:0;top:0;padding:10px 12px;display:flex;gap:10px;
+    align-items:flex-start;justify-content:space-between;pointer-events:none}
+  .pill{background:rgba(4,12,24,.55);border:1px solid rgba(79,242,255,.28);border-radius:12px;
+    padding:7px 11px;backdrop-filter:blur(4px)}
+  .spd{font-size:26px;font-weight:700;letter-spacing:.5px;line-height:1;color:#fff;
+    text-shadow:0 0 14px rgba(79,242,255,.7)}
+  .spd small{font-size:11px;opacity:.6;font-weight:400}
+  .mach{font-size:12px;letter-spacing:2px;color:var(--amb);margin-top:4px;height:14px}
+  .mach.hot{color:var(--mag)}
+  .lbl{font-size:10px;letter-spacing:1.5px;opacity:.55}
+  .bar{width:120px;height:9px;border-radius:9px;background:rgba(255,255,255,.1);
+    overflow:hidden;margin-top:5px}
+  .bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--blu),var(--amb),var(--mag));
+    transition:width .05s linear}
+  .right{text-align:right}
+  .hull{font-size:15px;letter-spacing:3px;margin-top:4px}
+  .btns{position:fixed;right:10px;bottom:10px;display:flex;gap:8px}
+  .btns button{pointer-events:auto;background:rgba(4,12,24,.6);color:#bfe9ff;
+    border:1px solid rgba(79,242,255,.3);border-radius:10px;padding:8px 10px;font:inherit;font-size:12px}
+  .ov{position:fixed;inset:0;display:grid;place-items:center;text-align:center;
+    background:radial-gradient(60% 60% at 50% 45%,rgba(4,10,22,.62),rgba(2,4,10,.93));padding:20px}
+  .ov.hide{display:none}
+  .ov h1{font-size:clamp(26px,7vw,52px);margin:0 0 6px;letter-spacing:3px;color:#fff;
+    text-shadow:0 0 26px rgba(79,242,255,.65)}
+  .ov h2{font-size:clamp(18px,5vw,30px);margin:0 0 10px;letter-spacing:2px;color:var(--mag)}
+  .ov p{margin:5px 0;font-size:13px;opacity:.85;line-height:1.6}
+  .ov .go{margin-top:16px;background:linear-gradient(180deg,#0d3a4a,#08202c);
+    border:1px solid rgba(79,242,255,.55);color:#eafcff;border-radius:12px;
+    padding:13px 22px;font:inherit;font-size:15px;letter-spacing:2px;
+    box-shadow:0 0 24px rgba(79,242,255,.28)}
+  .keys{margin-top:14px;font-size:12px;opacity:.7;line-height:1.9}
+  kbd{background:rgba(79,242,255,.12);border:1px solid rgba(79,242,255,.35);border-radius:5px;
+    padding:1px 6px;font:inherit;font-size:11px}
+  .stat{font-size:15px;color:#fff;margin-top:8px}
+  .poc{position:fixed;left:10px;bottom:8px;font-size:10px;opacity:.35;letter-spacing:1px}
+  @media (max-height:420px){ .ov p{font-size:12px;margin:2px 0} .ov h1{margin-bottom:2px} .keys{margin-top:8px} .ov .go{margin-top:10px;padding:10px 18px} }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+
+<div class="hud">
+  <div class="pill">
+    <div class="spd"><span id="kmh">0</span> <small>km/h</small></div>
+    <div class="mach" id="mach"></div>
+  </div>
+  <div class="pill right">
+    <div class="lbl">HEAT</div>
+    <div class="bar"><i id="heat"></i></div>
+    <div class="hull" id="hull">▮▮▮</div>
+    <div class="lbl" id="dist">0 m</div>
+  </div>
+</div>
+
+<div class="btns"><button id="mute">🔊</button></div>
+<div class="poc">POC · not a shipped game</div>
+
+<div class="ov" id="ovStart">
+  <div>
+    <h1>TUBE RACER</h1>
+    <p>Boost until the engine screams. Ride the <b style="color:var(--blu)">blue strips</b> to cool it.<br>
+       Roll around the pipe to find the gap.</p>
+    <div class="keys">
+      <kbd>←</kbd> <kbd>→</kbd> roll &nbsp;·&nbsp; <kbd>space</kbd> boost<br>
+      touch: left/right thirds roll &nbsp;·&nbsp; middle boosts
+    </div>
+    <button class="go" id="btnStart">INSERT COIN</button>
+  </div>
+</div>
+
+<div class="ov hide" id="ovEnd">
+  <div>
+    <h2 id="endWhy">DESTROYED</h2>
+    <div class="stat"><span id="endDist">0</span> m &nbsp;·&nbsp; top <span id="endTop">0</span> km/h</div>
+    <div class="stat" style="opacity:.7;font-size:13px">best <span id="endBest">0</span> m</div>
+    <button class="go" id="btnAgain">PLAY AGAIN</button>
+  </div>
+</div>
+
+<script>
+(() => {
+const TAU = Math.PI * 2;
+const cv = document.getElementById('cv'), g = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+const norm = a => ((a % TAU) + TAU) % TAU;
+const clamp = (v,a,b) => v < a ? a : v > b ? b : v;
+const lerp = (a,b,t) => a + (b-a)*t;
+
+// ---- tuning -----------------------------------------------------------------
+const ZNEAR = 0.55, ZFAR = 80;       // world units of visible pipe
+const PZ = 1.6;                      // the bike's own z — nothing is drawn nearer
+const RING = 0.8;                    // ring spacing (thinned by LOD with distance)
+const PERSP = 0.55;                  // <1 = compressed perspective, see rad()
+// Speeds are set BY the readable window: an obstacle is legible from about z=30,
+// so cruise gives ~2s of telegraph and full boost only ~0.7s. That gap is the game.
+const CRUISE = 14, VMAX = 42;        // world units / sec
+const KMH = 49;                      // display factor (Mach 1 at speed 25)
+const MACH1 = 1225;
+const AV_MAX = 4.6, AV_ACC = 16;     // roll rad/s, rad/s^2
+const ROLL = -1;                     // sign of roll: the bike is pinned to the bottom of the
+                                     // screen, so "right" must sweep the WORLD left
+const HW = 0.15;                     // half-width of the bike, radians
+const HEAT_BOOST = 0.30, HEAT_PASSIVE = 0.17, HEAT_STRIP = 0.95;
+
+let W = 0, H = 0, DPR = 1, focal = 1;
+function fit(){
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  W = cv.clientWidth = window.innerWidth; H = cv.clientHeight = window.innerHeight;
+  cv.width = Math.round(W*DPR); cv.height = Math.round(H*DPR);
+  g.setTransform(DPR,0,0,DPR,0,0);
+  // anchored so the wall at the bike's z fills the screen without pushing the bike off it
+  focal = Math.min(W * 0.52, H * 0.50);
+}
+addEventListener('resize', fit); addEventListener('orientationchange', fit); fit();
+
+// ---- audio (guarded, starts on first input) ---------------------------------
+let AC = null, engine = null, muted = false;
+function audio(){
+  if (AC || muted) return AC;
+  const C = window.AudioContext || window.webkitAudioContext; if (!C) return null;
+  try { AC = new C(); } catch(e){ return null; }
+  const master = AC.createGain(); master.gain.value = 0.5; master.connect(AC.destination);
+  const o1 = AC.createOscillator(), o2 = AC.createOscillator();
+  o1.type = 'sawtooth'; o2.type = 'square'; o2.detune.value = -12;
+  const lp = AC.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 700;
+  const eg = AC.createGain(); eg.gain.value = 0;
+  o1.connect(lp); o2.connect(lp); lp.connect(eg); eg.connect(master);
+  o1.start(); o2.start();
+  // wind
+  const n = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), d = n.getChannelData(0);
+  for (let i=0;i<d.length;i++) d[i] = Math.random()*2-1;
+  const src = AC.createBufferSource(); src.buffer = n; src.loop = true;
+  const bp = AC.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 900; bp.Q.value = 0.7;
+  const wg = AC.createGain(); wg.gain.value = 0;
+  src.connect(bp); bp.connect(wg); wg.connect(master); src.start();
+  engine = { master, o1, o2, lp, eg, wg };
+  return AC;
+}
+function engineTo(spd, boosting){
+  if (!engine || !AC) return;
+  const t = AC.currentTime, f = 46 + spd*4.6;
+  engine.o1.frequency.setTargetAtTime(f, t, 0.05);
+  engine.o2.frequency.setTargetAtTime(f*0.5, t, 0.05);
+  engine.lp.frequency.setTargetAtTime(500 + spd*40, t, 0.08);
+  engine.eg.gain.setTargetAtTime(S.alive ? (0.045 + (boosting?0.035:0)) : 0, t, 0.08);
+  engine.wg.gain.setTargetAtTime(S.alive ? clamp((spd-16)/28,0,1)*0.10 : 0, t, 0.12);
+}
+function burst(freq, dur, vol, type){
+  const ac = audio(); if (!ac || muted) return;
+  const t = ac.currentTime, gn = ac.createGain();
+  gn.gain.setValueAtTime(vol, t); gn.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  gn.connect(ac.destination);
+  if (type === 'noise'){
+    const b = ac.createBuffer(1, ac.sampleRate*dur, ac.sampleRate), d = b.getChannelData(0);
+    for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * (1 - i/d.length);
+    const s = ac.createBufferSource(); s.buffer = b;
+    const f = ac.createBiquadFilter(); f.type='lowpass'; f.frequency.value = freq;
+    s.connect(f); f.connect(gn); s.start();
+  } else {
+    const o = ac.createOscillator(); o.type='sine';
+    o.frequency.setValueAtTime(freq, t); o.frequency.exponentialRampToValueAtTime(freq*0.25, t+dur);
+    o.connect(gn); o.start(); o.stop(t+dur);
+  }
+}
+const sfx = {
+  boom(){ burst(180, 1.1, 0.5, 'noise'); burst(70, 0.9, 0.45, 'sine'); },
+  hit(){ burst(400, 0.35, 0.5, 'noise'); burst(120, 0.3, 0.3, 'sine'); },
+  dead(){ burst(300, 1.4, 0.6, 'noise'); burst(55, 1.2, 0.5, 'sine'); },
+  cool(){ burst(1600, 0.12, 0.12, 'noise'); }
+};
+$('mute').onclick = () => {
+  muted = !muted; $('mute').textContent = muted ? '🔇' : '🔊';
+  if (engine && AC) engine.master.gain.value = muted ? 0 : 0.5;
+};
+
+// ---- state ------------------------------------------------------------------
+const S = {
+  alive:false, idle:true, ang:0, av:0, spd:CRUISE, heat:0, dist:0, hull:3,
+  top:0, mach:0, shake:0, flash:0, inv:0, cool:0, why:'',
+  feats:[], nextObs:0, nextCool:0, nextAcc:0
+};
+const BEST_KEY = 'poc_tuberacer_best';
+let best = +(localStorage.getItem(BEST_KEY) || 0);
+
+function reset(){
+  S.alive = true; S.idle = false; S.ang = 0; S.av = 0; S.spd = CRUISE; S.heat = 0; S.dist = 0;
+  S.hull = 3; S.top = 0; S.mach = 0; S.shake = 0; S.flash = 0; S.inv = 0; S.cool = 0;
+  S.feats.length = 0; S.nextObs = 50; S.nextCool = 40; S.nextAcc = 110;
+}
+
+// difficulty by distance travelled
+const ramp = () => clamp(S.dist / 6000, 0, 1);
+
+function spawn(){
+  const ahead = S.dist + ZFAR + 24, r = ramp();
+  while (S.nextObs < ahead){
+    const z = S.nextObs;
+    if (Math.random() < 0.42){                       // WALL with one hole
+      const gw = lerp(2.85, 1.95, r), gc = Math.random()*TAU;
+      S.feats.push({ k:'wall', z, len:1.5, a:norm(gc + gw/2), w:TAU - gw });
+    } else {                                          // 2–3 BEAMS, gaps guaranteed
+      const k = Math.random() < 0.55 ? 2 : 3, slot = TAU/k;
+      const bw = Math.min(lerp(0.75, 1.15, r), slot - 1.15), base = Math.random()*TAU;
+      for (let i=0;i<k;i++){
+        const a = base + i*slot + Math.random()*(slot - bw - 1.05);
+        S.feats.push({ k:'beam', z, len:1.5, a:norm(a), w:bw });
+      }
+    }
+    S.nextObs += lerp(48, 30, r) * (0.85 + Math.random()*0.4);
+  }
+  while (S.nextCool < ahead){
+    S.feats.push({ k:'cool', z:S.nextCool, len:30 + Math.random()*30,
+                   a:Math.random()*TAU, w:0.6 + Math.random()*0.4 });
+    S.nextCool += 70 + Math.random()*55;
+  }
+  while (S.nextAcc < ahead){
+    S.feats.push({ k:'acc', z:S.nextAcc, len:46 + Math.random()*30,
+                   a:Math.random()*TAU, w:0.34 + Math.random()*0.22 });
+    S.nextAcc += 135 + Math.random()*95;
+  }
+}
+
+// circular overlap of [a0,a0+w0] and [a1,a1+w1]
+const overlap = (a0,w0,a1,w1) => norm(a1-a0) < w0 || norm(a0-a1) < w1;
+
+// ---- input ------------------------------------------------------------------
+const keys = Object.create(null);
+let tLeft = false, tRight = false, tBoost = false;
+addEventListener('keydown', e => {
+  if (['ArrowLeft','ArrowRight','Space','KeyA','KeyD'].includes(e.code)) e.preventDefault();
+  keys[e.code] = true; audio();
+  if ((e.code === 'Space' || e.code === 'Enter') && !S.alive) start();
+});
+addEventListener('keyup', e => { keys[e.code] = false; });
+function touch(e){
+  e.preventDefault(); audio();
+  tLeft = tRight = tBoost = false;
+  for (const t of e.touches){
+    const x = t.clientX / W;
+    if (x < 0.30) tLeft = true; else if (x > 0.70) tRight = true; else tBoost = true;
+  }
+}
+cv.addEventListener('touchstart', touch, {passive:false});
+cv.addEventListener('touchmove', touch, {passive:false});
+cv.addEventListener('touchend', touch, {passive:false});
+cv.addEventListener('touchcancel', touch, {passive:false});
+const rolling = () => (keys.ArrowLeft||keys.KeyA||tLeft ? -1 : 0) + (keys.ArrowRight||keys.KeyD||tRight ? 1 : 0);
+const boosting = () => !!(keys.Space || keys.ShiftLeft || tBoost);
+
+// ---- update (fixed 60 Hz step) ----------------------------------------------
+const DT = 1/60;
+function update(){
+  if (!S.alive){                          // attract mode: the pipe keeps drifting
+    if (S.idle){ S.dist += CRUISE*0.5*DT; S.ang = norm(S.ang + 0.16*DT); spawn(); }
+    S.shake *= 0.90; S.flash *= 0.88;
+    return;
+  }
+  const boost = boosting();
+
+  // roll
+  const dir = rolling();
+  S.av += (dir ? dir*ROLL*AV_ACC : -S.av*9) * DT;
+  S.av = clamp(S.av, -AV_MAX, AV_MAX);
+  S.ang = norm(S.ang + S.av*DT);
+
+  // what am I standing on?
+  let onCool = false, onAcc = false;
+  for (const f of S.feats){
+    if (f.k !== 'cool' && f.k !== 'acc') continue;
+    if (S.dist < f.z || S.dist > f.z + f.len) continue;
+    if (!overlap(f.a, f.w, norm(S.ang - HW), HW*2)) continue;
+    if (f.k === 'cool') onCool = true; else onAcc = true;
+  }
+
+  // speed + heat
+  const target = boost ? VMAX : CRUISE + (onAcc ? 26 : 0);
+  S.spd += (target - S.spd) * (boost ? 1.4 : 0.9) * DT;
+  S.heat += (boost ? HEAT_BOOST : -HEAT_PASSIVE) * DT;
+  if (onCool){ S.heat -= HEAT_STRIP * DT; if (S.cool <= 0){ sfx.cool(); S.cool = 0.35; } }
+  S.cool -= DT;
+  S.heat = clamp(S.heat, 0, 1);
+  if (S.heat >= 1){ die('OVERHEATED'); return; }
+
+  // travel
+  S.dist += S.spd * DT;
+  S.top = Math.max(S.top, S.spd);
+  S.inv -= DT; S.shake *= 0.90; S.flash *= 0.88;
+
+  // mach thresholds
+  const m = Math.floor(S.spd*KMH / MACH1);
+  if (m > S.mach){ S.mach = m; sfx.boom(); S.shake = 16; S.flash = 0.55; }
+  else if (m < S.mach) S.mach = m;
+
+  // collisions (1D arc overlap as the feature crosses z=0)
+  if (S.inv <= 0){
+    for (const f of S.feats){
+      if (f.k === 'cool' || f.k === 'acc') continue;
+      if (S.dist < f.z || S.dist > f.z + f.len) continue;
+      if (!overlap(f.a, f.w, norm(S.ang - HW), HW*2)) continue;
+      S.hull--; S.spd *= 0.5; S.heat = clamp(S.heat + 0.2, 0, 1);
+      S.shake = 22; S.flash = 0.8; S.inv = 0.9; sfx.hit();
+      if (S.hull <= 0){ die('DESTROYED'); return; }
+      break;
+    }
+  }
+
+  spawn();
+  if (S.feats.length > 220) S.feats = S.feats.filter(f => f.z + f.len > S.dist - 6);
+  engineTo(S.spd, boost);
+}
+
+function die(why){
+  S.alive = false; S.idle = false; S.why = why; S.shake = 30; S.flash = 1; sfx.dead(); engineTo(0,false);
+  const d = Math.floor(S.dist);
+  if (d > best){ best = d; try { localStorage.setItem(BEST_KEY, String(best)); } catch(e){} }
+  $('endWhy').textContent = why;
+  $('endDist').textContent = d;
+  $('endTop').textContent = Math.round(S.top*KMH);
+  $('endBest').textContent = best;
+  $('ovEnd').classList.remove('hide');
+}
+function start(){
+  audio(); reset();
+  $('ovStart').classList.add('hide'); $('ovEnd').classList.add('hide');
+}
+$('btnStart').onclick = start; $('btnAgain').onclick = start;
+
+// ---- render -----------------------------------------------------------------
+// screen angle of a pipe angle: the world rolls so the bike stays at the bottom
+const sa = a => a - S.ang + Math.PI/2;
+let cx = 0, cy = 0, fov = 1;
+// Deliberately NOT true 1/z: a real pinhole makes a barrier 40 units out ~5px wide,
+// i.e. invisible until 0.15s before impact. Flattening the falloff keeps distant
+// obstacles readable while ring flow still carries the speed.
+const rad = z => fov * focal / Math.pow(z, PERSP);
+
+// ---- pipe curvature -------------------------------------------------------
+// The pipe bends and rolls over hills. Nothing about the WORLD bends: we offset
+// each slice's projected centre, exactly like a pseudo-3D road racer. Curvature is
+// a function of absolute world position, so a bend flows past at a consistent rate,
+// and because collisions are angle-vs-angle this is purely cosmetic — a curve can
+// never make an obstacle unfair.
+// Tuned so the sharpest bend swings the far end ~3 pipe radii off axis. Much more and
+// the tube stops nesting and reads as a spiral instead of a curve.
+const CURVE_X = 0.0006, CURVE_Y = 0.00035;  // rad of bend per world unit
+const curveX = z => Math.sin(z*0.0072)*CURVE_X + Math.sin(z*0.0191 + 1.7)*CURVE_X*0.5;
+const curveY = z => Math.sin(z*0.0104 + 0.6)*CURVE_Y + Math.sin(z*0.0263)*CURVE_Y*0.4;
+
+const OFF_N = 44, OFF_H = ZFAR/OFF_N;
+const offX = new Float32Array(OFF_N+1), offY = new Float32Array(OFF_N+1);
+function buildOffsets(){          // double-integrate curvature into a lateral offset
+  let hx = 0, hy = 0, x = 0, y = 0;
+  offX[0] = 0; offY[0] = 0;
+  for (let i=1;i<=OFF_N;i++){
+    const wz = S.dist + (i-0.5)*OFF_H;
+    hx += curveX(wz)*OFF_H; hy += curveY(wz)*OFF_H;
+    x  += hx*OFF_H;         y  += hy*OFF_H;
+    offX[i] = x; offY[i] = y;
+  }
+}
+// centre of the pipe slice at relative distance z, in screen px
+function ctr(z){
+  const u = clamp(z/OFF_H, 0, OFF_N), i = u|0, f = u - i, j = Math.min(OFF_N, i+1);
+  const r = rad(z), lim = Math.min(W,H)*0.55;
+  return [ cx + clamp((offX[i] + (offX[j]-offX[i])*f) * r, -lim, lim),
+           cy + clamp((offY[i] + (offY[j]-offY[i])*f) * r, -lim, lim) ];
+}
+
+// annular sector spanning two slices: arc A forward, arc B back (each on its own centre)
+function sector(zA, rA, zB, rB, a0, a1){
+  const [xa,ya] = ctr(zA), [xb,yb] = ctr(zB);
+  g.beginPath();
+  g.arc(xa, ya, rA, a0, a1);
+  g.arc(xb, yb, rB, a1, a0, true);
+  g.closePath();
+}
+
+function render(){
+  const machF = clamp((S.spd*KMH) / MACH1, 0, 3);
+  fov = 1 + machF*0.13;                              // FOV tightens with speed
+  const sh = S.shake + (S.alive ? machF*machF*1.5 : 0);
+  cx = W/2 + (Math.random()-0.5)*sh; cy = H*0.40 + (Math.random()-0.5)*sh;
+  buildOffsets();
+
+  g.fillStyle = '#03050c'; g.fillRect(0,0,W,H);
+  const bg = g.createRadialGradient(cx,cy,0,cx,cy,Math.max(W,H)*0.75);
+  bg.addColorStop(0,'#0a1c33'); bg.addColorStop(0.45,'#061021'); bg.addColorStop(1,'#02040a');
+  g.fillStyle = bg; g.fillRect(0,0,W,H);
+
+  // ---- rings (far -> near) + longitudinal seams
+  // World-anchored rings with distance LOD: keeps on-screen spacing even, stops the
+  // near edge popping open a gap as rings sweep past, and keeps the far field clean
+  // enough to spot an obstacle in. Every 8th ring is an accent — that's the flow cue.
+  const kA = Math.ceil((S.dist + PZ*0.85)/RING), kB = Math.floor((S.dist + ZFAR)/RING);
+  for (let k = kB; k >= kA; k--){
+    const z = k*RING - S.dist;
+    const lod = z < 7 ? 1 : z < 18 ? 2 : z < 40 ? 4 : 8;
+    if (k % lod) continue;
+    const r = rad(z), t = 1 - z/ZFAR, lit = (k % 8 === 0);
+    const a = Math.pow(t, 1.2) * (lit ? 0.60 : 0.24) * clamp((r-30)/45, 0, 1);
+    if (a < 0.012) continue;
+    g.lineWidth = lit ? 2 : 1;
+    g.strokeStyle = `rgba(79,242,255,${a.toFixed(3)})`;
+    const [rx,ry] = ctr(z);
+    g.beginPath(); g.arc(rx,ry,r,0,TAU); g.stroke();
+  }
+  // fog at the vanishing point, so the far end reads as distance, not a hole
+  const [fx,fy] = ctr(14), rfog = rad(14);
+  const fg = g.createRadialGradient(fx,fy,0,fx,fy,rfog);
+  fg.addColorStop(0,'rgba(30,86,130,.55)'); fg.addColorStop(0.5,'rgba(14,44,74,.28)');
+  fg.addColorStop(1,'rgba(8,20,40,0)');
+  g.fillStyle = fg; g.beginPath(); g.arc(fx,fy,rfog,0,TAU); g.fill();
+
+  // seams are polylines now — a straight line can't show a bend
+  const zA = PZ*0.85, SEG = 12;
+  for (let i=0;i<16;i++){
+    const a = sa(i*TAU/16), c = Math.cos(a), s = Math.sin(a);
+    const key = (i === 0);                            // one amber seam = absolute orientation
+    g.strokeStyle = key ? 'rgba(255,180,61,.55)' : 'rgba(79,242,255,.20)';
+    g.lineWidth = key ? 2.5 : 1;
+    g.beginPath();
+    for (let j=0;j<=SEG;j++){
+      const z = zA * Math.pow(ZFAR/zA, j/SEG), r = rad(z), [px,py] = ctr(z);
+      const X = px + c*r, Y = py + s*r;
+      if (j) g.lineTo(X,Y); else g.moveTo(X,Y);
+    }
+    g.stroke();
+  }
+
+  // ---- strips first (they lie ON the wall), then obstacles (they jut inward)
+  const vis = S.feats.filter(f => f.z + f.len > S.dist - 1 && f.z < S.dist + ZFAR)
+                     .sort((a,b) => (b.z - a.z));
+  for (const f of vis){
+    if (f.k !== 'cool' && f.k !== 'acc') continue;
+    const zn = Math.max(PZ, f.z - S.dist), zf = Math.min(ZFAR, f.z + f.len - S.dist);
+    if (zf <= zn) continue;
+    const a0 = sa(f.a), a1 = sa(f.a + f.w);
+    // A strip spans a long stretch of pipe, so it has to be drawn in slices — one
+    // sector from its near to its far end would cut straight across any bend.
+    const steps = clamp(Math.ceil((zf - zn)/5), 1, 24);
+    for (let s = 0; s < steps; s++){
+      const za = zn + (zf-zn)*s/steps, zb = zn + (zf-zn)*(s+1)/steps;
+      const al = 0.10 + Math.pow(1 - za/ZFAR, 1.6)*0.48;
+      g.fillStyle = f.k === 'cool' ? `rgba(110,190,255,${al.toFixed(3)})`
+                                   : `rgba(255,190,80,${(al*0.9).toFixed(3)})`;
+      sector(za, rad(za), zb, rad(zb), a0, a1); g.fill();
+    }
+    // bright inner keyline so the lane reads at speed
+    const [nx,ny] = ctr(zn);
+    g.strokeStyle = f.k === 'cool' ? 'rgba(190,235,255,.7)' : 'rgba(255,225,150,.65)';
+    g.lineWidth = 1.5;
+    g.beginPath(); g.arc(nx,ny,rad(zn)*0.985,a0,a1); g.stroke();
+  }
+  for (const f of vis){
+    if (f.k === 'cool' || f.k === 'acc') continue;
+    const zn = Math.max(PZ, f.z - S.dist), zf = Math.min(ZFAR, f.z + f.len - S.dist);
+    if (zf <= zn) continue;
+    const a0 = sa(f.a), a1 = sa(f.a + f.w);
+    const RN = rad(zn), RF = rad(zf);
+    const near = 1 - zf/ZFAR, glow = Math.pow(near, 2.2);
+    // side face (the block's depth)
+    sector(zn, RN, zf, RF*0.80, a0, a1);
+    g.fillStyle = `rgba(90,10,40,${(0.4 + glow*0.42).toFixed(3)})`; g.fill();
+    // far cap
+    sector(zf, RF, zf, RF*0.80, a0, a1);
+    g.fillStyle = `rgba(255,61,139,${(0.14 + glow*0.45).toFixed(3)})`; g.fill();
+    // near cap — the edge you actually read
+    sector(zn, RN, zn, RN*0.78, a0, a1);
+    g.fillStyle = `rgba(255,61,139,${(0.28 + glow*0.6).toFixed(3)})`; g.fill();
+    g.strokeStyle = `rgba(255,190,220,${(0.3 + glow*0.7).toFixed(3)})`;
+    g.lineWidth = 2; g.stroke();
+  }
+
+  // ---- speed streaks
+  if (machF > 0.55){
+    const n = Math.round((machF-0.55)*36);
+    g.strokeStyle = `rgba(220,250,255,${clamp((machF-0.55)*0.35,0,0.4).toFixed(3)})`;
+    g.lineWidth = 1.2;
+    for (let i=0;i<n;i++){
+      const a = Math.random()*TAU, c = Math.cos(a), s = Math.sin(a);
+      const z0 = 1.2 + Math.random()*7, z1 = z0*0.45;
+      const r0 = rad(z0), r1 = rad(z1), [x0,y0] = ctr(z0), [x1,y1] = ctr(z1);
+      g.beginPath(); g.moveTo(x0+c*r0, y0+s*r0); g.lineTo(x1+c*r1, y1+s*r1); g.stroke();
+    }
+  }
+
+  // ---- the bike (always bottom-centre, on the wall)
+  if (S.alive || S.flash > 0.2){
+    const r = rad(PZ), a = Math.PI/2, [pcx,pcy] = ctr(PZ);
+    const bx = pcx + Math.cos(a)*r, by = pcy + Math.sin(a)*r;
+    const sc = clamp(r*0.10, 12, 34);
+    g.save(); g.translate(bx, by);
+    const flare = 4 + (boosting() ? 9 : 2) + Math.random()*4;
+    const fg = g.createLinearGradient(0,0,0,flare*sc*0.16);
+    fg.addColorStop(0, boosting() ? 'rgba(255,180,61,.9)' : 'rgba(79,242,255,.75)');
+    fg.addColorStop(1,'rgba(255,61,139,0)');
+    g.fillStyle = fg;
+    g.beginPath(); g.moveTo(-sc*0.32,0); g.lineTo(sc*0.32,0);
+    g.lineTo(0, flare*sc*0.16); g.closePath(); g.fill();
+    g.fillStyle = S.inv > 0 && ((S.inv*20)|0)%2 ? 'rgba(255,120,160,.9)' : '#eafcff';
+    g.beginPath(); g.moveTo(0,-sc*0.75); g.lineTo(sc*0.5,sc*0.2);
+    g.lineTo(0,-sc*0.05); g.lineTo(-sc*0.5,sc*0.2); g.closePath(); g.fill();
+    g.strokeStyle = 'rgba(79,242,255,.9)'; g.lineWidth = 1.4; g.stroke();
+    g.restore();
+  }
+
+  // ---- vignette + flash
+  const vg = g.createRadialGradient(cx,cy,Math.min(W,H)*0.22,cx,cy,Math.max(W,H)*0.72);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,`rgba(0,0,0,${0.5+machF*0.14})`);
+  g.fillStyle = vg; g.fillRect(0,0,W,H);
+  if (S.flash > 0.01){
+    g.fillStyle = `rgba(255,${S.why?60:220},${S.why?90:255},${(S.flash*0.5).toFixed(3)})`;
+    g.fillRect(0,0,W,H);
+  }
+}
+
+// ---- HUD --------------------------------------------------------------------
+let hudT = 0;
+function hud(){
+  const kmh = Math.round(S.spd*KMH);
+  $('kmh').textContent = kmh;
+  const m = kmh / MACH1;
+  const el = $('mach');
+  el.textContent = m >= 1 ? `▲ MACH ${m.toFixed(2)}` : '';
+  el.className = 'mach' + (m >= 2 ? ' hot' : '');
+  $('heat').style.width = (S.heat*100).toFixed(0) + '%';
+  $('hull').textContent = '▮'.repeat(Math.max(0,S.hull)) + '▯'.repeat(3-Math.max(0,S.hull));
+  $('hull').style.color = S.hull > 1 ? '#4ff2ff' : '#ff3d8b';
+  $('dist').textContent = Math.floor(S.dist) + ' m';
+}
+
+// ---- loop (fixed-timestep accumulator, kit-style) ---------------------------
+let last = performance.now(), acc = 0;
+function frame(now){
+  requestAnimationFrame(frame);
+  acc += Math.min(100, now - last); last = now;
+  while (acc >= 1000/60){ update(); acc -= 1000/60; }
+  render();
+  if (now - hudT > 60){ hud(); hudT = now; }
+}
+requestAnimationFrame(frame);
+reset(); S.alive = false; S.idle = true;   // drifting tunnel behind the start overlay
+
+window.__poc = { S, start, step:n => { for (let i=0;i<n;i++) update(); } };
+})();
+</script>
+</body>
+</html>
