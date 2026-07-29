@@ -1,7 +1,8 @@
 // Cosmetics registry (window.COSMETICS) — the launch catalogue for the Cosmetics store.
 // Data only: the kit (gamekit.cosmetics) owns storage, the economy (trophies = challenge
 // points) and the store modal; games apply a selected item in their own render.
-//   item: { id: '<game>.<set>.<key>', game ('' = site-wide), set, name, desc, price, painter }
+//   item: { id: '<game>.<set>.<key>', game ('' = site-wide), set, name, desc, price, painter,
+//           music? (kit track id), audio? (see "audio builders") }
 // Rules the tests enforce: ids unique, every set has exactly one FREE default (price 0),
 // prices stay in the bands (10/25 cheap · 50 mid · 100 premium) except flagged exceptions
 // (Meadow Flyer's progressive bird tail, capped at the 🏆 500 hard ceiling).
@@ -355,9 +356,71 @@
       g.stroke(); g.shadowBlur = 0;
     };
   }
+  // ---- audio builders (`audio` on an item) ----------------------------------------------------
+  // A cosmetic that IS a sound but not a music track (an engine drone, a thruster) carries
+  // `audio: (ac, out) => tune`, which wires a continuous graph into `out` and returns
+  // `tune(t, sp, boost)` — t = ac.currentTime, sp = 0..1 intensity (may reach ~1.1), boost = bool.
+  // It lives HERE, not in the game, because cosmetics.js is loaded by the catalogue too: the shop's
+  // ▶ preview has to make the noise on a page where the game's own code never runs.
+  // Tube Racer's three engines (auditioned in plans/tube-engine-lab.html); their frequency ranges
+  // are the game's cruise→boost+lane span (14→52 units/s) folded into sp.
+  function engReactor(ac, out) {   // a throb whose RATE rises with speed — the engine audibly races
+    var lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 600;
+    var saw = ac.createOscillator(); saw.type = 'sawtooth'; saw.frequency.value = 70;
+    var sg = ac.createGain(); sg.gain.value = 0.5;
+    var trem = ac.createGain(); trem.gain.value = 1;
+    var lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 4;
+    var lg = ac.createGain(); lg.gain.value = 0.55;
+    saw.connect(sg); sg.connect(lp); lp.connect(trem); trem.connect(out);
+    lfo.connect(lg); lg.connect(trem.gain);
+    saw.start(); lfo.start();
+    return function (t, sp, boost) {
+      saw.frequency.setTargetAtTime(80.4 + sp * 98.8, t, 0.06);
+      lp.frequency.setTargetAtTime(720 + sp * 1140 + (boost ? 400 : 0), t, 0.1);
+      lfo.frequency.setTargetAtTime(3.5 + sp * 13, t, 0.12);
+      lg.gain.setTargetAtTime(boost ? 0.75 : 0.55, t, 0.12);
+    };
+  }
+  function engMaglev(ac, out) {    // clean sines a fifth apart with a shimmer — leaves room for the music
+    var a = ac.createOscillator(); a.type = 'sine'; a.frequency.value = 80;
+    var b = ac.createOscillator(); b.type = 'sine'; b.frequency.value = 120;
+    var ag = ac.createGain(); ag.gain.value = 0.3;
+    var bg = ac.createGain(); bg.gain.value = 0.16;
+    var lfo = ac.createOscillator(); lfo.type = 'sine'; lfo.frequency.value = 0.7;
+    var lg = ac.createGain(); lg.gain.value = 6;
+    a.connect(ag); ag.connect(out); b.connect(bg); bg.connect(out);
+    lfo.connect(lg); lg.connect(b.frequency);
+    a.start(); b.start(); lfo.start();
+    return function (t, sp) {
+      var f = 112.4 + sp * 136.8;
+      a.frequency.setTargetAtTime(f, t, 0.08);
+      b.frequency.setTargetAtTime(f * 1.5, t, 0.08);
+      bg.gain.setTargetAtTime(0.1 + sp * 0.14, t, 0.1);
+      lg.gain.setTargetAtTime(4 + sp * 14, t, 0.12);
+    };
+  }
+  function engTwostroke(ac, out) { // two squares beating hard through a bright bandpass — small and angry
+    var bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 700; bp.Q.value = 1.4;
+    var a = ac.createOscillator(); a.type = 'square'; a.frequency.value = 90;
+    var b = ac.createOscillator(); b.type = 'square'; b.frequency.value = 91; b.detune.value = 28;
+    var ag = ac.createGain(); ag.gain.value = 0.3;
+    var bg = ac.createGain(); bg.gain.value = 0.26;
+    a.connect(ag); ag.connect(bp); b.connect(bg); bg.connect(bp); bp.connect(out);
+    a.start(); b.start();
+    return function (t, sp, boost) {
+      var f = 121.6 + sp * 167.2;
+      a.frequency.setTargetAtTime(f, t, 0.06);
+      b.frequency.setTargetAtTime(f * 1.01, t, 0.06);
+      bp.frequency.setTargetAtTime(940 + sp * 1140 + (boost ? 300 : 0), t, 0.09);
+      bp.Q.setTargetAtTime(boost ? 2.2 : 1.4, t, 0.1);
+    };
+  }
+
   var items = [];
-  function add(game, set, key, name, price, desc, painter) {
-    items.push({ id: (game || 'site') + '.' + set + '.' + key, game: game, set: (game || 'site') + '.' + set, name: name, desc: desc, price: price, painter: painter });
+  function add(game, set, key, name, price, desc, painter, audio) {
+    var it = { id: (game || 'site') + '.' + set + '.' + key, game: game, set: (game || 'site') + '.' + set, name: name, desc: desc, price: price, painter: painter };
+    if (audio) it.audio = audio;
+    items.push(it);
   }
 
   // ---- Site-wide — cursor skins (desktop only; the kit applies the selected one) ----
@@ -891,6 +954,73 @@
   add('forcefield', 'planet', 'violet',  'Violet',  75, 'A violet gas giant.', planetSwatch('#7a46b8', '#180a2e'));
   add('forcefield', 'planet', 'nova',    'Nova',    100, 'A blazing rose-red star-world.', planetSwatch('#d84a6a', '#2e0a14'));
 
+  // ---- 🌀 Tube Racer — tube palettes (the whole screen) + bike hulls ----
+  function tubeSwatch(ring, seam, bg0, bg1) {
+    return function (g, w, h) {
+      const bg = g.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.7);
+      bg.addColorStop(0, bg0); bg.addColorStop(1, bg1);
+      g.fillStyle = bg; g.fillRect(0, 0, w, h);
+      const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.46;
+      for (let i = 5; i >= 1; i--) {
+        g.strokeStyle = ring; g.globalAlpha = 0.14 + i * 0.15; g.lineWidth = i === 5 ? 2 : 1;
+        g.beginPath(); g.arc(cx, cy, R * i / 5, 0, 6.283); g.stroke();
+      }
+      g.globalAlpha = 0.85; g.strokeStyle = seam; g.lineWidth = 1.6;
+      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx, cy + R); g.stroke();
+      g.globalAlpha = 1;
+    };
+  }
+  function bikeSwatch(body, trim) {
+    return function (g, w, h) {
+      g.fillStyle = '#050a16'; g.fillRect(0, 0, w, h);
+      const cx = w / 2, cy = h * 0.58, s = Math.min(w, h) * 0.42;
+      const grd = g.createLinearGradient(cx - s, cy - s, cx + s, cy + s);
+      grd.addColorStop(0, '#ffffff'); grd.addColorStop(0.5, body); grd.addColorStop(1, trim);
+      g.fillStyle = grd;
+      g.beginPath(); g.moveTo(cx, cy - s); g.lineTo(cx + s * 0.66, cy + s * 0.5);
+      g.lineTo(cx, cy + s * 0.1); g.lineTo(cx - s * 0.66, cy + s * 0.5); g.closePath(); g.fill();
+      g.strokeStyle = trim; g.lineWidth = 1.2; g.stroke();
+      g.fillStyle = 'rgba(255,255,255,.8)';
+      g.beginPath(); g.ellipse(cx - s * 0.06, cy - s * 0.38, s * 0.12, s * 0.22, -0.3, 0, 6.283); g.fill();
+    };
+  }
+  add('tube-racer', 'tube', 'ion',    'Ion',      0,   'The standard cyan service tunnel.',                    tubeSwatch('#4ff2ff', '#ffb43d', '#0a1c33', '#02040a'));
+  add('tube-racer', 'tube', 'magma',  'Magma',    25,  'A cooling duct bored straight through hot rock.',      tubeSwatch('#ff8a3d', '#ffec8c', '#2a1006', '#150703'));
+  add('tube-racer', 'tube', 'vapor',  'Vapor',    50,  'Violet neon and long chrome nights.',                  tubeSwatch('#d682ff', '#6ef5ff', '#1b0a33', '#0d0520'));
+  add('tube-racer', 'tube', 'toxic',  'Toxic',    100, 'Coolant green, and the warning lights all agree.',     tubeSwatch('#8cff78', '#e6ff5a', '#0a2410', '#04120a'));
+  // engine notes — the drone you fly to, auditioned in plans/tube-engine-lab.html
+  function waveSwatch(kind, col) {
+    return function (g, w, h) {
+      g.fillStyle = '#050a16'; g.fillRect(0, 0, w, h);
+      const mid = h / 2, amp = h * 0.3, n = Math.max(24, w | 0);
+      g.strokeStyle = col; g.lineWidth = Math.max(1.6, w * 0.055); g.lineJoin = 'round';
+      g.beginPath();
+      for (let i = 0; i <= n; i++) {
+        const x = i / n, px = x * w;
+        let v;
+        if (kind === 'sine') v = Math.sin(x * Math.PI * 4);
+        else if (kind === 'square') v = Math.sin(x * Math.PI * 7) > 0 ? 1 : -1;
+        else { // gated sawtooth: the pulse envelope IS the character
+          const saw = ((x * 7) % 1) * 2 - 1;
+          v = saw * (0.35 + 0.65 * Math.max(0, Math.sin(x * Math.PI * 2)));
+        }
+        const py = mid - v * amp;
+        if (i) g.lineTo(px, py); else g.moveTo(px, py);
+      }
+      g.stroke();
+      g.strokeStyle = 'rgba(255,255,255,.1)'; g.lineWidth = 1;
+      g.beginPath(); g.moveTo(0, mid); g.lineTo(w, mid); g.stroke();
+    };
+  }
+  add('tube-racer', 'engine', 'reactor',   'Reactor Pulse', 0,  'A throb that races as you speed up — the stock drive.', waveSwatch('pulse',  '#4ff2ff'), engReactor);
+  add('tube-racer', 'engine', 'maglev',    'Maglev',        25, 'Almost no grit. Two clean tones and a shimmer.',        waveSwatch('sine',   '#9ff0d8'), engMaglev);
+  add('tube-racer', 'engine', 'twostroke', 'Two-Stroke',    50, 'Buzzy and mean. Sounds small, sounds angry.',           waveSwatch('square', '#ffd24d'), engTwostroke);
+  add('tube-racer', 'bike', 'arrow',  'Arrow',    0,   'Standard-issue delta hull.',                           bikeSwatch('#eafcff', '#4ff2ff'));
+  add('tube-racer', 'bike', 'wasp',   'Wasp',     10,  'Stubby, wide-winged and mean.',                        bikeSwatch('#ffd24d', '#ff8a3d'));
+  add('tube-racer', 'bike', 'delta',  'Delta',    25,  'A clean swept wing with no wasted metal.',             bikeSwatch('#b6c6ff', '#7c5cff'));
+  add('tube-racer', 'bike', 'fox',      'Fox',    50,  'Ears, tail, and a suspicious amount of speed.',        bikeSwatch('#ffb86b', '#e0883a'));
+  add('tube-racer', 'bike', 'ghost',  'Ghost',    100, 'Barely there, and gone before you looked.',            bikeSwatch('#9ff0d8', '#2ee8c8'));
+
   window.COSMETICS = {
     version: 1,
     items: items,
@@ -930,6 +1060,9 @@
       'mirror-maze.beam': { label: 'Beam palettes' },
       'type-siege.ink': { label: 'Ink & paper' },
       'floodgate.pipe': { label: 'Pipe metals' },
+      'tube-racer.tube': { label: 'Tube palettes' },
+      'tube-racer.bike': { label: 'Bike hulls' },
+      'tube-racer.engine': { label: 'Engine notes' },
     },
     // game meta for the store modal (games don't load games.js; '' = site-wide sets)
     games: {
@@ -956,6 +1089,7 @@
       'mirror-maze':   { title: 'Mirror Maze', icon: '🔆', accent: '#7fe8ff' },
       'type-siege':    { title: 'Type Siege', icon: '⌨️', accent: '#6ad6ff' },
       'floodgate':     { title: 'Floodgate', icon: '🚰', accent: '#5fb8d9' },
+      'tube-racer':    { title: 'Tube Racer', icon: '🌀', accent: '#4ff2ff' },
     },
   };
 })();
