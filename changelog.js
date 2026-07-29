@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-29', title: 'New game: Tube Racer 🌀', items: [
+    'New: Tube Racer — you are magnetically stuck to the inside of a giant pipe at supersonic speed. There is no left or right edge: you roll all the way around the wall to line up with the gap in each barrier. Boost to score faster, but boosting melts the engine and the glowing blue strips are the only way to cool it. Endless Classic, a 30 km Sprint against the clock, Redline with the boost jammed on, and Cruise for an easy ride.',
+  ] },
   { date: '2026-07-28', title: 'Your language, all the way into the games 🌍', items: [
     'Fix: four games kept their English names everywhere — Arcane, Type Siege, Chrome Runner and Mirror Maze now carry a real name in your language, on the tile, the start screen, the challenges and the score card you share. Air Hockey got its Portuguese name too.',
     'Fix: Chrome Runner introduced itself as "DUSK RUNNER" — its old working title — on the start screen in every language but English.',
