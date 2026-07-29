@@ -1587,6 +1587,20 @@ function testSEO() {
   bad('every live game has valid VideoGame JSON-LD', badLD);
   bad('every live game ships the crawlable #gk-about section (howto key + catalogue link)',
     pages.filter(([s, h]) => !(h.includes('id="gk-about"') && h.includes('data-t="seo.' + s + '.howto"') && h.includes('href="../../"'))).map(([s]) => s));
+  // the "More free games" links are a crawler surface, so a link to a `soon:` slug (no folder on
+  // disk) feeds a 404 to exactly the readers the section exists for — tube-racer shipped pointing
+  // at ../tron/. Every sibling href must be a LIVE game's folder.
+  {
+    const deadLinks = [];
+    for (const [s, h] of pages) {
+      const about = (h.match(/<section[^>]+id="gk-about"[\s\S]*?<\/section>/) || [''])[0];
+      for (const m of about.matchAll(/href="\.\.\/([^/"]+)\//g)) {
+        if (m[1] === '..') continue;                       // ../../ is the catalogue link, not a game
+        if (live.indexOf(m[1]) < 0) deadLinks.push(s + ' → ' + m[1]);
+      }
+    }
+    bad('no live game\'s about section links a game that is not live', deadLinks);
+  }
   // homepage: the static no-JS game list + the ItemList JSON-LD (what LLM fetchers / no-JS
   // crawlers see instead of the JS-rendered tiles) must stay in lockstep with games.js
   {

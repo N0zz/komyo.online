@@ -136,7 +136,17 @@ export function makeSandbox(opts = {}) {
     get bootErr() { return errors.length ? errors[0] : null; },
     T: () => win.__test, test: () => win.__test,
     run(code, filename) { try { vm.runInContext(code, ctx, { filename }); } catch (e) { errors.push((filename || 'script') + ': ' + e.stack); } },
-    key(type, key) { (handlers[type] || []).slice().forEach(fn => { try { fn({ key, preventDefault() {}, stopPropagation() {} }); } catch (e) { errors.push(type + ' ' + key + ': ' + e.stack); } }); },
+    // `extra` merges onto the event (code, target, …) and the return value says whether any handler
+    // called preventDefault — that is what makes "the game must NOT swallow this key" testable, e.g.
+    // typing into a kit overlay's text field while a game is open. `code` is deliberately NOT
+    // defaulted from `key`: games branch on e.code, and filling it in would change every existing
+    // suite's behaviour. stopImmediatePropagation is a no-op here (games call it; a missing stub threw).
+    key(type, key, extra) {
+      let prevented = false;
+      const ev = Object.assign({ key, preventDefault() { prevented = true; }, stopPropagation() {}, stopImmediatePropagation() {} }, extra || {});
+      (handlers[type] || []).slice().forEach(fn => { try { fn(ev); } catch (e) { errors.push(type + ' ' + key + ': ' + e.stack); } });
+      return prevented;
+    },
     down(k) { this.key('keydown', k); }, up(k) { this.key('keyup', k); },
     // step(): one display frame for rAF-driven (bespoke) games — advances the clock, drains the queue.
     step(n = 1) { for (let i = 0; i < n; i++) { clock += 1000 / 60; fireRaf(clock); } },

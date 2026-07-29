@@ -565,6 +565,106 @@ section('Tube Racer: the menu backdrop is the real tunnel, and stays out of the 
   ok(g.errors.length === 0, 'no backdrop render errors: ' + (g.errors[0] || ''));
 }
 
+section('Tube Racer: balance telemetry — end cause and per-run rates');
+{
+  // overheating and being destroyed must be told apart, and by WHICH hazard
+  const heat = clean();
+  heat.T().hold('Space', true);
+  let n = 0; while (heat.T().state === 'playing' && n++ < 900) heat.T().step(1);
+  heat.T().hold('Space', false);
+  const hRec = JSON.parse(heat.store['gamekit_result_tube-racer'] || '{}');
+  ok(hRec.stats && typeof hRec.stats.rates === 'object', 'rates are reported on the record');
+  ok(hRec.stats.rates.boost_share > 0.5, 'boost_share reflects a full-throttle run (' + (hRec.stats.rates.boost_share || 0).toFixed(2) + ')');
+  ok(hRec.stats.rates.boost_share <= 1, 'boost_share is a real share, never above 1 (' + hRec.stats.rates.boost_share + ')');
+
+  const wall = clean();
+  killWithWalls(wall);
+  const wRec = JSON.parse(wall.store['gamekit_result_tube-racer'] || '{}');
+  ok(wall.T().state === 'over', 'the wall run ended');
+  ok(['wall', 'rotor', 'xcross', 'sentinel', 'plug'].indexOf(wall.T().hitBy) >= 0,
+    'the killing hazard is recorded from the closed set (' + wall.T().hitBy + ')');
+  ok(wRec.stats.rates.boost_share < 0.5, 'a coasting run reports a low boost share');
+
+  // cooling-strip entries are counted as a RATE, and only on entry (not per frame)
+  const cool = clean();
+  cool.T().addFeat({ k: 'cool', z: cool.T().dist + 4, len: 8, a: cool.T().ang - 0.4, w: 0.8 });
+  let k = 0; while (k++ < 240) cool.T().step(1);
+  ok(cool.T().coolsTaken >= 1, 'entering a cooling strip counts once (' + cool.T().coolsTaken + ')');
+  ok(cool.T().coolsTaken < 20, 'it is not counted per frame');
+}
+
+section('Tube Racer: passing your old best is celebrated mid-run, once');
+{
+  // arm with a beatable bar, then fly until the score crosses it
+  const g = clean({ store: { gamekit_pb: JSON.stringify({ 'tube-racer': { Classic: { score: 40 } } }) } });
+  g.T().start();                              // re-arm now that the bar is in the store
+  g.T().clearTrack();
+  ok(g.T().score < 40, 'starts below the old best');
+  let flashes = 0, guard = 0;
+  while (g.T().score < 60 && guard++ < 4000) {
+    const before = g.T().state;
+    g.T().step(1);
+    // the flash decays once more inside the same update (S.flash *= 0.88), so 0.55 reads as 0.484
+    if (before === 'playing' && g.T().flash > 0.4) flashes++;
+  }
+  ok(g.T().score >= 60, 'the run passed the old best');
+  ok(flashes >= 1, 'the in-engine flash fired when the bar was passed');
+  // a second crossing must NOT re-fire: one celebration per run
+  const flashAt = g.T().flash;
+  g.T().step(600);
+  ok(g.T().score > 60, 'the run kept scoring past it');
+  ok(g.T().flash <= flashAt, 'it does not fire again in the same run');
+  ok(g.errors.length === 0, 'no errors');
+}
+
+section('Tube Racer: a first-ever run has no best to beat, so nothing fires');
+{
+  const g = clean();                          // empty store: no previous best
+  g.T().start(); g.T().clearTrack();
+  let flashes = 0, guard = 0;
+  while (g.T().score < 120 && guard++ < 6000) { g.T().step(1); if (g.T().flash > 0.4) flashes++; }
+  ok(flashes === 0, 'no celebration on a first run (there is no record to break)');
+}
+
+section('Tube Racer: the shared score card carries a TRANSLATED mode name');
+{
+  // `mode` must stay the English store key (saveBest keys on it) while `modeText` is what the player
+  // reads on the score card and in the profile. Shipping without modeText meant Polish players shared
+  // a card subtitled "Redline".
+  const g = clean({ search: '?lang=pl' });
+  killWithWalls(g);
+  const rec = JSON.parse(g.store['gamekit_result_tube-racer'] || '{}');
+  ok(rec.mode === 'Classic', 'the stored mode key stays English (' + rec.mode + ')');
+  ok(typeof rec.modeText === 'string' && rec.modeText.length > 0, 'a modeText is recorded for the card');
+  const pl = fs.readFileSync(path.join(ROOT, 'i18n.pl.js'), 'utf8');
+  const wanted = (pl.match(/'game\.tube-racer\.modeClassic':\s*'([^']+)'/) || [])[1];
+  ok(!!wanted, 'the Polish Classic name exists in i18n.pl.js');
+  ok(rec.modeText === wanted, 'modeText is the Polish name, not the English key (got "' + rec.modeText + '", want "' + wanted + '")');
+}
+
+section('Tube Racer: steering keys never eat typing in a kit overlay');
+{
+  // The 🎨 Collection search box and the profile name editor are reachable MID-RUN via the side
+  // stack, so the game must ignore keydowns aimed at a text field. Asserted through behaviour, not
+  // through preventDefault: the kit's tap-to-play splash also swallows keys, so a preventDefault
+  // probe would be measuring the splash rather than the game.
+  const speedAfter = (target) => {
+    const g = clean();
+    g.T().setCam('world');
+    const before = g.T().spd;
+    g.key('keydown', ' ', { code: 'Space', target });
+    g.T().step(40);
+    return { rose: g.T().spd > before + 0.5, errs: g.errors.length };
+  };
+  const field = speedAfter({ tagName: 'INPUT' });
+  ok(field.rose === false, 'a Space typed into a text field does not boost');
+  const editable = speedAfter({ tagName: 'DIV', isContentEditable: true });
+  ok(editable.rose === false, 'a Space typed into a contenteditable does not boost');
+  const play = speedAfter({ tagName: 'CANVAS' });
+  ok(play.rose === true, 'Space still boosts during play');
+  ok(field.errs === 0 && play.errs === 0, 'no handler threw');
+}
+
 section('Tube Racer: layout fits every viewport (tunnel never touches kit chrome)');
 runLayoutSuite(
   () => { const gl = runGame(); gl.T().start(); return gl; },
@@ -579,6 +679,11 @@ runLayoutSuite(
     ok(L.board.y >= pr.y - 0.5 && L.board.y + L.board.h <= pr.y + pr.h + 0.5, v.name + ': board within the play rect height');
     ok(L.wallR <= L.board.w / 2 + 0.5, v.name + ': the drawn pipe wall stays inside the board');
     ok(['side', 'bottom', 'inset'].indexOf(L.gutter) >= 0, v.name + ': cockpit gutter resolved (' + L.gutter + ')');
+    // the bottom-strip layout put its second row's baseline at H+1, so MACH and HEAT were drawn
+    // off the canvas on every portrait phone — both rows must sit inside the viewport
+    const cp = L.cockpit;
+    ok(cp && cp.row1 > 0 && cp.row1 <= L.H, v.name + ': cockpit row 1 baseline is on-canvas (' + Math.round(cp.row1) + ' of ' + L.H + ')');
+    ok(cp && cp.row2 > 0 && cp.row2 <= L.H, v.name + ': cockpit row 2 baseline is on-canvas (' + Math.round(cp.row2) + ' of ' + L.H + ')');
   }
 );
 
