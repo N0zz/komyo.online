@@ -98,6 +98,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // Sound grammar matters more than sound design here: RISING + bright = danger, FALLING +
   // airy = relief. The cooling strip is the most rewarding event in the game, so it vents
   // downward; only the heat alarm is allowed to climb.
+  // one struck body: a partial stack (ratio, gain, length) sharing an attack — see `klaxon`
+  const chord = (c, f, dur, gain, partials, t) => {
+    for (const [r, g, len] of partials)
+      c.voice({ f: f * r, dur: dur * (len || 1), type: 'sine', gain: gain * g, attack: 0.004, t });
+  };
   SND.define({
     // A sonic boom must not share grammar with a collision. Falling pitch + closing filter
     // (what this used to be) IS the sound of hitting something; breaking through is a short
@@ -112,21 +117,21 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     // sharper "vent" blip on entering one, which grated — the contact light under the craft and
     // the falling temperature already mark the moment, so the sound doesn't need to announce it.
     coolhum: c => c.voice({ f: 190, dur: 0.5, type: 'sine', gain: 0.045, attack: 0.1, filter: 'lowpass', cutoff: 900 }),
-    // OVERHEAT. First attempt read as BUBBLES, and the reason is instructive: bubbles are short
-    // PITCHED bursts that glide UPWARD around 500–1500 Hz, which is exactly what a triangle
-    // partial sliding up plus a rising mid bandpass sweep produces. Heat is the opposite recipe —
-    // unpitched broadband brightness (sizzle) over low metallic stress, with any glide going DOWN.
-    // Layers: a bright highpassed sizzle, a gritty sawtooth groan that sags in pitch, and above
-    // ~45% into the band a narrow high whistle for escaping steam pressure. Almost no tonal
-    // content, so it can't turn into a bloop.
+    // OVERHEAT — a C-CHORD, the cockpit alerting grammar. Two earlier designs failed for the same
+    // reason: they were the PIPE making a noise (a sizzle) rather than an instrument warning you, so
+    // they had no pitch to raise and sat in the same high band as the scrape and the engine drone.
+    // What real alert design does instead (Airbus chimes, IEC 60601-1-8, Edworthy 1991 — see
+    // plans/tube-alert-lab.html): a STRUCK BODY — a fast attack over a stack of partials — because a
+    // pure tone gets masked while a harmonically rich one cuts through at a fraction of the level.
+    // Two stacks a minor third apart make it a chord, which stays identifiable under the drone where
+    // a lone pitch does not. Urgency then comes from the two knobs the research ranks highest: RATE
+    // (warnInterval's accelerando, already there) and PITCH (both stacks rise across the band).
     klaxon: c => {
       const t = c.now();
       const p = clamp((S.heat - ALARM_AT[0]) / (1 - ALARM_AT[0]), 0, 1);
-      c.noiseHit({ dur: 0.09, gain: 0.11 + p * 0.07, filter: 'highpass', cutoff: lerp(2600, 4300, p) });
-      c.voice({ f: lerp(215, 265, p), slideTo: lerp(178, 205, p), dur: 0.07, type: 'sawtooth',
-                gain: 0.085, filter: 'lowpass', cutoff: 900, cutoffTo: 480 });
-      if (p > 0.45) c.noiseHit({ dur: 0.08, gain: 0.045 * p, filter: 'bandpass',
-                                 cutoff: lerp(3300, 4700, p), q: 14, t: t + 0.015 });
+      const f = lerp(660, 850, p);
+      chord(c, f, 0.15, 0.042 + p * 0.025, [[1, 1, 1], [2, 0.45, 0.8], [3.2, 0.22, 0.55]], t);
+      chord(c, f * 1.19, 0.15, 0.034 + p * 0.022, [[1, 1, 1], [2, 0.4, 0.8]], t + 0.006);
     },
     shear:  c => { c.noiseHit({ dur: 0.5, gain: 0.3, filter: 'bandpass', cutoff: 3200, cutoffTo: 900, q: 3 });
                    c.voice({ f: 520, slideTo: 150, dur: 0.42, type: 'sawtooth', gain: 0.15, filter: 'lowpass', cutoff: 2600, cutoffTo: 400 }); },
@@ -160,7 +165,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (engineForced) return engineForced;
     const id = (KIT.cosmetics && KIT.cosmetics.selected(SLUG + '.engine')) || '';
     const k = id.split('.').pop();
-    return ENGINES[k] ? k : 'reactor';
+    return hasOwn(ENGINES, k) ? k : 'reactor';
   }
   function engineSwap(k) {
     if (k === engineKind) return;
@@ -183,7 +188,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let eng = null, engOff = false;
   function engineEnsure() {
     if (eng || engOff) return eng;
-    const make = ENGINES[engineKind] || ENGINES.reactor;
+    const make = (hasOwn(ENGINES, engineKind) ? ENGINES[engineKind] : null) || ENGINES.reactor;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!make || !AC) { engOff = true; return null; }
     try {
@@ -289,6 +294,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // gives a friction band you entered too hot an answer that isn't luck.
   const BRAKE_SPD = 0.66, BRAKE_HEAT = -0.45 * HEAT_SCALE, BRAKE_HEAT_FRIC = -0.30 * HEAT_SCALE;
   const MODE_ORDER = ['classic', 'sprint', 'redline', 'cruise'];
+  const hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  const hasMode = m => hasOwn(MODES, m);
 
   // ---- pipe curvature -------------------------------------------------------------
   // The pipe bends and rolls over hills. Nothing about the WORLD bends: each slice's
@@ -1192,7 +1199,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
 
   function startMode(m) {
-    mode = MODES[m] ? m : 'classic';
+    mode = hasMode(m) ? m : 'classic';
     state = 'playing';
     const C = cfg();
     S.ang = 0; S.av = 0; S.spd = C.cruise; S.heat = 0; S.dist = 0; S.score = 0;
@@ -1211,7 +1218,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function seedFor() {
     const p = KIT && KIT.param ? KIT.param('seed') : null;
     if (p && /^\d+$/.test(p)) return parseInt(p, 10);
-    return (Date.now() ^ (Math.random() * 0x7fffffff)) & 0x7fffffff;
+    // Date.now() was mixed in here, which made the track unseedable: the harness's {seed} only seeds
+    // the sandbox's Math, so the clock kept re-rolling generation and the tier-6 spawn asserts flaked
+    // 5 runs in 10. Math.random alone IS seedable, so a seeded suite now gets a reproducible track
+    // while a real player still gets a fresh one per run.
+    return (Math.random() * 0x7fffffff) & 0x7fffffff;
   }
 
   function die(why) {
@@ -1251,25 +1262,86 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ==================================================================================
   const MENU_THEME = { accent: '#4ff2ff', title: '#4ff2ff' };
 
-  function pvTube(g, w, h, kind) {
-    g.fillStyle = '#050a16'; g.fillRect(0, 0, w, h);
-    const cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.46;
-    for (let i = 6; i >= 1; i--) {
-      const r = R * i / 6;
-      g.strokeStyle = 'rgba(79,242,255,' + (0.1 + 0.1 * i).toFixed(2) + ')';
-      g.lineWidth = i === 6 ? 2 : 1;
-      g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.stroke();
+  // Mode cards: the four modes used to be ONE picture — the same cyan rings with an arc in a
+  // different place — which at the kit's 40px split size made them indistinguishable, the exact
+  // "two components reading the same" failure the PAL comment above warns about. Each mode now
+  // changes what the PIPE IS DOING, so silhouette and hue carry it and it survives 40px:
+  // sprint is an instrument (dial graduations + a finish line), redline is mid-boost (hot, flaring),
+  // cruise is calm (wide bend, no threat anywhere on the card), classic is the neutral pipe with a
+  // gap to thread. Compared in plans/tube-mode-cards-lab.html at all three real sizes.
+  // Shared skeleton — an offset vanishing point is what makes it read as a pipe, not a target.
+  function pvPipe(g, w, h, o) {
+    const R = Math.min(w, h) * 0.47;
+    const cx = w / 2 + o.bend * w, cy = h / 2;
+    const vx = w / 2 + o.vp * w, vy = h / 2 + o.vpy * h;
+    g.fillStyle = o.bg; g.fillRect(0, 0, w, h);
+    for (let i = o.rings; i >= 1; i--) {
+      const t = i / o.rings, r = R * Math.pow(t, o.pow);
+      const lit = o.lit && (i % o.lit === 0);
+      g.strokeStyle = o.ring(t, lit);
+      g.lineWidth = (lit ? 2.2 : 1) * (o.lw || 1);
+      if (o.dash && !lit) g.setLineDash([Math.max(2, r * 0.22), Math.max(2, r * 0.3)]);
+      g.beginPath(); g.arc(vx + (cx - vx) * t, vy + (cy - vy) * t, r, 0, TAU); g.stroke();
+      g.setLineDash([]);
     }
-    if (kind === 'sprint') { g.strokeStyle = 'rgba(255,225,150,.8)'; g.lineWidth = 3;
-      g.beginPath(); g.arc(cx, cy, R * 0.66, -0.5, 0.5); g.stroke(); }
-    else if (kind === 'redline') { g.fillStyle = 'rgba(255,61,139,.75)';
-      g.beginPath(); g.arc(cx, cy, R * 0.8, 0.6, 2.2); g.arc(cx, cy, R * 0.5, 2.2, 0.6, true); g.fill(); }
-    else if (kind === 'cruise') { g.fillStyle = 'rgba(110,190,255,.6)';
-      g.beginPath(); g.arc(cx, cy, R * 0.85, 1.9, 3.1); g.arc(cx, cy, R * 0.45, 3.1, 1.9, true); g.fill(); }
-    else { g.fillStyle = 'rgba(255,61,139,.7)';
-      g.beginPath(); g.arc(cx, cy, R * 0.8, 0.9, 1.9); g.arc(cx, cy, R * 0.52, 1.9, 0.9, true); g.fill(); }
+    if (o.bloom) {
+      const bg = g.createRadialGradient(vx, vy, 0, vx, vy, R * 0.62);
+      bg.addColorStop(0, o.bloom[0]); bg.addColorStop(0.55, o.bloom[1]); bg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = bg; g.beginPath(); g.arc(vx, vy, R * 0.62, 0, TAU); g.fill();
+    }
+    return { cx, cy, R, vx, vy };
+  }
+  function pvCraft(g, V) {
+    const s = Math.max(3.2, V.R * 0.11), x = V.cx, y = V.cy + V.R * 0.82;
     g.fillStyle = '#eafcff';
-    g.beginPath(); g.moveTo(cx, cy + R * 0.72); g.lineTo(cx + 5, cy + R * 0.92); g.lineTo(cx - 5, cy + R * 0.92); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(x, y - s); g.lineTo(x + s * 0.72, y + s * 0.72);
+    g.lineTo(x - s * 0.72, y + s * 0.72); g.closePath(); g.fill();
+  }
+  function pvTube(g, w, h, kind) {
+    let V;
+    if (kind === 'sprint') {
+      V = pvPipe(g, w, h, { bg: '#0a0d06', bend: 0.02, vp: -0.1, vpy: -0.05, rings: 8, pow: 1.3,
+        lit: 4, dash: true,
+        ring: (t, lit) => lit ? 'rgba(255,225,150,.6)' : 'rgba(255,205,110,' + (0.16 + t * 0.2).toFixed(2) + ')' });
+      const seg = 10, rf = V.R * 0.2;
+      for (let i = 0; i < seg; i++) {          // a sprint has a FINISH LINE
+        g.fillStyle = i % 2 ? 'rgba(255,240,200,.85)' : 'rgba(40,30,10,.9)';
+        g.beginPath();
+        g.arc(V.vx, V.vy, rf, i * TAU / seg, (i + 1) * TAU / seg);
+        g.arc(V.vx, V.vy, rf * 0.45, (i + 1) * TAU / seg, i * TAU / seg, true);
+        g.closePath(); g.fill();
+      }
+      g.strokeStyle = 'rgba(255,235,170,.95)'; g.lineWidth = Math.max(2, V.R * 0.075);
+      g.beginPath(); g.moveTo(V.cx, V.cy);
+      g.lineTo(V.cx + Math.cos(-1.05) * V.R * 0.9, V.cy + Math.sin(-1.05) * V.R * 0.9); g.stroke();
+    } else if (kind === 'redline') {
+      V = pvPipe(g, w, h, { bg: '#150406', bend: 0.01, vp: 0.06, vpy: -0.03, rings: 9, pow: 1.5,
+        lw: 1.5, lit: 3, bloom: ['rgba(255,225,190,.95)', 'rgba(255,90,60,.45)'],
+        ring: (t, lit) => 'rgba(255,' + Math.round(70 + t * 90) + ',' + Math.round(60 + t * 40) + ',' + (lit ? 0.6 : 0.24 + t * 0.26).toFixed(2) + ')' });
+      g.strokeStyle = 'rgba(255,225,205,.6)'; g.lineWidth = Math.max(1.2, V.R * 0.035);
+      for (let i = 0; i < 9; i++) {            // the throttle is welded open — it is boosting
+        const a = i * TAU / 9 + 0.31, c = Math.cos(a), s = Math.sin(a);
+        g.beginPath();
+        g.moveTo(V.cx + c * V.R * 0.99, V.cy + s * V.R * 0.99);
+        g.lineTo(V.vx + c * V.R * 0.3, V.vy + s * V.R * 0.3); g.stroke();
+      }
+    } else if (kind === 'cruise') {
+      V = pvPipe(g, w, h, { bg: '#04121c', bend: -0.11, vp: 0.17, vpy: 0.07, rings: 5, pow: 1.15,
+        lw: 1.4, ring: t => 'rgba(120,205,255,' + (0.16 + t * 0.22).toFixed(2) + ')' });
+      g.strokeStyle = 'rgba(150,220,255,.5)'; g.lineWidth = Math.max(3.5, V.R * 0.2);
+      g.beginPath();                            // a cooling strip and nothing that threatens
+      g.moveTo(V.vx + Math.cos(2.5) * V.R * 0.22, V.vy + Math.sin(2.5) * V.R * 0.22);
+      g.quadraticCurveTo(V.cx + Math.cos(2.5) * V.R * 0.7, V.cy + Math.sin(2.5) * V.R * 0.62,
+                         V.cx + Math.cos(2.6) * V.R, V.cy + Math.sin(2.6) * V.R * 0.98);
+      g.stroke();
+    } else {
+      V = pvPipe(g, w, h, { bg: '#050a16', bend: 0.03, vp: -0.13, vpy: -0.06, rings: 7, pow: 1.35,
+        lit: 3, ring: (t, lit) => 'rgba(79,242,255,' + (lit ? 0.44 : 0.2 + t * 0.2).toFixed(2) + ')' });
+      const t = 0.7, x = V.vx + (V.cx - V.vx) * t, y = V.vy + (V.cy - V.vy) * t;
+      g.strokeStyle = 'rgba(255,61,139,.9)'; g.lineWidth = Math.max(3, V.R * 0.16);
+      g.beginPath(); g.arc(x, y, V.R * t * 0.78, -2.0, 1.15); g.stroke();   // one gap to thread
+    }
+    pvCraft(g, V);
   }
   // ---- menu backdrop: the REAL tunnel, on attract ------------------------------------------
   // Not a hand-drawn copy (game-design-knobs) — paintTube itself, pointed at the kit's menu canvas.
@@ -1411,7 +1483,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       record: { slug: SLUG, mode: modeLabel(), score: scoreVal, time: timeMs,
                 outcome: cleared ? 'win' : 'lose',
                 stats: { dist: Math.round(km(S.dist) * 100) / 100, mach: Math.round(S.topMach * 100) / 100 } },
-      score: scoreVal, best, newBest: isBest, lines,
+      // Sprint's RECORD is a time, so BOTH numbers on the end screen have to be clocks: passing the
+      // score best here printed "01:19.02 · BEST 2,204 ★ New best!" — a new-best badge beside a bigger
+      // number, in a mode whose record is a time. `isBest` already comes from the CLOCK (finish()).
+      // A pre-formatted STRING is the kit's convention for this (fmtScore passes strings through) —
+      // asteroids' speedrun end screen does the same.
+      score: scoreVal, newBest: isBest, lines,
+      scoreText: isSprint() ? (cleared ? fmtMs(timeMs) : '—') : undefined,
+      best: isSprint() ? (bestTime() ? fmtMs(bestTime()) : '—') : best,
       share: { slug: SLUG, accent: '#4ff2ff', icon: '🌀', title: KIT.t('game.tube-racer.title', { def: 'Tube Racer' }),
                message: () => shareMsg(), params: () => ({ mode: mode }) },
       actions: [
@@ -1559,15 +1638,24 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     // av/homes/wAmp/half are what tell the hazard VARIANTS apart (x-cross + rotor spin, sentinel
     // homes, iris breathes, half-pipe) — without them a suite can't see which tier actually spawned
     featAt(i) { const f = S.feats[i]; return f ? { k: f.k, z: f.z, a: f.a, w: f.w, av: f.av, homes: f.homes, wAmp: f.wAmp, half: f.half, x: f.x } : null; },
-    clearTrack() { S.feats.length = 0; S.nextObs = S.nextCool = S.nextAcc = S.nextNarrow = S.nextShear = 1e9; },
+    // EVERY spawner cursor, or the "empty" track a suite builds still places hazards: nextNarrow is a
+    // dead field (there is no narrow mechanic any more) and friction/sentinel/plug were never pushed
+    // out, so a `clean()` run was silently asserting against ~8 features it never asked for.
+    clearTrack() {
+      S.feats.length = 0;
+      S.nextObs = S.nextCool = S.nextAcc = S.nextFriction = S.nextShear = S.nextPlug = S.nextSent = 1e9;
+    },
     step(n) { for (let i = 0; i < (n || 1); i++) update(); },
   };
 
   // ==================================================================================
   KIT.layout.archetype('action');
   resize();
-  const pm = KIT.param ? KIT.param('mode') : null; if (pm && MODES[pm]) mode = pm;
-  const pe = KIT.param ? KIT.param('engine') : null; if (pe && ENGINES[pe]) engineForced = pe;
+  // `has` not `MODES[x]` — a plain object inherits Object.prototype, so ?mode=constructor passed a
+  // truthy guard and cfg() then returned a function whose .cruise/.hull are undefined: NaN speed,
+  // NaN distance, a blank canvas and a run that can never end. Same for ?engine=.
+  const pm = KIT.param ? KIT.param('mode') : null; if (pm && hasMode(pm)) mode = pm;
+  const pe = KIT.param ? KIT.param('engine') : null; if (pe && hasOwn(ENGINES, pe)) engineForced = pe;
   engineKind = engineWanted();
   if (navigator.maxTouchPoints > 0) touchUI = true;
   i18nHudLabels(); updateHud();
