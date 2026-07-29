@@ -429,6 +429,39 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
 .gamekit-menu .gkm-card-best .l { color: #93a3b8; font-size: 9px; letter-spacing: 1.5px; margin-right: 6px; }
 .gamekit-menu .gkm-card-desc { color: #93a5bd; font: 13.5px/1.5 var(--gkm-font-body, system-ui, sans-serif); }
 .gamekit-menu .gkm-card-mech { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ---- multi-column cards (group `cols: 2|3`) — halves the height a card group needs.
+   Below 420px wide it stays a single column: side-by-side previews get too small, and a
+   portrait phone has the height to spare. Everything here is scoped to the opted-in group. */
+@media (min-width: 420px) {
+  .gamekit-menu .gkm-cards-multi { flex-direction: row; flex-wrap: wrap; }
+  .gamekit-menu .gkm-cards-multi > * { flex: 1 1 calc(100% / var(--gkm-cols, 2) - 6px); min-width: 0; }
+  /* a half-width head can't fit a mode name AND a 5-digit record on one line (measured: 169px
+     of content in 155px) — stack the record so its block is only as wide as the number, and let
+     a long name ellipsize rather than push the record out of the card */
+  .gamekit-menu .gkm-cards-multi .gkm-card-head { gap: 8px; min-width: 0; align-items: baseline; }
+  .gamekit-menu .gkm-cards-multi .gkm-card-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gamekit-menu .gkm-cards-multi .gkm-card-best { display: flex; flex-direction: column; align-items: flex-end;
+    flex: 0 0 auto; white-space: nowrap; font-size: 11px; line-height: 1.15; text-align: right; }
+  .gamekit-menu .gkm-cards-multi .gkm-card-best .l { margin: 0; font-size: 8.5px; letter-spacing: 1px; opacity: .55; }
+}
+/* between the split breakpoint and a tall desktop there's a band (~560–780px high) with no split
+   layout and not much height — borrow the split layout's compact card so the CARDS survive */
+@media (min-width: 420px) and (max-height: 780px) {
+  .gamekit-menu:not(.gkm-split) .gkm-cards-multi { gap: 6px; }
+  .gamekit-menu:not(.gkm-split) .gkm-cards-multi .gkm-card { grid-template-columns: 46px 1fr; gap: 9px; padding: 5px 9px; }
+  .gamekit-menu:not(.gkm-split) .gkm-cards-multi .gkm-card-pv { width: 46px; height: 46px; }
+  .gamekit-menu:not(.gkm-split) .gkm-cards-multi .gkm-card-desc,
+  .gamekit-menu:not(.gkm-split) .gkm-cards-multi .gkm-card-mech { display: none; }
+}
+/* in the split (landscape) layout the head is only ~83px wide — a 5-digit record takes 43 of them
+   and a mode name needs 60, so they cannot share a line at all: one each */
+@media (max-height: 430px) {
+  .gamekit-menu.gkm-split .gkm-cards-multi .gkm-card-head { flex-direction: column; align-items: flex-start; gap: 1px; }
+  .gamekit-menu.gkm-split .gkm-cards-multi .gkm-card-best { flex-direction: row; align-items: baseline; gap: 4px;
+    text-align: left; font-size: 10px; }
+  .gamekit-menu.gkm-split .gkm-cards-multi .gkm-card-nm { font-size: 12px; }
+}
 .gamekit-menu .gkm-card-mech span { font: 10px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: .4px; color: #9fb2c9;
   background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 999px; padding: 3px 9px; }
 .gamekit-menu .gkm-card-mech span.hot { color: var(--gkm-new, #ffd166); border-color: rgba(255, 209, 102, .4); background: rgba(255, 209, 102, .08); }
@@ -863,6 +896,12 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   display: flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1;
   color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); }
 .gamekit-shoppanel .gksp-crt-caret:hover { border-color: var(--gkm-accent, #9fe8ff); }
+/* A ▶ preview button IN FLOW eats 24px of a 130px cell, which left the name column ~34px wide and
+   clipped every sound cosmetic to "Rea… Pul…". Float it into the cell's bottom-right corner instead
+   (the CRT caret already owns the top-right) and keep only the short price/On line clear of it, so
+   the name gets the cell's full text column and wraps like any other item. */
+.gamekit-shoppanel .gksp-cell.gksp-has-pv .gksp-pv { position: absolute; right: 6px; bottom: 6px; margin: 0; }
+.gamekit-shoppanel .gksp-cell.gksp-has-pv .gksp-sub { padding-right: 28px; }
 .gamekit-shoppanel .gksp-pv { color: var(--gkm-accent, #9fe8ff); font-size: 11px; }
 /* anchored CRT colour dropdown (fixed-positioned near the caret; lives at body level, so unscoped) */
 .gksp-crt-dd { display: flex; flex-direction: column; gap: 3px; min-width: 152px; padding: 6px;

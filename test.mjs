@@ -1420,6 +1420,30 @@ function testCosmetics() {
     }
   }
 
+  // E1b) sound cosmetics: an item carrying `audio` (an engine drone) is previewable in the shop the
+  // same way a `music` item is — the graph lives on the ITEM so the CATALOGUE can rev it too, where
+  // the game that plays it is never loaded. Headless there is no AudioContext, so it must no-op.
+  {
+    const g = makeSandbox({ store: { gamekit_done: JSON.stringify({ a: 50 }), gamekit_flappy_migrated: '1' } });
+    g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(challenges, 'challenges.js'); g.run(cosmetics, 'cosmetics.js');
+    const F = g.sandbox.gamekit;
+    const audio = (g.sandbox.window.COSMETICS.items || []).filter(i => i.audio);
+    ok(audio.length >= 3, 'the registry carries audio cosmetics (' + audio.length + ')');
+    ok(audio.every(i => typeof i.audio === 'function'), 'every audio cosmetic carries a graph builder');
+    // the builder must WIRE a graph and hand back a tuner — checked against a tiny fake WebAudio,
+    // since a real one only exists in a browser
+    const fakeNode = () => { const p = { value: 0, setTargetAtTime() {} }; return { gain: p, frequency: p, detune: p, Q: p, type: '', connect() {}, start() {} }; };
+    const ac = { currentTime: 0, state: 'running', createGain: fakeNode, createOscillator: fakeNode, createBiquadFilter: fakeNode, resume() {}, close() {} };
+    let aerr = null, tuned = 0;
+    for (const it of audio) {
+      try { const tune = it.audio(ac, fakeNode()); if (typeof tune === 'function') { tune(0, 0, false); tune(0, 1, true); tuned++; } } catch (e) { aerr = it.id + ': ' + e.message; }
+    }
+    ok(aerr === null && tuned === audio.length, 'each audio builder wires up and tunes across the range: ' + (aerr || tuned));
+    let serr = null, h = null;
+    try { h = F.shopPanel({ game: 'tube-racer' }); h.close(); } catch (e) { serr = e.message; }
+    ok(serr === null, 'shopPanel renders + closes with audio items headlessly: ' + serr);
+  }
+
   // E2) premium purchases (≥🏆100) go through a confirm step — no refunds exist, so a single
   // mis-tap must never drain the wallet; cheap items still buy in one go
   {
