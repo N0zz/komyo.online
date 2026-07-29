@@ -432,6 +432,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   const loadBest = m => KIT ? KIT.bestScore(SLUG, modeLabel(m)) : 0;
   const bestTime = m => { const b = KIT && KIT.best ? KIT.best(SLUG, modeLabel(m)) : null; return b && b.time ? b.time : 0; };
   const isSprint = () => mode === 'sprint';
+  // What a mode card shows next to BEST. Sprint is scored in TIME, so it shows the clock — it used
+  // to be hardcoded to 0, which rendered "BEST 0" whether or not you had ever finished one. The kit
+  // passes a non-numeric best through unformatted, so mm:ss.cs arrives intact.
+  const cardBest = m => m === 'sprint' ? (bestTime(m) ? fmtMs(bestTime(m)) : '—') : loadBest(m);
   const srMs = () => Math.round(S.frames / 60 * 1000);   // time records are MILLISECONDS
   let best = 0;
 
@@ -1354,7 +1358,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
           choices: MODE_ORDER.map(m => ({
             id: m, label: modeDisplay(m), kid: m === 'cruise',
             mech: [KIT.t('game.tube-racer.mech' + cap(m), { def: MODE_MECH[m] })],
-            best: () => m === 'sprint' ? 0 : loadBest(m),
+            best: () => cardBest(m),
             preview: (g, w, h) => pvTube(g, w, h, m),
           })) },
       ],
@@ -1541,6 +1545,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     menu() { return KIT ? KIT.menu.current() : null; },
     best(m) { return loadBest(m); },
     bestTime(m) { return bestTime(m); },
+    cardBest(m) { return cardBest(m); },   // what the mode card shows next to BEST
     setAngle(a) { S.ang = norm(a); S.av = 0; },
     setHeat(h) { S.heat = clamp(h, 0, 1); },
     setSeed(s) { genReset(s); },
