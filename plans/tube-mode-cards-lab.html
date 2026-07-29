@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tube Racer — mode card previews</title>
+<style>
+  :root { --cy:#4ff2ff; --mag:#ff3d8b; --amb:#ffb43d; --ink:#dff6ff; }
+  *{box-sizing:border-box}
+  body { margin:0; background:#05080f; color:var(--ink);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding:20px 18px 60px; }
+  h1 { font-size:17px; letter-spacing:2px; margin:0 0 4px; color:#fff }
+  .sub { font-size:12px; opacity:.62; margin-bottom:20px; line-height:1.6; max-width:1000px }
+  h2 { font-size:13px; letter-spacing:1.5px; margin:26px 0 3px; color:#fff }
+  h2 em { font-style:normal; font-size:10.5px; color:var(--amb); letter-spacing:1px; margin-left:8px }
+  .lead { font-size:11.5px; opacity:.68; line-height:1.55; margin:0 0 12px; max-width:920px }
+  .strip { display:flex; gap:12px; flex-wrap:wrap }
+  .cell { border:1px solid rgba(255,255,255,.12); border-radius:12px; padding:11px 12px 10px;
+    background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,0)); width:298px }
+  .cell .nm { font-size:12px; color:#fff; letter-spacing:.5px; margin-bottom:8px }
+  .cell .nm span { font-size:10px; opacity:.5; letter-spacing:1px; margin-left:6px }
+  .sizes { display:flex; gap:11px; align-items:flex-end }
+  .sz { text-align:center }
+  .sz canvas { display:block; border-radius:9px; background:#03050c; border:1px solid rgba(255,255,255,.1) }
+  .sz b { display:block; font-size:9px; opacity:.45; letter-spacing:.5px; margin-top:4px; font-weight:400;
+    white-space:nowrap }
+  .real { display:flex; gap:14px; align-items:center; border:1px solid rgba(255,255,255,.13);
+    border-radius:12px; padding:9px 13px; background:rgba(255,255,255,.03); max-width:430px; margin-top:9px }
+  .real canvas { border-radius:8px; background:#03050c; flex:0 0 auto }
+  .real .tx b { display:block; font-size:13px; color:#fff; margin-bottom:2px }
+  .real .tx p { margin:0; font-size:11px; opacity:.62; line-height:1.45 }
+  .note { font-size:11px; opacity:.5; margin-top:30px; line-height:1.7; max-width:1000px }
+</style>
+</head>
+<body>
+
+<h1>TUBE RACER — MODE CARD PREVIEWS</h1>
+<div class="sub">
+  Three ways to tell the four modes apart, each drawn at the sizes the kit actually uses:
+  <b>92px</b> is the desktop card, <b>40px</b> is the landscape split (640×360) — that one is the real
+  test, because at 40px a decal is a smudge. 120px is the canvas backing store, shown for detail only.
+</div>
+
+<h2>A · SHIPS TODAY <em>same tunnel, one coloured arc</em></h2>
+<p class="lead">
+  All four are the same concentric rings with an arc in a different place and colour. At 40px the four are
+  effectively one image — which is the same trap the palette comment in the game warns about: two
+  components that read the same are the worst bug this game can have.
+</p>
+<div class="strip" id="rowA"></div>
+
+<h2>B · THE TUBE BEHAVES DIFFERENTLY <em>no decals</em></h2>
+<p class="lead">
+  Instead of stamping an icon on a shared picture, each mode changes what the pipe is <i>doing</i>:
+  sprint becomes a dial with a finish line, redline runs hot and flares, cruise goes calm and wide,
+  classic keeps the neutral pipe with a gap to thread. Silhouette and colour carry it, so it survives 40px.
+</p>
+<div class="strip" id="rowB"></div>
+
+<h2>C · B PLUS A GLYPH <em>your suggestion, on top of B</em></h2>
+<p class="lead">
+  Same as B with one small mark in the corner — clock, boost chevrons, easing wave, notched ring. The glyph
+  is the tiebreaker for a player who has never seen the cards; the tube treatment is what still works when
+  the glyph is 6px across. Note classic gets one too, or it becomes "the one with no icon".
+</p>
+<div class="strip" id="rowC"></div>
+
+<h2>IN CONTEXT <em>variant C at the real desktop card size</em></h2>
+<div id="ctx"></div>
+
+<div class="note">
+  My pick: <b>C</b>, weighted to B — the tube treatment does the work, the glyph is insurance. B alone is
+  defensible and cheaper. A is what ships today and should not.<br>
+  Cost either way is one function (<code>pvTube</code>) in games/tube-racer/index.html — the four mode
+  cards already call it with the mode name, so nothing else in the menu changes.
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var TAU = Math.PI * 2;
+  var clamp = function (v, a, b) { return v < a ? a : v > b ? b : v; };
+
+  var MODES = [
+    { id: 'classic', nm: 'Classic', sub: 'BASELINE',
+      blurb: '3 hull, heat kills, shear plates. The default run.' },
+    { id: 'sprint', nm: 'Sprint', sub: '30 KM · TIME',
+      blurb: 'Clear 30 km. Your record is a time, not a score.' },
+    { id: 'redline', nm: 'Redline', sub: 'FORCED BOOST',
+      blurb: 'Throttle welded open, 2 hull. Cooling is the whole game.' },
+    { id: 'cruise', nm: 'Cruise', sub: 'NO HEAT DEATH',
+      blurb: '5 hull, heat cannot kill you, no shear plates.' }
+  ];
+
+  // ---------- A: today's painter, copied verbatim from games/tube-racer/index.html ----------
+  function pvA(g, w, h, kind) {
+    g.fillStyle = '#050a16'; g.fillRect(0, 0, w, h);
+    var cx = w / 2, cy = h / 2, R = Math.min(w, h) * 0.46;
+    for (var i = 6; i >= 1; i--) {
+      var r = R * i / 6;
+      g.strokeStyle = 'rgba(79,242,255,' + (0.1 + 0.1 * i).toFixed(2) + ')';
+      g.lineWidth = i === 6 ? 2 : 1;
+      g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.stroke();
+    }
+    if (kind === 'sprint') { g.strokeStyle = 'rgba(255,225,150,.8)'; g.lineWidth = 3;
+      g.beginPath(); g.arc(cx, cy, R * 0.66, -0.5, 0.5); g.stroke(); }
+    else if (kind === 'redline') { g.fillStyle = 'rgba(255,61,139,.75)';
+      g.beginPath(); g.arc(cx, cy, R * 0.8, 0.6, 2.2); g.arc(cx, cy, R * 0.5, 2.2, 0.6, true); g.fill(); }
+    else if (kind === 'cruise') { g.fillStyle = 'rgba(110,190,255,.6)';
+      g.beginPath(); g.arc(cx, cy, R * 0.85, 1.9, 3.1); g.arc(cx, cy, R * 0.45, 3.1, 1.9, true); g.fill(); }
+    else { g.fillStyle = 'rgba(255,61,139,.7)';
+      g.beginPath(); g.arc(cx, cy, R * 0.8, 0.9, 1.9); g.arc(cx, cy, R * 0.52, 1.9, 0.9, true); g.fill(); }
+    g.fillStyle = '#eafcff';
+    g.beginPath(); g.moveTo(cx, cy + R * 0.72); g.lineTo(cx + 5, cy + R * 0.92); g.lineTo(cx - 5, cy + R * 0.92); g.closePath(); g.fill();
+  }
+
+  // ---------- B: the tube itself behaves differently per mode ----------
+  // Shared skeleton: a bent tunnel of rings. `T` carries the mode's own look, so the SILHOUETTE and
+  // the colour do the telling — that is what survives being drawn 40px wide.
+  function tunnel(g, w, h, T) {
+    var cx = w / 2 + T.bend * w, cy = h / 2 + T.rise * h, R = Math.min(w, h) * 0.47;
+    g.fillStyle = T.bg; g.fillRect(0, 0, w, h);
+    // a vanishing point that is actually offset reads as a pipe you are flying down, not a target
+    var vx = w / 2 + T.vp * w, vy = h / 2 + T.vpy * h;
+    var n = T.rings;
+    for (var i = n; i >= 1; i--) {
+      var t = i / n, r = R * Math.pow(t, T.pow);
+      var x = vx + (cx - vx) * t, y = vy + (cy - vy) * t;
+      var lit = T.lit && (i % T.lit === 0);
+      g.strokeStyle = T.ring(t, lit);
+      g.lineWidth = (lit ? 2.2 : 1) * T.lw;
+      if (T.dash && !lit) { g.setLineDash([Math.max(2, r * 0.22), Math.max(2, r * 0.3)]); }
+      g.beginPath(); g.arc(x, y, r, 0, TAU); g.stroke();
+      g.setLineDash([]);
+    }
+    // glow out of the vanishing point
+    if (T.bloom) {
+      var bg = g.createRadialGradient(vx, vy, 0, vx, vy, R * 0.62);
+      bg.addColorStop(0, T.bloom[0]); bg.addColorStop(0.55, T.bloom[1]); bg.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = bg; g.beginPath(); g.arc(vx, vy, R * 0.62, 0, TAU); g.fill();
+    }
+    return { cx: cx, cy: cy, R: R, vx: vx, vy: vy };
+  }
+  function craft(g, V, w, h) {
+    var s = Math.max(3.2, V.R * 0.11);
+    var x = V.cx, y = V.cy + V.R * 0.82;
+    g.fillStyle = '#eafcff';
+    g.beginPath(); g.moveTo(x, y - s); g.lineTo(x + s * 0.72, y + s * 0.72);
+    g.lineTo(x - s * 0.72, y + s * 0.72); g.closePath(); g.fill();
+  }
+
+  var LOOK = {
+    // CLASSIC — the neutral pipe, with a magenta barrier that has a gap you must thread. That gap IS
+    // the game's core act, so it belongs on the card that means "the normal game".
+    classic: function (g, w, h) {
+      var V = tunnel(g, w, h, { bg: '#050a16', bend: 0.03, rise: 0, vp: -0.13, vpy: -0.06,
+        rings: 7, pow: 1.35, lw: 1, lit: 3,
+        ring: function (t, lit) { return 'rgba(79,242,255,' + (lit ? 0.44 : 0.2 + t * 0.2).toFixed(2) + ')'; } });
+      var r = V.R * 0.7, x = V.vx + (V.cx - V.vx) * 0.7, y = V.vy + (V.cy - V.vy) * 0.7;
+      g.strokeStyle = 'rgba(255,61,139,.9)'; g.lineWidth = Math.max(3, V.R * 0.16);
+      g.beginPath(); g.arc(x, y, r * 0.78, -2.0, 1.15); g.stroke();     // barrier with ONE gap
+      craft(g, V, w, h);
+    },
+    // SPRINT — the pipe as an instrument: dashed rings become dial graduations, one bright tick is the
+    // hand, and a checker band sits at the vanishing point because a sprint has a finish line.
+    sprint: function (g, w, h) {
+      var V = tunnel(g, w, h, { bg: '#0a0d06', bend: 0.02, rise: 0, vp: -0.1, vpy: -0.05,
+        rings: 8, pow: 1.3, lw: 1, lit: 4, dash: true,
+        ring: function (t, lit) { return lit ? 'rgba(255,225,150,.6)' : 'rgba(255,205,110,' + (0.16 + t * 0.2).toFixed(2) + ')'; } });
+      // finish-line checker at the far end
+      var seg = 10, rf = V.R * 0.2;
+      for (var i = 0; i < seg; i++) {
+        g.fillStyle = i % 2 ? 'rgba(255,240,200,.85)' : 'rgba(40,30,10,.9)';
+        g.beginPath();
+        g.arc(V.vx, V.vy, rf, i * TAU / seg, (i + 1) * TAU / seg);
+        g.arc(V.vx, V.vy, rf * 0.45, (i + 1) * TAU / seg, i * TAU / seg, true);
+        g.closePath(); g.fill();
+      }
+      // the hand: one long graduation sweeping the near ring
+      g.strokeStyle = 'rgba(255,235,170,.95)'; g.lineWidth = Math.max(2, V.R * 0.075);
+      g.beginPath(); g.moveTo(V.cx, V.cy); g.lineTo(V.cx + Math.cos(-1.05) * V.R * 0.9, V.cy + Math.sin(-1.05) * V.R * 0.9); g.stroke();
+      craft(g, V, w, h);
+    },
+    // REDLINE — the throttle is welded open, so the card is BOOSTING: hot rings, a flare out of the
+    // vanishing point, and streaks. No hazard drawn; the heat is the antagonist here.
+    redline: function (g, w, h) {
+      var V = tunnel(g, w, h, { bg: '#150406', bend: 0.01, rise: 0, vp: 0.06, vpy: -0.03,
+        rings: 9, pow: 1.5, lw: 1.5, lit: 3,
+        bloom: ['rgba(255,225,190,.95)', 'rgba(255,90,60,.45)'],
+        ring: function (t, lit) { return 'rgba(255,' + Math.round(70 + t * 90) + ',' + Math.round(60 + t * 40) + ',' + (lit ? 0.6 : 0.24 + t * 0.26).toFixed(2) + ')'; } });
+      g.strokeStyle = 'rgba(255,225,205,.6)'; g.lineWidth = Math.max(1.2, V.R * 0.035);
+      for (var i = 0; i < 9; i++) {
+        var a = i * TAU / 9 + 0.31, c = Math.cos(a), s = Math.sin(a);
+        g.beginPath();
+        g.moveTo(V.cx + c * V.R * 0.99, V.cy + s * V.R * 0.99);
+        g.lineTo(V.vx + c * V.R * 0.3, V.vy + s * V.R * 0.3); g.stroke();
+      }
+      craft(g, V, w, h);
+    },
+    // CRUISE — heat cannot kill you, so nothing on this card threatens: cool blues, a wide lazy bend,
+    // few soft rings, and a cooling strip left running along the wall.
+    cruise: function (g, w, h) {
+      var V = tunnel(g, w, h, { bg: '#04121c', bend: -0.11, rise: -0.02, vp: 0.17, vpy: 0.07,
+        rings: 5, pow: 1.15, lw: 1.4, lit: 0,
+        ring: function (t) { return 'rgba(120,205,255,' + (0.16 + t * 0.22).toFixed(2) + ')'; } });
+      // a cooling strip running the length of the wall — the reward, no cost anywhere on this card
+      g.strokeStyle = 'rgba(150,220,255,.5)'; g.lineWidth = Math.max(3.5, V.R * 0.2);
+      g.beginPath();
+      g.moveTo(V.vx + Math.cos(2.5) * V.R * 0.22, V.vy + Math.sin(2.5) * V.R * 0.22);
+      g.quadraticCurveTo(V.cx + Math.cos(2.5) * V.R * 0.7, V.cy + Math.sin(2.5) * V.R * 0.62,
+                         V.cx + Math.cos(2.6) * V.R * 1.0, V.cy + Math.sin(2.6) * V.R * 0.98);
+      g.stroke();
+      craft(g, V, w, h);
+    }
+  };
+
+  // ---------- glyphs (variant C) ----------
+  // Bottom-right corner, on a dark plate so it survives whatever the tube is doing behind it.
+  function glyph(g, w, h, kind) {
+    var s = Math.min(w, h) * 0.30, cx = w - s * 0.72, cy = h - s * 0.72, r = s * 0.46;
+    g.fillStyle = 'rgba(4,8,14,.72)';
+    g.beginPath(); g.arc(cx, cy, r * 1.32, 0, TAU); g.fill();
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    var W = Math.max(1.3, r * 0.2);
+    if (kind === 'sprint') {                       // clock
+      g.strokeStyle = '#ffe9b0'; g.lineWidth = W;
+      g.beginPath(); g.arc(cx, cy, r, 0, TAU); g.stroke();
+      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx, cy - r * 0.62); g.stroke();
+      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + r * 0.46, cy + r * 0.2); g.stroke();
+    } else if (kind === 'redline') {               // boost chevrons
+      g.strokeStyle = '#ffd0c0'; g.lineWidth = W * 1.15;
+      for (var i = 0; i < 2; i++) {
+        var oy = -r * 0.34 + i * r * 0.72;
+        g.beginPath();
+        g.moveTo(cx - r * 0.52, oy + cy - r * 0.3);
+        g.lineTo(cx + r * 0.2, oy + cy);
+        g.lineTo(cx - r * 0.52, oy + cy + r * 0.3);
+        g.stroke();
+      }
+    } else if (kind === 'cruise') {                // easing wave
+      g.strokeStyle = '#b6e6ff'; g.lineWidth = W * 1.1;
+      g.beginPath();
+      g.moveTo(cx - r * 0.78, cy + r * 0.3);
+      g.bezierCurveTo(cx - r * 0.2, cy + r * 0.34, cx - r * 0.1, cy - r * 0.4, cx + r * 0.78, cy - r * 0.36);
+      g.stroke();
+    } else {                                       // classic: a ring with a notch = find the gap
+      g.strokeStyle = '#ffd3e4'; g.lineWidth = W * 1.25;
+      g.beginPath(); g.arc(cx, cy, r * 0.86, -1.15, 1.95); g.stroke();
+    }
+  }
+
+  // ---------- render ----------
+  var SIZES = [[120, '120 · backing'], [92, '92 · desktop'], [40, '40 · split']];
+  function draw(cv, fn, kind, withGlyph) {
+    var dpr = Math.min(2, window.devicePixelRatio || 1), s = +cv.dataset.s;
+    cv.width = s * dpr; cv.height = s * dpr;
+    cv.style.width = s + 'px'; cv.style.height = s + 'px';
+    var g = cv.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    fn(g, s, s, kind);
+    if (withGlyph) glyph(g, s, s, kind);
+  }
+  function row(hostId, fn, withGlyph) {
+    var host = document.getElementById(hostId);
+    MODES.forEach(function (m) {
+      var cell = document.createElement('div');
+      cell.className = 'cell';
+      var sizes = SIZES.map(function (s) {
+        return '<div class="sz"><canvas data-s="' + s[0] + '"></canvas><b>' + s[1] + '</b></div>';
+      }).join('');
+      cell.innerHTML = '<div class="nm">' + m.nm + '<span>' + m.sub + '</span></div>' +
+                       '<div class="sizes">' + sizes + '</div>';
+      host.appendChild(cell);
+      var cvs = cell.querySelectorAll('canvas');
+      for (var i = 0; i < cvs.length; i++) draw(cvs[i], fn, m.id, withGlyph);
+    });
+  }
+  row('rowA', pvA, false);
+  row('rowB', function (g, w, h, k) { (LOOK[k] || LOOK.classic)(g, w, h); }, false);
+  row('rowC', function (g, w, h, k) { (LOOK[k] || LOOK.classic)(g, w, h); }, true);
+
+  // in-context: the real desktop card shape (92px preview + name + blurb)
+  var ctx = document.getElementById('ctx');
+  MODES.forEach(function (m) {
+    var d = document.createElement('div');
+    d.className = 'real';
+    d.innerHTML = '<canvas data-s="92"></canvas><div class="tx"><b>' + m.nm + '</b><p>' + m.blurb + '</p></div>';
+    ctx.appendChild(d);
+    draw(d.querySelector('canvas'), function (g, w, h, k) { (LOOK[k] || LOOK.classic)(g, w, h); }, m.id, true);
+  });
+})();
+</script>
+</body>
+</html>
