@@ -41,6 +41,41 @@ holds only open work. Nothing in this file is a task.
 
 ## ✅ Done
 
+- **Tube Racer 🌀 — SHIPPED (2026-07-28).** A supersonic pseudo-3D tunnel racer: you're magnetically
+  stuck to the inside of a pipe, roll 360° around the wall to line up with each barrier's gap, and
+  trade heat for speed (boost scores faster and breaks Mach 2; the blue cooling strips are the only
+  refund). Four modes — Classic (endless, Easy/Normal/Hard), Sprint (3000 m, time-primary), Redline
+  (boost jammed on), Cruise (🐣, no overheat death, 5 hulls) — plus narrowing segments that heat the
+  engine and shear plates that kill steering for 0.9s. Hazards ESCALATE by score, not distance
+  (friction 1.2k → shear 3.5k → rotating bars 5k → iris shutters 6.5k → sentinels 8k → crossfire +
+  the Plug 10k), each announced on arrival — so a player who boosts hard escalates their own
+  difficulty. **No difficulty selector**: an easier setting gave wider gaps AND a slower ramp while
+  score, records and challenge targets ignored which you picked, so the easiest option strictly
+  dominated — the escalation IS the difficulty. Throttle has three positions (boost / coast /
+  brake); braking sheds heat fast and costs score, which is what gives a friction band entered too
+  hot an answer that isn't luck. Plus a **fixed-tube camera** + invert-steering for players the
+  world-spin makes queasy. (Two features were built and cut: warp-gate pickups — too much on screen
+  at once — and signposted **junctions** with four rule sets, first as markers on one pipe and then
+  as genuinely diverging twin tunnels; both read as visual clutter you had no time to parse at
+  speed. The `run_choice{choice_kind:'route'}` telemetry went with them, so the game ships with no
+  in-run decisions and therefore no run telemetry.) Two cosmetic sets (4 tube
+  palettes = the whole screen, 5 bike hulls incl. a fox), own `tuberacer` music track (kit
+  tactical + trance; dropped out of the audio-lint sibling band entirely), seeded track generation,
+  149-assert suite. **Built POC-first** (`plans/tube-racer-poc.html`, played and approved before any kit work).
+  Findings worth keeping: (1) a true `1/z` projection makes a barrier ~5px until 0.15s before impact
+  — the game uses a flattened `r = focal / z^0.55` and derives every speed FROM the readable window
+  (~2s telegraph at cruise vs ~0.7s boosting); (2) pipe curvature is render-only — collisions are
+  angle-vs-angle, so a bend can never make a gap unfair; (3) **scaling the pipe radius to "narrow"
+  it scales the player too**, so it reads as the camera zooming out — the mechanic survives as
+  flat-radius friction bands; (4) a heat warning keyed to a projected time-to-overheat from the LIVE
+  rate is wildly inconsistent (coast to 95%, then commit to boost, and the lead collapses to
+  0.17s) — severity is the heat LEVEL, flat out, at 50/65/75%; (5) hull damage must never be able
+  to trigger the heat death: a flat +0.2 heat per scrape killed players by OVERHEATING while they
+  still held spare hull, and the end screen blamed the wrong system; (6) the heat gauge belongs on
+  the tube's flanks and on the hull itself, not in a screen corner you can't look at while
+  threading a gap; (7) collision used the same generous half-width as the pickup lanes, making
+  hazards ~3× wider than the drawn craft — generous for lanes, honest for walls.
+
 - **Single-SW migration — DONE (verified 2026-07-28).** No per-game `sw.js` remains anywhere under
   `games/`; the ONE root-scope `sw.js` + `sw-core.js` serve the whole site, and `gamekit.pwa()`
   unregisters every non-root scope on boot (`game-kit.js` § pwa migration sweep), so a pre-migration

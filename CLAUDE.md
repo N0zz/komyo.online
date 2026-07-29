@@ -34,7 +34,12 @@ i18n.js         i18n LOADER + the en (def-source) dict; each other locale is its
                 the loader sync-loads the ACTIVE language (document.write, atomic head) and lazy-loads
                 the rest after load. A new locale = its file + KOMYO_I18N_AVAILABLE + the root sw.js SHELL.
 cosmetics.js    window.COSMETICS — the cosmetics registry (skins per game + site-wide cursors, painters,
-                prices in 🏆 trophies); loaded like challenges.js (catalogue AND games, in the SW SHELL)
+                prices in 🏆 trophies); loaded like challenges.js (catalogue AND games, in the SW SHELL).
+                A cosmetic that IS a sound carries `music` (kit track id) or **`audio: (ac,out)=>tune`**
+                (`tune(t, sp01, boost)`, a continuous graph — an engine drone); both get the shop's ▶
+                preview. The BUILDER lives on the item, not in the game: the shop also opens on the
+                catalogue, where the game's own code never loads (that's why Tube Racer's engines moved
+                here). Games read the equipped one from the registry — see `ENGINES` in tube-racer.
 changelog.js    window.CHANGELOG — player-facing releases (drives the 🗒️ modal + the Discord post)
 analytics.js    GA4 loader, consent-gated (see "Analytics")
 version.js      build stamp {sha, built} — 'dev' locally, stamped by the Pages deploy workflow
@@ -186,7 +191,10 @@ Games alias the API once: `const KIT = window.gamekit;`.
 - `gamekit.menu` — the declarative three-screen framework: `menu.show(cfg)` / `menu.hide()`.
   cfg: `kind:'start'|'pause'|'end'`, `title`, `score/scoreText/best/newBest/lines`, `groups`
   (option rows — a plain button-row group takes `disabled:(state)=>bool` to gray out + block the
-  whole row in modes where it's moot, e.g. difficulty under zen; `style:'cards'` = rich mode cards with a canvas `preview(ctx,w,h,state)`;
+  whole row in modes where it's moot, e.g. difficulty under zen; `style:'cards'` = rich mode cards with a canvas `preview(ctx,w,h,state)`
+  (**`cols: 2|3`** lays them out multi-column above 420px wide — roughly halves the height the group
+  needs, which is what lets four mode cards AND a toggle row fit 640×360; the kit owns the knock-ons:
+  compact cards in the tight-height band, stacked record, ellipsized name — never re-do this in page CSS);
   `style:'shop'` = an action grid for buy/pick — powers the Asteroids+ level-up picker + shop;
   shop opts: `icon:` painter per choice, `cols:3` fixed picker shape, `pickLabel:` → the
   small-screen BUY/TAKE button; on touch the first tap selects (desc shows in a focused-desc
@@ -530,13 +538,20 @@ and name landscape explicitly in what to check.
   and retitling are safe, adding or rewording one is not). Keep bullets plain-language and about what a
   *player* notices (a new game, a bug they'd hit, a mode/feature) — **never** internal/kit/test/build/
   refactor work. Write it for players, not as a commit log.
-  **A PRE-RELEASE FIX IS NOT A CHANGELOG LINE.** If the game ships in the SAME push, every bug found
-  while building it was fixed before a single player could meet it — so it gets no bullet, and
+  **A NEW GAME GETS ONE ENTRY WITH ONE BULLET — "new game added", and nothing else.** Not one bullet
+  per mode, per hazard, per control, per cosmetic set. Everything a brand-new game contains is new by
+  definition, so enumerating it is a build log wearing a changelog's clothes — and every bullet also
+  costs a translation in every locale (2026-07-28: Tube Racer's launch entry grew to eight bullets
+  documenting the mechanics *as they were being iterated on*, all of it translated ×7, then deleted).
+  Write the one bullet at the END of the work, from the shipped game, never during it.
+  **A PRE-RELEASE FIX IS NOT A CHANGELOG LINE** either. If the game ships in the SAME push, every bug
+  found while building it was fixed before a single player could meet it — so it gets no bullet, and
   especially not a "Fix:" one next to the entry announcing the game (2026-07-27: the launch push
   announced four games and also "fixed" their typo handling, menus and drop rules, which reads as
-  "here is a broken game we already patched"). Only a change to something ALREADY LIVE — another game,
-  the kit, the catalogue, the challenges — earns a bullet. The launch entry sells the game; the build
-  history stays in git.
+  "here is a broken game we already patched"). The same goes for a feature you added, reworked and
+  removed again before launch: it never existed as far as players are concerned.
+  Only a change to something ALREADY LIVE — another game, the kit, the catalogue, the challenges —
+  earns a bullet. The launch entry sells the game; the build history stays in git.
   **Discord:** a push that edits `changelog.js` triggers `.github/workflows/discord-changelog.yml` →
   `post-changelog.mjs`, which posts **only the entries added in that push** (diff vs the push base),
   **oldest first** — this file is newest-first, but a chat channel appends downward, so posting in file

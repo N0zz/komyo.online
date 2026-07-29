@@ -316,11 +316,25 @@ game.
 **Prepend** one entry to the top of `window.CHANGELOG` (newest first). One entry **per push**;
 player-facing language only (a player-noticeable thing — never kit/test/build/refactor).
 
+**A NEW GAME GETS EXACTLY ONE BULLET.** One or two sentences: what the game is and how it plays,
+with the mode names in passing. That is the whole entry.
+
 ```js
 { date: '2026-07-10', title: 'New game: Floodgate 🚰', items: [
   'New: Floodgate — rotate the pipes to route water from source to drain before the board floods. Three sizes, a timer mode, and a relaxed no-timer mode.',
 ] },
 ```
+
+**Do NOT write a bullet per mode / hazard / control / cosmetic set.** Everything in a brand-new game
+is new by definition, so enumerating it is a build log wearing a changelog's clothes — and each
+bullet costs a translation in EVERY populated locale, which is then thrown away when the feature
+gets reworked. (2026-07-28: Tube Racer's entry grew to eight bullets written *while* its mechanics
+were still being iterated — junctions were documented, translated ×7, then cut from the game.)
+
+**Write the entry LAST**, from the finished game — not as you build. During development the entry
+should not exist at all. A feature added and removed before launch never happened, as far as the
+changelog is concerned; likewise a bug found and fixed pre-launch (see also the pre-release-fix rule
+in `CLAUDE.md`).
 
 Do NOT retro-edit an already-shipped entry — the Discord poster diffs against the push base, so a
 fresh entry posts cleanly while an edited old one mis-posts.

@@ -57,9 +57,10 @@ Both already ship as locked "SOON" cards in their menus.
 
 A game gets a tile once it's picked + named.
 
-- **More endless-racing** (beyond Pocket Rally) — outrun-style pseudo-3D highway runner (curves +
-  hills, canvas raster trick), a motorbike lane-splitter (near-miss scoring), or a top-down
-  drift/rally sprint. Pick 1–2 that feel most distinct from Pocket Rally.
+- **More endless-racing** (beyond Pocket Rally) — the pseudo-3D slot is now FILLED by **Tube Racer**
+  (2026-07-28: inside-a-pipe, 360° roll, curves + hills via per-slice centre offsets). Still open if
+  wanted: a motorbike lane-splitter (near-miss scoring) or a top-down drift/rally sprint — pick one
+  that reads distinct from BOTH Pocket Rally and Tube Racer.
 - **More puzzle/riddle** (beyond Sudoku/Minesweeper/Floodgate/Blink) — nonogram/picross, sokoban,
   tents-and-trees / logic-riddle packs, daily riddle ("one brain-teaser a day" pairs
   with challenges). All solvable-by-construction per the design knobs.
@@ -146,4 +147,4 @@ Forcefield · Frog Bonk (was "Frog Rush") · Sudoku · Minesweeper · 2048 · Tr
 Balloon Pop · Critter Match · **Chrome Runner** (was "Dusk Runner"; slug stays `dusk-runner`) ·
 **Floodgate** (the rotate-the-pipes puzzle — the plumber-action original lives on as **Plumber Jack**
 above) · **Mirror Maze** · **Type Siege** (was "Keyfall"; the falling-words idea survives as its Rain
-mode). Full history in `ROADMAP-archive.md`.
+mode) · **Tube Racer** (the pseudo-3D tunnel racer; POC-first). Full history in `ROADMAP-archive.md`.
