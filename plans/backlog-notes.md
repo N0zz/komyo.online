@@ -363,3 +363,13 @@ dropped outright.
   discovery engine nor worth the upload labor. Revisit **only** as cheap SEO backlinks once we have
   originals worth their own landing page. Newgrounds already dropped. Tooling exists if we return:
   `scripts/package-game.mjs <slug>` + image/trailer templates in `~/komyo-promo/itch-assets/`.
+- **In-run new-best pulse — kit ready, games unwired** *(2026-07-29)*. Player feedback asked for "a bit
+  more celebration when you hit a new high score", so a personal best now lands twice: the **end
+  screen** gets confetti + a popped "★ New best!" + the `newbest` stinger (kit-owned in `menu.show`,
+  so **all 23 games already have it** — they all pass `newBest`), and the **live** moment gets a
+  flash + banner the instant you pass your old bar. The live half can't be kit-only — the kit doesn't
+  see a run's score — so each game calls `gamekit.bestWatch(slug, mode)` at run start and
+  `gamekit.bestTick(score)` per update, then adds whatever in-engine feedback it owns (Tube Racer
+  reuses its `S.flash`/`S.shake`). Only **tube-racer** is wired. Fires once per run, and stays silent
+  when there is no previous best (a first run is not a comeback). Skip **time-primary** modes —
+  sprints/speedruns record a clock, so a score threshold means nothing there.

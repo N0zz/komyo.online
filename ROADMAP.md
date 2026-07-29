@@ -51,6 +51,10 @@ Dev and marketing run in parallel; top item first within each.
   `robots.txt`. → `plans/backlog-notes.md`
 - **Discord Activity polish** *(open)* — fix the proxied-feedback "network error", verify webhook + GA4
   in-Activity. → `plans/backlog-notes.md`
+- **Wire the in-run new-best pulse into the rest of the games** *(open)* — kit side is done
+  (`gamekit.bestWatch`/`bestTick`); each score-primary game needs the two calls + its own flash.
+  Tube Racer is the reference. Skip time-primary modes (sprints/speedruns). →
+  `plans/backlog-notes.md`
 - **Review local Claude memories about komyo** *(open)* — prune stale entries so future sessions don't
   act on outdated context.
 
