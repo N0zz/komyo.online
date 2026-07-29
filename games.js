@@ -358,6 +358,16 @@ window.GAMES = [
     shot: "shot.v1.webp",
   },
   {
+    slug: "tube-racer",
+    title: "Tube Racer",
+    blurb: "Roll around the inside of a giant pipe at Mach 2 — find the gap, then cool the engine.",
+    icon: "🌀",
+    accent: "#4ff2ff",
+    tags: ["RACING", "ARCADE"],
+    added: "2026-07-29",
+    shot: "shot.v1.webp",
+  },
+  {
     slug: "color-pop",
     title: "Color Pop",
     blurb: "Tap to fill the picture with color. No rules, no fail — just paint.",

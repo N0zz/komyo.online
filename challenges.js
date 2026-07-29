@@ -42,6 +42,8 @@ window.CHALLENGES = {
     '2048-2':     { slug: '2048',         title: 'Score 12,000 in one 2048 run', metric: 'score',   target: 12000 },
     'cat-1':      { slug: 'trap-the-cat', title: 'Trap the cat',                 metric: 'score', target: 30 },
     'cat-2':      { slug: 'trap-the-cat', title: 'Score 50 in Trap the Cat',     metric: 'score', target: 50 },
+    'tube-1':     { slug: 'tube-racer',   title: 'Score 800 in Tube Racer',             metric: 'score', target: 800 },
+    'tube-2':     { slug: 'tube-racer',   title: 'Score 2,000 in Tube Racer',           metric: 'score', target: 2000 },
     'glow-1':     { slug: 'glow-says',    title: 'Remember a 5-note tune in Glow Says', metric: 'score', target: 5 },
     'glow-2':     { slug: 'glow-says',    title: 'Remember 8 notes in Glow Says',       metric: 'score', target: 8 },
     'bal-pop-1':  { slug: 'balloon-pop',  title: 'Pop 30 in one Balloon Pop party',     metric: 'score', target: 30 },
@@ -77,7 +79,7 @@ window.CHALLENGES = {
     'play3', 'stk-1', 'astp-1', 'genres2', 'rand-daily', 'snake-2', 'bub-2', 'aim-2',
     'brk-2', 'fly-2', 'stk-2', 'td-wave10', 'astp-2', 'ast-1', 'ast-2', 'forcefield-1', 'forcefield-2',
     'frog-1', 'frog-2', 'sudoku-1', 'sudoku-2', 'mines-1', 'mines-2', '2048-1', '2048-2',
-    'cat-1', 'cat-2', 'glow-1', 'glow-2', 'bal-pop-1', 'bal-pop-2', 'critter-1', 'critter-2', 'dusk-1', 'dusk-2', 'mirror-1', 'mirror-2', 'siege-1', 'siege-2', 'flood-1', 'flood-2',
+    'cat-1', 'cat-2', 'glow-1', 'glow-2', 'bal-pop-1', 'bal-pop-2', 'critter-1', 'critter-2', 'dusk-1', 'dusk-2', 'mirror-1', 'mirror-2', 'siege-1', 'siege-2', 'flood-1', 'flood-2', 'tube-1', 'tube-2',
   ],
   // A weekly is VOLUME / VARIETY over the week. A single-game goal (the old 'rand-weekly' random
   // pick) belongs in the daily pool: stretched over seven days it asks for nothing.
@@ -95,6 +97,7 @@ window.CHALLENGES.goodRun = {
   'aim-trainer': 600, 'tower-defense': 8000, asteroids: 8000, 'asteroids-plus': 30000,
   forcefield: 1200, 'frog-bonk': 2000, sudoku: 1500, minesweeper: 118, '2048': 12000, 'trap-the-cat': 50,
   'glow-says': 8, 'balloon-pop': 60, 'critter-match': 160, 'dusk-runner': 900, 'mirror-maze': 1200, 'type-siege': 900, floodgate: 5,
+  'tube-racer': 2000,
 };
 
 // THE canonical pool for scope:'random' picks — window.GAMES non-soon slugs in games.js order,
@@ -105,7 +108,7 @@ window.CHALLENGES.goodRun = {
 window.CHALLENGES.playable = [
   'asteroids', 'asteroids-plus', 'tower-defense', 'forcefield', 'bubbles', 'frog-bonk',
   'breakout', 'sudoku', 'stacker', 'trap-the-cat', 'flappy', 'aim-trainer', 'snake', '2048', 'type-siege', 'dusk-runner', 'floodgate', 'mirror-maze', 'minesweeper',
-  'balloon-pop', 'critter-match', 'glow-says',
+  'balloon-pop', 'critter-match', 'glow-says', 'tube-racer',
 ];
 window.CHALLENGES.playableSince = {
   asteroids: '2026-06-26', 'asteroids-plus': '2026-06-28', 'tower-defense': '2026-06-26',
@@ -114,6 +117,7 @@ window.CHALLENGES.playableSince = {
   stacker: '2026-06-26', flappy: '2026-06-26', 'aim-trainer': '2026-06-26', snake: '2026-06-26',
   minesweeper: '2026-07-12', '2048': '2026-07-12', 'trap-the-cat': '2026-07-12', 'glow-says': '2026-07-12',
   'balloon-pop': '2026-07-12', 'critter-match': '2026-07-12', 'dusk-runner': '2026-07-27', 'mirror-maze': '2026-07-27', 'type-siege': '2026-07-27', floodgate: '2026-07-27',
+  'tube-racer': '2026-07-29',
 };
 // ^ playableSince = the PUBLIC go-live (push) date, never a local build date. The kit admits a
 // game's goals + random-pick slot only from the period AFTER this date, so a mid-day push can't
