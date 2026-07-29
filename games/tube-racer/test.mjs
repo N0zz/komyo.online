@@ -565,6 +565,23 @@ section('Tube Racer: the menu backdrop is the real tunnel, and stays out of the 
   ok(g.errors.length === 0, 'no backdrop render errors: ' + (g.errors[0] || ''));
 }
 
+section('Tube Racer: the menu backdrop survives the kit resetting its frame counter');
+{
+  const g = clean();
+  // fly the backdrop a long way, as a player leaving the start screen open does
+  let d = 0;
+  for (let f = 1; f <= 3600; f += 30) d = g.T().menuBg(f);
+  ok(d > 200, 'the backdrop travelled while the start menu was open (' + Math.round(d) + ')');
+  ok(g.T().bdVisible > 0, 'features are on screen at that distance (' + g.T().bdVisible + ')');
+  // the kit zeroes _bdFrame on EVERY menu.show — the end screen used to restart from 0 here, with
+  // the whole recycled track parked a thousand units ahead, i.e. an empty tunnel for ~54s
+  const after = g.T().menuBg(0);
+  ok(after >= d - 1, 'a counter reset does not rewind the backdrop (' + Math.round(d) + ' → ' + Math.round(after) + ')');
+  ok(g.T().bdVisible > 0, 'the tunnel still has features in view after the reset (' + g.T().bdVisible + ')');
+  for (let f = 1; f <= 200; f += 20) g.T().menuBg(f);
+  ok(g.T().bdVisible > 0, 'and it keeps flying from where it was');
+}
+
 section('Tube Racer: balance telemetry — end cause and per-run rates');
 {
   // overheating and being destroyed must be told apart, and by WHICH hazard

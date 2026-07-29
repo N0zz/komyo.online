@@ -211,7 +211,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       // one speed scale for every mode, matching the lab: cruise 14 → boost+lane 52.
       // Gain is HALF the first pass — the drone is a bed under the mix, not an event.
       const sp = clamp((S.spd - 14) / 38, 0, 1.1);
-      e.tune(t, sp, false);
+      e.tune(t, sp);
       const bed = (0.021 + sp * 0.025) * vol;
       e.master.gain.setTargetAtTime(live ? bed : 0, t, 0.1);
     } catch (err) { engOff = true; }
@@ -1381,7 +1381,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // track is a short recycled loop of the same feature shapes, so it never runs out of pipe and
   // never touches the run's own state.
   const BD_SPAN = 320, BD_SPD = 17;
-  let bdFeats = null, bdDist = 0, bdT = 0;
+  let bdFeats = null, bdDist = 0, bdT = 0, bdFrame = null;
   function bdBuild() {
     const keep = rngS; srand(20260729);            // never perturb the run's seeded track
     const out = [];
@@ -1425,7 +1425,16 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (!bdFeats) bdFeats = bdBuild();
     // the kit drives this on its own rAF and hands us a frame counter; fall back to the clock so
     // the suite (which calls it directly) still sees it advance
-    if (frame != null) bdDist = frame * BD_SPD / 60;
+    // Accumulate by frame DELTA, never `frame * BD_SPD / 60`. The kit zeroes its backdrop frame
+    // counter on every menu.show, while the recycler below only ever pushes features FORWARD — so
+    // deriving distance from the counter sent bdDist back to 0 with the whole track parked out at
+    // z 1000+, and the second menu of a session (the end screen, after a long start screen) showed a
+    // bare tunnel for the ~54s it took to catch up. Distance has to be monotonic across resets.
+    if (frame != null) {
+      if (bdFrame == null || frame < bdFrame) bdFrame = frame;   // counter reset → no jump, just re-anchor
+      bdDist += (frame - bdFrame) * BD_SPD / 60;
+      bdFrame = frame;
+    }
     else {
       const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
       const dt = bdT ? Math.min(0.05, (now - bdT) / 1000) : 0;
@@ -1705,7 +1714,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     addFeat(f) { S.feats.push(f); },
     // the kit paints the menu backdrop on its own rAF, which never ticks headlessly — so the
     // suite drives it directly (it runs the REAL tunnel painter, so a break there is a break here)
-    menuBg() { menuBackdrop(ctx, W, H); return bdDist; },
+    // frame is forwarded so a suite can drive the KIT's path (and its per-show reset), not just the clock
+    menuBg(frame) { menuBackdrop(ctx, W, H, null, frame); return bdDist; },
+    get bdVisible() { return bdFeats ? bdFeats.filter(f => f.z + f.len > bdDist - 1 && f.z < bdDist + ZFAR).length : 0; },
     get rngState() { return rngS; },   // the backdrop builds its own track — it must not shift this
     get palette() { return PAL; },     // no reward and hazard may share a colour — suite-enforced
     // av/homes/wAmp/half are what tell the hazard VARIANTS apart (x-cross + rotor spin, sentinel

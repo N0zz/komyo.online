@@ -939,16 +939,15 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   display: flex; align-items: center; justify-content: center; font-size: 12px; line-height: 1;
   color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); }
 .gamekit-shoppanel .gksp-crt-caret:hover { border-color: var(--gkm-accent, #9fe8ff); }
-/* A ▶ preview button IN FLOW eats 24px of a 130px cell, which left the name column ~34px wide and
-   clipped every sound cosmetic to "Rea… Pul…". Float it into the cell's bottom-right corner instead
-   (the CRT caret already owns the top-right) and keep only the short price/On line clear of it, so
-   the name gets the cell's full text column and wraps like any other item. */
-.gamekit-shoppanel .gksp-cell.gksp-has-pv .gksp-pv { position: absolute; right: 6px; bottom: 6px; margin: 0; }
-/* padding-right RESERVES the ▶'s corner but cannot stop a single unbreakable word from spilling into
-   it: the column is ~45px and "Default" is ~46px, so it slid straight under the button. Let the label
-   break mid-word instead — two short lines beat an overlap, and it degrades the same way in every
-   locale (Domyślne / Padrão / За замовчуванням are all longer than the English). */
-.gamekit-shoppanel .gksp-cell.gksp-has-pv .gksp-sub { padding-right: 26px; overflow-wrap: break-word; }
+/* The ▶ lives ON THE SWATCH, as a play badge over the artwork — not in the text column. Two earlier
+   attempts put it in that column: in flow it ate 24px and clipped names to "Rea… Pul…", and floated
+   into the corner with reserved padding it still collided, because the column is ~45px and "Default"
+   is one ~46px unbreakable word (reserving space cannot stop an overflow, and letting it break gave
+   "Defau/lt"). Over the swatch there is nothing to contend with: the label gets the full column and
+   fits on one line in every locale. */
+.gamekit-shoppanel .gksp-cell.gksp-has-pv .gksp-pv { position: absolute; left: 28px; bottom: 8px;
+  width: 20px; height: 20px; border-radius: 6px; font-size: 9px; margin: 0;
+  background: rgba(6, 10, 18, 0.82); backdrop-filter: blur(2px); }
 .gamekit-shoppanel .gksp-pv { color: var(--gkm-accent, #9fe8ff); font-size: 11px; }
 /* anchored CRT colour dropdown (fixed-positioned near the caret; lives at body level, so unscoped) */
 .gksp-crt-dd { display: flex; flex-direction: column; gap: 3px; min-width: 152px; padding: 6px;
