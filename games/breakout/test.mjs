@@ -377,4 +377,26 @@ section('cosmetics — paddle & ball skins');
   }
 }
 
+// The end screen used `score >= best`, but saveBest() had already raised `best` to this run's score
+// before the menu read it — so replaying and merely MATCHING your record flagged a new best. Brick
+// scores are round multiples of 10 × level, so exact ties are the common case, not a corner one.
+section('new-best flag: a TIE is not a new best');
+{
+  const drive = (storedBest) => {
+    const g = runGame({ store: { gamekit_pb: JSON.stringify({ breakout: { Classic: { score: storedBest, time: 0, plays: 1, stats: {} } } }) } });
+    const T = g.T;
+    T().start(); T().launch();
+    T().setBall(640, 120, 0, -15); T().step(30);            // break some bricks
+    let n = 0;
+    while (T().state === 'playing' && n++ < 500) { T().setBall(640, 790, 0, 10); T().step(10); }
+    return T();
+  };
+  const t1 = drive(10);
+  ok(t1.state === 'over' && t1.score > 10, 'ran past a stored best of 10 (score=' + t1.score + ')');
+  ok(t1.menu() && t1.menu().cfg.newBest === true, 'beating the stored best flags a new best');
+  const t2 = drive(t1.score);                                // seed the exact same score → a tie
+  ok(t2.score === t1.score, 'second run scores the same (deterministic drive)');
+  ok(t2.menu() && !t2.menu().cfg.newBest, 'matching the stored best does NOT flag a new best');
+}
+
 summary();

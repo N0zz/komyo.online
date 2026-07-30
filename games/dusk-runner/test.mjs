@@ -505,4 +505,26 @@ for (const v of [{ w: 360, h: 640 }, { w: 640, h: 360 }, { w: 1280, h: 800 }, { 
   ok(apex > tallest * 1.35, v.w + 'x' + v.h + ': jump apex ' + Math.round(apex) + 'px clears the tallest ' + Math.round(tallest) + 'px obstacle');
 }
 
+// Sprint's RECORD is the clock, but "new best" compared METRES against the metres best. Metres cap
+// at 1,000 on a clear, so once one clear had banked the cap, no later clear — however much faster —
+// could ever read as a best (1000 > 1000 is false).
+section('dusk-runner: sprint new-best is decided by the CLOCK, not the metres');
+{
+  const clear = (store) => {
+    const g = runGame({ seed: 4, store });
+    const T = g.T;
+    T().startMode('sprint', 'normal');
+    T().clearObstacles();
+    T().step(119); T().setDist(999.9); T().step(1);       // clear at exactly 2000 ms
+    return T();
+  };
+  const slowStore = { gamekit_pb: JSON.stringify({ 'dusk-runner': { 'Sprint · Normal': { score: 1000, time: 9000, plays: 1, stats: {} } } }) };
+  const t1 = clear(slowStore);
+  ok(t1.state === 'over' && t1.won === true, 'cleared the sprint (2000 ms)');
+  ok(t1.menu() && t1.menu().cfg.newBest === true, 'beating a 9,000 ms record with metres already capped IS a new best');
+  const fastStore = { gamekit_pb: JSON.stringify({ 'dusk-runner': { 'Sprint · Normal': { score: 1000, time: 1500, plays: 1, stats: {} } } }) };
+  const t2 = clear(fastStore);
+  ok(t2.menu() && !t2.menu().cfg.newBest, 'a SLOWER clear (2000 vs 1500 ms) is not a new best');
+}
+
 summary();

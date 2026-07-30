@@ -387,6 +387,31 @@ function run() {
     ok(g.win.gamekit.cosmetics.buy('tower-defense.castle.oak') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy castle skin with trophies (75 left)');
   }
 
+  // The end screen used `score >= bestScore`, but saveBest() raises bestScore to max(score, prev)
+  // before the menu reads it — so merely MATCHING your record on a map flagged a new best.
+  section('new-best flag: a TIE is not a new best');
+  {
+    const drive = (storedBest) => {
+      const g = runGame({ store: { gamekit_pb: JSON.stringify({ 'tower-defense': { 'Grassland · Medium': { score: storedBest, time: 0, plays: 1, stats: { wave: 1 } } } }) } });
+      const U = () => g.test();
+      U().start();
+      let n = 0; while (U().hp > 0 && n++ < 60000) { if (U().state === 'build') U().startWave(); U().step(1); }
+      return U();
+    };
+    const a = drive(1);
+    ok(a.state === 'over', 'undefended run ended (score=' + a.score + ')');
+    const label = a.menu() && a.menu().cfg.record && a.menu().cfg.record.mode;
+    ok(!!label, 'end menu carries the store label (' + label + ')');
+    if (a.score > 1 && label === 'Grassland · Medium') {
+      ok(a.menu().cfg.newBest === true, 'beating the stored best flags a new best');
+      const b = drive(a.score);
+      ok(b.score === a.score, 'same seed scores the same (' + b.score + ')');
+      ok(b.menu() && !b.menu().cfg.newBest, 'matching the stored best does NOT flag a new best');
+    } else {
+      ok(false, 'expected a scoring run on Meadow Pass · Normal (score=' + a.score + ', label=' + label + ')');
+    }
+  }
+
   summary();
 }
 
