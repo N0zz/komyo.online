@@ -1526,18 +1526,8 @@
     lsSet('gamekit_ach_new', JSON.stringify(cur));
   }
   function achFreshCount() { return achNewIds().length; }
-  // any fresh unlock a wall scoped to `game` would NOT show? (it renders that game's rows + site-wide)
-  function achUnseenOutside(game) {
-    return achNewIds().some(function (id) { var a = achItem(id); return a && a.game !== game && a.game !== ''; });
-  }
-  function achMarkSeen(ids) {
-    if (ids && ids.length) {          // partial: only the rows a scoped wall actually showed
-      var keep = achNewIds().filter(function (id) { return ids.indexOf(id) < 0; });
-      if (keep.length) lsSet('gamekit_ach_new', JSON.stringify(keep));
-      else { try { if (typeof localStorage !== 'undefined') localStorage.removeItem('gamekit_ach_new'); } catch (e) {} }
-    } else {
-      try { if (typeof localStorage !== 'undefined') localStorage.removeItem('gamekit_ach_new'); } catch (e) {}
-    }
+  function achMarkSeen() {
+    try { if (typeof localStorage !== 'undefined') localStorage.removeItem('gamekit_ach_new'); } catch (e) {}
     try { if (typeof window !== 'undefined' && window.__syncAchNotify) window.__syncAchNotify(); } catch (e) {}
   }
 
@@ -2195,10 +2185,7 @@
         _achWallFresh = achNewIds();
         achBuilt = true;
         buildAchWall();
-        // looking at the wall clears the Collection dot; a game-scoped wall only rendered that game +
-        // site-wide, so it may only clear what it actually showed
-        if (scopeGame == null) achMarkSeen();
-        else achMarkSeen(_achWallFresh.filter(function (fid) { var a = achItem(fid); return a && (a.game === scopeGame || a.game === ''); }));
+        achMarkSeen();   // every fresh row was rendered above, so the dot has genuinely been seen
       }
       syncAchTabDot();   // after markSeen, so opening the tab clears its own dot
       if (id === 'titles' && !titlesBuilt) {
@@ -2236,7 +2223,11 @@
       // the shop's game order, plus any game that only has achievements (no cosmetics yet)
       var gOrder = shown.filter(function (g) { return byGame[g]; });
       Object.keys(byGame).forEach(function (g) {
-        if (gOrder.indexOf(g) < 0 && (scopeGame == null || g === scopeGame || g === '')) gOrder.push(g);
+        if (gOrder.indexOf(g) >= 0) return;
+        // in scope: this game + site-wide … PLUS any game holding a row the dot pointed at. Hiding a
+        // fresh unlock would make the dot unclearable from inside a game (it was, once).
+        var hasFresh = (byGame[g] || []).some(function (r) { return freshSet[r.id]; });
+        if (scopeGame == null || g === scopeGame || g === '' || hasFresh) gOrder.push(g);
       });
       gOrder.forEach(function (game) {
         var list = byGame[game] || [];

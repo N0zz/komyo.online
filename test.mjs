@@ -1965,25 +1965,19 @@ function testAchievements() {
     panel.tab('ach');
     ok(K.achievements.freshCount() === 0, 'opening the tab marks the wall seen → the dot clears');
     panel.close();
-    // a GAME-scoped wall may only clear what it showed — another game's unlock stays fresh
+    // A GAME-SCOPED wall still shows every FRESH row, including other games' — otherwise the dot it
+    // clears could not have been seen, and in a game there was no way to clear it at all.
     {
-      const g2 = bootGame('index.html', { preCode: [games, challenges, cosmetics],
-        store: { gamekit_pb: JSON.stringify({ snake: { Classic: { score: 400, plays: 3, stats: { length: 60 } } } }) } });
-      const K2 = g2.win.gamekit;
-      const before = K2.achievements.freshIds();
-      ok(before.some(id => id.indexOf('snake.') === 0) && before.some(id => id.indexOf('site.') === 0),
-        'the backfill left both a snake unlock and site-wide ones fresh');
-      K2.shopPanel({ game: 'snake' }).tab('ach');
-      const after = K2.achievements.freshIds();
-      ok(!after.some(id => id.indexOf('snake.') === 0 || id.indexOf('site.') === 0),
-        'a snake-scoped wall clears snake + site-wide (the rows it rendered)');
       const g3 = bootGame('index.html', { preCode: [games, challenges, cosmetics],
         store: { gamekit_pb: JSON.stringify({ snake: { Classic: { score: 400, plays: 3, stats: { length: 60 } } },
           '2048': { Classic: { score: 9000, plays: 2, stats: { maxTile: 2048 } } } }) } });
       const K3 = g3.win.gamekit;
+      const before = K3.achievements.freshIds();
+      ok(before.some(id => id.indexOf('snake.') === 0) && before.some(id => id.indexOf('2048.') === 0)
+        && before.some(id => id.indexOf('site.') === 0), 'the backfill left snake + 2048 + site-wide unlocks fresh');
       K3.shopPanel({ game: 'snake' }).tab('ach');
-      ok(K3.achievements.freshIds().some(id => id.indexOf('2048.') === 0),
-        "…and leaves another game's unlock fresh, so its dot survives");
+      ok(K3.achievements.freshCount() === 0,
+        'opening the wall inside snake clears the dot completely — a fresh row is never withheld');
     }
   }
 
