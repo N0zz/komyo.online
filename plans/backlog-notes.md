@@ -213,6 +213,38 @@ one-way, GitHub-native — preferred), or **(b)** Cloudflare Worker + KV (`POST 
 `GET /recent`; truly live — parked). Filter to good scores / records only; a public `POST` has the same
 abuse surface as the webhook. **Defer** until real traffic — an empty live feed looks deader than none.
 
+### Percentile "you beat N% of runs" from GA4 (idea, 2026-07-30)
+
+The no-backend answer to "global rankings". Not a leaderboard — a **distribution**: the end screen says
+"better than 78% of runs" instead of a rank. Ranks are backend-gated (see Parked) and, in a client-side
+game, unenforceable; a distribution needs no accounts, no server, and is **inherently cheat-tolerant** —
+a forged score adds one row to the top bucket and moves the curve by nothing.
+
+**The one design constraint: bucket at send time.** GA4 already carries `slug` + `mode` (dimensions) and
+`score` (metric), but a metric only yields average/count and the Data API never returns raw event rows —
+so today's data cannot produce a percentile. Fix: send a coarse `score_bucket` **dimension** on
+`game_play` alongside the number. Then `run_report(dimensions=[slug, mode, score_bucket],
+metrics=[eventCount])` returns a histogram = a percentile table. Same pattern as the existing
+`len_bucket` / `vol_bucket` dimensions.
+
+Shape: (1) `score_bucket` on `game_play`, ~12–16 edges per game+mode — the `CHALLENGES.goodRun` bars are
+the natural scale anchor; (2) `scripts/ga4-define.sh --dim score_bucket`, ship, seed on production; (3)
+a daily GH Action → Data API over a rolling ~90-day window → cumulative histogram → `percentiles.json`
+committed to the repo; (4) the kit reads it at end-of-run. Time-primary modes invert (min-is-better) and
+need their own handling.
+
+Two gotchas: **keep `percentiles.json` OUT of the SW precache SHELL** — it changes daily, so the shell
+version would change daily and every player would get an update dot every morning; fetch it
+network-first with a cached fallback. And **registration is not retroactive** — zero history, the
+distribution starts accumulating from ship day.
+
+**The real limiter is sample size, not effort** (~1 day of code total, then 3–6 weeks of accrual before
+it says anything true). Percentiles over 30 runs are noise, so it needs a min-N gate (~200 runs per
+game+mode) with the line simply hidden below it — and at current traffic split across 23 games × several
+modes each, some combinations may never qualify. **Check `game_play` volume per slug/mode first; that
+number decides whether this is worth building at all.** Also note the sample is consenting players only
+(GA4 is consent-gated, dev origins excluded) and it measures *runs*, not players.
+
 ### Cloud-sync the Export/Import blob (idea)
 
 Let a player connect a personal storage provider (Google Drive / Dropbox / OneDrive) so the base64
