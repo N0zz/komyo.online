@@ -1220,6 +1220,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   <script src="changelog.js"></script>
   <script src="challenges.js"></script>
   <script src="cosmetics.js"></script>
+  <script src="achievements.js"></script>
   <script src="i18n.js"></script>
   <script>
     const grid = document.getElementById('grid');
@@ -1674,6 +1675,8 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         if (!FILTER.showSoon) p.set('soon', '0');
         if (FILTER.hide.size) p.set('hide', [...FILTER.hide].join(','));
         if (openPanel) p.set('m', openPanel); // keep an open panel in the URL across filter changes
+        // …including which TAB of it is open (the kit stamps ?tab=; this whitelist would drop it)
+        if (openPanel) { try { const tb = new URLSearchParams(location.search).get('tab'); if (tb) p.set('tab', tb); } catch (e) {} }
         const qs = p.toString();
         const base = (typeof location !== 'undefined' && location.pathname) ? location.pathname : '';
         history.replaceState(null, '', qs ? base + '?' + qs : base || location.pathname);
