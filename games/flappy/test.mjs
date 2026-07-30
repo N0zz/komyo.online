@@ -367,7 +367,10 @@ section('Cash → trophy migration');
   const owned = JSON.parse(g.store['gamekit_owned'] || '{}');
   ok(owned['flappy.bird.owl'] && owned['flappy.bird.owl'].c === 0, 'owned birds carry over at cost 0 (owl)');
   ok(!owned['flappy.bird.bielik'], 'birds above the banked total stay locked');
-  ok(T().trophies === 320, 'banked cash became spendable trophies (got ' + T().trophies + ')');
+  // the migration credit is asserted at its SOURCE (the gamekit_done entry): the spendable balance
+  // also moves when an achievement pays out, so an absolute total here would drift
+  ok((JSON.parse(g.store['gamekit_done'] || '{}')['flappy-migrate'] | 0) === 320, 'banked cash became trophies 1:1 (gamekit_done entry)');
+  ok(T().trophies >= 320, 'and they are spendable (balance ' + T().trophies + ')');
   ok(T().selectedBird === 'owl', 'selected bird carried over (picked via the 🎨 modal now)');
   ok(g.win.gamekit.cosmetics.selected('flappy.bird') === 'flappy.bird.owl', 'migration selection persisted in the cosmetics store');
 }

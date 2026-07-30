@@ -587,7 +587,12 @@ section('cosmetics — hull & trail skins');
     g2.down('Enter'); g2.down('ArrowUp'); g2.step(60); // thrust so trail particles spawn
     ok(g2.errors.length === 0, hulls[i % hulls.length] + ' + ' + trails[i % trails.length] + ': renders without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
   }
-  ok(g.win.gamekit.cosmetics.buy('asteroids-plus.hull.teal') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy hull skin with trophies (75 left)');
+  { // asserted as SPEND, not as a balance: an achievement unlocking on this very purchase
+    // ("buy your first cosmetic") pays trophies back in, so the balance delta is not the price
+    const spent0 = g.win.gamekit.cosmetics.spent();
+    ok(g.win.gamekit.cosmetics.buy('asteroids-plus.hull.teal') === true && g.win.gamekit.cosmetics.spent() === spent0 + 25
+      && g.win.gamekit.cosmetics.owned('asteroids-plus.hull.teal'), 'buying teal spends 25 🏆 and owns it');
+  }
 }
 
 summary();

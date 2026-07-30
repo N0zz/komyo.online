@@ -482,7 +482,12 @@ section('cosmetics — target & hit-marker skins');
     if (tg) g3.test().shootAt(tg.x, tg.y);
     ok(g3.test().hits === h0 + 1, 'a skinned target still registers a centre hit (hits ' + h0 + ' -> ' + g3.test().hits + ')');
   }
-  ok(g.win.gamekit.cosmetics.buy('aim-trainer.target.donut') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy target skin with trophies (75 left)');
+  { // asserted as SPEND, not as a balance: an achievement unlocking on this very purchase
+    // ("buy your first cosmetic") pays trophies back in, so the balance delta is not the price
+    const spent0 = g.win.gamekit.cosmetics.spent();
+    ok(g.win.gamekit.cosmetics.buy('aim-trainer.target.donut') === true && g.win.gamekit.cosmetics.spent() === spent0 + 25
+      && g.win.gamekit.cosmetics.owned('aim-trainer.target.donut'), 'buying donut spends 25 🏆 and owns it');
+  }
 }
 
 summary();

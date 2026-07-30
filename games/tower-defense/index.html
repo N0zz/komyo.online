@@ -40,6 +40,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../version.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../achievements.js"></script>
 <script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <script src="../../game-kit.js"></script>
@@ -485,6 +486,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let state = 'menu';
   let gold = 0, hp = 0, wave = 0, score = 0;
   let towers = [], enemies = [], shots = [], floats = [], spawnQ = [], spawnT = 0;
+  let runKills = 0, runSold = false;   // per-run tallies for achievements (reset in reset())
   let selBuild = null, selTower = null;
   let particles = [];
   let drops = [], dropCooldown = 0, hasteTicks = 0;
@@ -520,6 +522,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     victory = false; bossWarnShown = false;
     spawnT = 0; autoWave = false; autoDelay = 0;
     difficulty = 1; waveLeaked = false; waveMaxFrac = 0;
+    runKills = 0; runSold = false;
   }
 
   // Pixel position at a fraction (0..1) along the full waypoint path — used for checkpoints.
@@ -718,7 +721,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (!KIT) return;
     menuReshow = showEnd;
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.tower-defense.endTitle', { def: 'THE KEEP HAS FALLEN' }), backdrop: (g, w, h) => menuMapRender(g, w, h, MAPS[mapIndex]),
-      record: { slug: 'tower-defense', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, modeText: mapModeDisplay(mapIndex, diffLevel), score: score, stats: { wave: wave, difficulty: diffLevel }, outcome: 'lose' },
+      record: { slug: 'tower-defense', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, modeText: mapModeDisplay(mapIndex, diffLevel), score: score, stats: { wave: wave, difficulty: diffLevel, kills: runKills, noSell: runSold ? 0 : 1 }, outcome: 'lose' },
       score: score, best: bestScore, newBest: score > bestAtStart && score > 0,
       lines: [KIT.t('game.tower-defense.wavesSurvived', { wave: wave, map: mapName(mapIndex), diff: diffLabel(diffLevel), def: 'Waves survived: ' + wave + ' · ' + MAPS[mapIndex].name + ' · ' + DIFF().label })],
       share: { slug: 'tower-defense', accent: '#e0b25a', icon: '🏰', title: KIT.t('game.tower-defense.name', { def: 'Keep Defender' }), message: () => KIT.shareText({ score: score, game: KIT.t('game.tower-defense.name', { def: 'Keep Defender' }), emoji: '🏰', mode: mapModeDisplay(mapIndex, diffLevel), extra: [KIT.t('game.tower-defense.shareWave', { wave: wave, def: 'wave ' + wave })] }), params: () => ({ map: mapIndex, diff: diffLevel }) },
@@ -964,6 +967,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
   function sellTower(t) {
     try { if (window.gamekitTrack) window.gamekitTrack('run_choice', { slug: 'tower-defense', item_id: t.type, choice_kind: 'tower_sell', wave: wave }); } catch (e) {}
+    runSold = true;
     gold += Math.round(t.spent * 0.7);
     towers = towers.filter(x => x !== t);
     recomputeBuffs();
@@ -1452,6 +1456,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function killEnemy(e) {
     const i = enemies.indexOf(e); if (i < 0) return;
     enemies.splice(i, 1);
+    runKills++;
     gold += e.reward;
     addScore(e.reward);
     spawnParticles(e.x, e.y, e.color);

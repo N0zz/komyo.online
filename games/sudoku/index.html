@@ -43,6 +43,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../achievements.js"></script>
 <script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <style>
@@ -1299,7 +1300,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     // record ALWAYS (zen too — a completed zen solve still counts as "played today" for the
     // cross-game challenges); zen just carries no score/best/share.
     cfg.record = { slug: SLUG, mode: modeStorageLabel(), modeText: modeDisplayLabel(),
-      score, time: won ? Math.round(ticks / 60 * 1000) : 0, stats: { mistakes, hints: hintsUsed }, outcome: won ? 'win' : 'lose' };
+      score, time: won ? Math.round(ticks / 60 * 1000) : 0, stats: { mistakes, hints: hintsUsed, diff: band, solved: won ? 1 : 0 }, outcome: won ? 'win' : 'lose' };
     if (!zen) { cfg.score = score; cfg.best = best; cfg.newBest = isBest; }
     // share on EVERY end screen — win brags the score, loss challenges a friend, zen brags the time
     cfg.share = { slug: SLUG, accent: ACCENT, icon: '🔢', title: KIT.t('game.sudoku.title', { def: 'Sudoku' }),

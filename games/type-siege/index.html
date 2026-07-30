@@ -46,6 +46,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../achievements.js"></script>
 <script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <!-- the shared word banks (8 locales) — part of THIS game's atomic head unit, so the inline script
@@ -381,7 +382,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const t = hits + misses;
     return t ? Math.round((hits / t) * 100) : 100;
   }
-  function statsNow() { return { wave: wave, wpm: wpm(), accuracy: accuracy() }; }
+  function statsNow() { return { wave: wave, wpm: wpm(), accuracy: accuracy(), chars: typedChars }; }
 
   // ---- ink palettes (cosmetic skin) ----
   // CONTRAST RULE: `paper` vs every FOREGROUND colour (ink / ink2 / hi / warn / good) keeps a
