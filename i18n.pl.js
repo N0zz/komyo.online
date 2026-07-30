@@ -2713,4 +2713,7 @@ window.KOMYO_I18N.pl = {
   'ach.tube-racer.clean.desc': 'Ukończ sprint bez żadnego trafienia.',
   'changelog.e92.title': 'Zobacz Rurę Wyścigową, zanim wsiądziesz 🎬',
   'changelog.e92.b0': 'Nowość: Rura Wyścigowa też pokazuje teraz na swojej karcie krótki klip z rozgrywki — naciśnij WIĘCEJ, aby zobaczyć, jak się nią jedzie, przed uruchomieniem.',
+  'changelog.e93.title': 'Muzyka nadąża teraz za twoją rozgrywką 🎵',
+  'changelog.e93.b0': 'Zmiana: każda gra dostała nową muzykę. Zamiast jednej krótkiej pętli w kółko, każda gra ma teraz pełny utwór, który śledzi to, co robisz — zaczyna cicho, narasta, gdy się zagęszcza, wchodzi w główny motyw, kiedy rośnie napięcie, odpuszcza, gdy masz chwilę oddechu, i znów się wznosi, z prawdziwymi przejściami na bębnach przy każdej zmianie. Melodie są teraz napisane, a nie błądzące, i całość brzmi znacznie pełniej.',
+  'changelog.e93.b1': 'Zmiana: dwie ścieżki dźwiękowe Neonowego Węża zostały przebudowane zgodnie z powyższym. Neonowy Banger nadal jest tym większym i mocniejszym z dwóch — jeśli go kupiłeś, zostaje twój.',
 };

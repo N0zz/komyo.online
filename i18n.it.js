@@ -2684,4 +2684,7 @@ window.KOMYO_I18N.it = {
   'changelog.e91.b0': 'Novità: gli obiettivi — 79 traguardi una tantum che non scadono mai, nella finestra Collezione accanto al negozio e ai tuoi titoli. Ognuno paga trofei nel momento in cui lo completi, la maggior parte mostra una barra di progresso dal vivo, e tutto quello che avevi già guadagnato prima di oggi ti è stato sbloccato automaticamente.',
   'changelog.e92.title': 'Guarda Corridore del Tubo prima di partire 🎬',
   'changelog.e92.b0': 'Novità: anche Corridore del Tubo ora mostra una breve clip di gioco sulla sua schedina — tocca ALTRO per vedere come si guida davvero prima di iniziare.',
+  'changelog.e93.title': 'La musica ora segue la tua partita 🎵',
+  'changelog.e93.b0': 'Modifica: ogni gioco ha una nuova musica. Invece di un breve loop che si ripete, ogni gioco ha ora un brano completo che segue quello che stai facendo: parte piano, cresce quando si fa intenso, entra nel tema principale quando la pressione sale, si allenta quando hai un attimo di respiro e poi risale, con veri stacchi di batteria a ogni cambio. Le melodie ora sono scritte, non vaganti, e il tutto suona molto più pieno.',
+  'changelog.e93.b1': 'Modifica: le due colonne sonore di Serpente Neon sono state ricostruite con tutto quanto sopra. Neon Banger resta la più grossa e tosta delle due: se l’hai comprata, resta tua.',
 };

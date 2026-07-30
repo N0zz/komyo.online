@@ -2684,4 +2684,7 @@ window.KOMYO_I18N.cs = {
   'changelog.e91.b0': 'Novinka: úspěchy — 79 jednorázových cílů, které nikdy nevyprší, v okně Sbírka hned vedle obchodu a tvých titulů. Každý ti vyplatí trofeje ve chvíli, kdy ho splníš, většina ukazuje živý pruh postupu, a všechno, co jsi si zasloužil ještě před dneškem, se ti odemklo automaticky.',
   'changelog.e92.title': 'Podívej se na Tunelového jezdce, než vyrazíš 🎬',
   'changelog.e92.b0': 'Nové: Tunelový jezdec teď na své kartě taky přehraje krátký klip ze hry — klepni na VÍCE a podívej se, jak se opravdu řídí, ještě než začneš.',
+  'changelog.e93.title': 'Hudba teď sleduje tvoji hru 🎵',
+  'changelog.e93.b0': 'Změna: každá hra dostala novou hudbu. Místo jedné krátké smyčky dokola má teď každá hra celou skladbu, která sleduje, co děláš — začne tiše, roste, když se to zahustí, přejde do hlavního motivu, když je tlak nejvyšší, povolí, když máš chvilku klidu, a znovu stoupá, s opravdovými bicími přechody u každé změny. Melodie jsou teď napsané, ne bloudící, a celek zní výrazně plněji.',
+  'changelog.e93.b1': 'Změna: obě zvukové stopy Neonového hada jsme přestavěli podle výše uvedeného. Neonový Banger je pořád ta větší a údernější z těch dvou — pokud sis ji koupil, zůstává ti.',
 };
