@@ -3950,10 +3950,17 @@
         track('share_card', { slug: slug || 'unknown', stage: 'discord', card: 'score', discord_tier: tier });
         // The watermark advances only once the POST resolved — `unknown` (an unreadable CORS response)
         // counts as SENT, because the webhook has already fired server-side and a retry would duplicate.
+        // The in-flight flag is ALWAYS released here: it exists only to stop the setTimeout and the
+        // IntersectionObserver from both firing for the SAME run, so its life is this one post. Leaving
+        // it set on success made the first posted best of a page load the LAST one — every later run,
+        // however much better, was blocked by a flag rather than by a rule. Same-run duplicates are
+        // still impossible: annMark advances the watermark first, so a queued second call fails
+        // pbAnnounce on its own score.
         var settle = function (r) {
-          if (r && (r.ok || r.unknown)) annMark(slug, mode, score, time);
-          else delete _dcInFlight[key];      // a readable failure → this best can post again later
-          track('share_card', { slug: slug || 'unknown', stage: (r && (r.ok || r.unknown)) ? 'discord_ok' : 'discord_fail', card: 'score', discord_tier: tier });
+          var sent = !!(r && (r.ok || r.unknown));
+          if (sent) annMark(slug, mode, score, time);
+          delete _dcInFlight[key];
+          track('share_card', { slug: slug || 'unknown', stage: sent ? 'discord_ok' : 'discord_fail', card: 'score', discord_tier: tier });
         };
         // The CARD is the message — it carries the ★ NEW BEST badge, the score, the mode and the name —
         // so the post needs no caption. And no card means NO post: a bare text line is a worse artifact
