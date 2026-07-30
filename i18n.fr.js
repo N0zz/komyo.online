@@ -2516,4 +2516,7 @@ window.KOMYO_I18N.fr = {
   'shop.balSpend': '🏆 {n} à dépenser',
   'shop.balAch': '🏅 {n} points',
   'shop.balLifetime': '🏆 {n} au total',
+  'changelog.e90.title': 'Tout ce que tu collectionnes, dans une seule fenêtre 🎨',
+  'changelog.e90.b0': 'Changement : ton échelle de titres vit maintenant dans la fenêtre Collection au lieu d\'ouvrir la sienne — un sélecteur Boutique · Succès · Titres est en haut, et tous les liens vers tes titres y mènent. Succès n\'est pour l\'instant qu\'un avant-goût, et le dit.',
+  'changelog.e90.b1': 'Changement : les Défis s\'ouvrent comme une fenêtre au milieu de l\'écran, comme le profil et les nouveautés, au lieu de glisser depuis le bord droit. Le panneau dans les jeux a aussi perdu ses pastilles, donc les objectifs que tu poursuis sont la première chose que tu vois.',
 };

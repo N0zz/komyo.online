@@ -2516,4 +2516,7 @@ window.KOMYO_I18N.cs = {
   'shop.balSpend': '🏆 {n} k utracení',
   'shop.balAch': '🏅 {n} bodů',
   'shop.balLifetime': '🏆 {n} celkem',
+  'changelog.e90.title': 'Všechno, co sbíráš, v jednom okně 🎨',
+  'changelog.e90.b0': 'Změna: tvůj žebříček titulů teď žije uvnitř okna Sbírka místo toho, aby si otevíral vlastní — nahoře je přepínač Obchod · Úspěchy · Tituly a každý odkaz na tvoje tituly vede tam. Úspěchy jsou zatím jen ukázka a samy to říkají.',
+  'changelog.e90.b1': 'Změna: Výzvy se otevírají jako okno v prostředku obrazovky, stejně jako profil a seznam změn, místo vysouvání z pravého okraje. Panel ve hrách taky přišel o odznaky, takže cíle, které si honíš, vidíš jako první.',
 };

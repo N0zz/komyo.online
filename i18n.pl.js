@@ -2520,4 +2520,7 @@ window.KOMYO_I18N.pl = {
   'shop.balSpend': '🏆 {n} do wydania',
   'shop.balAch': '🏅 {n} pkt',
   'shop.balLifetime': '🏆 {n} łącznie',
+  'changelog.e90.title': 'Wszystko, co zbierasz, w jednym oknie 🎨',
+  'changelog.e90.b0': 'Zmiana: drabinka tytułów mieszka teraz w oknie Kolekcji, a nie w osobnym okienku — na górze jest przełącznik Sklep · Osiągnięcia · Tytuły, i każdy odnośnik do tytułów prowadzi właśnie tam. Osiągnięcia są na razie zapowiedzią i same o tym mówią.',
+  'changelog.e90.b1': 'Zmiana: Wyzwania otwierają się jako okno na środku ekranu, tak jak profil i lista zmian, zamiast wysuwać się z prawej krawędzi. Panel w grach też stracił plakietki, więc cele, o które walczysz, widzisz od razu.',
 };

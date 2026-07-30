@@ -369,6 +369,26 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     dialog#settingsModal[open] { max-height:calc(100svh - 30px); }
   }
   dialog#settingsModal .about { max-height:none; flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; }
+  /* Challenges — same structural bound as settings above (the DIALOG is the cap, the inner list flexes
+     and scrolls inside it), because its content is open-ended: goals + the good-run bars + a year of
+     history. It kept every class the drawer used, so the renderer is untouched by the move. */
+  /* FIXED height, not content height: expanding "What's a good run?" re-sized the whole frame under the
+     cursor. One height, and the list scrolls inside it. */
+  dialog#chalModal { width:min(560px,94vw); }
+  dialog#chalModal[open] { height:min(760px,calc(100vh - 30px)); max-height:calc(100vh - 30px); display:flex; flex-direction:column; overflow:visible; }
+  @supports (height: 100svh) {
+    dialog#chalModal[open] { height:min(760px,calc(100svh - 30px)); max-height:calc(100svh - 30px); }
+  }
+  .chal-modal { display:flex; flex-direction:column; min-height:0; flex:1 1 auto; padding:18px 20px 16px; gap:12px; }
+  .chal-modal .dscroll { flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; margin:0 -6px; padding:0 6px; }
+  /* phone in landscape: 330px of frame, and the bonus row + good-run summary were pushing the actual
+     goals below the fold. Tighter rhythm buys back ~30px — enough for the weekly goal to show too. */
+  @media (orientation:landscape) and (max-height:420px) {
+    .chal-modal { padding:12px 16px 10px; gap:7px; }
+    .chal-modal .cl-head h3 { font-size:14px; }
+    .chal-modal .cbonus { margin:0; }
+    .chal-modal .csec { margin-top:7px; }
+  }
   /* wide screens (landscape phones AND desktop): two balanced 4-row columns, column-first, so the
      order reads sound+play (left) | data+danger (right). The grid holds only true SETTINGS — the
      8 rows split evenly; metadata (Version + Update) lives in the .set-foot strip below, so no
@@ -434,11 +454,11 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   .ditem.ok { color:#7fe0a0; } /* drawer Share item flashes green on "Copied!" (desktop) */
 
   /* feedback modal */
-  #fbModal, #nlModal, #clModal, #aboutModal, #promoteModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
-  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #promoteModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop, #settingsModal::backdrop { background:rgba(5,8,13,0.66); }
+  #fbModal, #nlModal, #clModal, #aboutModal, #promoteModal, #faqModal, #legalModal, #dataModal, #nameModal, #settingsModal, #chalModal { border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:16px; padding:0; width:min(440px,92vw); box-shadow:0 20px 60px rgba(0,0,0,0.6); }
+  #fbModal::backdrop, #nlModal::backdrop, #clModal::backdrop, #aboutModal::backdrop, #promoteModal::backdrop, #faqModal::backdrop, #legalModal::backdrop, #dataModal::backdrop, #nameModal::backdrop, #settingsModal::backdrop, #chalModal::backdrop { background:rgba(5,8,13,0.66); }
   /* let the corner close badge (.pf-x) protrude past the rounded edge like the profile modal;
      the wrappers own their own scroll (below) so the dialog itself never needs to clip */
-  #clModal, #aboutModal, #promoteModal, #settingsModal, #faqModal, #legalModal, #dataModal { overflow:visible; }
+  #clModal, #aboutModal, #promoteModal, #settingsModal, #faqModal, #legalModal, #dataModal, #chalModal { overflow:visible; }
   .pf-x { position:absolute; top:-13px; right:-13px; z-index:20; width:34px; height:34px; border-radius:50%; background:var(--surface); border:1px solid var(--border); color:var(--muted); font-size:15px; line-height:1; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 14px rgba(0,0,0,0.45); cursor:pointer; }
   .pf-x:hover { color:#fff; border-color:#9fe8ff; }
   /* about modal */
@@ -944,13 +964,15 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     </div>
   </aside>
 
-  <aside class="drawer right" id="chalDrawer" aria-hidden="true" aria-label="Challenges" data-ta="cat.chalDrawerAria">
-    <div class="dresize" title="Drag to resize" data-tt="cat.dragResize"></div>
-    <div class="dh"><span class="dt" data-t="drawer.challenges">🏆 Challenges</span><button class="dx" data-close aria-label="Close challenges" data-ta="drawer.closeChal">✕</button></div>
+  <!-- Challenges: a MODAL like every other catalogue surface (profile, changelog, settings). It was the
+       last right-edge drawer, which meant its own open/close idiom, its own width rules and its own
+       landscape behaviour to maintain. Daily and weekly stay in ONE list — after a month of play there
+       are only a handful of weeklies, so splitting them into tabs would leave one tab nearly empty. -->
+  <dialog id="chalModal" aria-label="Challenges" data-ta="cat.chalDrawerAria">
+    <button type="button" class="pf-x" id="chalClose" aria-label="Close challenges" data-ta="drawer.closeChal">✕</button>
+    <div class="chal-modal">
+      <div class="cl-head"><h3 data-t="drawer.challenges">🏆 Challenges</h3></div>
     <div class="dscroll">
-      <div class="cpills">
-        <button class="streak" id="chalStreak" type="button" title="What do trophies get you?" data-tt="cat.trophiesHelp">🏆 0 trophies</button>
-      </div>
       <div class="cbonus" id="chalBonus" hidden></div>
       <details class="grbars" id="grBars">
         <summary>🌟 <span data-t="chal.goodRunWhat">What&rsquo;s a good run?</span></summary>
@@ -967,7 +989,8 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       <button id="chalMore" class="chist-more" type="button" hidden data-t="drawer.loadMore">Load more</button>
       <div class="cmock" data-t="drawer.cmock">Saved on this device — no accounts, no leaderboards. Just for fun.</div>
     </div>
-  </aside>
+    </div>
+  </dialog>
 
   <dialog id="fbModal">
     <form class="fb-form" id="fbForm">
@@ -1996,7 +2019,8 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     // ---- Drawers: left ☰ menu + right 🏆 challenges (main-site only) ----
     (function () {
       const scrim = document.getElementById('scrim');
-      const menu = document.getElementById('menuDrawer'), chal = document.getElementById('chalDrawer');
+      // challenges is a modal now — the ☰ menu is the only drawer left
+      const menu = document.getElementById('menuDrawer'), chal = null;
       // hiding a drawer that still contains the focused element trips the aria-hidden rule —
       // blur first, and use inert so nothing inside stays focusable while hidden
       const hide = d => {
@@ -2018,9 +2042,26 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         const x = el.querySelector('[data-close]'); if (x && x.focus) x.focus();
       };
       const mb = document.getElementById('menuBtn'); if (mb) mb.addEventListener('click', () => open(menu));
-      // the side stack (kit-owned) calls this synchronously from its chalBtn handler, BEFORE
-      // it marks the NEW rotation chips — so the drawer is rendered when the chips land
-      window.__openChalDrawer = () => { open(chal); if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'challenges' }); if (window.__renderChallenges) window.__renderChallenges(); };
+      // Challenges — a modal now, but the opener keeps its name: the kit-owned side stack calls it
+      // synchronously from its chalBtn handler, BEFORE marking the NEW rotation chips, so the content
+      // must already be rendered when the chips land.
+      const chalModal = document.getElementById('chalModal');
+      const chalClose = document.getElementById('chalClose');
+      window.__openChalDrawer = () => {
+        if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'challenges' });
+        if (window.__renderChallenges) window.__renderChallenges();
+        if (!chalModal || !chalModal.showModal) return;
+        close();                                    // never leave the ☰ drawer open behind it
+        try { chalModal.showModal(); } catch (e) {}
+        setPanelUrl('challenges');
+      };
+      if (chalClose) chalClose.addEventListener('click', () => chalModal.close());
+      if (chalModal) {
+        chalModal.addEventListener('click', e => { if (e.target === chalModal) chalModal.close(); });  // click the backdrop
+        chalModal.addEventListener('close', () => { if (openPanel === 'challenges') setPanelUrl(null); });
+        // a Play link inside a goal card navigates away — dismiss so a back-navigation doesn't restore it
+        chalModal.addEventListener('click', e => { if (e.target.closest && e.target.closest('.cplay')) chalModal.close(); });
+      }
       if (scrim) scrim.addEventListener('click', close);
       document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
       [menu, chal].forEach(d => d && d.addEventListener('click', e => {
@@ -2969,6 +3010,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         let m = DEEPLINK_M; if (!m) return; m = m.toLowerCase(); m = ALIAS[m] || m;
         if (m === 'titles') { if (window.__openTitlesLadder) window.__openTitlesLadder(); return; }
         if (m === 'cosmetics') { if (window.__openShop) window.__openShop(); return; }
+        if (m === 'challenges') { if (window.__openChalDrawer) window.__openChalDrawer(); return; }
         const btn = MAP[m] && document.getElementById(MAP[m]);
         if (btn) btn.click();
       } catch (e) {}

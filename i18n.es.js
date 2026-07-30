@@ -2517,4 +2517,7 @@ window.KOMYO_I18N.es = {
   'shop.balSpend': '🏆 {n} para gastar',
   'shop.balAch': '🏅 {n} puntos',
   'shop.balLifetime': '🏆 {n} en total',
+  'changelog.e90.title': 'Todo lo que coleccionas, en una sola ventana 🎨',
+  'changelog.e90.b0': 'Cambio: tu escalera de títulos ahora vive dentro de la ventana de Colección en lugar de abrir una propia — arriba hay un selector Tienda · Logros · Títulos, y todos los enlaces a tus títulos llevan ahí. Logros es de momento un adelanto y lo dice.',
+  'changelog.e90.b1': 'Cambio: los Desafíos se abren como una ventana en el centro de la pantalla, igual que el perfil y los cambios, en vez de deslizarse desde el borde derecho. El panel dentro de los juegos también soltó sus etiquetas, así que los objetivos que persigues son lo primero que ves.',
 };

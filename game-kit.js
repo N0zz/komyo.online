@@ -1689,6 +1689,14 @@
     }
     return out;
   }
+  // slug → display title, the map chEval needs to render "Play Brick Breaker today" instead of
+  // "Play breakout today". The catalogue always passed it; the in-game panel didn't, so the SAME goal
+  // read differently in the two places.
+  function titleMap() {
+    var out = {}, list = (typeof window !== 'undefined' && window.GAMES) || [];
+    for (var i = 0; i < list.length; i++) { var g = list[i]; if (g && g.slug) out[g.slug] = g.title || g.slug; }
+    return out;
+  }
   function chCrossVal(m, a, genreOf) {
     if (m === 'distinctGames') return a.slugs.length;
     if (m === 'totalGames') return a.count;
@@ -1744,10 +1752,10 @@
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body || !document.createElement) return;
     track('feature_open', { feature: 'challenges', place: 'game' });
-    var slug = opts.slug, genreOf = opts.genres || genreMap(), ct = chToday();
+    var slug = opts.slug, genreOf = opts.genres || genreMap(), titleOf = titleMap(), ct = chToday();
     function card(entry, kindLabel, kind) {
       if (!entry || !entry.goal) return '<div class="gkch-empty">' + t('challenges.noneKind', { kind: kindLabel.toLowerCase() }) + '</div>';
-      var g = entry.goal, e = chEval(g, { genres: genreOf, id: entry.id }), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
+      var g = entry.goal, e = chEval(g, { genres: genreOf, titles: titleOf, id: entry.id }), mine = !!(slug && g.slug === slug), pct = Math.round((e ? e.pct : 0) * 100);
       var prog = e ? (e.done ? t('challenges.done') : (fmtScore(e.val) + ' / ' + fmtScore(e.target))) : '';
       return '<div class="gkch-card' + (mine ? ' mine' : '') + (e && e.done ? ' done' : '') + '">'
         + '<div class="gkch-k">' + kindLabel + (mine ? ' · <b>' + t('challenges.thisGame') + '</b>' : '')
@@ -1758,12 +1766,10 @@
     }
     var body = chGoals() ? (card(ct.daily, t('challenges.today'), 'daily') + card(ct.weekly, t('challenges.thisWeek'), 'weekly'))
       : '<div class="gkch-empty">' + t('challenges.notLoaded') + '</div>';
-    // trophies pill (lifetime) + Cosmetics pill (spendable balance → the store) + the always-on
-    // good-run bonus line, so "is one more run worth it?" has an answer before playing
-    var pills = '<div class="gkch-pills"><span class="gkch-pill">' + t('chal.lifetime', { count: cosLifetime() }) + '</span>'
-      + (cosItems().length ? '<button class="gkch-pill gkch-shop" id="gkchShop" type="button">' + t('challenges.cosmeticsBtn') + '</button>' : '')
-      + '</div>'
-      + grbHtml()
+    // No pills: the trophy total and the Collection both live on the side stack a tap away, and this
+    // panel answers one question — what am I chasing right now. The good-run bonus line stays, because
+    // "is one more run worth it?" is part of that same question.
+    var pills = grbHtml()
       // the standing "what counts here" line — the bar used to surface only on goodRuns-goal days
       + (chGoodRun(slug) ? '<div class="gkch-goodbar">🌟 ' + t('challenges.goodRunHere', { n: fmtScore(chGoodRun(slug)) }) + '</div>' : '');
     var ov = document.createElement('div'); ov.className = 'gamekit-challenges';
@@ -1773,8 +1779,6 @@
     if (opts.theme) applyMenuTheme(ov, opts.theme);
     document.body.appendChild(ov);
     modalInc();
-    var shopBtn = ov.querySelector ? ov.querySelector('#gkchShop') : null;
-    if (shopBtn) shopBtn.addEventListener('click', function () { shopPanel({ theme: opts.theme }); });
     var done = false;
     function close() { if (done) return; done = true; modalDec(); try { document.removeEventListener('keydown', onKey, true); } catch (e) {} try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {} }
     function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc')) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
