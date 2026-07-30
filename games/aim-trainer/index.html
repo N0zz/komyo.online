@@ -433,7 +433,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       if (winHoldFrames >= SPRINT_WIN_HOLD) endGame();
       return;
     }
-    if (state !== 'playing') { if (KIT && KIT.music) KIT.music.intensity(0.3); return; }
+    if (state !== 'playing') { if (KIT && KIT.music) KIT.music.intensity(0.15); return; }
     frame++;
     elapsedFrames++;
 
@@ -472,7 +472,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
     // gameplay-driven music intensity: rest ≈ 0.35, hot streak / final seconds → ~0.9
     if (KIT && KIT.music) {
-      let mi = 0.35 + Math.min(combo / 12, 1) * 0.5;
+      let mi = 0.14 + Math.min(combo / 12, 1) * 0.78;
       if (mode === 'timed' && timeLeft <= 6) mi += (1 - timeLeft / 6) * 0.2;
       KIT.music.intensity(Math.max(0, Math.min(1, mi)));
     }

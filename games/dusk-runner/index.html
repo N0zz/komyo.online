@@ -356,7 +356,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const cfg = paceCfg();
     if (stumbleFreeze > 0) {          // Sprint stumble: the clock runs, the runner does not
       stumbleFreeze--;
-      if (KIT && KIT.music) KIT.music.intensity(0.35);
+      if (KIT && KIT.music) KIT.music.intensity(0.15);
       if (stumbleFreeze === 0) speed = cfg.v0 * S;
       return;
     }
@@ -434,8 +434,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (KIT && KIT.music) {
       const ramp = Math.min(1, metresRun() / cfg.ramp);
       const near = obstacles.length ? Math.max(0, 1 - (obstacles[0].x - rb.x) / (W * 0.6)) : 0;
-      const base = pace === 'gentle' ? 0.3 : 0.42;
-      KIT.music.intensity(Math.min(1, base + ramp * 0.34 + near * 0.2));
+      const base = pace === 'gentle' ? 0.12 : 0.2;
+      KIT.music.intensity(Math.min(1, base + ramp * 0.55 + near * 0.3));
     }
   }
 
@@ -494,7 +494,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       ? (won && (!prevTime || elapsedMs() < prevTime))
       : (score > prevBest && score > 0);
     best = loadBest();
-    if (KIT && KIT.music) KIT.music.intensity(0.3);
+    if (KIT && KIT.music) KIT.music.intensity(0.15);
     showEnd(isBest);
   }
 

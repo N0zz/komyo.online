@@ -552,9 +552,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- Update ----
   function update() {
     if (KIT && KIT.music) {
-      let mi = 0.3;                                 // calm base on menu / game-over
+      let mi = 0.15;                                // calm base on menu / game-over
       if (state === 'playing') {
-        if (gameMode === 'zen') mi = Math.min(0.4, 0.25 + frogs.length * 0.02);  // gentle, capped
+        if (gameMode === 'zen') mi = Math.min(0.46, 0.14 + frogs.length * 0.03);  // gentle, capped
         else {
           // waves: escalate by wave #. endless: `wave` never moves, so ramp with the shrinking spawn gap (132→27).
           const wv = gameMode === 'endless'
@@ -562,7 +562,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
             : Math.min(1, (wave - 1) / (WAVE_MAX - 1));
           const en = Math.min(1, frogs.length / 8);
           const cb = Math.min(1, combo / 8);
-          mi = Math.min(1, 0.35 + wv * 0.25 + en * 0.18 + cb * 0.12);
+          mi = Math.min(1, 0.12 + wv * 0.4 + en * 0.3 + cb * 0.2);
         }
       }
       KIT.music.intensity(mi);

@@ -313,8 +313,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
           if (timeLeft <= 0) { endRun(); return; }
         }
       }
-      if (KIT && KIT.music) KIT.music.intensity(Math.min(1, 0.35 + 0.04 * combo + (mode !== 'zen' && timeLeft < 15 ? 0.25 : 0)));
-    } else if (KIT && KIT.music) KIT.music.intensity(0.3);
+      if (KIT && KIT.music) KIT.music.intensity(Math.min(1, 0.12 + 0.06 * combo + (mode !== 'zen' && timeLeft < 15 ? 0.3 : 0)));
+    } else if (KIT && KIT.music) KIT.music.intensity(0.15);
   }
 
   // ---- balloon styles (cosmetics) ----

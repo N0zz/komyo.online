@@ -210,8 +210,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       }
       else if (phase === 'yay') { SND.play('yay'); nextRound(); }
       else if (phase === 'oops') { wrongPad = -1; inputAt = 0; showIdx = 0; phase = 'show'; phaseT = 20; }
-      if (KIT && KIT.music) KIT.music.intensity(Math.min(1, 0.3 + 0.05 * round));
-    } else if (KIT && KIT.music) KIT.music.intensity(0.3);
+      if (KIT && KIT.music) KIT.music.intensity(Math.min(1, 0.12 + 0.09 * round));
+    } else if (KIT && KIT.music) KIT.music.intensity(0.15);
   }
 
   function layoutBoard() {
