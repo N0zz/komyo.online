@@ -3,7 +3,8 @@
 Auto-unlocking, evergreen goals that pay 🏆 trophies. Kit-owned logic, data in a registry —
 the same split as `cosmetics.js` / `challenges.js`.
 
-**Status:** planned, nothing built.
+**Status:** BUILT (2026-07-30) — registry + kit engine + wall + 79 achievements, translated into all
+8 languages. Nothing outstanding.
 
 ## Why this exists, and what it must not become
 
@@ -151,17 +152,95 @@ Two strings per achievement × 8 locales. A 30-achievement launch set is **~420 
 top of `en`. That, not the trophy economy, is what caps the launch size. Ship ~30 (≈15 site-wide,
 2–3 for a handful of games) and grow it per game afterwards, the way cosmetics grew.
 
-## Launch set — sizing only
+## Launch set — goals, with the effort each one costs
 
-| Bucket | Count | Notes |
-| --- | --- | --- |
-| Site-wide | ~15 | cosmetics/collection milestones, breadth-of-play, trophy totals |
-| Per-game | ~15 | 2–3 each for the games with an obvious evergreen goal |
-| **Total** | **~30** | ≈420 translations |
+Per-run yields are read off the games' own code (spawn tables, score formulas) and cross-checked
+against each game's `CHALLENGES.goodRun` bar, which is what a *decent* run of that game scores.
+"Runs" = runs of that quality. Times are wall-clock at that pace, not including menu time.
 
-Games with an obvious first achievement: tower-defense, frog-bonk, asteroids-plus, tube-racer,
-mirror-maze, floodgate, sudoku, type-siege (the ones with campaigns, waves or clear conditions).
-The rest can wait — an achievement nobody can describe in one line is filler.
+Calibration the whole set follows:
+
+| Tier | Means | Cumulative goals sized at | 50 🏆 allowed? |
+| --- | --- | --- | --- |
+| **5 🏆** | fires in the first session or two | ~2–5 good runs | no |
+| **15 🏆** | a week of casual play on that game | ~10–25 good runs | no |
+| **50 🏆** | a skill wall — a thing you have to get *good* at | never a grind | yes, only here |
+
+**50 🏆 is skill-only.** No `sum:` (cumulative) achievement may cost 50 — grinding is not difficulty,
+and the suite enforces it.
+
+### Cumulative goals (the ones with a real "how long" answer)
+
+| Achievement | 🏆 | Goal | Per run | ≈ runs | ≈ time |
+| --- | --- | --- | --- | --- | --- |
+| frog-bonk · Getting the Hang of It | 5 | 300 bonks | ~125 (wave 10) | 2–3 | ~15 min |
+| floodgate · Plumber | 5 | 25 boards | 3–5 | 6–8 | ~40 min |
+| mirror-maze · Light Bender | 5 | 50 mazes | 5–8 | 7–10 | ~1 h |
+| frog-bonk · Mage Hunter | 15 | 1,500 bonks | ~125 | 12 | ~1 h |
+| tower-defense · Siege Breaker | 15 | 5,000 kills | ~400 (to wave 10) | 12–13 | ~2 h |
+| forcefield · Deflector | 15 | 500 blocks | 40–60 | 9–12 | ~30 min |
+| bubbles · Pop Machine | 15 | 5,000 pops | ~250 | 20 | ~1.5 h |
+| breakout · Demolition | 15 | 5,000 bricks | 150–250 | 20–30 | ~1.5 h |
+| sudoku · Puzzle Habit | 15 | 20 puzzles | 1 | 20 | ~3 h |
+| trap-the-cat · Cat Wrangler | 15 | 25 cats | 1 | 25 | ~30 min |
+| flappy · Frequent Flyer | 15 | 1,000 gates | ~50 | 20 | ~20 min |
+| aim-trainer · Marksman | 15 | 2,500 hits | 60–100 | 25–40 | ~30 min |
+| type-siege · Ten Thousand Keys | 15 | 10,000 letters | 400–600 | 17–25 | ~1.5 h |
+| dusk-runner · Marathon | 15 | 42,195 m | ~900 m | ~47 | ~1 h |
+| floodgate · Waterworks | 15 | 100 boards | 3–5 | 25–30 | ~3 h |
+| mirror-maze · Prism Master | 15 | 250 mazes | 5–8 | 35–50 | ~5 h |
+| minesweeper · Twenty-Five Boards | 15 | 25 clears | 1 win | 25+ | ~1 h |
+| critter-match · Critter Friend | 15 | 25 boards | 1 | 25 | ~40 min |
+| glow-says · Perfect Pitch | 15 | 250 notes | ~8 | ~30 | ~40 min |
+| tube-racer · Thousand Klicks | 15 | 1,000 km | 30 km (sprint) | ~33 | ~4 h |
+
+### Best-ever goals (one good run, or a skill wall)
+
+| Achievement | 🏆 | Goal | Reference point |
+| --- | --- | --- | --- |
+| asteroids · Field Sweep / Deep Field / Belt Runner | 5 / 15 / 50 | wave 5 / 10 / 15 | good run ≈ 8,000 pts |
+| asteroids+ · Upgraded / Outer Rim / Run Complete | 5 / 15 / 50 | wave 10 / 20 / win | a full win is the hard one |
+| tower-defense · The Keep Holds | 5 | wave 10 | the campaign's own victory point |
+| frog-bonk · Ten Waves | 5 | wave 10 | good run ≈ 2,000 pts |
+| snake · Long Snake / Serpent | 5 / 15 | length 50 / 100 | good run = 300 pts |
+| 2048 · Four Digits / 2048 / Beyond | 5 / 15 / 50 | 1024 / 2048 / 4096 | daily goal is a 256 tile |
+| type-siege · Touch Typist / Fast Fingers / Blur | 5 / 15 / 50 | 40 / 60 / 80 WPM | 80 WPM is a real typist |
+| tube-racer · Mach One / Mach 1.5 / Redline | 5 / 15 / 50 | Mach 1 / 1.5 / 2 | engine tops out at Mach 2.08 |
+| mirror-maze · Fifth Tier | 15 | tier 5 | tiers grow with the run |
+| stacker · Skyline | 15 | 75 pts | good run = 50 |
+| stacker · Ten in a Row | 15 | 10 perfect drops | streak, not total |
+| forcefield · Three Minutes | 15 | 180 s survived | good run ≈ 1,200 pts |
+| balloon-pop · Ten Combo | 5 | 10× combo | kid-friendly, first session |
+| dusk-runner · Two Kilometres | 50 | 2,000 m | good run = 900 m |
+| flappy · Century Flight | 50 | 100 gates | good run = 50 |
+| glow-says · Twelve Notes | 50 | 12-note tune | weekly goal caps at 8 |
+
+### Site-wide
+
+| Achievement | 🏆 | Goal | Effort |
+| --- | --- | --- | --- |
+| First Purchase | 5 | 1 paid cosmetic | first shop visit |
+| Looking Around | 5 | 5 games | one sitting |
+| Good Run | 5 | 1 good run | first session |
+| Titled | 5 | wear an earned rank | 100 lifetime 🏆 |
+| Regular | 5 | 50 runs | a few days |
+| Collector / Curator | 5 / 5 | 25% / 50% of buyable cosmetics | ~2,000 / ~4,000 🏆 spent |
+| Wide Taste | 15 | 8 of 14 categories | ~8–10 games |
+| Regular Visitor | 15 | 15 games | most of the arcade |
+| All-Rounder | 15 | good run in 5 games | a week |
+| Veteran | 15 | 500 runs | weeks |
+| Trophy Hoard | 15 | 2,500 lifetime 🏆 | weeks |
+| Completionist | 15 | every buyable cosmetic | the long haul |
+| Full Set of Hands | 15 | every cursor | mid-term |
+| Every Cabinet | 50 | every live game | completionist breadth |
+
+### Conditionals (no number — you either did it or you didn't)
+
+17 achievements are single-run conditions and show ✓ / locked instead of a bar: sudoku's clean and
+Expert solves, minesweeper's Expert and flagless clears, breakout's flawless level, bubbles' five-level
+clear, tower-defense's Hard-20 and no-sell runs, tube-racer's scratch-free sprint, floodgate's par,
+mirror-maze's hint-free maze, critter-match's sharp board, balloon-pop's no-sting run, aim-trainer's
+90% run, type-siege's 100%-accuracy wave, dusk-runner's stumble-free 500 m, trap-the-cat's 15-click win.
 
 ## Tests
 
@@ -175,17 +254,40 @@ The rest can wait — an achievement nobody can describe in one line is filler.
 - Menu-fit: the Collection modal with the achievements tab at 360×640 and 640×360
   (`test-menu-browser.mjs`).
 
+## What the build changed vs this plan
+
+- **`metric` + `goal` instead of a bare `test()`**: an entry declares ONE shape — `max:'<stat>'`
+  (best-ever, from the `gamekit_pb` per-mode MAXes), `sum:'<stat>'` (cumulative, `gamekit_tally`),
+  `site:'<counter>'` (a closed kit vocabulary) or `run: fn(run)` (a conditional). The bar and the
+  unlock read the SAME number, so they cannot disagree — the failure mode a separate `test()` invites.
+- **Backfill on first evaluation**: `max:`/`site:` shapes are re-derived from existing history, so a
+  returning player opens the wall to what they already earned instead of an empty grid. `sum:` shapes
+  start at 0 (nothing summed stats before this), which is why every progressive cumulative pair has a
+  small first tier.
+- **`achSync()` is the ONE non-run entry point** (page load, a shop purchase, a title equip) instead of
+  a bespoke hook per event.
+- **Percent counters measure PAID cosmetics** (`cosPaidPct`): free defaults are auto-owned, so a fresh
+  device reads ~20% of the whole catalogue and "own a quarter" would be nearly complete at install.
+- **A cumulative goal may never cost 50 🏆** (suite-enforced): grinding is not difficulty.
+- **The end-menu receipt is ONE line**, collapsing to "N achievements unlocked · +X 🏆" when a run
+  unlocks several — five rows overflow the 640×360 rail.
+- **A stat reported at a CHECKPOINT must be a delta, not a running total.** Mirror Maze shows an end
+  menu per solved maze, so `mazes: solvedCount` summed 1+2+3+… and put a 50-maze goal at 10 mazes; it
+  reports `solved: 1` per checkpoint instead. Any future checkpoint game has the same trap.
+- **Rejected here too: "wear a title" as a real goal.** The kit auto-adopts tier 0 at first boot, so
+  the counter reads the worn TIER and only counts from tier 1 (the first earned rank).
+
 ## Steps
 
-- [ ] Agree the launch set (the 30 lines, with names/descriptions in `en`)
-- [ ] `achievements.js` registry + head load order + root `sw.js` SHELL entry
-- [ ] `gamekit_tally` counter store (registry-derived key set, versioned, per-run write)
-- [ ] `gamekit_ach` unlock store + `gamekit.achievements` API
-- [ ] Hook `evaluate()` into `recordResult`, with the trophy award
-- [ ] Achievements tab in the Collection modal (locked rows + progress)
-- [ ] End-menu receipt line + Profile pulse on unlock
-- [ ] Per-game `record.stats` additions for the per-game predicates
-- [ ] Tests: registry, predicate matrix, per-game firing, menu-fit
-- [ ] `pl` translations, then the other six locales (see `plans/i18n-plan.md` for the chunking flow)
-- [ ] Export/Import: include both new keys
+- [x] Agree the launch set (the 30 lines, with names/descriptions in `en`)
+- [x] `achievements.js` registry + head load order + root `sw.js` SHELL entry
+- [x] `gamekit_tally` counter store (registry-derived key set, versioned, per-run write)
+- [x] `gamekit_ach` unlock store + `gamekit.achievements` API
+- [x] Hook `evaluate()` into `recordResult`, with the trophy award
+- [x] Achievements tab in the Collection modal (locked rows + progress)
+- [x] End-menu receipt line + Profile pulse on unlock
+- [x] Per-game `record.stats` additions for the per-game predicates
+- [x] Tests: registry, predicate matrix, per-game firing, menu-fit
+- [x] `pl` translations, then the other six locales (one agent per locale, 165 keys each) (see `plans/i18n-plan.md` for the chunking flow)
+- [x] Export/Import: both new keys ride along (the blob copies all of localStorage)
 - [ ] Changelog: ONE bullet ("achievements added"), written at the end from what shipped

@@ -7,6 +7,18 @@ holds only open work. Nothing in this file is a task.
 
 ## Decision guards (don't re-propose)
 
+- **A cumulative achievement may never cost 50 🏆.** 50 is the skill tier — a wall you have to get good
+  at. Grinding a counter is not difficulty, and pricing it like skill makes "kill 500 things" worth more
+  than "reach wave 20 on Hard". Suite-enforced (2026-07-30).
+- **An achievement must not restate a challenge goal.** `challenges.js` already owns "score N in X";
+  achievements are conditions, bests and cumulative totals that stay true once done (2026-07-30).
+- **No fourth side-stack button for achievements.** They are a tab inside the Collection modal, which is
+  already scoped per game + site-wide — exactly the scoping achievements need. A fourth button costs the
+  gutter measurement and the landscape rail, which is where things have shipped broken before (2026-07-30).
+- **"Join the Discord" / "install the app" / "play offline" are not achievements.** With no accounts the
+  first can't be verified (it reduces to a button that pays trophies to anyone who clicks), and the other
+  two ask for device actions many players can't take at all (2026-07-30).
+
 - **No standalone math game** — closed 2026-07-27: a second tile that differs from Type Siege only in
   whether the enemy carries a word or a sum is catalogue padding, and a curated catalogue is most of
   what keeps komyo from reading as shovelware. Discoverability does not override that — a tile whose
@@ -40,6 +52,19 @@ holds only open work. Nothing in this file is a task.
   to `plans/games-queue.md`. Don't re-grow the roadmap into a design doc.
 
 ## ✅ Done
+
+- **Achievements 🏅 — SHIPPED (2026-07-30).** 79 evergreen, never-rotating goals — 15 site-wide + 2–5
+  per live game — paying 🏆 into the LIFETIME total (so they also climb the titles ladder). Data in
+  `achievements.js`, logic kit-owned (`gamekit.achievements`), UI = the Achievements tab of the
+  Collection modal (a wall of rows with live progress bars, grouped by game, searchable and filterable
+  like the shop), plus a bar in the profile, a one-line end-menu receipt and a dot on the Collection
+  button. An entry declares ONE shape: `max:` (best-ever, from the `gamekit_pb` MAXes), `sum:`
+  (cumulative, the new `gamekit_tally`), `site:` (a closed counter vocabulary) or `run:` (a per-run
+  conditional, no bar). First evaluation BACKFILLS `max:`/`site:` from existing history, so returning
+  players opened the wall to what they had already earned. 13 games gained one or two `record.stats`
+  fields to feed the predicates. Registry, predicate matrix, backfill, payout-once and the head/SHELL
+  lockstep are all suite-covered, and the whole set shipped translated into all 8 languages.
+  → `plans/achievements-plan.md`
 
 - **Tube Racer 🌀 — SHIPPED (2026-07-28).** A supersonic pseudo-3D tunnel racer: you're magnetically
   stuck to the inside of a pipe, roll 360° around the wall to line up with each barrier's gap, and

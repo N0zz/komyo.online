@@ -206,6 +206,54 @@ Do NOT build a per-game STYLE grid in the start menu — the 🎨 modal owns sel
 
 ---
 
+## 3b. `achievements.js` — evergreen goals `[EXPECTED: 2–5 per game]`
+
+Registry data only; the kit (`gamekit.achievements`) owns the stores, the evaluation and the wall
+(the Achievements tab of the Collection modal). The suite enforces **2–5 entries per game**, so a new
+game ships its own — pick them from what the game already reports at game over.
+
+```js
+{ id: '<slug>.<key>',        // '<game>.' prefixed, the ONE identity (storage key included)
+  game: '<slug>',            // '' = site-wide (not for a game entry)
+  icon: '🐸',                // emoji, drawn as text
+  price: 5 | 15 | 50,        // 🏆 paid ON UNLOCK (bands enforced)
+  goal: <number>,
+  …exactly ONE shape: }
+```
+
+| shape | means | bar? | backfills? |
+|---|---|---|---|
+| `max: '<stat>'` | best-ever value of a `record.stats` field (or `'score'`), read from the `gamekit_pb` per-mode MAXes | yes | **yes** — a player's existing history unlocks it at first load |
+| `sum: '<stat>'` | cumulative across runs, in the kit's `gamekit_tally` store | yes | no (starts at 0) |
+| `site: '<counter>'` | one of the kit's closed site-wide counters (see `achSite` in `game-kit.js`) | yes | yes |
+| `run: fn(run)` | a per-run CONDITION — `run = { slug, mode, score, time, outcome, stats }`, return ≥ `goal` to unlock | no (shows ✓ / locked) | no |
+
+Rules the suite enforces: ids unique and `<game>.`-prefixed, `game` is `''` or a LIVE slug, exactly
+one shape, `price` in {5, 15, 50}, **a `sum:` entry may never cost 50** (50 🏆 is the skill tier —
+grinding is not difficulty), and **every stat a predicate reads must actually be produced by that
+game's page** (a renamed stat fails the suite).
+
+### The traps
+
+- **An achievement must never restate a challenge goal.** `challenges.js` already owns "score N in X".
+  Use conditions, bests and cumulative totals instead.
+- **A stat reported at a CHECKPOINT must be a DELTA, not a running total.** If the game shows an end
+  menu per level/board (`final: false`), `recordResult` fires each time — so `stats: { solved: 1 }`,
+  never `stats: { solved: runTotal }`, or the tally sums 1+2+3+… and a 50-goal lands at 10 (Mirror Maze
+  shipped exactly this bug).
+- **Reset every new stat per run, and persist it in the progress save** if the game can be resumed —
+  a leaked counter compounds across runs in one session (Bubble Pop shipped exactly this bug), and a
+  resumed run that forgets its counter reports 0 (Minesweeper's flag count shipped exactly this bug).
+- **Calibrate against the game's own `goodRun` bar**: 5 🏆 ≈ 2–5 good runs · 15 🏆 ≈ 10–25 · 50 🏆 = a
+  skill wall, never a count. The shipped table is in `~/arcade/plans/achievements-plan.md`.
+- **Difficulty/mode gates need the mode in `stats`.** A "clear Expert" achievement must not fire on the
+  assisted mode — report the flag (`relaxed`, `diff`) and check it in the predicate.
+
+`ach.<id>.name` / `ach.<id>.desc` are i18n keys (test-enforced, derived from the registry) — never
+put the text in the registry.
+
+---
+
 ## 4. Root `sw.js` — register the game in the site-wide service worker `[MANDATORY]`
 
 There is **no per-game `sw.js`** — ONE root-scope service worker (repo-root `sw.js`, importing
@@ -365,6 +413,7 @@ Key families a new game contributes:
 | `game.<slug>.*` in-game strings | every `KIT.t('game.<slug>.…', { def })` call in `index.html` | test-enforced (literal scan) |
 | `cos.<id>.name` / `.desc` | `cosmetics.js` `add(...)` args | test-enforced (derived from registry) |
 | `cos.set.<setId>` | `COSMETICS.sets` label | test-enforced (derived from registry) |
+| `ach.<id>.name` / `.desc` | the achievement's registry entry | test-enforced (derived from registry) |
 | `seo.<slug>.howto` | the `#gk-about` section HTML **and** the `en` dict in `i18n.js` (byte-identical — see game-anatomy §1b) | test-enforced (`data-t` scan) |
 | `challenge.goal.<id>` | `challenges.js` goal `title` | **NOT enforced — dynamic key the scanner skips; missing = silent English. Add it yourself.** |
 
@@ -386,12 +435,13 @@ except plural keys, which must exist in the `en` dict in `i18n.js`.
 4. `favicon.svg` (§6).
 5. `icon-192.png` + `icon-512.png` — via `gen-icon.mjs` (§6; counts as one step, two files).
 
-**Edit 10 shared files** at repo root:
+**Edit 11 shared files** at repo root:
 
 0. root `sw.js` — add the slug to `GAME_SLUGS` (§4).
 1. `games.js` — GAMES entry (§1).
 2. `challenges.js` — `goodRun` bar **and** two goal entries + add ids to `daily` (§2).
 3. `cosmetics.js` — `add()` calls + `sets` label + `games` meta (§3) *(optional but expected)*.
+3b. `achievements.js` — 2–5 entries for the game (§3b) *(expected; the suite enforces 2–5 per game)*.
 4. `i18n.pl.js` — all the game's key families in `pl` (§9; en defs are inline in code), then the
    komyo-i18n-translate skill (incremental mode) for every other populated locale's `i18n.<code>.js`.
 5. `sitemap.xml` — `<url>` at priority 0.8 (§7).
