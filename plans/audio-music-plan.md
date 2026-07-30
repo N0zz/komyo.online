@@ -24,6 +24,50 @@ Practical ceiling **today**: ~7–8 genuinely distinct, ~15–30 that pass the l
 same-family "genre siblings"). To reach **hundreds**, expand the vocabulary AND switch from
 *authoring* each track to *generating + curating*.
 
+## SHIPPED 2026-07-30 — engine v3 (and a phase 0 the plan had missed)
+
+The plan below led with **synthesis variety**. Playtesting against a commercial reference track said the
+first-order problem was something else entirely, and none of it was in the plan: the music sounded *flat*
+(no dynamics), *thin* (few simultaneous sources, no sub), *aimless* (the melody rolled `Math.random()` per
+note, so nothing ever repeated or resolved) and *short* (one 8-bar loop forever). Measured against the
+reference: crest factor 16–19 dB vs its 8 dB — i.e. no glue at all.
+
+What landed in `game-kit.js`:
+
+- [x] **Phase 0 — a mastered mix bus** (wasn't in this plan; biggest win per hour). Music sums into
+  `musicSum` → glue compressor → `WaveShaper` soft-clip → limiter → `musicGain`. Separate drum / bass /
+  voice / pad / fx buses, so the kick can **sidechain-duck** the melodic side. Measured crest is now
+  6.6–9.1 dB, in the reference's range.
+- [x] **Phase 0b — layered drums + a real sub.** A kick is 4 sources (sub sweep, mid body, click,
+  room tail), a clap is band-split. A dedicated sub layer under 90 Hz took energy below 160 Hz from
+  ~45% to a measured **64%** at peak.
+- [x] **Phase 4 (partly) — the motif generator.** One deterministic hook per track from its seed
+  (`makeMotif`), developed by transpose / invert / octave / retrograde, replayed identically forever.
+  The 15–20 extra **modes** are still open.
+- [x] **Phase 5 — arrangement / sections.** Six templates (`dance` / `lush` / `epic` / `tactical` /
+  `puzzle` / `retro`); a track is `arr: '<template>'` + a seed + optional `secE` / `mute` overrides.
+  Sections carry an `e` energy, and **intensity picks the section** — so the arrangement is adaptive
+  rather than a fixed timeline. Transitions are rule-bound: 4-bar phrase lines only, a hysteresis
+  margin (without it a smooth ramp flaps between neighbours), decided one bar early so that bar plays
+  a direction-aware fill, landing on a crash with pad + sub ringing across the seam. Peak sections run
+  7–10 simultaneous sources vs v2's 5–6; calm sections 2–3.
+- [x] All **30 tracks re-voiced**, ids and `ALIAS` preserved (no game or cosmetic broke). Snake's two
+  purchasable tracks keep their ids, names and prices, with Neon Banger still the denser of the pair.
+- [x] **`audio-lint.mjs`** gained `arr` and `seed` as axes and a `game` field for same-game families
+  (it used to flag Keep Defender's own biomes against each other). Result: **0 redesign flags** (was 1)
+  and 5 siblings all at exactly 55%, the floor of the band (was 9, worst 75%).
+- [x] **`plans/audio-lab-v2.html`** — a soundboard for all 30 tracks that **drives the real engine**
+  via `gamekit.music` (`state()` / `arrangement()` / `jump()` / `adaptive()` / `analyser()`) instead of
+  re-implementing it, so it cannot drift the way the v1 mock did.
+
+**Still open below:** phase 1 (seed → *whole song* + linter-as-selector), phase 2 (Karplus–Strong + FM),
+phase 3 (rhythm grammar / time signatures), phase 4's mode expansion. Those remain the route to
+*hundreds* of tracks; v3 was the route to tracks that sound produced.
+
+**Parked for playtesting:** the adaptive switch waits for the next 4-bar phrase line, up to ~1.6 s
+behind the game's intensity. `gamekit.music.phrase(2)` halves that if it feels sluggish in a real run —
+decide from play, not from the lab.
+
 ## The plan (phased — each phase shippable on its own)
 
 The one real unlock: **make a song a pure function of a seed, then use the linter as a *selector*** —

@@ -80,8 +80,10 @@ Dev and marketing run in parallel; top item first within each.
 
 One line each; the real content is in the linked plan.
 
-- **Procedural music v3** *(idea)* — from ~8 distinct flavors to hundreds of per-game/biome/daily-seed
-  tracks; stays zero-asset. → `plans/audio-music-plan.md`
+- **Procedural music — the variety half** *(in progress)* — the v3 ENGINE shipped (mastered bus,
+  arrangements, written hooks, all 30 tracks re-voiced); still open: seed→whole-song + linter-as-selector,
+  Karplus–Strong/FM, rhythm grammar, more modes — the route to *hundreds* of tracks. →
+  `plans/audio-music-plan.md`
 - **Replay system** *(idea)* — (B) kit-owned 15 s clip capture, ships alone; (A) deterministic
   input-replay in IndexedDB. → `plans/replay-plan.md`
 - **TV + gamepad + a11y** *(designed, not started)* — spatial focus nav → `gamekit.input` → per-game
