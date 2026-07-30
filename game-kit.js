@@ -2080,6 +2080,10 @@
       b.addEventListener('click', function () { setTab(tb2.id); });
       tabBtns[tb2.id] = b; tabRow.appendChild(b);
     });
+    function syncAchTabDot() {
+      var b = tabBtns.ach;
+      if (b && b.classList) b.classList.toggle('has-dot', achFreshCount() > 0);
+    }
     box.appendChild(tabRow);
     // controls row: search + (full store) a game filter, or (scoped) an "All games →" link
     var ctrls = mkEl('div', 'gksp-ctrls');
@@ -2173,6 +2177,7 @@
       // looking at the wall clears the Collection dot — but a game-scoped wall only rendered that
       // game + site-wide, so it must not mark unlocks the player never saw as seen
       if (id === 'ach' && (scopeGame == null || !achUnseenOutside(scopeGame))) achMarkSeen();
+      syncAchTabDot();   // after markSeen, so opening the tab clears its own dot
       if (id === 'titles' && !titlesBuilt) {
         titlesBuilt = true;
         titlesPane.appendChild(mkEl('p', 'gksp-panesub', t('titles.sub', { def: 'Earn trophies to climb the ladder — a new title is worn automatically, but tap any <b>unlocked</b> rank to wear it instead. Titles read <b>lifetime</b> trophies, so spending on your collection never slows you down.' })));
@@ -2313,6 +2318,7 @@
       try { ring.style.setProperty('--pct', pct); } catch (e) {}
       ringPct.textContent = pct + '%'; ringSub.textContent = pr.owned + '/' + pr.total;
       gameProgEls.forEach(function (fn) { try { fn(); } catch (e) {} });
+      syncAchTabDot();
     }
     // focused item → the desc line + the BUY/EQUIP button. Buying NEVER happens on a plain cell click
     // (no instant spend): a cell click only SELECTS; the gold button confirms the purchase.

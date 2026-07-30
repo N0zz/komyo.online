@@ -1950,6 +1950,21 @@ function testAchievements() {
     ok(A.unlocked('site.tourist5') === false, 'three games played is not five');
   }
 
+  // C2) the Achievements TAB dot: same state as the Collection button's, cleared by opening the tab
+  {
+    const g = bootGame('index.html', { preCode: [games, challenges, cosmetics],
+      store: { gamekit_pb: JSON.stringify({ snake: { Classic: { score: 400, plays: 3, stats: { length: 60 } } } }) } });
+    const K = g.win.gamekit;
+    ok(K.achievements.freshCount() > 0, 'the backfill leaves unlocks unseen (' + K.achievements.freshCount() + ')');
+    // the dot's STATE (the CSS class lives in a real browser — this mocked DOM stubs querySelectorAll)
+    const panel = K.shopPanel({});
+    ok(!!panel && typeof panel.tab === 'function', 'the Collection modal opened with its tab handle');
+    ok(K.achievements.freshCount() > 0, 'the Achievements tab is dotted while the wall is unseen');
+    panel.tab('ach');
+    ok(K.achievements.freshCount() === 0, 'opening the tab marks the wall seen → the dot clears');
+    panel.close();
+  }
+
   // D) the one-time backfill: a device arriving WITH history unlocks what it already earned
   {
     const g = bootGame('games/breakout/index.html', {
