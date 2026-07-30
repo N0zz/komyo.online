@@ -1027,6 +1027,20 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   color: var(--gkm-new, #ffd166); white-space: nowrap; }
 .gamekit-shoppanel .gksp-achcell.done .gksp-achpts { color: #7dd8a6; }
 .gamekit-shoppanel .gksp-achempty { padding: 22px 8px; text-align: center; font-size: 11px; color: #93a5bd; }
+/* A row the notification dot was about: the chip + glow the challenges drawer uses for a NEW rotation,
+   so the dot that led you here lands on something. The wall also sorts these first and scrolls to the
+   first one. Chip text comes from i18n via data-new. */
+.gamekit-shoppanel .gksp-achcell.gksp-achnew { border-color: #ffd166; animation: gkspAchNew 1.8s ease-in-out 2; }
+.gamekit-shoppanel .gksp-achcell.gksp-achnew::after { content: attr(data-new); position: absolute; top: -8px; right: 10px; z-index: 2;
+  padding: 3px 8px; border-radius: 999px; background: #ffd166; color: #1a1405;
+  font: 800 9.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px;
+  box-shadow: 0 0 12px rgba(255, 209, 102, 0.8); animation: gkspAchNewIn .5s ease; }
+.gamekit-shoppanel .gksp-achcell { position: relative; }   /* the chip anchors to the row */
+@keyframes gkspAchNew { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 0 1px #ffd166, 0 0 18px rgba(255, 209, 102, 0.55); } }
+@keyframes gkspAchNewIn { 0% { opacity: 0; transform: translateY(4px) scale(.8); } 100% { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .gamekit-shoppanel .gksp-achcell.gksp-achnew, .gamekit-shoppanel .gksp-achcell.gksp-achnew::after { animation: none; }
+}
 .gamekit-shoppanel .gksp-buy { margin-top: 10px; font: 800 12.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; border-radius: 10px; padding: 12px 16px;
   border: none; cursor: pointer; color: var(--gk-shop-ink, #0a1420); background: var(--gkm-new, #ffd166); box-shadow: 0 0 14px rgba(255, 209, 102, 0.35); }
 .gamekit-shoppanel .gksp-buy:disabled { opacity: 0.5; cursor: default; box-shadow: none; }

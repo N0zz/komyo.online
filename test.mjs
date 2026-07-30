@@ -1957,12 +1957,34 @@ function testAchievements() {
     const K = g.win.gamekit;
     ok(K.achievements.freshCount() > 0, 'the backfill leaves unlocks unseen (' + K.achievements.freshCount() + ')');
     // the dot's STATE (the CSS class lives in a real browser — this mocked DOM stubs querySelectorAll)
+    ok(K.achievements.freshIds().length === K.achievements.freshCount(), 'the store names WHICH unlocks are fresh');
+    ok(K.achievements.freshIds().every(id => K.achievements.unlocked(id)), 'and every fresh id is actually unlocked');
     const panel = K.shopPanel({});
     ok(!!panel && typeof panel.tab === 'function', 'the Collection modal opened with its tab handle');
     ok(K.achievements.freshCount() > 0, 'the Achievements tab is dotted while the wall is unseen');
     panel.tab('ach');
     ok(K.achievements.freshCount() === 0, 'opening the tab marks the wall seen → the dot clears');
     panel.close();
+    // a GAME-scoped wall may only clear what it showed — another game's unlock stays fresh
+    {
+      const g2 = bootGame('index.html', { preCode: [games, challenges, cosmetics],
+        store: { gamekit_pb: JSON.stringify({ snake: { Classic: { score: 400, plays: 3, stats: { length: 60 } } } }) } });
+      const K2 = g2.win.gamekit;
+      const before = K2.achievements.freshIds();
+      ok(before.some(id => id.indexOf('snake.') === 0) && before.some(id => id.indexOf('site.') === 0),
+        'the backfill left both a snake unlock and site-wide ones fresh');
+      K2.shopPanel({ game: 'snake' }).tab('ach');
+      const after = K2.achievements.freshIds();
+      ok(!after.some(id => id.indexOf('snake.') === 0 || id.indexOf('site.') === 0),
+        'a snake-scoped wall clears snake + site-wide (the rows it rendered)');
+      const g3 = bootGame('index.html', { preCode: [games, challenges, cosmetics],
+        store: { gamekit_pb: JSON.stringify({ snake: { Classic: { score: 400, plays: 3, stats: { length: 60 } } },
+          '2048': { Classic: { score: 9000, plays: 2, stats: { maxTile: 2048 } } } }) } });
+      const K3 = g3.win.gamekit;
+      K3.shopPanel({ game: 'snake' }).tab('ach');
+      ok(K3.achievements.freshIds().some(id => id.indexOf('2048.') === 0),
+        "…and leaves another game's unlock fresh, so its dot survives");
+    }
   }
 
   // D) the one-time backfill: a device arriving WITH history unlocks what it already earned

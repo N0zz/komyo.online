@@ -1487,6 +1487,7 @@
     });
     if (done) lsSet('gamekit_done', JSON.stringify(done));
     if (fresh.length || backfill) achSave(u);
+    achNewAdd(fresh.map(function (a) { return a.id; }));   // what the dot will point AT
     _achPending = 0;
     fresh.forEach(function (a) {
       track('achievement_unlock', { slug: a.game || '(site)', item_id: a.id, amount: +a.price || 0, kind: achShape(a), via: backfill ? 'backfill' : 'run' });
@@ -1512,18 +1513,33 @@
     achItems().forEach(function (a) { if (game != null && a.game !== game) return; total++; if (u[a.id]) done++; });
     return { done: done, total: total };
   }
-  // "fresh" = unlocked but not yet looked at, so the Collection button can carry a dot. One number
-  // (the unlocked count last seen) rather than per-id seen flags — the dot only has to say "new".
-  function achSeenCount() { try { return parseInt(lsGet('gamekit_ach_seen') || '0', 10) || 0; } catch (e) { return 0; } }
-  function achFreshCount() { var n = achProgress().done - achSeenCount(); return n > 0 ? n : 0; }
-  // is anything unlocked that a wall scoped to `game` would NOT have shown? (that wall renders the
-  // game's own rows plus the site-wide ones)
-  function achUnseenOutside(game) {
-    var u = achMap() || {}, shownDone = 0, all = achProgress().done;
-    achItems().forEach(function (a) { if (u[a.id] && (a.game === game || a.game === '')) shownDone++; });
-    return shownDone < all;
+  // "fresh" = unlocked but not yet looked at. The store keeps the IDS, not a count: the dot has to be
+  // able to point AT the row it meant (the wall badges it, scrolls to it and pulses it), which a bare
+  // count cannot do. Capped, so a backfill of dozens can't grow the key without bound.
+  var ACH_NEW_CAP = 40;
+  function achNewIds() { try { var a = JSON.parse(lsGet('gamekit_ach_new') || 'null'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
+  function achNewAdd(ids) {
+    if (!ids || !ids.length) return;
+    var cur = achNewIds();
+    for (var i = 0; i < ids.length; i++) if (cur.indexOf(ids[i]) < 0) cur.push(ids[i]);
+    if (cur.length > ACH_NEW_CAP) cur = cur.slice(cur.length - ACH_NEW_CAP);
+    lsSet('gamekit_ach_new', JSON.stringify(cur));
   }
-  function achMarkSeen() { lsSet('gamekit_ach_seen', String(achProgress().done)); try { if (typeof window !== 'undefined' && window.__syncAchNotify) window.__syncAchNotify(); } catch (e) {} }
+  function achFreshCount() { return achNewIds().length; }
+  // any fresh unlock a wall scoped to `game` would NOT show? (it renders that game's rows + site-wide)
+  function achUnseenOutside(game) {
+    return achNewIds().some(function (id) { var a = achItem(id); return a && a.game !== game && a.game !== ''; });
+  }
+  function achMarkSeen(ids) {
+    if (ids && ids.length) {          // partial: only the rows a scoped wall actually showed
+      var keep = achNewIds().filter(function (id) { return ids.indexOf(id) < 0; });
+      if (keep.length) lsSet('gamekit_ach_new', JSON.stringify(keep));
+      else { try { if (typeof localStorage !== 'undefined') localStorage.removeItem('gamekit_ach_new'); } catch (e) {} }
+    } else {
+      try { if (typeof localStorage !== 'undefined') localStorage.removeItem('gamekit_ach_new'); } catch (e) {}
+    }
+    try { if (typeof window !== 'undefined' && window.__syncAchNotify) window.__syncAchNotify(); } catch (e) {}
+  }
 
   // ---- site-wide cursor skin (desktop / fine pointers only) ----
   var _curTrail = null; // { canvas, ctx, ps, raf, kind }
@@ -1717,7 +1733,7 @@
     cur: function (id) { var a = achItem(id); return a ? achCur(a, null) : null; },
     tally: tlyGet, evaluate: achEvaluate, sync: achSync,
     fresh: function () { return _achFresh.slice(); },
-    freshCount: achFreshCount, markSeen: achMarkSeen,
+    freshIds: achNewIds, freshCount: achFreshCount, markSeen: achMarkSeen,
     panel: function (opts) { opts = opts || {}; opts.tab = 'ach'; return shopPanel(opts); },
   };
 
@@ -2123,6 +2139,7 @@
     var achPane = mkEl('div', 'gksp-pane gksp-ach'); achPane.style.display = 'none'; box.appendChild(achPane);
     var titlesPane = mkEl('div', 'gksp-pane gksp-titles'); titlesPane.style.display = 'none'; box.appendChild(titlesPane);
     var achBuilt = false, titlesBuilt = false;
+    var _achWallFresh = [];   // ids the dot pointed at, captured on open (markSeen clears the store)
     var buyBtn = mkEl('button', 'gksp-buy'); try { buyBtn.type = 'button'; } catch (e) {}
     box.appendChild(buyBtn);
     // free-play footer — a quiet settings-ish row, deliberately NOT styled like a shop item
@@ -2173,10 +2190,16 @@
       titlesPane.style.display = (id === 'titles') ? 'flex' : 'none';   // flex column: the ladder fills the pane
       if (ov.classList) { ov.classList.toggle('gksp-tab-ach', id === 'ach'); ov.classList.toggle('gksp-tab-titles', id === 'titles'); }
       syncHeader();   // the header number is per-tab (spendable / achievement points / lifetime)
-      if (id === 'ach') { achBuilt = true; buildAchWall(); }
-      // looking at the wall clears the Collection dot — but a game-scoped wall only rendered that
-      // game + site-wide, so it must not mark unlocks the player never saw as seen
-      if (id === 'ach' && (scopeGame == null || !achUnseenOutside(scopeGame))) achMarkSeen();
+      if (id === 'ach') {
+        // CAPTURE the fresh ids first — buildAchWall badges them, and markSeen below empties the store
+        _achWallFresh = achNewIds();
+        achBuilt = true;
+        buildAchWall();
+        // looking at the wall clears the Collection dot; a game-scoped wall only rendered that game +
+        // site-wide, so it may only clear what it actually showed
+        if (scopeGame == null) achMarkSeen();
+        else achMarkSeen(_achWallFresh.filter(function (fid) { var a = achItem(fid); return a && (a.game === scopeGame || a.game === ''); }));
+      }
       syncAchTabDot();   // after markSeen, so opening the tab clears its own dot
       if (id === 'titles' && !titlesBuilt) {
         titlesBuilt = true;
@@ -2193,6 +2216,9 @@
     // opening this should see what to chase next, not scroll for it.
     function buildAchWall() {
       achPane.innerHTML = '';
+      // the ids the dot was about — captured BEFORE setTab marks them seen, so the wall can point
+      var freshSet = {}, firstFreshCell = null;
+      _achWallFresh.forEach(function (id) { freshSet[id] = 1; });
       var q = (search && search.value || '').trim().toLowerCase();
       var filterG = (gameSel && gameSel.value != null && gameSel.value !== '__all') ? gameSel.value : null;
       var rows = achAll().filter(function (r) {
@@ -2225,14 +2251,29 @@
         achPane.appendChild(gh);
         var grid = mkEl('div', 'gksp-achgrid');
         list.slice().sort(function (a, b) {
+          if (!!freshSet[a.id] !== !!freshSet[b.id]) return freshSet[a.id] ? -1 : 1;   // just-unlocked first
           if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
           var pa = a.bar && a.goal ? Math.min(1, (a.cur || 0) / a.goal) : 0;
           var pb2 = b.bar && b.goal ? Math.min(1, (b.cur || 0) / b.goal) : 0;
           if (pa !== pb2) return pb2 - pa;
           return a.price - b.price;
-        }).forEach(function (r) { grid.appendChild(achCell(r)); });
+        }).forEach(function (r) {
+          var cell = achCell(r);
+          if (freshSet[r.id]) {
+            // same language as the challenges drawer's NEW rotation: a chip + a couple of glow pulses
+            if (cell.classList) cell.classList.add('gksp-achnew');
+            // the drawer's existing NEW chip string — same words, already in all 8 locales
+            try { cell.setAttribute('data-new', t('challenges.newBadge', { def: '★ NEW' })); } catch (e) {}
+            if (!firstFreshCell) firstFreshCell = cell;
+          }
+          grid.appendChild(cell);
+        });
         achPane.appendChild(grid);
       });
+      // …and take the player to it, so the dot that led them here lands on something
+      if (firstFreshCell && typeof firstFreshCell.scrollIntoView === 'function') {
+        try { firstFreshCell.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { try { firstFreshCell.scrollIntoView(); } catch (e2) {} }
+      }
     }
     function achFmt(v, dec) {
       var p = Math.pow(10, dec || 0), t = Math.floor((+v || 0) * p) / p;   // floor, never round up
