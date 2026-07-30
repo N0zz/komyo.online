@@ -85,6 +85,14 @@ screenshot-driven, unless its identity is deliberately flat/glow.
   price 0), a `sets` label, and a `games` meta entry; read the selected skin in
   render via `KIT.cosmetics.selected('<slug>.<set>')`. Do NOT add a per-game style
   grid to the start menu — the 🎨 modal owns selection.
+- **Achievements (expected — the suite enforces 2–5 per game):** add the game's entries to
+  `achievements.js`, each declaring ONE shape — `max:'<stat>'` (best-ever, backfills from history),
+  `sum:'<stat>'` (cumulative), or `run: fn(run)` (a per-run condition, no progress bar) — plus a
+  `goal` and a price in {5, 15, 50}. Never restate a challenge goal; **a cumulative goal may never
+  cost 50** (50 🏆 is the skill tier). Whatever a predicate reads must be in the end menu's
+  `record.stats`, **reset per run and saved with the progress state**, and reported as a DELTA if the
+  game's end menu is a per-board checkpoint. Names/descriptions are i18n keys, not registry text.
+  See `references/registration.md` §3b.
 - **Audio:** `SND.define(...)` for SFX; add a per-game **track** to the `TRACKS` registry and
   `KIT.music.play('<slug>')`, then feed `KIT.music.intensity(v)` from gameplay so the music builds
   with the action (required). See `references/audio.md`.
@@ -226,7 +234,7 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   game's total footprint ~≤10 KB (arcade; ~100 KB progress-save), and carries a
   versioned schema (`{v:1,…}`). See `references/gamekit-api.md` § Storage discipline.
 - **Atomic `<head>` order** (analytics.js · game-kit.css · version.js · game-kit.js
-  · challenges.js · cosmetics.js · i18n.js). The ROOT `sw.js` SHELL already carries
+  · challenges.js · cosmetics.js · achievements.js · games.js · i18n.js). The ROOT `sw.js` SHELL already carries
   these shared files + every locale; the game's own files are cached by adding the
   slug to `GAME_SLUGS` in the root `sw.js` (no per-game sw.js exists — a missing
   entry silently means the game never works offline; test-enforced).
@@ -267,8 +275,9 @@ frame-rate-dependent game, a reset that wipes another game). The generated
   the hard performance/determinism rules, the two-round screenshot review, cost
   planning. Read at stage 5 (the visual pass) and before any look-dev mock.
 - `references/registration.md` — every shared file a game touches (games.js,
-  challenges.js, cosmetics.js, the root sw.js GAME_SLUGS, manifest, icons, sitemap,
-  llms, changelog), exact shapes + the ordered checklist. Read at stages 6–7.
+  challenges.js, cosmetics.js, achievements.js, the root sw.js GAME_SLUGS, manifest,
+  icons, sitemap, llms, changelog), exact shapes + the ordered checklist. Read at
+  stages 6–7.
 - `references/audio.md` — SFX voice recipes + the reactive music engine (track registry, kits/grooves,
   gameplay-driven `music.intensity`, music cosmetics, the distinctness linter).
 - `references/genres.md` — genre → mechanic starter map + the repo's genre bias;

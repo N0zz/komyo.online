@@ -293,6 +293,11 @@ function testCatalogue() {
     g.getEl('chalBtn').fire('click');
     ok(!g.getEl('chalBtn').classList.contains('has-dot'), 'opening the challenges drawer clears the dot');
     ok(!g.getEl('sideTab').classList.contains('has-dot'), 'with every source clear, the tab dot goes too');
+    // the Collection button carries the OTHER dot source: an achievement unlocked but not looked at
+    g.win.gamekit.achievements.evaluate({ slug: 'sudoku', mode: '', score: 9, time: 0, outcome: 'win', stats: { mistakes: 0, hints: 0 } });
+    ok(g.getEl('collectionQuick').classList.contains('has-dot'), 'a fresh achievement dots the Collection button');
+    g.win.gamekit.achievements.markSeen();
+    ok(!g.getEl('collectionQuick').classList.contains('has-dot'), 'opening the wall (markSeen) clears the Collection dot');
     ok(!!g.store['arcade_chal_seen'], 'the seen rotation pair persists (got ' + g.store['arcade_chal_seen'] + ')');
     // the drawer POINTS at what was new: the unseen rotation's card is badged on that first open…
     ok(g.getEl('chalToday').classList.contains('ch-new') && g.getEl('chalWeek').classList.contains('ch-new'),
@@ -1129,6 +1134,7 @@ function testI18nCoverage() {
   ok(dict.en && dict.pl, 'i18n.js parses with en + pl blocks');
   const GAMES = evalData(fs.readFileSync(path.join(DIR, 'games.js'), 'utf8'), 'games.js').GAMES || [];
   const COS = evalData(fs.readFileSync(path.join(DIR, 'cosmetics.js'), 'utf8'), 'cosmetics.js').COSMETICS || {};
+  const ACH = evalData(fs.readFileSync(path.join(DIR, 'achievements.js'), 'utf8'), 'achievements.js').ACHIEVEMENTS || {};
   const CH = evalData(fs.readFileSync(path.join(DIR, 'changelog.js'), 'utf8'), 'changelog.js').CHANGELOG || [];
 
   // 1) collect the LITERAL i18n keys referenced in code (data-t* attrs + t('…')/T('…') calls).
@@ -1155,6 +1161,7 @@ function testI18nCoverage() {
   GAMES.forEach(g => { if (g && g.slug) { add('game.' + g.slug + '.title'); add('game.' + g.slug + '.blurb'); } });
   (COS.items || []).forEach(it => { if (it && it.id) { add('cos.' + it.id + '.name'); add('cos.' + it.id + '.desc'); } });
   Object.keys(COS.sets || {}).forEach(sid => add('cos.set.' + sid));
+  (ACH.items || []).forEach(a => { if (a && a.id) { add('ach.' + a.id + '.name'); add('ach.' + a.id + '.desc'); } });
   const CHAL = evalData(fs.readFileSync(path.join(DIR, 'challenges.js'), 'utf8'), 'challenges.js').CHALLENGES || {};
   Object.keys(CHAL.goals || {}).forEach(id => add('challenge.goal.' + id));            // t('challenge.goal.'+id)
   (CHAL.titles || []).forEach((_, i) => add('title.t' + i));                           // t('title.t'+tier)
@@ -1675,7 +1682,7 @@ function testSEO() {
   // modal had no titles or icons, and the challenges' slug→genre map had nothing to derive from.
   // Nothing caught it because every one of those games still booted fine.
   {
-    const HEAD_UNIT = ['game-kit.css', 'version.js', 'game-kit.js', 'challenges.js', 'cosmetics.js', 'games.js', 'i18n.js'];
+    const HEAD_UNIT = ['game-kit.css', 'version.js', 'game-kit.js', 'challenges.js', 'cosmetics.js', 'achievements.js', 'games.js', 'i18n.js'];
     const missing = [];
     for (const [s, h] of pages) {
       const head = h.split('</head>')[0];
@@ -1820,6 +1827,146 @@ function testDiscordFinal() {
   }
 }
 
+function testAchievements() {
+  section('achievements (registry + stores + evaluation)');
+  const src = fs.readFileSync(path.join(DIR, 'achievements.js'), 'utf8');
+  const games = fs.readFileSync(path.join(DIR, 'games.js'), 'utf8');
+  const challenges = fs.readFileSync(path.join(DIR, 'challenges.js'), 'utf8');
+  const cosmetics = fs.readFileSync(path.join(DIR, 'cosmetics.js'), 'utf8');
+
+  // A0) achievements.js ships everywhere: in the single root SW SHELL, in the catalogue's head and in
+  // every game's head. The harness preloads the registry, so a missing <script> can ONLY be caught here.
+  {
+    ok(fs.readFileSync(path.join(DIR, 'sw.js'), 'utf8').includes('achievements.js'), 'achievements.js is in the root SW SHELL');
+    ok(fs.readFileSync(path.join(DIR, 'index.html'), 'utf8').includes('src="achievements.js"'), 'the catalogue loads achievements.js in <head>');
+    const dirs = fs.readdirSync(path.join(DIR, 'games')).filter(d => fs.existsSync(path.join(DIR, 'games', d, 'index.html')));
+    const off = dirs.filter(d => !fs.readFileSync(path.join(DIR, 'games', d, 'index.html'), 'utf8').split('</head>')[0].includes('../../achievements.js'));
+    ok(off.length === 0, 'every game loads achievements.js in <head>' + (off.length ? ': ' + off.join(', ') : ''));
+  }
+
+  // A) registry integrity
+  const sb = { window: {}, console }; sb.globalThis = sb;
+  let err = null;
+  try { vm.runInContext(src, vm.createContext(sb), { filename: 'achievements.js' }); } catch (e) { err = e.message; }
+  ok(err === null, 'achievements.js loads: ' + err);
+  const R = sb.window.ACHIEVEMENTS || {};
+  const items = R.items || [];
+  ok(R.v === 1, 'registry carries a version (day one)');
+  ok(items.length >= 40, 'launch set present (' + items.length + ' achievements)');
+  {
+    const gsb = { window: {}, console }; gsb.globalThis = gsb;
+    vm.runInContext(games, vm.createContext(gsb), { filename: 'games.js' });
+    const live = new Set((gsb.window.GAMES || []).filter(g => !g.soon).map(g => g.slug));
+    const BANDS = new Set([5, 15, 50]);
+    const SHAPES = ['max', 'sum', 'site', 'run'];
+    const SITE_OK = new Set(['cosBought', 'cosPaidPct', 'cursorPaidPct', 'games', 'gamesPct', 'genres', 'plays', 'goodRunGames', 'titleWorn', 'lifetime']);
+    const seen = new Set(), bad = [];
+    for (const a of items) {
+      if (seen.has(a.id)) bad.push(a.id + ' (duplicate id)');
+      seen.add(a.id);
+      const pre = a.game === '' ? 'site' : a.game;
+      if (a.id.indexOf(pre + '.') !== 0) bad.push(a.id + ' (id must start with "' + pre + '.")');
+      if (a.game !== '' && !live.has(a.game)) bad.push(a.id + ' (game is not a live slug)');
+      if (!BANDS.has(+a.price)) bad.push(a.id + ' (price ' + a.price + ' outside the 5/15/50 bands)');
+      if (!a.icon) bad.push(a.id + ' (no icon)');
+      if (!(+a.goal > 0)) bad.push(a.id + ' (goal must be > 0)');
+      const shapes = SHAPES.filter(k => a[k] != null);
+      if (shapes.length !== 1) bad.push(a.id + ' (needs exactly one of max/sum/site/run, got ' + shapes.length + ')');
+      if (a.run != null && typeof a.run !== 'function') bad.push(a.id + ' (run must be a function)');
+      if (a.site != null && !SITE_OK.has(a.site)) bad.push(a.id + ' (unknown site counter "' + a.site + '")');
+      // 50 🏆 is skill-only: grinding a cumulative counter is not difficulty
+      if (a.sum != null && +a.price === 50) bad.push(a.id + ' (a cumulative goal may not cost 50)');
+    }
+    ok(bad.length === 0, 'every entry is well-formed: ' + (bad.join(' · ') || 'ok'));
+    // every game with achievements has 2–5 of them (the shape agreed for the launch set)
+    const per = {};
+    items.forEach(a => { if (a.game) per[a.game] = (per[a.game] || 0) + 1; });
+    const offsize = Object.keys(per).filter(g => per[g] < 2 || per[g] > 5);
+    ok(offsize.length === 0, 'each game carries 2–5 achievements (offenders: ' + (offsize.join(', ') || 'none') + ')');
+    ok(items.filter(a => a.game === '').length >= 10, 'the site-wide set is present (' + items.filter(a => a.game === '').length + ')');
+  }
+
+  // B) the stat names a predicate reads must EXIST in that game's page — this is what catches a
+  // game renaming or dropping a record.stats field the registry still depends on.
+  {
+    const missing = [];
+    for (const a of items) {
+      if (!a.game) continue;
+      const page = fs.readFileSync(path.join(DIR, 'games', a.game, 'index.html'), 'utf8');
+      const names = [];
+      if (a.max && a.max !== 'score') names.push(a.max);
+      if (a.sum && a.sum !== 'score') names.push(a.sum);
+      if (a.run) (String(a.run).match(/stats\.([A-Za-z_]\w*)/g) || []).forEach(m => names.push(m.slice(6)));
+      for (const n of names) {
+        // the stat has to be written into a record/saveBest stats object somewhere on the page
+        if (!new RegExp('\\b' + n + '\\s*[:,}]').test(page)) missing.push(a.id + ' → stats.' + n);
+      }
+    }
+    ok(missing.length === 0, 'every stat a predicate reads is produced by its game: ' + (missing.join(' · ') || 'ok'));
+  }
+
+  // C) evaluation: the predicate matrix, idempotency, the trophy payout and the tally
+  {
+    const g = bootGame('games/breakout/index.html', { preCode: [games, challenges, cosmetics] });
+    const K = g.win.gamekit, A = K.achievements;
+    ok(!!A && typeof A.evaluate === 'function', 'gamekit.achievements is exposed');
+    // a fresh device: the load-time backfill has already run (nothing played → nothing to unlock)
+    ok(A.progress().total === items.length, 'progress() counts the whole registry (' + A.progress().total + ')');
+    ok(A.progress().done === 0, 'a fresh device unlocks nothing');
+
+    // a run-shaped predicate fires only for its own game, and only when the condition holds
+    ok(A.evaluate({ slug: 'sudoku', mode: '', score: 10, time: 0, outcome: 'win', stats: { mistakes: 1, hints: 0 } }).length === 0,
+      'a mistake keeps sudoku.clean locked');
+    let fresh = A.evaluate({ slug: 'sudoku', mode: '', score: 10, time: 0, outcome: 'win', stats: { mistakes: 0, hints: 0, diff: 2, solved: 1 } });
+    ok(fresh.some(a => a.id === 'sudoku.clean'), 'a clean solve unlocks sudoku.clean');
+    ok(!fresh.some(a => a.id === 'sudoku.expert'), 'a band-2 solve does NOT unlock the Expert one');
+    ok(A.unlocked('sudoku.clean'), 'the unlock persisted');
+    const before = K.cosmetics.lifetime();
+    ok(A.evaluate({ slug: 'sudoku', mode: '', score: 10, time: 0, outcome: 'win', stats: { mistakes: 0, hints: 0, diff: 2, solved: 1 } }).length === 0,
+      'an identical second run unlocks nothing new');
+    ok(K.cosmetics.lifetime() === before, 'and pays no second time (the double-award trap)');
+    ok(before >= 15, 'the unlock paid its trophies into lifetime (' + before + ')');
+
+    // cumulative: recordResult sums only the stats the registry asks for
+    K.recordResult('frog-bonk', { mode: 'Waves', score: 100, stats: { wave: 3, kills: 120 } });
+    ok(A.tally('frog-bonk', 'kills') === 120, 'the tally sums a registry stat (' + A.tally('frog-bonk', 'kills') + ')');
+    K.recordResult('frog-bonk', { mode: 'Waves', score: 100, stats: { wave: 3, kills: 200 } });
+    ok(A.tally('frog-bonk', 'kills') === 320, 'and keeps summing across runs');
+    ok(A.unlocked('frog-bonk.bonks300'), '320 bonks unlocks the 300 tier');
+    ok(!A.unlocked('frog-bonk.bonks1500'), 'but not the 1,500 tier');
+    ok(A.tally('frog-bonk', 'wave') === 0, 'a stat NO entry asks about is never tallied (bounded store)');
+    const tly = JSON.parse(g.store['gamekit_tally']);
+    ok(tly.v === 1 && tly.t && tly.t['frog-bonk'], 'gamekit_tally is versioned and keyed by slug');
+
+    // max-shaped: read from the pb store, so it progresses live and survives a worse later run
+    K.recordResult('snake', { mode: 'Classic', score: 200, stats: { length: 60 } });
+    ok(A.unlocked('snake.len50'), 'a max-shaped goal unlocks from the run that reached it');
+    ok(A.cur('snake.len100') === 60, 'and its progress reads the best-ever value (60/100)');
+    K.recordResult('snake', { mode: 'Classic', score: 10, stats: { length: 4 } });
+    ok(A.cur('snake.len100') === 60, 'a worse run cannot lower the bar');
+
+    // site-wide counters
+    ok(A.cur('site.regular') > 0, 'site counters read real play data (plays = ' + A.cur('site.regular') + ')');
+    ok(A.unlocked('site.tourist5') === false, 'three games played is not five');
+  }
+
+  // D) the one-time backfill: a device arriving WITH history unlocks what it already earned
+  {
+    const g = bootGame('games/breakout/index.html', {
+      preCode: [games, challenges, cosmetics],
+      store: { gamekit_pb: JSON.stringify({ '2048': { Classic: { score: 30000, plays: 12, stats: { maxTile: 2048 } } } }) },
+    });
+    const A = g.win.gamekit.achievements;
+    ok(A.unlocked('2048.t1024') && A.unlocked('2048.t2048'), 'history already in gamekit_pb backfills both tile tiers at load');
+    ok(!A.unlocked('2048.t4096'), 'and stops at what the history actually shows');
+    ok(!!g.store['gamekit_ach'], 'the backfill writes the unlock store once');
+    // the SECOND load must not re-pay
+    const lifetimeAfterFirst = g.win.gamekit.cosmetics.lifetime();
+    const g2 = bootGame('games/breakout/index.html', { preCode: [games, challenges, cosmetics], store: { ...g.store } });
+    ok(g2.win.gamekit.cosmetics.lifetime() === lifetimeAfterFirst, 'reloading pays nothing again');
+  }
+}
+
 testDiscordFinal();
 testFullscreen();
 testRecentlyPlayed();
@@ -1827,6 +1974,7 @@ testI18n();
 testI18nCoverage();
 testChallenges();
 testCosmetics();
+testAchievements();
 testServiceWorkers();
 testSEO();
 testQR();

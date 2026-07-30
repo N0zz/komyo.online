@@ -13,6 +13,9 @@ export const KIT = fs.readFileSync(path.join(ROOT, 'game-kit.js'), 'utf8');
 // Shared word banks (words.js). Preloaded with the kit, like i18n: it is part of the shared <head>
 // of every word game, so a suite that forgot it would boot a game with an empty dictionary.
 export const WORDS_JS = fs.readFileSync(path.join(ROOT, 'words.js'), 'utf8');
+// Achievements registry (achievements.js). Preloaded with the kit for the same reason: it is in the
+// shared <head> of every page, so a suite without it would silently test the "no registry" path.
+export const ACH_JS = fs.readFileSync(path.join(ROOT, 'achievements.js'), 'utf8');
 // the catalogue splits per language (i18n.js = loader + en; i18n.<code>.js per locale, loaded
 // lazily in the browser) — headless, everything is concatenated so tests see the full dictionary
 export const I18N = ['i18n.js']
@@ -175,7 +178,7 @@ export function bootGame(file, opts = {}) {
   const html = fs.readFileSync(path.join(ROOT, file), 'utf8');
   const code = extractInline(html, file);
   const g = makeSandbox({ ...opts, search });
-  if (opts.kit !== false) { g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(WORDS_JS, 'words.js'); }
+  if (opts.kit !== false) { g.run(KIT, 'game-kit.js'); g.run(I18N, 'i18n.js'); g.run(WORDS_JS, 'words.js'); g.run(ACH_JS, 'achievements.js'); }
   for (const pre of [].concat(opts.preCode || [])) g.run(pre, 'pre.js');
   g.run(code, file);
   return g;

@@ -40,6 +40,13 @@ cosmetics.js    window.COSMETICS — the cosmetics registry (skins per game + si
                 preview. The BUILDER lives on the item, not in the game: the shop also opens on the
                 catalogue, where the game's own code never loads (that's why Tube Racer's engines moved
                 here). Games read the equipped one from the registry — see `ENGINES` in tube-racer.
+achievements.js window.ACHIEVEMENTS — the achievements registry (one-off evergreen goals paying 🏆).
+                Data only; the kit owns the stores + evaluation. Loaded like cosmetics.js (catalogue
+                AND games, in the SW SHELL, test-enforced). An entry declares ONE shape: `max:'<stat>'`
+                (best-ever, from the gamekit_pb MAXes — BACKFILLS from a player's history), `sum:'<stat>'`
+                (cumulative, gamekit_tally), `site:'<counter>'` (closed kit vocabulary) or `run: fn(run)`
+                (a per-run condition, no progress bar). 2–5 per game + 15 site-wide, prices 5/15/50,
+                **a `sum:` goal may never cost 50** (50 = the skill tier). See "Achievements".
 changelog.js    window.CHANGELOG — player-facing releases (drives the 🗒️ modal + the Discord post)
 analytics.js    GA4 loader, consent-gated (see "Analytics")
 version.js      build stamp {sha, built} — 'dev' locally, stamped by the Pages deploy workflow
@@ -166,7 +173,7 @@ silently, not loudly.
 
 **The `<head>` unit is atomic** (NOT `defer`, so `window.gamekit` exists before the inline script),
 in this order: `analytics.js` · `game-kit.css` · `version.js` · `game-kit.js` · `challenges.js` ·
-`cosmetics.js` · `games.js` (the kit profile modal reads `window.GAMES` for titles/icons) ·
+`cosmetics.js` · `achievements.js` · `games.js` (the kit profile modal reads `window.GAMES` for titles/icons) ·
 `i18n.js` (the loader — it document.writes the active `i18n.<code>.js` so `t()`
 is complete before the inline script; the other locales lazy-load after `load`).
 The root `sw.js` SHELL lists the SAME shared files in lockstep — PLUS every `i18n.<code>.js` locale
@@ -258,6 +265,19 @@ Games alias the API once: `const KIT = window.gamekit;`.
   (`gamekit.goodRunBonus()` → `{count,cap,per}`; one `gr#YYYY-MM-DD` entry in `gamekit_done`); the end
   menu's "✓ Good run" line is the receipt. **Titles are worn, not just earned:** the ladder's unlocked
   ranks are tap-to-equip (`gamekit_title_sel`); a new higher tier auto-switches (`gamekit_title_adopted`).
+- **Achievements (kit-owned, data in `achievements.js`):** one-off evergreen goals paying 🏆 into the
+  LIFETIME total on unlock (so they climb the titles ladder too). `gamekit.achievements` →
+  `all(game?)/progress(game?)/points()/unlocked(id)/cur(id)/tally(game,stat)/fresh()/sync()/panel()`.
+  Two stores: **`gamekit_ach`** (unlocks) + **`gamekit_tally`** (cumulative counters — the key set is
+  DERIVED from the registry's `sum:` fields, so a game can't grow it). Evaluation happens in ONE place
+  (`recordResult`, after the best store + the tally) plus `achSync()` for the non-run moments (page
+  load, a shop purchase, a title equip); the first pass **backfills** `max:`/`site:` shapes from
+  existing history. UI: the **Achievements tab of `shopPanel`** (a wall with live progress bars — no
+  fourth side-stack button), a profile bar, ONE end-menu receipt line and a dot on 🎨 Collection.
+  **A game's only job is reporting the stats its predicates read** — in the end menu's `record.stats`,
+  **reset per run, saved with the progress state, and as a DELTA when the end menu is a per-board
+  checkpoint** (a running total gets summed 1+2+3+…; Mirror Maze shipped that bug). A difficulty-gated
+  goal needs the mode in `stats` too (a Relaxed clear is not an Expert clear).
 - **Levels + hints (kit-owned, shared by every level-based puzzle):**
   `gamekit.levelsScreen({count, status, par, preview, onPick, …})` — the level picker as its OWN menu
   screen (a 12-cell grid fits 360×640; an inline group does not); `gamekit.hints(slug)` — the hint
@@ -342,6 +362,11 @@ Don't ship a game straight from one prompt; treat the above as the floor for eve
    (`<slug>.<set>.<key>`, free default at price 0, prices in the 🏆 bands), load `cosmetics.js` in the
    `<head>` (see the atomic head order), and read the selected skin in the game's render
    (`KIT.cosmetics.selected('<slug>.<set>')`). The 🎨 button + store modal are automatic (kit-owned).
+5c. **Achievements (expected — the suite enforces 2–5 per game):** add the game's entries to
+   `achievements.js` and load `achievements.js` in the `<head>`. Calibrate against the game's own
+   `goodRun` bar (5 🏆 ≈ 2–5 good runs · 15 🏆 ≈ 10–25 · 50 🏆 = a skill wall, never a count), and never
+   restate a challenge goal. The shipped set + its effort estimates live in
+   `plans/achievements-plan.md`.
 6. Add an entry to `games.js` (`soon: true` = greyed "coming soon" tile). Set **`added: "YYYY-MM-DD"`**
    on a new game (drives the auto **NEW** badge for 30 days). **Whenever you ship a notable update to a
    game (new mode/feature — not every bugfix), bump that game's `updated: "YYYY-MM-DD"`** (drives the

@@ -24,7 +24,11 @@ completed). `plans/progress-save-api-plan.md` still references "#5" = the progre
 
 Dev and marketing run in parallel; top item first within each.
 
-- **Persistent-game lifecycle** *(planned — top dev item)* — timestamp-based offline accrual +
+- **Trailers for the originals** *(planned — top item)* — our non-clone games still have no trailer or
+  catalogue preview; run `komyo-game-trailer` per game (9:16 social cut + text-free preview loop + card
+  wiring), then drip through the 5-channel kit. Named queue in the plan. →
+  `plans/clip-release-plan.md` · `plans/trailer-preview-plan.md`
+- **Persistent-game lifecycle** *(planned — dev)* — timestamp-based offline accrual +
   no-wipe-on-loss on top of `gamekit.progress`; gates every saved-state game. →
   `plans/progress-save-api-plan.md`
 - **Safari/iOS storage-loss warning** *(planned — ship with the lifecycle)* — ITP wipes localStorage
@@ -76,8 +80,6 @@ Dev and marketing run in parallel; top item first within each.
 
 One line each; the real content is in the linked plan.
 
-- **Achievements** *(designed, not started)* — evergreen auto-unlocking goals (per-game + site-wide)
-  that pay 🏆; needs a cumulative-tally store the kit doesn't have. → `plans/achievements-plan.md`
 - **Procedural music v3** *(idea)* — from ~8 distinct flavors to hundreds of per-game/biome/daily-seed
   tracks; stays zero-asset. → `plans/audio-music-plan.md`
 - **Replay system** *(idea)* — (B) kit-owned 15 s clip capture, ships alone; (A) deterministic
@@ -120,6 +122,9 @@ Small or unscheduled; each is one line, detail in `plans/backlog-notes.md` unles
   for a live duel lobby.
 - **Cloud-sync the Export blob** *(idea)* — opt-in OAuth to the player's own Drive/Dropbox; no komyo
   backend.
+- **Percentiles from GA4** *(idea — check volume first)* — "you beat 78% of runs" from a daily Action →
+  static JSON; needs a `score_bucket` dimension. The no-backend, cheat-tolerant answer to rankings. →
+  `plans/backlog-notes.md`
 - **Mascot refresh + attire shop** *(far out)* — current chibi fox-girl is the keeper; spec-first,
   freeze-once approach if ever revisited.
 - **Marketing experiments** *(idea)* — mascot QR stickers, merch, a hand-made plushie, the

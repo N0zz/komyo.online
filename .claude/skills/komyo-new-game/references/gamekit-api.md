@@ -543,6 +543,32 @@ menu's "✓ Good run" line is the receipt.
 free default at price 0), load `cosmetics.js` in the `<head>` (the root sw.js SHELL already caches
 it), and read the selected skin in render. The 🎨 button + store are automatic.
 
+## achievements
+
+Kit-owned; registry data in `achievements.js` (`window.ACHIEVEMENTS`). One-off, evergreen goals that
+pay 🏆 into the LIFETIME total on unlock (so they also climb the titles ladder). Evaluated once per
+recorded run inside `recordResult` — a game does **nothing** but report the stats its predicates read.
+
+### `KIT.achievements`
+
+- `achievements.all(game?)` → rows `{id, game, icon, price, goal, cur, bar, unit, unlocked, shape}`.
+- `achievements.progress(game?)` → `{done, total}`; `achievements.points()` → 🏆 earned from unlocks.
+- `achievements.unlocked(id)` / `achievements.cur(id)` / `achievements.tally(game, stat)`.
+- `achievements.evaluate(run)` — internal (`recordResult` calls it); `achievements.sync()` = the
+  non-run pass (page load, a shop purchase, a title equip), which also does the one-time backfill.
+- `achievements.fresh()` → what the LAST run unlocked (the end menu's receipt reads this).
+- `achievements.panel(opts)` → the wall (the Achievements tab of `shopPanel`).
+
+Stores: `gamekit_ach` (unlocks) + `gamekit_tally` (cumulative counters, key set DERIVED from the
+registry's `sum:` fields so a game cannot grow it). Both ride Export/Import; neither belongs to a
+game's `<slug>_` reset prefix.
+
+**New-game wiring (expected — the suite enforces 2–5 per game):** add the entries to
+`achievements.js`, load `achievements.js` in the `<head>` (it is in the SW SHELL and the template),
+and make sure every stat a predicate reads is in the end menu's `record.stats`, reset per run,
+persisted in the progress save, and reported as a delta if the end menu is a per-board checkpoint.
+Full rules + the traps: `references/registration.md` §3b.
+
 ---
 
 ## share / cards / discord

@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-30', title: 'Achievements 🏅', items: [
+    'New: achievements — 79 one-off goals that never expire, in the Collection window next to the shop and your titles. Each one pays trophies the moment you clear it, most show a live progress bar, and anything you had already earned before today was unlocked for you automatically.',
+  ] },
   { date: '2026-07-30', title: 'Everything you collect, in one window 🎨', items: [
     'Change: your titles ladder lives inside the Collection window now instead of opening a window of its own — there is a Shop · Achievements · Titles switcher along the top, and every link to your titles lands there. Achievements is a placeholder for the moment and says so.',
     'Change: Challenges opens as a window in the middle of the screen, like the profile and the changelog, instead of sliding in from the right edge. The panel inside games dropped its pills too, so the goals you are chasing are the first thing you see.',
