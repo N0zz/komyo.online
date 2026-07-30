@@ -1031,10 +1031,67 @@
     return lsGet('gamekit_discord_name') === '1' ? 'named' : 'anon';
   }
   var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1520515996933296378/YlXg2W8ypFcQGMHRf0BvWxp10-m7Z7DggStKrBZfusWo8e_emNF6gLpiVjfb0YIExL24';
-  var _dcLastMsg = '', _dcLastAt = 0; // Discord auto-post dedupe/throttle — module-level so a share-row rebuilt each game-over can't reset it
+
+  // ---- what the Discord auto-post announces: a PERSONAL BEST, once ------------------------------
+  // It used to post nearly every finished run, with a 60 s window that DROPPED anything inside it —
+  // so which run got announced was arbitrary, and the cumulative puzzle games (a real end screen per
+  // solved BOARD) laddered one run into a stack of rising cards.
+  //
+  // The decision is kit-owned on purpose. Each game's own `cfg.newBest` is 23 hand-rolled
+  // comparisons, six of which were silently wrong (see plans/backlog-notes.md) — gating a post on
+  // that would have meant no Snake posts and no endless Mirror Maze posts, ever. Instead:
+  //   * `_runPb`  — the record as it stood when this run STARTED, snapshotted on the menu action that
+  //                 begins a run. This is what makes a cumulative run announce its FINAL total once,
+  //                 instead of announcing the moment it crept past its old bar.
+  //   * `final`   — the game says whether this end screen ends the RUN. Only 2048 (KEEP GOING) and
+  //                 Mirror Maze (NEXT MAZE) can show one mid-run; everything else defaults to true.
+  //   * the announced watermark below — per (slug, mode), in localStorage, so it also answers "did we
+  //                 already say this?" across tabs, across reloads, and across a language switch that
+  //                 rebuilds the end menu. That replaced the clock entirely: a HIGHER best always
+  //                 posts however soon it lands, and an equal-or-worse one never does.
+  var _runPb = null;                                   // { slug, modes } captured at run start
+  var _dcInFlight = {};                                // slug|mode → a post already claimed this page
+  var ANN_KEY = 'gamekit_dc_ann';
+  function annLoad() {
+    try { var o = JSON.parse(lsGet(ANN_KEY) || 'null'); if (o && o.v === 1 && o.a) return o; } catch (e) {}
+    return { v: 1, a: {} };
+  }
+  function annMark(slug, mode, score, time) {
+    var o = annLoad(), k = slug + '|' + (mode != null ? mode : '');
+    var cur = o.a[k] || { s: 0, t: 0 };
+    o.a[k] = { s: Math.max(cur.s || 0, +score || 0), t: (+time > 0 && (!(cur.t > 0) || +time < cur.t)) ? +time : (cur.t || 0) };
+    lsSet(ANN_KEY, JSON.stringify(o));
+  }
+  // The ONE predicate. Pure apart from the two stores it reads, and exposed as gamekit.__pbAnnounce
+  // because nothing in the auto-post path is reachable in a mocked DOM (no fetch, no
+  // IntersectionObserver, no getClientRects) — the matrix is tested through this instead.
+  function pbAnnounce(o) {
+    o = o || {};
+    if (o.final === false) return false;               // a cleared BOARD is not the end of a run
+    var slug = o.slug; if (!slug) return false;
+    var mode = (o.mode != null ? String(o.mode) : '');
+    var score = +o.score || 0, time = +o.time || 0;
+    // time-primary = the same rule the score card uses to flip to a clock
+    var timeFirst = /speedrun|sprint/i.test(mode) && time > 0;
+    if (!timeFirst && !(score > 0)) return false;      // nothing worth announcing
+    // the bar this run started from. No snapshot (a deep-link auto-start never passed through a menu
+    // action) → treat it as unknown and let the watermark alone do the de-duplicating.
+    var bar = (_runPb && _runPb.slug === slug && _runPb.modes) ? _runPb.modes[mode] : null;
+    var beat = timeFirst ? (!bar || !(bar.time > 0) || time < bar.time)
+                         : (!bar || score > (bar.score || 0));
+    if (!beat) return false;                           // includes a TIE — matching is not beating
+    var ann = annLoad().a[slug + '|' + mode];
+    if (ann) {
+      if (timeFirst ? (ann.t > 0 && time >= ann.t) : (score <= (ann.s || 0))) return false;
+    }
+    return true;
+  }
+  // Returns a promise that NEVER rejects → { ok, status, unknown }. `unknown: true` means the request
+  // could not be read (CORS / offline): the webhook may well have fired server-side, so a caller must
+  // treat that as SENT, not as failed — retrying it would double-post.
   function postDiscord(text, url, file) {
     try {
-      if (typeof fetch !== 'function' || typeof FormData === 'undefined') return;
+      if (typeof fetch !== 'function' || typeof FormData === 'undefined') return Promise.resolve({ ok: false, status: 0, unknown: true });
       var fd = new FormData();
       // fixed username (no impersonation via override) + no pings (player name/text can't @everyone).
       // With a score-card `file`: Components V2 (verified 2026-07-02) — a MediaGallery with the bare
@@ -1048,7 +1105,12 @@
       if (file) {
         var fname = 'komyo-score.' + (file.type === 'image/webp' ? 'webp' : file.type === 'image/jpeg' ? 'jpg' : 'png');
         payload.flags = 32768; // IS_COMPONENTS_V2 (content/embeds must stay unset)
-        payload.components = [{ type: 12, items: [{ media: { url: 'attachment://' + fname } }] }];
+        // Components V2 forbids `content`, so `text` has to become a TextDisplay of its own or it is
+        // silently dropped — which is what used to happen to every card post. Order = how it reads in
+        // the channel: the headline, then the card, then the play link.
+        payload.components = [];
+        if (text) payload.components.push({ type: 10, content: String(text).slice(0, 1800) });
+        payload.components.push({ type: 12, items: [{ media: { url: 'attachment://' + fname } }] });
         if (link) payload.components.push({ type: 10, content: link });
         payload.attachments = [{ id: 0, filename: fname }];
         try { fd.append('files[0]', file, fname); } catch (e) {}
@@ -1057,8 +1119,12 @@
         payload.content = (String(text || '') + (link ? '\n' + link : '')).slice(0, 1800);
       }
       fd.append('payload_json', JSON.stringify(payload));
-      fetch(endpoint, { method: 'POST', body: fd })['catch'](function () {}); // multipart = no CORS preflight; fire-and-forget (proxied in a Discord Activity)
-    } catch (e) {}
+      // multipart = no CORS preflight. The outcome IS read now (the caller only claims a personal best
+      // as announced once the POST resolved), but a rejection is reported as `unknown`, never as failed.
+      return fetch(endpoint, { method: 'POST', body: fd }).then(
+        function (r) { return { ok: !!(r && r.ok), status: (r && r.status) || 0, unknown: false }; },
+        function () { return { ok: false, status: 0, unknown: true }; });
+    } catch (e) { return Promise.resolve({ ok: false, status: 0, unknown: true }); }
   }
   // downscaled copy of a card blob for the Discord post (the shared/copied card stays full-res)
   function shrinkBlob(blob, factor) {
@@ -3432,6 +3498,29 @@
         x.font = '800 ' + fs + 'px system-ui, sans-serif'; x.shadowColor = accent; x.fillStyle = accent;
         x.globalAlpha = 0.75; x.shadowBlur = 20; x.fillText(scoreText, sbx, sby);
         noFx(); x.fillStyle = sg; x.fillText(scoreText, sbx, sby);
+        // ★ NEW BEST badge — the fact travels WITH the card, so a downloaded or re-shared image still
+        // says what it was, and the Discord post needs no caption. Sits in the clear band between the
+        // score's descenders (~440) and the player line (~540), left of the QR column.
+        // menu.newBest is the same already-translated string the end screen shows, star included.
+        if (opts.newBest) {
+          var nbTxt = String(t('menu.newBest', { def: '★ New best!' })).toUpperCase();
+          // Sit clear of the score's REAL descenders, measured — not a fixed Y. A thousands comma
+          // reaches ~29px below the baseline at 192px, which left the badge with 0.7px of clearance
+          // and the comma's tail resting on its border. Digits alone descend nothing, so a
+          // comma-less score keeps the tighter original position.
+          var scDesc = 0;
+          try { x.font = '800 ' + fs + 'px system-ui, sans-serif'; scDesc = x.measureText(scoreText).actualBoundingBoxDescent || 0; } catch (e) {}
+          var nbFs = 34; x.font = '800 ' + nbFs + 'px system-ui, sans-serif';
+          var nbW = x.measureText(nbTxt).width, nbPad = 22, nbH = 54, GOLD = '#ffd86b';
+          // …and never crowd the player line below (baseline H-62, cap top ≈ H-88)
+          var nbY = Math.min(Math.max(452, Math.round(sby + scDesc + 16)), H - 88 - 22 - nbH);
+          x.globalAlpha = 0.16; x.fillStyle = GOLD; rr(84, nbY, nbW + nbPad * 2, nbH, nbH / 2); x.fill();
+          x.globalAlpha = 0.9; x.strokeStyle = GOLD; x.lineWidth = 2; rr(84, nbY, nbW + nbPad * 2, nbH, nbH / 2); x.stroke();
+          noFx();
+          x.shadowColor = GOLD; x.shadowBlur = 18; x.fillStyle = '#ffeeb8';
+          x.fillText(nbTxt, 84 + nbPad, nbY + nbH * 0.7);
+          noFx();
+        }
         // player
         x.fillStyle = '#cdd9e8'; x.font = '600 36px system-ui, sans-serif'; x.fillText('— ' + who, 86, H - 62);
         // www.komyo.online stays bottom-right (unchanged)
@@ -3675,9 +3764,13 @@
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
   }
 
-  function shareRow(el, o) {
+  // `extra` is menu-owned context the share row cannot derive: { final, record }. `record` is THIS
+  // run's result — the card and the Discord gate both read it instead of lastResult(), whose
+  // localStorage key is shared origin-wide and last-write-wins across tabs.
+  function shareRow(el, o, extra) {
     if (!el) return;
     o = o || {};
+    extra = extra || {};
     var base = o.url || ('https://komyo.online/games/' + (o.slug || '') + '/');
     // optional o.params (object or fn) → appended as a query string so a shared link
     // deep-links back to the same mode (the game preselects it on load).
@@ -3704,21 +3797,25 @@
     // card options from the last recorded result (recordResult ran earlier in menu.show) — shared by
     // the inline render, the Share button and the Discord auto-post. A game may pass o.card to customise.
     var cardOpts = function () {
-      var lr = lastResult(o.slug) || {};
-      var extra = (typeof o.card === 'function') ? (o.card() || {}) : (o.card || {});
-      var score = (extra.score != null) ? extra.score : (lr.score || 0);
+      // THIS run's record when the menu passed one; lastResult is the fallback for a bare shareRow()
+      var lr = extra.record || lastResult(o.slug) || {};
+      var xc = (typeof o.card === 'function') ? (o.card() || {}) : (o.card || {});
+      var score = (xc.score != null) ? xc.score : (lr.score || 0);
       var opts = {
         title: o.title || 'Komyo Games', slug: o.slug,
-        accent: extra.accent || o.accent, mascot: extra.mascot || o.mascot, icon: extra.icon || o.icon,
+        accent: xc.accent || o.accent, mascot: xc.mascot || o.mascot, icon: xc.icon || o.icon,
         score: score, scoreText: (typeof score === 'number' && score.toLocaleString) ? score.toLocaleString() : String(score),
-        sub: (extra.sub != null) ? extra.sub : (lr.modeText || lr.mode || ''), // localized display, not the stable store key
+        sub: (xc.sub != null) ? xc.sub : (lr.modeText || lr.mode || ''), // localized display, not the stable store key
+        // the badge comes from the SAME flag as the on-screen star, so the card and the end screen
+        // can never disagree about whether the run was a best
+        newBest: !!extra.newBest,
         // the shareable link keeps the mode/diff deep-link; the QR drops them (shorter URL = fewer QR
         // modules = bigger, easier to scan when printed small). Source 'sc' (scorecard), kept short too.
         url: withUtm(getUrl(), 'sc', 'share'), qrUrl: withUtm(base, 'sc', 'qr'), text: getMsg(),
       };
       // speedrun/sprint modes: the record IS the time (same rule as the profile) → TIME card.
       // Test the language-STABLE mode key, not the localized sub (uk renders Speedrun as «Спідран»).
-      if (/speedrun|sprint/i.test(String(lr.mode || opts.sub)) && extra.score == null && lr.time > 0) { opts.label = 'TIME'; opts.scoreText = fmtMs(lr.time); }
+      if (/speedrun|sprint/i.test(String(lr.mode || opts.sub)) && xc.score == null && lr.time > 0) { opts.label = 'TIME'; opts.scoreText = fmtMs(lr.time); }
       return opts;
     };
     // render the card inline once (async, headless-safe → resolves null → just the button); reuse the
@@ -3739,31 +3836,40 @@
     } catch (e) {}
     if (cardBtn) cardBtn.addEventListener('click', openMenu);
     if (cardImg) cardImg.addEventListener('click', openMenu); // tapping the card itself opens the menu too
-    // auto-post the score to the Komyo Games Discord when the end-screen share row is on-screen.
-    // Handles BOTH patterns: built once at init (hidden → shown later) AND rebuilt at game-over
-    // (already visible). Gated by discordTier() (consent → anonymous, opt-in → named).
-    // Dedupe + 60s throttle — the state lives at MODULE level (_dcLastMsg/_dcLastAt): the share
-    // row is rebuilt on every game-over, so closure-local state reset each run and a player
-    // finishing several runs back-to-back spammed the channel. Zero-score runs never post.
+    // auto-post to the Komyo Games Discord when the end-screen share row is on-screen — but ONLY for a
+    // PERSONAL BEST, and only from an end screen that ends the RUN. See pbAnnounce() for the rules and
+    // for why the game's own newBest flag isn't the gate. Gated by discordTier() (consent → anonymous,
+    // opt-in → named). Handles BOTH mount patterns: built once at init (hidden → shown later) AND
+    // rebuilt at game-over (already visible).
     (function () {
       var visible = function () { try { return !!(el.getClientRects && el.getClientRects().length); } catch (e) { return false; } };
       var maybePost = function () {
         if (!visible()) return;
         var tier = discordTier();
         if (tier === 'off') return;
-        var lr = lastResult(o.slug) || {};
-        if (!((lr.score | 0) > 0 || (lr.time | 0) > 0)) return; // nothing worth announcing
-        var msg = getMsg(), now = (typeof Date !== 'undefined' ? Date.now() : 0);
-        if (!msg || msg === _dcLastMsg || now - _dcLastAt <= 60000) return;
-        _dcLastMsg = msg; _dcLastAt = now;   // claim BEFORE the async card render (no double-fire)
+        var rec = extra.record || lastResult(o.slug) || {};
+        var slug = rec.slug || o.slug, mode = (rec.mode != null ? String(rec.mode) : '');
+        var score = +rec.score || 0, time = +rec.time || 0;
+        if (!pbAnnounce({ slug: slug, mode: mode, score: score, time: time, final: extra.final })) return;
+        var key = slug + '|' + mode;
+        if (_dcInFlight[key]) return;        // the setTimeout and the IntersectionObserver both fire
+        _dcInFlight[key] = 1;
         var who = tier === 'named' ? ((player() || 'anonymous').replace(/[@`]/g, '').slice(0, 24) || 'anonymous') : 'anonymous';
-        // post the score card image (downscaled 50% for chat); text line = fallback if the render fails
         var opts = cardOpts(); opts.player = who;
-        track('share_card', { slug: o.slug || 'unknown', stage: 'discord', card: 'score', discord_tier: tier });
+        track('share_card', { slug: slug || 'unknown', stage: 'discord', card: 'score', discord_tier: tier });
+        // The watermark advances only once the POST resolved — `unknown` (an unreadable CORS response)
+        // counts as SENT, because the webhook has already fired server-side and a retry would duplicate.
+        var settle = function (r) {
+          if (r && (r.ok || r.unknown)) annMark(slug, mode, score, time);
+          else delete _dcInFlight[key];      // a readable failure → this best can post again later
+          track('share_card', { slug: slug || 'unknown', stage: (r && (r.ok || r.unknown)) ? 'discord_ok' : 'discord_fail', card: 'score', discord_tier: tier });
+        };
+        // The CARD is the message — it carries the ★ NEW BEST badge, the score, the mode and the name —
+        // so the post needs no caption. And no card means NO post: a bare text line is a worse artifact
+        // than silence, and the record is safe in the store either way.
         buildScoreCard(opts).then(function (b) {
-          var durl = withUtm(getUrl(), 'sc', 'discord');
-          if (!b) return postDiscord('**' + who + '** — ' + msg, durl);
-          shrinkBlob(b, 0.5).then(function (s) { postDiscord('', durl, s); });
+          if (!b) { delete _dcInFlight[key]; return; }
+          shrinkBlob(b, 0.5).then(function (s) { postDiscord('', withUtm(getUrl(), 'sc', 'discord'), s).then(settle); });
         });
       };
       if (typeof setTimeout === 'function') setTimeout(maybePost, 0);   // already-visible (built at game-over)
@@ -4199,11 +4305,14 @@
   // update. Fires at most once per run, never when there is no previous best to beat (your first ever
   // run is not a comeback), and never for a score of 0. The GAME adds its own in-engine feedback —
   // a flash, a shake — because only it knows how to draw on its own canvas.
+  // `from` = the score the run STARTS at, for the games that resume a saved board (2048, Bubble Pop,
+  // Floodgate, Mirror Maze). A resumed run already past its old bar never passed it in front of you,
+  // so it stays disarmed instead of announcing on the first move.
   var _bpBar = 0, _bpFired = true;
-  function bestWatch(slug, mode) {
+  function bestWatch(slug, mode, from) {
     var b = 0;
     try { b = +getBestScore(slug, mode) || 0; } catch (e) { b = 0; }
-    _bpBar = b; _bpFired = !(b > 0);        // no previous best → nothing to beat, stay disarmed
+    _bpBar = b; _bpFired = !(b > 0) || (+from > 0 && +from >= b);   // nothing to beat → stay disarmed
   }
   function bestTick(score) {
     if (_bpFired || !(+score > _bpBar) || !(+score > 0)) return false;
@@ -4701,7 +4810,9 @@
       }
     }
     if (kind === 'end' && cfg.newBest) celebrateBest(ov, box);
-    if (shareHost) { try { shareRow(shareHost, cfg.share); } catch (e) {} }
+    // `final` describes THIS showing, not the result — a cleared board in a cumulative game shows a
+    // real end screen while the run carries on (2048's KEEP GOING, Mirror Maze's NEXT MAZE).
+    if (shareHost) { try { shareRow(shareHost, cfg.share, { final: cfg.final, record: cfg.record, newBest: !!cfg.newBest }); } catch (e) {} }
 
     var focusables = choiceRefs.concat(pickRefs).concat(toggleRefs).concat(popupRefs).concat(actionRefs);
     var fi = 0;
@@ -4762,6 +4873,16 @@
           _runStartMs = nowMs();   // recordResult turns this into game_play's duration_s
           touchRecent(currentSlug());
         }
+        // Snapshot the record this RUN starts from, for the Discord personal-best gate. 'continue'
+        // counts only on a START screen (resuming a saved board begins a run); on an END screen it is
+        // 2048's KEEP GOING, which carries the SAME run on — re-snapshotting there would reset the bar
+        // to the score the run had already reached, and the run could never out-do itself.
+        if (a.id === 'play' || a.id === 'again' || (a.id === 'continue' && kind !== 'end')) {
+          try {
+            var _s = currentSlug() || '';
+            _runPb = { slug: _s, modes: JSON.parse(JSON.stringify((pbLoad() || {})[_s] || {})) };
+          } catch (e) { _runPb = null; }
+        }
         if (a.id === 'play' && typeof cfg.onPlay === 'function') cfg.onPlay(state()); else if (typeof cfg.onAction === 'function') cfg.onAction(a.id, state());
       };
       var cm = a.confirm ? (typeof a.confirm === 'function' ? a.confirm() : a.confirm) : null;
@@ -4788,7 +4909,7 @@
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', keyFn, true);
 
     var handle = {
-      hide: menuHide, el: ov, selection: state, focus: setFocus,
+      hide: menuHide, el: ov, selection: state, focus: setFocus, cfg: cfg,
       // programmatic affordances (used by the headless harness + available to games):
       select: function (grp, choice) { for (var k = 0; k < choiceRefs.length; k++) if (choiceRefs[k].grp === grp && choiceRefs[k].choice === choice) { selectChoice(choiceRefs[k]); return true; } return false; },
       toggle: function (id, on) { for (var k = 0; k < toggleRefs.length; k++) if (toggleRefs[k].id === id) { tog[id] = (on == null ? !tog[id] : !!on); refresh(); return true; } return false; },
@@ -5227,7 +5348,7 @@
     };
   }
 
-  var api = { lock: lock, levelsScreen: levelsScreen, hints: makeHints, hintButton: hintButton, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, bestWatch: bestWatch, bestTick: bestTick, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langFlag: function (code) { return I18N_FLAG_SVG[String(code || '').toLowerCase()] || ''; }, langLabel: function (code) { var c = String(code || '').toLowerCase(); for (var i = 0; i < I18N_LANGS.length; i++) if (I18N_LANGS[i].code === c) return I18N_LANGS[i].label; return c; }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
+  var api = { lock: lock, levelsScreen: levelsScreen, hints: makeHints, hintButton: hintButton, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, __pbAnnounce: pbAnnounce, __runPbSnap: function (slug, modes) { _runPb = (slug == null) ? null : { slug: slug, modes: modes || {} }; }, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, bestWatch: bestWatch, bestTick: bestTick, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langFlag: function (code) { return I18N_FLAG_SVG[String(code || '').toLowerCase()] || ''; }, langLabel: function (code) { var c = String(code || '').toLowerCase(); for (var i = 0; i < I18N_LANGS.length; i++) if (I18N_LANGS[i].code === c) return I18N_LANGS[i].label; return c; }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
