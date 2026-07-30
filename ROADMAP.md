@@ -51,10 +51,8 @@ Dev and marketing run in parallel; top item first within each.
   `robots.txt`. → `plans/backlog-notes.md`
 - **Discord Activity polish** *(open)* — fix the proxied-feedback "network error", verify webhook + GA4
   in-Activity. → `plans/backlog-notes.md`
-- **Wire the in-run new-best pulse into the rest of the games** *(open)* — kit side is done
-  (`gamekit.bestWatch`/`bestTick`); each score-primary game needs the two calls + its own flash.
-  Tube Racer is the reference. Skip time-primary modes (sprints/speedruns). →
-  `plans/backlog-notes.md`
+- **In-run new-best pulse: all 18 viable games wired** *(open — awaiting local review + push)* — 4 games
+  deliberately have no live bar (reasons in the note). → `plans/backlog-notes.md`
 - **Review local Claude memories about komyo** *(open)* — prune stale entries so future sessions don't
   act on outdated context.
 
@@ -78,6 +76,8 @@ Dev and marketing run in parallel; top item first within each.
 
 One line each; the real content is in the linked plan.
 
+- **Achievements** *(designed, not started)* — evergreen auto-unlocking goals (per-game + site-wide)
+  that pay 🏆; needs a cumulative-tally store the kit doesn't have. → `plans/achievements-plan.md`
 - **Procedural music v3** *(idea)* — from ~8 distinct flavors to hundreds of per-game/biome/daily-seed
   tracks; stays zero-asset. → `plans/audio-music-plan.md`
 - **Replay system** *(idea)* — (B) kit-owned 15 s clip capture, ships alone; (A) deterministic

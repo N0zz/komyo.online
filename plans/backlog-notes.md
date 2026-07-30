@@ -363,13 +363,44 @@ dropped outright.
   discovery engine nor worth the upload labor. Revisit **only** as cheap SEO backlinks once we have
   originals worth their own landing page. Newgrounds already dropped. Tooling exists if we return:
   `scripts/package-game.mjs <slug>` + image/trailer templates in `~/komyo-promo/itch-assets/`.
-- **In-run new-best pulse — kit ready, games unwired** *(2026-07-29)*. Player feedback asked for "a bit
-  more celebration when you hit a new high score", so a personal best now lands twice: the **end
+- **`newBest` is measured against the record the run STARTED with — never the live store** *(2026-07-30)*.
+  A design review of the Discord auto-post found six games computing `cfg.newBest` wrong, every failure
+  silent (a missing badge looks exactly like "no PB today"). The shared cause: the game saves its own
+  best *before* the end menu reads it, so the comparison compared the run against **itself**. Fixed by
+  snapshotting the pre-run record into a `bestAtStart` local at run start (mirror-maze carries it in its
+  resume save as `b0`, since a resumed run's live best already includes its own boards):
+  **snake** (`best` raised by the eat handler → the star had *never once* fired), **mirror-maze
+  `failRun`** (out-of-power pays nothing, so endless — whose only natural ending that is — never
+  reported a best), **breakout** and **tower-defense** (`score >= best` after their own save → a mere
+  TIE flagged a new best; scores are round multiples, so ties are the common case), **dusk-runner
+  Sprint** (compared metres against the metres best while the record is a clock; metres cap at 1,000 on
+  a clear, so no later clear could ever win), **aim-trainer Sprint** (renders its own badge in a custom
+  line but never set the flag, so the kit's `game_play.new_best` fell back to score-vs-stored-score —
+  and a sprint entry stores only a time, so its score bar reads 0 and EVERY sprint run reported a best).
+  `cfg.newBest` also feeds GA4's `new_best`, so all six were poisoning that metric too. Each fix carries
+  a suite guard that was verified to FAIL against the old code. **Do not "simplify" any of these back to
+  comparing against the live best**, and don't gate anything new (Discord posts) on `cfg.newBest`
+  without checking the per-game expression first — see the Discord note.
+- **In-run new-best pulse — wired everywhere it can work** *(2026-07-29)*. Player feedback asked for "a
+  bit more celebration when you hit a new high score", so a personal best now lands twice: the **end
   screen** gets confetti + a popped "★ New best!" + the `newbest` stinger (kit-owned in `menu.show`,
   so **all 23 games already have it** — they all pass `newBest`), and the **live** moment gets a
   flash + banner the instant you pass your old bar. The live half can't be kit-only — the kit doesn't
   see a run's score — so each game calls `gamekit.bestWatch(slug, mode)` at run start and
   `gamekit.bestTick(score)` per update, then adds whatever in-engine feedback it owns (Tube Racer
-  reuses its `S.flash`/`S.shake`). Only **tube-racer** is wired. Fires once per run, and stays silent
-  when there is no previous best (a first run is not a comeback). Skip **time-primary** modes —
-  sprints/speedruns record a clock, so a score threshold means nothing there.
+  reuses its `S.flash`/`S.shake`; breakout/snake/stacker/balloon-pop reuse their shake/flash/fireworks).
+  Fires once per run, silent when there is no previous best (a first run is not a comeback).
+  **All 19 viable games are wired** (2048 · aim-trainer · asteroids · asteroids-plus · balloon-pop ·
+  breakout · bubbles · dusk-runner · flappy · floodgate · forcefield · frog-bonk · glow-says ·
+  mirror-maze · snake · stacker · tower-defense · tube-racer · type-siege).
+  **Skip time-primary MODES** inside a wired game — sprints/speedruns record a clock, so a score
+  threshold means nothing there (a mode whose store entry holds only `time` disarms itself, since its
+  score bar reads 0; aim-trainer/asteroids/asteroids-plus/dusk-runner/tube-racer guard the tick
+  explicitly because they store a score alongside the clock).
+  **Four games have NO live bar, by design — don't "fix" them:** `minesweeper` and `sudoku` (the record
+  is a clear time; sudoku's score only exists once you win), `trap-the-cat` (score is computed on the
+  winning move — there is no mid-run score to pass), `critter-match` (score starts at the maximum and
+  only ever *decreases* with each extra flip, so a bar comparison would fire on the first move).
+  `bestWatch(slug, mode, from)` takes the score a **resumed** run starts at (2048, bubbles, floodgate,
+  mirror-maze restore a saved board) and stays disarmed when that already beats the bar — you never
+  passed it in front of the player.

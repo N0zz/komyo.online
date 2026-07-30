@@ -25,6 +25,9 @@
   it's true physical size and the QR is ~19 mm (scannable). Scores are set just above each game's
   good-run bar, randomized. QR links to the game (<code>?utm_source=sc&utm_medium=qr</code>).
   If your browser zoom or OS scale isn't 100%, sizes will be off — tell me and I'll adjust.</p>
+  <p><label><input type="checkbox" id="nb" checked> show the <b>★ NEW BEST</b> badge</label> —
+  the card is what travels to Discord and to a download, so a personal best is marked on the image
+  itself. Toggle it to compare. The string is the same localized one the end screen shows.</p>
   <div class="grid" id="grid"></div>
   <script>
     (function () {
@@ -49,21 +52,30 @@
         var step = good < 100 ? 1 : good < 1000 ? 5 : good < 10000 ? 25 : 100;
         return Math.round((good + bump) / step) * step;
       }
-      var grid = document.getElementById('grid');
-      GAMES.forEach(function (g, i) {
-        var score = scoreFor(g.good), player = NAMES[i % NAMES.length];
-        var cell = document.createElement('div'); cell.className = 'cell';
-        var img = document.createElement('img'); cell.appendChild(img);
-        var l = document.createElement('div'); l.className = 'lbl';
-        l.textContent = g.title + ' · ' + score.toLocaleString() + ' (bar ' + g.good.toLocaleString() + ')';
-        cell.appendChild(l); grid.appendChild(cell);
-        K.scoreCard({ title:g.title, slug:g.slug, accent:g.accent, icon:g.icon, sub:g.sub,
-          score:score, scoreText:score.toLocaleString(), player:player,
-          qrUrl:'https://komyo.online/games/' + g.slug + '/?utm_source=sc&utm_medium=qr',
-          url:'https://komyo.online/games/' + g.slug + '/?utm_source=sc&utm_medium=share',
-          mascot:'mascot-head.svg' })
-          .then(function (b) { if (b) img.src = URL.createObjectURL(b); else img.alt = 'render failed'; });
-      });
+      var grid = document.getElementById('grid'), nb = document.getElementById('nb');
+      // scores/names fixed per game so toggling the badge re-renders the SAME cards (a moving score
+      // would make the two states impossible to compare)
+      var ROLLS = GAMES.map(function (g, i) { return { score: scoreFor(g.good), player: NAMES[i % NAMES.length] }; });
+      function render() {
+        grid.innerHTML = '';
+        GAMES.forEach(function (g, i) {
+          var score = ROLLS[i].score, player = ROLLS[i].player;
+          var cell = document.createElement('div'); cell.className = 'cell';
+          var img = document.createElement('img'); cell.appendChild(img);
+          var l = document.createElement('div'); l.className = 'lbl';
+          l.textContent = g.title + ' · ' + score.toLocaleString() + ' (bar ' + g.good.toLocaleString() + ')';
+          cell.appendChild(l); grid.appendChild(cell);
+          K.scoreCard({ title:g.title, slug:g.slug, accent:g.accent, icon:g.icon, sub:g.sub,
+            score:score, scoreText:score.toLocaleString(), player:player,
+            newBest: nb.checked,
+            qrUrl:'https://komyo.online/games/' + g.slug + '/?utm_source=sc&utm_medium=qr',
+            url:'https://komyo.online/games/' + g.slug + '/?utm_source=sc&utm_medium=share',
+            mascot:'mascot-head.svg' })
+            .then(function (b) { if (b) img.src = URL.createObjectURL(b); else img.alt = 'render failed'; });
+        });
+      }
+      nb.addEventListener('change', render);
+      render();
     })();
   </script>
 </body>
