@@ -41,6 +41,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../achievements.js"></script>
 <script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <style>
@@ -137,6 +138,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let mode = 'arcade'; // 'arcade'|'endless'|'zen'
   let timeDescent = false; // descent driven by a timer (vs by shots); toggle on the menu; ignored in zen
   let score = 0, bestScore = 0, level = 1;
+  let runPops = 0;                     // bubbles popped this run (cumulative achievement)
   let grid = []; // array of rows; each row is array of {color, colorIdx} or null
   let gridOffsetY = 0; // pixels the whole grid has descended
   let gridParity = 0;  // 0/1 — flips when a row is unshifted on top, so existing rows keep their hex offset (no reshape)
@@ -269,7 +271,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   const PROG = KIT ? KIT.progress('bubbles', { max: 3 }) : null;
   function saveState() {
     if (!PROG || state !== 'playing') return;
-    PROG.save({ id: mode, mode, timeDescent, level, score, gridOffsetY, gridParity,
+    PROG.save({ id: mode, mode, timeDescent, level, score, pops: runPops, gridOffsetY, gridParity,
       shotsThisLevel, shotsSinceDescent, descentTimer, endlessRowTimer, shotColor, nextColor,
       grid: grid.map(row => row.map(b => b ? b.colorIdx : null)) });
   }
@@ -277,7 +279,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function resumeRun(s) {
     if (!s || !s.grid) return false;
     mode = s.mode || 'arcade'; timeDescent = !!s.timeDescent;
-    level = s.level || 1; score = s.score || 0;
+    level = s.level || 1; score = s.score || 0; runPops = s.pops || 0;
     gridOffsetY = s.gridOffsetY || 0; gridParity = s.gridParity || 0;
     descentTimer = s.descentTimer || 0; endlessRowTimer = s.endlessRowTimer || 0;
     shotsThisLevel = s.shotsThisLevel || 0; shotsSinceDescent = s.shotsSinceDescent || 0;
@@ -298,7 +300,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     mode = m || 'arcade';
     timeDescent = (mode === 'zen') ? false : !!timed; // zen never descends
     level = 1;
-    score = 0;
+    score = 0; runPops = 0;
     gridOffsetY = 0;
     gridParity = 0;
     descentTimer = 0;
@@ -386,7 +388,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const show = () => KIT.menu.show({ kind:'end', theme:MENU_THEME, title: won ? KIT.t('game.bubbles.cleared', { def:'CLEARED! ✨' }) : KIT.t('game.bubbles.gameOver', { def:'GAME OVER' }),
       score: score, best: bestScore, newBest: isBest, lines: [ won ? KIT.t('game.bubbles.wonLine', { level: level, def:'Level ' + level + ' · all levels cleared' }) : KIT.t('game.bubbles.reachedLine', { level: level, def:'Reached level ' + level }) ],
       share: { slug:'bubbles', accent: '#2ee8c8', icon: '🫧', title:KIT.t('game.bubbles.gameName', { def:'Bubble Pop' }), message: ()=>shareMsg(), params: ()=> modeParams({ mode: mode, timed: timeDescent }) },
-      record: { slug:'bubbles', mode: modeLabel(mode), modeText: modeDisplay(mode), score: score, outcome: won ? 'win' : 'lose' },
+      record: { slug:'bubbles', mode: modeLabel(mode), modeText: modeDisplay(mode), score: score, stats: { pops: runPops, level: level }, outcome: won ? 'win' : 'lose' },
       actions:[ {id:'again',label:KIT.t('game.common.playAgain', { def:'PLAY AGAIN' }),primary:true}, {id:'menu',label:KIT.t('game.common.menu', { def:'MENU' })} ],
       onAction:(id)=>{ if(id==='again') startMode(mode); else if(id==='menu') toMenu(); } });
     menuReshow = show; show();
@@ -496,7 +498,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (group.length < 3) return false;
 
     const pts = group.length * 10 * level;
-    score += pts;
+    score += pts; runPops += group.length;
     float(gridX(col, row), gridY(row), '+' + pts, '#ffe14d');
     SND.play('pop');
 

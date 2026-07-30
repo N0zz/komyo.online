@@ -43,6 +43,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../achievements.js"></script>
 <script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <style>
@@ -112,6 +113,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let mine, num, rev, flg, revT;       // typed arrays; revT = frame stamp for pop anim
   let minesPlaced = false;
   let revealed = 0, flags = 0;
+  let userFlags = 0;                   // flags the PLAYER placed (never the auto-flags a win plants)
   let won = false, boomAt = -1;        // boomAt = exploded cell idx
   let frame = 0, playFrames = 0;       // playFrames ticks only after the first reveal
   let flagMode = false;
@@ -177,7 +179,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const n = COLS * ROWS;
     mine = new Uint8Array(n); num = new Uint8Array(n); rev = new Uint8Array(n);
     flg = new Uint8Array(n); revT = new Float32Array(n);
-    minesPlaced = false; revealed = 0; flags = 0; won = false; boomAt = -1;
+    minesPlaced = false; revealed = 0; flags = 0; userFlags = 0; won = false; boomAt = -1;
     playFrames = 0; winFxT = 0; lives = 3; heartFx = null;
     layoutBoard(); updateHud();
   }
@@ -197,7 +199,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   const PROG = KIT ? KIT.progress(SLUG, { max: 8 }) : null;
   function saveState() {
     if (!PROG || state !== 'playing' || !minesPlaced) return;
-    PROG.save({ id: runLabel(diff), diff, relaxed, lives, revealed, flags, playFrames,
+    PROG.save({ id: runLabel(diff), diff, relaxed, lives, revealed, flags, userFlags, playFrames,
       mine: Array.from(mine).join(''), rev: Array.from(rev).join(''), flg: Array.from(flg).join('') });
   }
   function clearSave() { if (PROG) PROG.remove(runLabel(diff)); }
@@ -209,7 +211,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     rev = Uint8Array.from(s.rev, c => +c);
     flg = Uint8Array.from(s.flg, c => +c);
     computeNums(); minesPlaced = true;
-    revealed = s.revealed || 0; flags = s.flags || 0; playFrames = s.playFrames || 0;
+    revealed = s.revealed || 0; flags = s.flags || 0; userFlags = s.userFlags || 0; playFrames = s.playFrames || 0;
     lives = s.lives != null ? s.lives : 3;
     won = false; boomAt = -1; resumedRun = true;
     layoutBoard(); updateHud();
@@ -267,6 +269,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (rev[i]) return;
     if (!minesPlaced) return; // no flags before the first dig — nothing is known yet
     flg[i] = flg[i] ? 0 : 1; flags += flg[i] ? 1 : -1;
+    if (flg[i]) userFlags++;
     SND.play(flg[i] ? 'buoy' : 'unbuoy');
     updateHud();
     saveState();
@@ -648,12 +651,18 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
           def: 'I uncovered {count} tiles before the boom — Minesweeper 💣' });
   }
 
+  // achievements read the difficulty as a NUMBER (easy 1 … expert 4), whether the board was cleared,
+  // and how many flags the player planted themselves.
+  function runStats(didWin) { return { diff: DIFF_ORDER.indexOf(diff) + 1, relaxed: relaxed ? 1 : 0, win: didWin ? 1 : 0, flags: userFlags }; }
+
   function showEnd(didWin, isBest, t) {
     if (!KIT) return;
     KIT.showMenuButton(false); KIT.showPauseButton(false);
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: didWin ? KIT.t('game.minesweeper.cleared', { def: 'BAY CLEARED!' }) : KIT.t('game.minesweeper.boom', { def: 'BOOM!' }),
-      record: (didWin && !resumedRun) ? { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed, time: Math.round(t * 1000), outcome: 'win' } : { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed, outcome: didWin ? 'win' : 'lose' },
+      record: (didWin && !resumedRun)
+        ? { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed, time: Math.round(t * 1000), outcome: 'win', stats: runStats(didWin) }
+        : { slug: SLUG, mode: runLabel(diff), modeText: runDisplay(diff), score: revealed, outcome: didWin ? 'win' : 'lose', stats: runStats(didWin) },
       scoreText: didWin ? fmtTime(t) : String(revealed),
       best: didWin ? (bestTime(diff) > 0 ? fmtTime(bestTime(diff)) : '') : (KIT.bestScore(SLUG, runLabel(diff)) || ''),
       newBest: !!isBest,

@@ -41,6 +41,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../achievements.js"></script>
 <script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <style>
@@ -148,6 +149,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let mode = 'classic';
   let score = 0;
   let combo = 0;
+  let bestCombo = 0;                   // longest perfect streak this run (achievement)
   let blocks = []; // { x, w, y }  y = world-Y of top of block
   let mover = null; // { x, w, y, dir, speed }
   let cameraY = 0;  // world-Y at top of screen (scrolls up as tower grows)
@@ -189,7 +191,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   // ---- Init / reset ----
   function resetGame() {
-    score = 0; combo = 0;
+    score = 0; combo = 0; bestCombo = 0;
     if (KIT && KIT.bestWatch) KIT.bestWatch('stacker', MODE_CFG[mode].label);   // arm the live new-best pulse
     blocks = [];
     particles = []; fallPieces = [];
@@ -246,6 +248,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       // Regrow capped to playfield width
       placedW = Math.min(tw + cfg.regrow, Math.min(PF_W * 0.75, 220));
       combo++;
+      if (combo > bestCombo) bestCombo = combo;
       score += 1 + Math.floor(combo / 3);
       SND.play('perfect');
       spawnParticles(placedX + placedW / 2, worldToCanvas(mover.y + BLOCK_H), 22, blockColor(blocks.length));
@@ -373,7 +376,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (!KIT) return;
     menuReshow = () => showEnd(reason, isBest);   // re-show is safe: the kit's record guard is idempotent per run
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: reason === 'time' ? KIT.t('game.stacker.endTitleTime', { def: "TIME'S UP!" }) : KIT.t('game.stacker.endTitle', { def: 'OOPS!' }), backdrop: menuBackdrop,
-      record: { slug: 'stacker', mode: MODE_CFG[mode].label, modeText: modeName(mode), score: score, outcome: reason === 'time' ? 'end' : 'lose' },
+      record: { slug: 'stacker', mode: MODE_CFG[mode].label, modeText: modeName(mode), score: score, stats: { streak: bestCombo }, outcome: reason === 'time' ? 'end' : 'lose' },
       score: score, best: currentBest(), newBest: isBest, lines: [modeName(mode)],
       share: { slug: 'stacker', accent: '#ff9aa2', icon: '🧊', title: KIT.t('game.stacker.title', { def: 'Stack' }), message: () => shareMsg(), params: () => menuParams({ mode: mode, theme: theme }) },
       actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'Play Again' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'Menu' }) } ],

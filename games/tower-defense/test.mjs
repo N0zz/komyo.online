@@ -384,7 +384,12 @@ function run() {
       g2.test().start(); g2.test().step(2); g2.test().render();
       ok(g2.errors.length === 0, key + ': renders the keep without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
     }
-    ok(g.win.gamekit.cosmetics.buy('tower-defense.castle.oak') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy castle skin with trophies (75 left)');
+    { // asserted as SPEND, not as a balance: an achievement unlocking on this very purchase
+      // ("buy your first cosmetic") pays trophies back in, so the balance delta is not the price
+      const spent0 = g.win.gamekit.cosmetics.spent();
+      ok(g.win.gamekit.cosmetics.buy('tower-defense.castle.oak') === true && g.win.gamekit.cosmetics.spent() === spent0 + 25
+        && g.win.gamekit.cosmetics.owned('tower-defense.castle.oak'), 'buying oak spends 25 🏆 and owns it');
+    }
   }
 
   // The end screen used `score >= bestScore`, but saveBest() raises bestScore to max(score, prev)

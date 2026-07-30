@@ -160,7 +160,12 @@ section('cosmetics — ship skins');
     ok(g2.errors.length === 0, key + ': renders a run without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
   }
   // buy with trophies: emerald costs 10, balance starts 100
-  ok(g.win.gamekit.cosmetics.buy('asteroids.ship.emerald') === true && g.win.gamekit.cosmetics.balance() === 90, 'buy ship skin with trophies (90 left)');
+  { // asserted as SPEND, not as a balance: an achievement unlocking on this very purchase
+    // ("buy your first cosmetic") pays trophies back in, so the balance delta is not the price
+    const spent0 = g.win.gamekit.cosmetics.spent();
+    ok(g.win.gamekit.cosmetics.buy('asteroids.ship.emerald') === true && g.win.gamekit.cosmetics.spent() === spent0 + 10
+      && g.win.gamekit.cosmetics.owned('asteroids.ship.emerald'), 'buying emerald spends 10 🏆 and owns it');
+  }
 }
 
 summary();

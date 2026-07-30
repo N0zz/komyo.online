@@ -43,6 +43,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../achievements.js"></script>
 <script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <style>
@@ -603,7 +604,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     KIT.showMenuButton(false); KIT.showPauseButton(false);
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
       title: won ? KIT.t('game.trap-the-cat.win', { def: 'CORNERED! 😸' }) : KIT.t('game.trap-the-cat.lose', { def: 'THE CAT ESCAPED!' }),
-      record: { slug: SLUG, mode: diffLabel(diff), modeText: diffDisplay(diff), score, stats: { clicks }, outcome: won ? 'win' : 'lose' },
+      record: { slug: SLUG, mode: diffLabel(diff), modeText: diffDisplay(diff), score, stats: { clicks, won: won ? 1 : 0 }, outcome: won ? 'win' : 'lose' },
       score, best, newBest: isBest,
       lines: [ diffDisplay(diff) + ' · ' + KIT.t('game.trap-the-cat.hedgesLine', { count: clicks, def: '{count} hedges planted' }) ],
       share: { slug: SLUG, accent: ACCENT, icon: '🐱', title: KIT.t('game.trap-the-cat.title', { def: 'Trap the Cat' }),

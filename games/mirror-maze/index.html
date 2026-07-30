@@ -43,6 +43,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../achievements.js"></script>
 <script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <style>
@@ -1991,7 +1992,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
         : underPar ? '✦ ' + KIT.t('game.mirror-maze.underPar', { def: 'PAR OR BETTER!' })
         : KIT.t('game.mirror-maze.solvedTitle', { def: 'MAZE SOLVED!' }) + (hintCount() ? ' · ' + hintBadge() : ''),
       record: { slug: SLUG, mode: modeLabel(), modeText: modeDisplay(), score: runScore, time: 0,
-        outcome: won ? 'win' : 'lose', stats: { tier: board ? board.tier : 1, mazes: solvedCount } },
+        // `solved` is a DELTA (this checkpoint), `mazes` the run total: this end menu fires once per
+        // solved maze, so a cumulative counter must add 1 here, not the running total (which would
+        // sum 1+2+3+… and make a 50-maze goal land at 10).
+        outcome: won ? 'win' : 'lose', stats: { tier: board ? board.tier : 1, mazes: solvedCount, solved: won ? 1 : 0, hints: hintCount() } },
       score: runScore, best: bestOf(), newBest: isBest,
       lines: lines,
       share: { slug: SLUG, accent: ACCENT, icon: '🔆', title: KIT.t('game.mirror-maze.title', { def: 'Mirror Maze' }),

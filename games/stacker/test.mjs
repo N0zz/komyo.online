@@ -291,7 +291,12 @@ section('cosmetics — block palettes');
     g2.test().render();
     ok(g2.errors.length === 0, key + ': stacks + renders without errors' + (g2.errors.length ? ' — ' + g2.errors[0] : ''));
   }
-  ok(g.win.gamekit.cosmetics.buy('stacker.palette.synthwave') === true && g.win.gamekit.cosmetics.balance() === 75, 'buy palette with trophies (75 left)');
+  { // asserted as SPEND, not as a balance: an achievement unlocking on this very purchase
+    // ("buy your first cosmetic") pays trophies back in, so the balance delta is not the price
+    const spent0 = g.win.gamekit.cosmetics.spent();
+    ok(g.win.gamekit.cosmetics.buy('stacker.palette.synthwave') === true && g.win.gamekit.cosmetics.spent() === spent0 + 25
+      && g.win.gamekit.cosmetics.owned('stacker.palette.synthwave'), 'buying synthwave spends 25 🏆 and owns it');
+  }
 }
 
 summary();

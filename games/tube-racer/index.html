@@ -43,6 +43,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../achievements.js"></script>
 <script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <style>
@@ -358,7 +359,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     feats: [], nextObs: 0, nextCool: 0, nextAcc: 0, nextFriction: 0, nextShear: 0,
     nextPlug: 0, nextSent: 0,
     // balance telemetry for the run (reported once, at game over)
-    nCool: 0, nAcc: 0, boostFrames: 0, hitBy: '',
+    nCool: 0, nAcc: 0, boostFrames: 0, hitBy: '', nHits: 0,
   };
 
   // ---- score-gated mechanic tiers -------------------------------------------------
@@ -685,7 +686,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       // remember WHAT hit us, from a closed set — this is what makes "which hazard is doing the
       // killing" answerable at all, and the hazard variants are only distinguishable here
       S.hitBy = f.homes ? 'sentinel' : f.k === 'plug' ? 'plug' : f.x ? 'xcross' : f.k === 'beam' ? 'rotor' : 'wall';
-      S.hull--; S.spd *= 0.5;
+      S.hull--; S.nHits++; S.spd *= 0.5;
       S.heat = Math.max(S.heat, Math.min(S.heat + HIT_HEAT, HIT_HEAT_MAX));
       S.shake = 22; S.flash = 0.8; S.flashHot = true; S.inv = 0.9; SND.play('scrape');
       if (S.hull <= 0) { die('destroyed'); return; }
@@ -1237,7 +1238,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     S.shake = 0; S.flash = 0; S.flashHot = false; S.inv = 0; S.lock = 0;
     S.coolCd = 0; S.warnPh = 1; S.frames = 0; S.cleared = false; S.why = '';
     S.onCool = false; S.onAcc = false; S.inFriction = false;
-    S.nCool = 0; S.nAcc = 0; S.boostFrames = 0; S.hitBy = '';
+    S.nCool = 0; S.nAcc = 0; S.boostFrames = 0; S.hitBy = ''; S.nHits = 0;
     S.heatRate = 0; S.ttl = Infinity; S.alarm = 0;
     genReset(seedFor(mode));
     best = loadBest();
@@ -1531,6 +1532,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
                 // doing the killing.
                 endCause: cleared ? 'cleared' : S.why === 'overheat' ? 'overheat' : (S.hitBy || 'wall'),
                 stats: { dist: Math.round(km(S.dist) * 100) / 100, mach: Math.round(S.topMach * 100) / 100,
+                  // a clean sprint = cleared with the hull never scratched (the achievement reads it)
+                  clean: (cleared && S.nHits === 0) ? 1 : 0,
                   // RATES, not counts: a count mostly measures how long the run was, so it can't be
                   // compared between a 2-minute and a 20-minute run — which is the whole point.
                   rates: {

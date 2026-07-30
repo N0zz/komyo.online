@@ -41,6 +41,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 <script src="../../game-kit.js"></script>
 <script src="../../challenges.js"></script>
 <script src="../../cosmetics.js"></script>
+<script src="../../achievements.js"></script>
 <script src="../../games.js"></script>
 <script src="../../i18n.js"></script>
 <style>
@@ -119,6 +120,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let dpr = 1, bgCache = null, brickSprites = null; // prerendered static layers (see buildStaticLayers)
   let state = 'ready'; // ready | playing | over
   let score = 0, best = 0, lives = LIVES_START, level = 1;
+  let runBricks = 0, flawless = false, lostThisLevel = false;   // achievement tallies (see reset())
   // the record as it stood when THIS run began — `best` is raised mid-run by the brick handler, so
   // comparing against it at the end flagged a mere TIE as a new best (scores are round multiples)
   let bestAtStart = 0;
@@ -248,6 +250,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- Init / reset ----
   function reset() {
     score = 0; lives = LIVES_START; level = 1; ballStuck = true;
+    runBricks = 0; flawless = false; lostThisLevel = false;
     widePaddle = 0; slowBall = 0;
     particles = []; powerups = []; trail = [];
     endlessTimer = 0; survivalOffset = 0;
@@ -281,6 +284,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
 
   function nextLevel() {
+    if (!lostThisLevel) flawless = true;   // cleared THIS level without losing a ball
+    lostThisLevel = false;
     level++;
     ballStuck = true;
     widePaddle = 0; slowBall = 0;
@@ -294,7 +299,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   function loseLife() {
     SND.play('lose');
-    lives--;
+    lives--; lostThisLevel = true;
     updateHud();
     if (lives <= 0) {
       state = 'over';
@@ -350,7 +355,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (!KIT) return;
     menuReshow = showEnd;
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.breakout.gameOver', { def: 'GAME OVER' }), backdrop: menuBackdrop,
-      record: { slug: 'breakout', mode: modeLabel(gameMode), modeText: modeDisplay(gameMode), score: score, outcome: 'lose' },
+      record: { slug: 'breakout', mode: modeLabel(gameMode), modeText: modeDisplay(gameMode), score: score, stats: { bricks: runBricks, noLoss: flawless ? 1 : 0, level: level }, outcome: 'lose' },
       score: score, best: best, newBest: score > bestAtStart && score > 0, lines: [KIT.t('game.breakout.endLine', { mode: gameMode.toUpperCase(), level: level, def: gameMode.toUpperCase() + ' · level ' + level })],
       share: { slug: 'breakout', accent: '#ff5cc8', icon: '🧱', title: KIT.t('game.breakout.title', { def: 'Brick Breaker' }), message: () => shareMsg(), params: () => modeParams({ mode: gameMode, speed2x: speedMult === 2 }) },
       actions: [ { id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) } ],
@@ -407,6 +412,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
           spawnParticles(bx + bw / 2, by + bh / 2, col);
           dropPowerup(bx + bw / 2, by + bh / 2);
           bricks.splice(i, 1);
+          runBricks++;
           score += 10 * level;
           if (score > best) { best = score; saveBest(); }
           // a harder shake is the in-engine half of the kit's live new-best pulse
