@@ -189,6 +189,10 @@ section('sprint mode: ends after 100 targets hit');
   // (regression: showEnd() computed isBest but never surfaced it anywhere for the sprint branch)
   const endEl = Ts().menu().el;
   ok(!!findByHtml(endEl, 'gkm-new'), 'sprint end screen shows the new-best banner on a first clear');
+  // …and the FLAG has to be set too, not just the hand-rolled banner: the kit falls back to
+  // score-vs-stored-score for game_play's new_best, and a sprint entry stores only a time — so its
+  // score bar reads 0 and every single sprint run reported a new best.
+  ok(Ts().menu().cfg.newBest === true, 'sprint sets cfg.newBest (kit bookkeeping, not just the banner)');
 }
 
 section('sprint mode: winning hit holds briefly before the end screen (bar visibly fills)');

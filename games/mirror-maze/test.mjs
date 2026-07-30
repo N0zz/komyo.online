@@ -1350,4 +1350,34 @@ section('mirror-maze: par and the moves-to-par end line');
   ok(m != null, 'end screen shown');
 }
 
+// runScore is CUMULATIVE and every solved board saves it, so comparing against the LIVE store
+// compared the run against itself. failRun (out of power) pays nothing, so runScore was unchanged
+// and `runScore > bestOf()` could never be true — endless mode's only natural ending, which meant
+// endless never reported a best at all.
+section('mirror-maze: endless failRun reports a best against the run-START record');
+{
+  const g = bootGame(FILE, { seed: 11, store: { gamekit_pb: JSON.stringify({ 'mirror-maze': { Endless: { score: 5, time: 0, plays: 1, stats: {} } } }) } });
+  const T = g.T;
+  T().startMode('endless');
+  T().solve();                                        // board 1 banks its award into runScore
+  T().step(90);
+  const afterBoard = T().menu();
+  ok(afterBoard != null, 'the solved board opened its end screen');
+  afterBoard.activate('next');
+  const scored = T().score;
+  ok(scored > 5, 'one solved board already beat the stored 5 (runScore=' + scored + ')');
+  // toggle ONE mirror back and forth: each spin costs power but the board never accidentally solves
+  let seat = null, n = T().size || 0;
+  for (let y = 0; y < n && !seat; y++) for (let x = 0; x < n && !seat; x++) {
+    const c = T().cell(x, y); if (c && c.t === 'mirror') seat = { x, y };
+  }
+  ok(!!seat, 'found a mirror to burn power on');
+  let guard = 0;
+  while (T().state === 'playing' && guard++ < 400) T().rotate(seat.x, seat.y);
+  ok(T().state === 'over', 'the spin pool ran dry and ended the run (spins=' + guard + ')');
+  T().step(60);
+  ok(T().menu() && T().menu().cfg.newBest === true,
+    'a run that out-scored its starting record reports a best even though the fatal maze paid nothing');
+}
+
 summary();

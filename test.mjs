@@ -621,6 +621,22 @@ async function testKit() {
     ok(polled === 2, 'opts.frame runs once per display frame (got ' + polled + ')');
   }
 
+  { // live new-best pulse: 18 games call bestWatch/bestTick, so the arming rules live here
+    const pulses = () => doc.body.children.filter(c => String(c.className || '').indexOf('gamekit-bestpulse') >= 0).length;
+    const before = pulses();
+    F.bestWatch('pulse-test', 'Classic');            // no stored best → a first run is not a comeback
+    ok(F.bestTick(50) === false && pulses() === before, 'bestTick stays silent with no previous best');
+    F.saveBest('pulse-test', 'Classic', { score: 40 });
+    F.bestWatch('pulse-test', 'Classic');
+    ok(F.bestTick(40) === false, 'bestTick needs to PASS the bar, not tie it');
+    ok(F.bestTick(41) === true && pulses() === before + 1, 'bestTick fires + mounts the banner on passing the bar');
+    ok(F.bestTick(99) === false, 'bestTick fires at most once per run');
+    F.bestWatch('pulse-test', 'Classic', 100);       // a resumed board already past the bar
+    ok(F.bestTick(101) === false, 'bestWatch(from) disarms a run that RESUMES above the bar');
+    F.bestWatch('pulse-test', 'Speedrun');           // time-primary modes store no score → bar 0
+    ok(F.bestTick(9) === false, 'a time-only mode has no score bar → no pulse');
+  }
+
   // results + per-day activity log (powers challenges)
   F.recordResult('snake', { mode: 'classic', score: 42, stats: { length: 5 } });
   const rr = F.lastResult('snake');
@@ -853,6 +869,32 @@ async function testKit() {
   store['gamekit_discord_name'] = '0';
   ok(F.discordTier() === 'anon', 'discordTier: opt-in toggled back off → anonymous again');
   delete store['gamekit_consent']; delete store['gamekit_discord_name'];
+  { // Discord announces a PERSONAL BEST, once. Nothing in the auto-post path is reachable headless
+    // (no fetch / IntersectionObserver / getClientRects), so the decision itself is the unit tested.
+    const A = (o) => F.__pbAnnounce(o);
+    const run = (extra) => Object.assign({ slug: 'ann', mode: 'Classic', score: 500 }, extra || {});
+    delete store['gamekit_dc_ann']; delete store['gamekit_pb'];
+    F.__runPbSnap(null);
+    ok(A(run()) === true, 'a first-ever run posts (no bar to beat — the loudest welcome)');
+    ok(A(run({ score: 0 })) === false, 'a zero-score run never posts');
+    ok(A(run({ final: false })) === false, 'a mid-run checkpoint screen never posts (final: false)');
+    F.__runPbSnap('ann', { Classic: { score: 500, time: 0 } });
+    ok(A(run({ score: 500 })) === false, 'TYING the record the run started with is not a best');
+    ok(A(run({ score: 501 })) === true, 'beating it by one is');
+    // the cumulative case: the bar stays the run's STARTING record, so the final total is what posts
+    ok(A(run({ score: 5000 })) === true, 'a cumulative run announces its final total, not its overtake moment');
+    // time-primary: the clock decides, and lower wins
+    F.__runPbSnap('ann', { 'Sprint': { score: 0, time: 9000 } });
+    ok(A({ slug: 'ann', mode: 'Sprint', score: 1200, time: 8000 }) === true, 'a faster sprint clear posts');
+    ok(A({ slug: 'ann', mode: 'Sprint', score: 9999, time: 9500 }) === false, 'a slower sprint clear does not, however high its score');
+    // the announced watermark: shared storage, so it also covers a second tab and a menu re-show
+    F.__runPbSnap('ann', { Classic: { score: 100, time: 0 } });
+    store['gamekit_dc_ann'] = JSON.stringify({ v: 1, a: { 'ann|Classic': { s: 5000, t: 0 } } });
+    ok(A(run({ score: 2000 })) === false, 'a run that beats its own bar but not what we ALREADY posted stays quiet');
+    ok(A(run({ score: 5001 })) === true, 'beating the last posted score posts, with no clock involved');
+    delete store['gamekit_dc_ann'];
+    F.__runPbSnap(null);
+  }
   // ---- cards group + boolean toggle: state merges selection + toggles; dynamic best/mech are fns ----
   let played2 = null, cardErr = null, hc = null;
   try {
@@ -972,6 +1014,27 @@ function testKitChrome() {
   ok(css.includes('.gamekit-more-panel') && css.includes('.gamekit-au-morebtn'), '☰ menu panel styles present');
   ok(js.includes('ctl.scriptURL !== prevCtl.scriptURL'), 'update vs scope-hand-over told apart by worker script URL (not timing)');
   ok(!js.includes('if (!interacted)') && !js.includes('showUpdateButton'), 'new build never auto-reloads the visible page — it lights the ☰ badge (no launch fast-path reload)');
+
+  // analytics.js DEV guard: which HOSTNAMES are silently dropped. A LAN-served dev session (a phone on
+  // the same wifi hitting 192.168.x.y) is as synthetic as localhost and bends the same averages.
+  {
+    const ANALYTICS = fs.readFileSync(path.join(DIR, 'analytics.js'), 'utf8');
+    const sends = hostname => {
+      const s = makeSandbox({ store: { gamekit_consent: 'granted' } });
+      s.sandbox.location = { search: '', hostname, origin: 'https://' + hostname };
+      s.run(ANALYTICS, 'analytics.js');
+      let hits = 0;
+      s.sandbox.window.gtag = () => { hits++; };          // stand in for a consented, loaded gtag
+      s.sandbox.window.gamekitTrack('probe', { a: 1 });
+      return hits > 0;
+    };
+    ['localhost', '127.0.0.1', 'dev.local', '10.0.0.4', '10.255.255.255', '192.168.1.23',
+      '172.16.0.9', '172.20.1.1', '172.31.255.4'].forEach(hn =>
+      ok(sends(hn) === false, 'DEV guard drops ' + hn));
+    ['komyo.online', 'komyo-online.discordsays.com', '172.15.0.1', '172.32.0.1',
+      '110.0.0.4', '8.8.8.8', '192.169.1.1'].forEach(hn =>
+      ok(sends(hn) === true, 'DEV guard still TRACKS ' + hn));
+  }
 }
 
 function testRecentlyPlayed() {
@@ -1704,6 +1767,38 @@ function testWords() {
   if (users.length) ok(sw.includes("'./words.js'"), 'words.js is in the root sw.js SHELL (used by: ' + users.join(', ') + ')');
 }
 
+// The Discord auto-post announces a personal best once per RUN, so an end screen that does NOT end the
+// run must declare `final: false`. Only two games can show one (2048's KEEP GOING, Mirror Maze's NEXT
+// MAZE) — and a third arriving silently would ladder the channel again, so it's asserted structurally
+// rather than trusted to a comment. Also guards the payload: text is DROPPED unless the Components V2
+// card branch carries it as its own TextDisplay.
+function testDiscordFinal() {
+  section('Discord auto-post: mid-run end screens declare final:false');
+  const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+  ok(/payload\.components = \[\];[\s\S]{0,200}type: 10, content: String\(text\)/.test(kit),
+    'postDiscord puts `text` in the card payload as a TextDisplay (Components V2 forbids `content`)');
+  ok(/return fetch\(endpoint[\s\S]{0,300}unknown: true/.test(kit),
+    'postDiscord reports its outcome, treating an unreadable response as SENT (never a retry)');
+  const games = fs.readdirSync(path.join(DIR, 'games')).filter(g =>
+    fs.existsSync(path.join(DIR, 'games', g, 'index.html'))).sort();
+  const RESUMES = /id: *'(next|continue)'/;
+  const offenders = [];
+  for (const slug of games) {
+    const src = fs.readFileSync(path.join(DIR, 'games', slug, 'index.html'), 'utf8');
+    let i = -1;
+    while ((i = src.indexOf("kind: 'end'", i + 1)) >= 0) {
+      const win = src.slice(i, i + 2600);          // the end menu's own cfg object
+      if (RESUMES.test(win) && !/final: */.test(win)) offenders.push(slug);
+    }
+  }
+  ok(offenders.length === 0, 'every end menu offering NEXT/KEEP GOING declares final (offenders: ' + (offenders.join(', ') || 'none') + ')');
+  for (const slug of ['2048', 'mirror-maze']) {
+    const src = fs.readFileSync(path.join(DIR, 'games', slug, 'index.html'), 'utf8');
+    ok(/final: *!/.test(src), slug + ' declares a conditional final on its end screen');
+  }
+}
+
+testDiscordFinal();
 testFullscreen();
 testRecentlyPlayed();
 testI18n();

@@ -464,4 +464,25 @@ section('cosmetics — food skins');
   ok(g.errors.length === 0, 'runs with a bought skin without errors');
 }
 
+// The end screen's "★ New best!" compared score against `best`, which the eat handler had ALREADY
+// raised mid-run — so the flag was permanently false and the badge never once appeared in Snake.
+section('new-best flag: measured against the record the run STARTED with');
+{
+  const seed = mode => ({ gamekit_pb: JSON.stringify({ snake: { [mode]: { score: 10, time: 0, plays: 1, stats: {} } } }) });
+  const die = T => { T().turn('up'); let n = 0; while (T().state === 'playing' && n++ < 60) T().step(1); };
+  const eat = (T, times) => { for (let i = 0; i < times; i++) { const h = T().head; T().placeFoodAt(h.x + 1, h.y); T().step(1); } };
+  {                                          // beat it → the badge fires
+    const g = runGame({ store: seed('Normal · Walls') });
+    const T = g.T; T().start(); eat(T, 2); die(T);
+    ok(T().score === 20, 'ate twice for 20 (got ' + T().score + ')');
+    ok(T().menu() && T().menu().cfg.newBest === true, 'beating the stored 10 flags a new best');
+  }
+  {                                          // merely equal it → no badge
+    const g = runGame({ store: seed('Normal · Walls') });
+    const T = g.T; T().start(); eat(T, 1); die(T);
+    ok(T().score === 10, 'ate once for 10 (got ' + T().score + ')');
+    ok(T().menu() && !T().menu().cfg.newBest, 'tying the stored 10 does NOT flag a new best');
+  }
+}
+
 summary();
