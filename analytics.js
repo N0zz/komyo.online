@@ -14,8 +14,16 @@
   // they're SYNTHETIC RUNS, and those bend the averages that matter (score, duration_s, completion
   // and share funnels) far more than they bend any count. Consent is per-origin, so localhost was
   // already quiet unless you clicked Accept there; this makes it impossible to do by accident.
+  // Private LAN addresses count as dev too: `python3 -m http.server` reached from a phone on the same
+  // wifi is served over the machine's 192.168./10./172.16-31. address, which is still a synthetic run.
+  // (172.16.0.0/12 = 172.16–172.31 — .32+ is public space and must stay trackable.)
   var DEV = false;
-  try { DEV = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || /\.local$/i.test(location.hostname); } catch (e) {}
+  try {
+    DEV = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname) || /\.local$/i.test(location.hostname)
+      || /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(location.hostname)
+      || /^192\.168\.\d{1,3}\.\d{1,3}$/.test(location.hostname)
+      || /^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(location.hostname);
+  } catch (e) {}
   window.gamekitLoadGA = function () {
     if (loaded || DEV) return;
     loaded = true;
