@@ -2682,4 +2682,6 @@ window.KOMYO_I18N.it = {
   'ach.tube-racer.clean.desc': 'Completa uno sprint senza prendere un colpo.',
   'changelog.e91.title': 'Obiettivi 🏅',
   'changelog.e91.b0': 'Novità: gli obiettivi — 79 traguardi una tantum che non scadono mai, nella finestra Collezione accanto al negozio e ai tuoi titoli. Ognuno paga trofei nel momento in cui lo completi, la maggior parte mostra una barra di progresso dal vivo, e tutto quello che avevi già guadagnato prima di oggi ti è stato sbloccato automaticamente.',
+  'changelog.e92.title': 'Guarda Corridore del Tubo prima di partire 🎬',
+  'changelog.e92.b0': 'Novità: anche Corridore del Tubo ora mostra una breve clip di gioco sulla sua schedina — tocca ALTRO per vedere come si guida davvero prima di iniziare.',
 };

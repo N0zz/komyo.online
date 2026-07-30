@@ -2682,4 +2682,6 @@ window.KOMYO_I18N.pt = {
   'ach.tube-racer.clean.desc': 'Complete um sprint sem levar uma batida.',
   'changelog.e91.title': 'Conquistas 🏅',
   'changelog.e91.b0': 'Novo: conquistas — 79 metas únicas que nunca expiram, na janela da Coleção ao lado da loja e dos teus títulos. Cada uma paga troféus no momento em que a completas, a maioria mostra uma barra de progresso em direto, e tudo o que já tinhas conquistado antes de hoje foi desbloqueado automaticamente para ti.',
+  'changelog.e92.title': 'Vê o Corredor de Tubo antes de acelerar 🎬',
+  'changelog.e92.b0': 'Novo: Corredor de Tubo também mostra agora um clipe curto de jogo no seu cartão — toca em MAIS para ver como se conduz de verdade antes de começar.',
 };

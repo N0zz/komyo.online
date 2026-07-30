@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-30', title: 'See Tube Racer before you ride 🎬', items: [
+    'New: Tube Racer now plays a short gameplay clip on its card too — tap MORE to see how it actually rides before you start.',
+  ] },
   { date: '2026-07-30', title: 'Achievements 🏅', items: [
     'New: achievements — 79 one-off goals that never expire, in the Collection window next to the shop and your titles. Each one pays trophies the moment you clear it, most show a live progress bar, and anything you had already earned before today was unlocked for you automatically.',
   ] },

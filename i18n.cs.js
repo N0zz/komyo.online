@@ -2682,4 +2682,6 @@ window.KOMYO_I18N.cs = {
   'ach.tube-racer.clean.desc': 'Dokonči sprint bez jediného zásahu.',
   'changelog.e91.title': 'Úspěchy 🏅',
   'changelog.e91.b0': 'Novinka: úspěchy — 79 jednorázových cílů, které nikdy nevyprší, v okně Sbírka hned vedle obchodu a tvých titulů. Každý ti vyplatí trofeje ve chvíli, kdy ho splníš, většina ukazuje živý pruh postupu, a všechno, co jsi si zasloužil ještě před dneškem, se ti odemklo automaticky.',
+  'changelog.e92.title': 'Podívej se na Tunelového jezdce, než vyrazíš 🎬',
+  'changelog.e92.b0': 'Nové: Tunelový jezdec teď na své kartě taky přehraje krátký klip ze hry — klepni na VÍCE a podívej se, jak se opravdu řídí, ještě než začneš.',
 };
