@@ -1,0 +1,332 @@
+<meta charset="utf-8">
+<title>komyo · Audio Lab v2 — the v3 engine, every track</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Soundboard for komyo's v3 procedural music engine — every shipped track, playable live in the browser with the same intensity and arrangement logic the games use. Zero audio files.">
+<style>
+  :root{
+    --bg:#0b0d12; --panel:#141822; --panel2:#1b2130; --ink:#e8ecf4; --muted:#8b93a7;
+    --line:#252c3b; --accent:#6ee7b7; --ext:#a78bfa; --hot:#ff5fa2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 700px at 50% -10%,#161c2b,var(--bg));
+    color:var(--ink);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased;padding:0 0 90px}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 18px}
+  header{padding:34px 0 10px;text-align:center}
+  h1{margin:0 0 6px;font-size:26px;letter-spacing:.2px}
+  h1 .g{background:linear-gradient(90deg,#6ee7b7,#a78bfa,#ff5fa2);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{color:var(--muted);max-width:660px;margin:0 auto;font-size:14px}
+  .note{color:var(--muted);font-size:12.5px;max-width:800px;margin:14px auto 0;border:1px solid var(--line);
+    background:var(--panel);border-radius:12px;padding:12px 16px;text-align:left}
+  .note b{color:var(--ink)}
+  code{background:var(--panel2);padding:1px 5px;border-radius:4px;font-size:11.5px;color:var(--accent)}
+
+  .bar{position:sticky;top:0;z-index:20;background:rgba(11,13,18,.9);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);padding:11px 0;margin:22px 0}
+  .bar .wrap{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center}
+  .ctl{display:flex;align-items:center;gap:9px}
+  .ctl label{font-size:12px;color:var(--muted);white-space:nowrap}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:5px;border-radius:5px;background:var(--line);outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;
+    background:var(--accent);cursor:pointer;box-shadow:0 0 0 4px rgba(110,231,183,.16)}
+  #master{width:96px} #intensity{width:150px}
+  button{border:1px solid var(--line);background:var(--panel2);color:var(--ink);
+    border-radius:9px;padding:6px 12px;font-size:12.5px;cursor:pointer;font-weight:600;font-family:inherit}
+  button:hover{border-color:var(--accent)}
+  .presets{display:flex;gap:5px}.presets button{padding:6px 10px}
+  button.on{background:var(--accent);color:#0b0d12;border-color:var(--accent)}
+  #ramp.on,#mode.on{background:var(--ext);color:#0b0d12;border-color:var(--ext)}
+  #stopall{border-color:rgba(255,95,162,.4);color:var(--hot)}
+  .meter{width:92px;height:9px;border-radius:9px;background:var(--line);overflow:hidden;position:relative}
+  .meter i{position:absolute;left:0;top:0;bottom:0;width:2%;
+    background:linear-gradient(90deg,#6ee7b7,#a78bfa,#ff5fa2);transition:width .14s linear}
+  .scope{display:flex;gap:12px;align-items:flex-end;margin-left:auto}
+  canvas{background:#080a0f;border:1px solid var(--line);border-radius:8px;display:block}
+  .readout{font:11px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);white-space:pre}
+  #nowline{flex:1 1 100%;font:11.5px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);min-height:17px}
+  #nowline b{color:var(--ink)}#nowline .sec{color:var(--ext);font-weight:700}
+
+  h2{font-size:15px;margin:26px 0 4px;display:flex;align-items:center;gap:10px}
+  h2 .tpl{font:11px ui-monospace,Menlo,monospace;color:var(--ext);border:1px solid rgba(167,139,250,.35);
+    border-radius:20px;padding:2px 9px;font-weight:600}
+  h2 .cnt{font-size:11.5px;color:var(--muted);font-weight:400}
+  .form{font-size:11.5px;color:var(--muted);margin:0 0 10px;font-family:ui-monospace,Menlo,monospace}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:10px}
+  .card{border:1px solid var(--line);border-radius:13px;background:var(--panel);padding:13px 14px;
+    cursor:pointer;transition:background .15s,border-color .15s;position:relative;overflow:hidden}
+  .card:hover{background:var(--panel2);border-color:var(--accent)}
+  .card.playing{border-color:var(--ext);background:linear-gradient(180deg,rgba(167,139,250,.14),transparent)}
+  .card.playing::before{content:"";position:absolute;left:0;top:0;right:0;height:3px;background:var(--ext)}
+  .card .k{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13.5px;margin-bottom:3px}
+  .card .play{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--panel2);
+    display:grid;place-items:center;font-size:10px;flex:none}
+  .card.playing .play{background:var(--ext);color:#0b0d12;border-color:transparent}
+  .card .who{font-size:11px;color:var(--accent);margin-bottom:6px}
+  .card .who.none{color:var(--muted)}
+  .card .spec{font:10.5px/1.5 ui-monospace,Menlo,monospace;color:var(--muted)}
+  .arr{display:none;gap:2px;margin-top:10px;height:19px}
+  .card.playing .arr{display:flex}
+  .arr div{flex:var(--f,1);border-radius:3px;background:var(--panel2);border:1px solid var(--line);
+    font:9px/17px ui-monospace,Menlo,monospace;color:var(--muted);text-align:center;overflow:hidden;
+    white-space:nowrap;cursor:pointer}
+  .arr div:hover{background:rgba(167,139,250,.2);color:var(--ink);border-color:var(--ext)}
+  .arr div.on{background:rgba(167,139,250,.34);border-color:var(--ext);color:var(--ink);font-weight:700}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:30px}
+  /* The sticky bar wraps to ~335px on a 360-wide phone — over half the screen — so below 720px the
+     scope is dropped (a nicety, not a control) and the transport tightens up. Landscape phones are
+     only 360px TALL, so the same rule keeps gameplay-height sane there too. */
+  @media(max-width:720px){
+    .bar{padding:8px 0}
+    .bar .wrap{gap:8px 12px}
+    .scope{display:none}
+    #master{width:74px} #intensity{width:96px}
+    .meter{width:52px}
+    .ctl label{font-size:11px}
+    button{padding:5px 9px;font-size:11.5px}
+    .presets button{padding:5px 8px}
+    #nowline{font-size:10.5px;max-height:30px;overflow:hidden}
+    .cards{grid-template-columns:1fr}
+  }
+  @media(max-height:420px){
+    .bar{padding:6px 0}
+    .scope{display:none}
+    #nowline{max-height:16px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>komyo · <span class="g">Audio Lab v2</span></h1>
+    <p class="sub">Every track the site ships, on the <b>v3 engine</b>, playable live. Pure Web Audio —
+      zero audio files, the same constraint the real games run under.</p>
+    <p class="note"><b>This page drives the real engine.</b> It loads <code>../game-kit.js</code> and calls
+      <code>gamekit.music</code> — the same registry, arrangements and transition rules the games use. It is
+      not a copy, so it cannot drift from what ships. (The previous lab was a hand-ported model of 11 of the
+      30 tracks, which is how a shipped pair scoring 83% similar once passed the distinctness lint clean.)<br><br>
+      <b>Just click a card.</b> It starts in full auto — <b>⇅ Adaptive</b> plus <b>Auto-ramp</b> from
+      near-zero — so the track builds, drops, breaks down and climbs again on its own with no input.
+      Then take over with <b>Intensity</b> or <b>Calm / Build / Peak</b> to imitate a run.<br><br>
+      <b>The strip on a playing card is its arrangement</b> — click any section to jump there. A
+      <span class="sec">→ name</span> in the status line means a switch is one bar away and you are hearing
+      the fill into it. Switches only land on 4-bar phrase lines, need to beat the current section's energy
+      match by a margin, and land on a crash with a pad and sub ringing across the seam.<br><br>
+      <b>⇅ Adaptive</b> is how games run it: intensity picks the section. <b>▦ Timeline</b> plays the
+      arrangement start to finish instead — useful for hearing a track as a song.</p>
+  </header>
+</div>
+
+<div class="bar"><div class="wrap">
+  <div class="ctl"><label>Master</label><input type="range" id="master" min="0" max="100" value="70"></div>
+  <div class="ctl"><label>Intensity</label><input type="range" id="intensity" min="0" max="100" value="2">
+    <div class="meter"><i id="meterfill"></i></div></div>
+  <div class="ctl presets" id="presets">
+    <button data-i="15">Calm</button><button data-i="55">Build</button><button data-i="95">Peak</button>
+  </div>
+  <button id="ramp" class="on">⟳ Auto-ramp</button>
+  <button id="mode" class="on">⇅ Adaptive</button>
+  <button id="stopall">■ Stop</button>
+  <div class="scope">
+    <canvas id="spec" width="230" height="52"></canvas>
+    <div class="readout" id="ro">sub   —
+bass  —
+mid   —
+high  —
+crest —</div>
+  </div>
+  <div id="nowline">Idle — pick a track below.</div>
+</div></div>
+
+<div class="wrap" id="grid"></div>
+
+<div class="wrap">
+  <footer>komyo Audio Lab v2 · generated live from the shipped registry · zero audio files</footer>
+</div>
+
+<script src="../version.js"></script>
+<script src="../game-kit.js"></script>
+<script src="../games.js"></script>
+<script>
+(function () {
+  'use strict';
+  var K = window.gamekit;
+  if (!K || !K.music) { document.getElementById('grid').textContent = 'game-kit.js failed to load.'; return; }
+  var M = K.music, TRACKS = M.tracks;
+
+  // ---- which games play which track ------------------------------------------------------------
+  // TRACKS carry a `game` family key; games.js carries slugs. De-hyphenating a slug matches most of
+  // them; these three are named for their theme rather than their folder.
+  var SLUG_FIX = { keep: 'tower-defense', range: 'aim-trainer', meadow: 'flappy' };
+  var titleOf = {};
+  (window.GAMES || []).forEach(function (g) { titleOf[g.slug] = g.title; });
+  function whoPlays(id) {
+    var fam = TRACKS[id].game || id;
+    var slug = SLUG_FIX[fam] || fam;
+    if (titleOf[slug]) return titleOf[slug];
+    var hy = Object.keys(titleOf).filter(function (s) { return s.replace(/-/g, '') === fam; })[0];
+    return hy ? titleOf[hy] : null;
+  }
+  var PC = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+  function keyName(hz, scale) {
+    if (!hz) return '?';
+    var midi = Math.round(69 + 12 * Math.log2(hz / 440));
+    var minor = (scale || []).indexOf(3) >= 0 && (scale || []).indexOf(4) < 0;
+    return PC[((midi % 12) + 12) % 12] + (minor ? ' min' : ' maj');
+  }
+
+  // ---- build the board, grouped by arrangement template ----------------------------------------
+  var ORDER = ['dance', 'retro', 'tactical', 'epic', 'puzzle', 'lush'];
+  var BLURB = {
+    dance: 'club form — a build into a drop, a breakdown, then a bigger drop',
+    retro: 'arcade/synthwave form — cruise, chase, coast, neon',
+    tactical: 'military form — patrol, contact, regroup, assault',
+    epic: 'orchestral form — a call, a march, the theme, a siege, a triumph',
+    puzzle: 'board-game form — setup, solve, streak, a pause, a cascade',
+    lush: 'calm form — open, drift, bloom, hush, crest'
+  };
+  var byTpl = {};
+  Object.keys(TRACKS).forEach(function (id) {
+    var t = TRACKS[id].arr || 'dance';
+    (byTpl[t] = byTpl[t] || []).push(id);
+  });
+  var html = '';
+  ORDER.concat(Object.keys(byTpl).filter(function (t) { return ORDER.indexOf(t) < 0; })).forEach(function (tpl) {
+    var list = byTpl[tpl]; if (!list) return;
+    var form = M.arrangement(list[0]).map(function (s) { return s.n + ' ' + s.bars; }).join(' · ');
+    html += '<h2><span class="tpl">' + tpl + '</span><span class="cnt">' + list.length +
+            ' track' + (list.length > 1 ? 's' : '') + ' — ' + BLURB[tpl] + '</span></h2>' +
+            '<p class="form">' + form + ' bars</p><div class="cards">';
+    list.forEach(function (id) {
+      var T = TRACKS[id], who = whoPlays(id);
+      var strip = '<div class="arr" data-strip="' + id + '">' + M.arrangement(id).map(function (s, i) {
+        return '<div style="--f:' + s.bars + '" data-sec="' + i + '" title="' + s.n + ' · ' + s.bars +
+               ' bars · energy ' + Math.round(s.e * 100) + '%">' + s.n + '</div>';
+      }).join('') + '</div>';
+      html += '<div class="card" data-id="' + id + '">' +
+        '<div class="k"><span class="play">▶</span>' + id + '</div>' +
+        '<div class="who' + (who ? '' : ' none') + '">' + (who || 'variant — swapped in at runtime') + '</div>' +
+        '<div class="spec">' + T.bpm + ' BPM · ' + keyName(T.root, T.scale) + '<br>' +
+          (T.kit || '—') + ' kit' + (T.groove ? ' · ' + T.groove : '') + '<br>' +
+          'sig ' + (T.sig || 'none') + ' · seed ' + (T.seed || '—') + '</div>' +
+        strip + '</div>';
+    });
+    html += '</div>';
+  });
+  document.getElementById('grid').innerHTML = html;
+
+  // ---- controls ---------------------------------------------------------------------------------
+  var intEl = document.getElementById('intensity'), fillEl = document.getElementById('meterfill');
+  var presetEls = [].slice.call(document.querySelectorAll('#presets button'));
+  var rampEl = document.getElementById('ramp'), modeEl = document.getElementById('mode');
+  var nowEl = document.getElementById('nowline'), grid = document.getElementById('grid');
+  var RAMP_START = 0.02, ramp = true, rampT = 0, curCard = null, target = RAMP_START;
+
+  function setIntensity(v, fromRamp) {
+    target = Math.max(0, Math.min(1, v));
+    M.intensity(target);
+    if (!fromRamp) intEl.value = Math.round(target * 100);
+    fillEl.style.width = (target * 100) + '%';
+    presetEls.forEach(function (b) { b.classList.toggle('on', Math.abs(+b.dataset.i / 100 - target) < 0.03); });
+  }
+  function stopAll() {
+    M.stop();
+    if (curCard) { curCard.classList.remove('playing'); curCard = null; }
+    nowEl.textContent = 'Idle — pick a track below.';
+  }
+  function playTrack(id, card, sec) {
+    var same = (curCard === card);
+    if (same && sec == null) { stopAll(); return; }
+    if (!same) {
+      stopAll();
+      M.setMuted(false);
+      if (ramp) { rampT = 0; setIntensity(RAMP_START, true); }
+      M.play(id);
+      curCard = card; card.classList.add('playing');
+    }
+    if (sec != null) { ramp = false; rampEl.classList.remove('on'); M.jump(sec); }
+  }
+  grid.addEventListener('click', function (e) {
+    var chip = e.target.closest('.arr div');
+    var card = e.target.closest('.card');
+    if (!card) return;
+    playTrack(card.dataset.id, card, chip ? +chip.dataset.sec : null);
+  });
+  document.getElementById('stopall').addEventListener('click', stopAll);
+  document.getElementById('master').addEventListener('input', function () { M.volume(this.value / 100); });
+  intEl.addEventListener('input', function () {
+    ramp = false; rampEl.classList.remove('on'); setIntensity(this.value / 100);
+  });
+  presetEls.forEach(function (b) {
+    b.addEventListener('click', function () {
+      ramp = false; rampEl.classList.remove('on'); setIntensity(+b.dataset.i / 100);
+    });
+  });
+  rampEl.addEventListener('click', function () { ramp = !ramp; rampEl.classList.toggle('on', ramp); if (ramp) rampT = 0; });
+  modeEl.addEventListener('click', function () {
+    var on = !M.adaptive();
+    M.adaptive(on);
+    modeEl.classList.toggle('on', on);
+    modeEl.textContent = on ? '⇅ Adaptive' : '▦ Timeline';
+  });
+  M.volume(0.7); M.adaptive(true); setIntensity(RAMP_START);
+
+  // ---- scope + status --------------------------------------------------------------------------
+  var spec = document.getElementById('spec'), sctx = spec.getContext('2d'), ro = document.getElementById('ro');
+  var BANDS = [['sub', 20, 60], ['bass', 60, 160], ['mid', 160, 2000], ['high', 2000, 11000]];
+  var an = null, fd = null, td = null;
+  setInterval(function () { if (ramp) { rampT += 0.05; setIntensity(0.5 - 0.48 * Math.cos(rampT / 90 * 2 * Math.PI), true); } }, 50);
+
+  function draw() {
+    requestAnimationFrame(draw);
+    var st = M.state();
+    if (st.playing && !an) { an = M.analyser(); if (an) { fd = new Uint8Array(an.frequencyBinCount); td = new Float32Array(an.fftSize); } }
+    var W = spec.width, H = spec.height;
+    sctx.clearRect(0, 0, W, H);
+    if (an && fd) {
+      an.getByteFrequencyData(fd); an.getFloatTimeDomainData(td);
+      var n = 56;
+      for (var i = 0; i < n; i++) {
+        var lo = Math.floor(Math.pow(i / n, 2.2) * (fd.length * 0.5)) + 1;
+        var hi = Math.max(lo + 1, Math.floor(Math.pow((i + 1) / n, 2.2) * (fd.length * 0.5)) + 1);
+        var m = 0; for (var b = lo; b < hi; b++) if (fd[b] > m) m = fd[b];
+        var h = m / 255 * H;
+        sctx.fillStyle = i < 9 ? '#ff5fa2' : (i < 24 ? '#a78bfa' : '#6ee7b7');
+        sctx.globalAlpha = 0.85; sctx.fillRect(i * (W / n), H - h, W / n - 1, h);
+      }
+      sctx.globalAlpha = 1;
+      // getByteFrequencyData hands back dB MAPPED to 0..255, so summing squares of those bytes is
+      // not energy — it badly under-weights the low end. Undo the mapping back to linear magnitude
+      // first, or these percentages can't be compared with an offline FFT of a reference track.
+      var binHz = (an.context ? an.context.sampleRate : 44100) / an.fftSize, tot = 0;
+      var dbMin = an.minDecibels, dbSpan = an.maxDecibels - an.minDecibels;
+      var be = BANDS.map(function (bd) {
+        var e = 0;
+        for (var b2 = Math.round(bd[1] / binHz); b2 < Math.min(fd.length, bd[2] / binHz); b2++) {
+          var lin = Math.pow(10, (dbMin + fd[b2] / 255 * dbSpan) / 20);
+          e += lin * lin;
+        }
+        tot += e; return e;
+      });
+      var pk = 0, sum = 0;
+      for (var j = 0; j < td.length; j++) { var a2 = Math.abs(td[j]); if (a2 > pk) pk = a2; sum += td[j] * td[j]; }
+      var rms = Math.sqrt(sum / td.length);
+      var crest = (rms > 1e-6 && pk > 1e-6) ? 20 * Math.log10(pk / rms) : 0;
+      ro.textContent = BANDS.map(function (bd, i2) {
+        var pct = tot > 0 ? 100 * be[i2] / tot : 0;
+        return (bd[0] + '     ').slice(0, 5) + ('   ' + Math.round(pct) + '%').slice(-4) + ' ' +
+               new Array(Math.round(pct / 7) + 1).join('▌');
+      }).join('\n') + '\ncrest ' + (crest ? crest.toFixed(1) + ' dB' : '—');
+    }
+    if (st.playing) {
+      nowEl.innerHTML = '<b>' + st.key + '</b> · ' + (st.adaptive ? 'adaptive' : 'timeline') +
+        ' · intensity <b>' + Math.round(st.intensity * 100) + '%</b>' +
+        ' · <span class="sec">' + st.section + '</span> bar ' + (st.bar + 1) + '/' + st.bars +
+        (st.pending ? ' <span class="sec">→ ' + st.pending + '</span>' : '') +
+        ' · <b>' + st.sources + '</b> sources: ' + st.layers.join(' ');
+      var strip = document.querySelector('[data-strip="' + st.key + '"]');
+      if (strip) [].forEach.call(strip.children, function (d, i3) { d.classList.toggle('on', i3 === st.sectionIdx); });
+    }
+  }
+  draw();
+})();
+</script>
