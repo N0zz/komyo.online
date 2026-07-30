@@ -2658,8 +2658,8 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const todayEl = document.getElementById('chalToday'), weekEl = document.getElementById('chalWeek'), streakEl = document.getElementById('chalStreak');
       // the trophies pill opens the titles ladder; the collection BAR opens the Cosmetics store
       // (the standalone COSMETICS pill moved out to the side stack's Collection button).
-      // The store itself carries a "See titles" button (onTitles) for reaching the ladder.
-      const openShop = () => { if (!K.shopPanel) return; setPanelUrl('cosmetics'); K.shopPanel({ onTitles: () => window.__openTitlesLadder && window.__openTitlesLadder(), onClose: () => { if (openPanel === 'cosmetics') setPanelUrl(null); render(); } }); };
+      // The ladder is the Collection modal's Titles tab, so both land in the same window.
+      const openShop = () => { if (!K.shopPanel) return; setPanelUrl('cosmetics'); K.shopPanel({ onClose: () => { if (openPanel === 'cosmetics') setPanelUrl(null); render(); } }); };
       window.__openShop = openShop;
       if (streakEl) streakEl.addEventListener('click', () => window.__openTitlesLadder && window.__openTitlesLadder());
       if (!K || !todayEl) return;

@@ -1790,7 +1790,8 @@
   // button). Owned cells EQUIP on click. The titles ladder renders read-only at the bottom.
   // shopPanel(opts): the Cosmetics store modal. opts.game = scope to ONE game (+ site-wide cursors),
   // header becomes "🎨 <Game> cosmetics"; opts.allGames = fn → an "All games →" link (opens the full
-  // store); opts.onTitles = fn → a "See titles" button under the collection line; opts.theme, opts.onClose.
+  // store); opts.tab = 'shop'|'ach'|'titles' → which tab opens (Titles is the ladder, in this same
+  // modal — window.__openTitlesLadder routes every "see titles" affordance here); opts.theme, opts.onClose.
   function shopPanel(opts) {
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body || !document.createElement) return;
@@ -1845,6 +1846,28 @@
       giftRow.appendChild(giftBtn);
       box.appendChild(giftRow);
     }
+    // ---- tab row: Shop · Achievements · Titles -------------------------------------------------
+    // One modal for everything you collect. Titles used to be a second dialog reached by a hint row
+    // under the grid; achievements are a placeholder so the shape exists before the feature does.
+    // The icon lives in CODE, not in the translated label, so a 360px-wide box can drop it and still
+    // fit all three WORDS in an equal third (a clipped tab label is worse than no emoji).
+    var TABS = [
+      { id: 'shop', icon: '🎨', label: t('shop.tabShop', { def: 'Shop' }) },
+      { id: 'ach', icon: '🏅', label: t('shop.tabAch', { def: 'Achievements' }) },
+      { id: 'titles', icon: '🏆', label: t('shop.tabTitles', { def: 'Titles' }) },
+    ];
+    var tab = (opts.tab === 'ach' || opts.tab === 'titles') ? opts.tab : 'shop';
+    var tabRow = mkEl('div', 'gksp-tabs'); try { tabRow.setAttribute('role', 'tablist'); } catch (e) {}
+    var tabBtns = {};
+    TABS.forEach(function (tb2) {
+      var b = mkEl('button', 'gksp-tab');
+      b.appendChild(mkEl('span', 'gksp-tabi', tb2.icon));
+      b.appendChild(mkEl('span', 'gksp-tabl', tb2.label));
+      try { b.type = 'button'; b.setAttribute('role', 'tab'); } catch (e) {}
+      b.addEventListener('click', function () { setTab(tb2.id); });
+      tabBtns[tb2.id] = b; tabRow.appendChild(b);
+    });
+    box.appendChild(tabRow);
     // controls row: search + (full store) a game filter, or (scoped) an "All games →" link
     var ctrls = mkEl('div', 'gksp-ctrls');
     var search = mkEl('input', 'gksp-search'); try { search.type = 'search'; search.placeholder = t('shop.searchPh'); search.setAttribute('aria-label', t('shop.searchAria')); } catch (e) {}
@@ -1879,14 +1902,10 @@
     box.appendChild(barWrap);
     var focdesc = mkEl('div', 'gksp-focdesc'); box.appendChild(focdesc);
     var scroll = mkEl('div', 'gksp-scroll'); box.appendChild(scroll);
-    // titles pointer (no ladder table here) — only when an opener is provided (catalogue)
-    if (typeof opts.onTitles === 'function') {
-      var tl = mkEl('div', 'gksp-titleline');
-      tl.appendChild(mkEl('span', null, t('shop.titlesLine')));
-      var tb = mkEl('button', 'gksp-titlebtn', t('shop.seeTitles')); try { tb.type = 'button'; } catch (e) {}
-      tb.addEventListener('click', function () { try { opts.onTitles(); } catch (e) {} });
-      tl.appendChild(tb); box.appendChild(tl);
-    }
+    // the two non-shop tabs get their own panes, built lazily and hidden until first opened
+    var achPane = mkEl('div', 'gksp-pane gksp-ach'); achPane.style.display = 'none'; box.appendChild(achPane);
+    var titlesPane = mkEl('div', 'gksp-pane gksp-titles'); titlesPane.style.display = 'none'; box.appendChild(titlesPane);
+    var achBuilt = false, titlesBuilt = false;
     var buyBtn = mkEl('button', 'gksp-buy'); try { buyBtn.type = 'button'; } catch (e) {}
     box.appendChild(buyBtn);
     // free-play footer — a quiet settings-ish row, deliberately NOT styled like a shop item
@@ -1906,6 +1925,58 @@
     fpRow.appendChild(fpTxt); fpRow.appendChild(fpBtn);
     box.appendChild(fpRow);
     syncFp();
+    // ---- tab switching. The shop's own chrome (search/filter, progress bar, focused-desc, grid, BUY,
+    // free-play) belongs to the Shop tab only; the head + trophy balance stay put on all three.
+    // buyBtn is NOT in here on purpose: syncFocus() owns its visibility (hidden with nothing focused),
+    // and blanket-restoring display:'' here un-hid it as an empty gold bar after every tab switch.
+    // It's hidden on the other tabs by CSS instead, which can't fight syncFocus's inline value.
+    var SHOP_ONLY = [ctrls, barWrap, focdesc, scroll, fpRow];
+    function setTab(id) {
+      tab = id = (id === 'ach' || id === 'titles') ? id : 'shop';   // anything unknown falls back to Shop
+      for (var k in tabBtns) if (Object.prototype.hasOwnProperty.call(tabBtns, k)) {
+        if (tabBtns[k].classList) tabBtns[k].classList.toggle('on', k === id);
+        try { tabBtns[k].setAttribute('aria-selected', k === id ? 'true' : 'false'); } catch (e) {}
+      }
+      SHOP_ONLY.forEach(function (el2) { if (el2 && el2.style) el2.style.display = (id === 'shop') ? '' : 'none'; });
+      achPane.style.display = (id === 'ach') ? '' : 'none';
+      titlesPane.style.display = (id === 'titles') ? '' : 'none';
+      if (ov.classList) { ov.classList.toggle('gksp-tab-ach', id === 'ach'); ov.classList.toggle('gksp-tab-titles', id === 'titles'); }
+      syncHeader();   // the header number is per-tab (spendable / achievement points / lifetime)
+      if (id === 'ach' && !achBuilt) { achBuilt = true; buildAchMock(); }
+      if (id === 'titles' && !titlesBuilt) {
+        titlesBuilt = true;
+        titlesPane.appendChild(mkEl('p', 'gksp-panesub', t('titles.sub', { def: 'Earn trophies to climb the ladder — a new title is worn automatically, but tap any <b>unlocked</b> rank to wear it instead. Titles read <b>lifetime</b> trophies, so spending on your collection never slows you down.' })));
+        var host = mkEl('div', 'tl-list'); titlesPane.appendChild(host);
+        if (_titlesInto) _titlesInto(host);   // null only if the profile block never mounted (no nav/side stack)
+      }
+      if (id !== 'shop') track('feature_open', { feature: id === 'ach' ? 'achievements' : 'titles' });
+    }
+    // Achievements: a LAYOUT MOCK behind a "Coming soon" veil, so the tab's shape (and its place in
+    // this modal) is settled before the feature exists. Deliberately fake rows — no registry yet.
+    // See plans/achievements-plan.md; the real thing reads window.ACHIEVEMENTS.
+    function buildAchMock() {
+      var MOCK = [
+        { icon: '🏆', pts: 15 }, { icon: '🎯', pts: 5 }, { icon: '🔥', pts: 50 },
+        { icon: '🧩', pts: 15 }, { icon: '⚡', pts: 5 }, { icon: '🌟', pts: 50 },
+        { icon: '🎨', pts: 5 }, { icon: '👑', pts: 50 },
+      ];
+      var grid = mkEl('div', 'gksp-achgrid');
+      MOCK.forEach(function (m, i) {
+        var cell = mkEl('div', 'gksp-achcell' + (i < 2 ? ' done' : ''));
+        cell.appendChild(mkEl('span', 'gksp-achicon', m.icon));
+        var txt = mkEl('span', 'gksp-achtxt');
+        txt.appendChild(mkEl('b', null, '——————'));      // placeholder name
+        txt.appendChild(mkEl('i', null, '——————————'));  // placeholder description
+        cell.appendChild(txt);
+        cell.appendChild(mkEl('span', 'gksp-achpts', m.pts + ' 🏆'));
+        grid.appendChild(cell);
+      });
+      achPane.appendChild(grid);
+      var veil = mkEl('div', 'gksp-soon');
+      veil.appendChild(mkEl('div', 'gksp-soon-t', t('shop.achSoon', { def: 'Coming soon…' })));
+      veil.appendChild(mkEl('div', 'gksp-soon-s', t('shop.achSoonSub', { def: 'One-off goals per game and site-wide, paying trophies when you clear them.' })));
+      achPane.appendChild(veil);
+    }
     var cells = [], focused = -1, gameProgEls = [];
     function fmtT(n) { return fmtScore(n | 0); }
     // registry-data display → t() with the cosmetics.js English as the def fallback (byte-identical until S7)
@@ -1953,7 +2024,12 @@
       return self;
     }
     function syncHeader() {
-      balEl.textContent = '🏆 ' + fmtT(cosBalance());
+      // The header number answers the question THIS tab raises: what can I still spend (Shop), how far
+      // along am I (Achievements), and what have I earned in total, ever (Titles — the ladder reads
+      // LIFETIME trophies, so showing the spendable balance next to it would read as the requirement).
+      balEl.textContent = (tab === 'titles') ? t('shop.balLifetime', { n: fmtT(cosLifetime()), def: '🏆 {n} lifetime' })
+        : (tab === 'ach') ? t('shop.balAch', { n: 0, def: '🏅 {n} points' })
+        : t('shop.balSpend', { n: fmtT(cosBalance()), def: '🏆 {n} to spend' });
       var pr = scopeGame != null ? cosProgress(scopeGame) : cosProgress();
       var pct = Math.round(pr.pct * 100);
       try { barFill.style.width = pct + '%'; } catch (e) {}
@@ -2202,7 +2278,9 @@
     if (allGamesLink) allGamesLink.addEventListener('click', function () { close(); try { opts.allGames(); } catch (e) {} });
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
     rebuild();
-    return { el: ov, close: close, buy: function (id) { var i = -1; cells.forEach(function (c2, k) { if (c2.item.id === id) i = k; }); if (i >= 0) { focused = i; syncFocus(); confirmFocused(); } } };
+    setTab(tab);   // after rebuild, so the Shop tab's grid exists before anything is hidden
+    return { el: ov, close: close, tab: function (id) { setTab(id); return tab; },
+      buy: function (id) { var i = -1; cells.forEach(function (c2, k) { if (c2.item.id === id) i = k; }); if (i >= 0) { focused = i; syncFocus(); confirmFocused(); } } };
   }
 
   function pruneOldLogs() {
@@ -2509,6 +2587,10 @@
   // menu's box instead of .wrap.
   var _sideMenuSync = null;   // set by sideStack(); called from menuShow/menuTeardown
   var _pfMounted = false, _sideMounted = false;
+  // The titles ladder renders inside the Collection modal's Titles tab, but its data + equip logic live
+  // in the profile block's closure (titleData/rankTitle/setWornTier/startTitleFx). That block publishes
+  // the renderer here so shopPanel — a different function entirely — can mount the same ladder.
+  var _titlesInto = null;
 
   function mountProfilePanels() {
     if (_pfMounted || typeof document === 'undefined' || !document.body || typeof document.createElement !== 'function') return;
@@ -2517,12 +2599,7 @@
     dlg.innerHTML = '<button type="button" class="pf-x" id="profileClose" aria-label="' + t('cat.close', { def: 'Close' }) + '">✕</button>'
       + '<div class="about profile"><div id="profileBody"></div></div>';
     document.body.appendChild(dlg);
-    var tdlg = document.createElement('dialog'); tdlg.id = 'titlesModal';
-    tdlg.innerHTML = '<button type="button" class="pf-x" id="titlesClose" aria-label="' + t('cat.close', { def: 'Close' }) + '">✕</button>'
-      + '<div class="about titles"><div class="cl-head"><h3>' + t('titles.title', { def: '🏆 Titles' }) + '</h3></div>'
-      + '<p class="tl-sub">' + t('titles.sub', { def: 'Earn trophies to climb the ladder — a new title is worn automatically, but tap any <b>unlocked</b> rank to wear it instead. Titles read <b>lifetime</b> trophies, so spending on your collection never slows you down.' }) + '</p>'
-      + '<div class="tl-list" id="titlesList"></div></div>';
-    document.body.appendChild(tdlg);
+    // (no separate titles dialog any more — the ladder is the Collection modal's Titles tab)
     (function () {
       const modal = document.getElementById('profileModal'), btn = document.getElementById('profileBtn'), closeBtn = document.getElementById('profileClose'), body = document.getElementById('profileBody');
       if (!modal || !modal.showModal) return;
@@ -2662,7 +2739,10 @@
         });
         // 🎨 collection bar → the Cosmetics store (mounts inside the open profile dialog)
         const cb = document.getElementById('pfCollect');
-        if (cb) cb.addEventListener('click', () => { if (K && K.shopPanel) K.shopPanel({ onTitles: () => window.__openTitlesLadder && window.__openTitlesLadder(), onClose: render }); });
+        if (cb) cb.addEventListener('click', () => { if (K && K.shopPanel) K.shopPanel({ onClose: render }); });
+        // 🏅 achievements bar → the same modal, Achievements tab
+        const ab = document.getElementById('pfAch');
+        if (ab) ab.addEventListener('click', () => { if (K && K.shopPanel) K.shopPanel({ tab: 'ach', onClose: render }); });
         // the title box opens the titles ladder (titles live in the profile + ☰ menu)
         const to = document.getElementById('pfTitleOpen');
         if (to) to.addEventListener('click', () => { if (window.__openTitlesLadder) window.__openTitlesLadder(); });
@@ -2686,12 +2766,17 @@
         const collectBar = cos ? ('<div class="pf-collect" id="pfCollect" role="button" tabindex="0" title="' + esc(T('profile.openStore', 'Open the Cosmetics store')) + '">'
           + '<div class="pf-collect-top"><span>🎨 ' + esc(T('cat.collectionBtn', 'Collection')) + '</span><span class="pf-collect-n">' + cos.owned + ' / ' + cos.total + ' · ' + pctW + '%</span></div>'
           + '<div class="pf-collect-bar" style="background:linear-gradient(90deg,#ffce5c,#ff9a5c) left/' + pctW + '% 100% no-repeat,rgba(255,255,255,0.09)"></div></div>') : '';
+        // Achievements sit beside the collection as the profile's second progress track. Mocked for now
+        // (same "Coming soon" state as the Collection modal's tab) so the row exists where it will live.
+        const achBar = '<div class="pf-collect pf-soon" id="pfAch" role="button" tabindex="0" title="' + esc(T('shop.achSoon', 'Coming soon…')) + '">'
+          + '<div class="pf-collect-top"><span>🏅 ' + esc(T('shop.tabAch', 'Achievements')) + '</span><span class="pf-collect-n">' + esc(T('shop.achSoon', 'Coming soon…')) + '</span></div>'
+          + '<div class="pf-collect-bar"></div></div>';
         // one list, most-played first: every game with plays, each showing its modes' bests
         const ranked = [];
         if (p) GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm, pg }); });
         ranked.sort((a, b) => b.pg.plays - a.pg.plays || b.pg.best - a.pg.best);
         if (!ranked.length) {
-          body.innerHTML = '<div class="pf-scroll">' + tb + collectBar + '<p class="pf-empty">' + window.gamekit.t('profile.noScores', { def: 'No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.' }) + '</p></div>';
+          body.innerHTML = '<div class="pf-scroll">' + tb + collectBar + achBar + '<p class="pf-empty">' + window.gamekit.t('profile.noScores', { def: 'No scores yet — play a few games and your bests, favorites and stats show up here, sorted by how much you play them. Everything stays on this device.' }) + '</p></div>';
           shareData = null; startTitleFx(); wireNameEdit(); return;
         }
         const favGameMeta = meta(p.favGame.slug), accent = (favGameMeta && favGameMeta.accent) || '#9fe8ff';
@@ -2699,7 +2784,7 @@
         const chips = [['profile.statGames', p.gamesPlayed], ['profile.statModes', p.modesPlayed], ['profile.statPlays', p.plays], ['profile.statDays', p.daysPlayed]];
         let html = '<div class="pf-scroll">' + tb + '<div class="pf-stats">';
         chips.forEach(s => { const lbl = window.gamekit.t(s[0], { count: s[1] }); html += '<div class="pf-stat"><b>' + esc(fmt(s[1])) + '</b><span>' + esc(lbl) + '</span></div>'; });
-        html += '</div>' + collectBar;
+        html += '</div>' + collectBar + achBar;
         // Your games — total plays in the header (its unit shown once), then each mode's best;
         // a per-mode "×N" appears only when that mode was played more than once (no ×1 noise).
         const rows = [];
@@ -2747,13 +2832,14 @@
             .catch(() => flash(window.gamekit.t('profile.renderErr', { def: "Couldn't render" })));
         });
       }
-      // titles ladder modal — every rank prerendered with its tier shine (same classes as the
-      // profile title box), current one highlighted; points only, no time estimates
-      const tlModal = document.getElementById('titlesModal'), tlList = document.getElementById('titlesList'), tlClose = document.getElementById('titlesClose');
-      // ladder: unlocked ranks are tap-to-equip (wear a previous title if you like it more); the worn
-      // one shows "✓ Worn", locked ones stay locked. `wornT` = worn tier, `earnedT` = highest unlocked.
-      function renderTitles() {
-        if (!tlList || !window.CHALLENGES || !window.CHALLENGES.titles) return;
+      // Titles ladder — every rank prerendered with its tier shine (same classes as the profile title
+      // box), the worn one highlighted; points only, no time estimates. It has no window of its own any
+      // more: it renders into whatever element the Collection modal's Titles tab hands over, and the
+      // module-level `_titlesInto` is how shopPanel reaches this closure.
+      // Unlocked ranks are tap-to-equip (wear an earlier title if you like it more); the worn one shows
+      // "✓ Worn", locked ones stay locked. `wornT` = worn tier, `earnedT` = highest unlocked.
+      function ladderHtml() {
+        if (!window.CHALLENGES || !window.CHALLENGES.titles) return '';
         const d = titleData(), wornT = d.TT.tier, earnedT = d.earnedTier;
         let h = '';
         window.CHALLENGES.titles.forEach(t => {
@@ -2765,29 +2851,30 @@
             + '<span class="pf-title"><span class="pf-halo"></span><span class="pf-sh pf-gl" data-text="' + esc(rankTitle(t)) + '">' + esc(rankTitle(t)) + '</span></span>'
             + '<span class="tl-pts">' + (worn ? '<b class="tl-worn">' + window.gamekit.t('titles.worn', { def: '✓ Worn' }) + '</b>' : (unlocked ? window.gamekit.t('titles.wear', { def: 'Wear' }) : fmt(t.min) + ' 🏆')) + '</span></div>';
         });
-        tlList.innerHTML = h;
+        return h;
       }
-      // equip an unlocked title from the ladder → re-render the ladder + the profile + the ☰ id card
-      if (tlList) tlList.addEventListener('click', e => {
-        const row = e.target && e.target.closest ? e.target.closest('.tl-row.tl-unlocked') : null;
-        if (!row) return;
-        const t = parseInt(row.getAttribute('data-tier'), 10);
-        if (!isFinite(t)) return;
-        setWornTier(t); renderTitles(); startTitleFx();
-        try { if (window.__renderProfile) window.__renderProfile(); } catch (e2) {}
-        try { if (window.__refreshSideStack) window.__refreshSideStack(); } catch (e2) {} // worn title drives the stack's Profile icon/tint
-        track('title_wear', { tier: t });
-      });
-      // challenges drawer's points pill opens the ladder — points → titles is the payoff
-      window.__openTitlesLadder = () => {
-        if (!tlModal || !tlModal.showModal) return;
-        renderTitles(); tlModal.showModal(); startTitleFx();
-        try { if (window.__setPanelUrl) window.__setPanelUrl('titles'); } catch (e) {}
-        track('feature_open', { feature: 'titles' });
+      _titlesInto = function (host) {
+        if (!host) return;
+        const paint = () => { host.innerHTML = ladderHtml(); startTitleFx(); };
+        paint();
+        host.addEventListener('click', e => {
+          const row = e.target && e.target.closest ? e.target.closest('.tl-row.tl-unlocked') : null;
+          if (!row) return;
+          const t = parseInt(row.getAttribute('data-tier'), 10);
+          if (!isFinite(t)) return;
+          setWornTier(t); paint();
+          try { if (window.__renderProfile) window.__renderProfile(); } catch (e2) {}
+          try { if (window.__refreshSideStack) window.__refreshSideStack(); } catch (e2) {} // worn title drives the stack's Profile icon/tint
+          track('title_wear', { tier: t });
+        });
       };
-      if (tlClose) tlClose.addEventListener('click', () => tlModal.close());
-      if (tlModal) tlModal.addEventListener('click', e => { if (e.target === tlModal) tlModal.close(); });
-      if (tlModal) tlModal.addEventListener('close', () => { try { if (window.__closePanelUrl) window.__closePanelUrl('titles'); } catch (e) {} tlList.innerHTML = ''; startTitleFx(); });   // drop the ladder fields, keep the profile-box one running
+      // Every "see the titles" affordance in the site (profile, challenges drawer, the ?panel=titles
+      // deep link) routes through this ONE opener, so pointing it at the Collection modal's Titles tab
+      // moves all of them at once — no per-call-site change.
+      window.__openTitlesLadder = () => {
+        if (!K || !K.shopPanel) return;
+        K.shopPanel({ tab: 'titles', onClose: () => { try { if (window.__renderProfile) window.__renderProfile(); } catch (e) {} } });
+      };
       // ☰ dot has two independent sources — a title-unlock moment (crossing a titles-ladder tier
       // since the last-seen one) and a ready-to-apply site update — ORed into one badge so neither
       // tracker stomps the other's state. Title "seen" tracking stays scoped to titles only; the
