@@ -366,6 +366,7 @@ window.GAMES = [
     tags: ["RACING", "ARCADE"],
     added: "2026-07-29",
     shot: "shot.v1.webp",
+    preview: "preview.v1.mp4",
   },
   {
     slug: "color-pop",
