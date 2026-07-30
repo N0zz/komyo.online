@@ -332,6 +332,8 @@ body:has(.gamekit-menu, .gamekit-confirm, .gamekit-lock, .gamekit-embed, .gameki
 /* a description line right after a group's button row (e.g. Meadow Flyer's Day/Night) needs breathing room */
 .gamekit-menu .gkm-row + .gkm-line { margin-top: 14px; }
 .gamekit-menu .gkm-goodrun { margin: 6px 0 2px; font: 700 12px/1.3 var(--gkm-font, ui-monospace, monospace); letter-spacing: .5px; color: var(--gkm-accent, #9fe8ff); text-shadow: var(--gkm-glow, none); }
+/* an achievement receipt is the same shape, in the trophy colour (it paid trophies, not a bonus) */
+.gamekit-menu .gkm-achline { color: var(--gkm-new, #ffd166); margin: 3px 0 0; }
 .gamekit-menu .gkm-share-host { margin-top: 16px; }
 /* a menu with mode cards / a shop / a grid gets a wider box (so the Drydock + level-up picker
    aren't a cramped 2-column column on desktop) + a slightly larger start title */
@@ -990,27 +992,37 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   .gamekit-shoppanel .gksp-tabi { display: none; }
 }
 .gamekit-shoppanel .gksp-pane { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 10px -6px 0; padding: 0 6px; }
+/* Titles pane: a flex column so the ladder (min-height:100%) stretches its rows over the full box */
+.gamekit-shoppanel .gksp-titles { flex-direction: column; }
+.gamekit-shoppanel .gksp-titles .gksp-panesub { flex: 0 0 auto; }
+.gamekit-shoppanel .gksp-titles .tl-list { flex: 1 1 auto; }
 .gamekit-shoppanel .gksp-panesub { margin: 0 0 10px; font-size: 11px; line-height: 1.5; color: #93a5bd; }
 .gamekit-shoppanel .gksp-panesub b { color: var(--gkm-title, #eaf3ff); }
-/* Achievements = a layout MOCK behind a veil until the feature lands (plans/achievements-plan.md):
-   bigger tiles than the cosmetics grid, because a row carries a name AND a goal, not just a swatch. */
-.gamekit-shoppanel .gksp-ach { position: relative; overflow: hidden; }
+/* Achievements: bigger tiles than the cosmetics grid, because a row carries a name, a goal AND a
+   progress bar, not just a swatch. Locked rows stay readable (the hint IS the driver) — they are
+   dimmed, never hidden. A `run:`-shaped goal has no bar (see achievements.js): it shows ✓ / — . */
+.gamekit-shoppanel .gksp-ach { position: relative; }
 .gamekit-shoppanel .gksp-achgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 9px; }
 .gamekit-shoppanel .gksp-achcell { display: flex; align-items: center; gap: 12px; padding: 13px; border-radius: 13px;
-  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); opacity: 0.5; }
-.gamekit-shoppanel .gksp-achcell.done { opacity: 1; border-color: var(--gkm-new, #ffd166); }
-.gamekit-shoppanel .gksp-achicon { font-size: 30px; line-height: 1; }
-.gamekit-shoppanel .gksp-achtxt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
-/* skeleton bars — the em-dashes inside are collapsed away, the bar IS the placeholder */
-.gamekit-shoppanel .gksp-achtxt b, .gamekit-shoppanel .gksp-achtxt i { display: block; font-size: 0; border-radius: 6px; background: var(--gkm-text, #eaf2fb); }
-.gamekit-shoppanel .gksp-achtxt b { width: 58%; height: 11px; opacity: 0.26; }
-.gamekit-shoppanel .gksp-achtxt i { width: 86%; height: 8px; opacity: 0.14; }
-.gamekit-shoppanel .gksp-achpts { font-size: 12px; font-weight: 700; color: var(--gkm-new, #ffd166); white-space: nowrap; }
-.gamekit-shoppanel .gksp-soon { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 7px; text-align: center; padding: 18px; background: rgba(10, 15, 24, 0.74); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
-.gamekit-shoppanel .gksp-soon-t { font: 800 17px var(--gkm-font, ui-monospace, monospace); letter-spacing: 2px;
-  color: var(--gkm-title, #eaf3ff); text-shadow: var(--gkm-glow, none); }
-.gamekit-shoppanel .gksp-soon-s { max-width: 34ch; font-size: 11px; line-height: 1.5; color: #93a5bd; }
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); opacity: 0.62; }
+.gamekit-shoppanel .gksp-achcell.done { opacity: 1; border-color: var(--gkm-new, #ffd166); background: rgba(255, 209, 102, 0.07); }
+.gamekit-shoppanel .gksp-achicon { font-size: 30px; line-height: 1; flex: none; filter: grayscale(1); opacity: 0.7; }
+.gamekit-shoppanel .gksp-achcell.done .gksp-achicon { filter: none; opacity: 1; }
+.gamekit-shoppanel .gksp-achtxt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+/* names WRAP to two lines rather than ellipsizing: a truncated badge name is unreadable, and the
+   longest translations (it/pl run to ~24 chars) don't fit one 360px-wide line. */
+.gamekit-shoppanel .gksp-achnm { font: 700 12.5px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-title, #eaf3ff);
+  overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.gamekit-shoppanel .gksp-achds { font-size: 10.5px; line-height: 1.4; color: #93a5bd; }
+.gamekit-shoppanel .gksp-achbar { position: relative; height: 5px; border-radius: 3px; overflow: hidden;
+  background: rgba(255, 255, 255, 0.10); margin-top: 2px; }
+.gamekit-shoppanel .gksp-achbar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--gkm-accent, #9fe8ff); }
+.gamekit-shoppanel .gksp-achcell.done .gksp-achbar i { background: var(--gkm-new, #ffd166); }
+.gamekit-shoppanel .gksp-achprog { font: 700 9.5px var(--gkm-font, ui-monospace, monospace); letter-spacing: 0.4px; color: #7f92ab; }
+.gamekit-shoppanel .gksp-achpts { flex: none; align-self: flex-start; font-size: 12px; font-weight: 700;
+  color: var(--gkm-new, #ffd166); white-space: nowrap; }
+.gamekit-shoppanel .gksp-achcell.done .gksp-achpts { color: #7dd8a6; }
+.gamekit-shoppanel .gksp-achempty { padding: 22px 8px; text-align: center; font-size: 11px; color: #93a5bd; }
 .gamekit-shoppanel .gksp-buy { margin-top: 10px; font: 800 12.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; border-radius: 10px; padding: 12px 16px;
   border: none; cursor: pointer; color: var(--gk-shop-ink, #0a1420); background: var(--gkm-new, #ffd166); box-shadow: 0 0 14px rgba(255, 209, 102, 0.35); }
 .gamekit-shoppanel .gksp-buy:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
@@ -1419,8 +1431,13 @@ body:has(.gamekit-menu) .side-stack { z-index:70; }
   .pf-name-btn:hover .pf-pen, .pf-name-btn:focus-visible .pf-pen { fill:#9fe8ff; }
   .about.titles { max-height:88vh; overflow-y:auto; }
   .tl-sub { color:var(--muted); font-size:13.5px; margin:0 0 4px; }
-  .tl-list { display:flex; flex-direction:column; gap:6px; }
-  .tl-row { position:relative; overflow:hidden; display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--border); border-radius:11px; background:var(--surface); }
+  /* The ladder FILLS its box: 9 rows share whatever height the pane has, so a tall modal has no dead
+     space under the last rank. Rows shrink to --tl-min and the pane scrolls from there (they are the
+     same rows in the profile dialog, which sizes itself, and in the Collection modal's Titles tab). */
+  .tl-list { display:flex; flex-direction:column; gap:6px; --tl-min:46px; }
+  .tl-row { position:relative; overflow:hidden; display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--border); border-radius:11px; background:var(--surface);
+    flex:1 1 auto; min-height:var(--tl-min); }
+  @media (max-height: 520px) { .tl-list { --tl-min:38px; } }
   .tl-row .pf-title { font-size:15px; min-width:0; }
   .tl-emoji { font-size:17px; flex:0 0 auto; }
   .tl-pts { margin-left:auto; flex:0 0 auto; font-family:var(--mono); font-size:12px; color:var(--faint); font-variant-numeric:tabular-nums; white-space:nowrap; }

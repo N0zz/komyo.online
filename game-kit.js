@@ -1234,6 +1234,7 @@
     var d = chDoneMap(); d[GIFT_KEY] = GIFT_AMT;
     lsSet('gamekit_done', JSON.stringify(d));
     track('shop_gift', { amount: GIFT_AMT });
+    achSync();       // the gift moves lifetime trophies → a trophy-total achievement can land here
     return true;
   }
   function cosBuy(id) {
@@ -1244,6 +1245,7 @@
     var o = cosOwnedMap(); o[id] = { c: price, t: utcDayNumber() };
     lsSet('gamekit_owned', JSON.stringify(o));
     track('shop_buy', { item_id: id });
+    achSync();       // collection milestones ("own 25%") unlock the moment you buy, not next run
     return true;
   }
   function cosSelMap() { try { return JSON.parse(lsGet('gamekit_cos_sel') || 'null') || {}; } catch (e) { return {}; } }
@@ -1260,6 +1262,7 @@
     if (setId === 'site.cursor') applyCursor();
     if (setId === 'site.fx') applyCrt(); // selecting the CRT item = enable it; 'off' = disable (shop toggles it)
     track('cosmetic_equip', { item_id: id, set: setId });   // buying ≠ wearing — this is the wearing half
+    achSync();
     return true;
   }
   // Collection progress is a plain item COUNT: pct = items owned / total items. Free defaults
@@ -1329,6 +1332,199 @@
       lsSet('gamekit_flappy_migrated', '1');
     } catch (e) {}
   })();
+  // ---------- achievements (registry data in achievements.js; the kit owns stores + evaluation) ----
+  // One-off, evergreen goals that pay trophies into gamekit_done, so lifetime / the titles ladder /
+  // the spendable balance all pick them up like any other earned trophy. Two new stores:
+  //   gamekit_ach   = { v, u: { '<id>': <utcDay> } }   what is unlocked (bounded by the registry)
+  //   gamekit_tally = { v, t: { '<slug>': { '<stat>': n } } }  cumulative counters — the ONE thing
+  //     the kit cannot already answer (gamekit_pb keeps per-mode MAXes, gamekit_stats only rollups).
+  // The tally's key set is DERIVED from the registry's `sum:` fields, so a game can never grow this
+  // store by inventing stat names. Both keys are top-level kit stores: they ride Export/Import (which
+  // copies all of localStorage) and are NOT part of any game's `<slug>_` reset prefix.
+  var ACH_V = 1;
+  var _achFresh = [];        // ids unlocked by the LAST recordResult — the end-menu receipt reads this
+  var _achPending = 0;       // trophies the CURRENT evaluation pass is about to write (lifetime goals read it)
+  function achReg() { return (typeof window !== 'undefined' && window.ACHIEVEMENTS) ? window.ACHIEVEMENTS : null; }
+  function achItems() { var A = achReg(); return (A && A.items) || []; }
+  function achItem(id) { var a = achItems(); for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return null; }
+  // exactly one shape per entry (registry-enforced by the suite): a bar shape, or a run predicate
+  function achShape(a) { return a.max ? 'max' : a.sum ? 'sum' : a.site ? 'site' : 'run'; }
+  function achHasBar(a) { return achShape(a) !== 'run'; }
+  // null = never evaluated on this device (→ the one-time backfill), {} = evaluated, nothing unlocked
+  // Forward-compatible on purpose: any stored shape with a `u` map is honoured whatever its version.
+  // null means "never evaluated on this device" → the one-time backfill. A version bump must never
+  // land here, because the backfill can only re-derive max:/site: shapes — every run:-shaped unlock
+  // (a no-hint clear, a flawless level) would be lost for good. Migrations rewrite `u` in place.
+  function achMap() { try { var d = JSON.parse(lsGet('gamekit_ach') || 'null'); return (d && d.u && typeof d.u === 'object') ? d.u : null; } catch (e) { return null; } }
+  function achSave(u) { lsSet('gamekit_ach', JSON.stringify({ v: ACH_V, u: u })); }
+  function achIsUnlocked(id) { var u = achMap(); return !!(u && u[id]); }
+  function achPoints() { var u = achMap() || {}, t = 0; achItems().forEach(function (a) { if (u[a.id]) t += (+a.price || 0); }); return t; }
+  // ---- cumulative counters
+  var _tlyKeys = null;
+  function tlyKeys() {
+    if (_tlyKeys) return _tlyKeys;
+    var m = {};
+    achItems().forEach(function (a) {
+      if (!a.sum) return;
+      var g = a.game || '', list = m[g] || (m[g] = []);
+      if (list.indexOf(a.sum) < 0) list.push(a.sum);
+    });
+    _tlyKeys = m; return m;
+  }
+  function tlyLoad() { try { var d = JSON.parse(lsGet('gamekit_tally') || 'null'); return (d && d.t && typeof d.t === 'object') ? d.t : {}; } catch (e) { return {}; } }
+  function tlyGet(game, stat) { var g = tlyLoad()[game || '']; return (g && +g[stat]) || 0; }
+  // one write per recorded run, only for the stats the registry actually asks about. 'score' reads
+  // the run's score; everything else reads record.stats. Rounded to 2dp so a float stat (tube-racer
+  // km) can't accumulate binary drift, and hard-capped so a broken game can't grow the key forever.
+  function tlyBump(slug, rec) {
+    var keys = tlyKeys()[slug];
+    if (!keys || !keys.length) return;
+    var t = tlyLoad(), g = t[slug] || (t[slug] = {}), wrote = false;
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i], v = (k === 'score') ? +rec.score : +((rec.stats || {})[k]);
+      if (!isFinite(v) || v <= 0) continue;
+      g[k] = Math.min(1e12, Math.round(((+g[k] || 0) + v) * 100) / 100);
+      wrote = true;
+    }
+    if (wrote) { t[slug] = g; lsSet('gamekit_tally', JSON.stringify({ v: ACH_V, t: t })); }
+  }
+  // best-ever value of a stat across EVERY mode of a game — gamekit_pb already stores each stat as a
+  // per-mode MAX, so this is what makes a `max:` achievement both live-progressing and backfillable.
+  function pbStatMax(slug, stat) {
+    var pb = pbLoad(), g = pb[slug], m = 0;
+    if (!g) return 0;
+    for (var mode in g) {
+      if (!Object.prototype.hasOwnProperty.call(g, mode)) continue;
+      var r = g[mode]; if (!r) continue;
+      var v = (stat === 'score') ? +r.score : +((r.stats || {})[stat]);
+      if (isFinite(v) && v > m) m = v;
+    }
+    return m;
+  }
+  // ---- site-wide counters: a CLOSED vocabulary (a registry entry may only name one of these), all
+  // derived from stores that already exist — so they backfill for a player who arrives with history.
+  function achLiveSlugs() {
+    var G = (typeof window !== 'undefined' && window.GAMES) || [];
+    return G.filter(function (g) { return g && g.slug && !g.soon; });
+  }
+  function achPlayed() {   // slugs with at least one recorded run, live games only
+    var pb = pbLoad(), out = [];
+    achLiveSlugs().forEach(function (g) { if (pb[g.slug]) out.push(g); });
+    return out;
+  }
+  // percent of the BUYABLE items owned (price > 0), optionally within one set
+  function achPaidPct(setId) {
+    var a = cosItems(), total = 0, own = 0;
+    for (var i = 0; i < a.length; i++) {
+      if (!(+a[i].price > 0)) continue;
+      if (setId != null && a[i].set !== setId) continue;
+      total++; if (cosOwnedReal(a[i].id)) own++;
+    }
+    return total ? (own / total) * 100 : 0;
+  }
+  function achSite(name) {
+    switch (name) {
+      // PAID purchases only. Free defaults are never stored, but the flappy cash migration writes
+      // its carried-over birds at cost 0 — those were not bought with trophies and must not count.
+      case 'cosBought': { var om = cosOwnedMap(), nb = 0; for (var ok in om) if (Object.prototype.hasOwnProperty.call(om, ok) && ((om[ok] && +om[ok].c) > 0)) nb++; return nb; }
+      // PAID progress, not total: free defaults are auto-owned, so a fresh device already reads ~20%
+      // of the whole catalogue — "own a quarter" would be nearly complete at install.
+      case 'cosPaidPct': return achPaidPct(null);
+      case 'cursorPaidPct': return achPaidPct('site.cursor');
+      case 'games': return achPlayed().length;
+      case 'gamesPct': { var n = achLiveSlugs().length; return n ? (achPlayed().length / n) * 100 : 0; }
+      case 'genres': {
+        var seen = {}, c = 0;
+        achPlayed().forEach(function (g) { (g.tags || []).forEach(function (tg) { var k = String(tg).toLowerCase(); if (!seen[k]) { seen[k] = 1; c++; } }); });
+        return c;
+      }
+      case 'plays': {
+        var pb = pbLoad(), n = 0;
+        for (var s in pb) { if (!Object.prototype.hasOwnProperty.call(pb, s)) continue; for (var m in pb[s]) if (Object.prototype.hasOwnProperty.call(pb[s], m)) n += (pb[s][m].plays | 0); }
+        return n;
+      }
+      // a game "has had a good run" = its best score ever clears its own goodRun bar. Derived from
+      // gamekit_pb, so no new counter and a returning player's history counts.
+      case 'goodRunGames': {
+        var c2 = 0;
+        achPlayed().forEach(function (g) { var par = chGoodRun(g.slug); if (par && pbStatMax(g.slug, 'score') >= par) c2++; });
+        return c2;
+      }
+      // gamekit_title_sel holds a TIER NUMBER and the kit auto-adopts tier 0 at first boot, so
+      // "wearing a title" only means something from tier 1 (the first earned rank) up.
+      case 'titleWorn': { var tw = parseInt(lsGet('gamekit_title_sel') || '0', 10); return (isFinite(tw) && tw >= 1) ? 1 : 0; }
+      case 'lifetime': return cosLifetime() + _achPending;   // include what THIS pass is about to pay
+      default: return 0;
+    }
+  }
+  // current value for an entry. null = not evaluable right now (a `run:` predicate with no matching
+  // run in hand) — which is also why run-shaped achievements have no progress bar.
+  function achCur(a, run) {
+    var sh = achShape(a);
+    if (sh === 'max') return pbStatMax(a.game, a.max);
+    if (sh === 'sum') return tlyGet(a.game, a.sum);
+    if (sh === 'site') return achSite(a.site);
+    if (!run || run.slug !== a.game) return null;
+    try { var v = +a.run(run); return isFinite(v) ? v : 0; } catch (e) { return null; }
+  }
+  // THE evaluation pass. Called once per recorded run (with the run) and on page/shop/panel events
+  // (without one, via achSync) — pure predicates, so calling it more often only costs a few reads.
+  // Unlocking is guarded by the store, which makes the trophy payout idempotent per achievement.
+  function achEvaluate(run) {
+    if (!achItems().length) return [];
+    var prev = achMap(), backfill = (prev === null), u = prev || {}, fresh = [], done = null;
+    _achPending = 0;
+    achItems().forEach(function (a) {
+      if (u[a.id]) return;
+      var v = achCur(a, run);
+      if (v === null || !(v >= a.goal)) return;
+      u[a.id] = utcDayNumber();
+      fresh.push(a);
+      // trophies are keyed per achievement ('ach#<id>'), so paying is idempotent — which is what
+      // lets the payout go FIRST. The reverse order can mark an unlock done and never pay it
+      // (lsSet swallows QuotaExceededError), and an unlock is permanent.
+      if (+a.price) { done = done || chDoneMap(); done['ach#' + a.id] = +a.price; _achPending += +a.price; }
+    });
+    if (done) lsSet('gamekit_done', JSON.stringify(done));
+    if (fresh.length || backfill) achSave(u);
+    _achPending = 0;
+    fresh.forEach(function (a) {
+      track('achievement_unlock', { slug: a.game || '(site)', item_id: a.id, amount: +a.price || 0, kind: achShape(a), via: backfill ? 'backfill' : 'run' });
+    });
+    if (fresh.length) { try { if (typeof window !== 'undefined' && window.__syncAchNotify) window.__syncAchNotify(); } catch (e) {} }
+    return fresh;
+  }
+  // Sync = evaluate everything that doesn't need a run: page load, a shop purchase, a title equip.
+  // ONE function instead of a bespoke hook per event, and it doubles as the first-load backfill.
+  function achSync() { return achEvaluate(null); }
+  var ACH_PCT = { cosPaidPct: 1, cursorPaidPct: 1, gamesPct: 1 };   // site counters measured in percent
+  function achAll(game) {
+    var u = achMap() || {};
+    return achItems().filter(function (a) { return game == null || a.game === game; }).map(function (a) {
+      var bar = achHasBar(a), cur = bar ? achCur(a, null) : null;
+      return { id: a.id, game: a.game, icon: a.icon, price: +a.price || 0, goal: a.goal, dec: a.dec || 0,
+        unit: (a.site && ACH_PCT[a.site]) ? '%' : '',
+        shape: achShape(a), bar: bar, cur: cur, unlocked: !!u[a.id], day: u[a.id] || 0 };
+    });
+  }
+  function achProgress(game) {
+    var u = achMap() || {}, done = 0, total = 0;
+    achItems().forEach(function (a) { if (game != null && a.game !== game) return; total++; if (u[a.id]) done++; });
+    return { done: done, total: total };
+  }
+  // "fresh" = unlocked but not yet looked at, so the Collection button can carry a dot. One number
+  // (the unlocked count last seen) rather than per-id seen flags — the dot only has to say "new".
+  function achSeenCount() { try { return parseInt(lsGet('gamekit_ach_seen') || '0', 10) || 0; } catch (e) { return 0; } }
+  function achFreshCount() { var n = achProgress().done - achSeenCount(); return n > 0 ? n : 0; }
+  // is anything unlocked that a wall scoped to `game` would NOT have shown? (that wall renders the
+  // game's own rows plus the site-wide ones)
+  function achUnseenOutside(game) {
+    var u = achMap() || {}, shownDone = 0, all = achProgress().done;
+    achItems().forEach(function (a) { if (u[a.id] && (a.game === game || a.game === '')) shownDone++; });
+    return shownDone < all;
+  }
+  function achMarkSeen() { lsSet('gamekit_ach_seen', String(achProgress().done)); try { if (typeof window !== 'undefined' && window.__syncAchNotify) window.__syncAchNotify(); } catch (e) {} }
+
   // ---- site-wide cursor skin (desktop / fine pointers only) ----
   var _curTrail = null; // { canvas, ctx, ps, raf, kind }
   function cursorKey() { var id = cosSelected('site.cursor'); return id ? id.split('.').pop() : 'classic'; }
@@ -1515,6 +1711,14 @@
     goodRunBonus: goodRunBonus,
     freePlay: cosFreePlay, setFreePlay: cosSetFreePlay,
     gift: function () { return { claimed: giftClaimed(), amount: GIFT_AMT }; }, claimGift: giftClaim,
+  };
+  var achievements = {
+    all: achAll, item: achItem, unlocked: achIsUnlocked, progress: achProgress, points: achPoints,
+    cur: function (id) { var a = achItem(id); return a ? achCur(a, null) : null; },
+    tally: tlyGet, evaluate: achEvaluate, sync: achSync,
+    fresh: function () { return _achFresh.slice(); },
+    freshCount: achFreshCount, markSeen: achMarkSeen,
+    panel: function (opts) { opts = opts || {}; opts.tab = 'ach'; return shopPanel(opts); },
   };
 
   // ---------- CRT display mode (site-wide, unlockable via the 'site.fx.crt' cosmetic) ----------
@@ -1796,6 +2000,9 @@
   // header becomes "🎨 <Game> cosmetics"; opts.allGames = fn → an "All games →" link (opens the full
   // store); opts.tab = 'shop'|'ach'|'titles' → which tab opens (Titles is the ladder, in this same
   // modal — window.__openTitlesLadder routes every "see titles" affordance here); opts.theme, opts.onClose.
+  // ?tab= captured at load: the catalogue's own syncURL() rebuilds the query from a whitelist, so by
+  // the time the modal opens the param may already be gone — a deep link must still land on its tab.
+  var _bootTab = (function () { try { return (typeof location !== 'undefined' && typeof URLSearchParams === 'function') ? new URLSearchParams(location.search).get('tab') : null; } catch (e) { return null; } })();
   function shopPanel(opts) {
     opts = opts || {};
     if (typeof document === 'undefined' || !document.body || !document.createElement) return;
@@ -1860,7 +2067,9 @@
       { id: 'ach', icon: '🏅', label: t('shop.tabAch', { def: 'Achievements' }) },
       { id: 'titles', icon: '🏆', label: t('shop.tabTitles', { def: 'Titles' }) },
     ];
-    var tab = (opts.tab === 'ach' || opts.tab === 'titles') ? opts.tab : 'shop';
+    // opts.tab wins; otherwise ?tab= from the URL (setTab stamps it, so a refresh restores the tab)
+    var wantTab = (opts.tab != null) ? opts.tab : (scopeGame == null ? (param('tab') || _bootTab) : null);
+    var tab = (wantTab === 'ach' || wantTab === 'titles') ? wantTab : 'shop';
     var tabRow = mkEl('div', 'gksp-tabs'); try { tabRow.setAttribute('role', 'tablist'); } catch (e) {}
     var tabBtns = {};
     TABS.forEach(function (tb2) {
@@ -1934,7 +2143,18 @@
     // buyBtn is NOT in here on purpose: syncFocus() owns its visibility (hidden with nothing focused),
     // and blanket-restoring display:'' here un-hid it as an empty gold bar after every tab switch.
     // It's hidden on the other tabs by CSS instead, which can't fight syncFocus's inline value.
-    var SHOP_ONLY = [ctrls, barWrap, focdesc, scroll, fpRow];
+    // ?tab= rides alongside the catalogue's ?m=cosmetics, so it must PRESERVE the rest of the query
+    // (gamekit.stampUrl replaces the whole string — it would drop ?m= and break that deep link).
+    function setTabParam(id) {
+      try {
+        if (typeof location === 'undefined' || typeof history === 'undefined' || !history.replaceState || typeof URL !== 'function') return;
+        var u = new URL(location.href);
+        if (id) u.searchParams.set('tab', id); else u.searchParams.delete('tab');
+        history.replaceState(null, '', u.pathname + (u.search || '') + (u.hash || ''));
+      } catch (e) {}
+    }
+    var SHOP_ONLY = [focdesc, scroll, fpRow];        // the grid's own chrome
+    var SHOP_ACH = [ctrls, barWrap];                  // shared by Shop + Achievements (both are lists with progress)
     function setTab(id) {
       tab = id = (id === 'ach' || id === 'titles') ? id : 'shop';   // anything unknown falls back to Shop
       for (var k in tabBtns) if (Object.prototype.hasOwnProperty.call(tabBtns, k)) {
@@ -1942,44 +2162,93 @@
         try { tabBtns[k].setAttribute('aria-selected', k === id ? 'true' : 'false'); } catch (e) {}
       }
       SHOP_ONLY.forEach(function (el2) { if (el2 && el2.style) el2.style.display = (id === 'shop') ? '' : 'none'; });
+      SHOP_ACH.forEach(function (el2) { if (el2 && el2.style) el2.style.display = (id === 'titles') ? 'none' : ''; });
+      // the tab rides the URL, so a refresh (or a shared link) comes back to the same tab
+      if (scopeGame == null) setTabParam(id === 'shop' ? null : id);
       achPane.style.display = (id === 'ach') ? '' : 'none';
-      titlesPane.style.display = (id === 'titles') ? '' : 'none';
+      titlesPane.style.display = (id === 'titles') ? 'flex' : 'none';   // flex column: the ladder fills the pane
       if (ov.classList) { ov.classList.toggle('gksp-tab-ach', id === 'ach'); ov.classList.toggle('gksp-tab-titles', id === 'titles'); }
       syncHeader();   // the header number is per-tab (spendable / achievement points / lifetime)
-      if (id === 'ach' && !achBuilt) { achBuilt = true; buildAchMock(); }
+      if (id === 'ach') { achBuilt = true; buildAchWall(); }
+      // looking at the wall clears the Collection dot — but a game-scoped wall only rendered that
+      // game + site-wide, so it must not mark unlocks the player never saw as seen
+      if (id === 'ach' && (scopeGame == null || !achUnseenOutside(scopeGame))) achMarkSeen();
       if (id === 'titles' && !titlesBuilt) {
         titlesBuilt = true;
         titlesPane.appendChild(mkEl('p', 'gksp-panesub', t('titles.sub', { def: 'Earn trophies to climb the ladder — a new title is worn automatically, but tap any <b>unlocked</b> rank to wear it instead. Titles read <b>lifetime</b> trophies, so spending on your collection never slows you down.' })));
-        var host = mkEl('div', 'tl-list'); titlesPane.appendChild(host);
+        var host = mkEl('div', 'tl-list'); host.id = 'titlesList';   // the title-shine engine targets this id
+        titlesPane.appendChild(host);
         if (_titlesInto) _titlesInto(host);   // null only if the profile block never mounted (no nav/side stack)
       }
       if (id !== 'shop') track('feature_open', { feature: id === 'ach' ? 'achievements' : 'titles' });
     }
-    // Achievements: a LAYOUT MOCK behind a "Coming soon" veil, so the tab's shape (and its place in
-    // this modal) is settled before the feature exists. Deliberately fake rows — no registry yet.
-    // See plans/achievements-plan.md; the real thing reads window.ACHIEVEMENTS.
-    function buildAchMock() {
-      var MOCK = [
-        { icon: '🏆', pts: 15 }, { icon: '🎯', pts: 5 }, { icon: '🔥', pts: 50 },
-        { icon: '🧩', pts: 15 }, { icon: '⚡', pts: 5 }, { icon: '🌟', pts: 50 },
-        { icon: '🎨', pts: 5 }, { icon: '👑', pts: 50 },
-      ];
-      var grid = mkEl('div', 'gksp-achgrid');
-      MOCK.forEach(function (m, i) {
-        var cell = mkEl('div', 'gksp-achcell' + (i < 2 ? ' done' : ''));
-        cell.appendChild(mkEl('span', 'gksp-achicon', m.icon));
-        var txt = mkEl('span', 'gksp-achtxt');
-        txt.appendChild(mkEl('b', null, '——————'));      // placeholder name
-        txt.appendChild(mkEl('i', null, '——————————'));  // placeholder description
-        cell.appendChild(txt);
-        cell.appendChild(mkEl('span', 'gksp-achpts', m.pts + ' 🏆'));
-        grid.appendChild(cell);
+    // Achievements: the badge wall, read from window.ACHIEVEMENTS (data) via gamekit.achievements
+    // (logic). Grouped by game in the SAME order as the shop grid and using the same section header,
+    // so the two tabs read as one modal. Unlocked rows lead, then the closest-to-done — a player
+    // opening this should see what to chase next, not scroll for it.
+    function buildAchWall() {
+      achPane.innerHTML = '';
+      var q = (search && search.value || '').trim().toLowerCase();
+      var filterG = (gameSel && gameSel.value != null && gameSel.value !== '__all') ? gameSel.value : null;
+      var rows = achAll().filter(function (r) {
+        if (filterG != null && r.game !== filterG) return false;
+        if (!q) return true;
+        var gm = gamesMeta[r.game] || {};
+        var hay = (t('ach.' + r.id + '.name', { def: r.id }) + ' ' + t('ach.' + r.id + '.desc', { def: '' })
+          + ' ' + shopGameTitle(r.game, gm.title || r.game) + ' ' + (r.game || t('shop.siteWide'))).toLowerCase();
+        return hay.indexOf(q) >= 0;
       });
-      achPane.appendChild(grid);
-      var veil = mkEl('div', 'gksp-soon');
-      veil.appendChild(mkEl('div', 'gksp-soon-t', t('shop.achSoon', { def: 'Coming soon…' })));
-      veil.appendChild(mkEl('div', 'gksp-soon-s', t('shop.achSoonSub', { def: 'One-off goals per game and site-wide, paying trophies when you clear them.' })));
-      achPane.appendChild(veil);
+      if (!rows.length) { achPane.appendChild(mkEl('div', 'gksp-achempty', t('ach.none', { def: 'No achievements loaded.' }))); return; }
+      achPane.appendChild(mkEl('p', 'gksp-panesub', t('ach.sub', { def: 'One-off goals that never expire. Each one pays its trophies once, into your <b>lifetime</b> total — so unlocking them also climbs the titles ladder.' })));
+      var byGame = {};
+      rows.forEach(function (r) { (byGame[r.game] || (byGame[r.game] = [])).push(r); });
+      // the shop's game order, plus any game that only has achievements (no cosmetics yet)
+      var gOrder = shown.filter(function (g) { return byGame[g]; });
+      Object.keys(byGame).forEach(function (g) {
+        if (gOrder.indexOf(g) < 0 && (scopeGame == null || g === scopeGame || g === '')) gOrder.push(g);
+      });
+      gOrder.forEach(function (game) {
+        var list = byGame[game] || [];
+        if (!list.length) return;
+        var meta = gamesMeta[game] || { title: game || t('shop.siteWide'), icon: '🎮' };
+        var gh = mkEl('div', 'gksp-game');
+        gh.appendChild(mkEl('span', 'gksp-gt', (meta.icon ? meta.icon + ' ' : '') + shopGameTitle(game, meta.title || game).toUpperCase()));
+        var doneN = list.filter(function (r) { return r.unlocked; }).length;
+        gh.appendChild(mkEl('span', 'gksp-gp', doneN + '/' + list.length));
+        gh.appendChild(mkEl('span', 'gksp-gline'));
+        if (meta.accent && gh.style && gh.style.setProperty) { try { gh.style.setProperty('--acc', meta.accent); } catch (e) {} }
+        achPane.appendChild(gh);
+        var grid = mkEl('div', 'gksp-achgrid');
+        list.slice().sort(function (a, b) {
+          if (a.unlocked !== b.unlocked) return a.unlocked ? -1 : 1;
+          var pa = a.bar && a.goal ? Math.min(1, (a.cur || 0) / a.goal) : 0;
+          var pb2 = b.bar && b.goal ? Math.min(1, (b.cur || 0) / b.goal) : 0;
+          if (pa !== pb2) return pb2 - pa;
+          return a.price - b.price;
+        }).forEach(function (r) { grid.appendChild(achCell(r)); });
+        achPane.appendChild(grid);
+      });
+    }
+    function achFmt(v, dec) {
+      var p = Math.pow(10, dec || 0), t = Math.floor((+v || 0) * p) / p;   // floor, never round up
+      return dec ? t.toFixed(dec) : fmtScore(t);
+    }
+    function achCell(r) {
+      var cell = mkEl('div', 'gksp-achcell' + (r.unlocked ? ' done' : ''));
+      cell.appendChild(mkEl('span', 'gksp-achicon', r.icon || '🏅'));
+      var txt = mkEl('div', 'gksp-achtxt');
+      txt.appendChild(mkEl('div', 'gksp-achnm', t('ach.' + r.id + '.name', { def: r.id })));
+      txt.appendChild(mkEl('div', 'gksp-achds', t('ach.' + r.id + '.desc', { def: '' })));
+      if (r.bar && !r.unlocked) {
+        var cur = Math.max(0, Math.min(+r.cur || 0, r.goal));
+        var bar2 = mkEl('div', 'gksp-achbar'), fill = mkEl('i');
+        try { fill.style.width = Math.round((r.goal ? cur / r.goal : 0) * 100) + '%'; } catch (e) {}
+        bar2.appendChild(fill); txt.appendChild(bar2);
+        txt.appendChild(mkEl('div', 'gksp-achprog', achFmt(cur, r.dec) + (r.unit || '') + ' / ' + achFmt(r.goal, r.dec) + (r.unit || '')));
+      }
+      cell.appendChild(txt);
+      cell.appendChild(mkEl('span', 'gksp-achpts', (r.unlocked ? '✓ ' : '') + fmtT(r.price) + ' 🏆'));
+      return cell;
     }
     var cells = [], focused = -1, gameProgEls = [];
     function fmtT(n) { return fmtScore(n | 0); }
@@ -1988,7 +2257,7 @@
     function cosDesc(it) { return t('cos.' + it.id + '.desc', { def: it.desc || '' }); }
     function cosSetLabel(sid, def) { return t('cos.set.' + sid, { def: def || sid }); }
     function cosSetNote(sid, def) { return t('cos.setnote.' + sid, { def: def || '' }); }
-    function shopGameTitle(slug, def) { return t('game.' + slug + '.title', { def: def || slug }); }
+    function shopGameTitle(slug, def) { return slug ? t('game.' + slug + '.title', { def: def || slug }) : t('shop.siteWide'); }
     // themed game filter (replaces the native <select> so it matches the kit look): a trigger button
     // showing the current pick, opening a langMenu-style themed overlay list. Picking sets .value +
     // rebuilds. `gameSel` stays a plain {value, el} so rebuild() reads .value unchanged.
@@ -2006,7 +2275,7 @@
         var pbox = mkEl('div', 'gkspf-box'); pov.appendChild(pbox);
         options.forEach(function (o) {
           var it = mkEl('button', 'gkspf-opt' + (o.value === self.value ? ' selected' : ''), o.label); try { it.type = 'button'; } catch (e) {}
-          it.addEventListener('click', function () { self.value = o.value; syncLabel(); pclose(); rebuild(); });
+          it.addEventListener('click', function () { self.value = o.value; syncLabel(); pclose(); if (tab === 'ach') buildAchWall(); else rebuild(); });
           pbox.appendChild(it);
         });
         if (opts.theme) applyMenuTheme(pov, opts.theme);
@@ -2032,9 +2301,12 @@
       // along am I (Achievements), and what have I earned in total, ever (Titles — the ladder reads
       // LIFETIME trophies, so showing the spendable balance next to it would read as the requirement).
       balEl.textContent = (tab === 'titles') ? t('shop.balLifetime', { n: fmtT(cosLifetime()), def: '🏆 {n} lifetime' })
-        : (tab === 'ach') ? t('shop.balAch', { n: 0, def: '🏅 {n} points' })
+        // account-wide even when the modal is scoped to one game (like the Shop's balance)
+        : (tab === 'ach') ? (function () { var p = achProgress(); return t('shop.balAch', { done: p.done, total: p.total, n: fmtT(achPoints()), def: '🏅 {done}/{total} · {n} 🏆' }); })()
         : t('shop.balSpend', { n: fmtT(cosBalance()), def: '🏆 {n} to spend' });
-      var pr = scopeGame != null ? cosProgress(scopeGame) : cosProgress();
+      var pr;
+      if (tab === 'ach') { var ap = achProgress(); pr = { owned: ap.done, total: ap.total, pct: ap.total ? ap.done / ap.total : 0 }; }
+      else pr = scopeGame != null ? cosProgress(scopeGame) : cosProgress();
       var pct = Math.round(pr.pct * 100);
       try { barFill.style.width = pct + '%'; } catch (e) {}
       barTxt.textContent = t('shop.progress', { owned: pr.owned, total: pr.total, pct: pct });
@@ -2272,13 +2544,14 @@
 
       try { document.removeEventListener('keydown', onKey, true); } catch (e) {}
       try { if (ov.parentNode) ov.parentNode.removeChild(ov); } catch (e) {}
+      if (scopeGame == null) setTabParam(null);   // the tab param closes with the modal
       if (typeof opts.onClose === 'function') { try { opts.onClose(); } catch (e) {} }
     }
     function onKey(e) { if (e && (e.key === 'Escape' || e.key === 'Esc') && document.activeElement !== search && !(document.querySelector && document.querySelector('.gamekit-shopfilter-menu'))) { if (e.preventDefault) e.preventDefault(); if (e.stopImmediatePropagation) e.stopImmediatePropagation(); close(); } }
     xb.addEventListener('click', close);
     ov.addEventListener('click', function (e) { if (e && e.target === ov) close(); });
     buyBtn.addEventListener('click', function () { if (focused >= 0) confirmFocused(); });
-    if (search) search.addEventListener('input', rebuild);
+    if (search) search.addEventListener('input', function () { if (tab === 'ach') buildAchWall(); else rebuild(); });
     if (allGamesLink) allGamesLink.addEventListener('click', function () { close(); try { opts.allGames(); } catch (e) {} });
     if (typeof document.addEventListener === 'function') document.addEventListener('keydown', onKey, true);
     rebuild();
@@ -2365,6 +2638,7 @@
     // read BEFORE pbSave rewrites the store: a game that already saved its own best this run makes
     // this read a tie, so the flag under-reports rather than inventing bests that didn't happen
     var _prevBest = 0; try { _prevBest = +getBestScore(slug, rec.mode) || 0; } catch (e) {}
+    _achFresh = [];   // cleared per run, so a throw below can't leave the last run's receipt up
     lsSet('gamekit_result_' + slug, JSON.stringify(rec));
     try {
       var key = 'gamekit_played_' + utcDateStr();
@@ -2397,6 +2671,10 @@
       // good-run trophy trickle (+5 🏆, capped 3/day) — the end menu reads _grAwarded for its receipt
       _grAwarded = (par && rec.score >= par) ? grAward() : false;
       pruneOldLogs();
+      // achievements, in this order: the cumulative counters must include THIS run before the
+      // predicates read them, and both must run after pbSave so a `max:` entry sees the new best.
+      tlyBump(slug, rec);
+      _achFresh = achEvaluate({ slug: slug, mode: rec.mode, score: rec.score, time: rec.time, outcome: data.outcome || '', stats: rec.stats || {} });
     } catch (e) {}
     // aggregate, consent-gated: which games/modes get played to completion, and how that run went.
     // score/duration_s are GA4 custom METRICS (averages); outcome only exists if the game passes it.
@@ -2770,11 +3048,13 @@
         const collectBar = cos ? ('<div class="pf-collect" id="pfCollect" role="button" tabindex="0" title="' + esc(T('profile.openStore', 'Open the Cosmetics store')) + '">'
           + '<div class="pf-collect-top"><span>🎨 ' + esc(T('cat.collectionBtn', 'Collection')) + '</span><span class="pf-collect-n">' + cos.owned + ' / ' + cos.total + ' · ' + pctW + '%</span></div>'
           + '<div class="pf-collect-bar" style="background:linear-gradient(90deg,#ffce5c,#ff9a5c) left/' + pctW + '% 100% no-repeat,rgba(255,255,255,0.09)"></div></div>') : '';
-        // Achievements sit beside the collection as the profile's second progress track. Mocked for now
-        // (same "Coming soon" state as the Collection modal's tab) so the row exists where it will live.
-        const achBar = '<div class="pf-collect pf-soon" id="pfAch" role="button" tabindex="0" title="' + esc(T('shop.achSoon', 'Coming soon…')) + '">'
-          + '<div class="pf-collect-top"><span>🏅 ' + esc(T('shop.tabAch', 'Achievements')) + '</span><span class="pf-collect-n">' + esc(T('shop.achSoon', 'Coming soon…')) + '</span></div>'
-          + '<div class="pf-collect-bar"></div></div>';
+        // Achievements sit beside the collection as the profile's second progress track — same bar
+        // shape, same click target (this modal's Achievements tab).
+        const ap = (K && K.achievements) ? K.achievements.progress() : null;
+        const apW = (ap && ap.total) ? Math.round(ap.done / ap.total * 100) : 0;
+        const achBar = ap ? ('<div class="pf-collect" id="pfAch" role="button" tabindex="0" title="' + esc(T('profile.openAch', 'Open your achievements')) + '">'
+          + '<div class="pf-collect-top"><span>🏅 ' + esc(T('shop.tabAch', 'Achievements')) + '</span><span class="pf-collect-n">' + ap.done + ' / ' + ap.total + ' · ' + apW + '%</span></div>'
+          + '<div class="pf-collect-bar" style="background:linear-gradient(90deg,#ffd166,#ff9a5c) left/' + apW + '% 100% no-repeat,rgba(255,255,255,0.09)"></div></div>') : '';
         // one list, most-played first: every game with plays, each showing its modes' bests
         const ranked = [];
         if (p) GAMES.forEach(gm => { const pg = p.perGame[gm.slug]; if (pg && pg.plays > 0) ranked.push({ gm, pg }); });
@@ -3068,6 +3348,12 @@
         if (window.__openShop) { window.__openShop(); return; }
         shopPanel(opts.game ? { game: opts.slug, theme: opts.theme, allGames: function () { shopPanel({ theme: opts.theme }); } } : {});
       });
+      // Achievements dot on the Collection button (the wall lives in that modal): "you unlocked
+      // something you haven't looked at". Cleared by opening the Achievements tab (achMarkSeen).
+      const syncAchDot = () => { try { window.__setStackDot('collectionQuick', achFreshCount() > 0); } catch (e) {} };
+      window.__syncAchNotify = syncAchDot;
+      achSync();          // page-load pass: backfills a returning player's history, then dots
+      syncAchDot();
       // Challenges dot: "a new challenge rotation you haven't looked at yet" — compares today's
       // daily period + this week's weekly period (the kit's canonical rotation keys) against the
       // last pair seen; opening the drawer marks both seen.
@@ -4828,6 +5114,17 @@
               : t('grb.counts'))));
       }
     }
+    // achievement receipt: what THIS run just unlocked, and what it paid. Same shape as the good-run
+    // line above (a receipt, not a celebration overlay) — the wall in Collection is the full story.
+    if (cfg.record && cfg.record.slug && _achFresh.length) {
+      // ONE line, always: the end menu already carries score/best/★ New best/mode/✓ Good run/share,
+      // and five rows overflow the landscape-phone rail. Several at once collapse into a count.
+      var _a0 = _achFresh[0], _more = _achFresh.length - 1;
+      var _pay = 0; _achFresh.forEach(function (a) { _pay += (+a.price || 0); });
+      scroll.appendChild(mkEl('p', 'gkm-goodrun gkm-achline', _more > 0
+        ? t('ach.receiptMany', { icon: '🏅', n: _achFresh.length, pay: fmtScore(_pay), def: '🏅 {n} achievements unlocked · +{pay} 🏆' })
+        : t('ach.receipt', { icon: _a0.icon || '🏅', name: t('ach.' + _a0.id + '.name', { def: _a0.id }), n: fmtScore(_pay), def: '{icon} {name} unlocked · +{n} 🏆' })));
+    }
     (cfg.lines || []).forEach(function (ln) { scroll.appendChild(mkEl('p', 'gkm-line', ln)); });
     var hintEl = cfg.hint ? mkEl('p', 'gkm-hint') : null; if (hintEl) scroll.appendChild(hintEl);
     var shareHost = cfg.share ? mkEl('div', 'gkm-share-host') : null;
@@ -5446,7 +5743,7 @@
     };
   }
 
-  var api = { lock: lock, levelsScreen: levelsScreen, hints: makeHints, hintButton: hintButton, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, __pbAnnounce: pbAnnounce, __runPbSnap: function (slug, modes) { _runPb = (slug == null) ? null : { slug: slug, modes: modes || {} }; }, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, bestWatch: bestWatch, bestTick: bestTick, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langFlag: function (code) { return I18N_FLAG_SVG[String(code || '').toLowerCase()] || ''; }, langLabel: function (code) { var c = String(code || '').toLowerCase(); for (var i = 0; i < I18N_LANGS.length; i++) if (I18N_LANGS[i].code === c) return I18N_LANGS[i].label; return c; }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
+  var api = { lock: lock, levelsScreen: levelsScreen, hints: makeHints, hintButton: hintButton, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, __pbAnnounce: pbAnnounce, __runPbSnap: function (slug, modes) { _runPb = (slug == null) ? null : { slug: slug, modes: modes || {} }; }, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, bestWatch: bestWatch, bestTick: bestTick, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, achievements: achievements, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langFlag: function (code) { return I18N_FLAG_SVG[String(code || '').toLowerCase()] || ''; }, langLabel: function (code) { var c = String(code || '').toLowerCase(); for (var i = 0; i < I18N_LANGS.length; i++) if (I18N_LANGS[i].code === c) return I18N_LANGS[i].label; return c; }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;
