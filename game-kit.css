@@ -976,7 +976,7 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
    the grid; the tab row replaces that row, so it costs no extra height in the tight viewports. */
 .gamekit-shoppanel .gksp-tabs { display: flex; gap: 6px; margin: 10px 0 0; }
 /* equal thirds — three peers, so they get equal width at every size */
-.gamekit-shoppanel .gksp-tab { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+.gamekit-shoppanel .gksp-tab { position: relative; flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
   font: 700 11px var(--gkm-font, ui-monospace, monospace); letter-spacing: 0.5px;
   color: #93a5bd; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14));
   border-radius: 9px; padding: 8px 7px; cursor: pointer; white-space: nowrap; }
@@ -985,6 +985,10 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 .gamekit-shoppanel .gksp-tab:hover { color: var(--gkm-text, #eaf2fb); border-color: var(--gkm-accent, #9fe8ff); }
 .gamekit-shoppanel .gksp-tab.on { color: var(--gkm-title, #eaf3ff); background: var(--gkm-accent-soft, rgba(159, 232, 255, 0.14));
   border-color: var(--gkm-accent, #9fe8ff); box-shadow: inset 0 -2px 0 var(--gkm-accent, #9fe8ff); }
+/* the same dot the side-stack buttons use — it points at WHICH tab the Collection dot meant. Only the
+   Achievements tab has one: a fresh title already dots the Profile button, and the Shop has no news. */
+.gamekit-shoppanel .gksp-tab.has-dot::after { content: ""; position: absolute; top: -3px; right: -3px;
+  width: 9px; height: 9px; border-radius: 50%; background: #ffd166; box-shadow: 0 0 6px 1px rgba(255, 209, 102, 0.9); }
 /* A 360px box gives each equal third ~86px. "Achievements" cannot fit that WITH an emoji, so the emoji
    is what goes — the word is the part that has to survive. */
 @media (max-width: 430px) {
