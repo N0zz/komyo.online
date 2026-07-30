@@ -54,21 +54,30 @@ for (const g of (win.GAMES || []).filter(x => !x.soon)) {
 }
 
 // ---- similarity model -------------------------------------------------------------------------
-// Weighted so what an EAR notices most carries most: drum kit and arrangement family dominate, then
-// the chord progression, then mode/tempo/key. Two tracks sharing kit+groove start at 50% before a
-// single note is compared — which is why choosing an UNUSED kit+groove pairing is the strongest
-// lever a new game has.
-const W = { kit: 0.25, groove: 0.25, prog: 0.20, scale: 0.15, bpm: 0.10, root: 0.05 };
+// Weighted so what an EAR notices most carries most: drum kit and arrangement dominate, then the
+// chord progression and the hook, then mode/tempo/key. Two tracks sharing kit + arrangement
+// template + groove start above 50% before a single note is compared — which is why choosing an
+// UNUSED kit / template / groove combination is the strongest lever a new game has.
+//
+// v3 added two axes the old model couldn't see:
+//   · `arr` — the arrangement TEMPLATE (dance / lush / epic / tactical / puzzle / retro). Two tracks
+//     on the same template share their section shapes, so they build and drop at the same moments.
+//   · `seed` — the motif seed. The hook is now a pure function of (seed, scale), so an identical
+//     seed on an identical mode is literally the same tune.
+const W = { kit: 0.20, arr: 0.18, groove: 0.16, prog: 0.16, scale: 0.12, bpm: 0.08, root: 0.04, seed: 0.06 };
 const fam = t => t.groove || t.prod || '';
 function similarity(a, b) {
   let s = 0;
   if ((a.kit || '') === (b.kit || '')) s += W.kit;
+  if ((a.arr || '') === (b.arr || '')) s += W.arr;
   if (fam(a) === fam(b)) s += W.groove;
   const pa = a.prog || [], pb = b.prog || [];
   if (pa.length && pb.length) s += W.prog * (pa.filter((v, i) => pb[i] === v).length / Math.max(pa.length, pb.length));
-  if ((a.scale || []).join() === (b.scale || []).join()) s += W.scale;
+  const sameMode = (a.scale || []).join() === (b.scale || []).join();
+  if (sameMode) s += W.scale;
   if (Math.abs((a.bpm || 0) - (b.bpm || 0)) <= 6) s += W.bpm;
   if (Math.abs((a.root || 0) - (b.root || 0)) < 1) s += W.root;
+  if (a.seed && a.seed === b.seed && sameMode) s += W.seed;   // same seed + same mode = same melody
   // a per-track high-intensity signature layer pulls them apart exactly where the engine converges
   if ((a.sig || '') && (a.sig || '') === (b.sig || '')) s += 0.05;
   else if ((a.sig || '') !== (b.sig || '')) s -= 0.05;
@@ -77,20 +86,30 @@ function similarity(a, b) {
 function why(a, b) {
   const out = [];
   if ((a.kit || '') === (b.kit || '')) out.push('drum kit ' + a.kit);
-  if (fam(a) === fam(b)) out.push('arrangement ' + fam(a));
+  if ((a.arr || '') === (b.arr || '')) out.push('template ' + (a.arr || 'default'));
+  if (fam(a) === fam(b)) out.push('groove ' + (fam(a) || 'none'));
   const pa = a.prog || [], pb = b.prog || [];
   const ov = pa.length ? pa.filter((v, i) => pb[i] === v).length / pa.length : 0;
   if (ov >= 0.5) out.push('progression ' + Math.round(ov * 100) + '%');
-  if ((a.scale || []).join() === (b.scale || []).join()) out.push('same mode');
+  const sameMode = (a.scale || []).join() === (b.scale || []).join();
+  if (sameMode) out.push('same mode');
   if (Math.abs((a.bpm || 0) - (b.bpm || 0)) <= 6) out.push('bpm ±6');
   if (Math.abs((a.root || 0) - (b.root || 0)) < 1) out.push('same key');
+  if (a.seed && a.seed === b.seed && sameMode) out.push('SAME HOOK (seed ' + a.seed + ')');
   if (!a.sig && !b.sig) out.push('no high-intensity signature');
   return out.join(', ');
 }
 
 const REDESIGN = 0.68, SIBLING = 0.55;
 const ids = Object.keys(TRACKS);
-const variantPair = (x, y) => x.startsWith(y) || y.startsWith(x);   // snake / snakebanger = one game
+// One game's own variants are meant to resemble each other — Snake's two cosmetic tracks, Keep
+// Defender's six biomes. The `game` field on a TRACK declares that family explicitly; the old
+// prefix guess couldn't see that kd_ice and kd_dungeon belong to the same game, and flagged them.
+const variantPair = (x, y) => {
+  const a = TRACKS[x], b = TRACKS[y];
+  if (a.game && b.game && a.game === b.game) return true;
+  return x.startsWith(y) || y.startsWith(x);
+};
 const pairs = [];
 for (let i = 0; i < ids.length; i++) {
   for (let j = i + 1; j < ids.length; j++) {
@@ -122,12 +141,14 @@ for (const [p, v] of dup) console.log(`  ⚠️  [${p}] shared by ${v.join(' + '
 
 // the engine stacks every layer at high intensity, so tracks converge exactly when the action peaks
 console.log('\n── HIGH-INTENSITY SIGNATURES ' + '─'.repeat(32));
-const noSig = ids.filter(id => !TRACKS[id].sig && !/^kd_/.test(id));
+const noSig = ids.filter(id => !TRACKS[id].sig);
 console.log('  with a signature: ' + ids.filter(id => TRACKS[id].sig).map(id => id + ':' + TRACKS[id].sig).join(', ') || '  none');
 if (noSig.length) console.log('  without one (converge when all layers are on): ' + noSig.join(', '));
 
 console.log('\n── COVERAGE ' + '─'.repeat(48));
-const orphan = ids.filter(id => !played[id] && !/^kd_/.test(id) && !ids.some(o => o !== id && variantPair(id, o) && played[o]));
+// a track is covered if a game plays it OR a sibling from the same game is played (biome/cosmetic
+// variants are swapped in at runtime, so they never appear in a music.play() literal)
+const orphan = ids.filter(id => !played[id] && !ids.some(o => o !== id && variantPair(id, o) && played[o]));
 const heard = Object.values(played).flat();
 const silent = (win.GAMES || []).filter(g => !g.soon).map(g => g.title).filter(t => !heard.includes(t));
 console.log('  tracks with no game:', orphan.length ? orphan.join(', ') : 'none');
