@@ -103,6 +103,19 @@ caption + `-fb.mp4`, so manual fallback is one paste.
 4. Discord mirrors YT automatically — nothing to do (native post only for launches).
 5. Log what went out (date/platform/variant) in the marketing tracker sheet (marketing_plan §7).
 
+## Originals queue — next trailers (roadmap top item, 2026-07-30)
+
+The komyo originals (no clone to ride on) are the priority: each gets a trailer run, in this order.
+One game per run: skill → user eyeball → `trailer: "trailer.v1.mp4"` in `games.js` → post per the
+cadence above.
+
+- [ ] Tube Racer
+- [ ] Frog Bonk
+- [ ] Type Siege
+- [ ] Floodgate
+- [ ] Mirror Maze
+- [ ] Keep Defender *(maybe — decide after the first four)*
+
 ## Work items
 
 - [ ] **Trailer templates:** platform param (e.g. `PF` in the config block) that changes ONLY the
