@@ -343,6 +343,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     surge = 0; stumbles = 0; stumbleFreeze = 0; nearFlash = 0; chain = 0; chainTimer = 0; bestChain = 0;
     nextGapPx = W * 0.8;
     best = loadBest();
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel());   // arm the live new-best pulse
     initScenery();
     updateHud();
   }
@@ -369,6 +370,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       score = newScore;
       if (score > 0 && score % 100 === 0) { SND.play('tick'); milestone = 24;
         if (score % 500 === 0) { const r3 = runnerBox(); pow(powText('game.dusk-runner.powMile', 'NICE!'), r3.x + r3.w * 1.2, r3.y - 20 * S, 1.05); } }
+      // Sprint records the clock, so its bar is the timer — only Endless pulses on passing the metres best.
+      if (mode !== 'sprint' && KIT && KIT.bestTick) KIT.bestTick(score);
       updateHud();
     }
 
@@ -481,9 +484,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   function finish(win) {
     state = 'over'; won = !!win; showPads(false);
-    const prevBest = loadBest();
+    const prevBest = loadBest(), prevTime = loadBestTime();
     if (KIT) KIT.saveBest(SLUG, modeLabel(), { score: score, time: (mode === 'sprint' && won) ? elapsedMs() : 0 });
-    const isBest = score > prevBest && score > 0;
+    // Sprint's RECORD is the clock, so its "new best" has to be the clock too. Comparing metres
+    // meant that once a clear had banked the 1,000 m cap, no later clear — however much faster —
+    // could ever read as a best (1000 > 1000 is false).
+    const isBest = (mode === 'sprint')
+      ? (won && (!prevTime || elapsedMs() < prevTime))
+      : (score > prevBest && score > 0);
     best = loadBest();
     if (KIT && KIT.music) KIT.music.intensity(0.3);
     showEnd(isBest);

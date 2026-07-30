@@ -484,6 +484,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     timed = mode === 'endless';
     boardLimit = boardSeconds({ tier: B.tier, w: B.w, h: B.h });
     remain = timed ? Math.max(1, s.remain || boardLimit) : 0;
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel(mode), score);   // resumed past the bar → no pulse
     resumedRun = true; state = 'playing'; menuScreen = null;
     A = analyze(B, rot);
     layoutBoard(); updateHud();
@@ -626,6 +627,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     resumedRun = false; clearSave();
     hintCarry = 0; if (HINTS) HINTS.begin();
     startBoard();
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel(mode));   // arm the live new-best pulse
     state = 'playing'; menuScreen = null;
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     updateHud(); syncHintBtn();
@@ -674,6 +676,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     lastStars = Math.min(hintsClean() ? 3 : 2, starsFor(moves, par));
     movesTotal += moves; parTotal += par;
     score += mode === 'daily' ? lastStars : 1;        // Daily scores EFFICIENCY, the rest count boards
+    if (KIT && KIT.bestTick) KIT.bestTick(score);      // live new-best pulse
     SND.play('sealed');
     if (mode === 'campaign') saveDone(level);
     clearSave();

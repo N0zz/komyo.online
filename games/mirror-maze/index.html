@@ -206,6 +206,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   const SPIN_FRAMES = 9;                          // length of the eased flip
   const litAnim = {};                             // cellIdx → frames since this target lit (bloom)
   let winT = 0, pendingEnd = 0, isBest = false;
+  // The record as it stood when THIS run began. runScore is CUMULATIVE and every solved board saves
+  // it, so comparing against the live store compared the run against ITSELF: each board read as a
+  // new best, and failRun (which pays nothing, so runScore is unchanged) could never read as one —
+  // endless mode's only natural ending, and therefore endless never reported a best at all.
+  let bestAtStart = 0;
   let frame = 0, labels = true;
   let cs = 30, bx = 0, by = 0;
   let cur = { x: 0, y: 0 }, curOn = false;
@@ -901,7 +906,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     lastSave = now; dirty = false;
     const sp = boardSpec();
     PROG.save({ id: 'run', mode, level, bi: boardIdx, es: endlessSeed, seed: sp.seed, tier: sp.tier, size: sp.size,
-      orient: mirrorIdxs(board).map(i => board.cells[i].o).join(''), solved: solvedCount, moves, hints: hintCount(), bud: budget, rs: runScore });
+      orient: mirrorIdxs(board).map(i => board.cells[i].o).join(''), solved: solvedCount, moves, hints: hintCount(), bud: budget, rs: runScore,
+      b0: bestAtStart });   // the run-start record travels with the run — a resumed run's live best already includes its own boards
   }
   function clearSave() { if (PROG) PROG.remove('run'); dirty = false; }
   function resumeRun(s) {
@@ -909,6 +915,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     menuScreen = 'game';
     mode = s.mode; level = s.level || 0; boardIdx = s.bi || 0; endlessSeed = s.es || 1;
     solvedCount = s.solved || 0; runScore = s.rs || 0; lastAward = 0;
+    bestAtStart = s.b0 != null ? (+s.b0 || 0) : bestOf();   // pre-b0 saves fall back (worst case: no star)
     board = genBoard(s.seed, s.tier, s.size);
     const mi = mirrorIdxs(board);
     for (let i = 0; i < mi.length && i < s.orient.length; i++) board.cells[mi[i]].o = s.orient.charAt(i) === '1' ? 1 : 0;
@@ -923,6 +930,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     // first spin (budget 0 → "out of power" immediately)
     if (mode === 'endless') budget = s.bud > 0 ? s.bud : (board.par || 6) + 4;
     layoutBoard(); updateHud();
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel(), runScore);   // resumed past the bar → no pulse
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); syncHintBtn(); }
     return true;
   }
@@ -1021,10 +1029,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function failRun() {
     outOfBudget = true; state = 'over';
     clearSave();
-    const prev = bestOf();
     lastAward = 0;                                    // the maze it died on pays nothing
     if (KIT) KIT.saveBest(SLUG, modeLabel(), { score: runScore, stats: { tier: board.tier, mazes: solvedCount } });
-    isBest = runScore > prev;
+    isBest = runScore > bestAtStart && runScore > 0;
     SND.play('dark');
     updateHud();
     pendingEnd = 30;
@@ -1035,12 +1042,12 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     solvedCount++;
     lastAward = mazeAward(board, moves, hintCount());
     runScore += lastAward;
+    if (KIT && KIT.bestTick) KIT.bestTick(runScore);           // live new-best pulse
     if (mode === 'endless') budget += (board.par || 6) + 2;   // a clean solve buys the next maze
     if (mode === 'campaign') markDone(level);
     clearSave();
-    const prev = bestOf();
     if (KIT) KIT.saveBest(SLUG, modeLabel(), { score: runScore, stats: { tier: board.tier, mazes: solvedCount } });
-    isBest = runScore > prev;
+    isBest = runScore > bestAtStart && runScore > 0;
     SND.play('cleared');
     if (navigator.vibrate) { try { navigator.vibrate([20, 40, 30]); } catch (e) {} }
     updateHud();
@@ -1928,8 +1935,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     solvedCount = 0; runScore = 0; lastAward = 0; outOfBudget = false;
     if (mode === 'endless') { boardIdx = endlessStartIdx(); endlessSeed = (Math.floor(Math.random() * 1e9) + 7) >>> 0; }
     clearSave();
+    bestAtStart = bestOf();
     state = 'playing';
     loadBoard();
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel());   // arm the live new-best pulse
     if (mode === 'endless') { budget = (board.par || 6) + 4; updateHud(); }   // the starting spin pool (HUD was stale at 0)
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); syncHintBtn(); }
     saveState(true);
@@ -1972,6 +1981,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
           def: '{spins}/{par} spins · {size}×{size} · +{award}' })
       : KIT.t('game.mirror-maze.outOfPower', { def: 'The laser ran out of power.' }) ];
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      // A solved board with another maze waiting is a CHECKPOINT, not the end of the run: runScore
+      // keeps climbing, so announcing here would post a rising stack of cards from one run.
+      final: !(won && hasNext()),
       // beating par is the reward, so it takes over the TITLE rather than costing a menu line
       // the hint count rides on the TITLE — it is the row that would otherwise have said "PAR OR
       // BETTER!", so it reads as the reason that praise is missing, and it costs the rail no width

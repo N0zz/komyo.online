@@ -211,6 +211,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- State ----
   let state = 'ready'; // ready | playing | over
   let snake, dir, dirQueue, food, score, best, particles, flashAlpha, pendingFood;
+  // The record as it stood when THIS run began. `best` is deliberately raised mid-run (the eat
+  // handler saves immediately, so a crashed tab can't lose the score) — which made the end
+  // screen's `score > best` permanently false, so "★ New best!" never once fired here.
+  let bestAtStart = 0;
   // buffered turns (up to 3): spamming two quick turns inside one grid-step used to lose the
   // first one (single next-dir slot) — now each tick consumes one queued turn in order
   function queueDir(nd) {
@@ -299,6 +303,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     dirQueue = [];
     score = 0;
     best = loadBest();
+    bestAtStart = best;
+    if (KIT && KIT.bestWatch) KIT.bestWatch('snake', modeLabel(opts));   // arm the live new-best pulse
     particles = [];
     flashAlpha = 0;
     pendingFood = null;
@@ -356,7 +362,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     else {
       score += 10;
       if (score > best) { best = score; saveBest(best); }
-      flashAlpha = 0.12;
+      // a brighter flash is the in-engine half of the kit's live new-best pulse
+      flashAlpha = (KIT && KIT.bestTick && KIT.bestTick(score)) ? 0.32 : 0.12;
       spawnParticles(nx, ny);
       SND.play('eat');
       food = pendingFood !== null ? pendingFood : randFood();
@@ -375,8 +382,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     state = 'over';
     if (KIT && KIT.music) KIT.music.intensity(0.3); // calm base after death
     SND.play('crash');
-    const newBest = score > best;
-    if (newBest) { best = score; saveBest(best); }
+    const newBest = score > bestAtStart && score > 0;
+    if (score > best) { best = score; saveBest(best); }   // normally a no-op: the eat handler already saved
     updateHud();
     showDpad(false);
     showEnd(newBest);

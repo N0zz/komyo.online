@@ -253,6 +253,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       if (d <= t.r) {
         const mult = 1 + Math.floor(combo / 3);
         score += 10 * mult;
+        if (mode !== 'sprint' && KIT && KIT.bestTick) KIT.bestTick(score);
         hits++;
         combo++;
         targets.splice(i, 1);
@@ -289,6 +290,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function startGame() {
     reset();
     if (!_seeded) _rng = Math.random;   // a __test seed must survive the restart — the first target spawns below
+    // Sprint records the clock, so a score bar means nothing there — only Timed arms the live pulse.
+    if (KIT && KIT.bestWatch) KIT.bestWatch('aim-trainer', modeLabel('timed', sessionSeconds));
     state = 'playing';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     spawnTarget();
@@ -404,6 +407,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       cfg.score = elapsedFrames; cfg.scoreText = (elapsedFrames / 60).toFixed(2) + 's';
       const bestLine = KIT.t('game.aim-trainer.bestTimeLine', { time: (bt > 0 ? (bt / 1000).toFixed(2) + 's' : '--'), def: 'Best ' + (bt > 0 ? (bt / 1000).toFixed(2) + 's' : '--') });
       cfg.lines.unshift(isBest ? bestLine + ' <span class="gkm-new">' + KIT.t('menu.newBest', { def: '★ New best!' }) + '</span>' : bestLine);
+      // The badge above is the VISIBLE half; the flag still has to be set for the kit's own bookkeeping
+      // (game_play's new_best). Without it the kit falls back to score-vs-stored-score, and a sprint
+      // entry stores only a time — so its score bar reads 0 and EVERY sprint run reported a new best.
+      // Safe to set alongside the custom line: the kit's own badge only renders when cfg.best is set.
+      cfg.newBest = isBest;
     }
     else { cfg.score = score; cfg.best = loadBest('timed', sessionSeconds); cfg.newBest = isBest; }
     KIT.menu.show(cfg);

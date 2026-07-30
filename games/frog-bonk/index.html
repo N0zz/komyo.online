@@ -465,6 +465,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function addScore(n, x, y) {
     score += n;
     if (x !== undefined) pops.push({ x, y, txt: '+' + n, t: 50 });
+    if (KIT && KIT.bestTick) KIT.bestTick(score);   // live new-best pulse
     if (score > best) best = score;
     updateHud();
   }
@@ -1611,6 +1612,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     castleMax = DIFF().hp; castleHp = castleMax;
     wave = 1; waveBanner = 0;
     best = loadBest();
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel());   // arm the live new-best pulse
   }
   function startMode(m, d) {
     if (m) gameMode = m;

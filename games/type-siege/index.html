@@ -1018,6 +1018,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     frame++;
     if (state !== 'playing') { if (KIT.music) KIT.music.intensity(0.3); return; }
     runSteps++;
+    if (KIT.bestTick) KIT.bestTick(score);   // live new-best pulse (score lands from several sites)
     if (shake > 0) shake *= 0.86;
     if (waveBanner > 0) waveBanner--;
     if (wallFlinch > 0) wallFlinch--;
@@ -2784,6 +2785,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     crateTimer = Math.round(CRATE_EVERY * 0.55); cratesTaken = 0;
     recentWords = [];
     best = loadBest(mode);
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeKey(mode));   // arm the live new-best pulse
     state = 'playing';
     resize();
     if (isRain()) { spawnTimer = 30; waveBanner = 100; }

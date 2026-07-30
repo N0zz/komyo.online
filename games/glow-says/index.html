@@ -129,12 +129,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     phase = 'idle'; phaseT = 0; litPad = -1; litT = 0; wrongPad = -1;
     sparkles = [];
     best = loadBest(mode);
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel(mode));   // arm the live new-best pulse
     layoutBoard(); updateHud();
   }
 
   function nextRound() {
     seq.push(Math.floor(Math.random() * MODES[mode].pads));
     round = seq.length - 1;          // completed rounds; score = longest fully repeated
+    if (KIT && KIT.bestTick) KIT.bestTick(round);   // live new-best pulse — you just out-remembered yourself
     inputAt = 0; showIdx = 0;
     phase = 'show'; phaseT = MODES[mode].gapF;   // small breath before playback
     updateHud();
