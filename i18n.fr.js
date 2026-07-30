@@ -2682,4 +2682,6 @@ window.KOMYO_I18N.fr = {
   'ach.tube-racer.clean.desc': 'Terminez un sprint sans encaisser un seul coup.',
   'changelog.e91.title': 'Succès 🏅',
   'changelog.e91.b0': 'Nouveau : les succès — 79 objectifs uniques qui n\'expirent jamais, dans la fenêtre Collection à côté de la boutique et de vos titres. Chacun verse ses trophées dès que vous le remplissez, la plupart affichent une barre de progression en direct, et tout ce que vous aviez déjà accompli avant aujourd\'hui a été débloqué automatiquement.',
+  'changelog.e92.title': 'Vois Coureur de Tube avant de foncer 🎬',
+  'changelog.e92.b0': 'Nouveau : Coureur de Tube affiche maintenant aussi un court extrait de jeu sur sa fiche — touche PLUS pour voir comment ça se pilote vraiment avant de lancer.',
 };

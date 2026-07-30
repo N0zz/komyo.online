@@ -2683,4 +2683,6 @@ window.KOMYO_I18N.es = {
   'ach.tube-racer.clean.desc': 'Completa un sprint sin recibir ni un impacto.',
   'changelog.e91.title': 'Logros 🏅',
   'changelog.e91.b0': 'Nuevo: logros — 79 metas de una sola vez que nunca caducan, en la ventana de Colección junto a la tienda y tus títulos. Cada una paga trofeos en el momento en que la completas, la mayoría muestra una barra de progreso en vivo, y todo lo que ya habías conseguido antes de hoy se te desbloqueó automáticamente.',
+  'changelog.e92.title': 'Mira Corredor de Tubo antes de rodar 🎬',
+  'changelog.e92.b0': 'Nuevo: Corredor de Tubo también reproduce ahora un clip corto de juego en su ficha — toca MÁS para ver cómo se conduce de verdad antes de empezar.',
 };

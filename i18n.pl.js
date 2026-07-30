@@ -2711,4 +2711,6 @@ window.KOMYO_I18N.pl = {
   'ach.tube-racer.km1000.desc': 'Przejedź łącznie 1000 km.',
   'ach.tube-racer.clean.name': 'Ani jednej rysy',
   'ach.tube-racer.clean.desc': 'Ukończ sprint bez żadnego trafienia.',
+  'changelog.e92.title': 'Zobacz Rurę Wyścigową, zanim wsiądziesz 🎬',
+  'changelog.e92.b0': 'Nowość: Rura Wyścigowa też pokazuje teraz na swojej karcie krótki klip z rozgrywki — naciśnij WIĘCEJ, aby zobaczyć, jak się nią jedzie, przed uruchomieniem.',
 };
