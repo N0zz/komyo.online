@@ -375,13 +375,13 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (KIT && KIT.music) {
       const grow = Math.min(1, (snake.length - 1) / 45);
       const sp = { slow: 0, normal: 0.5, fast: 1 }[opts.speed] ?? 0.5;
-      KIT.music.intensity(Math.max(0, Math.min(1, 0.3 + 0.5 * grow + 0.15 * sp)));
+      KIT.music.intensity(Math.max(0, Math.min(1, 0.13 + 0.62 * grow + 0.28 * sp)));
     }
   }
 
   function gameOver() {
     state = 'over';
-    if (KIT && KIT.music) KIT.music.intensity(0.3); // calm base after death
+    if (KIT && KIT.music) KIT.music.intensity(0.15); // calm base after death
     SND.play('crash');
     const newBest = score > bestAtStart && score > 0;
     if (score > best) { best = score; saveBest(best); }   // normally a no-op: the eat handler already saved
@@ -446,7 +446,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let menuReshow = null;   // rebuilds the open menu on a live language switch (labels are baked at show-time)
   function showStartMenu() {
     state = 'ready'; showDpad(false); if (KIT) { KIT.showMenuButton(false); KIT.showPauseButton(false); }
-    if (KIT && KIT.music) KIT.music.intensity(0.3); // calm base on the menu / before start
+    if (KIT && KIT.music) KIT.music.intensity(0.15); // calm base on the menu / before start
     if (!KIT) return;
     menuReshow = showStartMenu;
     KIT.menu.show({ kind: 'start', theme: MENU_THEME, title: KIT.t('game.snake.menuTitle', { def: 'NEON SNAKE' }), backdrop: menuBackdrop, backdropAnimate: true,

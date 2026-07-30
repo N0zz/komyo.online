@@ -224,7 +224,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       openA = openB = -1;
       if (turnAdvance) { turnAdvance = false; cur = (cur + 1) % players; updateHud(); }
     }
-    if (KIT && KIT.music) KIT.music.intensity(state === 'playing' ? Math.min(1, 0.32 + 0.5 * (matched / MODES[mode].pairs)) : 0.3);
+    if (KIT && KIT.music) KIT.music.intensity(state === 'playing' ? Math.min(1, 0.12 + 0.82 * (matched / MODES[mode].pairs)) : 0.15);
   }
 
   function layoutBoard() {

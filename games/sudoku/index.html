@@ -990,10 +990,10 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     }
     if (winFlash > 0) winFlash--;
     if (KIT && KIT.music) {
-      let v = 0.3;
+      let v = 0.15;
       if (state === 'playing') {
-        v = 0.25 + 0.45 * (placedCount() / 81) + 0.15 * (mistakes / MAX_MISTAKES);
-        if (gameMode === 'zen') v = Math.min(v, 0.4);
+        v = 0.12 + 0.72 * (placedCount() / 81) + 0.2 * (mistakes / MAX_MISTAKES);
+        if (gameMode === 'zen') v = Math.min(v, 0.5);
       }
       KIT.music.intensity(Math.max(0, Math.min(1, v)));
     }

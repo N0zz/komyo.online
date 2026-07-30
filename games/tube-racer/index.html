@@ -702,7 +702,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
     if (KIT && KIT.music) {
       const sp = (S.spd - C.cruise) / Math.max(1, C.vmax - C.cruise);
-      KIT.music.intensity(clamp(0.34 + sp * 0.46 + S.heat * 0.22 + (S.hull <= 1 ? 0.12 : 0), 0, 1));
+      KIT.music.intensity(clamp(0.12 + sp * 0.6 + S.heat * 0.3 + (S.hull <= 1 ? 0.14 : 0), 0, 1));
     }
     if (S.frames % 6 === 0) updateHud();
   }
@@ -1261,13 +1261,13 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function die(why) {
     state = 'over'; S.why = why; S.shake = 30; S.flash = 1; S.flashHot = true;
     SND.play('crash');
-    if (KIT && KIT.music) KIT.music.intensity(0.3);
+    if (KIT && KIT.music) KIT.music.intensity(0.15);
     finish(false);
   }
   function win() {
     state = 'over'; S.why = 'cleared'; S.flash = 0.7; S.flashHot = false;
     SND.play('clear');
-    if (KIT && KIT.music) KIT.music.intensity(0.3);
+    if (KIT && KIT.music) KIT.music.intensity(0.15);
     finish(true);
   }
   function finish(cleared) {

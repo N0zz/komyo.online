@@ -1017,7 +1017,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---------------------------------------------------------------------------
   function update() {
     frame++;
-    if (state !== 'playing') { if (KIT.music) KIT.music.intensity(0.3); return; }
+    if (state !== 'playing') { if (KIT.music) KIT.music.intensity(0.15); return; }
     runSteps++;
     if (KIT.bestTick) KIT.bestTick(score);   // live new-best pulse (score lands from several sites)
     if (shake > 0) shake *= 0.86;
@@ -1135,8 +1135,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (KIT.music) {
       const live = enemies.filter(e => !e.dead);
       const flying = live.filter(e => e.type === 'rock' || e.type === 'arrow').length;
-      const v = 0.30 + 0.30 * Math.min(1, live.length / 10) + 0.16 * Math.min(1, flying / 4)
-        + 0.24 * (1 - hp / hpMax) + 0.20 * Math.min(1, pressure() / 1.2);
+      const v = 0.12 + 0.4 * Math.min(1, live.length / 10) + 0.2 * Math.min(1, flying / 4)
+        + 0.3 * (1 - hp / hpMax) + 0.26 * Math.min(1, pressure() / 1.2);
       KIT.music.intensity(Math.max(0, Math.min(1, v)));
     }
   }

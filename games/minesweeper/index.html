@@ -333,9 +333,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       if (playFrames % 30 === 1) updateHud();
       if (KIT && KIT.music) {
         const total = COLS * ROWS - MINES;
-        KIT.music.intensity(Math.min(1, 0.32 + 0.55 * (revealed / total)));
+        KIT.music.intensity(Math.min(1, 0.12 + 0.85 * (revealed / total)));
       }
-    } else if (KIT && KIT.music) KIT.music.intensity(0.3);
+    } else if (KIT && KIT.music) KIT.music.intensity(0.15);
   }
 
   function layoutBoard() {

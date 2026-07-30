@@ -258,7 +258,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (shakeT > 0) shakeT--;
     if (KIT && KIT.music) {
       const prog = Math.log2(Math.max(2, maxTile)) / 11;   // 2 → 2048 ⇒ 0.09 → 1
-      KIT.music.intensity(state === 'playing' ? Math.min(1, 0.28 + 0.6 * prog) : 0.3);
+      KIT.music.intensity(state === 'playing' ? Math.min(1, 0.12 + 0.85 * prog) : 0.15);
     }
   }
 

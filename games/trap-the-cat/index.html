@@ -238,7 +238,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if (KIT && KIT.music) {
       // tension = how close the cat is to the edge (5 = center, 0 = out)
       const d = Math.min(cat.x, cat.y, SIZE - 1 - cat.x, SIZE - 1 - cat.y);
-      KIT.music.intensity(state === 'playing' ? Math.min(1, 0.35 + 0.13 * (5 - d)) : 0.3);
+      KIT.music.intensity(state === 'playing' ? Math.min(1, 0.14 + 0.2 * (5 - d)) : 0.15);
     }
   }
 

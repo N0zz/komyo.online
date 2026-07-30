@@ -356,7 +356,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function showStartMenu(){
     menuReshow = showStartMenu;
     state = 'ready'; if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
-    if (KIT && KIT.music) KIT.music.intensity(0.3);
+    if (KIT && KIT.music) KIT.music.intensity(0.15);
     if(!KIT) return;
     const cont = PROG ? PROG.current() : null;   // most-recent saved run (any mode), if any
     KIT.menu.show({ kind:'start', theme:MENU_THEME, title:KIT.t('game.bubbles.title', { def:'BUBBLE POP' }),
@@ -383,7 +383,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const prevBest = bestScore; saveBest(); const isBest = score > prevBest;
     if(KIT){ KIT.showMenuButton(false); KIT.showPauseButton(false); }
     SND.play(won ? 'won' : 'lose');
-    if (KIT && KIT.music) KIT.music.intensity(0.3);
+    if (KIT && KIT.music) KIT.music.intensity(0.15);
     if(!KIT) return;
     const show = () => KIT.menu.show({ kind:'end', theme:MENU_THEME, title: won ? KIT.t('game.bubbles.cleared', { def:'CLEARED! ✨' }) : KIT.t('game.bubbles.gameOver', { def:'GAME OVER' }),
       score: score, best: bestScore, newBest: isBest, lines: [ won ? KIT.t('game.bubbles.wonLine', { level: level, def:'Level ' + level + ' · all levels cleared' }) : KIT.t('game.bubbles.reachedLine', { level: level, def:'Reached level ' + level }) ],
@@ -872,7 +872,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       }
     }
     const danger = Math.max(0, Math.min(1, (lowest - top) / Math.max(1, loseY - top)));
-    return Math.max(0, Math.min(1, 0.35 + danger * 0.55 + chargeLevel * 0.1));
+    return Math.max(0, Math.min(1, 0.14 + danger * 0.75 + chargeLevel * 0.14));
   }
 
   function update() {

@@ -740,9 +740,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
         const live = A ? A.drains.filter(Boolean).length / Math.max(1, A.drains.length) : 0;
         const press = timed && boardLimit > 0 ? 1 - remain / boardLimit : 0;
         const fault = A && (A.faults.length || A.leaks.length > 4) ? 0.12 : 0;
-        KIT.music.intensity(Math.min(1, 0.3 + 0.28 * live + 0.3 * press + fault));
+        KIT.music.intensity(Math.min(1, 0.12 + 0.42 * live + 0.44 * press + fault));
       }
-    } else if (KIT && KIT.music) KIT.music.intensity(0.3);
+    } else if (KIT && KIT.music) KIT.music.intensity(0.15);
   }
 
   // ================= layout =================
