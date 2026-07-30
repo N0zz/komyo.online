@@ -2516,4 +2516,7 @@ window.KOMYO_I18N.pt = {
   'shop.balSpend': '🏆 {n} para gastar',
   'shop.balAch': '🏅 {n} pontos',
   'shop.balLifetime': '🏆 {n} no total',
+  'changelog.e90.title': 'Tudo o que colecionas, numa só janela 🎨',
+  'changelog.e90.b0': 'Mudança: a tua escada de títulos vive agora dentro da janela da Coleção em vez de abrir uma própria — no topo há um seletor Loja · Conquistas · Títulos, e todas as ligações aos teus títulos vão para lá. Conquistas é por agora um aperitivo e diz isso mesmo.',
+  'changelog.e90.b1': 'Mudança: os Desafios abrem como uma janela no meio do ecrã, como o perfil e as alterações, em vez de deslizarem da margem direita. O painel dentro dos jogos também perdeu as suas etiquetas, por isso os objetivos que persegues são a primeira coisa que vês.',
 };

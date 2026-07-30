@@ -2516,4 +2516,7 @@ window.KOMYO_I18N.it = {
   'shop.balSpend': '🏆 {n} da spendere',
   'shop.balAch': '🏅 {n} punti',
   'shop.balLifetime': '🏆 {n} in totale',
+  'changelog.e90.title': 'Tutto ciò che collezioni, in una sola finestra 🎨',
+  'changelog.e90.b0': 'Modifica: la tua scala dei titoli vive ora dentro la finestra Collezione invece di aprirne una propria — in alto c\'è un selettore Negozio · Obiettivi · Titoli, e ogni collegamento ai tuoi titoli porta lì. Obiettivi è per ora un\'anticipazione, e lo dice.',
+  'changelog.e90.b1': 'Modifica: le Sfide si aprono come una finestra al centro dello schermo, come il profilo e le novità, invece di scorrere dal bordo destro. Anche il pannello dentro i giochi ha perso le sue etichette, così gli obiettivi che stai inseguendo sono la prima cosa che vedi.',
 };

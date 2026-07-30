@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-30', title: 'Everything you collect, in one window 🎨', items: [
+    'Change: your titles ladder lives inside the Collection window now instead of opening a window of its own — there is a Shop · Achievements · Titles switcher along the top, and every link to your titles lands there. Achievements is a placeholder for the moment and says so.',
+    'Change: Challenges opens as a window in the middle of the screen, like the profile and the changelog, instead of sliding in from the right edge. The panel inside games dropped its pills too, so the goals you are chasing are the first thing you see.',
+  ] },
   { date: '2026-07-30', title: 'Your records, announced properly ★', items: [
     'Change: the shared Discord channel used to get a score card from every run anyone finished. It is a highlight reel now — a card goes up only when you beat your own record, once per run, and the card itself is stamped ★ NEW BEST so it still says what it was wherever it ends up.',
     'Fix: Neon Snake never told you when you beat your own high score — the "★ New best!" badge on the game-over screen had, in fact, never once appeared. It does now.',
