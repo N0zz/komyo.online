@@ -1481,6 +1481,28 @@ function testCosmetics() {
       ok(cerr === null, 'shopPanel closes cleanly: ' + cerr);
       ok(F.isPaused() === false, 'closing the store releases the modal pause');
     }
+    // Collection tabs: Shop · Achievements · Titles in ONE modal. Titles used to be a second dialog
+    // reached from a hint row under the grid; every "see titles" affordance now routes here.
+    {
+      let terr = null, th = null;
+      try { th = F.shopPanel({ tab: 'titles' }); } catch (e) { terr = e.message; }
+      ok(terr === null && th && typeof th.tab === 'function', 'shopPanel opens on a chosen tab + exposes tab(): ' + terr);
+      if (th) {
+        ok(th.tab('ach') === 'ach' && th.tab('shop') === 'shop', 'tab() switches and reports the active tab');
+        ok(th.tab('nonsense') === 'shop', 'an unknown tab id falls back to Shop (never a blank modal)');
+        try { th.close(); } catch (e) {}
+      }
+      const kitSrc = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+      const cssSrc = fs.readFileSync(path.join(DIR, 'game-kit.css'), 'utf8');
+      ok(!kitSrc.includes('gksp-titleline') && !cssSrc.includes('gksp-titleline'),
+        'the "Titles unlock automatically" hint row is gone from the store');
+      ok(!kitSrc.includes("id = 'titlesModal'") && !kitSrc.includes('titlesModal'),
+        'the standalone titles dialog is gone — the ladder lives in the Collection modal');
+      ok(/__openTitlesLadder = \(\) => \{[\s\S]{0,200}shopPanel\(\{ tab: 'titles'/.test(kitSrc),
+        'every titles affordance routes through shopPanel({tab:"titles"})');
+      ok(cssSrc.includes('.gksp-tab ') || cssSrc.includes('.gksp-tab{') || cssSrc.includes('.gksp-tab '),
+        'tab styling ships in game-kit.css');
+    }
   }
 
   // E1b) sound cosmetics: an item carrying `audio` (an engine drone) is previewable in the shop the

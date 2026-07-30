@@ -852,7 +852,10 @@ body.gk-rotate-lock .gamekit-nav { z-index: 9100; }
 body:has(.gamekit-shoppanel) { overflow: hidden; }
 .gamekit-shoppanel { position: fixed; inset: 0; z-index: 9300; display: flex; align-items: center; justify-content: center; padding: 16px;
   background: var(--gkm-overlay, rgba(6, 9, 15, 0.82)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); overscroll-behavior: contain; }
-.gamekit-shoppanel .gksp-box { position: relative; display: flex; flex-direction: column; width: min(720px, 100%); max-height: calc(100vh - 32px); box-sizing: border-box;
+/* FIXED height, not content height: the modal used to jump on every tab switch (the Titles ladder and
+   the Achievements mock are shorter than the cosmetics grid). The shop's scroll pane and the two panes
+   flex-grow into the slack, so one size holds all three tabs. */
+.gamekit-shoppanel .gksp-box { position: relative; display: flex; flex-direction: column; width: min(720px, 100%); height: min(780px, calc(100vh - 32px)); max-height: calc(100vh - 32px); box-sizing: border-box;
   background: var(--gkm-bg, rgba(14, 20, 32, 0.97)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 16px; padding: 20px 22px 16px;
   box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6)); color: var(--gkm-text, #eaf2fb); font-family: var(--gkm-font, ui-monospace, monospace); }
 .gamekit-shoppanel .gksp-x { position: absolute; top: -13px; right: -13px; z-index: 6; width: 32px; height: 32px; border-radius: 50%;
@@ -869,7 +872,11 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 .gamekit-shoppanel .gksp-focdesc { min-height: 1.5em; margin: 6px 0 4px; font-size: 11px; line-height: 1.45; color: #93a5bd; }
 .gamekit-shoppanel .gksp-focdesc b { color: var(--gkm-title, #eaf3ff); }
 .gamekit-shoppanel .gksp-price, .gamekit-menu .gkm-focdesc .gkm-price { color: var(--gkm-new, #ffd166); font-weight: 700; white-space: nowrap; }
-.gamekit-shoppanel .gksp-scroll { overflow-y: auto; overscroll-behavior: contain; margin: 2px -6px 10px; padding: 0 6px; }
+.gamekit-shoppanel .gksp-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 2px -6px 10px; padding: 0 6px; }
+/* the BUY button belongs to the Shop tab; syncFocus() owns its inline display (hidden with nothing
+   focused), so it is hidden HERE by class rather than by setTab clobbering that inline value */
+.gamekit-shoppanel.gksp-tab-ach .gksp-buy,
+.gamekit-shoppanel.gksp-tab-titles .gksp-buy { display: none; }
 .gamekit-shoppanel .gksp-game { display: flex; align-items: baseline; gap: 10px; margin: 16px 0 8px; }
 .gamekit-shoppanel .gksp-gt { font-size: 12.5px; font-weight: 700; letter-spacing: 1px; color: var(--acc, #eaf3ff); white-space: nowrap; }
 .gamekit-shoppanel .gksp-gp { font-size: 10px; font-weight: 600; color: #6b7a90; }
@@ -962,11 +969,48 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 .gksp-crt-dot[data-c="amber"] { background: #ffb454; color: #ffb454; }
 .gksp-crt-dot[data-c="cyan"] { background: #5cc8ff; color: #5cc8ff; }
 .gksp-crt-dot[data-c="mono"] { background: #eaf3ff; color: #eaf3ff; }
-.gamekit-shoppanel .gksp-titleline { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 8px 0 2px;
-  font-size: 11px; color: #93a5bd; }
-.gamekit-shoppanel .gksp-titlebtn { font: 700 11px var(--gkm-font, ui-monospace, monospace); color: var(--gkm-title, #eaf3ff);
-  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 8px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
-.gamekit-shoppanel .gksp-titlebtn:hover { border-color: var(--gkm-accent, #9fe8ff); }
+/* ---- Collection tabs: Shop · Achievements · Titles -------------------------------------------
+   One modal for everything you collect. Titles used to be a second dialog behind a hint row under
+   the grid; the tab row replaces that row, so it costs no extra height in the tight viewports. */
+.gamekit-shoppanel .gksp-tabs { display: flex; gap: 6px; margin: 10px 0 0; }
+/* equal thirds — three peers, so they get equal width at every size */
+.gamekit-shoppanel .gksp-tab { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; gap: 6px;
+  font: 700 11px var(--gkm-font, ui-monospace, monospace); letter-spacing: 0.5px;
+  color: #93a5bd; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14));
+  border-radius: 9px; padding: 8px 7px; cursor: pointer; white-space: nowrap; }
+.gamekit-shoppanel .gksp-tabi { flex: none; }
+.gamekit-shoppanel .gksp-tabl { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.gamekit-shoppanel .gksp-tab:hover { color: var(--gkm-text, #eaf2fb); border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-shoppanel .gksp-tab.on { color: var(--gkm-title, #eaf3ff); background: var(--gkm-accent-soft, rgba(159, 232, 255, 0.14));
+  border-color: var(--gkm-accent, #9fe8ff); box-shadow: inset 0 -2px 0 var(--gkm-accent, #9fe8ff); }
+/* A 360px box gives each equal third ~86px. "Achievements" cannot fit that WITH an emoji, so the emoji
+   is what goes — the word is the part that has to survive. */
+@media (max-width: 430px) {
+  .gamekit-shoppanel .gksp-tab { font-size: 10px; padding: 8px 4px; letter-spacing: 0; gap: 0; }
+  .gamekit-shoppanel .gksp-tabi { display: none; }
+}
+.gamekit-shoppanel .gksp-pane { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 10px -6px 0; padding: 0 6px; }
+.gamekit-shoppanel .gksp-panesub { margin: 0 0 10px; font-size: 11px; line-height: 1.5; color: #93a5bd; }
+.gamekit-shoppanel .gksp-panesub b { color: var(--gkm-title, #eaf3ff); }
+/* Achievements = a layout MOCK behind a veil until the feature lands (plans/achievements-plan.md):
+   bigger tiles than the cosmetics grid, because a row carries a name AND a goal, not just a swatch. */
+.gamekit-shoppanel .gksp-ach { position: relative; overflow: hidden; }
+.gamekit-shoppanel .gksp-achgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); gap: 9px; }
+.gamekit-shoppanel .gksp-achcell { display: flex; align-items: center; gap: 12px; padding: 13px; border-radius: 13px;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); opacity: 0.5; }
+.gamekit-shoppanel .gksp-achcell.done { opacity: 1; border-color: var(--gkm-new, #ffd166); }
+.gamekit-shoppanel .gksp-achicon { font-size: 30px; line-height: 1; }
+.gamekit-shoppanel .gksp-achtxt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+/* skeleton bars — the em-dashes inside are collapsed away, the bar IS the placeholder */
+.gamekit-shoppanel .gksp-achtxt b, .gamekit-shoppanel .gksp-achtxt i { display: block; font-size: 0; border-radius: 6px; background: var(--gkm-text, #eaf2fb); }
+.gamekit-shoppanel .gksp-achtxt b { width: 58%; height: 11px; opacity: 0.26; }
+.gamekit-shoppanel .gksp-achtxt i { width: 86%; height: 8px; opacity: 0.14; }
+.gamekit-shoppanel .gksp-achpts { font-size: 12px; font-weight: 700; color: var(--gkm-new, #ffd166); white-space: nowrap; }
+.gamekit-shoppanel .gksp-soon { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 7px; text-align: center; padding: 18px; background: rgba(10, 15, 24, 0.74); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); }
+.gamekit-shoppanel .gksp-soon-t { font: 800 17px var(--gkm-font, ui-monospace, monospace); letter-spacing: 2px;
+  color: var(--gkm-title, #eaf3ff); text-shadow: var(--gkm-glow, none); }
+.gamekit-shoppanel .gksp-soon-s { max-width: 34ch; font-size: 11px; line-height: 1.5; color: #93a5bd; }
 .gamekit-shoppanel .gksp-buy { margin-top: 10px; font: 800 12.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; border-radius: 10px; padding: 12px 16px;
   border: none; cursor: pointer; color: var(--gk-shop-ink, #0a1420); background: var(--gkm-new, #ffd166); box-shadow: 0 0 14px rgba(255, 209, 102, 0.35); }
 .gamekit-shoppanel .gksp-buy:disabled { opacity: 0.5; cursor: default; box-shadow: none; }
@@ -1009,22 +1053,32 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
 @media (orientation: landscape) and (max-height: 560px) {
   .gamekit-shoppanel { padding: 8px; }
   .gamekit-shoppanel .gksp-box {
-    max-height: calc(100vh - 16px); padding: 10px 16px 12px;
+    height: calc(100vh - 16px); max-height: calc(100vh - 16px); padding: 10px 16px 12px;
     display: grid; column-gap: 16px; row-gap: 5px;
     grid-template-columns: 1fr 150px;
     /* header spans the full width (no gap under it); the ring row is the only flexible one, so it
        absorbs slack AND shrinks first — the fixed rail items (search/desc/buy/titles) always fit */
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto auto auto auto;
+    grid-template-rows: auto auto auto auto minmax(0, 1fr) auto auto auto;
     grid-template-areas:
       "head    head"
       "gift    gift"
+      "tabs    tabs"
       "scroll  ctrls"
       "scroll  ring"
       "scroll  focdesc"
       "scroll  buy"
-      "scroll  titles"
       "scroll  fp";
   }
+  /* compact tabs here: the rail's flexible row is the progress donut, so every pixel this row takes
+     comes straight out of the donut */
+  .gamekit-shoppanel .gksp-tabs { grid-area: tabs; margin: 4px 0 0; gap: 5px; }
+  .gamekit-shoppanel .gksp-tab { padding: 5px 4px; font-size: 10px; letter-spacing: 0; }
+  /* the two non-shop tabs hide every rail item, so the two-column grid has nothing left to align —
+     drop back to a plain column and let the pane take the height the grid was reserving */
+  .gamekit-shoppanel.gksp-tab-ach .gksp-box,
+  .gamekit-shoppanel.gksp-tab-titles .gksp-box { display: flex; flex-direction: column; }
+  .gamekit-shoppanel.gksp-tab-ach .gksp-pane,
+  .gamekit-shoppanel.gksp-tab-titles .gksp-pane { flex: 1; }
   .gamekit-shoppanel .gksp-gift { grid-area: gift; margin: 0; padding: 6px 10px; }
   .gamekit-shoppanel .gksp-fp { grid-area: fp; margin: 0; padding-top: 6px; }
   .gamekit-shoppanel .gksp-head { grid-area: head; }
@@ -1047,12 +1101,20 @@ body:has(.gamekit-shoppanel) { overflow: hidden; }
   /* idle (nothing focused) the desc row must not reserve height — it pushed the donut off-center */
   .gamekit-shoppanel .gksp-focdesc:empty { min-height: 0; margin: 0; }
   .gamekit-shoppanel .gksp-buy { grid-area: buy; margin: 0; padding: 10px 14px; }
-  /* keep the explanation with the See titles button, pinned at the bottom of the rail */
-  .gamekit-shoppanel .gksp-titleline { grid-area: titles; margin: 2px 0 0; flex-direction: column; align-items: stretch; gap: 5px; text-align: center; }
-  .gamekit-shoppanel .gksp-titlebtn { text-align: center; }
   .gamekit-shoppanel .gksp-barrow .gksp-bar,
   .gamekit-shoppanel .gksp-barrow .gksp-bartxt { display: none; } /* linear bar → ring */
   .gamekit-shoppanel .gksp-grid { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); } /* more per row in the wider grid */
+}
+/* Phone-in-landscape (360px tall): after head + gift + tabs + search + desc + BUY + free-play there is
+   no room left for a donut at all — it collapsed to ~20px, which reads as a smudge. Below this height
+   the numeric readout carries the progress instead; the donut returns as soon as there's room for it. */
+@media (orientation: landscape) and (max-height: 420px) {
+  /* the Titles explainer wraps to three lines here and leaves ~2 ladder rows visible; the rows say
+     "Wear" / "✓ Worn" / "N 🏆" themselves, so the paragraph is the thing that goes */
+  .gamekit-shoppanel .gksp-panesub { display: none; }
+  .gamekit-shoppanel .gksp-ringwrap { display: none; }
+  .gamekit-shoppanel .gksp-barrow { min-height: 0; }
+  .gamekit-shoppanel .gksp-barrow .gksp-bartxt { display: block; width: 100%; text-align: center; }
 }
 
 /* site-wide cursor-trail overlay (Neon Comet / Rainbow Trail skins) */
@@ -1249,6 +1311,9 @@ body:has(.gamekit-menu) .side-stack { z-index:70; }
   /* collection progress bar (below the stats) — tap to open the Cosmetics store */
   .pf-collect { display:block; width:100%; margin:8px 0 4px; padding:10px 13px; border:1px solid var(--border); border-radius:12px; background:var(--surface); cursor:pointer; text-align:left; color:var(--muted); }
   .pf-collect:hover { border-color:#ffce5c; }
+  /* the achievements track, until the feature lands: same row, visibly not started */
+  .pf-soon { opacity:.62; }
+  .pf-soon .pf-collect-n { color:var(--muted); font-weight:600; }
   .pf-collect-top { display:flex; justify-content:space-between; align-items:center; gap:10px; font-family:var(--mono); font-size:11px; letter-spacing:.5px; }
   .pf-collect-n { color:#e8c069; font-weight:700; font-variant-numeric:tabular-nums; }
   /* min-height (not just height) so the bar keeps its size in the share snapshot, which strips
