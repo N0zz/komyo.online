@@ -287,6 +287,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     isShooting = false; shotBubble = null; floats = []; particles = []; fallingBubbles = [];
     aimAngle = -Math.PI / 2;
     loadBest(); updateHud();
+    if (KIT && KIT.bestWatch) KIT.bestWatch('bubbles', modeLabel(mode), score);   // resumed past the bar → no pulse
     state = 'playing';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     return true;
@@ -315,6 +316,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     nextColor = pickShotColor();
     aimAngle = -Math.PI / 2;
     loadBest();
+    if (KIT && KIT.bestWatch) KIT.bestWatch('bubbles', modeLabel(mode));   // arm the live new-best pulse
     state = 'playing';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     updateHud();
@@ -874,6 +876,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function update() {
     if (state !== 'playing') return;
     if (KIT && KIT.music) KIT.music.intensity(musicIntensity());
+    if (KIT && KIT.bestTick) KIT.bestTick(score);   // live new-best pulse (score lands from several sites)
 
     // Time-based descent — when the toggle is on (Arcade drops the grid, Endless pushes a row); off = shots.
     if (timeDescent && (mode === 'arcade' || mode === 'endless')) {

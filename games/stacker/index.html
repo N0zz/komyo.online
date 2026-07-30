@@ -190,6 +190,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // ---- Init / reset ----
   function resetGame() {
     score = 0; combo = 0;
+    if (KIT && KIT.bestWatch) KIT.bestWatch('stacker', MODE_CFG[mode].label);   // arm the live new-best pulse
     blocks = [];
     particles = []; fallPieces = [];
     screenFlash = 0;
@@ -258,6 +259,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       if (mx < tx) spawnFallPiece(mx, tx - mx, mover.y);
       if (mx + mw > tx + tw) spawnFallPiece(tx + tw, (mx + mw) - (tx + tw), mover.y);
     }
+
+    // a full-strength flash is the in-engine half of the kit's live new-best pulse
+    if (KIT && KIT.bestTick && KIT.bestTick(score)) screenFlash = 16;
 
     blocks.push({ x: placedX, w: placedW, y: mover.y });
 

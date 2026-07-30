@@ -141,6 +141,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     timeLeft = PARTY_TIME; playFrames = 0; spawnT = 0; beeT = 150;
     wind = 0; windT = 0; windNext = 700 + Math.floor(Math.random() * 500);
     best = loadBest(mode);
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel(mode));   // arm the live new-best pulse
     for (let k = 0; k < 4; k++) spawnBalloon(undefined, H * (0.35 + 0.15 * k) + topMargin);
     updateHud();
   }
@@ -204,6 +205,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     }
     // zen milestone fireworks every 50 pops — celebration instead of a finish line
     if (mode === 'zen' && popCount % 50 === 0) launchFireworks();
+    // passing your old best is the one thing worth fireworks in every mode
+    if (KIT && KIT.bestTick && KIT.bestTick(score)) launchFireworks();
     updateHud();
   }
 

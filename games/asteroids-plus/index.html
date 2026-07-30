@@ -381,7 +381,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   // set the runtime mode + storage keys + HUD (menu Play calls this before starting a run — no reload)
   function applyProgression(prog, sr){ PROGRESSION = (prog==='milestones'||prog==='shop') ? prog : 'levelup'; SPEEDRUN = !!sr; applyModeHud(); }
   function startGame(){ if(KIT) KIT.menu.hide(); resetRun(); startWave(1); state='playing'; overlay.classList.add('hidden');
-    srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT){ KIT.showMenuButton(true); KIT.showPauseButton(true); } applyModeHud(); updateHud(); }
+    srElapsed=0; srPrev=now(); srDone=false; SND.startMusic(); if(KIT){ KIT.showMenuButton(true); KIT.showPauseButton(true); } applyModeHud(); updateHud();
+    // Speedrun's record is the clock, so only the score modes arm the live new-best pulse.
+    if(KIT&&KIT.bestWatch) KIT.bestWatch('asteroids-plus', progLabel(PROGRESSION,false)); }
   function pauseGame(){ state='paused'; if(!KIT) return;
     menuReshow = pauseGame;
     KIT.menu.show({ kind:'pause', theme:MENU_THEME, title:t('game.common.paused',{def:'PAUSED'}), lines:[ t('game.asteroids-plus.pauseLine',{wave:wave,score:score,def:'Wave '+wave+' · Score '+score}) ],
@@ -719,6 +721,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     if(SPEEDRUN) timerVal.textContent=fmtTime(srElapsed);
 
     if(state==='playing'){
+      if(!SPEEDRUN && KIT && KIT.bestTick) KIT.bestTick(score);   // live new-best pulse
       // ship control
       if(keys['ArrowLeft']||keys['a']) ship.angle-=ship.turn;
       if(keys['ArrowRight']||keys['d']) ship.angle+=ship.turn;

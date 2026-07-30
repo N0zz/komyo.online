@@ -311,7 +311,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function waveHpK() { return DIFF().hpBase * Math.pow(DIFF().hpGrow, wave - 1); }
   // Score rewards difficulty (scoreMul) — decoupled from the gold economy, which pays LESS on
   // harder settings (rewardMul); without this an easy run always out-scores a hard one.
-  function addScore(n) { score += Math.round(n * (DIFF().scoreMul || 1)); }
+  function addScore(n) { score += Math.round(n * (DIFF().scoreMul || 1)); if (KIT && KIT.bestTick) KIT.bestTick(score); }
 
   // ---- Maps (distinct layout + theme each) ----
   // theme: g1/g2 = terrain checker, road = path fill, edge = road border,
@@ -490,6 +490,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   let drops = [], dropCooldown = 0, hasteTicks = 0;
   let gameSpeed = 1;
   let bestScore = 0;
+  // the record as it stood when THIS run began — saveBest() raises bestScore to max(score, prev)
+  // before the end menu reads it, so `score >= bestScore` flagged a mere TIE as a new best
+  let bestAtStart = 0;
   let victory = false;
   let bossWarnShown = false;
   let autoWave = false, autoDelay = 0; // auto-start: countdown (frames) before the next wave launches
@@ -563,6 +566,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     state = 'build';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.music.play(mapMusicKey(mapIndex)); } // swap to the map's biome track
     loadBest();
+    bestAtStart = bestScore;
+    if (KIT && KIT.bestWatch) KIT.bestWatch('tower-defense', mapModeLabel(mapIndex, diffLevel));   // arm the live pulse
     updateHud();
     refreshToolbar();
   }
@@ -714,7 +719,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     menuReshow = showEnd;
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, title: KIT.t('game.tower-defense.endTitle', { def: 'THE KEEP HAS FALLEN' }), backdrop: (g, w, h) => menuMapRender(g, w, h, MAPS[mapIndex]),
       record: { slug: 'tower-defense', mode: MAPS[mapIndex].name + ' · ' + DIFF().label, modeText: mapModeDisplay(mapIndex, diffLevel), score: score, stats: { wave: wave, difficulty: diffLevel }, outcome: 'lose' },
-      score: score, best: bestScore, newBest: score >= bestScore && score > 0,
+      score: score, best: bestScore, newBest: score > bestAtStart && score > 0,
       lines: [KIT.t('game.tower-defense.wavesSurvived', { wave: wave, map: mapName(mapIndex), diff: diffLabel(diffLevel), def: 'Waves survived: ' + wave + ' · ' + MAPS[mapIndex].name + ' · ' + DIFF().label })],
       share: { slug: 'tower-defense', accent: '#e0b25a', icon: '🏰', title: KIT.t('game.tower-defense.name', { def: 'Keep Defender' }), message: () => KIT.shareText({ score: score, game: KIT.t('game.tower-defense.name', { def: 'Keep Defender' }), emoji: '🏰', mode: mapModeDisplay(mapIndex, diffLevel), extra: [KIT.t('game.tower-defense.shareWave', { wave: wave, def: 'wave ' + wave })] }), params: () => ({ map: mapIndex, diff: diffLevel }) },
       actions: [ { id: 'again', label: KIT.t('game.tower-defense.playAgain', { def: 'Play again' }), primary: true }, { id: 'menu', label: KIT.t('game.common.menu', { def: 'Menu' }) } ],

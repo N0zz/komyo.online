@@ -125,6 +125,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     score = s.score || 0; maxTile = s.maxTile || 2; reached2048 = !!s.reached2048;
     anims = []; animT = 0; spawnAt = null; spawnT = 0;
     best = loadBest(mode); layoutBoard(); updateHud();
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel(mode), score);   // resumed past the bar → no pulse
     state = 'playing';
     if (KIT) { KIT.menu.hide(); KIT.showMenuButton(true); KIT.showPauseButton(true); }
     return true;
@@ -149,6 +150,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     score = 0; maxTile = 2; reached2048 = false;
     anims = []; animT = 0; spawnAt = null; spawnT = 0;
     best = loadBest(mode);
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, modeLabel(mode));   // arm the live new-best pulse
     addTile(); addTile();
     layoutBoard(); updateHud();
   }
@@ -204,6 +206,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     }
     if (!changed) { shakeT = 5; SND.play('stuck'); return false; }
     score += gained;
+    if (KIT && KIT.bestTick) KIT.bestTick(score);     // live new-best pulse (kit-owned banner + sting)
     let newMax = maxTile;
     for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (grid[y][x] > newMax) newMax = grid[y][x];
     const milestone = newMax > maxTile && newMax >= 256;
@@ -493,6 +496,9 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     actions.push({ id: 'again', label: KIT.t('game.common.playAgain', { def: 'PLAY AGAIN' }), primary: !isWin });
     actions.push({ id: 'menu', label: KIT.t('game.common.menu', { def: 'MENU' }) });
     KIT.menu.show({ kind: 'end', theme: MENU_THEME, backdrop: menuBackdrop, backdropAnimate: true,
+      // Reaching 2048 offers KEEP GOING, so this screen is a CHECKPOINT: the same run continues and
+      // the score keeps climbing. The eventual game-over screen announces the run's real total.
+      final: !isWin,
       title: isWin ? KIT.t('game.2048.win', { def: 'YOU MADE 2048!' }) : KIT.t('game.common.gameOver', { def: 'GAME OVER' }),
       record: { slug: SLUG, mode: modeLabel(mode), modeText: modeDisplay(mode), score, stats: { maxTile }, outcome: isWin ? 'win' : 'lose' },
       score, best, newBest: isBest,

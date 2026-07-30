@@ -194,6 +194,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     ricochets = [];
     buildLanes();
     best = loadBest();
+    if (KIT && KIT.bestWatch) KIT.bestWatch(SLUG, storeLabel(opts.mode, opts.difficulty));   // arm the live pulse
     updateHud();
   }
 
@@ -204,6 +205,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
     const mult = 1 + Math.min(4, Math.floor(l.streak / 5));
     l.lastPts = (10 + Math.round(l.lastAcc * 15)) * mult;
     l.score += l.lastPts; score += l.lastPts; hits++;
+    if (KIT && KIT.bestTick) KIT.bestTick(score);   // live new-best pulse
     l.zoneHalf = Math.max(diff.halfMin, l.zoneHalf * diff.shrink);
     l.speed = Math.min(diff.speedMax, l.speed * diff.speedup);
     SND.play('deflect'); if (hits % 10 === 0) SND.play('combo');
