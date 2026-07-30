@@ -2684,4 +2684,7 @@ window.KOMYO_I18N.pt = {
   'changelog.e91.b0': 'Novo: conquistas — 79 metas únicas que nunca expiram, na janela da Coleção ao lado da loja e dos teus títulos. Cada uma paga troféus no momento em que a completas, a maioria mostra uma barra de progresso em direto, e tudo o que já tinhas conquistado antes de hoje foi desbloqueado automaticamente para ti.',
   'changelog.e92.title': 'Vê o Corredor de Tubo antes de acelerar 🎬',
   'changelog.e92.b0': 'Novo: Corredor de Tubo também mostra agora um clipe curto de jogo no seu cartão — toca em MAIS para ver como se conduz de verdade antes de começar.',
+  'changelog.e93.title': 'A música acompanha a tua partida agora 🎵',
+  'changelog.e93.b0': 'Alteração: todos os jogos têm música nova. Em vez de um ciclo curto a repetir-se, cada jogo tem agora uma faixa completa que acompanha o que estás a fazer — começa baixinho, cresce quando aperta, entra no tema principal quando a pressão sobe, alivia quando tens um momento de descanso e volta a subir, com viradas de bateria a sério em cada mudança. As melodias agora são escritas em vez de vagueantes, e o conjunto soa muito mais cheio.',
+  'changelog.e93.b1': 'Alteração: as duas bandas sonoras da Cobra Neon foram reconstruídas com tudo o que está acima. O Neon Banger continua a ser o maior e mais forte dos dois — se o compraste, continua teu.',
 };

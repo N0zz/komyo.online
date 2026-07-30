@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-30', title: 'The music follows your run now 🎵', items: [
+    'Change: every game got new music. Instead of one short loop repeating, each game now has a full track that follows what you are doing — it opens quiet, builds as things heat up, drops into its main tune when the pressure is on, eases off when you get a breather, and climbs again, with proper drum fills over every change. The tunes are written now rather than wandering, and the whole thing sounds a lot fuller.',
+    'Change: Neon Snake\'s two soundtracks were rebuilt with everything above. Neon Banger is still the bigger, punchier of the two — if you bought it, you keep it.',
+  ] },
   { date: '2026-07-30', title: 'See Tube Racer before you ride 🎬', items: [
     'New: Tube Racer now plays a short gameplay clip on its card too — tap MORE to see how it actually rides before you start.',
   ] },

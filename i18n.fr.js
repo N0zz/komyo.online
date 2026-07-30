@@ -2684,4 +2684,7 @@ window.KOMYO_I18N.fr = {
   'changelog.e91.b0': 'Nouveau : les succès — 79 objectifs uniques qui n\'expirent jamais, dans la fenêtre Collection à côté de la boutique et de vos titres. Chacun verse ses trophées dès que vous le remplissez, la plupart affichent une barre de progression en direct, et tout ce que vous aviez déjà accompli avant aujourd\'hui a été débloqué automatiquement.',
   'changelog.e92.title': 'Vois Coureur de Tube avant de foncer 🎬',
   'changelog.e92.b0': 'Nouveau : Coureur de Tube affiche maintenant aussi un court extrait de jeu sur sa fiche — touche PLUS pour voir comment ça se pilote vraiment avant de lancer.',
+  'changelog.e93.title': 'La musique suit ta partie maintenant 🎵',
+  'changelog.e93.b0': 'Changement : tous les jeux ont une nouvelle musique. Au lieu d’une courte boucle qui se répète, chaque jeu a désormais un vrai morceau qui suit ce que tu fais : il démarre tout doux, monte quand ça s’emballe, bascule sur son thème principal quand la pression grimpe, retombe quand tu as un moment de répit, puis repart, avec de vraies transitions de batterie à chaque changement. Les mélodies sont maintenant écrites au lieu d’errer, et l’ensemble sonne beaucoup plus plein.',
+  'changelog.e93.b1': 'Changement : les deux bandes-son de Serpent Néon ont été refaites avec tout ce qui précède. Néon Banger reste la plus grosse et la plus percutante des deux — si tu l’as achetée, elle reste à toi.',
 };
