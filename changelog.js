@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-07-30', title: 'Your records, announced properly ★', items: [
+    'Change: the shared Discord channel used to get a score card from every run anyone finished. It is a highlight reel now — a card goes up only when you beat your own record, once per run, and the card itself is stamped ★ NEW BEST so it still says what it was wherever it ends up.',
+    'Fix: Neon Snake never told you when you beat your own high score — the "★ New best!" badge on the game-over screen had, in fact, never once appeared. It does now.',
+  ] },
   { date: '2026-07-29', title: 'Beating your record is an event now ★', items: [
     'New: breaking your own best is finally celebrated — the moment you pass it mid-run the screen flashes and a "New best!" banner drops in, and the score screen greets you with confetti and a sound. In every game.',
   ] },
