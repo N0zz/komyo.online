@@ -457,8 +457,61 @@
   add('snake', 'food', 'rainbow', 'Rainbow Orb',  100, 'Cycles through every neon colour.', rainbowOrb);
 
   // ---- 🐍 Neon Snake — music tracks (preview + unlock in the shop; `music` = kit track id) ----
-  items.push({ id: 'snake.track.remaster', game: 'snake', set: 'snake.track', name: 'Neon', desc: 'The classic neon track — punchy drums, sub bass and stereo.', price: 0, painter: wavePainter('#7fffb0'), music: 'snake' });
-  items.push({ id: 'snake.track.banger', game: 'snake', set: 'snake.track', name: 'Neon Banger', desc: 'A pumped-up electro remix — rolling bassline and a catchy square-wave hook.', price: 100, painter: wavePainter('#39ff14'), music: 'snakebanger' });
+  items.push({ id: 'snake.track.remaster', game: 'snake', set: 'snake.track', name: 'Neon', desc: 'The classic neon track — punchy drums, sub bass and stereo.', price: 0, painter: wavePainter('#7fffb0'), music: 'snake', engine: 2 });
+  items.push({ id: 'snake.track.banger', game: 'snake', set: 'snake.track', name: 'Neon Banger', desc: 'A pumped-up electro remix — rolling bassline and a catchy square-wave hook.', price: 100, painter: wavePainter('#39ff14'), music: 'snakebanger', engine: 2 });
+
+
+  // ---- 🎵 soundtracks: every game can run the ORIGINAL (v2) or the REBUILT (v3) engine ----
+  // One entry per track so a player can keep the original in one game and the rebuilt one in
+  // another without re-picking every session. `engine` tells the kit which renderer to use;
+  // `track` overrides the id a game asks for (Neon Snake's two tunes).
+  // Snake already shipped two paid track items — ids and prices kept, engine tagged on.
+  items.push({ id: 'asteroids.track.classic', game: 'asteroids', set: 'asteroids.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'asteroids', engine: 2 });
+  items.push({ id: 'asteroids.track.rebuilt', game: 'asteroids', set: 'asteroids.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'asteroids', engine: 3 });
+  items.push({ id: 'asteroids-plus.track.classic', game: 'asteroids-plus', set: 'asteroids-plus.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'asteroidsplus', engine: 2 });
+  items.push({ id: 'asteroids-plus.track.rebuilt', game: 'asteroids-plus', set: 'asteroids-plus.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'asteroidsplus', engine: 3 });
+  items.push({ id: 'forcefield.track.classic', game: 'forcefield', set: 'forcefield.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'forcefield', engine: 2 });
+  items.push({ id: 'forcefield.track.rebuilt', game: 'forcefield', set: 'forcefield.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'forcefield', engine: 3 });
+  items.push({ id: 'aim-trainer.track.classic', game: 'aim-trainer', set: 'aim-trainer.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'range', engine: 2 });
+  items.push({ id: 'aim-trainer.track.rebuilt', game: 'aim-trainer', set: 'aim-trainer.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'range', engine: 3 });
+  items.push({ id: 'breakout.track.classic', game: 'breakout', set: 'breakout.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'breakout', engine: 2 });
+  items.push({ id: 'breakout.track.rebuilt', game: 'breakout', set: 'breakout.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'breakout', engine: 3 });
+  items.push({ id: 'bubbles.track.classic', game: 'bubbles', set: 'bubbles.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'bubbles', engine: 2 });
+  items.push({ id: 'bubbles.track.rebuilt', game: 'bubbles', set: 'bubbles.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'bubbles', engine: 3 });
+  items.push({ id: 'frog-bonk.track.classic', game: 'frog-bonk', set: 'frog-bonk.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'frogbonk', engine: 2 });
+  items.push({ id: 'frog-bonk.track.rebuilt', game: 'frog-bonk', set: 'frog-bonk.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'frogbonk', engine: 3 });
+  items.push({ id: 'tower-defense.track.classic', game: 'tower-defense', set: 'tower-defense.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'keep', engine: 2 });
+  items.push({ id: 'tower-defense.track.rebuilt', game: 'tower-defense', set: 'tower-defense.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'keep', engine: 3 });
+  items.push({ id: 'stacker.track.classic', game: 'stacker', set: 'stacker.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'stacker', engine: 2 });
+  items.push({ id: 'stacker.track.rebuilt', game: 'stacker', set: 'stacker.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'stacker', engine: 3 });
+  items.push({ id: 'sudoku.track.classic', game: 'sudoku', set: 'sudoku.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'sudoku', engine: 2 });
+  items.push({ id: 'sudoku.track.rebuilt', game: 'sudoku', set: 'sudoku.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'sudoku', engine: 3 });
+  items.push({ id: 'minesweeper.track.classic', game: 'minesweeper', set: 'minesweeper.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'minesweeper', engine: 2 });
+  items.push({ id: 'minesweeper.track.rebuilt', game: 'minesweeper', set: 'minesweeper.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'minesweeper', engine: 3 });
+  items.push({ id: '2048.track.classic', game: '2048', set: '2048.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: '2048', engine: 2 });
+  items.push({ id: '2048.track.rebuilt', game: '2048', set: '2048.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: '2048', engine: 3 });
+  items.push({ id: 'trap-the-cat.track.classic', game: 'trap-the-cat', set: 'trap-the-cat.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'trapthecat', engine: 2 });
+  items.push({ id: 'trap-the-cat.track.rebuilt', game: 'trap-the-cat', set: 'trap-the-cat.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'trapthecat', engine: 3 });
+  items.push({ id: 'glow-says.track.classic', game: 'glow-says', set: 'glow-says.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'glowsays', engine: 2 });
+  items.push({ id: 'glow-says.track.rebuilt', game: 'glow-says', set: 'glow-says.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'glowsays', engine: 3 });
+  items.push({ id: 'balloon-pop.track.classic', game: 'balloon-pop', set: 'balloon-pop.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'balloonpop', engine: 2 });
+  items.push({ id: 'balloon-pop.track.rebuilt', game: 'balloon-pop', set: 'balloon-pop.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'balloonpop', engine: 3 });
+  items.push({ id: 'critter-match.track.classic', game: 'critter-match', set: 'critter-match.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'crittermatch', engine: 2 });
+  items.push({ id: 'critter-match.track.rebuilt', game: 'critter-match', set: 'critter-match.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'crittermatch', engine: 3 });
+  items.push({ id: 'floodgate.track.classic', game: 'floodgate', set: 'floodgate.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'floodgate', engine: 2 });
+  items.push({ id: 'floodgate.track.rebuilt', game: 'floodgate', set: 'floodgate.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'floodgate', engine: 3 });
+  items.push({ id: 'mirror-maze.track.classic', game: 'mirror-maze', set: 'mirror-maze.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'mirrormaze', engine: 2 });
+  items.push({ id: 'mirror-maze.track.rebuilt', game: 'mirror-maze', set: 'mirror-maze.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'mirrormaze', engine: 3 });
+  items.push({ id: 'type-siege.track.classic', game: 'type-siege', set: 'type-siege.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'typesiege', engine: 2 });
+  items.push({ id: 'type-siege.track.rebuilt', game: 'type-siege', set: 'type-siege.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'typesiege', engine: 3 });
+  items.push({ id: 'dusk-runner.track.classic', game: 'dusk-runner', set: 'dusk-runner.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'duskrunner', engine: 2 });
+  items.push({ id: 'dusk-runner.track.rebuilt', game: 'dusk-runner', set: 'dusk-runner.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'duskrunner', engine: 3 });
+  items.push({ id: 'tube-racer.track.classic', game: 'tube-racer', set: 'tube-racer.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'tuberacer', engine: 2 });
+  items.push({ id: 'tube-racer.track.rebuilt', game: 'tube-racer', set: 'tube-racer.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'tuberacer', engine: 3 });
+  items.push({ id: 'flappy.track.classic', game: 'flappy', set: 'flappy.track', name: 'Classic', desc: 'The original soundtrack — a short, dry loop that just plays.', price: 0, painter: wavePainter('#8b93a7'), music: 'meadow', engine: 2 });
+  items.push({ id: 'flappy.track.rebuilt', game: 'flappy', set: 'flappy.track', name: 'Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'meadow', engine: 3 });
+  items.push({ id: 'snake.track.rebuilt', game: 'snake', set: 'snake.track', name: 'Neon · Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#a78bfa'), music: 'snake', engine: 3 });
+  items.push({ id: 'snake.track.rebuiltbanger', game: 'snake', set: 'snake.track', name: 'Neon Banger · Rebuilt', desc: 'The rebuilt soundtrack — fuller mix, a written tune, and it builds and drops with your run.', price: 100, painter: wavePainter('#c4b5fd'), music: 'snakebanger', engine: 3 });
 
   // ---- 🧱 Brick Breaker — paddle + ball skins ----
   add('breakout', 'paddle', 'synthwave', 'Synthwave',    0,   'The original cyan glow.', paddle(['#00ffff', '#0088aa'], '#00ffff'));
@@ -1033,6 +1086,28 @@
       'site.fx':              { label: 'Display mode', note: 'site-wide' },
       'snake.food':           { label: 'Food skins' },
       'snake.track':          { label: 'Music' },
+      'asteroids.track':      { label: 'Music' },
+      'asteroids-plus.track':  { label: 'Music' },
+      'forcefield.track':     { label: 'Music' },
+      'aim-trainer.track':          { label: 'Music' },
+      'breakout.track':       { label: 'Music' },
+      'bubbles.track':        { label: 'Music' },
+      'frog-bonk.track':       { label: 'Music' },
+      'tower-defense.track':           { label: 'Music' },
+      'stacker.track':        { label: 'Music' },
+      'sudoku.track':         { label: 'Music' },
+      'minesweeper.track':    { label: 'Music' },
+      '2048.track':           { label: 'Music' },
+      'trap-the-cat.track':     { label: 'Music' },
+      'glow-says.track':       { label: 'Music' },
+      'balloon-pop.track':     { label: 'Music' },
+      'critter-match.track':   { label: 'Music' },
+      'floodgate.track':      { label: 'Music' },
+      'mirror-maze.track':     { label: 'Music' },
+      'type-siege.track':      { label: 'Music' },
+      'dusk-runner.track':     { label: 'Music' },
+      'tube-racer.track':      { label: 'Music' },
+      'flappy.track':         { label: 'Music' },
       'breakout.paddle':      { label: 'Paddle skins' },
       'breakout.ball':        { label: 'Ball skins' },
       'tower-defense.castle': { label: 'Castle skins' },
