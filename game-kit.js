@@ -1223,15 +1223,27 @@
   function musicStop() { if (_mt) { try { clearInterval(_mt); } catch (e) {} _mt = null; } curTrack = null; curKey = null; _prev = false; srcNow = {}; }
   // Preview (shop): play a track on demand without losing the game's music state; audible even if
   // muted. It opens on the track's PEAK section — a preview has seconds to sell the hook.
-  function musicPreview(key) {
-    var T = resolveTrack(key); if (!T) return;
+  // `engine` is the engine of the item BEING PREVIEWED. Without it resolveTrack() would pick from the
+  // player's current SELECTION, so auditioning "Rebuilt" while "Classic" is selected played v2 — the
+  // shop looked like it was lying about its own entries.
+  function musicPreview(key, engine) {
+    var T;
+    if (engine === 2 || engine === 3) {
+      curEngine = engine;
+      T = (engine === 2) ? (TRACKS2[key] || TRACKS2[ALIAS[key]]) : (TRACKS[key] || TRACKS[ALIAS[key]]);
+      if (!T && engine === 2) { curEngine = 3; T = TRACKS[key] || TRACKS[ALIAS[key]]; }
+    } else T = resolveTrack(key);
+    if (!T) return;
     if (!_prev) _prevKey = curKey;
     _prev = true; musIntTarget = 0.85; musInt = 0.85;
     ensureAC(); if (ac && ac.state === 'suspended') { try { ac.resume(); } catch (e) {} }
     if (musMuted && musicGain) musicGain.gain.value = musVol;
-    var arr = resolveArr(T), peak = 0;
-    for (var i = 0; i < arr.length; i++) if (!arr[i].noAdapt && arr[i].e > arr[peak].e) peak = i;
-    _startTrack(T, key, peak);
+    var peak = 0;
+    if (curEngine === 3) {
+      var arr = resolveArr(T);
+      for (var i = 0; i < arr.length; i++) if (!arr[i].noAdapt && arr[i].e > arr[peak].e) peak = i;
+    }
+    _startTrack(T, key, curEngine === 3 ? peak : null);
   }
   function musicStopPreview() {
     if (!_prev) return; _prev = false;
@@ -3184,7 +3196,7 @@
     function togglePv(btn, it) {
       if (_pvBtn === btn) { stopPv(); return; }
       stopPv(); _pvBtn = btn; try { btn.textContent = '⏸'; } catch (e) {}
-      if (it.music) { try { music.preview(it.music); } catch (e) {} }
+      if (it.music) { try { music.preview(it.music, it.engine); } catch (e) {} }
       else playPvAudio(it, btn);
     }
     function applyMusic(it) { if (it && it.music) { stopPv(); if (music.current()) { try { music.play(it.music); } catch (e) {} } } }
