@@ -283,7 +283,7 @@
   // `noAdapt` = an ending, never auto-selected (an outro is not a gameplay state).
   var ARR = {
     dance: [
-      { n: 'intro',  bars: 4,  e: 0.14, L: 'sub kick hat' },
+      { n: 'intro',  bars: 2,  e: 0.14, L: 'sub kick hat' },
       { n: 'build',  bars: 8,  e: 0.44, L: 'sub kick hat clap bass stab riser' },
       { n: 'drop',   bars: 16, e: 0.78, L: 'sub kick hat clap bass stab pad lead ride' },
       { n: 'break',  bars: 8,  e: 0.30, L: 'pad lead sweep hat', half: 1, dev: 'oct' },
@@ -291,7 +291,7 @@
       { n: 'outro',  bars: 4,  e: 0.04, L: 'sub kick pad', noAdapt: 1 },
     ],
     lush: [
-      { n: 'open',   bars: 4,  e: 0.12, L: 'pad hat' },
+      { n: 'open',   bars: 2,  e: 0.12, L: 'pad hat' },
       { n: 'drift',  bars: 12, e: 0.36, L: 'pad hat bass sub' },
       { n: 'bloom',  bars: 12, e: 0.66, L: 'pad hat bass sub lead ride stab' },
       { n: 'hush',   bars: 8,  e: 0.22, L: 'pad lead sweep', half: 1, dev: 'oct' },
@@ -299,7 +299,7 @@
       { n: 'close',  bars: 4,  e: 0.04, L: 'pad sub', noAdapt: 1 },
     ],
     epic: [
-      { n: 'call',    bars: 4,  e: 0.13, L: 'pad choir' },
+      { n: 'call',    bars: 2,  e: 0.13, L: 'pad choir' },
       { n: 'march',   bars: 8,  e: 0.40, L: 'pad choir tom bass' },
       { n: 'theme',   bars: 12, e: 0.70, L: 'pad choir tom bass lead horn ride' },
       { n: 'siege',   bars: 8,  e: 0.86, L: 'pad tom bass lead horn roll sub', dev: 'invert' },
@@ -307,7 +307,7 @@
       { n: 'rest',    bars: 4,  e: 0.05, L: 'pad choir', noAdapt: 1 },
     ],
     tactical: [
-      { n: 'recon',   bars: 4,  e: 0.15, L: 'sub kick hat' },
+      { n: 'recon',   bars: 2,  e: 0.15, L: 'sub kick hat' },
       { n: 'patrol',  bars: 8,  e: 0.42, L: 'sub kick hat bass clap' },
       { n: 'contact', bars: 12, e: 0.74, L: 'sub kick hat bass clap lead stab roll' },
       { n: 'regroup', bars: 6,  e: 0.26, L: 'pad lead sweep hat', half: 1, dev: 'retro' },
@@ -315,7 +315,7 @@
       { n: 'clear',   bars: 4,  e: 0.05, L: 'sub kick pad', noAdapt: 1 },
     ],
     puzzle: [
-      { n: 'setup',   bars: 4,  e: 0.12, L: 'pad hat' },
+      { n: 'setup',   bars: 2,  e: 0.12, L: 'pad hat' },
       { n: 'solve',   bars: 12, e: 0.38, L: 'pad hat bass sub arp' },
       { n: 'streak',  bars: 12, e: 0.64, L: 'pad hat bass sub arp lead clap stab' },
       { n: 'pause',   bars: 8,  e: 0.24, L: 'pad lead sweep', half: 1, dev: 'oct' },
@@ -323,7 +323,7 @@
       { n: 'settle',  bars: 4,  e: 0.04, L: 'pad sub', noAdapt: 1 },
     ],
     retro: [
-      { n: 'title',  bars: 4,  e: 0.14, L: 'pad kick' },
+      { n: 'title',  bars: 2,  e: 0.14, L: 'pad kick' },
       { n: 'cruise', bars: 8,  e: 0.40, L: 'pad kick bass sub hat' },
       { n: 'chase',  bars: 16, e: 0.76, L: 'pad kick bass sub hat clap lead stab' },
       { n: 'coast',  bars: 8,  e: 0.28, L: 'pad lead sweep', half: 1, dev: 'retro' },
@@ -444,10 +444,17 @@
     if (out.horn && !T.horn) delete out.horn;
     return out;
   }
+  // The opening section is measured in BARS, but a bar is tempo-relative — 2 bars is 3.2 s at 148 BPM
+  // and 7.4 s at 65 BPM, so slow tracks opened with a long stretch of near-nothing before anything
+  // happened (reported on Tube Racer, and the epic biomes were worse). The opener is therefore
+  // clamped by TIME: whatever bar count lands nearest OPEN_SEC, never more than the template asks.
+  var OPEN_SEC = 3.4;
   function resolveArr(T) {
     var base = ARR[T.arr] || ARR.dance;
-    return base.map(function (s) {
-      return { n: s.n, bars: s.bars, half: s.half, dev: s.dev, noAdapt: s.noAdapt,
+    return base.map(function (s, i) {
+      var bars = s.bars;
+      if (i === 0) bars = Math.max(1, Math.min(bars, Math.round(OPEN_SEC * T.bpm / 240)));
+      return { n: s.n, bars: bars, half: s.half, dev: s.dev, noAdapt: s.noAdapt,
                e: (T.secE && T.secE[s.n] != null) ? T.secE[s.n] : s.e, L: parseLayers(s.L, T) };
     });
   }
