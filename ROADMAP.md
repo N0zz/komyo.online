@@ -80,10 +80,15 @@ Dev and marketing run in parallel; top item first within each.
 
 One line each; the real content is in the linked plan.
 
-- **Procedural music — the variety half** *(in progress)* — the v3 ENGINE shipped (mastered bus,
-  arrangements, written hooks, all 30 tracks re-voiced); still open: seed→whole-song + linter-as-selector,
+- **Procedural music — the variety half** *(in progress)* — the v3 engine shipped alongside v2 (kept 1:1,
+  still the default; v3 is a 100🏆 pick per game). Still open: seed→whole-song + linter-as-selector,
   Karplus–Strong/FM, rhythm grammar, more modes — the route to *hundreds* of tracks. →
   `plans/audio-music-plan.md`
+- **v3 openers are slow** *(open)* — every template starts on 4 bars at ~0.14 energy; at 148 BPM that is
+  ~6.5 s of near-nothing (reported on Tube Racer). Fix template-wide, not per track.
+- **Soundtrack playlist for YouTube** *(open)* — `scripts/render-soundtrack.mjs` renders all 30 v3 tracks
+  to 1440p/60 videos with a smoothed 64-band visualiser + scan-to-play QR; upload + metadata not started.
+  → `plans/soundtrack-covers.html`
 - **Replay system** *(idea)* — (B) kit-owned 15 s clip capture, ships alone; (A) deterministic
   input-replay in IndexedDB. → `plans/replay-plan.md`
 - **TV + gamepad + a11y** *(designed, not started)* — spatial focus nav → `gamekit.input` → per-game

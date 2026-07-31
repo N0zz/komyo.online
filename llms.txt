@@ -38,3 +38,4 @@ Komyo Games is a hobby project. Each game is a single self-contained HTML/Canvas
 - [Terms of Service](https://komyo.online/tos.html): plain-language terms of use.
 - [Plans & designs](https://komyo.online/plans/cosmetics-shop.html): public design docs for upcoming features (transparency — e.g. the cosmetics shop economy, menu redesigns).
 - [Audio Lab](https://komyo.online/plans/audio-lab-v2.html): playable soundboard for the procedural music engine — every track in the catalogue, generated live in the browser from pure Web Audio with zero audio files, reacting to a gameplay-intensity control.
+- [Soundtrack covers](https://komyo.online/plans/soundtrack-covers.html): cover-art directions for the game-soundtrack video playlist, drawn live in canvas from each game's icon and accent colour.

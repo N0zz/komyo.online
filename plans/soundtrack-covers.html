@@ -1,0 +1,367 @@
+<meta charset="utf-8">
+<title>komyo · soundtrack cover mocks</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{--bg:#0b0d12;--panel:#141822;--panel2:#1b2130;--ink:#e8ecf4;--muted:#8b93a7;--line:#252c3b;--accent:#6ee7b7;--ext:#a78bfa}
+  *{box-sizing:border-box}
+  body{margin:0;background:radial-gradient(1200px 700px at 50% -10%,#161c2b,var(--bg));color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:0 0 80px}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 18px}
+  header{padding:30px 0 8px;text-align:center}
+  h1{margin:0 0 6px;font-size:24px}
+  .sub{color:var(--muted);font-size:13.5px;max-width:680px;margin:0 auto}
+  .bar{position:sticky;top:0;z-index:9;background:rgba(11,13,18,.92);backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);padding:10px 0;margin:18px 0}
+  .bar .wrap{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  label{font-size:12px;color:var(--muted)}
+  select,button{background:var(--panel2);color:var(--ink);border:1px solid var(--line);border-radius:8px;
+    padding:6px 10px;font:600 12.5px inherit;cursor:pointer}
+  select{font-family:ui-monospace,Menlo,monospace}
+  button:hover{border-color:var(--accent)}
+  button.on{background:var(--ext);color:#0b0d12;border-color:var(--ext)}
+  #meta{font:11.5px ui-monospace,Menlo,monospace;color:var(--muted);margin-left:auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px}
+  .item{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}
+  .item canvas{width:100%;height:auto;display:block;background:#000}
+  .item .cap{padding:9px 12px;display:flex;align-items:center;gap:8px;border-top:1px solid var(--line)}
+  .item .n{font-weight:700;font-size:12.5px}
+  .item .d{color:var(--muted);font-size:11px}
+  .item .pick{margin-left:auto;font-size:11px;padding:4px 9px}
+  .item.chosen{border-color:var(--ext);box-shadow:0 0 0 1px var(--ext) inset}
+  #chosen{color:var(--ext);font-weight:700}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:24px}
+</style>
+
+<div class="wrap"><header>
+  <h1>Soundtrack cover mocks</h1>
+  <p class="sub">Ten 16:9 covers for the YouTube listening playlist, all drawn in canvas from
+    <code>games.js</code> (icon + accent) — zero assets. Switch the track to see how each style copes with a
+    different icon, colour and name length. ▶ plays the real track so you can judge cover and music together.</p>
+</header></div>
+
+<div class="bar"><div class="wrap">
+  <label>Track</label><select id="pick"></select>
+  <button id="play">▶ Play track</button>
+  <button id="stop">■</button>
+  <label>Chosen:</label><span id="chosen">none</span>
+  <div id="meta"></div>
+</div></div>
+
+<div class="wrap"><div class="grid" id="grid"></div></div>
+<div class="wrap"><footer>Cover directions for the YouTube soundtrack playlist. Style 4 (waveform) is the one that shipped — see scripts/render-soundtrack.mjs.</footer></div>
+
+<script src="../version.js"></script>
+<script src="../game-kit.js"></script>
+<script src="../games.js"></script>
+<script>
+(function () {
+  'use strict';
+  var K = window.gamekit, M = K.music, TRACKS = M.tracks;
+  var SLUG_FIX = { keep: 'tower-defense', range: 'aim-trainer', meadow: 'flappy' };
+  var BIOME = { kd_grass: 'Grasslands', kd_ice: 'Ice', kd_lava: 'Lava', kd_desert: 'Desert', kd_dungeon: 'Dungeon', kd_marsh: 'Marsh' };
+  var byslug = {}; (window.GAMES || []).forEach(function (g) { byslug[g.slug] = g; });
+  function gameOf(id) {
+    var fam = TRACKS[id].game || id, slug = SLUG_FIX[fam] || fam;
+    if (byslug[slug]) return byslug[slug];
+    var hy = Object.keys(byslug).filter(function (s) { return s.replace(/-/g, '') === fam; })[0];
+    return hy ? byslug[hy] : null;
+  }
+  function info(id) {
+    var T = TRACKS[id], g = gameOf(id) || {};
+    var arr = M.arrangement(id), bars = arr.reduce(function (n, s) { return n + s.bars; }, 0);
+    var secs = bars * 4 * 60 / T.bpm;
+    var name = g.title || id;
+    if (BIOME[id]) name = (byslug['tower-defense'] || {}).title + ' · ' + BIOME[id];
+    if (id === 'snakebanger') name = name + ' · Banger';
+    return { id: id, T: T, name: name, icon: g.icon || '🎵', accent: g.accent || '#6ee7b7',
+             arr: arr, bars: bars, secs: secs,
+             dur: Math.floor(secs / 60) + ':' + String(Math.round(secs % 60)).padStart(2, '0') };
+  }
+
+  // ---- helpers -------------------------------------------------------------------------------
+  function hex2rgb(h) { h = String(h).replace('#', ''); if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    var n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; }
+  function rgba(h, a) { var c = hex2rgb(h); return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+  function shade(h, f) { var c = hex2rgb(h).map(function (v) { return Math.max(0, Math.min(255, Math.round(v * f))); });
+    return 'rgb(' + c.join(',') + ')'; }
+  function fit(x, text, max, start, weight) {
+    var s = start;
+    do { x.font = (weight || 800) + ' ' + s + 'px -apple-system,Segoe UI,Roboto,sans-serif'; s -= 2; }
+    while (x.measureText(text).width > max && s > 12);
+    return s + 2;
+  }
+  function brand(x, W, H, col) {
+    x.font = '600 15px ui-monospace,Menlo,monospace'; x.fillStyle = col || 'rgba(255,255,255,.4)';
+    x.textAlign = 'right'; x.fillText('komyo.online', W - 26, H - 22); x.textAlign = 'left';
+  }
+
+  // ---- the ten styles ------------------------------------------------------------------------
+  var STYLES = [
+    { n: 'Medallion', d: 'icon on an accent glow — simplest, reads at thumbnail size',
+      p: function (x, W, H, t) {
+        var g = x.createRadialGradient(W / 2, H * 0.42, 20, W / 2, H * 0.42, H * 0.9);
+        g.addColorStop(0, shade(t.accent, 1.05)); g.addColorStop(0.55, shade(t.accent, 0.42)); g.addColorStop(1, '#080a10');
+        x.fillStyle = g; x.fillRect(0, 0, W, H);
+        x.textAlign = 'center'; x.font = Math.round(H * 0.34) + 'px serif';
+        x.fillText(t.icon, W / 2, H * 0.5);
+        var s = fit(x, t.name, W * 0.8, Math.round(H * 0.11));
+        x.fillStyle = '#fff'; x.font = '800 ' + s + 'px -apple-system,Segoe UI,Roboto,sans-serif';
+        x.fillText(t.name, W / 2, H * 0.75);
+        x.font = '600 ' + Math.round(H * 0.042) + 'px ui-monospace,Menlo,monospace';
+        x.fillStyle = 'rgba(255,255,255,.62)';
+        x.fillText(t.T.bpm + ' BPM · ' + t.dur, W / 2, H * 0.86);
+        x.textAlign = 'left'; brand(x, W, H);
+      } },
+    { n: 'Vinyl', d: 'record with an accent label — reads instantly as "music"',
+      p: function (x, W, H, t) {
+        x.fillStyle = '#0a0c12'; x.fillRect(0, 0, W, H);
+        var cx = W * 0.31, cy = H / 2, R = H * 0.40;
+        x.fillStyle = '#15171d'; x.beginPath(); x.arc(cx, cy, R, 0, 7); x.fill();
+        for (var i = 0; i < 16; i++) { x.strokeStyle = 'rgba(255,255,255,' + (0.03 + (i % 2) * 0.02) + ')';
+          x.lineWidth = 1; x.beginPath(); x.arc(cx, cy, R * (0.42 + i * 0.036), 0, 7); x.stroke(); }
+        x.fillStyle = t.accent; x.beginPath(); x.arc(cx, cy, R * 0.38, 0, 7); x.fill();
+        x.fillStyle = '#0a0c12'; x.beginPath(); x.arc(cx, cy, R * 0.055, 0, 7); x.fill();
+        x.textAlign = 'center'; x.font = Math.round(R * 0.34) + 'px serif';
+        x.fillText(t.icon, cx, cy - R * 0.02); x.textAlign = 'left';
+        var mx = W * 0.60, s = fit(x, t.name, W * 0.36, Math.round(H * 0.115));
+        x.fillStyle = '#fff'; x.font = '800 ' + s + 'px -apple-system,Segoe UI,Roboto,sans-serif';
+        x.fillText(t.name, mx, H * 0.47);
+        x.fillStyle = t.accent; x.fillRect(mx, H * 0.53, W * 0.1, 3);
+        x.font = '600 ' + Math.round(H * 0.045) + 'px ui-monospace,Menlo,monospace';
+        x.fillStyle = 'rgba(255,255,255,.6)';
+        x.fillText(t.T.bpm + ' BPM · ' + t.dur, mx, H * 0.63);
+        x.fillText(t.T.kit + ' · ' + t.T.arr, mx, H * 0.70);
+        brand(x, W, H);
+      } },
+    { n: 'Cassette', d: 'retro tape, label in accent — playful, fits an arcade',
+      p: function (x, W, H, t) {
+        var g = x.createLinearGradient(0, 0, W, H); g.addColorStop(0, '#12151c'); g.addColorStop(1, '#0a0c11');
+        x.fillStyle = g; x.fillRect(0, 0, W, H);
+        var bw = W * 0.62, bh = H * 0.56, bx = (W - bw) / 2, by = (H - bh) / 2;
+        x.fillStyle = shade(t.accent, 0.34); K.roundRect(x, bx, by, bw, bh, 14); x.fill();
+        x.strokeStyle = rgba(t.accent, 0.8); x.lineWidth = 2; x.stroke();
+        var lw = bw * 0.82, lh = bh * 0.42, lx = bx + (bw - lw) / 2, ly = by + bh * 0.09;
+        x.fillStyle = 'rgba(240,244,252,.93)'; K.roundRect(x, lx, ly, lw, lh, 5); x.fill();
+        x.textAlign = 'center';
+        var s = fit(x, t.name, lw * 0.78, Math.round(lh * 0.46));
+        x.fillStyle = '#12151c'; x.font = '800 ' + s + 'px -apple-system,Segoe UI,Roboto,sans-serif';
+        x.fillText(t.name, W / 2, ly + lh * 0.52);
+        x.font = '600 ' + Math.round(lh * 0.2) + 'px ui-monospace,Menlo,monospace';
+        x.fillStyle = 'rgba(20,24,34,.62)'; x.fillText(t.T.bpm + ' BPM · ' + t.dur, W / 2, ly + lh * 0.82);
+        var ry = by + bh * 0.72, rr = bh * 0.13;
+        [-1, 1].forEach(function (d) {
+          x.fillStyle = '#0a0c11'; x.beginPath(); x.arc(W / 2 + d * bw * 0.2, ry, rr, 0, 7); x.fill();
+          x.strokeStyle = rgba(t.accent, 0.9); x.lineWidth = 3; x.beginPath();
+          x.arc(W / 2 + d * bw * 0.2, ry, rr * 0.58, 0, 7); x.stroke();
+        });
+        x.font = Math.round(bh * 0.2) + 'px serif'; x.fillText(t.icon, W / 2, ry + rr * 0.42);
+        x.textAlign = 'left'; brand(x, W, H);
+      } },
+    { n: 'Waveform', d: 'frozen bars in accent — the most "soundtrack" of the set',
+      p: function (x, W, H, t) {
+        x.fillStyle = '#080a10'; x.fillRect(0, 0, W, H);
+        var n = 68, seed = t.T.seed || 1;
+        function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+        var g = x.createLinearGradient(0, H, 0, H * 0.2);
+        g.addColorStop(0, shade(t.accent, 0.5)); g.addColorStop(1, shade(t.accent, 1.15));
+        x.fillStyle = g;
+        for (var i = 0; i < n; i++) {
+          var env = Math.sin(i / n * Math.PI), h = (0.12 + rnd() * 0.88) * env * H * 0.52;
+          var bw = W / n * 0.56, bx = i * (W / n) + (W / n - bw) / 2;
+          K.roundRect(x, bx, H * 0.62 - h, bw, h, bw / 2); x.fill();
+          K.roundRect(x, bx, H * 0.62, bw, h * 0.3, bw / 2); x.fill();
+        }
+        x.font = Math.round(H * 0.17) + 'px serif'; x.fillText(t.icon, W * 0.055, H * 0.24);
+        var s = fit(x, t.name, W * 0.72, Math.round(H * 0.13));
+        x.fillStyle = '#fff'; x.font = '800 ' + s + 'px -apple-system,Segoe UI,Roboto,sans-serif';
+        x.fillText(t.name, W * 0.055, H * 0.85);
+        x.font = '600 ' + Math.round(H * 0.045) + 'px ui-monospace,Menlo,monospace';
+        x.fillStyle = rgba(t.accent, 0.9); x.fillText(t.T.bpm + ' BPM · ' + t.dur, W * 0.055, H * 0.93);
+        brand(x, W, H);
+      } },
+    { n: 'Synthwave', d: 'horizon + grid — matches the site\'s neon look',
+      p: function (x, W, H, t) {
+        var hz = H * 0.62, g = x.createLinearGradient(0, 0, 0, hz);
+        g.addColorStop(0, '#170d2b'); g.addColorStop(0.7, shade(t.accent, 0.5)); g.addColorStop(1, shade(t.accent, 0.9));
+        x.fillStyle = g; x.fillRect(0, 0, W, hz);
+        x.fillStyle = '#07080d'; x.fillRect(0, hz, W, H - hz);
+        x.fillStyle = rgba('#ffffff', 0.16); x.beginPath(); x.arc(W / 2, hz, H * 0.22, Math.PI, 0); x.fill();
+        x.strokeStyle = rgba(t.accent, 0.55); x.lineWidth = 1.4;
+        for (var v = -12; v <= 12; v++) { x.beginPath(); x.moveTo(W / 2 + v * 16, hz); x.lineTo(W / 2 + v * 210, H); x.stroke(); }
+        for (var r = 1; r <= 7; r++) { var y = hz + Math.pow(r / 7, 2.3) * (H - hz);
+          x.beginPath(); x.moveTo(0, y); x.lineTo(W, y); x.stroke(); }
+        x.textAlign = 'center'; x.font = Math.round(H * 0.2) + 'px serif';
+        x.fillText(t.icon, W / 2, hz - H * 0.1);
+        var s = fit(x, t.name.toUpperCase(), W * 0.8, Math.round(H * 0.13));
+        x.fillStyle = '#fff'; x.font = '800 ' + s + 'px -apple-system,Segoe UI,Roboto,sans-serif';
+        x.shadowColor = rgba(t.accent, 0.9); x.shadowBlur = 22;
+        x.fillText(t.name.toUpperCase(), W / 2, H * 0.83); x.shadowBlur = 0;
+        x.font = '600 ' + Math.round(H * 0.042) + 'px ui-monospace,Menlo,monospace';
+        x.fillStyle = 'rgba(255,255,255,.6)'; x.fillText(t.T.bpm + ' BPM · ' + t.dur, W / 2, H * 0.92);
+        x.textAlign = 'left'; brand(x, W, H);
+      } },
+    { n: 'Minimal type', d: 'name does the work — cleanest in a playlist sidebar',
+      p: function (x, W, H, t) {
+        x.fillStyle = '#0a0b10'; x.fillRect(0, 0, W, H);
+        x.fillStyle = rgba(t.accent, 0.1); x.fillRect(0, 0, W * 0.012, H);
+        var s = fit(x, t.name, W * 0.78, Math.round(H * 0.19));
+        x.fillStyle = '#fff'; x.font = '800 ' + s + 'px -apple-system,Segoe UI,Roboto,sans-serif';
+        x.fillText(t.name, W * 0.07, H * 0.52);
+        x.fillStyle = t.accent; x.fillRect(W * 0.07, H * 0.6, W * 0.14, 5);
+        x.font = '600 ' + Math.round(H * 0.05) + 'px ui-monospace,Menlo,monospace';
+        x.fillStyle = 'rgba(255,255,255,.5)';
+        x.fillText(t.T.bpm + ' BPM  ·  ' + t.dur + '  ·  ' + t.T.kit, W * 0.07, H * 0.73);
+        x.font = Math.round(H * 0.15) + 'px serif'; x.textAlign = 'right';
+        x.fillText(t.icon, W * 0.93, H * 0.35); x.textAlign = 'left';
+        brand(x, W, H, rgba(t.accent, 0.7));
+      } },
+    { n: 'Catalogue tile', d: 'looks like the game\'s tile — ties the playlist to the site',
+      p: function (x, W, H, t) {
+        x.fillStyle = '#0b0d12'; x.fillRect(0, 0, W, H);
+        var cw = W * 0.46, ch = H * 0.66, cx = W * 0.07, cy = (H - ch) / 2;
+        x.shadowColor = rgba(t.accent, 0.5); x.shadowBlur = 40;
+        x.fillStyle = '#161b26'; K.roundRect(x, cx, cy, cw, ch, 20); x.fill(); x.shadowBlur = 0;
+        var g = x.createLinearGradient(cx, cy, cx + cw, cy + ch);
+        g.addColorStop(0, rgba(t.accent, 0.3)); g.addColorStop(1, rgba(t.accent, 0.03));
+        x.fillStyle = g; K.roundRect(x, cx, cy, cw, ch, 20); x.fill();
+        x.strokeStyle = rgba(t.accent, 0.5); x.lineWidth = 1.5; x.stroke();
+        x.textAlign = 'center'; x.font = Math.round(ch * 0.42) + 'px serif';
+        x.fillText(t.icon, cx + cw / 2, cy + ch * 0.55);
+        x.textAlign = 'left';
+        var mx = W * 0.6, s = fit(x, t.name, W * 0.34, Math.round(H * 0.12));
+        x.fillStyle = '#fff'; x.font = '800 ' + s + 'px -apple-system,Segoe UI,Roboto,sans-serif';
+        x.fillText(t.name, mx, H * 0.44);
+        x.font = '600 ' + Math.round(H * 0.045) + 'px -apple-system,Segoe UI,Roboto,sans-serif';
+        x.fillStyle = rgba(t.accent, 0.95); x.fillText('full soundtrack', mx, H * 0.55);
+        x.font = '600 ' + Math.round(H * 0.042) + 'px ui-monospace,Menlo,monospace';
+        x.fillStyle = 'rgba(255,255,255,.5)'; x.fillText(t.T.bpm + ' BPM · ' + t.dur, mx, H * 0.65);
+        brand(x, W, H);
+      } },
+    { n: 'Arrangement', d: 'the track\'s own sections, to scale — data as the art',
+      p: function (x, W, H, t) {
+        x.fillStyle = '#080a10'; x.fillRect(0, 0, W, H);
+        var pad = W * 0.06, bw = W - pad * 2, y = H * 0.44, bh = H * 0.2, xx = pad;
+        t.arr.forEach(function (s, i) {
+          var w = bw * (s.bars / t.bars), h = bh * (0.34 + 0.66 * s.e);
+          var g = x.createLinearGradient(0, y + bh - h, 0, y + bh);
+          g.addColorStop(0, shade(t.accent, 0.6 + s.e * 0.7)); g.addColorStop(1, shade(t.accent, 0.3));
+          x.fillStyle = g; x.fillRect(xx + 1.5, y + bh - h, w - 3, h);
+          x.font = '600 ' + Math.round(H * 0.032) + 'px ui-monospace,Menlo,monospace';
+          x.fillStyle = 'rgba(255,255,255,.55)'; x.textAlign = 'center';
+          if (w > W * 0.055) x.fillText(s.n, xx + w / 2, y + bh + H * 0.055);
+          xx += w;
+        });
+        x.textAlign = 'left';
+        x.font = Math.round(H * 0.13) + 'px serif'; x.fillText(t.icon, pad, H * 0.26);
+        var s2 = fit(x, t.name, W * 0.66, Math.round(H * 0.115));
+        x.fillStyle = '#fff'; x.font = '800 ' + s2 + 'px -apple-system,Segoe UI,Roboto,sans-serif';
+        x.fillText(t.name, pad + H * 0.16, H * 0.24);
+        x.font = '600 ' + Math.round(H * 0.04) + 'px ui-monospace,Menlo,monospace';
+        x.fillStyle = rgba(t.accent, 0.9);
+        x.fillText(t.bars + ' bars · ' + t.T.bpm + ' BPM · ' + t.dur, pad, H * 0.84);
+        x.fillStyle = 'rgba(255,255,255,.42)';
+        x.fillText('generated live — no audio files', pad, H * 0.91);
+        brand(x, W, H);
+      } },
+    { n: 'Orbit', d: 'icon orbited by the mix — abstract, ages well',
+      p: function (x, W, H, t) {
+        var g = x.createRadialGradient(W / 2, H / 2, 10, W / 2, H / 2, W * 0.6);
+        g.addColorStop(0, shade(t.accent, 0.34)); g.addColorStop(1, '#07080d');
+        x.fillStyle = g; x.fillRect(0, 0, W, H);
+        var seed = (t.T.seed || 1) + 7;
+        function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+        for (var i = 0; i < 90; i++) { var a = rnd() * 7, r = H * (0.3 + rnd() * 0.62);
+          x.fillStyle = 'rgba(255,255,255,' + (0.1 + rnd() * 0.5) + ')';
+          x.beginPath(); x.arc(W / 2 + Math.cos(a) * r * 1.5, H / 2 + Math.sin(a) * r * 0.6, rnd() * 1.8 + 0.4, 0, 7); x.fill(); }
+        [0.3, 0.42, 0.54].forEach(function (rr, i) {
+          x.strokeStyle = rgba(t.accent, 0.5 - i * 0.13); x.lineWidth = 1.6;
+          x.beginPath(); x.ellipse(W / 2, H * 0.45, W * rr, H * rr * 0.52, 0, 0, 7); x.stroke();
+          var a2 = 1.1 + i * 2.1;
+          x.fillStyle = t.accent; x.beginPath();
+          x.arc(W / 2 + Math.cos(a2) * W * rr, H * 0.45 + Math.sin(a2) * H * rr * 0.52, 5 - i, 0, 7); x.fill();
+        });
+        x.textAlign = 'center'; x.font = Math.round(H * 0.2) + 'px serif';
+        x.fillText(t.icon, W / 2, H * 0.52);
+        var s = fit(x, t.name, W * 0.74, Math.round(H * 0.115));
+        x.fillStyle = '#fff'; x.font = '800 ' + s + 'px -apple-system,Segoe UI,Roboto,sans-serif';
+        x.fillText(t.name, W / 2, H * 0.83);
+        x.font = '600 ' + Math.round(H * 0.042) + 'px ui-monospace,Menlo,monospace';
+        x.fillStyle = 'rgba(255,255,255,.58)'; x.fillText(t.T.bpm + ' BPM · ' + t.dur, W / 2, H * 0.91);
+        x.textAlign = 'left'; brand(x, W, H);
+      } },
+  ];
+
+  // ---- render ---------------------------------------------------------------------------------
+  var ids = Object.keys(TRACKS), pickEl = document.getElementById('pick');
+  ids.forEach(function (id) {
+    var o = document.createElement('option'); o.value = id; o.textContent = id; pickEl.appendChild(o);
+  });
+  var grid = document.getElementById('grid'), chosen = null;
+  STYLES.forEach(function (st, i) {
+    var d = document.createElement('div'); d.className = 'item'; d.dataset.i = i;
+    d.innerHTML = '<canvas width="1280" height="720"></canvas>' +
+      '<div class="cap"><span class="n">' + (i + 1) + '. ' + st.n + '</span>' +
+      '<span class="d">' + st.d + '</span>' +
+      '<button class="pick">pick</button></div>';
+    grid.appendChild(d);
+  });
+  // the real score card, for comparison
+  var sc = document.createElement('div'); sc.className = 'item';
+  sc.innerHTML = '<canvas width="1200" height="630"></canvas>' +
+    '<div class="cap"><span class="n">10. Score card</span>' +
+    '<span class="d">the REAL gamekit.scoreCard — baseline to beat</span>' +
+    '<button class="pick">pick</button></div>';
+  grid.appendChild(sc);
+
+  function paintAll(id) {
+    var t = info(id);
+    document.getElementById('meta').textContent =
+      t.bars + ' bars · ' + t.T.bpm + ' BPM · ' + t.dur + ' · ' + t.T.arr + '/' + t.T.kit + ' · seed ' + t.T.seed;
+    STYLES.forEach(function (st, i) {
+      var c = grid.children[i].querySelector('canvas'), x = c.getContext('2d');
+      x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, c.width, c.height);
+      x.textBaseline = 'alphabetic';
+      try { st.p(x, c.width, c.height, t); } catch (e) {
+        x.fillStyle = '#300'; x.fillRect(0, 0, c.width, c.height);
+        x.fillStyle = '#f88'; x.font = '20px monospace'; x.fillText('painter error: ' + e.message, 30, 60);
+      }
+    });
+    // real score card
+    var scc = sc.querySelector('canvas'), sx = scc.getContext('2d');
+    sx.clearRect(0, 0, scc.width, scc.height);
+    sx.fillStyle = '#0a0c12'; sx.fillRect(0, 0, scc.width, scc.height);
+    sx.fillStyle = '#8b93a7'; sx.font = '600 22px ui-monospace,Menlo,monospace';
+    sx.fillText('rendering real score card…', 40, 60);
+    try {
+      K.scoreCard({ slug: (gameOf(id) || {}).slug || 'snake', title: t.name, icon: t.icon, accent: t.accent,
+                    score: 12480, mode: 'Classic', message: 'full soundtrack' }).then(function (res) {
+        if (!res) { sx.fillStyle = '#f88'; sx.fillText('scoreCard() returned null', 40, 110); return; }
+        var url = URL.createObjectURL(res);          // it resolves to a Blob
+        var im = new Image();
+        im.onload = function () {
+          sx.clearRect(0, 0, scc.width, scc.height);
+          sx.drawImage(im, 0, 0, scc.width, scc.height);
+          URL.revokeObjectURL(url);
+        };
+        im.onerror = function () { sx.fillStyle = '#f88'; sx.fillText('score-card blob failed to decode', 40, 110); };
+        im.src = url;
+      }).catch(function (e) { sx.fillStyle = '#f88'; sx.fillText('scoreCard threw: ' + e.message, 40, 110); });
+    } catch (e) { sx.fillStyle = '#f88'; sx.fillText('scoreCard threw: ' + e.message, 40, 110); }
+  }
+
+  pickEl.addEventListener('change', function () { paintAll(this.value); });
+  document.getElementById('play').addEventListener('click', function () {
+    M.setMuted(false); M.volume(0.5); M.adaptive(false); M.play(pickEl.value); M.jump(0);
+  });
+  document.getElementById('stop').addEventListener('click', function () { M.stop(); });
+  grid.addEventListener('click', function (e) {
+    var b = e.target.closest('.pick'); if (!b) return;
+    var it = b.closest('.item');
+    [].forEach.call(grid.children, function (c) { c.classList.remove('chosen'); });
+    it.classList.add('chosen');
+    chosen = it.querySelector('.n').textContent;
+    document.getElementById('chosen').textContent = chosen;
+  });
+  paintAll(ids[0]);
+})();
+</script>
