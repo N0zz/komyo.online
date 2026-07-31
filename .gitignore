@@ -7,6 +7,7 @@ plans/scorecards/
 
 # Portal (itch.io / Newgrounds) zip builds (regenerate: node scripts/package-game.mjs <slug>)
 dist-portal/
+dist-soundtrack/
 
 # Whole-site offline bundle (built at deploy + regenerate: node scripts/package-site.mjs)
 dist-site/
