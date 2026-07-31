@@ -91,8 +91,13 @@
     var AC = (typeof AudioContext !== 'undefined' && AudioContext) ||
              (typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext));
     if (!AC) { ac = null; return; }
-    try {
-      ac = new AC();
+    try { buildAudioGraph(new AC()); } catch (e) { ac = null; }
+  }
+  // The whole audio graph, built into a GIVEN context — so the offline renderer (music.render) can
+  // borrow the same construction for an OfflineAudioContext instead of duplicating it.
+  function buildAudioGraph(context) {
+    {
+      ac = context;
       master = ac.createGain(); master.gain.value = 1; master.connect(ac.destination);
       verbNode = ac.createConvolver(); verbNode.buffer = makeImpulse(2.0, 2.4);          // shared algorithmic reverb
       verbWet = ac.createGain(); verbWet.gain.value = 0.5; verbNode.connect(verbWet); verbWet.connect(master);
@@ -122,7 +127,7 @@
       musicVoice = ac.createGain(); musicVoice.gain.value = 0.86; musicVoice.connect(musicSum); // leads / arps / stabs / choir
       musicFx = ac.createGain(); musicFx.gain.value = 0.72; musicFx.connect(musicSum);         // risers, sweeps, crashes
       musicDelayIn = makePingPong(0.26, 0.34);                                                   // ping-pong echo (music channel)
-    } catch (e) { ac = null; }
+    }
   }
   function makeImpulse(dur, decay) {
     var len = Math.max(1, (ac.sampleRate || 44100) * dur), buf = ac.createBuffer(2, len, ac.sampleRate);
@@ -784,7 +789,402 @@
     lastSec = sec; lastBar = barInSec;
   }
 
-  function resolveTrack(key) { return TRACKS[key] || TRACKS[ALIAS[key]] || null; }
+  // ================================================================================================
+  // ENGINE v2 — restored VERBATIM from 80703e3^ (the build before the v3 rework), because "sounds
+  // like the old one" only holds if it IS the old one. Symbols carry a `2` suffix so both engines
+  // coexist; NT/NEAR/synthVoice/synthNoise are shared and byte-identical between the two.
+  //
+  // 1:1 also means the SIGNAL PATH, not just the notes: v2 predates the master bus, so while a v2
+  // track plays the kit bypasses glue/saturation/limiter and restores v2's own bus gains and default
+  // routing (voices to musicGain, drums at 0.5, reverb into musicGain). See v2Signal().
+  // ================================================================================================
+  // ---------- generative music engine v2 (procedural, kit-owned; routed through the Music channel) ----------
+  // Each TRACK = a full song spec (theme params + a palette: kit / groove or prod / instrument waves).
+  // Rendered by enhStep (modern) or snakeStep (remaster). Intensity (0..1) is smoothed and drives which
+  // layers are present (eased fade-ins via pres2()), so music builds with the gameplay a game reports.
+  var TRACKS2 = {
+    snake:        { kind: 'remaster', bpm: 122, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4, 0, 5, 6, 4], cutoff: 1900 },
+    snakebanger:  { kind: 'modern', sig: 'octave', bpm: 122, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4, 0, 5, 6, 4], cutoff: 1900, kit: 'electronic', groove: 'banger', pad: 'square', bass: 'square', lead: 'square', pluck: true, detune: 8, kf0: 150, kf1: 48, prod: 'dance' },
+    asteroids:    { kind: 'modern', sig: 'horn', bpm: 124, root: 130.81, scale: [0, 2, 3, 5, 7, 10], prog: [0, 6, 5, 3, 0, 4, 6, 5], cutoff: 1800, kit: 'epic', prod: 'epic', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', leadSuper: true, detune: 14, choir: true },
+    asteroidsplus:{ kind: 'modern', sig: 'sub', bpm: 126, root: 130.81, scale: [0, 2, 3, 5, 7, 10], prog: [0, 0, 3, 6, 0, 5, 3, 6], cutoff: 1800, kit: 'techno', groove: 'rave', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', bassSuper: true, leadSuper: true, detune: 16, riser: true, swing: 0.03, kf0: 160, kf1: 50, prod: 'dance' },
+    forcefield:   { kind: 'modern', sig: 'glass', bpm: 128, root: 164.81, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 4, 7, 5, 0, 4, 3, 5], cutoff: 2000, kit: 'electronic', groove: 'trance', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', leadSuper: true, detune: 14, kf0: 150, kf1: 48, prod: 'dance' },
+    range:        { kind: 'modern', sig: 'roll', bpm: 126, root: 130.81, scale: [0, 2, 3, 7, 8, 10], prog: [0, 1, 5, 4, 0, 1, 3, 4], cutoff: 1300, kit: 'tactical', groove: 'tactical', pad: 'sawtooth', bass: 'square', lead: 'sawtooth', leadSuper: true, detune: 12, kf0: 110, kf1: 44, prod: 'tactical' },
+    breakout:     { kind: 'modern', sig: 'octave', bpm: 98, root: 110, scale: [0, 3, 5, 7, 10], prog: [0, 3, 4, 3, 5, 4, 3, 0], cutoff: 1500, kit: 'synthwave', prod: 'synthwave', pad: 'sawtooth', bass: 'sawtooth', lead: 'sawtooth', leadSuper: true, detune: 12, halftime: true, kf0: 130, kf1: 45 },
+    // candy-pop rather than club: the soft kit (shakers, a kick only at full tilt) over the banger
+    // arrangement — it used to be electronic/banger, a 4-on-the-floor twin of 2048.
+    bubbles:      { kind: 'modern', sig: 'bell', bpm: 111, root: 174.61, scale: [0, 2, 4, 7, 9, 11], prog: [0, 2, 5, 4, 0, 6, 2, 5], cutoff: 2600, kit: 'soft', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'triangle', pluck: true, detune: 8, kf0: 150, kf1: 52, prod: 'dance' },
+    frogbonk:     { kind: 'modern', sig: 'ride', bpm: 86, root: 110, scale: [0, 2, 3, 5, 7, 8, 12], prog: [0, 6, 4, 2, 0, 3, 5, 2], cutoff: 1700, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, detune: 8, swing: 0.06, kf0: 130, kf1: 50, prod: 'dance' },
+    keep:         { kind: 'modern', sig: 'taiko', bpm: 86, root: 110, scale: [0, 2, 3, 5, 7, 8, 12], prog: [0, 3, 6, 4, 0, 5, 3, 6], cutoff: 1700, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },
+    stacker:      { kind: 'modern', sig: 'ride', bpm: 96, root: 220, scale: [0, 3, 5, 7, 10, 12], prog: [0, 4, 5, 3, 0, 4, 2, 3], cutoff: 2000, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'sine', lead: 'triangle', softLead: true, vibrato: 4 },
+    sudoku:       { kind: 'modern', sig: 'harp', bpm: 80, root: 155.56, scale: [0, 2, 4, 7, 9, 12], prog: [0, 5, 1, 4, 0, 2, 5, 4], cutoff: 2200, kit: 'soft', prod: 'lush', pad: 'sine', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 3 },
+    minesweeper:  { kind: 'modern', sig: 'toms', bpm: 88, root: 130.81, scale: [0, 2, 3, 5, 7, 9, 10], prog: [0, 4, 2, 6, 0, 3, 5, 1], cutoff: 1600, kit: 'techno', groove: 'trance', pad: 'triangle', bass: 'sine', lead: 'sine', softLead: true, detune: 6 },
+    '2048':       { kind: 'modern', sig: 'pulse', bpm: 104, root: 196, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 4, 1, 0, 5, 4, 2], cutoff: 2100, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'sine', softLead: true, pluck: true, detune: 5 },
+    trapthecat:   { kind: 'modern', sig: 'glass', bpm: 112, root: 220, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 5, 3, 2, 0, 4, 1, 5], cutoff: 2300, kit: 'soft', prod: 'lush', pad: 'triangle', bass: 'sine', lead: 'triangle', softLead: true, pluck: true, vibrato: 6 },
+    // neon-memory synth-pop: techno kit + lush pads, on a suspended scale nothing else uses — it was
+    // a third soft/lush track sharing Sudoku's mode.
+    glowsays:     { kind: 'modern', sig: 'pulse', bpm: 100, root: 261.63, scale: [0, 2, 5, 7, 9, 12], prog: [0, 4, 6, 2, 0, 5, 1, 3], cutoff: 2500, kit: 'techno', prod: 'lush', pad: 'sine', bass: 'sine', lead: 'triangle', softLead: true, vibrato: 5 },
+    balloonpop:   { kind: 'modern', sig: 'shaker', bpm: 118, root: 233.08, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 1, 5, 0, 3, 5, 2], cutoff: 2600, kit: 'electronic', groove: 'banger', pad: 'triangle', bass: 'triangle', lead: 'triangle', softLead: true, pluck: true, swing: 0.08 },
+    // warm chill-house instead of a fourth soft/lush pad bed (it read as Trap the Cat's twin):
+    // electronic kit with a soft-tuned kick, lush pads, mixolydian.
+    crittermatch: { kind: 'modern', sig: 'bell', bpm: 94, root: 174.61, scale: [0, 2, 4, 5, 7, 9, 10], prog: [0, 2, 5, 4, 0, 1, 3, 5], cutoff: 2200, kit: 'electronic', prod: 'lush', pad: 'sine', bass: 'triangle', lead: 'triangle', softLead: true, vibrato: 4, swing: 0.05, kf0: 120, kf1: 50 },
+    floodgate:    { kind: 'modern', sig: 'swell', bpm: 78, root: 196, scale: [0, 2, 4, 5, 7, 9, 11], prog: [0, 3, 6, 2, 0, 5, 1, 4], cutoff: 2300, kit: 'soft', groove: 'trance', pad: 'sine', bass: 'sine', lead: 'sine', softLead: true, vibrato: 3 },
+    mirrormaze:   { kind: 'modern', sig: 'stab', bpm: 112, root: 233.08, scale: [0, 2, 4, 6, 7, 9, 11], prog: [0, 6, 4, 1, 0, 2, 5, 3], cutoff: 2900, kit: 'techno', groove: 'banger', pad: 'sawtooth', bass: 'sawtooth', lead: 'square', leadSuper: true, pluck: true, detune: 10, kf0: 155, kf1: 50, prod: 'dance' },
+    typesiege:    { kind: 'modern', sig: 'toms', bpm: 138, root: 98, scale: [0, 1, 3, 5, 7, 8, 10], prog: [0, 5, 1, 6, 0, 4, 2, 7], cutoff: 1450, kit: 'tactical', groove: 'banger', pad: 'triangle', bass: 'square', lead: 'sawtooth', pluck: true, swing: 0.04, kf0: 105, kf1: 40, prod: 'dance' },
+    duskrunner:   { kind: 'modern', sig: 'arp', bpm: 132, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 7, 3, 5, 0, 6, 2, 4], cutoff: 2400, kit: 'electronic', groove: 'rave', pad: 'triangle', bass: 'square', lead: 'square', pluck: true, detune: 4, kf0: 145, kf1: 47, prod: 'dance' },
+    tuberacer:    { kind: 'modern', sig: 'stab', bpm: 148, root: 116.54, scale: [0, 1, 4, 5, 7, 8, 10], prog: [0, 7, 5, 2, 0, 1, 6, 3], cutoff: 2600, kit: 'tactical', groove: 'trance', pad: 'sawtooth', bass: 'square', lead: 'sawtooth', leadSuper: true, detune: 12, riser: true, kf0: 128, kf1: 44, prod: 'dance' },
+    meadow:       { kind: 'modern', sig: 'octave', bpm: 90, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 5, 0, 2, 4, 5], cutoff: 2400, kit: 'soft', prod: 'lush', pad: 'triangle', bass: 'triangle', lead: 'sine', softLead: true, vibrato: 5 },
+    // Keep Defender per-biome (epic palette; each biome keeps its own key/tempo/mode for mood)
+    kd_grass:   { kind: 'modern', sig: 'bell', bpm: 96, root: 146.83, scale: [0, 2, 4, 7, 9, 12], prog: [0, 4, 3, 4, 0, 2, 4, 3], cutoff: 2500, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'square', pluck: true, choir: true },
+    kd_ice:     { kind: 'modern', sig: 'glass', bpm: 76, root: 130.81, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 5, 3, 4, 0, 3, 5, 4], cutoff: 3200, kit: 'epic', prod: 'epic', pad: 'sine', bass: 'sine', lead: 'sine', choir: true },
+    kd_lava:    { kind: 'modern', sig: 'roll', bpm: 118, root: 98, scale: [0, 2, 3, 5, 7, 8, 11], prog: [0, 0, 5, 0, 3, 4, 5, 0], cutoff: 1500, kit: 'epic', prod: 'epic', pad: 'sawtooth', bass: 'sawtooth', lead: 'square', pluck: true, choir: true },
+    kd_desert:  { kind: 'modern', sig: 'shaker', bpm: 100, root: 123.47, scale: [0, 1, 3, 5, 7, 8, 10], prog: [0, 3, 1, 4, 0, 5, 3, 1], cutoff: 2000, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'sawtooth', pluck: true, choir: true },
+    kd_dungeon: { kind: 'modern', sig: 'sub', bpm: 72, root: 82.41, scale: [0, 2, 3, 5, 7, 8, 10], prog: [0, 3, 4, 0, 5, 3, 4, 0], cutoff: 1400, kit: 'epic', prod: 'epic', pad: 'sine', bass: 'sine', lead: 'square', pluck: true, choir: true },
+    kd_marsh:   { kind: 'modern', sig: 'harp', bpm: 65, root: 92.5, scale: [0, 2, 3, 5, 7, 9, 10], prog: [0, 5, 2, 6, 3, 1, 4, 2], cutoff: 1150, kit: 'epic', prod: 'epic', pad: 'triangle', bass: 'triangle', lead: 'triangle', pluck: true, choir: true },
+  };
+  // Back-compat: old theme names games still pass → the game's track.
+  function pres2(lo) { var p = (musInt - lo) / 0.12; return p < 0 ? 0 : (p > 1 ? 1 : p); }   // eased layer fade-in around a threshold
+
+  function mvoice2(o) { if (o.out === undefined) o.out = musicGain; synthVoice(o); }
+  function mnoise2(o) { if (o.out === undefined) o.out = musicGain; synthNoise(o); }
+  function mSuper2(o) {
+    if (!ac || o.f == null) return;
+    try {
+      var t = o.t != null ? o.t : ac.currentTime, dur = o.dur || 0.4;
+      var g = ac.createGain(), peak = o.gain != null ? o.gain : 0.06, a = o.attack != null ? o.attack : 0.02;
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + a);
+      g.gain.setValueAtTime(Math.max(0.0002, peak), t + Math.max(a, dur * 0.55)); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      var node = g;
+      if (o.filter) { var bq = ac.createBiquadFilter(); bq.type = o.filter; bq.frequency.setValueAtTime(o.cutoff || 2000, t); if (o.cutoffTo) bq.frequency.exponentialRampToValueAtTime(Math.max(60, o.cutoffTo), t + dur); if (o.q) bq.Q.value = o.q; g.connect(bq); node = bq; }
+      var n = o.voices || 5, spread = o.spread || 14;
+      for (var i = 0; i < n; i++) { var osc = ac.createOscillator(); osc.type = o.type || 'sawtooth'; osc.frequency.value = o.f; osc.detune.value = (i - (n - 1) / 2) * spread; osc.connect(g); osc.start(t); osc.stop(t + dur + 0.05); }
+      var out = o.out || musicGain, tail = node;
+      if (o.pan != null && ac.createStereoPanner) { var pn = ac.createStereoPanner(); pn.pan.value = o.pan; node.connect(pn); tail = pn; }
+      tail.connect(out);
+      if (o.reverb && musicVerb) { var s = ac.createGain(); s.gain.value = o.reverb; tail.connect(s); s.connect(musicVerb); }
+      if (o.delay && musicDelayIn) { var d = ac.createGain(); d.gain.value = o.delay; tail.connect(d); d.connect(musicDelayIn); }
+    } catch (e) {}
+  }
+  function mKick2(o) {
+    if (!ac) return; var t = o.t, dur = o.dur || 0.16;
+    try {
+      var osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(o.f0 || 150, t); osc.frequency.exponentialRampToValueAtTime(o.f1 || 46, t + dur * 0.72);
+      var g = ac.createGain(); g.gain.setValueAtTime(o.gain || 0.5, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.connect(g); g.connect(musicDrum); osc.start(t); osc.stop(t + dur + 0.02);
+      if (o.click !== 0) mnoise2({ t: t, dur: 0.01, gain: (o.gain || 0.5) * (o.click || 0.12), filter: 'highpass', cutoff: 1500, out: musicDrum });
+    } catch (e) {}
+  }
+  function mSnare2(t, gain) { mvoice2({ f: 180, dur: 0.1, type: 'triangle', gain: gain || 0.08, out: musicDrum, t: t }); mnoise2({ t: t, dur: 0.15, gain: gain || 0.08, filter: 'highpass', cutoff: 1800, reverb: 0.12, out: musicDrum }); }
+  function mClap2(t, gain) { [0, 0.011, 0.022].forEach(function (dl) { mnoise2({ t: t + dl, dur: 0.08, gain: gain || 0.05, filter: 'bandpass', cutoff: 1500, q: 1.4, reverb: 0.18, out: musicDrum }); }); }
+  function mHat2(o) { mnoise2({ t: o.t, dur: o.open ? (o.dur || 0.1) : 0.026, gain: o.gain || 0.02, filter: 'highpass', cutoff: o.cut || (o.open ? 7000 : 9000), pan: o.pan || 0, out: musicDrum }); }
+  function mTom2(o) {
+    if (!ac) return; var t = o.t, dur = o.dur || 0.3;
+    try {
+      var osc = ac.createOscillator(); osc.type = 'sine'; osc.frequency.setValueAtTime(o.f0 || 180, t); osc.frequency.exponentialRampToValueAtTime(o.f1 || 100, t + dur * 0.8);
+      var g = ac.createGain(); g.gain.setValueAtTime(o.gain || 0.4, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+      osc.connect(g); g.connect(musicDrum); osc.start(t); osc.stop(t + dur + 0.02);
+      mnoise2({ t: t, dur: 0.03, gain: (o.gain || 0.4) * 0.2, filter: 'lowpass', cutoff: 400, out: musicDrum });
+    } catch (e) {}
+  }
+  function duck2(t) { if (!musicPad) return; try { musicPad.gain.cancelScheduledValues(t); musicPad.gain.setValueAtTime(0.22, t); musicPad.gain.linearRampToValueAtTime(1, t + 0.26); } catch (e) {} }
+
+  function perc2(T, pump, s, phraseEnd, tt, bar) {
+    var K = T.kit;
+    if (K === 'electronic') {
+      if (pres2(0.25) > 0.02 && (s === 0 || (pres2(0.45) > 0.02 && s === 8) || (pump && pres2(0.55) > 0.02 && s % 4 === 0))) { mKick2({ t: tt, gain: 0.44 * (s === 0 ? 1 : pres2(0.25)), f0: T.kf0 || 150, f1: T.kf1 || 48, dur: 0.13, click: 0.14 }); if (pump) duck2(tt); }
+      var hp = pres2(0.45); if (hp > 0.02) { if (s === 4 || s === 12) mClap2(tt, 0.045 * hp); if (s % 2 === 0) mHat2({ t: tt, open: false, gain: 0.018 * hp, cut: 9500, pan: 0.12 }); }
+      var hp2 = pres2(0.65); if (hp2 > 0.02) { if (s % 2 === 1) mHat2({ t: tt, open: false, gain: 0.013 * hp2, cut: 9500, pan: -0.12 }); if (s === 6 || s === 14) mHat2({ t: tt, open: true, gain: 0.018 * hp2, cut: 8200, dur: 0.07 }); }
+      if (pres2(0.85) > 0.02 && phraseEnd && s >= 12) mnoise2({ t: tt, dur: 0.06, gain: 0.03 * pres2(0.85), filter: 'highpass', cutoff: 2600 + (s - 12) * 700, out: musicDrum });
+    } else if (K === 'techno') {
+      if (pres2(0.35) > 0.02 && s % 4 === 0) { mKick2({ t: tt, gain: 0.46 * pres2(0.35), f0: T.kf0 || 160, f1: T.kf1 || 42, dur: 0.24, click: 0.07 }); if (pump) duck2(tt); }
+      var op = pres2(0.5); if (op > 0.02 && (s === 2 || s === 6 || s === 10 || s === 14)) mHat2({ t: tt, open: true, gain: 0.022 * op, cut: 6500, dur: 0.11 });
+      var cp = pres2(0.65); if (cp > 0.02 && s % 2 === 0) mHat2({ t: tt, open: false, gain: 0.012 * cp, cut: 7500, pan: (s % 4 ? 0.1 : -0.1) });
+      if (pres2(0.55) > 0.02 && s === 12) mnoise2({ t: tt, dur: 0.09, gain: 0.028 * pres2(0.55), filter: 'highpass', cutoff: 2400, reverb: 0.15, out: musicDrum });
+      if (pres2(0.8) > 0.02 && phraseEnd && s >= 8 && s % 2 === 0) mnoise2({ t: tt, dur: 0.04, gain: 0.018 * pres2(0.8), filter: 'highpass', cutoff: 3200, out: musicDrum });
+    } else if (K === 'soft') {
+      if (s % 2 === 0) mnoise2({ t: tt, dur: 0.05, gain: 0.01 + musInt * 0.016, filter: 'highpass', cutoff: 6800, pan: (s % 4 ? 0.2 : -0.2), out: musicDrum });
+      if (pres2(0.5) > 0.02 && (s === 4 || s === 12)) mvoice2({ f: 920, dur: 0.05, type: 'triangle', gain: 0.04 * pres2(0.5), out: musicDrum, t: tt });
+      if (pres2(0.8) > 0.02 && s === 0) mKick2({ t: tt, gain: 0.2 * pres2(0.8), f0: 100, f1: 58, dur: 0.18, click: 0 });
+    } else if (K === 'synthwave') {
+      if (pres2(0.3) > 0.02 && s === 0) mKick2({ t: tt, gain: 0.44, f0: T.kf0 || 120, f1: T.kf1 || 40, dur: 0.26, click: 0.07 });
+      if (pres2(0.6) > 0.02 && s === 8) mKick2({ t: tt, gain: 0.38, f0: T.kf0 || 120, f1: T.kf1 || 40, dur: 0.24, click: 0.07 });
+      if (pres2(0.45) > 0.02 && s === 8) { mSnare2(tt, 0.075 * pres2(0.45)); mnoise2({ t: tt, dur: 0.32, gain: 0.04 * pres2(0.45), filter: 'highpass', cutoff: 1400, reverb: 0.8, out: musicDrum }); }
+      if (pres2(0.6) > 0.02 && (s === 4 || s === 12)) mHat2({ t: tt, open: false, gain: 0.016 * pres2(0.6), cut: 5800 });
+      if (pres2(0.8) > 0.02 && phraseEnd && s >= 12) { for (var k = 0; k < 3; k++) mTom2({ t: tt + k * 0.06, f0: 210 - k * 30, f1: 110, dur: 0.18, gain: 0.07 }); }
+    } else if (K === 'epic') {
+      if (pres2(0.25) > 0.02 && (s === 0 || s === 8)) mTom2({ t: tt, f0: 135, f1: 72, dur: 0.38, gain: 0.34 * (s === 0 ? 1 : pres2(0.25)) });
+      if (pres2(0.5) > 0.02 && (s === 4 || s === 6 || s === 12 || s === 14)) mTom2({ t: tt, f0: 190, f1: 110, dur: 0.22, gain: 0.17 * pres2(0.5) });
+      if (pres2(0.7) > 0.02 && phraseEnd && s >= 8) mnoise2({ t: tt, dur: 0.1, gain: 0.03 * pres2(0.7), filter: 'bandpass', cutoff: 1800, q: 0.7, reverb: 0.3, out: musicDrum });
+      if (pres2(0.85) > 0.02 && phraseEnd && s >= 12) mTom2({ t: tt, f0: 240, f1: 120, dur: 0.15, gain: 0.18 * pres2(0.85) });
+    } else if (K === 'tactical') {
+      if (pres2(0.3) > 0.02 && (s === 0 || s === 8)) mKick2({ t: tt, gain: 0.4 * (s === 0 ? 1 : pres2(0.3)), f0: T.kf0 || 110, f1: T.kf1 || 44, dur: 0.16, click: 0.12 });
+      if (pres2(0.4) > 0.02 && (s === 4 || s === 12)) mSnare2(tt, 0.09 * pres2(0.4));
+      if (pres2(0.45) > 0.02 && s % 2 === 0) mHat2({ t: tt, open: false, gain: 0.014 * pres2(0.45), cut: 8500, pan: (s % 4 ? 0.1 : -0.1) });
+      if (pres2(0.65) > 0.02 && s % 2 === 1) mHat2({ t: tt, open: false, gain: 0.01 * pres2(0.65), cut: 9000 });
+      if (pres2(0.6) > 0.02 && (s === 7 || s === 11)) mnoise2({ t: tt, dur: 0.04, gain: 0.03 * pres2(0.6), filter: 'highpass', cutoff: 3200, out: musicDrum });
+      if (pres2(0.8) > 0.02 && phraseEnd && s >= 12) { for (var kk = 0; kk < 4; kk++) mnoise2({ t: tt + kk * 0.04, dur: 0.035, gain: 0.045 * pres2(0.8), filter: 'highpass', cutoff: 2400, out: musicDrum }); }
+    }
+
+    // ---- per-track HIGH-INTENSITY SIGNATURE (opt-in via T.sig) ----------------------------------
+    // The layer thresholds mean every track has ALL of its layers on once intensity peaks, so the
+    // arrangements converge exactly when the action does — two different tracks end up as "kick +
+    // hats + lead, fast". This adds ONE element that only appears up there and differs per track, so
+    // peak moments stay recognisable. Tracks without `sig` are untouched (released games unchanged).
+    if (T.sig && pres2(0.7) > 0.02) {
+      var sg = pres2(0.7), rootHz = T.root || 130.81, sc = T.scale || [0, 2, 3, 5, 7, 8, 10];
+      var deg = (T.prog && T.prog.length) ? T.prog[((bar || 0) % T.prog.length + T.prog.length) % T.prog.length] : 0;
+      var noteAt = function (n) { var sd = sc[((deg + n) % sc.length + sc.length) % sc.length]; return rootHz * Math.pow(2, sd / 12); };
+      if (T.sig === 'arp') {            // sixteenth arpeggio that only exists at full tilt
+        var ai = [0, 2, 4, 2, 5, 4, 2, 0][s % 8];
+        mvoice2({ f: noteAt(ai) * 4, dur: 0.055, type: T.lead || 'square', gain: 0.03 * sg, filter: 'lowpass', cutoff: 5200, out: musicGain, t: tt });
+      } else if (T.sig === 'stab') {    // off-beat chord stabs — precise, machine-like
+        if (s % 4 === 2) [0, 2, 4].forEach(function (n) { mvoice2({ f: noteAt(n) * 2, dur: 0.1, type: T.pad || 'sawtooth', gain: 0.026 * sg, filter: 'lowpass', cutoff: 3400, out: musicGain, t: tt }); });
+      } else if (T.sig === 'toms') {    // marching tom fill under the beat — martial
+        if (s % 4 === 3 || s === 14) mTom2({ t: tt, f0: 168 - (s % 8) * 8, f1: 92, dur: 0.2, gain: 0.13 * sg });
+      } else if (T.sig === 'swell') {   // slow filtered pad swell, no extra percussion — calm games
+        if (s === 0) mvoice2({ f: noteAt(0), dur: 1.9, type: T.pad || 'sine', gain: 0.05 * sg, attack: 0.7, filter: 'lowpass', cutoff: 1500, cutoffTo: 3000, reverb: 0.4, out: musicGain, t: tt });
+      } else if (T.sig === 'bell') {    // bright bell triad on the downbeats
+        if (s === 0 || s === 8) [0, 2, 4].forEach(function (n, i) { mvoice2({ f: noteAt(n) * 4, dur: 0.9, type: 'sine', gain: 0.024 * sg, attack: 0.004, reverb: 0.45, out: musicGain, t: tt + i * 0.02 }); });
+      } else if (T.sig === 'harp') {    // descending run through the second half of the bar
+        if (s >= 8) mvoice2({ f: noteAt(14 - s) * 2, dur: 0.14, type: 'triangle', gain: 0.02 * sg, filter: 'lowpass', cutoff: 4200, reverb: 0.3, out: musicGain, t: tt });
+      } else if (T.sig === 'glass') {   // sparse high sparkle, deliberately off the grid
+        if (s === 3 || s === 10 || s === 13) mvoice2({ f: noteAt(s % 5) * 8, dur: 0.3, type: 'sine', gain: 0.015 * sg, reverb: 0.5, out: musicGain, t: tt });
+      } else if (T.sig === 'octave') {  // the lead doubled an octave down under the downbeat
+        if (s % 8 === 0) mvoice2({ f: noteAt(0) / 2, dur: 0.4, type: T.lead || 'triangle', gain: 0.03 * sg, filter: 'lowpass', cutoff: 1400, out: musicGain, t: tt });
+      } else if (T.sig === 'ride') {    // ride-cymbal ping on the eighths
+        if (s % 2 === 0) mnoise2({ t: tt, dur: 0.22, gain: 0.012 * sg, filter: 'bandpass', cutoff: 7200, q: 1.2, reverb: 0.35, out: musicDrum });
+      } else if (T.sig === 'pulse') {   // octave-jumping sixteenth bass pulse
+        mvoice2({ f: noteAt(0) * (s % 2 ? 2 : 1), dur: 0.06, type: T.bass || 'square', gain: 0.024 * sg, filter: 'lowpass', cutoff: 900, out: musicGain, t: tt });
+      } else if (T.sig === 'taiko') {   // one huge war drum, twice a bar
+        if (s === 0 || s === 6) mTom2({ t: tt, f0: 96, f1: 52, dur: 0.42, gain: 0.2 * sg });
+      } else if (T.sig === 'shaker') {  // dry offbeat shaker, panned alternately
+        if (s % 2 === 1) mnoise2({ t: tt, dur: 0.035, gain: 0.02 * sg, filter: 'highpass', cutoff: 6200, pan: s % 4 === 1 ? 0.25 : -0.25, out: musicDrum });
+      } else if (T.sig === 'horn') {    // low brass swell answering the phrase
+        if (s === 12) [0, 4].forEach(function (n) { mvoice2({ f: noteAt(n), dur: 0.8, type: 'sawtooth', gain: 0.028 * sg, attack: 0.25, filter: 'lowpass', cutoff: 900, cutoffTo: 1600, reverb: 0.4, out: musicGain, t: tt }); });
+      } else if (T.sig === 'roll') {    // tightening snare roll into the phrase end
+        if (phraseEnd && s >= 12) { for (var rr = 0; rr < 4; rr++) mnoise2({ t: tt + rr * 0.028, dur: 0.05, gain: (0.018 + rr * 0.007) * sg, filter: 'highpass', cutoff: 2200, out: musicDrum }); }
+      } else if (T.sig === 'sub') {     // sub-bass drop at the top of the bar
+        if (s === 0) mvoice2({ f: Math.max(38, noteAt(0) / 4), dur: 0.7, type: 'sine', gain: 0.05 * sg, filter: 'lowpass', cutoff: 200, out: musicGain, t: tt });
+      }
+    }
+  }
+
+  function enhStep(T, step, tt) {
+    var I = musInt, spb = 60 / T.bpm / 4, s = step % 16, bar = Math.floor(step / 16), L = T.scale.length;
+    var chord = T.prog[bar % T.prog.length], nextChord = T.prog[(bar + 1) % T.prog.length], phraseEnd = (bar % 4 === 3);
+    var cutoff = T.cutoff * (0.55 + 0.75 * I);
+    var banger = T.groove === 'banger', rave = T.groove === 'rave', trance = T.groove === 'trance', tactical = T.groove === 'tactical';
+    var lush = T.prod === 'lush', pump = rave || trance, padOut = pump ? musicPad : musicGain;
+    var swing = (s % 2 === 1) ? spb * (T.swing || 0) * 4 : 0;
+    // pads
+    if (s === 0) {
+      var padSwell = 0.55 + 0.45 * I;   // pads swell with intensity so calm passages actually feel calmer
+      var pDur = banger ? spb * 2.5 : (tactical ? spb * 3 : spb * 16), pGain = (banger ? 0.045 : (tactical ? 0.03 : 0.026)) * padSwell, pAtk = banger ? 0.005 : (tactical ? 0.01 : 0.4);
+      var vs = [chord, chord + 2, chord + 4]; if (lush) vs.push(chord + 7);
+      vs.forEach(function (d) { var f = NT(T.root, T.scale, d); if (!f) return; mvoice2({ f: f, dur: pDur, type: T.pad, gain: pGain, attack: pAtk, filter: 'lowpass', cutoff: cutoff * (banger ? 1 : 0.75), reverb: lush ? 0.7 : (banger ? 0.16 : 0.45), out: padOut, t: tt }); });
+      var choirG = 0.033 * pres2(0.5);   // epic choir now FADES IN with intensity (was always-on → epic tracks felt static)
+      if (T.choir && choirG > 0.001) [chord, chord + 2, chord + 4].forEach(function (d, i) { var cf = NT(T.root, T.scale, d + L); if (cf) mSuper2({ f: cf, dur: spb * 10, type: 'sine', gain: choirG, voices: 3, spread: 8, attack: 0.6, filter: 'lowpass', cutoff: 2200, reverb: 0.75, pan: (i - 1) * 0.4, t: tt }); });
+      var swellG = 0.03 * pres2(0.4);    // lush swell also builds with intensity
+      if (lush && swellG > 0.001) { var wf = NT(T.root, T.scale, chord + 4 + L); if (wf) mvoice2({ f: wf, dur: spb * 14, type: 'sine', gain: swellG, attack: 2.2, filter: 'lowpass', cutoff: 3200, reverb: 0.7, delay: 0.3, t: tt }); }
+    }
+    if (banger && pres2(0.5) > 0.02 && (s === 6 || s === 14)) [chord, chord + 2, chord + 4].forEach(function (d) { var f = NT(T.root, T.scale, d + L); if (f) mvoice2({ f: f, dur: spb * 1.3, type: T.pad, gain: 0.03 * pres2(0.5), attack: 0.004, filter: 'lowpass', cutoff: cutoff, reverb: 0.12, pan: 0.1, t: tt }); });
+    // bass
+    if (banger) {
+      if (s % 2 === 0) { var hi = ((s / 2) % 2 === 1); var deg = (s === 8 ? (phraseEnd ? nextChord : chord) : chord) + (hi ? L : 0); var bbf = NT(T.root / 2, T.scale, deg); if (bbf) mvoice2({ f: bbf, dur: spb * 1.7, type: T.bass, gain: 0.15, filter: 'lowpass', cutoff: 520 + I * 540, q: 5, t: tt }); }
+    } else if (trance) {
+      if (s % 8 === 0) { var abf = NT(T.root / 2, T.scale, chord); if (abf) mvoice2({ f: abf, dur: spb * 1.2, type: T.bass, gain: 0.09, filter: 'lowpass', cutoff: 420, t: tt }); }
+      if (s % 4 !== 0) { var rbf = NT(T.root / 2, T.scale, (s >= 8 && phraseEnd) ? nextChord : chord); if (rbf) mvoice2({ f: rbf, dur: spb * 0.9, type: T.bass, gain: 0.12, filter: 'lowpass', cutoff: 480 + I * 520, q: 6, t: tt }); }
+    } else if (tactical) {
+      var bpat = [0, 0, 4, 0, 0, 3, 4, 2];
+      if (s % 2 === 0) { var bd0 = chord + bpat[(s / 2) % 8]; var pbf = NT(T.root / 2, T.scale, bd0); if (pbf) mvoice2({ f: pbf, dur: spb * 0.7, type: T.bass, gain: 0.11, filter: 'lowpass', cutoff: 460 + I * 340, q: 6, t: tt }); }
+      if (s === 0) { var laf = NT(T.root / 2, T.scale, chord); if (laf) mvoice2({ f: laf, dur: spb * 2.5, type: 'sawtooth', gain: 0.05, attack: 0.04, filter: 'lowpass', cutoff: 300, t: tt }); }
+    } else {
+      if (s % 4 === 0) { var bd = (s === 0) ? chord : (s === 8 ? (phraseEnd ? nextChord : chord + 4) : chord); var bf = NT(T.root / 2, T.scale, bd);
+        if (bf) { if (T.bassSuper) mSuper2({ f: bf, dur: spb * 3.2, type: T.bass, gain: 0.1, voices: 3, spread: 9, filter: 'lowpass', cutoff: 430 + I * 320, q: 6, out: padOut, t: tt }); else mvoice2({ f: bf, dur: spb * (T.halftime ? 3.6 : 3.2), type: T.bass, gain: 0.16, filter: 'lowpass', cutoff: 500 + I * 380, q: 4, out: padOut, t: tt }); } }
+      if (rave && pres2(0.65) > 0.02 && (s === 6 || s === 14)) { var bf2 = NT(T.root / 2, T.scale, chord); if (bf2) mvoice2({ f: bf2, dur: spb * 1.4, type: T.bass, gain: 0.09 * pres2(0.65), filter: 'lowpass', cutoff: 640, out: padOut, t: tt }); }
+    }
+    perc2(T, pump, s, phraseEnd, tt, bar);
+    // lead / arp
+    if (banger && pres2(0.45) > 0.02) {
+      var shp = [0, 2, 4, 7, 4, 2, 7, 4], baf = NT(T.root, T.scale, chord + L + shp[step % shp.length]), bg = pres2(0.45);
+      if (baf) { mvoice2({ f: baf, dur: spb * 1.1, type: T.lead, gain: 0.075 * bg, filter: 'lowpass', cutoff: cutoff + 500, reverb: 0.15, delay: 0.18, pan: (step % 2 ? 0.14 : -0.14), t: tt }); if (pres2(0.7) > 0.02) mvoice2({ f: baf * 2, dur: spb * 0.5, type: 'square', gain: 0.016 * pres2(0.7), filter: 'lowpass', cutoff: 6500, pan: 0.2, t: tt }); }
+    } else if (rave && pres2(0.5) > 0.02) {
+      var at = [chord + L, chord + 2 + L, chord + 4 + L, chord + 2 + L], af = NT(T.root, T.scale, at[step % at.length] + (pres2(0.7) > 0.5 && (step % 8 >= 4) ? L : 0)), rg = pres2(0.5);
+      if (af) { if (T.leadSuper) mSuper2({ f: af, dur: spb * 1.4, type: T.lead, gain: 0.05 * rg, voices: 5, spread: T.detune || 16, filter: 'lowpass', cutoff: cutoff, q: 3, reverb: 0.2, delay: 0.28, pan: (step % 2 ? 0.25 : -0.25), t: tt + swing }); else mvoice2({ f: af, dur: spb * 1.2, type: T.lead, gain: 0.055 * rg, filter: 'lowpass', cutoff: cutoff, reverb: 0.25, delay: 0.28, pan: (step % 2 ? 0.2 : -0.2), t: tt + swing }); }
+    } else if (trance && pres2(0.45) > 0.02) {
+      var tshp = [0, 2, 4, 7, 9, 7, 4, 2], taf = NT(T.root, T.scale, chord + L + tshp[step % tshp.length]);
+      if (taf) mSuper2({ f: taf, dur: spb * 1.6, type: T.lead, gain: 0.05 * pres2(0.45), voices: 5, spread: T.detune || 14, filter: 'lowpass', cutoff: cutoff + 300, q: 2, reverb: 0.35, delay: 0.3, pan: (step % 2 ? 0.22 : -0.22), t: tt + swing });
+    } else if (tactical && pres2(0.45) > 0.02) {
+      var mshp = [0, 3, 0, 4, 0, 3, 0, 5]; if (s % 2 === 0) { var saf = NT(T.root, T.scale, chord + L + mshp[step % mshp.length]); if (saf) mvoice2({ f: saf, dur: spb * 0.55, type: 'sawtooth', gain: 0.05 * pres2(0.45), attack: 0.003, filter: 'lowpass', cutoff: cutoff, q: 5, reverb: 0.08, pan: (step % 2 ? 0.1 : -0.1), t: tt }); }
+      if (phraseEnd && pres2(0.7) > 0.02 && s === 12) { var r1 = NT(T.root, T.scale, chord + L), r2 = NT(T.root, T.scale, chord + L + 5); if (r1 && r2) mvoice2({ f: r1, slideTo: r2, dur: spb * 3, type: 'sawtooth', gain: 0.04, filter: 'lowpass', cutoff: 1400, cutoffTo: 3400, q: 7, reverb: 0.2, t: tt }); }
+    } else if (pres2(0.45) > 0.02) {
+      if (T.pluck ? (s % 2 === 0) : (s % 4 === 0)) {
+        var tones = [chord + L, chord + 2 + L, chord + 4 + L];
+        if (s === 0 || Math.random() < 0.4) _mtMel = NEAR(_mtMel, tones); else { var stp = [-2, -1, -1, 1, 1, 2]; _mtMel += stp[(Math.random() * stp.length) | 0]; }
+        _mtMel = Math.max(L, Math.min(L * 2 + 4, _mtMel));
+        var chance = (T.pluck ? (0.4 + I * 0.5) : (0.5 + I * 0.4)) * pres2(0.45);
+        if (Math.random() < chance) {
+          var lf = NT(T.root, T.scale, _mtMel), base = T.pluck ? spb * 1.5 : spb * 4, ldur = base * (T.softLead ? 1.6 : 1), atk = T.pluck ? 0.004 : (T.softLead ? 0.12 : 0.02), lg = pres2(0.45);
+          if (T.leadSuper) mSuper2({ f: lf, dur: ldur, type: T.lead, gain: 0.06 * lg, voices: 4, spread: T.detune || 14, filter: 'lowpass', cutoff: cutoff, reverb: lush ? 0.6 : 0.4, delay: 0.18, pan: 0.1, t: tt + swing });
+          else { mvoice2({ f: lf, dur: ldur, type: T.lead, gain: 0.085 * lg, attack: atk, filter: 'lowpass', cutoff: cutoff, reverb: (lush ? 0.5 : 0.3) * 0.8, delay: 0.18, vibrato: T.vibrato || 0, vibratoDepth: 5, pan: 0.08, t: tt + swing });
+            mvoice2({ f: lf, dur: ldur, type: T.lead, gain: 0.04 * lg, detune: T.pluck ? 6 : 9, attack: atk, filter: 'lowpass', cutoff: cutoff, pan: -0.08, t: tt + swing }); }
+        }
+      }
+    }
+    if (T.riser && phraseEnd && s === 8) mvoice2({ f: 400, slideTo: 2400, dur: spb * 8, type: 'sawtooth', gain: 0.03, filter: 'lowpass', cutoff: 1000, cutoffTo: 6000, q: 4, reverb: 0.4, t: tt });
+  }
+
+  // Snake "remaster" — today's neon banger, enriched (real drums + sub + stereo + delay), intensity-gated.
+  function snakeStep(T, step, tt) {
+    var I = musInt, spb = 60 / T.bpm / 2, s = step % 8, bar = Math.floor(step / 8), L = T.scale.length;
+    var chord = T.prog[bar % T.prog.length], nextChord = T.prog[(bar + 1) % T.prog.length], phraseEnd = (bar % 4 === 3);
+    var cutoff = T.cutoff * (0.7 + 0.5 * I), tones = [chord + L, chord + 2 + L, chord + 4 + L];
+    if (s === 0) { [chord, chord + 2, chord + 4].forEach(function (d) { var f = NT(T.root, T.scale, d); if (f) mvoice2({ f: f / 2, dur: spb * 8.2, type: 'sine', gain: 0.026, attack: 0.25, filter: 'lowpass', cutoff: 1100, reverb: 0.4, t: tt }); });
+      var sf = NT(T.root / 4, T.scale, chord); if (sf) mvoice2({ f: sf, dur: spb * 8, type: 'sine', gain: 0.09, attack: 0.2, filter: 'lowpass', cutoff: 220, t: tt }); }
+    if (s === 0) mvoice2({ f: NT(T.root / 2, T.scale, chord), dur: spb * 2.4, type: 'square', gain: 0.16, filter: 'lowpass', cutoff: 600 + I * 320, q: 3, t: tt });
+    else if (s === 4) mvoice2({ f: NT(T.root / 2, T.scale, phraseEnd ? nextChord : chord + 4), dur: spb * 2.2, type: 'square', gain: 0.14, filter: 'lowpass', cutoff: 600 + I * 320, q: 3, t: tt });
+    else if (s === 6) mvoice2({ f: NT(T.root / 2, T.scale, chord), dur: spb * 1.2, type: 'square', gain: 0.09, filter: 'lowpass', cutoff: 560, t: tt });
+    if (pres2(0.2) > 0.02 && s % 4 === 0) mKick2({ t: tt, gain: 0.42 * pres2(0.2), f0: 150, f1: 48, dur: 0.14, click: 0.14 });
+    if (pres2(0.45) > 0.02 && (s === 2 || s === 6)) mClap2(tt, 0.038 * pres2(0.45));
+    if (pres2(0.35) > 0.02 && s % 2 === 1) mHat2({ t: tt, open: false, gain: 0.015 * pres2(0.35), cut: 9500, pan: (s % 4 === 1 ? 0.12 : -0.12) });
+    if (pres2(0.7) > 0.02 && s === 7) mHat2({ t: tt, open: true, gain: 0.018 * pres2(0.7), cut: 8000, dur: 0.07 });
+    if (pres2(0.8) > 0.02 && phraseEnd && s >= 6) mnoise2({ t: tt, dur: 0.05, gain: 0.028 * pres2(0.8), filter: 'highpass', cutoff: 3000, out: musicDrum });
+    var dens = (0.6 + (phraseEnd ? 0.18 : 0) + (s === 0 ? 0.25 : 0)) * (0.5 + 0.6 * I);
+    if (Math.random() < dens) {
+      if (s === 0 || Math.random() < 0.35) _mtMel = NEAR(_mtMel, tones); else { var steps = [-2, -1, -1, 1, 1, 2]; _mtMel += steps[(Math.random() * steps.length) | 0]; }
+      _mtMel = Math.max(L, Math.min(L * 2 + 3, _mtMel));
+      var lf = NT(T.root, T.scale, _mtMel), ldur = (Math.random() < 0.25 ? spb * 0.55 : spb * 1.35);
+      mvoice2({ f: lf, dur: ldur, type: 'square', gain: 0.1, attack: 0.006, filter: 'lowpass', cutoff: cutoff, reverb: 0.28, delay: 0.14, pan: 0.1, t: tt });
+      mvoice2({ f: lf, dur: ldur, type: 'square', gain: 0.045, detune: 9, attack: 0.006, filter: 'lowpass', cutoff: cutoff, pan: -0.1, t: tt });
+      if (I >= 0.75) mvoice2({ f: lf * 2, dur: ldur * 0.8, type: 'square', gain: 0.02, attack: 0.006, filter: 'lowpass', cutoff: 6000, pan: 0.25, t: tt });
+    }
+  }
+
+
+  // ---- which engine plays, per game -------------------------------------------------------------
+  // Games keep calling music.play('tuberacer'); the KIT decides whether that means the v2 or v3 voice,
+  // from the player's pick in the Collection shop. Both registries use the same track ids, so a biome
+  // swap (kd_ice) or an alias (castle) resolves the same either way, and no game needed editing.
+  var curEngine = 3;
+  // Cosmetic set ids follow the GAME SLUG (like tower-defense.castle), while a track's `game` field
+  // is the registry family. These are the ones where the two differ.
+  var FAM_SLUG = {
+    asteroidsplus: 'asteroids-plus', range: 'aim-trainer', frogbonk: 'frog-bonk',
+    keep: 'tower-defense', trapthecat: 'trap-the-cat', glowsays: 'glow-says',
+    balloonpop: 'balloon-pop', crittermatch: 'critter-match', mirrormaze: 'mirror-maze',
+    typesiege: 'type-siege', duskrunner: 'dusk-runner', tuberacer: 'tube-racer', meadow: 'flappy',
+  };
+  function trackFamily(id) {
+    var T = TRACKS[id] || TRACKS[ALIAS[id]], fam = (T && T.game) || id;
+    return FAM_SLUG[fam] || fam;
+  }
+  function pickedItem(id) {
+    try {
+      if (!cosmetics || !cosmetics.selected) return null;
+      var set = trackFamily(id) + '.track', sel = cosmetics.selected(set);
+      if (!sel) return null;
+      var list = (typeof window !== 'undefined' && window.COSMETICS) || null;
+      if (!list) return null;
+      var all = [];
+      if (Array.isArray(list)) all = list;
+      else for (var k in list) if (Array.isArray(list[k])) all = all.concat(list[k]);
+      for (var i = 0; i < all.length; i++) if (all[i] && all[i].id === sel) return all[i];
+    } catch (e) {}
+    return null;
+  }
+  // v2 predates the master bus, so a v2 track has to bypass it or it is not the same sound.
+  function v2Signal(on) {
+    if (!ac) return;
+    try {
+      if (musicGlue) { musicGlue.threshold.value = on ? 0 : -18; musicGlue.ratio.value = on ? 1 : 3; musicGlue.knee.value = on ? 0 : 8; }
+      if (musicSat) musicSat.curve = satCurve(on ? 0.0001 : 1.7);
+      if (musicLimit) { musicLimit.threshold.value = on ? 0 : -1.5; musicLimit.ratio.value = on ? 1 : 20; }
+      if (musicSum) musicSum.gain.value = on ? 1 : 0.92;
+      if (musicDrum) musicDrum.gain.value = on ? 0.5 : 0.62;     // v2 sat drums lower
+      if (musicPad) musicPad.gain.value = 1;
+      if (musicBass) musicBass.gain.value = on ? 1 : 0.95;
+      if (musicVoice) musicVoice.gain.value = on ? 1 : 0.86;
+      if (musicFx) musicFx.gain.value = on ? 1 : 0.72;
+    } catch (e) {}
+  }
+  function resolveTrack(key) {
+    var item = pickedItem(key);
+    var id = (item && item.track) || key;
+    curEngine = (item && item.engine === 3) ? 3 : (item ? 2 : 3);
+    if (curEngine === 2) {
+      var t2 = TRACKS2[id] || TRACKS2[ALIAS[id]];
+      if (t2) return t2;
+      curEngine = 3;                                    // no v2 counterpart → fall back, never silence
+    }
+    return TRACKS[id] || TRACKS[ALIAS[id]] || null;
+  }
+
+  // ---- OFFLINE RENDER (dev tool: the YouTube soundtrack playlist) --------------------------------
+  // Renders ONE full pass of a track's arrangement into an AudioBuffer, faster than real time.
+  // The live scheduler is wall-clock driven (setInterval), so it can't drive an OfflineAudioContext —
+  // instead this schedules every step up front against the offline timeline, which is possible only
+  // because v3Step and every voice take an explicit `t`. It borrows the module globals (there is one
+  // graph, by design), so it stops live playback first and restores everything afterwards.
+  // Intensity follows each SECTION's own energy, so filters open in the loud parts and close in the
+  // quiet ones — the render sounds like the arrangement intends rather than one fixed setting.
+  function renderTrack(key, opts) {
+    opts = opts || {};
+    var T = resolveTrack(key);
+    if (!T) return Promise.reject(new Error('unknown track: ' + key));
+    var OAC = (typeof OfflineAudioContext !== 'undefined' && OfflineAudioContext) ||
+              (typeof window !== 'undefined' && window.webkitOfflineAudioContext);
+    if (!OAC) return Promise.reject(new Error('no OfflineAudioContext'));
+
+    var sr = opts.sampleRate || 44100, tail = opts.tail == null ? 3.5 : opts.tail;
+    var arr = resolveArr(T), bars = 0, i;
+    for (i = 0; i < arr.length; i++) bars += arr[i].bars;
+    var spb = 60 / T.bpm / 4, steps = bars * 16, dur = steps * spb + tail;
+
+    var keep = {
+      ac: ac, master: master, verbNode: verbNode, verbWet: verbWet, musicGain: musicGain,
+      musicVerb: musicVerb, musicVerbWet: musicVerbWet, musicDrum: musicDrum, musicPad: musicPad,
+      musicBass: musicBass, musicVoice: musicVoice, musicFx: musicFx, musicSum: musicSum,
+      musicGlue: musicGlue, musicSat: musicSat, musicLimit: musicLimit, musicDelayIn: musicDelayIn,
+      an: _an, curTrack: curTrack, curKey: curKey, secList: secList, curSecIdx: curSecIdx,
+      secBar: secBar, secPass: secPass, pendingSec: pendingSec, justSwitched: justSwitched,
+      curMotif: curMotif, musInt: musInt, musIntTarget: musIntTarget, ADAPT: ADAPT, srcNow: srcNow,
+    };
+    function restore() {
+      ac = keep.ac; master = keep.master; verbNode = keep.verbNode; verbWet = keep.verbWet;
+      musicGain = keep.musicGain; musicVerb = keep.musicVerb; musicVerbWet = keep.musicVerbWet;
+      musicDrum = keep.musicDrum; musicPad = keep.musicPad; musicBass = keep.musicBass;
+      musicVoice = keep.musicVoice; musicFx = keep.musicFx; musicSum = keep.musicSum;
+      musicGlue = keep.musicGlue; musicSat = keep.musicSat; musicLimit = keep.musicLimit;
+      musicDelayIn = keep.musicDelayIn; _an = keep.an;
+      curTrack = keep.curTrack; curKey = keep.curKey; secList = keep.secList; curSecIdx = keep.curSecIdx;
+      secBar = keep.secBar; secPass = keep.secPass; pendingSec = keep.pendingSec;
+      justSwitched = keep.justSwitched; curMotif = keep.curMotif;
+      musInt = keep.musInt; musIntTarget = keep.musIntTarget; ADAPT = keep.ADAPT; srcNow = keep.srcNow;
+    }
+
+    if (_mt) { try { clearInterval(_mt); } catch (e) {} _mt = null; }   // stop live playback
+    try {
+      _an = null;
+      buildAudioGraph(new OAC(2, Math.ceil(dur * sr), sr));
+      musicGain.gain.value = 1;                 // render at full level, whatever mute/volume say
+      ADAPT = false;                            // the authored timeline, start to finish, once
+      curTrack = T; curKey = key; curMotif = makeMotif(T.seed); secList = arr;
+      curSecIdx = 0; secBar = 0; secPass = 0; pendingSec = null; justSwitched = false; srcNow = {};
+
+      // bar -> that section's energy, so intensity can track the form
+      var eAt = [], b0 = 0;
+      for (i = 0; i < arr.length; i++) { for (var b = 0; b < arr[i].bars; b++) eAt[b0 + b] = arr[i].e; b0 += arr[i].bars; }
+      musInt = musIntTarget = eAt[0];
+
+      for (var s = 0; s < steps; s++) {
+        musIntTarget = eAt[Math.floor(s / 16)];
+        musInt += (musIntTarget - musInt) * 0.06;
+        v3Step(T, s, s * spb);
+      }
+      var out = ac;
+      return out.startRendering().then(function (buf) { restore(); return buf; },
+                                      function (e) { restore(); throw e; });
+    } catch (e) { restore(); return Promise.reject(e); }
+  }
   // Start the scheduler — only once the context exists AND is running (the gesture unlock owns creation).
   function startScheduler() {
     if (_mt || !curTrack) return;
@@ -794,16 +1194,29 @@
       if (!ac || !curTrack) return;
       if (ac.state !== 'running') { _mtNext = ac.currentTime + 0.06; return; }
       musInt += (musIntTarget - musInt) * 0.06;   // ease intensity toward the game's target
-      var T = curTrack, spb = 60 / T.bpm / 4, guard = 0;
-      while (_mtNext < ac.currentTime + 0.14 && guard++ < 64) { v3Step(T, _mtStep, _mtNext); _mtStep++; _mtNext += spb; }
+      var T = curTrack, guard = 0;
+      // v2 kept an 8-step grid for its `remaster` kind and 16 for the rest; v3 is always 16ths.
+      var eight = (curEngine === 2 && T.kind === 'remaster');
+      var spb = 60 / T.bpm / (eight ? 2 : 4);
+      while (_mtNext < ac.currentTime + 0.14 && guard++ < 64) {
+        if (curEngine === 2) { if (eight) snakeStep(T, _mtStep, _mtNext); else enhStep(T, _mtStep, _mtNext); }
+        else v3Step(T, _mtStep, _mtNext);
+        _mtStep++; _mtNext += spb;
+      }
     }, 25);
   }
   function _startTrack(T, key, atSection) {
     curTrack = T; curKey = key; _mtStep = 0; _mtMel = T.scale.length + 3;
-    curMotif = makeMotif(T.seed);
-    secList = resolveArr(T);
-    curSecIdx = atSection != null ? atSection : (ADAPT ? sectionForIntensity() : 0);
-    secBar = 0; secPass = 0; pendingSec = null; justSwitched = false; srcNow = {};
+    v2Signal(curEngine === 2);
+    if (curEngine === 3) {
+      curMotif = makeMotif(T.seed);
+      secList = resolveArr(T);
+      curSecIdx = atSection != null ? atSection : (ADAPT ? sectionForIntensity() : 0);
+      secBar = 0; secPass = 0; pendingSec = null; justSwitched = false;
+    } else {
+      secList = []; curSecIdx = 0; secBar = 0; secPass = 0; pendingSec = null; justSwitched = false;
+    }
+    srcNow = {};
     startScheduler();
   }
   function musicPlay(key) { var T = resolveTrack(key); if (!T) return; _prev = false; _startTrack(T, key); }
@@ -853,11 +1266,13 @@
     state: function () {
       var n = 0; for (var k in srcNow) if (srcNow[k]) n++;
       return { key: curKey, adaptive: ADAPT, intensity: musInt, playing: !!curTrack,
-               section: lastSec ? lastSec.n : null, sectionIdx: curSecIdx, bar: lastBar,
+               engine: curEngine,
+               section: (curEngine === 2) ? 'loop' : (lastSec ? lastSec.n : null), sectionIdx: curSecIdx, bar: lastBar,
                bars: lastSec ? lastSec.bars : 0, pending: pendingSec != null ? secList[pendingSec].n : null,
                sources: n, layers: Object.keys(srcNow) };
     },
     phrase: function (v) { if (v === undefined) return PHRASE; PHRASE = Math.max(1, v | 0); return PHRASE; },
+    render: renderTrack,
     // A post-limiter tap, created only if something asks for it (the audio lab's scope). Nothing
     // downstream — an AnalyserNode is a sink — so it can't affect what you hear.
     analyser: function () {
