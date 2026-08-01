@@ -96,8 +96,8 @@ One line each; the real content is in the linked plan.
   game; best organic-reach lever. → `plans/backlog-notes.md`
 - **Discord Activity** *(idea)* — play komyo inside a voice channel; strong architectural fit. →
   `plans/backlog-notes.md`
-- **Google Play via PWA wrap** *(idea)* — TWA of the catalogue; no backend, no ads. →
-  `plans/backlog-notes.md`
+- **Google Play via PWA wrap** *(route decided — Android-only TWA, ~1 day + $25; blocked on the public
+  developer-address question)* → `plans/backlog-notes.md`
 - **Dedupe reused UI into kit components** *(refactor)* — one factory + one CSS class per widget; the
   pills already drifted twice. → `plans/backlog-notes.md`
 - **Menu backdrops render the real game engine** *(refactor — someday)* — kill the hand-written
