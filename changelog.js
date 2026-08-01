@@ -4,6 +4,11 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-08-01', title: 'Tube Racer: smoother, and easier to read 🌀', items: [
+    'Change: Tube Racer got much lighter to draw. If the tunnel stuttered or felt sluggish on your machine, it should hold a steady frame rate now.',
+    'Change: the tunnel rings used to pile into a tight knot around the far end of the pipe — right where you need to spot the next barrier. They fade out towards the centre now, so what is coming at you is the clearest thing on screen.',
+    'Fix: switching your language back to English inside a game left the Profile, Challenges and Collection buttons showing their internal labels.',
+  ] },
   { date: '2026-07-30', title: 'A second soundtrack for every game 🎵', items: [
     'New: every game now has a rebuilt soundtrack you can unlock. Instead of one short loop repeating, it follows what you are doing — opens quiet, builds as things heat up, drops into its main tune when the pressure is on, eases off when you get a breather, then climbs again. Find it under Collection → Music, 100 trophies per game, and pick it for one game without changing another.',
     'Nothing changes unless you want it to: every game still starts with the soundtrack it always had. Neon Snake\'s two tracks each got a rebuilt version too, and anything you already bought stays yours.',
