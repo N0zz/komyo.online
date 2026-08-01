@@ -24,9 +24,9 @@ completed). `plans/progress-save-api-plan.md` still references "#5" = the progre
 
 Dev and marketing run in parallel; top item first within each.
 
-- **Trailers for the originals** *(planned — top item)* — our non-clone games still have no trailer or
-  catalogue preview; run `komyo-game-trailer` per game (9:16 social cut + text-free preview loop + card
-  wiring), then drip through the 5-channel kit. Named queue in the plan. →
+- **Trailers for the originals** *(in progress — top item)* — Tube Racer done; next Frog Bonk → Type
+  Siege → Floodgate → Mirror Maze (Keep Defender undecided). One game per run: `komyo-game-trailer`
+  (9:16 social cut + text-free preview loop + card wiring), then drip through the 5-channel kit. →
   `plans/clip-release-plan.md` · `plans/trailer-preview-plan.md`
 - **Persistent-game lifecycle** *(planned — dev)* — timestamp-based offline accrual +
   no-wipe-on-loss on top of `gamekit.progress`; gates every saved-state game. →
@@ -49,14 +49,13 @@ Dev and marketing run in parallel; top item first within each.
   `plans/games-queue.md`
 - **Type Siege — math mode** *(idea)* — enemies carry sums instead of words; the only Type Siege
   content that needs no translation. A MODE, never a second game. → `plans/backlog-notes.md`
-- **i18n leftovers** *(open)* — native QA pass + mobile QA across languages × orientations. →
-  `plans/i18n-plan.md`
 - **Sitemap: add the static pages** *(open)* — `tos.html` / `privacy.html`; cross-check `llms.txt` +
   `robots.txt`. → `plans/backlog-notes.md`
 - **Discord Activity polish** *(open)* — fix the proxied-feedback "network error", verify webhook + GA4
   in-Activity. → `plans/backlog-notes.md`
-- **In-run new-best pulse: all 18 viable games wired** *(open — awaiting local review + push)* — 4 games
-  deliberately have no live bar (reasons in the note). → `plans/backlog-notes.md`
+- **Precache payload before 100 games** *(idea — gates the 100-game catalogue)* — three ranked fixes:
+  stop refetching the deploy-invariant shell on every push, drop `icon-512` from the SHELL, count-gate
+  the trailer prefetch. → `plans/backlog-notes.md`
 - **Review local Claude memories about komyo** *(open)* — prune stale entries so future sessions don't
   act on outdated context.
 
@@ -129,6 +128,9 @@ Small or unscheduled; each is one line, detail in `plans/backlog-notes.md` unles
   for a live duel lobby.
 - **Cloud-sync the Export blob** *(idea)* — opt-in OAuth to the player's own Drive/Dropbox; no komyo
   backend.
+- **Web push for releases** *(deferred — revisit at ~100 PWA installs or ~300 new users/mo)* — SW +
+  send-trigger already exist; needs komyo's first backend (Cloudflare Worker + KV) for subscription
+  storage. Deferred on proportionality, not privacy. → `plans/backlog-notes.md`
 - **Percentiles from GA4** *(idea — check volume first)* — "you beat 78% of runs" from a daily Action →
   static JSON; needs a `score_bucket` dimension. The no-backend, cheat-tolerant answer to rankings. →
   `plans/backlog-notes.md`
@@ -142,6 +144,9 @@ Small or unscheduled; each is one line, detail in `plans/backlog-notes.md` unles
 Full reasoning in [`plans/backlog-notes.md`](plans/backlog-notes.md) § Evaluated and closed, and in the
 archive's decision guards.
 
+- **i18n QA sweeps (native review + per-language mobile pass)** — parked 2026-07-31: all 8 locales are
+  live and coverage is suite-enforced, so a systematic pass across 8 languages × orientations costs real
+  hours to confirm what already works. Fix on report instead. → `plans/i18n-plan.md`
 - **Game portals (itch.io, Newgrounds, GameJolt…)** — tried, ~0 traffic; our recognizable clones can't
   win generic-tag browse. Site-only; revisit as cheap backlinks only if originals earn a landing page.
 - **Ad portals (Poki / CrazyGames / GameDistribution)** — their SDK + ads collide with the identity.
