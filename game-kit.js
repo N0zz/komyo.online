@@ -4249,8 +4249,10 @@
       // on the home page; game pages re-label here)
       if (opts.game) onLang(function () {
         try {
-          var els = { 'cat.profileBtn': 'profileQuick', 'cat.challengesBtn': 'chalBtn', 'cat.collectionBtn': 'collectionQuick' };
-          for (var k in els) { var b = document.getElementById(els[k]); if (b && b.querySelector) { var l = b.querySelector('.lbl'); if (l) l.textContent = t(k); } }
+          // the def: matters — these three keys live ONLY as inline defs (not in the en dict),
+          // so a def-less t() renders the raw key when switching back to English
+          var els = { 'cat.profileBtn': ['profileQuick', 'Profile'], 'cat.challengesBtn': ['chalBtn', 'CHALLENGES'], 'cat.collectionBtn': ['collectionQuick', 'Collection'] };
+          for (var k in els) { var b = document.getElementById(els[k][0]); if (b && b.querySelector) { var l = b.querySelector('.lbl'); if (l) l.textContent = t(k, { def: els[k][1] }); } }
         } catch (e) {}
       });
     })();
