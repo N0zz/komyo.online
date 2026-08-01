@@ -329,6 +329,8 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
   const OFF_N = 58, OFF_H = ZFAR / OFF_N;   // ~1.8 units per slice — bends stay smooth at any ZFAR
   const offX = new Float64Array(OFF_N + 1), offY = new Float64Array(OFF_N + 1);
+  // seam slices, solved once per frame and shared by all 16 seams (see paintTube)
+  const seamR = new Float64Array(13), seamX = new Float64Array(13), seamY = new Float64Array(13);
 
   // ---- state ----------------------------------------------------------------------
   let W = 0, H = 0, topMargin = 48;
@@ -813,6 +815,48 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
 
   // ==================================================================================
+  // Baked full-screen layers. The background wash and the vignette are both a radial gradient
+  // painted over every pixel, and their cost scales with PIXELS, not with objects — on a 2× DPR
+  // display the two of them were ~90% of the frame. Both are now baked into a bitmap once and
+  // blitted, which trades per-pixel gradient math for a blend pass. The background's opaque
+  // pre-fill went with it: the gradient's outer stop is opaque, so it was painting over itself.
+  // LAY_PAD is the slack the per-frame screen-shake offset slides the blit within; caches are
+  // per-CONTEXT (WeakMap) because the menu backdrop paints the same tunnel into the kit's own
+  // canvas at its own size, and the two would otherwise evict each other every frame.
+  const LAY_PAD = 48;
+  const bgCache = new WeakMap(), vigCache = new WeakMap();
+  // draw(c, cx, cy, w, h) paints the layer; cx/cy are the tube centre in LAYER space
+  function layer(cache, g, key, draw) {
+    let e = cache.get(g);
+    // a centre that moved further than the shake slack means a real layout change, not a jitter
+    if (e && e.key === key && Math.abs(bcx - e.cx) <= LAY_PAD && Math.abs(bcy - e.cy) <= LAY_PAD) return e;
+    if (typeof document === 'undefined' || !document.createElement) return null;
+    const can = document.createElement('canvas');
+    const w = Math.max(1, Math.ceil(W) + LAY_PAD * 2), h = Math.max(1, Math.ceil(H) + LAY_PAD * 2);
+    can.width = w; can.height = h;
+    const c = can.getContext ? can.getContext('2d') : null;
+    if (!c || !c.createRadialGradient) return null;                        // headless / no 2d ctx
+    draw(c, bcx + LAY_PAD, bcy + LAY_PAD, w, h);
+    e = { key, can, cx: bcx, cy: bcy };
+    cache.set(g, e);
+    return e;
+  }
+  function blit(g, e, alpha) {
+    if (alpha != null) g.globalAlpha = alpha;
+    g.drawImage(e.can, Math.round(bcx - e.cx) - LAY_PAD, Math.round(bcy - e.cy) - LAY_PAD);
+    if (alpha != null) g.globalAlpha = 1;
+  }
+  function paintBg(g) {
+    const TB = tube();
+    const e = layer(bgCache, g, W + 'x' + H + '|' + TB.bg[0] + TB.bg[1], (c, cx, cy, w, h) => {
+      const bg = c.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * 0.7);
+      bg.addColorStop(0, TB.bg[0]); bg.addColorStop(0.5, TB.bg[1]); bg.addColorStop(1, '#02040a');
+      c.fillStyle = bg; c.fillRect(0, 0, w, h);
+    });
+    if (!e) { g.fillStyle = TB.bg[1]; g.fillRect(0, 0, W, H); return; }
+    blit(g, e);
+  }
+
   // The tunnel painter. The VIEW it draws into is module state (W/H + bcx/bcy/bHalf/focal),
   // refreshed by whoever is about to paint — render() from the live layout, the menu backdrop
   // from the kit's own canvas. That is why the backdrop can be the real thing instead of a
@@ -820,10 +864,7 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   function paintTube(g, feats, dRender, saFn, machF) {
     const TB = tube();
     buildOffsets(dRender);
-    g.fillStyle = '#03050c'; g.fillRect(0, 0, W, H);
-    const bg = g.createRadialGradient(bcx, bcy, 0, bcx, bcy, Math.max(W, H) * 0.7);
-    bg.addColorStop(0, TB.bg[0]); bg.addColorStop(0.5, TB.bg[1]); bg.addColorStop(1, '#02040a');
-    g.fillStyle = bg; g.fillRect(0, 0, W, H);
+    paintBg(g);
 
     // ---- rings: world-anchored with distance LOD (even on-screen spacing, no popping
     // gap at the near edge, far field left clean enough to spot an obstacle in)
@@ -833,7 +874,11 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       const lod = z < 7 ? 1 : z < 18 ? 2 : z < 40 ? 4 : 8;
       if (k % lod) continue;
       const r = rad(z), t = 1 - z / ZFAR, lit = (k % 8 === 0);
-      const a = Math.pow(t, 1.2) * (lit ? 0.6 : 0.24) * clamp((r - 30) / 45, 0, 1);
+      // Fade a ring out by its ON-SCREEN radius, not its distance: perspective packs the far half
+      // of the tube into a small disc around the vanishing point, and thirty concentric circles
+      // inside 100px read as moiré, not as depth — right where the next hazard has to be read.
+      // The threshold is a fraction of the board so it behaves the same at every resolution.
+      const a = Math.pow(t, 1.2) * (lit ? 0.6 : 0.24) * clamp((r - bHalf * 0.14) / (bHalf * 0.22), 0, 1);
       if (a < 0.012) continue;
       const [rx, ry] = ctr(z, r);
       g.lineWidth = lit ? 2 : 1;
@@ -849,15 +894,31 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
 
     // ---- seams: polylines (a straight line can't show a bend) + one accent seam that
     // makes absolute roll orientation readable
+    // Every seam walks the SAME slices, so the slice geometry is solved once for all 16 instead of
+    // 16 times over, and the 15 plain seams go into ONE path — same pixels, one submission.
     const SEG = 12;
-    for (let i = 0; i < 16; i++) {
-      const a = saFn(i * TAU / 16), c = Math.cos(a), s = Math.sin(a), key = (i === 0);
-      g.strokeStyle = key ? rgba(TB.seam, 0.55) : rgba(TB.ring, 0.2);
-      g.lineWidth = key ? 2.5 : 1;
+    for (let j = 0; j <= SEG; j++) {
+      const z = PZ * Math.pow(ZFAR / PZ, j / SEG), r = rad(z), [px, py] = ctr(z, r);
+      seamR[j] = r; seamX[j] = px; seamY[j] = py;
+    }
+    g.strokeStyle = rgba(TB.ring, 0.2); g.lineWidth = 1;
+    g.beginPath();
+    for (let i = 1; i < 16; i++) {
+      const a = saFn(i * TAU / 16), c = Math.cos(a), s = Math.sin(a);
+      for (let j = 0; j <= SEG; j++) {
+        const X = seamX[j] + c * seamR[j], Y = seamY[j] + s * seamR[j];
+        if (j) g.lineTo(X, Y); else g.moveTo(X, Y);
+      }
+    }
+    g.stroke();
+    // the accent seam keeps its own stroke — it's brighter and thicker, and it's the only thing
+    // that makes absolute roll orientation readable
+    {
+      const a = saFn(0), c = Math.cos(a), s = Math.sin(a);
+      g.strokeStyle = rgba(TB.seam, 0.55); g.lineWidth = 2.5;
       g.beginPath();
       for (let j = 0; j <= SEG; j++) {
-        const z = PZ * Math.pow(ZFAR / PZ, j / SEG), r = rad(z), [px, py] = ctr(z, r);
-        const X = px + c * r, Y = py + s * r;
+        const X = seamX[j] + c * seamR[j], Y = seamY[j] + s * seamR[j];
         if (j) g.lineTo(X, Y); else g.moveTo(X, Y);
       }
       g.stroke();
@@ -906,10 +967,12 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       g.strokeStyle = pal('fricHatch', 0.18 + Math.pow(1 - zn / ZFAR, 2) * 0.52);
       g.lineWidth = 1.6;
       const rn = rad(zn), rf = rad(zf), [nx, ny] = ctr(zn, rn), [fx2, fy2] = ctr(zf, rf);
-      for (let i = 0; i < 24; i++) {
+      g.beginPath();
+      for (let i = 0; i < 24; i++) {   // one path, 24 hatch lines — they all share the style
         const a = saFn(i * TAU / 24 + (f.z * 0.05)), c = Math.cos(a), s2 = Math.sin(a);
-        g.beginPath(); g.moveTo(fx2 + c * rf, fy2 + s2 * rf); g.lineTo(nx + c * rn, ny + s2 * rn); g.stroke();
+        g.moveTo(fx2 + c * rf, fy2 + s2 * rf); g.lineTo(nx + c * rn, ny + s2 * rn);
       }
+      g.stroke();
       // a bright rim at the leading edge, so entering one is a visible event
       g.strokeStyle = pal('fricRim', 0.28 + Math.pow(1 - zn / ZFAR, 2) * 0.58);
       g.lineWidth = 2.5;
@@ -978,12 +1041,14 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
       const n = Math.round((machF - 0.55) * 36);
       g.strokeStyle = 'rgba(220,250,255,' + clamp((machF - 0.55) * 0.35, 0, 0.4).toFixed(3) + ')';
       g.lineWidth = 1.2;
-      for (let i = 0; i < n; i++) {
+      g.beginPath();
+      for (let i = 0; i < n; i++) {   // up to ~30 streaks, one path — identical style, no per-line submit
         const a = Math.random() * TAU, c = Math.cos(a), s = Math.sin(a);
         const z0 = PZ + Math.random() * 7, z1 = Math.max(PZ, z0 * 0.45);
         const r0 = rad(z0), r1 = rad(z1), [x0, y0] = ctr(z0, r0), [x1, y1] = ctr(z1, r1);
-        g.beginPath(); g.moveTo(x0 + c * r0, y0 + s * r0); g.lineTo(x1 + c * r1, y1 + s * r1); g.stroke();
+        g.moveTo(x0 + c * r0, y0 + s * r0); g.lineTo(x1 + c * r1, y1 + s * r1);
       }
+      g.stroke();
     }
   }
 
@@ -1119,9 +1184,15 @@ if (location.protocol !== "file:") { var m = document.createElement("link"); m.r
   }
 
   function drawPost(machF) {
-    const vg = ctx.createRadialGradient(bcx, bcy, Math.min(W, H) * 0.2, bcx, bcy, Math.max(W, H) * 0.72);
-    vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,' + (0.5 + machF * 0.14).toFixed(3) + ')');
-    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    // The vignette's only per-frame variable is its overall strength, and a stop interpolated from
+    // alpha 0 to alpha A is just the 0→1 falloff scaled by A — so bake the falloff at full strength
+    // once and blit it under globalAlpha. Same pixels, no per-pixel gradient evaluation per frame.
+    const vig = layer(vigCache, ctx, 'vig|' + W + 'x' + H, (c, cx, cy, w, h) => {
+      const vg = c.createRadialGradient(cx, cy, Math.min(W, H) * 0.2, cx, cy, Math.max(W, H) * 0.72);
+      vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,1)');
+      c.fillStyle = vg; c.fillRect(0, 0, w, h);
+    });
+    if (vig) blit(ctx, vig, clamp(0.5 + machF * 0.14, 0, 1));
     // the rim gauge + hull glow carry the heat story now, so the full-screen wash only shows up
     // for the last critical moment instead of being the whole warning
     if (S.alarm >= 3 && state === 'playing') {
