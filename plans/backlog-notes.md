@@ -216,10 +216,72 @@ future Floodgate, or a slowed-down Snake), hopeless for reflex games.
 Deeper hooks (channel-point EventSub, a published Twitch **Extension** panel) need an Extension
 Backend Service → parked.
 
-### Google Play via PWA wrap
+### Google Play via PWA wrap (route decided 2026-08-01, gated — Android only)
 
-Games are already PWAs; Bubblewrap / PWABuilder wraps the catalogue (or a game) as a TWA → real Play
-Store presence, no backend, no ads. Best app-store route. iOS needs a wrapper + Apple review — harder.
+Games are already PWAs; Bubblewrap / PWABuilder wraps the catalogue as a **TWA** (Trusted Web Activity
+— a shell that loads komyo.online live, fullscreen, no browser UI) → real Play Store presence, no
+backend, no ads. **Android only. iOS is out** until it pays for itself: $99/yr, no TWA equivalent, and
+guideline **4.2 (minimum functionality)** rejects repackaged websites, so it needs a Capacitor build
+with assets bundled — which means a rebuild + review for every content push. That trade is the reason
+TWA wins, see below.
+
+**Cost:** $25 one-time (Play), $0 recurring. Work: ~1 day, most of it the store listing (screenshots
+×2 form factors, 1024×500 feature graphic, description, `privacy.html`). The only new repo artifact is
+`/.well-known/assetlinks.json`.
+
+**Why TWA and not a wrapper — the deploy flow survives intact.** The shell loads the live site, so
+content updates stay `commit → batch push → Pages`, and the existing SW update policy (dot on ☰, the
+player taps Update) runs unchanged inside the app. The AAB gets rebuilt only for (1) the annual
+**target-SDK bump** — Play delists apps from new installs that fall behind the API floor, ~1 h/yr,
+(2) app name / icon / launch-URL changes, (3) an `androidbrowserhelper` security update. So ~1 resubmit
+per year vs. one per changelog entry.
+
+**Gotcha that breaks it silently:** Play App Signing re-signs the upload, so `assetlinks.json` must
+carry **both** the upload cert AND Google's signing cert SHA-256 fingerprints. One missing → the TWA
+renders a Chrome address bar instead of running fullscreen, which is exactly what "repackaged website"
+looks like to a reviewer.
+
+**Age rating — two separate fields, don't conflate them.** The IARC **content rating** (PEGI 3 /
+ESRB Everyone) is harmless; the **target-audience declaration** is what triggers Play's Families
+policy. Declare **13+** and GA4 stays. **Designed for Families** buys the Kids-tab listing (the one
+genuinely free discovery channel here) but bans non-certified analytics that touch children — you
+can't lean on a child's consent, so the cookie banner doesn't save it. Some risk Google reclassifies
+us as child-directed anyway (the footer says "kid-safe", there's a KIDS tag and 🐣 Easy picks). If we
+ever want the Kids tab: launch the TWA at `komyo.online/?app=android`, persist the flag in
+`sessionStorage`, and have `analytics.js` treat it like its localhost guard — analytics off in the app
+only, site untouched.
+
+**The real blocker is the address, not the money.** EU DSA trader status is mandatory on both stores:
+decline it and you're removed from EU storefronts; accept it and your name + email + **physical
+address** appear in "About the developer" on the public listing, indexed. Google verifies a personal
+account against ID + proof of address, so a virtual address won't pass — a personal account publishes
+the flat. A **JDG** fixes it (publish the CEIDG business address, virtual office ~50–150 PLN/mo) but
+only makes sense if one already exists: opened for this it costs ~300–500 PLN/mo in the health
+contribution alone (employment at ≥ minimum wage means no social from the JDG — confirm current rates,
+they're mid-reform), plus VAT-UE registration + a VAT-9M filing for the month Google Ireland invoices
+the $25. ~5k PLN/yr to publish a free app is not proportionate.
+
+**Open question before any work starts:** whether a new personal Play account still owes the **closed
+test with 12 opted-in testers for 14 continuous days** before production access. Google has been
+tweaking it. That answer alone decides 1 day vs ~3 weeks of calendar.
+
+**There is no clean dodge on the address — this is the whole ecosystem, not a gap in our research.**
+Google's 2023 developer-verification wave made verified contact details public for *all* accounts, not
+just paid ones; Apple matched it with EU trader status in Feb 2025. So the honest option set is: (a) a
+JDG with a virtual office, the only path to a non-home public address, because verification matches
+against documents a bare mailbox service can't produce; (b) publish the flat, which is what most devs on
+Play visibly do, and which scrapers make irreversible; (c) stay off Play. Nothing else survives contact
+with the verification form. **The fallback is NOT portals** — itch.io was already tried at ~0 views and
+portals are a decided no-op (see the guard, 2026-07-26), so "skip Play, ship to itch instead" is a
+re-pitch of something already dropped, not an alternative. Play stays parked on (a)-vs-(b) being a
+personal call, not a technical one.
+
+**Interaction with web push** (see its own note): a TWA delivers real Android tray notifications from
+the *same* SW `push` listener — Bubblewrap's `--enableNotifications` delegates the permission, so going
+native unlocks nothing technically and the Cloudflare Worker + KV is still the missing piece. What the
+listing might change is the **deferral threshold** itself (~100 installs / ~300 new users/mo): a store
+install is far lower friction than teaching someone Add to Home Screen. Store first, then re-read that
+number.
 
 ### Discord auto-post at scale (decided)
 
