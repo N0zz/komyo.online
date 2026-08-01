@@ -1,9 +1,9 @@
 # komyo i18n Implementation Plan
 
 > **Status (2026-07-11): SHIPPED 2026-07-05** — all 8 languages live (en/pl/es/pt/fr/it/cs/uk), coverage
-> test enforced; see ROADMAP ✅ Done. Shipped steps below back-ticked in a hygiene pass. Still genuinely
-> OPEN (non-gating): the native translation review + the per-language rendering/mobile QA sweeps — the
-> remaining unticked boxes.
+> test enforced; see ROADMAP ✅ Done. Shipped steps below back-ticked in a hygiene pass. The remaining
+> unticked boxes — the native translation review + the per-language rendering/mobile QA sweeps — are
+> **PARKED (2026-07-31)**: fix on report, don't run the sweep. See ROADMAP § Parked.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 

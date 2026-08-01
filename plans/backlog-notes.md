@@ -116,6 +116,38 @@ headroom past ~100 GB/mo + an escape hatch). Staging must isolate side effects: 
 disallow, **no prod GA4**, **no prod Discord webhook**, **no real Kit signups**. DNS: `staging` CNAME
 → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
 
+### Precache payload — the three fixes to land before 100 games
+
+Measured 2026-08-01 at 23 games. A first visit is **~7.2 MB / 175 requests**: ~310 KB gz blocks first
+paint (the atomic head + the five registries; +79–89 KB for a non-`en` locale), then on `load` the SW
+precaches 162 URLs (~4.7 MB) and an idle prefetch pulls all 8 card trailers (2.2 MB). Per game the SW
+costs ~45 KB gz of HTML (fetched twice — `games/<slug>/` **and** `.../index.html`, both needed so an
+offline deep-link resolves), ~117 KB of non-compressible icon PNGs, and ~4.7 KB raw per locale × 8.
+Extrapolated to a **100+ game catalogue (123 games): ~22 MB / 762 requests of precache + 12–34 MB of
+trailers**. Nothing here is urgent at 23 games — these are the three things that have to be true before
+the catalogue reaches 100 games, and each one is independently shippable whenever it gets convenient.
+
+1. **Stop re-downloading the shell on every deploy.** A `VERSION` bump opens a fresh cache and
+   refetches all of it, so the cost is per-*push*, not per-visitor: 4.7 MB today, ~22 MB at 123 games,
+   for every returning player. Most of that payload is deploy-invariant (game icons, manifests, locale
+   files). Fix in the idiom `MEDIA_CACHE` already establishes in `sw-core.js` — a second never-purged
+   cache keyed by filename, rotated by a version *in the name* — and leave only the genuinely
+   per-build files (HTML, `game-kit.*`, the registries) in the versioned cache.
+2. **Precache 192 icons, fetch 512 on demand.** `icon-512.png` is **2.14 MB of the 2.68 MB** icon
+   payload (80%; largest single file `2048/icon-512.png` at 173 KB) and exists only to satisfy the
+   install prompt. Dropping it from the SHELL cuts ~11.5 MB at 123 games; installability needs the
+   per-game `manifest.json` to *list* it, not the SW to have precached it — verify that on iOS before
+   committing.
+3. **Count-gate the trailer prefetch.** The idle loop in `index.html` walks every non-`soon` game with
+   a `preview`, so it scales linearly: 2.2 MB today, ~34 MB if all 123 games get one. It is already
+   connection-gated (`saveData` / 2g-3g). Add a cap — first screen + recently-played, ~6–8 clips — and
+   let the rest stay cache-first on the actual MORE tap, which is what already happens on a weak link.
+
+Runner-up, if it ever gets cheap: **the blocking critical path** (310 KB gz `en`, ~390 KB `pl`/`uk`)
+grows ~1.1 KB gz per game because `cosmetics.js` / `challenges.js` / `achievements.js` / the en dict
+all parse before the catalogue paints. Splitting them is a real refactor for a slow-growing cost —
+revisit only if first paint measurably regresses.
+
 ## Mascot & cards
 
 The chibi fox-girl placeholder **stays for the foreseeable future** — it's good enough and redoing it
@@ -296,6 +328,31 @@ modal's renderer out of `index.html` into the kit so both surfaces share one imp
 the same `arcade_cl_seen` key and light `#gamekitMore`. Deliberately NOT done at the time: a player deep
 in a game is the one audience we don't interrupt, and it means a second dot source on a button that
 carries the game menu. Worth it only if release notes turn out to be something players actively chase.
+
+### Web push for releases (deferred 2026-07-31 — proportionality, not privacy)
+
+Notify installed/returning players when a new game ships. Three of the four pieces already exist: the
+root-scope service worker (`sw-core.js` — needs only `push` + `notificationclick` listeners), the
+client subscribe call (~15 lines next to `gamekit.pwa()`), and the **sender trigger** —
+`.github/workflows/discord-changelog.yml` already fires on a push that edits `changelog.js`, so it can
+send via `web-push` with a VAPID private key in repo secrets. The missing piece is subscription
+storage: Pages serves static files and can't accept a POST, so it needs a Cloudflare Worker + KV
+(~40 lines, free tier, `workers.dev` subdomain — hosting and OVH DNS untouched; a custom
+`push.komyo.online` WOULD mean moving DNS to Cloudflare, which contradicts the no-Cloudflare hosting
+decision). Personal Cloudflare account, not the work one the MCP is wired to; Worker in its own repo.
+
+Why deferred, not dropped: at ~20 installs it reaches 10–15 people per release, against komyo's first
+backend, first vendor, first server-side record, and a `privacy.html` revision. **The data says
+retention isn't the bottleneck** (10.7 sessions per returning user, 12-min sessions) — acquisition is,
+so push amplifies a funnel that doesn't exist yet. **Revisit at ~100 PWA installs or ~300 new
+users/month.**
+
+Notes for when it happens: release-only, never "you haven't played in N days" (same predatory shape as
+the streaks we refused — see the archive guard). A push endpoint is an opaque URL, so it is arguably
+*less* personal data than the newsletter's email address — but some devices belong to children, which
+is a bar we don't currently have to clear at all. Sender must handle 404/410 and prune dead endpoints
+or the list rots. iOS needs a Home-Screen install (16.4+); plain-http LAN is not a secure context, so
+device testing is `chrome://inspect` USB forwarding or production.
 
 ### Ranked pick if/when we act on integrations
 

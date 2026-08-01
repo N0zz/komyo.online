@@ -109,7 +109,7 @@ The komyo originals (no clone to ride on) are the priority: each gets a trailer 
 One game per run: skill → user eyeball → `trailer: "trailer.v1.mp4"` in `games.js` → post per the
 cadence above.
 
-- [ ] Tube Racer
+- [x] Tube Racer *(2026-07-30 — trailer + card preview both live)*
 - [ ] Frog Bonk
 - [ ] Type Siege
 - [ ] Floodgate

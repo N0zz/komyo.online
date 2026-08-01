@@ -53,6 +53,12 @@ holds only open work. Nothing in this file is a task.
 
 ## ✅ Done
 
+- **In-run new-best pulse — SHIPPED (2026-07-29).** Beating your own record now lands twice: a flash +
+  "New best!" banner the instant you pass your old bar mid-run, and confetti + the `newbest` stinger on
+  the end screen. Kit-owned end half (`menu.show`, all games); the live half needs the game's own score,
+  so each of the **19 viable games** calls `gamekit.bestWatch`/`bestTick`. Four games have **no live bar
+  by design** — minesweeper, sudoku, trap-the-cat, critter-match — and time-primary modes disarm
+  themselves. Full reasoning + the don't-"fix"-these list: `plans/backlog-notes.md`.
 - **Achievements 🏅 — SHIPPED (2026-07-30).** 79 evergreen, never-rotating goals — 15 site-wide + 2–5
   per live game — paying 🏆 into the LIFETIME total (so they also climb the titles ladder). Data in
   `achievements.js`, logic kit-owned (`gamekit.achievements`), UI = the Achievements tab of the
