@@ -12,7 +12,7 @@
 //
 // esbuild is a DEV-ONLY dependency (same standing as playwright) — nothing shipped needs it.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, rmSync, copyFileSync } from 'node:fs';
-import { join, dirname, extname, relative } from 'node:path';
+import { join, dirname, extname, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -87,13 +87,20 @@ if (process.argv.includes('--serve')) {
   const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
     '.svg': 'image/svg+xml', '.png': 'image/png', '.webm': 'video/webm', '.mp4': 'video/mp4', '.txt': 'text/plain', '.xml': 'application/xml' };
   createServer((req, res) => {
-    let p = decodeURIComponent(req.url.split('?')[0]);
+    const deny = () => { res.writeHead(404); res.end('not found'); };
+    let p;
+    // a malformed escape (%ZZ) throws — unguarded it kills the request mid-flight
+    try { p = decodeURIComponent(req.url.split('?')[0]); } catch { return deny(); }
     if (p.endsWith('/')) p += 'index.html';
-    const f = join(OUT, p);
+    // Resolve, then prove the result is still inside dist-min. join() alone happily walks out:
+    // GET /../../../../etc/hosts served /etc/hosts. Localhost-only dev tooling, but any browser
+    // tab — or anything else on the machine — can reach it while it is running.
+    const f = resolve(OUT, '.' + (p.startsWith('/') ? p : '/' + p));
+    if (f !== OUT && !f.startsWith(OUT + sep)) return deny();
     try {
       const body = readFileSync(f);
       res.writeHead(200, { 'Content-Type': TYPES[extname(f)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
       res.end(body);
-    } catch { res.writeHead(404); res.end('not found'); }
-  }).listen(PORT, () => console.log(`\nserving dist-min/ on http://localhost:${PORT}/  (Ctrl-C to stop)`));
+    } catch { deny(); }
+  }).listen(PORT, '127.0.0.1', () => console.log(`\nserving dist-min/ on http://localhost:${PORT}/  (Ctrl-C to stop)`));
 }
