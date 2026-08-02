@@ -39,6 +39,16 @@ jobs:
           sed -i "s/self.VERSION = 'dev'/self.VERSION = '${SHA_SHORT}'/" sw.js
           echo "Stamped version.js + $(grep -c "self.VERSION = '${SHA_SHORT}'" sw.js) SW → ${SHA_SHORT}"
 
+      # Minify the shipped .js/.css IN PLACE. The workspace is a throwaway checkout, so this never
+      # touches the repo — the sources stay readable and the suites keep reading them as text.
+      # Runs AFTER the version stamp (so version.js and sw.js are minified with their real values)
+      # and BEFORE the offline bundle (so komyo.zip carries the same bytes the site serves).
+      # game-kit.js 504 -> 243 KB, ~17% off js+css overall, on top of the Pages gzip.
+      - name: Minify js/css
+        run: |
+          npm install --no-save --no-audit --no-fund esbuild@0.28.1
+          CI=1 node scripts/minify.mjs --in-place
+
       # Whole-site offline bundle behind Settings → "Play offline" (built AFTER the stamp so the
       # zip carries this build's version.js). Lands at komyo.zip in the site root.
       - name: Build offline bundle (komyo.zip)

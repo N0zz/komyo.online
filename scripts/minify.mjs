@@ -8,7 +8,12 @@
 // grep and the win there is small next to game-kit.js/css.
 //
 //   node scripts/minify.mjs            build dist-min/
-//   node scripts/minify.mjs --serve    build, then serve it on :8766 for Lighthouse
+//   node scripts/minify.mjs --serve     build, then serve it on :8766 for Lighthouse
+//   node scripts/minify.mjs --in-place  overwrite the files where they are — CI ONLY
+//
+// --in-place is what the Pages deploy uses: the workflow checkout is a throwaway workspace, so
+// rewriting files there ships minified output without touching the repo and without changing the
+// upload path (which would drop plans/, komyo.zip, CNAME…). NEVER run it on a working tree.
 //
 // esbuild is a DEV-ONLY dependency (same standing as playwright) — nothing shipped needs it.
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, rmSync, copyFileSync } from 'node:fs';
@@ -38,18 +43,25 @@ function walk(dir, out = []) {
   return out;
 }
 
-rmSync(OUT, { recursive: true, force: true });
+const IN_PLACE = process.argv.includes('--in-place');
+if (IN_PLACE && !process.env.CI) {
+  console.error('--in-place rewrites the files where they are. It is for the deploy workspace only.\n' +
+    'Set CI=1 if you really mean it (and expect a dirty tree).');
+  process.exit(1);
+}
+if (!IN_PLACE) rmSync(OUT, { recursive: true, force: true });
 const files = walk(ROOT);
 let rawTotal = 0, minTotal = 0;
 const savings = [];
 
 for (const src of files) {
   const rel = relative(ROOT, src);
-  const dst = join(OUT, rel);
-  mkdirSync(dirname(dst), { recursive: true });
+  const dst = IN_PLACE ? src : join(OUT, rel);
+  if (!IN_PLACE) mkdirSync(dirname(dst), { recursive: true });
   const ext = extname(src);
-  if (ext !== '.js' && ext !== '.css' && ext !== '.mjs') { copyFileSync(src, dst); continue; }
-  if (ext === '.mjs') { copyFileSync(src, dst); continue; }   // per-game test suites — not shipped
+  const copy = () => { if (!IN_PLACE) copyFileSync(src, dst); };   // in place, "copy" means leave it
+  if (ext !== '.js' && ext !== '.css' && ext !== '.mjs') { copy(); continue; }
+  if (ext === '.mjs') { copy(); continue; }   // per-game test suites — not shipped
   const code = readFileSync(src, 'utf8');
   let out;
   try {
@@ -65,8 +77,8 @@ for (const src of files) {
       charset: 'utf8',
     })).code;
   } catch (e) {
-    console.error(`  ! ${rel}: ${e.message.split('\n')[0]} — copied unminified`);
-    copyFileSync(src, dst); continue;
+    console.error(`  ! ${rel}: ${e.message.split('\n')[0]} — left unminified`);
+    copy(); continue;
   }
   writeFileSync(dst, out);
   rawTotal += code.length; minTotal += out.length;
@@ -75,7 +87,7 @@ for (const src of files) {
 
 const kb = n => (n / 1024).toFixed(0) + ' KB';
 savings.sort((a, b) => (b[1] - b[2]) - (a[1] - a[2]));
-console.log('minified into dist-min/\n');
+console.log(IN_PLACE ? 'minified IN PLACE (deploy workspace)\n' : 'minified into dist-min/\n');
 for (const [rel, a, b] of savings.slice(0, 10)) {
   console.log(`  ${rel.padEnd(24)} ${kb(a).padStart(8)} -> ${kb(b).padStart(8)}   (-${Math.round((1 - b / a) * 100)}%)`);
 }
