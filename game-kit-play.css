@@ -53,7 +53,6 @@
 .gamekit-more-lang .gk-lang-lbl { font: inherit; }
 .gamekit-more-danger { color: #ffb4b4; border-color: rgba(255, 120, 120, 0.4); }
 .gamekit-more-danger:hover { color: #fff; background: rgba(255, 90, 90, 0.25); border-color: #ff8a8a; }
-.gamekit-menu .gkm-scroll, .gamekit-menu .gkm-rail, .gamekit-challenges, .gamekit-embed-box, .gamekit-controls, .gkm-picker-list { overscroll-behavior: contain; }
 
 /* universal pause overlay */
 .gamekit-pause { position: fixed; inset: 0; z-index: 8500; display: none; align-items: center; justify-content: center;
@@ -132,44 +131,8 @@
 }
 /* hold-to-confirm: a red fill sweeps the button while held (--gk-hold set by the kit) */
 .gamekit-cf-yes.gkm-cf-hold { background-image: linear-gradient(90deg, rgba(255, 90, 90, 0.75), rgba(255, 90, 90, 0.75)) !important;
-  background-size: var(--gk-hold, 0%) 100% !important; background-repeat: no-repeat !important; touch-action: none; } /* destructive button: red focus ring, never the theme accent */
-/* parental-lock PIN pad — same theming contract as the confirm dialog */
-.gamekit-lock { position: fixed; inset: 0; z-index: 9600; display: flex; align-items: center; justify-content: center;
-  background: var(--gkm-overlay, rgba(5, 8, 13, 0.66)); }
-.gamekit-lock-box { position: relative; background: var(--gkm-bg, rgba(16, 22, 34, 0.98)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.2));
-  border-radius: var(--gkm-radius, 14px); padding: 16px 20px;
-  width: min(300px, calc(100vw - 32px)); max-height: calc(100vh - 24px); overflow: auto; text-align: center;
-  box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6));
-  color: var(--gkm-text, #eef2f8); font-family: var(--gkm-font, ui-monospace, "SFMono-Regular", Menlo, monospace); }
-.gamekit-lock-box h3 { margin: 0 0 6px; font-size: 15px; }
-/* always rendered (even empty) with a reserved height — every pad variant (enter / choose /
-   repeat) keeps its numpad at the SAME position, so rapid re-typing never mis-hits a moved key */
-.gamekit-lock-hint { margin: 0 0 4px; font-size: 11.5px; line-height: 1.4; opacity: 0.8; min-height: 32px; }
-.gamekit-lock-dots { display: flex; gap: 12px; justify-content: center; margin: 8px 0 4px; }
-.gamekit-lock-dot { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--gkm-accent, #9fe8ff); opacity: 0.45; }
-.gamekit-lock-dot.on { background: var(--gkm-accent, #9fe8ff); opacity: 1; }
-.gamekit-lock-status { min-height: 16px; font-size: 11.5px; margin: 2px 0 4px; opacity: 0.9; }
-.gamekit-lock-status.err { color: #ff8a8a; }
-.gamekit-lock-pad { display: grid; grid-template-columns: repeat(3, minmax(56px, 64px)); gap: 8px; justify-content: center; margin: 4px 0 10px; }
-.gamekit-lock-pad button { font: 600 17px/1 var(--gkm-font, ui-monospace, monospace); padding: 11px 0; border-radius: 10px; cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06); color: var(--gkm-text, #eef2f8); touch-action: manipulation; }
-.gamekit-lock-pad button:hover { border-color: var(--gkm-accent, #9fe8ff); }
-.gamekit-lock-pad button:disabled { opacity: 0.35; cursor: default; }
-.gamekit-lock-shake { animation: gk-lock-shake 0.3s; }
+  background-size: var(--gk-hold, 0%) 100% !important; background-repeat: no-repeat !important; touch-action: none; }
 @keyframes gk-lock-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-.gamekit-lock-row { display: flex; gap: 14px; justify-content: center; }
-.gamekit-lock-cancel, .gamekit-lock-forgot { font: 600 11px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 0.5px; cursor: pointer;
-  padding: 7px 10px; border: 0; background: none; color: var(--gkm-text, #eef2f8); opacity: 0.75; text-decoration: underline; }
-.gamekit-lock-cancel:hover, .gamekit-lock-forgot:hover { opacity: 1; }
-/* "Forgot PIN?" tip — a floating bubble over the pad (toggled by the link; typing dismisses it),
-   so the modal itself never grows to fit help text */
-.gamekit-lock-tip { position: absolute; left: 12px; right: 12px; bottom: 52px; z-index: 2; text-align: left;
-  background: rgba(8, 13, 22, 0.98); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px; padding: 10px 12px;
-  font-size: 11px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); }
-.gamekit-lock-tip p { margin: 0 0 8px; }
-.gamekit-lock-supportbtn { display: block; margin: 0 auto; font: 600 11px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 0.5px; cursor: pointer;
-  padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06); color: var(--gkm-text, #eef2f8); }
-.gamekit-lock-supportbtn:hover { border-color: var(--gkm-accent, #9fe8ff); }
 
 /* shared menu engine (gamekit.menu.show) — ONE structure, per-game look via --gkm-* custom props.
    A game themes these in its own CSS (e.g. `.gamekit-menu{--gkm-accent:#ff7ab6;--gkm-glow:...}`) or
@@ -670,25 +633,6 @@ body.gk-rotate-lock .gamekit-nav { z-index: 9100; }
 @keyframes gamekit-rot { 0%,100% { transform: rotate(-12deg); } 50% { transform: rotate(78deg); } }
 @media (prefers-reduced-motion: reduce) { .gamekit-rotate-ico { animation: none; }
 }
-
-/* embed modal (iframe snippet) */
-.gamekit-embed { position: fixed; inset: 0; z-index: 9100; display: flex; align-items: center; justify-content: center;
-  background: rgba(5, 8, 13, 0.7); padding: 18px; }
-.gamekit-embed-box { position: relative; width: min(520px, 100%); background: #0f1622; color: #eaf2fb;
-  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 14px; padding: 22px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
-  font: 14px/1.5 system-ui, sans-serif; }
-.gamekit-embed-box h3 { margin: 0 0 8px; font-size: 18px; }
-.gamekit-embed-box p { margin: 0 0 14px; color: #9fb2c8; }
-.gamekit-embed-sel { width: 100%; margin-bottom: 10px; padding: 9px 10px; border-radius: 9px; background: #0a121d;
-  color: #eaf2fb; border: 1px solid rgba(255, 255, 255, 0.2); font: inherit; }
-.gamekit-embed-code { width: 100%; box-sizing: border-box; resize: vertical; padding: 11px; border-radius: 9px;
-  background: #0a121d; color: #9fe8ff; border: 1px solid rgba(255, 255, 255, 0.18); font: 12px/1.5 ui-monospace, monospace; }
-.gamekit-embed-copy { margin-top: 12px; padding: 10px 16px; border-radius: 9px; cursor: pointer; font: 600 13px system-ui, sans-serif;
-  color: #06121a; background: #9fe8ff; border: none; }
-.gamekit-embed-x { position: absolute; top: -13px; right: -13px; z-index: 6; width: 32px; height: 32px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; font-size: 14px; line-height: 1;
-  color: #cdd8e8; background: rgba(18, 24, 38, 0.92); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5); }
-.gamekit-embed-x:hover { color: #fff; border-color: var(--gkm-accent, #9fe8ff); }
 
 /* bottom-left build stamp (short commit SHA from version.js) — debug aid, deliberately faint +
    non-interactive; z below every kit overlay (menu 60, modals 9000+) so it never paints over them */

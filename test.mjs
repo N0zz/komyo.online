@@ -1844,10 +1844,28 @@ function testBootPath() {
     // the one rule whose loss made games unplayable — assert it concretely, in the right half
     ok(/^\.gamekit-menu \{[^}]*position: fixed/m.test(play), 'the menu overlay rule survives in the play half');
     ok(!/^\.gamekit-menu \{/m.test(shared), '…and is not duplicated into the shared half');
-    // the catalogue's own surfaces must be styled by the SHARED half alone
-    for (const sel of ['.side-stack', '.gamekit-shoppanel', '.pf-titlebar', '.gk-act', '.gamekit-langmenu', '.gamekit-confirm', '.gk-grb']) {
-      ok(shared.includes(sel), 'shared half still styles ' + sel);
-    }
+    // DERIVE the requirement instead of listing it: every kit API the catalogue calls that renders
+    // an overlay must have that overlay's CSS in the shared half. `lock` (Settings > Set PIN) and
+    // `embedModal` both shipped to the play half — the buttons opened an unstyled overlay, which
+    // reads to a player as "the button does nothing".
+    const OVERLAY_OF = { lock: '.gamekit-lock', embedModal: '.gamekit-embed', confirm: '.gamekit-confirm',
+      langButton: '.gamekit-langmenu', shopPanel: '.gamekit-shoppanel', sideStack: '.side-stack',
+      activityLog: '.gk-act' };   // .gk-grb is an inline widget, not a fixed overlay — checked below
+    const called = new Set([...idx.matchAll(/\b(?:K|window\.gamekit|gamekit)\.([a-zA-Z]+)/g)].map(m => m[1]));
+    // Assert the LOAD-BEARING declaration, not a mention. `includes('.gamekit-lock')` also matches
+    // `.gamekit-lock-box`, and even an exact-class match is satisfied by a stray descendant
+    // selector — both stayed green with the overlay actually broken. What makes these overlays work
+    // is `position: fixed` on the root class; without it they render in normal flow, i.e. invisibly.
+    const styles = (css, sel) => new RegExp('\\' + sel + '\\s*\\{[^}]*position:\\s*fixed').test(css);
+    const leaked = Object.entries(OVERLAY_OF)
+      .filter(([api, sel]) => called.has(api) && !styles(shared, sel));
+    ok(leaked.length === 0, 'every kit overlay the catalogue can open is styled by the shared half'
+      + (leaked.length ? ' — MISSING: ' + leaked.map(([a, s2]) => a + ' (' + s2 + ')').join(', ') : ''));
+    // …and each of those really is reachable from index.html, so the check can't quietly pass empty
+    ok(called.has('lock') && called.has('embedModal') && called.has('shopPanel'),
+      'the catalogue does call the kit overlays this check covers');
+    for (const sel of ['.pf-titlebar', '.tl-list', '.gk-grb'])
+      ok(new RegExp('\\' + sel + '(?![\\w-])').test(shared), 'shared half still styles ' + sel);
     // …and the in-game half must not have been left in the shared one
     for (const sel of ['.gamekit-hud', '.gamekit-pause', '.gkm-scroll', '.gamekit-tap', '.gamekit-rotate']) {
       ok(play.includes(sel) && !new RegExp('^' + sel.replace('.', '\\.') + '\\s*\\{', 'm').test(shared),
