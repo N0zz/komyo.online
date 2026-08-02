@@ -4,9 +4,12 @@
   "description": "Dev-only tooling for komyo (the shipped site stays dependency-free). Test scripts only.",
   "scripts": {
     "test": "node test.mjs",
-    "test:menus": "node test-menu-browser.mjs"
+    "test:menus": "node test-menu-browser.mjs",
+    "minify": "node scripts/minify.mjs",
+    "minify:serve": "node scripts/minify.mjs --serve"
   },
   "devDependencies": {
+    "esbuild": "^0.28.1",
     "playwright": "^1.61.1"
   }
 }
