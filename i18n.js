@@ -151,6 +151,26 @@ window.KOMYO_I18N.en = {
   'grb.maxed': '✓ Good run · daily 🏆 bonus maxed {cap}/{cap}',
   'grb.counts': '✓ Good run — counts toward today’s challenge',
 
+  // --- activity log (catalogue bottom-right) ---
+  'activity.title': 'Recent activity',
+  'activity.resize': 'Drag to resize · double-click to reset',
+  'activity.hide': 'Hide',
+  'activity.pin': 'Keep visible',
+  'activity.empty': 'Play a game — your records, achievements and challenges show up here.',
+  'activity.mins': '{n}m ago',
+  'activity.hours': '{n}h ago',
+  'activity.today': 'Today',
+  'activity.yesterday': 'Yesterday',
+  'activity.best': 'New record in {game} — {score}',
+  'activity.first': 'First run in {game}',
+  'activity.tier': 'New title earned — {title}',
+  'activity.ach': 'Achievement unlocked — {name}',
+  'activity.buy': 'Unlocked {name}',
+  'activity.chal': 'Challenge complete — {title}',
+  // grouped rows: 3+ of the same kind on one day collapse (the achievements backfill dumps dozens at once)
+  'activity.achMany': { one: '{count} achievement unlocked', other: '{count} achievements unlocked' },
+  'activity.buyMany': { one: '{count} item added to your Collection', other: '{count} items added to your Collection' },
+
   // --- cosmetics store (shopPanel) ---
   'shop.title': 'Collection',
   'shop.titleGame': '{game} collection',

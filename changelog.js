@@ -4,6 +4,9 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-08-02', title: 'Your own activity log 🕘', items: [
+    'New: your own activity log now sits quietly in the bottom-left corner of the home page — every record you set, achievement you unlock, challenge you finish, title you earn and item you add to your Collection, newest at the bottom. It is yours alone, stays on your device, and everything you had already done before today is in there from the start. Scroll up for older entries, tap a line to jump straight to that game, achievement or item, or tuck the whole thing away into a small clock button that tells you when something new has landed — which is how it starts, so it stays out of your way until it has something to say.',
+  ] },
   { date: '2026-08-01', title: 'Tube Racer: smoother, and easier to read 🌀', items: [
     'Change: Tube Racer got much lighter to draw. If the tunnel stuttered or felt sluggish on your machine, it should hold a steady frame rate now.',
     'Change: the tunnel rings used to pile into a tight knot around the far end of the pipe — right where you need to spot the next barrier. They fade out towards the centre now, so what is coming at you is the clearest thing on screen.',
