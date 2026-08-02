@@ -1,0 +1,787 @@
+/* game-kit-play.css — IN-GAME chrome only: nav bar, sound menu, ☰ panel, pause,
+   HUD, the three-screen menu framework, tap-to-play, rotate overlay, controls sheet, hint button,
+   embed modal, the in-game challenges modal. Loaded by games ONLY, after game-kit.css.
+   Nothing here may be referenced from index.html. */
+/* game-kit shared shell styles — neutral, readable on any dark game background.
+   Tint the share hover per game by setting --gamekit-accent on the share container. */
+.gamekit-nav { position: fixed; top: 8px; left: 10px; z-index: 80; display: flex; gap: 8px; }
+.gamekit-back { font: 600 12px/1 ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace; letter-spacing: 1px;
+  color: #fff; text-decoration: none; background: rgba(6, 10, 16, 0.92); border: 1px solid rgba(159, 232, 255, 0.22);
+  border-radius: 6px; padding: 7px 11px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  -webkit-user-drag: none; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  transition: border-color .12s, color .12s, box-shadow .12s; }
+.gamekit-back:hover { border-color: #9fe8ff; color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(159, 232, 255, 0.5), 0 0 16px -3px rgba(159, 232, 255, 0.7); }
+/* home button: a home glyph + "Komyo" (no forward chevron — it goes UP to the site, not forward) */
+.gamekit-home .gamekit-home-ico { width: 15px; height: 15px; flex: none; display: block; }
+.gamekit-home .gamekit-home-label { margin-left: 6px; }
+/* The left nav collapses to just the home glyph ONLY when it would actually overlap the right
+   sound/pause cluster — game-kit.js measures the two and toggles .gamekit-nav-tight (no hardcoded
+   breakpoint, so portrait phones with room keep the full "Komyo" label). */
+.gamekit-nav-tight .gamekit-home-label { display: none; }
+.gamekit-nav-tight .gamekit-back { padding: 6px 8px; font-size: 11px; letter-spacing: .5px; }
+
+/* top-right sound menu (+ optional reset-scores) */
+.gamekit-audio { position: fixed; top: 8px; right: 10px; z-index: 80; display: flex; flex-direction: row; align-items: flex-start; gap: 6px; }
+.gamekit-au-btn { font-size: 14px; line-height: 0; width: 38px; height: 34px; cursor: pointer; color: #fff;
+  background: rgba(6, 10, 16, 0.92); border: 1px solid rgba(159, 232, 255, 0.22); border-radius: 6px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08); display: inline-flex; align-items: center; justify-content: center;
+  transition: border-color .12s, box-shadow .12s; }
+.gamekit-au-btn:hover { border-color: #9fe8ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 0 0 1px rgba(159, 232, 255, 0.5), 0 0 16px -3px rgba(159, 232, 255, 0.7); }
+.gamekit-au-panel { display: none; position: absolute; top: 42px; right: 0; flex-direction: column; gap: 10px; min-width: 178px; padding: 12px;
+  background: rgba(8, 12, 20, 0.92); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); }
+.gamekit-au-panel.open { display: flex; }
+.gamekit-au-row { display: flex; align-items: center; gap: 10px; }
+.gamekit-au-toggle { font-size: 15px; line-height: 0; width: 30px; height: 30px; cursor: pointer; flex: 0 0 auto; color: #fff;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 7px; display: inline-flex; align-items: center; justify-content: center; }
+.gamekit-au-toggle:hover { border-color: #9fe8ff; }
+.gamekit-au-slider { flex: 1; min-width: 92px; accent-color: #9fe8ff; cursor: pointer; }
+.gamekit-au-pausebtn { font-size: 13px; color: #9fe8ff; }
+/* ☰ menu panel: version/update status + refresh + embed + reset */
+.gamekit-au-morebtn { font-size: 15px; }
+.gamekit-more-panel { min-width: 224px; gap: 8px; }
+.gamekit-more-ver { font: 500 11px/1.5 ui-monospace, "SFMono-Regular", Menlo, monospace; color: #cfe3f5;
+  white-space: nowrap; padding-bottom: 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.14); }
+.gamekit-more-item { font: 600 12px/1 system-ui, sans-serif; letter-spacing: .5px; text-align: left; color: #fff; cursor: pointer;
+  background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 8px; padding: 10px 12px; }
+.gamekit-more-item:hover { border-color: #9fe8ff; }
+.gamekit-more-item:disabled { opacity: .6; cursor: default; }
+.gamekit-more-lang { width: 100%; justify-content: flex-start; }
+.gamekit-more-lang .gk-lang-lbl { font: inherit; }
+.gamekit-more-danger { color: #ffb4b4; border-color: rgba(255, 120, 120, 0.4); }
+.gamekit-more-danger:hover { color: #fff; background: rgba(255, 90, 90, 0.25); border-color: #ff8a8a; }
+.gamekit-menu .gkm-scroll, .gamekit-menu .gkm-rail, .gamekit-challenges, .gamekit-embed-box, .gamekit-controls, .gkm-picker-list { overscroll-behavior: contain; }
+
+/* universal pause overlay */
+.gamekit-pause { position: fixed; inset: 0; z-index: 8500; display: none; align-items: center; justify-content: center;
+  background: rgba(6, 9, 15, 0.30); }
+.gamekit-pause.show { display: flex; }
+.gamekit-pause-box { display: flex; flex-direction: column; align-items: center; gap: 12px; color: #eaf2fb;
+  font: 600 19px system-ui, sans-serif; letter-spacing: 2px; }
+.gamekit-pause-ico { font-size: 46px; }
+.gamekit-pause-resume { font: 600 14px system-ui, sans-serif; letter-spacing: 1px; color: #06121a; background: #9fe8ff;
+  border: none; border-radius: 9px; padding: 10px 24px; cursor: pointer; }
+.gamekit-pause-resume:hover { background: #c2f0ff; }
+/* the shared in-play pause veil — shown under ANY pausing panel/modal (sound, ☰, side stack,
+   controls…): light dim + a quiet PAUSED splash; pointer-events none so click-outside-to-close
+   still reaches whatever is open */
+.gamekit-pauseveil { position: fixed; inset: 0; z-index: 30; display: none; align-items: center; justify-content: center;
+  background: rgba(6, 9, 15, 0.30); pointer-events: none; }
+.gamekit-pauseveil.show { display: flex; }
+.gamekit-pauseveil .gkpv { display: flex; flex-direction: column; align-items: center; gap: 10px;
+  color: rgba(234, 242, 251, 0.75); font: 600 19px system-ui, sans-serif; letter-spacing: 2px; }
+.gamekit-pauseveil .gkpv-ico { font-size: 46px; }
+/* pause MENUS use the same light dim (the frozen game is the backdrop — keep it readable);
+   start/end menus keep their theme overlay + per-game art */
+.gamekit-menu.gamekit-menu-pause { background: rgba(6, 9, 15, 0.35); -webkit-backdrop-filter: none; backdrop-filter: none; }
+/* standard center-top HUD — clears the left nav and the right sound menu; wraps when busy */
+.gamekit-hud { position: fixed; top: 8px; left: 50%; transform: translateX(-50%); z-index: 5;
+  display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; align-items: center;
+  /* width:max-content sizes the pill to its ONE-ROW content (then wraps only if that exceeds
+     max-width). Without it, a position:fixed flex-wrap box shrink-to-fits by wrapping early — so a
+     4-stat pill needlessly went 2 rows at 50% width. Hugs low-stat pills; no forced stretch. */
+  width: max-content; max-width: calc(100vw - 240px); padding: 6px 16px; border-radius: 10px;
+  background: rgba(8, 12, 20, 0.6); border: 1px solid rgba(255, 255, 255, 0.16);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  font: 600 13px/1.1 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 1px; color: #fff; pointer-events: none; text-align: center; }
+.gamekit-hud .lbl { display: block; font-size: 9px; letter-spacing: 1.5px; opacity: 1; color: #c9d6e8; margin-bottom: 2px; }
+@media (orientation: portrait) {
+  /* FILL the width and spread the stats so many-stat HUDs (range/frog/etc.) use the horizontal space
+     and wrap less vertically — instead of a narrow, tall pill floating with wasted sides. Compact so a
+     row fits inside the 92px reserve (top 48 + ~40px pill) and clears the board top. */
+  /* Hug content (centered) up to a wide cap: many-stat HUDs (range/frog/aim) get enough width to
+     avoid tall wrapping; few-stat HUDs (breakout/2048/glow) stay compact instead of stretched. */
+  .gamekit-hud { top: 48px; max-width: 92vw;
+    gap: 4px 16px; padding: 4px 14px; font-size: 11.5px; }
+  .gamekit-hud .lbl { margin-bottom: 1px; }
+}
+@media (orientation: landscape) {
+  /* Reserve the side clusters (nav left + pause/controls/sound/fullscreen/menu right). The HUD is
+     centered, so its border-box must clear a FULL cluster — 380 left the widest pills (busy stat sets +
+     6-figure scores, e.g. asteroids) clipping the cluster. 410 guarantees clearance for any content at
+     any score; wide pills wrap to a 2nd row instead of spilling. Harmless on desktop (the cap is huge). */
+  .gamekit-hud { max-width: calc(100vw - 410px); }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .gamekit-hud { gap: 6px 12px; padding: 4px 10px; font-size: 11px; }
+  .gamekit-audio { gap: 4px; }
+  .gamekit-au-btn { width: 32px; height: 30px; }
+}
+@media (max-width: 560px) {
+  .gamekit-nav { left: 6px; gap: 6px; }
+  .gamekit-audio { right: 6px; gap: 4px; }
+  .gamekit-au-btn { width: 34px; height: 32px; }
+  .gamekit-back { padding: 6px 9px; }
+}
+@media (max-width: 400px) {
+  /* the common Android width is 360px — force-collapse the brand label here (don't rely on the JS
+     measurement firing in time on mobile load) and shrink further so the row fits down to ~320px. */
+  .gamekit-home-label { display: none; }
+  .gamekit-back { padding: 6px 8px; font-size: 11px; letter-spacing: .5px; }
+  .gamekit-audio { gap: 3px; }
+  .gamekit-au-btn { width: 30px; height: 30px; font-size: 12px; }
+}
+@media (min-width: 1900px) and (min-height: 1000px) {
+  .gamekit-au-btn { width: 46px; height: 42px; font-size: 17px; }
+  .gamekit-hud { font-size: 16px; }
+  .gamekit-back { font-size: 15px; padding: 8px 14px; }
+  .gamekit-home-label { font-size: 15px; }
+}
+/* hold-to-confirm: a red fill sweeps the button while held (--gk-hold set by the kit) */
+.gamekit-cf-yes.gkm-cf-hold { background-image: linear-gradient(90deg, rgba(255, 90, 90, 0.75), rgba(255, 90, 90, 0.75)) !important;
+  background-size: var(--gk-hold, 0%) 100% !important; background-repeat: no-repeat !important; touch-action: none; } /* destructive button: red focus ring, never the theme accent */
+/* parental-lock PIN pad — same theming contract as the confirm dialog */
+.gamekit-lock { position: fixed; inset: 0; z-index: 9600; display: flex; align-items: center; justify-content: center;
+  background: var(--gkm-overlay, rgba(5, 8, 13, 0.66)); }
+.gamekit-lock-box { position: relative; background: var(--gkm-bg, rgba(16, 22, 34, 0.98)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--gkm-radius, 14px); padding: 16px 20px;
+  width: min(300px, calc(100vw - 32px)); max-height: calc(100vh - 24px); overflow: auto; text-align: center;
+  box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6));
+  color: var(--gkm-text, #eef2f8); font-family: var(--gkm-font, ui-monospace, "SFMono-Regular", Menlo, monospace); }
+.gamekit-lock-box h3 { margin: 0 0 6px; font-size: 15px; }
+/* always rendered (even empty) with a reserved height — every pad variant (enter / choose /
+   repeat) keeps its numpad at the SAME position, so rapid re-typing never mis-hits a moved key */
+.gamekit-lock-hint { margin: 0 0 4px; font-size: 11.5px; line-height: 1.4; opacity: 0.8; min-height: 32px; }
+.gamekit-lock-dots { display: flex; gap: 12px; justify-content: center; margin: 8px 0 4px; }
+.gamekit-lock-dot { width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--gkm-accent, #9fe8ff); opacity: 0.45; }
+.gamekit-lock-dot.on { background: var(--gkm-accent, #9fe8ff); opacity: 1; }
+.gamekit-lock-status { min-height: 16px; font-size: 11.5px; margin: 2px 0 4px; opacity: 0.9; }
+.gamekit-lock-status.err { color: #ff8a8a; }
+.gamekit-lock-pad { display: grid; grid-template-columns: repeat(3, minmax(56px, 64px)); gap: 8px; justify-content: center; margin: 4px 0 10px; }
+.gamekit-lock-pad button { font: 600 17px/1 var(--gkm-font, ui-monospace, monospace); padding: 11px 0; border-radius: 10px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06); color: var(--gkm-text, #eef2f8); touch-action: manipulation; }
+.gamekit-lock-pad button:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-lock-pad button:disabled { opacity: 0.35; cursor: default; }
+.gamekit-lock-shake { animation: gk-lock-shake 0.3s; }
+@keyframes gk-lock-shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.gamekit-lock-row { display: flex; gap: 14px; justify-content: center; }
+.gamekit-lock-cancel, .gamekit-lock-forgot { font: 600 11px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 0.5px; cursor: pointer;
+  padding: 7px 10px; border: 0; background: none; color: var(--gkm-text, #eef2f8); opacity: 0.75; text-decoration: underline; }
+.gamekit-lock-cancel:hover, .gamekit-lock-forgot:hover { opacity: 1; }
+/* "Forgot PIN?" tip — a floating bubble over the pad (toggled by the link; typing dismisses it),
+   so the modal itself never grows to fit help text */
+.gamekit-lock-tip { position: absolute; left: 12px; right: 12px; bottom: 52px; z-index: 2; text-align: left;
+  background: rgba(8, 13, 22, 0.98); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px; padding: 10px 12px;
+  font-size: 11px; line-height: 1.45; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); }
+.gamekit-lock-tip p { margin: 0 0 8px; }
+.gamekit-lock-supportbtn { display: block; margin: 0 auto; font: 600 11px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 0.5px; cursor: pointer;
+  padding: 8px 12px; border-radius: 9px; border: 1px solid rgba(255, 255, 255, 0.25); background: rgba(255, 255, 255, 0.06); color: var(--gkm-text, #eef2f8); }
+.gamekit-lock-supportbtn:hover { border-color: var(--gkm-accent, #9fe8ff); }
+
+/* shared menu engine (gamekit.menu.show) — ONE structure, per-game look via --gkm-* custom props.
+   A game themes these in its own CSS (e.g. `.gamekit-menu{--gkm-accent:#ff7ab6;--gkm-glow:...}`) or
+   passes a `theme` to menu.show(); everything below falls back to the neutral kit palette. */
+.gamekit-menu { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 60px 16px 24px;
+  background: var(--gkm-overlay, rgba(6, 9, 15, 0.82)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gamekit-menu .gkm-box { width: min(420px, 100%); max-height: calc(100vh - 84px); display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;
+  background: var(--gkm-bg, rgba(14, 20, 32, 0.96)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16));
+  border-radius: var(--gkm-radius, 16px); padding: 24px 22px; box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6));
+  color: var(--gkm-text, #eaf2fb); text-align: center; font-family: var(--gkm-font, ui-monospace, "SFMono-Regular", Menlo, monospace);
+  --gamekit-accent: var(--gkm-accent, #9fe8ff); }
+/* the content between the title and the actions scrolls — so the title + the big Play stay pinned/visible */
+.gamekit-menu .gkm-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+@media (max-height: 560px) {
+  .gamekit-menu .gkm-sec { margin: 12px 0 6px; }
+}
+.gamekit-menu .gkm-title { flex: 0 0 auto; }
+.gamekit-menu .gkm-title { margin: 0 0 14px; font-size: 26px; letter-spacing: 2px; font-weight: 800; text-wrap: balance;
+  color: var(--gkm-title, var(--gkm-text, #eaf2fb)); text-shadow: var(--gkm-glow, none); }
+.gamekit-menu .gkm-sec { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 20px 0 10px;
+  font-size: 11px; font-weight: 700; letter-spacing: 2.5px; opacity: .9; color: var(--gkm-title, var(--gkm-text, #eaf3ff)); }
+.gamekit-menu .gkm-sec::before, .gamekit-menu .gkm-sec::after { content: ""; flex: 1; max-width: 64px; height: 1px; background: var(--gkm-accent, #9fe8ff); opacity: .45; }
+.gamekit-menu .gkm-row { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.gamekit-menu .gkm-choice { flex: 1 1 auto; min-width: 96px; cursor: pointer; padding: 10px 12px; border-radius: 10px;
+  font: 600 13px/1.2 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; color: var(--gkm-text, #eaf2fb);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.2); transition: border-color .12s, background .12s, box-shadow .12s; }
+.gamekit-menu .gkm-choice .gkm-desc { display: block; margin-top: 4px; font-size: 10px; letter-spacing: .5px; opacity: .6; font-weight: 400; }
+.gamekit-menu .gkm-choice.gkm-on { background: var(--gkm-accent-soft, rgba(159, 232, 255, 0.16)); border-color: var(--gkm-accent, #9fe8ff);
+  color: var(--gkm-text, #fff); box-shadow: var(--gkm-glow, none); }
+.gamekit-menu .gkm-choice:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-choice.gkm-focus, .gamekit-menu .gkm-action.gkm-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
+.gamekit-menu .gkm-hint { margin: 14px 0 0; font-size: 11px; line-height: 1.5; opacity: .7; }
+/* actions stack full-width (mobile-first) — the primary Play reads big and is always easy to hit */
+.gamekit-menu .gkm-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.12)); }
+.gamekit-menu .gkm-action { width: 100%; cursor: pointer; padding: 13px 22px; border-radius: 11px; font: 700 14px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px;
+  color: var(--gkm-text, #eaf2fb); background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.25); transition: border-color .12s, background .12s, filter .12s; }
+.gamekit-menu .gkm-action:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-action.gkm-disabled { opacity: 0.38; cursor: not-allowed; }
+.gamekit-menu .gkm-action.gkm-disabled:hover { border-color: rgba(255, 255, 255, 0.25); }
+.gamekit-menu .gkm-action.primary { padding: 16px; font-size: 17px; letter-spacing: 2px; color: var(--gkm-on-accent, #06121a); background: var(--gkm-accent, #9fe8ff); border-color: var(--gkm-accent, #9fe8ff); box-shadow: var(--gkm-glow, none); }
+.gamekit-menu .gkm-action.primary:hover { filter: brightness(1.1); }
+.gamekit-menu .gkm-action.danger { color: #ffb4b4; border-color: rgba(255, 120, 120, 0.5); background: rgba(255, 90, 90, 0.12); }
+.gamekit-menu .gkm-action.danger:hover { color: #fff; background: rgba(255, 90, 90, 0.25); border-color: #ff8a8a; }
+.gamekit-menu .gkm-score { font-size: 40px; font-weight: 800; letter-spacing: 1px; margin: 6px 0; color: var(--gkm-title, var(--gkm-text, #eaf2fb)); text-shadow: var(--gkm-glow, none); }
+.gamekit-menu .gkm-best { margin: 0 0 6px; font-size: 12px; opacity: .85; }
+@media (max-height: 560px) {
+  .gamekit-menu .gkm-score { font-size: 30px; margin: 2px 0; }
+  .gamekit-menu .gkm-actions { gap: 7px; margin-top: 8px; padding-top: 8px; }
+  .gamekit-menu .gkm-action.primary { padding: 12px; }
+}
+.gamekit-menu .gkm-best .gkm-new { color: var(--gkm-new, #ffd86b); opacity: 1; }
+/* The live pulse: fires mid-run the moment you pass your old best. Sits above the HUD but below the
+   menu layer (z 60), never takes pointer events, and is gone in 1.7s — it must not become something
+   you wait out. Centred high so it does not cover the middle of the play area. */
+.gamekit-bestpulse { position: fixed; left: 50%; top: 22%; transform: translate(-50%, -50%); z-index: 55;
+  pointer-events: none; font: 800 clamp(20px, 6vw, 34px)/1 var(--gkm-font, ui-monospace, "SFMono-Regular", Menlo, monospace);
+  letter-spacing: 2px; white-space: nowrap; color: var(--gkm-new, #ffd86b);
+  text-shadow: 0 0 12px rgba(255, 216, 107, .85), 0 0 34px rgba(255, 216, 107, .45), 0 2px 6px rgba(0, 0, 0, .7);
+  animation: gkm-bestpulse 1700ms ease-out both; }
+@keyframes gkm-bestpulse {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(.55); }
+  12%  { opacity: 1; transform: translate(-50%, -50%) scale(1.22); }
+  26%  { transform: translate(-50%, -50%) scale(1); }
+  72%  { opacity: 1; transform: translate(-50%, -62%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -86%) scale(.96); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gamekit-bestpulse { animation: gkm-bestpulse-fade 1700ms linear both; }
+  @keyframes gkm-bestpulse-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+}
+/* New-best celebration. The burst is position:absolute inside .gkm-box and pointer-events:none, so it
+   adds NO height — the menu-fit budget at 360×640 / 640×360 has none to give — and never blocks a tap
+   on "Play again" underneath it. .gkm-box is overflow:hidden, which also clips the confetti to the card. */
+.gamekit-menu .gkm-burst { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 3; }
+.gamekit-menu .gkm-best .gkm-new.gkm-new-pop { display: inline-block; animation: gkm-newpop 620ms cubic-bezier(.2, 1.5, .4, 1) both;
+  text-shadow: 0 0 10px var(--gkm-new, #ffd86b); }
+@keyframes gkm-newpop {
+  0%   { transform: scale(.6) rotate(-4deg); opacity: 0; }
+  45%  { transform: scale(1.35) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) { .gamekit-menu .gkm-best .gkm-new.gkm-new-pop { animation: none; }
+}
+.gamekit-menu .gkm-line { margin: 2px 0; font-size: 12px; opacity: .7; }
+/* a description line right after a group's button row (e.g. Meadow Flyer's Day/Night) needs breathing room */
+.gamekit-menu .gkm-row + .gkm-line { margin-top: 14px; }
+.gamekit-menu .gkm-goodrun { margin: 6px 0 2px; font: 700 12px/1.3 var(--gkm-font, ui-monospace, monospace); letter-spacing: .5px; color: var(--gkm-accent, #9fe8ff); text-shadow: var(--gkm-glow, none); }
+/* an achievement receipt is the same shape, in the trophy colour (it paid trophies, not a bonus) */
+.gamekit-menu .gkm-achline { color: var(--gkm-new, #ffd166); margin: 3px 0 0; }
+.gamekit-menu .gkm-share-host { margin-top: 16px; }
+/* a menu with mode cards / a shop / a grid gets a wider box (so the Drydock + level-up picker
+   aren't a cramped 2-column column on desktop) + a slightly larger start title */
+.gamekit-menu.gkm-wide .gkm-box, .gamekit-menu.gkm-split .gkm-box { width: min(640px, 100%); }
+.gamekit-menu-start .gkm-title { font-size: 30px; letter-spacing: 5px; }
+@media (orientation: landscape) and (max-height: 560px) {
+  .gamekit-menu { padding: 32px 12px 6px; }
+  .gamekit-menu.gkm-split .gkm-box { width: min(740px, 100%); display: grid;
+    grid-template-columns: 1fr minmax(190px, 230px); grid-template-rows: auto 1fr auto;
+    grid-template-areas: "big title" "big rail" "big actions"; column-gap: 16px; row-gap: 8px;
+    padding: 12px 18px; text-align: left; }
+  .gamekit-menu.gkm-split .gkm-title { grid-area: title; margin: 0; font-size: 18px; letter-spacing: 2px; text-align: left; }
+  .gamekit-menu.gkm-split .gkm-scroll { grid-area: big; min-height: 0; overflow-x: hidden;
+    border-right: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.12)); padding-right: 14px; }
+  /* overflow-y:auto silently flips overflow-x from visible→auto, so a vertical scrollbar (or any
+     1px graze) spawned a horizontal one — clamp x and let children shrink instead */
+  .gamekit-menu.gkm-split .gkm-rail { grid-area: rail; min-height: 0; overflow-y: auto; overflow-x: hidden;
+    display: flex; flex-direction: column; gap: 6px; }
+  .gamekit-menu.gkm-split .gkm-rail > * { min-width: 0; max-width: 100%; flex-shrink: 0; }
+  .gamekit-menu.gkm-split .gkm-actions { grid-area: actions; align-self: end; margin: 0; padding: 0; border-top: none; gap: 7px; }
+  /* Landscape phones stack the actions in a short column, so every px of button chrome comes
+     straight out of the rail beside it — a second action used to push the rail into scrolling.
+     Compact them here (this block only; portrait and desktop keep the full-size buttons). */
+  .gamekit-menu.gkm-split .gkm-action { padding: 9px 14px; font-size: 12.5px; letter-spacing: 0.6px; }
+  .gamekit-menu.gkm-split .gkm-action.primary { padding: 11px 14px; font-size: 14.5px; letter-spacing: 1.2px; }
+  .gamekit-menu.gkm-split .gkm-sec { margin: 0 0 8px; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-sec { margin: 0; }
+  .gamekit-menu.gkm-split .gkm-hint { margin: 0; text-align: left; }
+  .gamekit-menu.gkm-split .gkm-checkrow { text-align: left; }
+  /* compact cards: small preview, drop the sentence AND the chips (the hint carries them) so the
+     card list column never scrolls — a card is just preview + name + best on one line (~50px). */
+  .gamekit-menu.gkm-split .gkm-cards { gap: 7px; }
+  .gamekit-menu.gkm-split .gkm-card { grid-template-columns: 40px 1fr; gap: 10px; padding: 5px 10px; align-items: center; }
+  .gamekit-menu.gkm-split .gkm-card-pv { width: 40px; height: 40px; }
+  .gamekit-menu.gkm-split .gkm-card-nm { font-size: 12.5px; }
+  .gamekit-menu.gkm-split .gkm-card-body { gap: 2px; }
+  .gamekit-menu.gkm-split .gkm-card-desc { display: none; }
+  .gamekit-menu.gkm-split .gkm-card-mech { display: none; }
+  /* Drydock shop (default, many items): natural rows in the LEFT pane, which scrolls when they
+     overflow — the old height:100%/1fr rows crushed a long upgrade list into unreadable slivers */
+  .gamekit-menu.gkm-split .gkm-shop { grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); grid-auto-rows: max-content; margin: 0; }
+  /* the level-up picker (cols:3, only a few choices) still fills the pane, no scroll */
+  .gamekit-menu.gkm-split .gkm-shop-c3 { grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; height: 100%; align-content: stretch; }
+  .gamekit-menu.gkm-split .gkm-shop-c3 .gkm-shop-desc { display: none; } /* rail focdesc carries it */
+  .gamekit-menu.gkm-split .gkm-shop-c2 { grid-template-columns: repeat(2, 1fr); }
+  /* thumbnail grid auto-fits the pane width (more flyers → more columns, not more scrolling) */
+  /* level-select grids: auto-fill lands on 3 columns in the ~317px landscape pane, which adds a
+     4th row and overflows. 4 fixed columns fit — both puzzle games needed this identical
+     override locally, so it lives here. */
+  .gamekit-menu.gkm-split .gkm-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 0; }
+  .gamekit-menu.gkm-split .gkm-gcell { padding: 7px 4px 6px; }
+  .gamekit-menu.gkm-split .gkm-gcv { width: 36px; height: auto; }
+  .gamekit-menu.gkm-split .gkm-gnm { font-size: 11px; }
+  .gamekit-menu.gkm-split .gkm-gsub { font-size: 9.5px; }
+  /* rail widgets shrink to rail scale: slim toggle pill, one-line choice rows, tighter slider */
+  .gamekit-menu.gkm-split .gkm-checkrow { margin-top: 0; justify-content: flex-start; }
+  .gamekit-menu.gkm-split .gkm-check { gap: 8px; padding: 7px 10px; }
+  .gamekit-menu.gkm-split .gkm-check-box { width: 16px; height: 16px; }
+  .gamekit-menu.gkm-split .gkm-check-box::after { font-size: 11px; }
+  .gamekit-menu.gkm-split .gkm-check-txt { font-size: 11.5px; letter-spacing: .5px; }
+  .gamekit-menu.gkm-split .gkm-check-txt .cap { font-size: 10.5px; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-row { flex-wrap: nowrap; gap: 6px; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-choice { flex: 1 1 0; min-width: 0; padding: 8px 4px; font-size: 11.5px; letter-spacing: .5px; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-slider { margin: 0; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-sl-hit { padding: 12px 10px 2px; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-sl-thumb { width: 18px; height: 18px; margin: -9px 0 0 -9px; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-sl-tick { width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-sl-label { padding: 5px 2px; font-size: 11px; }
+  /* end-screen split: the score card fills the left pane; score + good-run read rail-scale.
+     The end rail is a RESULT column (verdict + number + stat lines), not a controls list —
+     centered like the portrait end screen; start-menu rails stay left-aligned for scanning */
+  .gamekit-menu.gkm-split .gkm-share-host { margin: 0; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-score { font-size: 26px; margin: 0; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-goodrun { margin: 0; font-size: 11px; }
+  .gamekit-menu-end.gkm-split .gkm-title, .gamekit-menu-end.gkm-split .gkm-rail { text-align: center; }
+}
+@media (orientation: landscape) and (max-height: 560px) {
+  .gamekit-menu:not(.gkm-split) .gkm-box { width: min(600px, 100%); max-height: calc(100vh - 48px); padding: 10px 20px; }
+  .gamekit-menu:not(.gkm-split) .gkm-title,
+  .gamekit-menu-start:not(.gkm-split) .gkm-title { font-size: 19px; letter-spacing: 3px; margin-bottom: 6px; }
+  .gamekit-menu:not(.gkm-split) .gkm-sec { margin: 6px 0 4px; }
+  .gamekit-menu:not(.gkm-split) .gkm-choice { padding: 6px 12px; }
+  .gamekit-menu:not(.gkm-split) .gkm-hint { margin-top: 8px; }
+  .gamekit-menu:not(.gkm-split) .gkm-actions { margin-top: 8px; padding-top: 8px; gap: 7px; }
+  .gamekit-menu:not(.gkm-split) .gkm-action.primary { padding: 11px; font-size: 15px; }
+  /* split rail: let a many-button group WRAP to readable ~2-per-row cells instead of squeezing all
+     into slivers (critter-match's Solo/2P/3P/4P/Speedrun broke mid-word in a nowrap rail). */
+  .gamekit-menu.gkm-split .gkm-rail .gkm-row { flex-wrap: wrap; }
+  .gamekit-menu.gkm-split .gkm-rail .gkm-choice { flex: 1 1 72px; min-width: 72px; }
+}
+
+/* ---- mode cards (style:'cards') — preview left, text column right ---- */
+.gamekit-menu .gkm-cards { display: flex; flex-direction: column; gap: 10px; text-align: left; }
+.gamekit-menu .gkm-card { position: relative; display: grid; grid-template-columns: 92px 1fr; gap: 15px; align-items: center; cursor: pointer;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 14px;
+  padding: 11px 14px; transition: border-color .15s, box-shadow .15s, transform .12s; }
+.gamekit-menu .gkm-card:hover { border-color: var(--gkm-accent, #9fe8ff); transform: translateY(-1px); }
+.gamekit-menu .gkm-card.gkm-on { border-color: var(--gkm-accent, #9fe8ff); box-shadow: 0 0 0 1px var(--gkm-accent, #9fe8ff), var(--gkm-glow, 0 0 26px rgba(159, 232, 255, .26)); }
+.gamekit-menu .gkm-card.gkm-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
+.gamekit-menu .gkm-card.gkm-locked { opacity: 0.55; cursor: default; }
+.gamekit-menu .gkm-card.gkm-locked:hover { border-color: var(--gkm-border, rgba(255, 255, 255, 0.16)); transform: none; }
+.gamekit-menu .gkm-card-rm { position: absolute; top: 7px; right: 7px; width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+  font: 14px/1 system-ui, sans-serif; color: #ffb4b4; border: 1px solid rgba(255, 120, 120, 0.4); background: rgba(255, 90, 90, 0.1); }
+.gamekit-menu .gkm-card-rm:hover { background: rgba(255, 90, 90, 0.28); }
+.gamekit-menu .gkm-card-pv { width: 92px; height: 92px; border-radius: 11px; background: rgba(0, 0, 0, .35); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); display: block; }
+.gamekit-menu .gkm-card.gkm-on .gkm-card-pv { box-shadow: inset 0 0 0 1px var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-card-body { min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.gamekit-menu .gkm-card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
+.gamekit-menu .gkm-card-nm { font: 700 18px/1.2 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px;
+  color: var(--gkm-title, var(--gkm-text, #eaf3ff)); display: flex; align-items: center; gap: 9px; transition: color .15s; }
+.gamekit-menu .gkm-card.gkm-on .gkm-card-nm { color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-tag { font: 700 9px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1.5px; padding: 3px 7px; border-radius: 5px;
+  color: var(--gkm-accent, #9fe8ff); background: rgba(255, 255, 255, 0.06); border: 1px solid var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-card-best { font: 12px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: .5px; white-space: nowrap; flex: 0 0 auto;
+  color: var(--gkm-best, var(--gkm-new, #ffd166)); font-variant-numeric: tabular-nums; }
+.gamekit-menu .gkm-card-best .l { color: #93a3b8; font-size: 9px; letter-spacing: 1.5px; margin-right: 6px; }
+.gamekit-menu .gkm-card-desc { color: #93a5bd; font: 13.5px/1.5 var(--gkm-font-body, system-ui, sans-serif); }
+.gamekit-menu .gkm-card-mech { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (min-width: 420px) {
+  .gamekit-menu .gkm-cards-multi { flex-direction: row; flex-wrap: wrap; }
+  .gamekit-menu .gkm-cards-multi > * { flex: 1 1 calc(100% / var(--gkm-cols, 2) - 6px); min-width: 0; }
+  /* a half-width head can't fit a mode name AND a 5-digit record on one line (measured: 169px
+     of content in 155px) — stack the record so its block is only as wide as the number, and let
+     a long name ellipsize rather than push the record out of the card */
+  .gamekit-menu .gkm-cards-multi .gkm-card-head { gap: 8px; min-width: 0; align-items: baseline; }
+  .gamekit-menu .gkm-cards-multi .gkm-card-nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .gamekit-menu .gkm-cards-multi .gkm-card-best { display: flex; flex-direction: column; align-items: flex-end;
+    flex: 0 0 auto; white-space: nowrap; font-size: 11px; line-height: 1.15; text-align: right; }
+  .gamekit-menu .gkm-cards-multi .gkm-card-best .l { margin: 0; font-size: 8.5px; letter-spacing: 1px; opacity: .55; }
+}
+@media (min-width: 420px) and (max-height: 780px) {
+  .gamekit-menu:not(.gkm-split) .gkm-cards-multi { gap: 6px; }
+  .gamekit-menu:not(.gkm-split) .gkm-cards-multi .gkm-card { grid-template-columns: 46px 1fr; gap: 9px; padding: 5px 9px; }
+  .gamekit-menu:not(.gkm-split) .gkm-cards-multi .gkm-card-pv { width: 46px; height: 46px; }
+  .gamekit-menu:not(.gkm-split) .gkm-cards-multi .gkm-card-desc,
+  .gamekit-menu:not(.gkm-split) .gkm-cards-multi .gkm-card-mech { display: none; }
+}
+@media (max-height: 430px) {
+  .gamekit-menu.gkm-split .gkm-cards-multi .gkm-card-head { flex-direction: column; align-items: flex-start; gap: 1px; }
+  .gamekit-menu.gkm-split .gkm-cards-multi .gkm-card-best { flex-direction: row; align-items: baseline; gap: 4px;
+    text-align: left; font-size: 10px; }
+  .gamekit-menu.gkm-split .gkm-cards-multi .gkm-card-nm { font-size: 12px; }
+}
+.gamekit-menu .gkm-card-mech span { font: 10px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: .4px; color: #9fb2c9;
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 999px; padding: 3px 9px; }
+.gamekit-menu .gkm-card-mech span.hot { color: var(--gkm-new, #ffd166); border-color: rgba(255, 209, 102, .4); background: rgba(255, 209, 102, .08); }
+@media (max-width: 560px) {
+  .gamekit-menu .gkm-box { padding: 14px 18px; }
+  .gamekit-menu .gkm-title, .gamekit-menu-start .gkm-title { font-size: 21px; letter-spacing: 3px; margin-bottom: 6px; }
+  .gamekit-menu .gkm-sec { margin: 6px 0 4px; }
+  .gamekit-menu .gkm-choice { padding: 8px 12px; }
+  .gamekit-menu .gkm-hint { margin-top: 7px; }
+  .gamekit-menu .gkm-actions { margin-top: 9px; padding-top: 9px; gap: 7px; }
+  /* keep Play + secondary actions proportional to the mode/difficulty buttons (not chunky blocks) */
+  .gamekit-menu .gkm-action { padding: 10px 18px; font-size: 13px; }
+  .gamekit-menu .gkm-action.primary { padding: 11px; font-size: 15px; }
+}
+
+/* ---- per-game backdrop art behind a frosted box (cfg.backdrop) ---- */
+/* backdrop stays opaque (so the live game canvas never bleeds through); the kit dims it with a
+   baked-in scrim in paintBackdrop so it reads as a background rather than a vivid full-opacity scene */
+.gamekit-menu .gkm-backdrop { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.gamekit-menu .gkm-box { position: relative; z-index: 1; -webkit-backdrop-filter: blur(9px) saturate(1.08); backdrop-filter: blur(9px) saturate(1.08); }
+/* contrast scrim: a tint behind the box CONTENT (above the frosted glass, below text) so any
+   backdrop is legible by construction. --gkm-scrim defaults dark (light text); light-text-on-dark
+   menus keep it; a light-box menu (e.g. Meadow day, dark text) sets --gkm-scrim to a light tint. */
+.gamekit-menu .gkm-box::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; background: var(--gkm-scrim, rgba(8, 12, 20, 0.32)); }
+.gamekit-menu .gkm-scroll { overflow-x: hidden; }
+/* Room for the selected-chip ring below (`.gkm-choice.gkm-on::after` sits at inset -4px, and an
+   absolutely-positioned descendant DOES count toward an ancestor scroller's scrollHeight). Without
+   it every menu whose last row holds a selected chip reads as "scrolls +3px" — which games had been
+   working around by trimming their own content. Bottom only: scrollHeight never grows upward.
+   Scoped with :has() to panes that actually hold chips — card panes highlight with a box-shadow (no
+   abspos ring) and 4px there is pure cost that tipped three card menus over the gate. */
+.gamekit-menu .gkm-scroll:has(.gkm-choice), .gamekit-menu .gkm-rail:has(.gkm-choice) { padding-bottom: 4px; }
+
+/* selector-button highlight: an outer ring deliberately CUT with a vertical line on both sides
+   (clip-path), identical on every button; keyboard focus is a clean inset ring (never clipped) */
+.gamekit-menu .gkm-choice { position: relative; }
+.gamekit-menu .gkm-choice.gkm-on { box-shadow: none; }
+.gamekit-menu .gkm-choice.gkm-focus { outline: none; box-shadow: inset 0 0 0 2px var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-choice.gkm-on::after { content: ""; position: absolute; inset: -4px; border: 1.6px solid var(--gkm-accent, #9fe8ff);
+  border-radius: 13px; pointer-events: none; -webkit-clip-path: inset(0 6px); clip-path: inset(0 6px); }
+/* a danger action (Quit) focuses in its own red, not the theme accent — avoids e.g. purple-ring-on-red */
+.gamekit-menu .gkm-action.danger.gkm-focus { outline-color: #ff8a8a; }
+
+/* ---- segmented slider (style:'slider') — Snake speed, Keep Defender difficulty ---- */
+.gamekit-menu .gkm-slider { margin: 4px 2px 2px; }
+.gamekit-menu .gkm-sl-hit { padding: 16px 12px 4px; cursor: pointer; touch-action: none; }
+.gamekit-menu .gkm-sl-track { position: relative; height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.16); }
+.gamekit-menu .gkm-sl-fill { position: absolute; left: 0; top: 0; height: 100%; border-radius: 3px; background: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-sl-tick { position: absolute; top: 50%; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: rgba(255, 255, 255, 0.32); }
+.gamekit-menu .gkm-sl-thumb { position: absolute; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+  background: var(--gkm-accent, #9fe8ff); box-shadow: var(--gkm-glow, 0 0 12px rgba(159, 232, 255, .5)); }
+.gamekit-menu .gkm-sl-labels { display: flex; justify-content: space-between; margin: 2px 0 0; }
+.gamekit-menu .gkm-sl-label { flex: 1; text-align: center; padding: 7px 2px; cursor: pointer; color: #93a5bd;
+  font: 600 12.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: .5px; }
+.gamekit-menu .gkm-sl-label:first-child { text-align: left; } .gamekit-menu .gkm-sl-label:last-child { text-align: right; }
+.gamekit-menu .gkm-sl-label.gkm-on { color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-sl-label.gkm-focus { color: var(--gkm-text, #eaf3ff); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---- thumbnail grid (style:'grid') — Meadow Flyer flyer picker ---- */
+.gamekit-menu .gkm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 4px 0 14px; }
+.gamekit-menu .gkm-gcell { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 9px 6px 8px; border-radius: 12px; cursor: pointer;
+  background: rgba(255, 255, 255, 0.05); border: 1.5px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); transition: border-color .14s, box-shadow .14s; }
+.gamekit-menu .gkm-gcell.gkm-on { border-color: var(--gkm-accent, #9fe8ff); background: rgba(255, 255, 255, 0.1); box-shadow: none; }
+.gamekit-menu .gkm-gcell.gkm-focus { outline: none; box-shadow: inset 0 0 0 2px var(--gkm-accent, #9fe8ff); }
+/* same symmetric cut-highlight ring as the selector buttons (cut on both sides) */
+.gamekit-menu .gkm-gcell.gkm-on::after { content: ""; position: absolute; inset: -4px; border: 1.6px solid var(--gkm-accent, #9fe8ff);
+  border-radius: 15px; pointer-events: none; -webkit-clip-path: inset(0 6px); clip-path: inset(0 6px); }
+.gamekit-menu .gkm-gcell.gkm-locked { opacity: 0.55; cursor: default; }
+.gamekit-menu .gkm-gcv { display: block; }
+.gamekit-menu .gkm-gnm { font: 600 12px/1 var(--gkm-font-body, system-ui, sans-serif); color: var(--gkm-text, #eaf3ff); }
+.gamekit-menu .gkm-gsub { font: 600 10.5px/1 var(--gkm-font-body, system-ui, sans-serif); color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-gcell.gkm-locked .gkm-gsub { color: #93a5bd; }
+
+/* ---- action grid (style:'shop') — Asteroids+ level-up picker + between-wave shop ---- */
+.gamekit-menu .gkm-banner { margin: 2px 0 4px; font: 800 22px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 2px;
+  color: var(--gkm-new, #ffd166); text-shadow: var(--gkm-glow, none); }
+.gamekit-menu .gkm-shop { display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 8px; margin: 6px 0 12px; text-align: left; }
+.gamekit-menu .gkm-shopcard { position: relative; display: flex; flex-direction: column; gap: 5px; cursor: pointer; padding: 11px 13px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05); border: 1.5px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); transition: border-color .14s, box-shadow .14s, transform .1s; }
+.gamekit-menu .gkm-shopcard:hover { border-color: var(--gkm-accent, #9fe8ff); transform: translateY(-1px); }
+.gamekit-menu .gkm-shopcard.gkm-focus { outline: none; box-shadow: inset 0 0 0 2px var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-shopcard.gkm-disabled { opacity: 0.42; cursor: not-allowed; }
+.gamekit-menu .gkm-shopcard.gkm-disabled:hover { border-color: var(--gkm-border, rgba(255, 255, 255, 0.14)); transform: none; }
+.gamekit-menu .gkm-shop-nm { font: 700 14px/1.15 var(--gkm-font, ui-monospace, monospace); letter-spacing: .6px; color: var(--gkm-text, #eaf3ff); }
+.gamekit-menu .gkm-shop-desc { font: 11px/1.4 var(--gkm-font-body, system-ui, sans-serif); color: #93a5bd; }
+.gamekit-menu .gkm-shop-sub { margin-top: auto; font: 700 11.5px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: .5px;
+  color: var(--gkm-accent, #9fe8ff); font-variant-numeric: tabular-nums; }
+.gamekit-menu .gkm-shop-sub .cost { color: var(--gkm-new, #ffd166); } .gamekit-menu .gkm-shop-sub .max { color: #6b7a90; }
+/* optional per-choice icon (canvas painter) — quick scan without reading */
+.gamekit-menu .gkm-shopcard.gkm-has-ic { display: grid; grid-template-columns: 26px 1fr; gap: 4px 10px; align-items: center; }
+.gamekit-menu .gkm-shop-ic { grid-row: 1 / span 3; width: 26px; height: 26px; display: block; }
+/* cols:3 — the exactly-3 picker shape: 3 across (desktop + landscape), stacked in portrait */
+.gamekit-menu .gkm-shop-c3 { grid-template-columns: repeat(3, 1fr); }
+/* cols:2 — the exactly-2 grid shape (e.g. a 4-item shop as 2×2 instead of 3+1) */
+.gamekit-menu .gkm-shop-c2 { grid-template-columns: repeat(2, 1fr); }
+.gamekit-menu .gkm-shop-c3 .gkm-shopcard.gkm-has-ic { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 7px; padding: 14px 10px; }
+.gamekit-menu .gkm-shop-c3 .gkm-shop-ic { width: 34px; height: 34px; }
+/* focused-choice desc line + BUY/TAKE button — small screens only (desktop cards show their desc) */
+.gamekit-menu .gkm-focdesc { display: none; margin: 2px 0 4px; min-height: 1.4em; font: 11px/1.4 var(--gkm-font, ui-monospace, monospace); color: #93a5bd; }
+.gamekit-menu .gkm-focdesc b { color: var(--gkm-title, #eaf3ff); font-weight: 700; }
+.gamekit-menu .gkm-buybtn { display: none; color: var(--gkm-on-accent, #06121a); background: var(--gkm-new, #ffd166); border-color: var(--gkm-new, #ffd166); font-weight: 800; }
+.gamekit-menu .gkm-buybtn:disabled { opacity: .5; cursor: default; }
+@media (max-width: 560px), (max-height: 560px) {
+  .gamekit-menu .gkm-shopcard { padding: 8px 10px; }
+  .gamekit-menu .gkm-shop:not(.gkm-shop-c3) .gkm-shop-desc { display: none; } /* the focdesc line carries it */
+  .gamekit-menu .gkm-focdesc { display: block; }
+  .gamekit-menu .gkm-buybtn { display: block; }
+}
+@media (max-width: 560px) { .gamekit-menu .gkm-shop { grid-template-columns: 1fr 1fr; } .gamekit-menu .gkm-shop-c3 { grid-template-columns: 1fr; }
+}
+@media (max-width: 380px) { .gamekit-menu .gkm-shop { grid-template-columns: 1fr; }
+}
+
+/* ---- map-picker (style:'popup') — Keep Defender ---- */
+.gamekit-menu .gkm-picker { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; cursor: pointer;
+  padding: 10px 12px; border-radius: 12px; background: rgba(255, 255, 255, 0.06); border: 1.5px solid var(--gkm-border, rgba(255, 255, 255, 0.2));
+  color: var(--gkm-text, #eaf3ff); font: 600 15px/1.2 var(--gkm-font-body, system-ui, sans-serif); }
+.gamekit-menu .gkm-picker:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-picker.gkm-focus { outline: none; box-shadow: inset 0 0 0 2px var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-picker .gkm-picker-cv { border-radius: 6px; flex: 0 0 auto; }
+.gamekit-menu .gkm-picker-nm { flex: 1; } .gamekit-menu .gkm-picker-sub { font: 600 11px/1 system-ui; color: #8ea3bd; } .gamekit-menu .gkm-picker-chev { color: var(--gkm-accent, #9fe8ff); }
+.gkm-picker-modal { position: fixed; inset: 0; z-index: 9300; display: flex; align-items: center; justify-content: center; padding: 70px 16px 20px;
+  background: rgba(4, 7, 12, 0.72); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }
+.gkm-picker-panel { width: min(580px, 100%); max-height: 100%; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px;
+  background: var(--gkm-bg, rgba(14, 20, 32, 0.98)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.2)); color: var(--gkm-text, #eaf2fb);
+  font-family: var(--gkm-font, ui-monospace, monospace); }
+.gkm-picker-head { display: flex; align-items: center; justify-content: space-between; padding: 13px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.12); }
+.gkm-picker-head h3 { margin: 0; font: 800 15px/1 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; color: var(--gkm-title, var(--gkm-text, #eaf3ff)); }
+.gkm-picker-x { background: none; border: none; color: #9fb2c8; font-size: 20px; cursor: pointer; line-height: 1; }
+.gkm-picker-body { display: grid; grid-template-columns: 1fr 1.2fr; min-height: 0; overflow: hidden; }
+.gkm-picker-list { display: flex; flex-direction: column; padding: 7px; gap: 3px; overflow-y: auto; border-right: 1px solid rgba(255, 255, 255, 0.1); }
+.gkm-picker-item { display: flex; align-items: center; gap: 9px; padding: 8px; border-radius: 9px; cursor: pointer; font: 600 13.5px/1.1 var(--gkm-font-body, system-ui, sans-serif); color: var(--gkm-text, #eaf3ff); }
+.gkm-picker-item:hover, .gkm-picker-item.gkm-hot { background: rgba(255, 255, 255, 0.09); }
+.gkm-picker-item.gkm-on { background: var(--gkm-accent-soft, rgba(159, 232, 255, 0.16)); color: var(--gkm-accent, #9fe8ff); box-shadow: inset 0 0 0 1px var(--gkm-accent, #9fe8ff); }
+.gkm-picker-item .gkm-picker-cv { border-radius: 5px; flex: 0 0 auto; }
+.gkm-picker-desc { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; justify-content: center; text-align: center; }
+.gkm-picker-desc canvas { border-radius: 10px; margin: 0 auto 12px; box-shadow: 0 3px 14px rgba(0, 0, 0, .4); max-width: 100%; }
+.gkm-picker-desc h4 { margin: 0 0 6px; font: 700 16px/1.1 var(--gkm-font, ui-monospace, monospace); color: var(--gkm-accent, #9fe8ff); }
+.gkm-picker-desc p { margin: 0 0 10px; font: 400 13px/1.5 var(--gkm-font-body, system-ui, sans-serif); color: #b8c6db; }
+.gkm-picker-best { font: 600 11px/1 var(--gkm-font, ui-monospace, monospace); color: #8ea3bd; letter-spacing: .05em; }
+@media (max-width: 560px) {
+  .gkm-picker-body { grid-template-columns: 1fr; }
+  .gkm-picker-list { border-right: none; border-bottom: 1px solid rgba(255, 255, 255, 0.1); max-height: 38vh; }
+}
+
+/* ---- boolean checkbox (toggles) ---- */
+.gamekit-menu .gkm-checkrow { display: flex; justify-content: center; margin-top: 16px; }
+/* Exactly two toggles pair into one row wherever there is width for it — a whole row of height back,
+   which is what lets four mode cards AND the toggles fit a 640×360 landscape phone. Grid (not measured
+   margins) means a label that wraps in cs/uk/pl grows its own cell instead of overlapping its
+   neighbour. Below 420px they stack again: two half-width rows there clip their labels. */
+.gamekit-menu .gkm-checks { display: contents; }
+@media (min-width: 420px) {
+  .gamekit-menu .gkm-checks-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px;
+    align-items: start; margin-top: 16px; }
+  .gamekit-menu .gkm-checks-pair .gkm-checkrow { margin-top: 0; }
+  .gamekit-menu .gkm-checks-pair .gkm-checkrow:first-child { justify-content: flex-end; }
+  .gamekit-menu .gkm-checks-pair .gkm-checkrow:last-child { justify-content: flex-start; }
+}
+.gamekit-menu .gkm-check { display: inline-flex; align-items: center; gap: 11px; cursor: pointer; -webkit-user-select: none; user-select: none;
+  background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 11px; padding: 10px 16px;
+  transition: border-color .14s, box-shadow .14s; }
+.gamekit-menu .gkm-check:hover { border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-check.gkm-on { border-color: var(--gkm-accent, #9fe8ff); box-shadow: var(--gkm-glow, 0 0 18px rgba(159, 232, 255, .22)); }
+.gamekit-menu .gkm-check.gkm-focus { outline: 2px solid var(--gkm-accent, #9fe8ff); outline-offset: 2px; }
+.gamekit-menu .gkm-check-box { width: 20px; height: 20px; border-radius: 6px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--gkm-border, rgba(255, 255, 255, 0.3)); transition: background .14s, border-color .14s; }
+.gamekit-menu .gkm-check.gkm-on .gkm-check-box { background: var(--gkm-accent, #9fe8ff); border-color: var(--gkm-accent, #9fe8ff); }
+.gamekit-menu .gkm-check-box::after { content: "✓"; color: var(--gkm-on-accent, #06121a); font: 900 13px/1 system-ui, sans-serif; opacity: 0; transform: scale(.5); transition: opacity .12s, transform .12s; }
+.gamekit-menu .gkm-check.gkm-on .gkm-check-box::after { opacity: 1; transform: scale(1); }
+.gamekit-menu .gkm-check-txt { font: 700 14px/1.2 var(--gkm-font, ui-monospace, monospace); letter-spacing: 1px; color: var(--gkm-text, #eaf3ff); }
+.gamekit-menu .gkm-check-txt .cap { font-weight: 400; letter-spacing: .3px; color: #93a5bd; font-size: 12px; }
+/* a toggle that doesn't apply in the current mode — grayed, keeps its checked state, not clickable */
+.gamekit-menu .gkm-check.gkm-disabled { opacity: 0.4; cursor: not-allowed; }
+.gamekit-menu .gkm-check.gkm-disabled:hover { border-color: var(--gkm-border, rgba(255, 255, 255, 0.16)); box-shadow: none; }
+/* a choice-row group that doesn't apply in the current mode (e.g. difficulty in a no-fail zen mode) —
+   grayed + not clickable, keeps its selected pill; same semantics as the disabled toggle above */
+.gamekit-menu .gkm-choice.gkm-disabled { opacity: 0.4; cursor: not-allowed; }
+.gamekit-menu .gkm-choice.gkm-disabled:hover { border-color: var(--gkm-border, rgba(255, 255, 255, 0.14)); }
+
+/* controls board (🎮 top-bar button → modal) */
+.gamekit-au-ctlbtn { font-size: 15px; }
+.gamekit-controls { position: fixed; inset: 0; z-index: 9200; display: flex; align-items: center; justify-content: center; padding: 18px;
+  background: var(--gkm-overlay, rgba(6, 9, 15, 0.82)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gamekit-controls .gkctl-box { position: relative; width: min(380px, 100%); overflow: visible; box-sizing: border-box;
+  background: var(--gkm-bg, rgba(14, 20, 32, 0.97)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 16px; padding: 22px 22px 20px;
+  box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6)); color: var(--gkm-text, #eaf2fb); font-family: var(--gkm-font, ui-monospace, monospace); }
+.gamekit-controls .gkctl-scroll { max-height: calc(100vh - 80px); overflow-y: auto; overscroll-behavior: contain; }
+.gamekit-controls h3 { margin: 0 0 14px; font-size: 18px; letter-spacing: 2px; color: var(--gkm-title, var(--gkm-text, #eaf3ff)); text-shadow: var(--gkm-glow, none); }
+.gamekit-controls .gkctl-sec { font-size: 10px; letter-spacing: 2px; color: #6b7a90; text-transform: uppercase; margin: 14px 0 7px; }
+.gamekit-controls .gkctl-sec:first-of-type { margin-top: 0; }
+.gamekit-controls .gkctl-row { display: flex; align-items: center; gap: 12px; padding: 5px 0; }
+.gamekit-controls .gkctl-keys { flex: 0 0 auto; min-width: 96px; font-size: 12px; letter-spacing: .5px; color: var(--gkm-accent, #9fe8ff);
+  background: rgba(255, 255, 255, 0.05); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.18)); border-radius: 7px; padding: 6px 9px; text-align: center; }
+.gamekit-controls .gkctl-act { color: #aebccd; font: 13px/1.4 var(--gkm-font-body, system-ui, sans-serif); }
+.gamekit-controls .gkctl-note { margin: 14px 0 0; font-size: 12px; color: #6b7a90; line-height: 1.5; }
+.gamekit-controls .gkctl-x { position: absolute; top: 12px; right: 14px; background: none; border: none; color: #9fb2c8; font-size: 17px; line-height: 1; cursor: pointer; padding: 2px; }
+.gamekit-controls .gkctl-x:hover { color: var(--gkm-text, #fff); }
+
+/* the in-game top bar carries NO notification dots — every dot lives on the side stack (.has-dot) */
+.gamekit-au-chbtn { font-size: 15px; position: relative; }
+
+
+.gamekit-challenges { position: fixed; inset: 0; z-index: 9200; display: flex; align-items: center; justify-content: center; padding: 18px;
+  background: var(--gkm-overlay, rgba(6, 9, 15, 0.82)); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gamekit-challenges .gkch-box { position: relative; width: min(400px, 100%); overflow: visible; box-sizing: border-box;
+  background: var(--gkm-bg, rgba(14, 20, 32, 0.97)); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.16)); border-radius: 16px; padding: 22px;
+  box-shadow: var(--gkm-shadow, 0 20px 60px rgba(0, 0, 0, 0.6)); color: var(--gkm-text, #eaf2fb); font-family: var(--gkm-font, ui-monospace, monospace); }
+.gamekit-challenges .gkch-scroll { max-height: calc(100vh - 80px); overflow-y: auto; overscroll-behavior: contain; }
+.gamekit-challenges h3 { margin: 0 0 14px; font-size: 18px; letter-spacing: 1px; color: var(--gkm-title, var(--gkm-text, #eaf3ff)); text-shadow: var(--gkm-glow, none); }
+.gamekit-challenges .gkch-card { background: rgba(255, 255, 255, 0.04); border: 1px solid var(--gkm-border, rgba(255, 255, 255, 0.14)); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px; text-align: left; }
+.gamekit-challenges .gkch-card.mine { border-color: var(--gkm-accent, #9fe8ff); box-shadow: 0 0 0 1px var(--gkm-accent, #9fe8ff), var(--gkm-glow, none); }
+.gamekit-challenges .gkch-card.done { opacity: 0.85; }
+.gamekit-challenges .gkch-k { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: #6b7a90; display: flex; align-items: baseline; gap: 6px; }
+.gamekit-challenges .gkch-reset { margin-left: auto; letter-spacing: 0.5px; text-transform: none; opacity: 0.8; white-space: nowrap; }
+.gamekit-challenges .gkch-card.mine .gkch-k b { color: var(--gkm-accent, #9fe8ff); }
+.gamekit-challenges .gkch-t { font-size: 14px; margin: 5px 0 9px; color: var(--gkm-text, #eaf3ff); font-family: var(--gkm-font-body, system-ui, sans-serif); }
+.gamekit-challenges .gkch-bar { height: 7px; border-radius: 99px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.gamekit-challenges .gkch-bar span { display: block; height: 100%; border-radius: 99px; background: var(--gkm-accent, #9fe8ff); }
+.gamekit-challenges .gkch-card.done .gkch-bar span { background: var(--gkm-new, #7fe0a0); }
+.gamekit-challenges .gkch-p { font-size: 11px; margin-top: 6px; color: #9fb2c9; font-variant-numeric: tabular-nums; }
+.gamekit-challenges .gkch-goodbar { font-size: 11.5px; margin: 0 0 12px; text-align: center; color: var(--gkm-accent, #9fe8ff); }
+.gamekit-challenges .gkch-empty { color: #8294ac; font-size: 13px; padding: 8px 0; }
+.gamekit-challenges .gkch-note { margin: 12px 0 0; font-size: 11px; color: #6b7a90; line-height: 1.5; }
+.gamekit-challenges .gkch-x { position: absolute; top: -13px; right: -13px; z-index: 6; width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; font-size: 14px; line-height: 1;
+  color: #cdd8e8; background: rgba(18, 24, 38, 0.92); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5); }
+.gamekit-challenges .gkch-x:hover { color: #fff; border-color: var(--gkm-accent, #9fe8ff); }
+@media (max-width: 560px) {
+  /* COMPACT single-row cards: small square preview + name/best on one line, no blurb — so 3–4 mode
+     cards fit one screen without scrolling. Full-width, so text never cramps/wraps (a 2-up grid
+     would). Rich cards stay on roomier screens; picker (style:'picker') is the rare-overflow fallback. */
+  .gamekit-menu .gkm-cards { gap: 7px; }
+  .gamekit-menu .gkm-card { grid-template-columns: 36px 1fr; gap: 11px; padding: 7px 11px; align-items: center; }
+  .gamekit-menu .gkm-card-pv { width: 36px; height: 36px; align-self: center; }
+  .gamekit-menu .gkm-card-body { gap: 2px; }
+  .gamekit-menu .gkm-card-head { flex-wrap: wrap; }
+  .gamekit-menu .gkm-card-desc { display: none; }
+  .gamekit-menu .gkm-card-mech { display: none; }
+}
+
+/* "Tap to play" splash — one gesture up front so audio can start (browsers block autoplay until a tap).
+   Shown once per game load; the tap is the unlock. */
+.gamekit-tap { position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 9, 14, 0.82); -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+  cursor: pointer; transition: opacity .28s ease; }
+.gamekit-tap.gk-hide { opacity: 0; pointer-events: none; }
+.gamekit-tap-inner { display: flex; flex-direction: column; align-items: center; gap: 13px; text-align: center;
+  color: #fff; font: 700 15px/1.2 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 3px; }
+.gamekit-tap-play { width: 66px; height: 66px; border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.55);
+  display: flex; align-items: center; justify-content: center; font-size: 26px; padding-left: 4px;
+  box-shadow: 0 0 26px -6px rgba(159, 232, 255, 0.6); animation: gkTapPulse 1.8s ease-in-out infinite; }
+.gamekit-tap-inner small { font-size: 11px; letter-spacing: 1.5px; color: rgba(255, 255, 255, 0.55); font-weight: 400; }
+@keyframes gkTapPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .gamekit-tap { transition: none; } .gamekit-tap-play { animation: none; }
+}
+
+/* "rotate your phone" overlay (gamekit.layout.requireOrientation) — for games locked to one orientation */
+/* while the rotate-lock splash is up, the left nav rides above it — quitting must not require rotating */
+body.gk-rotate-lock .gamekit-nav { z-index: 9100; }
+.gamekit-rotate { position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center;
+  background: rgba(6, 9, 15, 0.96); color: #eaf2fb; text-align: center; padding: 24px; }
+.gamekit-rotate.show { display: flex; }
+.gamekit-rotate-box { font-size: 17px; line-height: 1.5; max-width: 280px; }
+.gamekit-rotate-ico { font-size: 46px; margin-bottom: 10px; animation: gamekit-rot 1.6s ease-in-out infinite; }
+@keyframes gamekit-rot { 0%,100% { transform: rotate(-12deg); } 50% { transform: rotate(78deg); } }
+@media (prefers-reduced-motion: reduce) { .gamekit-rotate-ico { animation: none; }
+}
+
+/* embed modal (iframe snippet) */
+.gamekit-embed { position: fixed; inset: 0; z-index: 9100; display: flex; align-items: center; justify-content: center;
+  background: rgba(5, 8, 13, 0.7); padding: 18px; }
+.gamekit-embed-box { position: relative; width: min(520px, 100%); background: #0f1622; color: #eaf2fb;
+  border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 14px; padding: 22px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  font: 14px/1.5 system-ui, sans-serif; }
+.gamekit-embed-box h3 { margin: 0 0 8px; font-size: 18px; }
+.gamekit-embed-box p { margin: 0 0 14px; color: #9fb2c8; }
+.gamekit-embed-sel { width: 100%; margin-bottom: 10px; padding: 9px 10px; border-radius: 9px; background: #0a121d;
+  color: #eaf2fb; border: 1px solid rgba(255, 255, 255, 0.2); font: inherit; }
+.gamekit-embed-code { width: 100%; box-sizing: border-box; resize: vertical; padding: 11px; border-radius: 9px;
+  background: #0a121d; color: #9fe8ff; border: 1px solid rgba(255, 255, 255, 0.18); font: 12px/1.5 ui-monospace, monospace; }
+.gamekit-embed-copy { margin-top: 12px; padding: 10px 16px; border-radius: 9px; cursor: pointer; font: 600 13px system-ui, sans-serif;
+  color: #06121a; background: #9fe8ff; border: none; }
+.gamekit-embed-x { position: absolute; top: -13px; right: -13px; z-index: 6; width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; padding: 0; cursor: pointer; font-size: 14px; line-height: 1;
+  color: #cdd8e8; background: rgba(18, 24, 38, 0.92); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5); }
+.gamekit-embed-x:hover { color: #fff; border-color: var(--gkm-accent, #9fe8ff); }
+
+/* bottom-left build stamp (short commit SHA from version.js) — debug aid, deliberately faint +
+   non-interactive; z below every kit overlay (menu 60, modals 9000+) so it never paints over them */
+#gamekitVersion { position: fixed; left: 8px; bottom: 7px; z-index: 50; pointer-events: none; user-select: none;
+  font: 11px/1 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 0.4px; color: #cdd8e8; opacity: 0.5; }
+/* dev FPS meter (?fps=1) — bottom-right, above everything, non-interactive */
+#gamekitFps { position: fixed; right: 8px; bottom: 7px; z-index: 2147483000; pointer-events: none; user-select: none;
+  font: 700 12px/1 ui-monospace, "SFMono-Regular", Menlo, monospace; letter-spacing: 0.4px; color: #9fe8ff;
+  background: rgba(0, 0, 0, 0.55); padding: 4px 8px; border-radius: 6px; }
+
+/* ---- challenges panel: trophy pills + good-run bonus line ---- */
+/* two matched muted-gold pills — kept in lockstep with the catalogue drawer's .cpills (index.html) */
+.gamekit-challenges .gkch-pills { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; justify-content: center; margin: 0 0 8px; }
+.gamekit-challenges .gkch-pill { display: inline-flex; align-items: center; gap: 6px; font: 700 12px/1 var(--gkm-font, ui-monospace, monospace);
+  letter-spacing: 0.5px; color: #e8c069; background: rgba(255, 206, 92, 0.10);
+  border: 1px solid rgba(255, 206, 92, 0.34); border-radius: 999px; padding: 6px 13px; }
+.gamekit-challenges .gkch-pill.gkch-shop { cursor: pointer; }
+.gamekit-challenges .gkch-pill.gkch-shop:hover { border-color: #ffce5c; background: rgba(255, 206, 92, 0.16); color: #ffce5c; }
+@keyframes gkCrtSwCycle {
+  0%, 100% { background: #0c1f12; box-shadow: inset 0 0 0 1px #46e0a0, inset 0 0 14px -2px #46e0a0; }
+  25% { background: #1f180c; box-shadow: inset 0 0 0 1px #ffb454, inset 0 0 14px -2px #ffb454; }
+  50% { background: #0c1a1f; box-shadow: inset 0 0 0 1px #5cc8ff, inset 0 0 14px -2px #5cc8ff; }
+  75% { background: #1a1c20; box-shadow: inset 0 0 0 1px #eaf3ff, inset 0 0 14px -2px #eaf3ff; }
+}
+@keyframes gkspAchNew { 0%, 100% { box-shadow: none; } 50% { box-shadow: 0 0 0 1px #ffd166, 0 0 18px rgba(255, 209, 102, 0.55); } }
+@keyframes gkspAchNewIn { 0% { opacity: 0; transform: translateY(4px) scale(.8); } 100% { opacity: 1; transform: none; } }
+/* always visible: the "blink" is just a short dip to 50% opacity, never fully off */
+@keyframes gkTermBlink { 0%, 80% { opacity: 1; } 80.01%, 100% { opacity: 0.5; } }
+/* locked ☰ row (feature not yet unlocked) — dimmed, points to the shop */
+.gamekit-more-item.gamekit-more-locked { opacity: 0.55; }
+.gamekit-more-crt .gamekit-more-item { display: flex; align-items: center; gap: 6px; width: 100%; box-sizing: border-box; }
+@keyframes gkCrtCycle {
+  0%, 100% { background: #46e0a0; box-shadow: 0 0 7px #46e0a0; }
+  25% { background: #ffb454; box-shadow: 0 0 7px #ffb454; }
+  50% { background: #5cc8ff; box-shadow: 0 0 7px #5cc8ff; }
+  75% { background: #eaf3ff; box-shadow: 0 0 7px #eaf3ff; }
+}
+  @keyframes chNewGlow { 0%,100% { box-shadow:none; } 50% { box-shadow:0 0 0 1px #ffd166, 0 0 16px rgba(255,209,102,.55); } }
+  @keyframes chNewIn { 0% { opacity:0; transform:translateY(4px) scale(.8); } 100% { opacity:1; transform:none; } }
+  @keyframes ttPulse { 0% { transform:none; } 30% { transform:translateY(-1px) scale(1.05); box-shadow:0 4px 14px rgba(0,0,0,.42), 0 0 0 3px rgba(255,209,102,.55), 0 0 22px rgba(255,209,102,.5); } 100% { transform:none; } }
+/* on game pages the kit menu overlay sits at z 60 — lift the stack above it there so it stays
+   clickable on menu screens (the catalogue has no .gamekit-menu, so this never fires at home) */
+body:has(.gamekit-menu) .side-stack { z-index:70; }
+  @keyframes pftSweep { to { background-position:-166.667% 0; } } /* one exact tile at size 250% (see badgeShine note) — was 1.5 tiles, jumping each wrap */
+  @keyframes pftHolo { to { background-position:300% 0; } }
+  @keyframes pftPulse { 0%,100%{ filter:drop-shadow(0 0 7px rgba(185,140,255,.55)); } 50%{ filter:drop-shadow(0 0 16px rgba(159,232,255,.95)); } }
+  @keyframes pftPulseGold { 0%,100%{ filter:drop-shadow(0 0 9px rgba(255,215,106,.6)); } 50%{ filter:drop-shadow(0 0 20px rgba(255,215,106,1)); } }
+  @keyframes pftBreathe { 0%,100%{ transform:scale(.92); opacity:.7; } 50%{ transform:scale(1.08); opacity:1; } }
+  @keyframes pftGlint { 0%{ background-position:180% 0; } 42%,100%{ background-position:-90% 0; } }
+  @keyframes idReveal { 0% { transform:scale(.94); filter:brightness(1.7) drop-shadow(0 0 18px rgba(255,209,102,.9)); }
+    45% { transform:scale(1.03); } 100% { transform:scale(1); filter:none; } }
+  @keyframes idChip { 0% { opacity:0; transform:translateY(4px); } 12%,80% { opacity:1; transform:translateY(0); } 100% { opacity:0; } }
+
+/* ---- shared hint affordance (gamekit.hintButton) — one bottom-centre button + a toast that is
+   laid out ABOVE it, so the text can never sit under the tap target. Games reserve `reserve` px
+   of bottom band via layout.archetype so the board never grows under it. ---- */
+.gamekit-hintwrap { position: fixed; left: 50%; bottom: 8px; transform: translateX(-50%); z-index: 6;
+  display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; max-width: min(94vw, 560px); }
+.gamekit-hintbtn { pointer-events: auto; font: 700 12px/1 ui-monospace, "SFMono-Regular", Menlo, monospace;
+  letter-spacing: 1.5px; color: var(--gkm-text, #eef2f8); background: rgba(8, 12, 20, 0.72);
+  border: 1px solid var(--gkm-accent, #9fe8ff); border-radius: 999px; padding: 9px 18px; cursor: pointer;
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.gamekit-hintbtn:hover { background: rgba(16, 24, 38, 0.86); }
+.gamekit-hinttip { display: none; pointer-events: none; text-align: center;
+  font: 600 12px/1.45 ui-monospace, "SFMono-Regular", Menlo, monospace; color: #eef2f8;
+  background: rgba(8, 12, 20, 0.88); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 10px;
+  padding: 8px 12px; max-width: 100%; }
+.gamekit-hinttip.show { display: block; }
+/* Toast opens DOWNWARD (gamekit.hintButton({tipBelow:true})): the tip leaves the flow and hangs
+   under the button, so the wrap itself stays exactly the height of the button (it fits the reserved
+   band) and the text covers whatever the game keeps below it — its own control strip — instead of
+   the play area above. DOM order is untouched (tip first, button last). */
+.gamekit-hintwrap.gk-hint-tipdown .gamekit-hinttip { position: absolute; top: calc(100% + 6px);
+  left: 50%; transform: translateX(-50%); width: min(94vw, 460px); max-width: 94vw; }
+.gamekit-hintwrap.gk-hint-side.gk-hint-tipdown .gamekit-hinttip,
+.gamekit-hintwrap.gk-hint-side-r.gk-hint-tipdown .gamekit-hinttip { width: 100%; left: 0; transform: none; }
+/* tap the text to dismiss it — the point of tipBelow is that it may sit over the game's own keys */
+.gamekit-hinttip.show { pointer-events: auto; cursor: pointer; }
+/* Landscape dock (gamekit.hintButton().dock('left')): a left-edge rail instead of a bottom strip —
+   a short screen cannot spare 46px of height for a button, but it has width to burn. Vertically
+   centred so it clears the top nav; the toast stacks under the button inside the rail. */
+.gamekit-hintwrap.gk-hint-side { left: 6px; right: auto; bottom: auto; top: 50%;
+  transform: translateY(-50%); align-items: stretch; width: 134px; max-width: 134px; }
+.gamekit-hintwrap.gk-hint-side .gamekit-hintbtn { width: 100%; padding: 8px 6px; }
+.gamekit-hintwrap.gk-hint-side .gamekit-hinttip { text-align: left; font-size: 10.5px; line-height: 1.4; padding: 7px 9px; }
+/* right rail, anchored under the HUD — for a game whose own control strip owns the bottom of that
+   column in landscape (Sudoku's number pad docks bottom-right) */
+.gamekit-hintwrap.gk-hint-side-r { left: auto; right: 6px; bottom: auto; top: 58px; transform: none;
+  align-items: stretch; width: 158px; max-width: 158px; }
+.gamekit-hintwrap.gk-hint-side-r .gamekit-hintbtn { width: 100%; padding: 8px 6px; }
+.gamekit-hintwrap.gk-hint-side-r .gamekit-hinttip { text-align: left; font-size: 10.5px; line-height: 1.4; padding: 7px 9px; }
+@media (max-height: 420px) {   /* landscape phones: keep it tight so the board keeps its height */
+  .gamekit-hintwrap { bottom: 4px; }
+  .gamekit-hintbtn { padding: 6px 14px; font-size: 11px; }
+  .gamekit-hinttip { font-size: 11px; padding: 6px 10px; }
+}

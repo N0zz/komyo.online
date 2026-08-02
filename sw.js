@@ -7,7 +7,7 @@ self.VERSION = 'dev'; // stamped with the commit SHA at deploy
 // Live slugs in games.js order — keep in lockstep with games.js (test-enforced).
 var GAME_SLUGS = ['asteroids', 'asteroids-plus', 'tower-defense', 'forcefield', 'bubbles', 'frog-bonk', 'breakout', 'sudoku', 'stacker', 'trap-the-cat', 'flappy', 'aim-trainer', 'snake', '2048', 'type-siege', 'dusk-runner', 'floodgate', 'mirror-maze', 'minesweeper', 'balloon-pop', 'critter-match', 'glow-says', 'tube-racer'];
 var GAME_FILES = ['', 'index.html', 'manifest.json', 'favicon.svg', 'icon-192.png', 'icon-512.png'];
-self.SHELL = ['./', './index.html', './games.js', './changelog.js', './challenges.js', './cosmetics.js', './achievements.js', './i18n.js', './i18n.pl.js', './i18n.es.js', './i18n.pt.js', './i18n.fr.js', './i18n.it.js', './i18n.cs.js', './i18n.uk.js', './analytics.js', './game-kit.js', './game-kit.css', './qr.js', './words.js', './version.js', './favicon.svg', './mascot-head.svg', './manifest.json'].concat(
+self.SHELL = ['./', './index.html', './games.js', './changelog.js', './challenges.js', './cosmetics.js', './achievements.js', './i18n.js', './i18n.pl.js', './i18n.es.js', './i18n.pt.js', './i18n.fr.js', './i18n.it.js', './i18n.cs.js', './i18n.uk.js', './analytics.js', './game-kit.js', './game-kit.css', './game-kit-play.css', './qr.js', './words.js', './version.js', './favicon.svg', './mascot-head.svg', './manifest.json'].concat(
   GAME_SLUGS.reduce(function (all, slug) {
     return all.concat(GAME_FILES.map(function (f) { return './games/' + slug + '/' + f; }));
   }, [])
