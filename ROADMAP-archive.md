@@ -32,6 +32,34 @@ holds only open work. Nothing in this file is a task.
   overcrowds the home page.
 - **No on-site local "recent plays" ticker** — with no server it only shows your own plays and misreads
   as a community feed (tried + removed). The shared feed is Discord; see Distribution for the live route.
+  **Superseded 2026-08-02 by the activity log** (shipped): the same corner, deliberately reframed as a
+  PERSONAL history — records, achievements, challenges, cosmetics, titles, good-run days, never "runs".
+  What changed is the framing and the content, not the verdict on a fake community feed: a local list of
+  *other people's* plays is still out, and a per-run ticker is still out (it was the noise that made the
+  old one read as a feed). It survives because it backfills — achievements, cosmetic buys, challenge
+  history and good-run days are already dated in their own stores, so it opens full on day one rather
+  than looking dead. Those stores only keep a DAY, so `gamekit_log` doubles as a **precision cache**:
+  each new unlock / purchase / good run / same-day challenge also writes a timestamped stamp, matched
+  back to its derived row by key. Wipe the log and every row survives at day granularity — it is never
+  the source of truth. Existing history was deliberately NOT back-stamped (there is no time to
+  recover, and a plausible invented one is worse than admitting the date), and a retroactively
+  awarded challenge stays day-only because awarding scans ~15 days whenever the catalogue opens. **Shape and corner are settled — don't re-propose either:** it is an inline
+  MMO-chat stack of loose bubbles in the **bottom-LEFT** (a ~5-bubble-tall box, newest at the bottom, ~62%
+  opacity at rest, full on hover), shown by default, paged ONLY by scrolling up, resized by a corner
+  grip (drag; double-click resets; per-device, clamped to the viewport on every relayout), with the
+  controls BELOW the stack in the corner so the handle sits in one fixed place open or closed:
+  ✕ → collapse to a clock button carrying an unseen count, eye → pin it back.
+  **Touch is a different product**: `:hover` never fires, so the resting dim left it permanently at
+  62% and washed into the tiles — on a coarse pointer it is full-strength, near-opaque, starts
+  COLLAPSED below 820px, hides the grip, and a peek raises a scrim over the page. All gated on
+  `(hover: none)`, and those rules must sit AFTER the base ones in the file (equal specificity). Rejected attempts, in order: a framed drop-down
+  panel (too heavy for ambient content); the bottom-RIGHT corner (the side stack, the back-to-top
+  button and the tucked ‹‹ tab already share that edge — clearing all three pushed the stack up into
+  the middle of the page); an in-scroll "▲ older" pill (scrolled out of reach, clipped by the top
+  fade); a −/+ size stepper (confusing next to a scroll region that already
+  pages itself — replaced by the drag grip); and controls ABOVE the stack (they floated detached at
+  its far top-right).
+  **No emoji in the chrome** — the bubbles are full of emoji, so emoji controls read as content.
 - **No formal idea→release checklist / per-game QA blocker list** — testers play what they *like* and
   report issues there; they won't grind a feature checklist over untested games, and a blocker list of
   untested games is meaningless. Organic test-and-report instead. (Revisit only if the tester pool

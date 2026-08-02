@@ -1944,6 +1944,9 @@
       if (cur >= GR_PER * GR_CAP) return false;
       d[k] = cur + GR_PER;
       lsSet('gamekit_done', JSON.stringify(d));
+      // one aggregated row per day, stamped by its MOST RECENT award (the stamp key drops the
+      // count, so a 2nd and 3rd good run move the same row rather than making new ones)
+      actPush('good', {});
       return true;
     } catch (e) { return false; }
   }
@@ -2007,6 +2010,17 @@
     achSync();       // the gift moves lifetime trophies → a trophy-total achievement can land here
     return true;
   }
+  // The catalogue keeps cosmetics.js OFF the critical path (22 KB gz of painters that first paint
+  // does not need) and loads it right after. Everything that resolved against an empty registry
+  // has to be redone here — the cursor skin, the CRT overlay, and the activity log's purchase rows.
+  function cosmeticsArrived() {
+    try { applyCursor(); } catch (e) {}
+    try { applyCrt(); } catch (e) {}
+    try { actChanged(); } catch (e) {}
+    // the side stack renders "🏆 n" and "owned/total · n%" only when the registry is present, so
+    // without this they stay blank for anyone whose page deferred cosmetics.js
+    try { if (typeof window !== 'undefined' && window.__refreshSideStack) window.__refreshSideStack(); } catch (e) {}
+  }
   function cosBuy(id) {
     var item = cosItem(id); if (!item) return false;
     if (cosOwned(id)) return true; // idempotent — a double-tap can't double-charge
@@ -2014,6 +2028,7 @@
     if (cosBalance() < price) return false;
     var o = cosOwnedMap(); o[id] = { c: price, t: utcDayNumber() };
     lsSet('gamekit_owned', JSON.stringify(o));
+    actPush('buy', { id: id, s: actGameOf(id), n: price });   // gamekit_owned keeps only the day
     track('shop_buy', { item_id: id });
     achSync();       // collection milestones ("own 25%") unlock the moment you buy, not next run
     return true;
@@ -2256,8 +2271,12 @@
       if (+a.price) { done = done || chDoneMap(); done['ach#' + a.id] = +a.price; _achPending += +a.price; }
     });
     if (done) lsSet('gamekit_done', JSON.stringify(done));
-    if (fresh.length || backfill) achSave(u);
+    if (fresh.length || backfill) { achSave(u); actChanged(); }
     achNewAdd(fresh.map(function (a) { return a.id; }));   // what the dot will point AT
+    // precision stamp for the activity log: gamekit_ach only keeps the DAY, so without this an
+    // unlock sorts to that day's start instead of to the run that earned it. Skipped on the
+    // backfill pass — those really did happen on an unknown day, and inventing a time would lie.
+    if (!backfill) fresh.forEach(function (a) { actPush('ach', { id: a.id, s: a.game || '', n: +a.price || 0 }); });
     _achPending = 0;
     fresh.forEach(function (a) {
       track('achievement_unlock', { slug: a.game || '(site)', item_id: a.id, amount: +a.price || 0, kind: achShape(a), via: backfill ? 'backfill' : 'run' });
@@ -2299,6 +2318,452 @@
   function achMarkSeen() {
     try { if (typeof localStorage !== 'undefined') localStorage.removeItem('gamekit_ach_new'); } catch (e) {}
     try { if (typeof window !== 'undefined' && window.__syncAchNotify) window.__syncAchNotify(); } catch (e) {}
+  }
+
+  // ---------- activity log (kit-owned; catalogue-only UI) ----------
+  // A PERSONAL history — "what happened to you, over time" — not a community feed and not a
+  // notification channel (the archive's ticker guard: a local feed that reads as a shared one is
+  // the thing we removed). It is a DERIVED VIEW first: achievements, cosmetic buys, challenge
+  // completions and good-run days are already timestamped in their own stores, so they backfill
+  // for free and cost zero extra bytes. `gamekit_log` only holds the three events nothing else
+  // dates — a new record, a game's first run, a titles-ladder promotion — capped hard.
+  var ACT_V = 1, ACT_CAP = 50;
+  function actLoad() {
+    try { var d = JSON.parse(lsGet('gamekit_log') || 'null'); return (d && d.v === ACT_V && Array.isArray(d.e)) ? d.e : []; } catch (e) { return []; }
+  }
+  // Rows the log OWNS: nothing else records that they happened, so evicting one deletes it from
+  // history. Everything else in here is a precision STAMP for a row that is derived from another
+  // store — losing it costs the time of day, never the event.
+  var ACT_OWN = { best: 1, first: 1, tier: 1 };
+  function actPush(k, data) {
+    try {
+      var e = actLoad(), row = { k: k, t: nowMs() };
+      for (var p in data) if (Object.prototype.hasOwnProperty.call(data, p)) row[p] = data[p];
+      e.unshift(row);
+      // over the cap, sacrifice the oldest STAMP before the oldest owned row
+      while (e.length > ACT_CAP) {
+        var drop = e.length - 1;
+        for (var i = e.length - 1; i >= 0; i--) if (!ACT_OWN[e[i].k]) { drop = i; break; }
+        e.splice(drop, 1);
+      }
+      lsSet('gamekit_log', JSON.stringify({ v: ACT_V, e: e }));
+      actChanged();
+    } catch (err) {}
+  }
+  // Anything that writes to the log (or to a store the log derives from) tells the widget, so a
+  // purchase made in the shop lands in the feed behind it instead of waiting for a page reload.
+  // Coalesced: one buy can cascade into several unlocks, and that is still one re-render.
+  var _actTid = 0;
+  function actChanged() {
+    if (typeof window === 'undefined' || _actTid) return;
+    _actTid = setTimeout(function () {
+      _actTid = 0;
+      try { if (window.__actChanged) window.__actChanged(); } catch (e) {}
+    }, 0);
+  }
+  // Day-granularity sources sort at UTC noon, so they interleave with the ms-stamped ones instead
+  // of all piling at midnight; `day: true` also tells the renderer to print a date, never "2h ago".
+  // A day-granularity entry has no time of day, so it sits at the START of its day. That is what
+  // keeps the list stable: every precise event of that day sorts ABOVE it, so the newest thing you
+  // did is always the last bubble, and nothing already on screen moves when a new one arrives.
+  // (Day-END put the aggregates permanently at the bottom, so a record you just set appeared in
+  // the middle of the list; noon was worse still, splitting the day in half.)
+  function actDayMs(day) { return (day | 0) * 86400000; }
+  // Deterministic tiebreak for the aggregates, which all share their day's 00:00. Sort stability
+  // would give the same answer today, but only by accident of insertion order.
+  var ACT_RANK = { chal: 1, good: 2, ach: 3, achMany: 3, buy: 4, buyMany: 4 };
+  function actRank(e) { return ACT_RANK[e && e.k] || 0; }
+  // Stable identity per row. The unseen count CANNOT be a timestamp comparison: half these rows
+  // only know their day, so "newer than the last thing I saw" is unanswerable for them. Identity is.
+  function actKey(e) {
+    if (!e) return '';
+    if (e.k === 'ach' || e.k === 'buy') return e.k + ':' + e.id;
+    if (e.k === 'achMany' || e.k === 'buyMany') return e.k + ':' + utcDayNumber(e.t) + ':' + (e.c | 0);
+    if (e.k === 'chal') return 'chal:' + e.id + '#' + utcDayNumber(e.t);
+    if (e.k === 'good') return 'good:' + utcDayNumber(e.t) + ':' + (e.c | 0);
+    return e.k + ':' + (+e.t || 0) + ':' + (e.s || '');
+  }
+  function actStampKey(e) {
+    if (!e) return '';
+    if (e.k === 'ach' || e.k === 'buy') return e.k + ':' + e.id;
+    if (e.k === 'chal') return 'chal:' + e.id + '#' + utcDayNumber(e.t);
+    if (e.k === 'good') return 'good:' + utcDayNumber(e.t);
+    return '';
+  }
+  function actGameOf(id) { var s = String(id || '').split('.')[0]; return (s && s !== 'site') ? s : ''; }
+  function actFeed(limit) {
+    var out = [], i;
+    // the log holds two things: rows it owns, and precision stamps for rows derived below. Split
+    // them — a stamp is a timestamp for someone else's row, never a row of its own.
+    var stamp = {};
+    actLoad().forEach(function (e) {
+      if (ACT_OWN[e.k]) { out.push(e); return; }
+      var sk = actStampKey(e), t = +e.t || 0;
+      if (sk && !(stamp[sk] >= t)) stamp[sk] = t;   // newest occurrence wins
+    });
+    // a derived row takes its exact time when we have one, else its day (backfilled history has no
+    // time to recover, and inventing one would be worse than admitting the date)
+    function at(row, dayMs) {
+      row.t = dayMs; row.day = 1;                    // set first: the chal/good stamp key reads the day off t
+      var t = stamp[actStampKey(row)];
+      if (t) { row.t = t; row.day = 0; }             // day:0 → renders as "12m ago" instead of a date
+      return row;
+    }
+    var u = achMap() || {};
+    achItems().forEach(function (a) { if (u[a.id]) out.push(at({ k: 'ach', id: a.id, s: a.game || '', n: +a.price || 0 }, actDayMs(u[a.id]))); });
+    var o = cosOwnedMap();
+    for (var id in o) {
+      if (!Object.prototype.hasOwnProperty.call(o, id)) continue;
+      if (!cosItem(id)) continue;   // an item dropped from the registry leaves no orphan row
+      out.push(at({ k: 'buy', id: id, s: actGameOf(id), n: (o[id] && o[id].c) | 0 }, actDayMs((o[id] && o[id].t) | 0)));
+    }
+    var hist = []; try { hist = JSON.parse(lsGet('gamekit_history') || 'null') || []; } catch (e) { hist = []; }
+    if (Array.isArray(hist)) hist.forEach(function (r) {
+      if (!r) return;
+      out.push(at({ k: 'chal', id: r.id || '', ttl: r.title || '', s: r.slug || '', n: r.pts | 0, ck: r.kind || '' }, actDayMs(r.day | 0)));
+    });
+    var done = chDoneMap();
+    for (var key in done) {
+      if (!Object.prototype.hasOwnProperty.call(done, key) || key.indexOf('gr#') !== 0) continue;
+      var amt = done[key] | 0; if (amt <= 0) continue;
+      out.push(at({ k: 'good', n: amt, c: Math.floor(amt / GR_PER) }, actDayMs(chDayNum(key.slice(3)))));
+    }
+    // NEVER `| 0` a ms timestamp — 1.7e12 overflows 32 bits and comes back negative
+    out.sort(function (a, b) {
+      var d = (+b.t || 0) - (+a.t || 0);
+      return d || (actRank(a) - actRank(b));
+    });
+    out = actGroup(out);
+    if (limit > 0 && out.length > limit) out.length = limit;
+    return out;
+  }
+  // Collapse 3+ same-kind rows from the same day into one. The case that forces this is the
+  // achievements BACKFILL: a returning player's first load stamps every already-earned achievement
+  // with today, which would bury a whole history under twenty identical "Today" lines.
+  var ACT_GROUP = { ach: 1, buy: 1 }, ACT_GROUP_MIN = 3;
+  function actGroup(rows) {
+    var out = [], i = 0;
+    while (i < rows.length) {
+      var r = rows[i];
+      if (!ACT_GROUP[r.k]) { out.push(r); i++; continue; }
+      var j = i + 1, day = utcDayNumber(r.t), pts = r.n | 0, ids = [r.id];
+      while (j < rows.length && rows[j].k === r.k && utcDayNumber(rows[j].t) === day) { pts += rows[j].n | 0; ids.push(rows[j].id); j++; }
+      var n = j - i;
+      // the group keeps its members' ids: tapping it has to land on THOSE rows in the wall,
+      // otherwise "7 achievements unlocked" tells you nothing about which seven
+      if (n >= ACT_GROUP_MIN) out.push({ k: r.k + 'Many', t: r.t, day: 1, c: n, n: pts, s: '', ids: ids });
+      else for (var m = i; m < j; m++) out.push(rows[m]);
+      i = j;
+    }
+    return out;
+  }
+
+  // Catalogue only: in a game the end menu is already the receipt for everything here, and a
+  // floating stack would fight the side stack's tuck rule.
+  // The widget is an in-line CHAT STACK, not a modal: loose translucent bubbles hugging the
+  // bottom-right corner, newest at the bottom, dimmed until you look at them. Two modes —
+  // PINNED (the default: always there, never steals a click) and HIDDEN (collapsed to the 🕘
+  // button; tapping it PEEKS the stack open, and a click anywhere outside puts it away again).
+  // That split is why "always visible" and "clicking outside closes it" aren't in conflict:
+  // only a peek is transient.
+  function activityLog(opts) {
+    opts = opts || {};
+    if (typeof document === 'undefined' || !document.body || !document.createElement) return null;
+    // The BOX is about five bubbles tall (CSS) — that is the "show last 5". How many are rendered
+    // into it is a separate number: always more than fits, so the stack is scrollable and scrolling
+    // up pulls the next chunk in by itself. No size buttons: a stepper next to a scrollbar-less
+    // scroll region was two ways to do one thing, and the buttons won by being confusing.
+    var PAGE = opts.page || 10, feed = [], shown = PAGE;
+    var MODE_KEY = 'gamekit_act_mode', SEEN_KEY = 'gamekit_act_seen';
+    var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]; }); };
+    // Closed by default, everywhere: the unseen dot is the discovery route, so the log does not
+    // need to occupy the corner before it has anything to say. Pinning is opt-in and remembered.
+    var _storedMode = lsGet(MODE_KEY);
+    var mode = (_storedMode === 'pinned') ? 'pinned' : 'hidden';
+    var peek = false;
+
+    // Line icons, not emoji: the bubbles themselves are full of emoji (game icons, 🏆, 🌟) and the
+    // controls have to read as chrome against them, not as more content.
+    var SVG = function (d, o) { return '<svg class="gk-act-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + (o || 2) + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + d + '</svg>'; };
+    var IC_CLOCK = SVG('<circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 2"/>');
+    // mirrored vertically vs. the familiar bottom-right grip: this one lives in the TOP-right
+    // corner, so its lines have to run with that corner's diagonal (╲), not against it
+    var IC_GRIP = SVG('<path d="M20 10L14 4M20 16L8 4"/>', 2);
+    var IC_X = SVG('<path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/>', 2.3);
+    var IC_EYE = SVG('<path d="M2.5 12S6 6.2 12 6.2 21.5 12 21.5 12 18 17.8 12 17.8 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.6"/>');
+
+    var wrap = document.createElement('div');
+    wrap.className = 'gk-act';
+    // the size stepper and ✕ live in a bar ABOVE the scroll region — inside it the control scrolled
+    // away and the top-edge fade clipped it in half
+    // The controls sit BELOW the stack, hard against the corner — the same spot the collapsed clock
+    // occupies, so the handle is in one fixed place whether the log is open or put away. Above the
+    // stack they floated at its far top-right corner, detached from anything.
+    wrap.innerHTML = '<div class="gk-act-wrapstack"><div class="gk-act-stack"><div class="gk-act-msgs" role="log" aria-live="off"></div></div>'
+      + '<button type="button" class="gk-act-grip">' + IC_GRIP + '</button></div>'
+      + '<div class="gk-act-bar">'
+      + '<button type="button" class="gk-act-bubble" aria-expanded="false">' + IC_CLOCK + '<span class="gk-act-dot"></span></button>'
+      + '<button type="button" class="gk-act-tool"></button></div>';
+    document.body.appendChild(wrap);
+    // sibling of the widget, not a child: the outside-click handler walks up from the click target
+    // to `wrap`, so a scrim inside it would read as "inside" and never dismiss the peek
+    var scrim = document.createElement('div');
+    scrim.className = 'gk-act-scrim';
+    document.body.appendChild(scrim);
+    var q = function (sel) { try { return wrap.querySelector ? wrap.querySelector(sel) : null; } catch (e) { return null; } };
+    var stack = q('.gk-act-stack'), msgs = q('.gk-act-msgs'), bar = q('.gk-act-bar'),
+      grip = q('.gk-act-grip'), tool = q('.gk-act-tool'), bubble = q('.gk-act-bubble'), dot = q('.gk-act-dot');
+    // headless (mocked DOM): innerHTML builds no queryable tree — drop the mount rather than
+    // half-wire it, so a catalogue boot test never trips over this widget
+    if (!stack || !msgs || !bar || !grip || !tool || !bubble || !dot) {
+      try { if (wrap.parentNode) wrap.parentNode.removeChild(wrap); } catch (e) {}
+      return null;
+    }
+
+    // gamekit_act_seen = the keys already looked at, capped at the feed's own size so it cannot grow.
+    var _seen = null;
+    function seenSet() {
+      if (_seen) return _seen;
+      _seen = {};
+      try { var a = JSON.parse(lsGet(SEEN_KEY) || 'null'); if (Array.isArray(a)) for (var i = 0; i < a.length; i++) _seen[a[i]] = 1; } catch (e) {}
+      return _seen;
+    }
+    function isFresh(e) { return !seenSet()[actKey(e)]; }
+    function unseen() { var n = 0; for (var i = 0; i < feed.length; i++) if (isFresh(feed[i])) n++; return n; }
+    // UNION with what is already stored — never replace. The feed can be legitimately incomplete at
+    // the moment this runs: cosmetics.js is lazy on the catalogue, so purchase rows are missing until
+    // it lands. Overwriting from that partial feed dropped the `buy:` keys, the registry then arrived,
+    // the rows came back "unseen", and they re-highlighted on every single load, forever.
+    var SEEN_CAP = 200;   // short strings; generous enough that a transient gap can never evict
+    function markSeen() {
+      if (!feed.length) { syncDot(); return; }
+      var keys = [], seen = {};
+      var add = function (k) { if (k && !seen[k] && keys.length < SEEN_CAP) { seen[k] = 1; keys.push(k); } };
+      for (var i = 0; i < feed.length; i++) add(actKey(feed[i]));   // what is on screen now, first
+      var prev = seenSet();                                         // …then everything already seen
+      for (var k in prev) if (Object.prototype.hasOwnProperty.call(prev, k)) add(k);
+      _seen = seen;
+      lsSet(SEEN_KEY, JSON.stringify(keys));
+      syncDot();
+    }
+    function syncDot() {
+      var n = feed.length ? unseen() : 0;
+      dot.textContent = n > 9 ? '9+' : (n ? String(n) : '');
+      dot.style.display = n ? '' : 'none';
+    }
+
+    function gameTitle(slug) { return slug ? t('game.' + slug + '.title', { def: (titleMap() || {})[slug] || slug }) : ''; }
+    function gameIcon(slug) {
+      try { var G = window.GAMES || []; for (var i = 0; i < G.length; i++) if (G[i].slug === slug) return G[i].icon || '🎮'; } catch (e) {}
+      return '🎮';
+    }
+    function when(e) {
+      if (!e.day) {
+        var diff = nowMs() - e.t;
+        if (diff < 3600000) return t('activity.mins', { n: Math.max(1, Math.round(diff / 60000)) });
+        if (diff < 86400000) return t('activity.hours', { n: Math.max(1, Math.round(diff / 3600000)) });
+      }
+      if (utcDayNumber(e.t) === utcDayNumber()) return t('activity.today');
+      if (utcDayNumber(e.t) === utcDayNumber() - 1) return t('activity.yesterday');
+      try { return new Date(e.t).toLocaleDateString(lang(), { month: 'short', day: 'numeric', timeZone: 'UTC' }); } catch (err) { return utcDateStr(e.t); }
+    }
+    // one bubble = icon + text + when. `go` is what a tap opens; every kind that CAN land
+    // somewhere specific does — a row that opens a wall and leaves you hunting is worse than inert.
+    function msg(e) {
+      var ico = '🎮', txt = '', go = null;
+      if (e.k === 'best') {
+        ico = gameIcon(e.s); go = { card: e.s };
+        // ALWAYS name the mode the record was set in. Gating it on "has this device recorded two
+        // modes yet" hid it on the very first record of a six-combo game (snake records
+        // 'Normal · Walls · Large'), which is exactly when you need to know which one it was.
+        // modeText splits composites on ' · ' and localizes each token.
+        var ml = e.m ? modeText(e.s, e.m) : '';
+        txt = t('activity.best', { game: gameTitle(e.s) + (ml ? ' · ' + ml : ''),
+          score: (e.ms > 0 && !(e.n > 0)) ? fmtMs(e.ms) : fmtScore(e.n | 0) });
+      } else if (e.k === 'first') {
+        ico = gameIcon(e.s); go = { card: e.s };
+        txt = t('activity.first', { game: gameTitle(e.s) });
+      } else if (e.k === 'tier') {
+        ico = e.emoji || '🎖️'; go = { tab: 'titles' };
+        txt = t('activity.tier', { title: t('title.t' + (e.n | 0), { def: e.ttl || '' }) });
+      } else if (e.k === 'ach') {
+        var a = null; try { achItems().forEach(function (x) { if (x.id === e.id) a = x; }); } catch (err) {}
+        ico = (a && a.icon) || '🏅'; go = { tab: 'ach', ach: [e.id] };
+        txt = t('activity.ach', { name: t('ach.' + e.id + '.name', { def: e.id }) });
+      } else if (e.k === 'achMany') {
+        ico = '🏅'; go = { tab: 'ach', ach: (e.ids || []).slice() };   // the wall badges + scrolls to them
+        txt = t('activity.achMany', { count: e.c | 0 });
+      } else if (e.k === 'buy') {
+        var it = cosItem(e.id);
+        ico = (it && it.icon) || '🎨'; go = { tab: 'shop', game: e.s || null, item: e.id };
+        txt = t('activity.buy', { name: t('cos.' + e.id + '.name', { def: (it && it.name) || e.id }) });
+      } else if (e.k === 'buyMany') {
+        ico = '🎨'; go = { tab: 'shop' };
+        txt = t('activity.buyMany', { count: e.c | 0 });
+      } else if (e.k === 'chal') {
+        // a challenge belongs to the challenges board, not to whatever game it happened to name —
+        // and it carries its pointer, so the board lands on THAT completion in the history list
+        ico = '🏆'; go = { challenges: 1, hid: (e.id || '') + '#' + utcDayNumber(e.t) };
+        txt = t('activity.chal', { title: t('challenge.goal.' + e.id, { def: e.ttl || e.id }) });
+      } else if (e.k === 'good') {
+        ico = '🌟'; go = { challenges: 1, hid: 'goodruns' };   // lands on the ⚡ bonus widget itself
+        txt = t('cat.goodRuns', { count: e.c | 0 });
+      }
+      var spent = (e.k === 'buy' || e.k === 'buyMany');
+      var pts = (e.n > 0 && e.k !== 'best' && e.k !== 'first' && e.k !== 'tier')
+        ? '<span class="gk-act-pts' + (spent ? ' spent' : '') + '">' + (spent ? '−' : '+') + (e.n | 0) + ' 🏆</span>' : '';
+      var fresh = isFresh(e) ? ' fresh' : '';
+      var tag = go ? 'button' : 'div';
+      return '<' + tag + (go ? ' type="button"' : '') + ' class="gk-act-msg' + (go ? ' go' : '') + fresh + '"'
+        + (go ? ' data-go="' + esc(JSON.stringify(go)) + '"' : '') + '>'
+        + '<span class="gk-act-ico">' + esc(ico) + '</span>'
+        + '<span class="gk-act-txt">' + esc(txt) + pts + '</span>'
+        + '<span class="gk-act-when">' + esc(when(e)) + '</span></' + tag + '>';
+    }
+    function render(keepScroll) {
+      var prevH = stack.scrollHeight, prevTop = stack.scrollTop;
+      feed = actFeed(ACT_CAP);
+      if (!feed.length) {
+        msgs.innerHTML = '<div class="gk-act-msg empty">' + esc(t('activity.empty')) + '</div>';
+        older.hidden = true; syncDot();
+        return;
+      }
+      var n = Math.min(shown, feed.length), h = '';
+      for (var i = n - 1; i >= 0; i--) h += msg(feed[i]);   // chat order: newest at the BOTTOM
+      msgs.innerHTML = h;
+      // keep the reading position when "older" prepends above; otherwise sit on the newest
+      if (keepScroll) stack.scrollTop = prevTop + (stack.scrollHeight - prevH);
+      else stack.scrollTop = stack.scrollHeight;
+    }
+    function openGo(go) {
+      if (!go) return;
+      if (go.challenges) { try { if (window.__openChalDrawer) window.__openChalDrawer(go.hid || null); else challengesPanel({}); } catch (e) {} return; }
+      if (go.tab) {
+        var focus = {};
+        if (go.ach) focus.ach = go.ach;
+        if (go.item) focus.item = go.item;
+        try { shopPanel({ tab: go.tab, game: go.game || null, focus: focus }); } catch (e) {}
+        return;
+      }
+      // the card is catalogue-owned; without it (or for a `soon` game) fall through to the game
+      if (go.card) { try { if (window.__openGameCard && window.__openGameCard(go.card)) return; } catch (e) {} }
+      var slug = go.game || go.card;
+      if (slug) { try { location.href = localHref('games/' + slug + '/'); } catch (e) {} }
+    }
+    msgs.addEventListener('click', function (ev) {
+      var el = ev.target;
+      while (el && el !== msgs && !(el.classList && el.classList.contains('gk-act-msg'))) el = el.parentNode;
+      if (!el || el === msgs) return;
+      var raw = el.getAttribute ? el.getAttribute('data-go') : null;
+      if (!raw) return;
+      try { openGo(JSON.parse(raw)); } catch (e) {}
+    });
+    function grow() { if (shown >= feed.length) return; shown = Math.min(shown + PAGE, ACT_CAP); render(true); }
+    // scrolling to the TOP pulls in older entries too (reverse-chat paging)
+    stack.addEventListener('scroll', function () { if (stack.scrollTop <= 8) grow(); });
+
+    function sync() {
+      var open = (mode === 'pinned') || peek;
+      wrap.classList.toggle('open', open);
+      wrap.classList.toggle('pinned', mode === 'pinned');
+      try { scrim.classList.toggle('on', !!peek); } catch (e) {}   // CSS shows it on touch only
+      bubble.setAttribute('aria-expanded', open ? 'true' : 'false');
+      tool.innerHTML = (mode === 'pinned') ? IC_X : IC_EYE;   // ✕ = put it away · eye = keep it shown
+      var lbl = (mode === 'pinned') ? t('activity.hide') : t('activity.pin');
+      tool.setAttribute('aria-label', lbl); tool.title = lbl;
+      // closed: nothing renders, so the feed has to be read here or the unseen count is always 0
+      if (open) { shown = PAGE; render(); fillBox(); markSeen(); } else { feed = actFeed(ACT_CAP); syncDot(); }
+    }
+    function setMode(m) { mode = m; peek = false; lsSet(MODE_KEY, m); sync(); track('feature_open', { feature: 'activity', place: 'catalogue', state: m }); }
+    tool.addEventListener('click', function (e) {
+      e.stopPropagation();
+      setMode(mode === 'pinned' ? 'hidden' : 'pinned');   // ✕ puts it away, 📌 brings it back for good
+    });
+    bubble.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (mode === 'pinned') return;
+      peek = !peek; sync();
+    });
+    // only a PEEK closes on an outside click — a pinned stack is meant to stay put
+    document.addEventListener('click', function (e) {
+      if (!peek) return;
+      var el = e.target;
+      while (el) { if (el === wrap) return; el = el.parentNode; }
+      peek = false; sync();
+    }, true);
+    // ---- drag-to-resize (the grip at the stack's top-right; the box is anchored bottom-left, so
+    // up/right grows it). Size is per-device and remembered; double-tap the grip to reset. The CSS
+    // default stays the ~5-bubble box — this only writes an inline override on top of it.
+    var SIZE_KEY = 'gamekit_act_size';
+    function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+    function sizeBounds() {
+      return { wMin: 220, wMax: Math.max(220, Math.min(520, layout.w - 40)),
+        hMin: 96, hMax: Math.max(96, layout.h - 120) };
+    }
+    function readSize() { try { var d = JSON.parse(lsGet(SIZE_KEY) || 'null'); return (d && d.v === 1) ? d : null; } catch (e) { return null; } }
+    function applySize(sz) {
+      var b = sizeBounds();
+      try {
+        wrap.style.width = sz && sz.w ? clamp(sz.w, b.wMin, b.wMax) + 'px' : '';
+        stack.style.maxHeight = sz && sz.h ? clamp(sz.h, b.hMin, b.hMax) + 'px' : '';
+        // chat stays glued to its newest entry: without this, shrinking the box leaves the view
+        // parked mid-history with the bottom bubble sliced off
+        stack.scrollTop = stack.scrollHeight;
+      } catch (e) {}
+    }
+    // a taller box must not sit half-empty while history is still unread
+    function fillBox() { var g = 0; while (stack.scrollHeight <= stack.clientHeight && shown < feed.length && g++ < 40) grow(); }
+    applySize(readSize());
+    try { layout.on(function () { applySize(readSize()); }); } catch (e) {}
+    grip.setAttribute('aria-label', t('activity.resize'));
+    grip.title = t('activity.resize');
+    if (typeof grip.addEventListener === 'function' && typeof window !== 'undefined' && window.PointerEvent) {
+      grip.addEventListener('pointerdown', function (e) {
+        if (e.button) return;
+        e.preventDefault(); e.stopPropagation();
+        var x0 = e.clientX, y0 = e.clientY;
+        var w0 = wrap.getBoundingClientRect().width, h0 = stack.getBoundingClientRect().height;
+        var cur = { v: 1, w: w0, h: h0 };
+        wrap.classList.add('resizing');
+        try { grip.setPointerCapture(e.pointerId); } catch (err) {}
+        var move = function (ev) {
+          var b = sizeBounds();
+          cur = { v: 1, w: Math.round(clamp(w0 + (ev.clientX - x0), b.wMin, b.wMax)),
+            h: Math.round(clamp(h0 - (ev.clientY - y0), b.hMin, b.hMax)) };
+          applySize(cur);
+        };
+        var up = function () {
+          wrap.classList.remove('resizing');
+          try { grip.removeEventListener('pointermove', move); grip.removeEventListener('pointerup', up); grip.removeEventListener('pointercancel', up); } catch (err) {}
+          lsSet(SIZE_KEY, JSON.stringify(cur));
+          fillBox();
+        };
+        grip.addEventListener('pointermove', move);
+        grip.addEventListener('pointerup', up);
+        grip.addEventListener('pointercancel', up);
+      });
+      grip.addEventListener('dblclick', function (e) {
+        e.preventDefault(); e.stopPropagation();
+        try { if (typeof localStorage !== 'undefined') localStorage.removeItem(SIZE_KEY); } catch (err) {}
+        applySize(null);
+      });
+    }
+
+    try {
+      window.__actChanged = function () {
+        if (wrap.classList.contains('open')) { render(); markSeen(); }
+        else { feed = actFeed(ACT_CAP); syncDot(); }
+      };
+    } catch (e) {}
+
+    bubble.setAttribute('aria-label', t('activity.title'));
+    sync();
+    try { onLang(function () { sync(); }); } catch (e) {}
+    return {
+      el: wrap, refresh: render, mode: function () { return mode; }, setMode: setMode,
+      unseen: function () { feed = actFeed(ACT_CAP); return unseen(); },
+      feed: function () { return actFeed(ACT_CAP); },
+    };
   }
 
   // ---- site-wide cursor skin (desktop / fine pointers only) ----
@@ -2952,7 +3417,9 @@
       syncHeader();   // the header number is per-tab (spendable / achievement points / lifetime)
       if (id === 'ach') {
         // CAPTURE the fresh ids first — buildAchWall badges them, and markSeen below empties the store
-        _achWallFresh = achNewIds();
+        // union the dot's ids with any the CALLER pointed at (the activity log taps a specific
+        // unlock — or a whole grouped day of them — and must land on those rows, not on nothing)
+        _achWallFresh = achNewIds().concat((opts.focus && opts.focus.ach) || []);
         achBuilt = true;
         buildAchWall();
         achMarkSeen();   // every fresh row was rendered above, so the dot has genuinely been seen
@@ -3337,6 +3804,20 @@
       // textContent, NOT mkEl's innerHTML — the search box is the one user-input → t() path
       if (!any) { var noneEl = mkEl('div', 'gksp-empty'); noneEl.textContent = t('shop.noMatch', { q: (search.value || '') }); scroll.appendChild(noneEl); }
       syncCells();
+      focusItem();
+    }
+    // opts.focus.item = land on ONE cell (the activity log's "you unlocked X" row taps straight
+    // through to X). Same treatment the achievements wall gives a fresh unlock: badge it, then
+    // scroll it into view — an unhighlighted jump into a long grid reads as "nothing happened".
+    function focusItem() {
+      var want = opts.focus && opts.focus.item; if (!want) return;
+      for (var i = 0; i < cells.length; i++) {
+        if (!cells[i].item || cells[i].item.id !== want) continue;
+        var el = cells[i].el;
+        try { el.classList.add('gksp-achnew'); el.setAttribute('data-new', t('challenges.newBadge', { def: '★ NEW' })); } catch (e) {}
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { try { el.scrollIntoView(); } catch (e2) {} }
+        return;
+      }
     }
     // mount inside an open <dialog> when there is one (the profile modal's top layer would
     // otherwise cover a body-level overlay) — same trick as the share menu
@@ -3468,7 +3949,23 @@
       best[slug] = cur;
       lsSet(bkey, JSON.stringify(best));
       // all-time best per (slug, mode) — the single source of truth (menus + profile), +1 play
-      pbSave(slug, rec.mode, rec.score, rec.time, true, rec.stats);
+      // "first run" = no run has ever been RECORDED for this game. It cannot be "pb has no entry
+      // for the slug": most games call saveBest themselves before the end menu records, which
+      // creates that entry mid-run. plays is only ever incremented by recordResult, so it is the
+      // one counter a game's own saves cannot forge.
+      var _pgPrev = pbLoad()[slug], _playsPrev = 0;
+      if (_pgPrev) for (var _mk in _pgPrev) if (Object.prototype.hasOwnProperty.call(_pgPrev, _mk)) _playsPrev += (_pgPrev[_mk].plays | 0);
+      var _firstRun = _playsPrev === 0;
+      var _pb = pbSave(slug, rec.mode, rec.score, rec.time, true, rec.stats);
+      // …and "new best" cannot be pbSave's isBest for the same reason: a game that already stored
+      // this score makes the save a tie. The game's own newBest flag (every game passes it — it is
+      // what draws "★ New best!") is authoritative; the reads below only cover a game that doesn't.
+      var _newBest = (data.newBest != null) ? !!data.newBest
+        : ((rec.score > _prevBest) || !!(_pb && _pb.isBest));
+      // activity log: the two events nothing else timestamps. A first run is its own line, so a
+      // brand-new game's opening record doesn't read as two rows about the same run.
+      if (_firstRun) actPush('first', { s: slug });
+      else if (_newBest) actPush('best', { s: slug, n: rec.score, ms: rec.time, m: rec.mode });
       // lifetime rollup for the profile: member-since, distinct days played, lifetime good runs
       var st = JSON.parse(lsGet('gamekit_stats') || 'null') || { first: 0, days: 0, lastDay: '', goodRuns: 0 };
       if (!st.first) st.first = rec.ts;
@@ -3777,7 +4274,12 @@
         try { const s = localStorage.getItem(TSEL); if (s != null && s !== '') sel = parseInt(s, 10); } catch (e) {}
         try { const a = localStorage.getItem(TADOPT); if (a != null && a !== '') adopted = parseInt(a, 10); } catch (e) {}
         if (!isFinite(sel)) sel = earnedTier;
-        if (earnedTier > adopted) { sel = earnedTier; try { localStorage.setItem(TSEL, String(sel)); localStorage.setItem(TADOPT, String(earnedTier)); } catch (e) {} } // new higher title → auto-switch
+        if (earnedTier > adopted) {
+          sel = earnedTier;
+          try { localStorage.setItem(TSEL, String(sel)); localStorage.setItem(TADOPT, String(earnedTier)); } catch (e) {} // new higher title → auto-switch
+          // tier 0 is the boot default, not an achievement — only a real promotion is worth a row
+          if (earnedTier >= 1) { const _r = titleByTier(earnedTier); actPush('tier', { n: earnedTier, ttl: rankTitle(_r), emoji: (_r && _r.emoji) || '🎖️' }); }
+        }
         return Math.max(0, Math.min(earnedTier, sel));
       }
       function setWornTier(tier) { try { localStorage.setItem(TSEL, String(tier)); } catch (e) {} }
@@ -4284,6 +4786,11 @@
       + '<button class="gamekit-au-btn gamekit-au-morebtn" id="gamekitMore" type="button" aria-label="' + t('kit.gameMenu') + '" title="' + t('kit.gameMenu') + '">☰</button>'
       + '<div class="gamekit-au-panel gamekit-more-panel" id="gamekitMorePanel">' + more + '</div>';
     document.body.appendChild(wrap);
+    // sibling of the widget, not a child: the outside-click handler walks up from the click target
+    // to `wrap`, so a scrim inside it would read as "inside" and never dismiss the peek
+    var scrim = document.createElement('div');
+    scrim.className = 'gk-act-scrim';
+    document.body.appendChild(scrim);
     _audioEl = wrap;
     var btn = document.getElementById('gamekitAudioBtn'), panel = document.getElementById('gamekitAudioPanel');
     var moreBtn = document.getElementById('gamekitMore'), morePanel = document.getElementById('gamekitMorePanel');
@@ -4449,6 +4956,11 @@
       wrap.innerHTML = '<button class="gamekit-back" id="gamekitMenu" type="button">' + t('nav.menu') + '</button>'
         + '<a class="gamekit-back gamekit-home" id="gamekitHome" draggable="false" href="' + localHref(opts.home || '../../') + '" aria-label="' + t('nav.homeAria', { def: 'Komyo — home' }) + '"><svg class="gamekit-home-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.4 12 4l9 7.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10.3V19h13v-8.7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="gamekit-home-label">Komyo</span></a>';
       document.body.appendChild(wrap);
+    // sibling of the widget, not a child: the outside-click handler walks up from the click target
+    // to `wrap`, so a scrim inside it would read as "inside" and never dismiss the peek
+    var scrim = document.createElement('div');
+    scrim.className = 'gk-act-scrim';
+    document.body.appendChild(scrim);
       _navEl = wrap;
       var menu = document.getElementById('gamekitMenu');
       _menuBtn = menu || null;
@@ -6553,7 +7065,7 @@
     };
   }
 
-  var api = { lock: lock, levelsScreen: levelsScreen, hints: makeHints, hintButton: hintButton, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, __pbAnnounce: pbAnnounce, __runPbSnap: function (slug, modes) { _runPb = (slug == null) ? null : { slug: slug, modes: modes || {} }; }, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, bestWatch: bestWatch, bestTick: bestTick, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, achievements: achievements, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langFlag: function (code) { return I18N_FLAG_SVG[String(code || '').toLowerCase()] || ''; }, langLabel: function (code) { var c = String(code || '').toLowerCase(); for (var i = 0; i < I18N_LANGS.length; i++) if (I18N_LANGS[i].code === c) return I18N_LANGS[i].label; return c; }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
+  var api = { lock: lock, levelsScreen: levelsScreen, hints: makeHints, hintButton: hintButton, sound: sound, music: music, nav: nav, audioMenu: audioMenu, resetScores: resetScores, confirm: confirmDialog, menu: menu, stampUrl: stampUrl, shareRow: shareRow, shareUrls: shareUrls, shareText: shareText, withUtm: withUtm, param: param, pwa: pwa, player: player, setName: setName, postDiscord: postDiscord, discordTier: discordTier, __pbAnnounce: pbAnnounce, __runPbSnap: function (slug, modes) { _runPb = (slug == null) ? null : { slug: slug, modes: modes || {} }; }, inActivity: IN_ACTIVITY, proxyUrl: proxyUrl, layout: layout, fitCanvas: fitCanvas, roundRect: roundRect, recordResult: recordResult, lastResult: lastResult, playedToday: playedToday, profile: profile, best: getBest, bestScore: getBestScore, saveBest: saveBest, bestWatch: bestWatch, bestTick: bestTick, modeText: modeText, progress: makeProgress, utcDateStr: utcDateStr, utcDayNumber: utcDayNumber, scoreCard: buildScoreCard, profileCard: buildProfileCard, shareCard: shareCardBlob, embedModal: embedModal, isPaused: isPaused, setPaused: setPaused, togglePause: togglePause, loop: gameLoop, loopAlpha: loopAlpha, showMenuButton: showMenuButton, showPauseButton: showPauseButton, controls: controlsModal, challengesPanel: challengesPanel, activeChallenge: chActiveSlug, challengeEval: chEval, challengePick: chPickAt, challengeReset: challengeReset, cosmetics: cosmetics, achievements: achievements, crt: crt, shopPanel: shopPanel, goodRunBonus: goodRunBonus, goodRunBonusHtml: grbHtml, versionTag: versionTag, updates: updates, buildInfo: buildInfo, t: t, lang: lang, setLang: setLang, onLang: onLang, langs: function () { return I18N_LANGS.slice(); }, langFlag: function (code) { return I18N_FLAG_SVG[String(code || '').toLowerCase()] || ''; }, langLabel: function (code) { var c = String(code || '').toLowerCase(); for (var i = 0; i < I18N_LANGS.length; i++) if (I18N_LANGS[i].code === c) return I18N_LANGS[i].label; return c; }, langButton: langButton, langMenu: langMenu, fullscreen: fullscreen, recentlyPlayed: recentlyPlayed, sideStack: sideStack, activityLog: activityLog, activityFeed: actFeed, activityStamp: actPush, activityChanged: actChanged, cosmeticsArrived: cosmeticsArrived, easyPicks: easyPicks, setEasyPicks: setEasyPicks, localHref: localHref };
   var g = (typeof globalThis !== 'undefined') ? globalThis : (typeof window !== 'undefined' ? window : this);
   g.gamekit = api;
   if (typeof window !== 'undefined') window.gamekit = api;

@@ -97,12 +97,19 @@ standalone pages). Likely **yes, add them** with a low `<priority>` so search en
 them; also cross-check that `llms.txt` and `robots.txt` list what we intend. One-time audit + the
 CLAUDE.md "when a page goes live" step already covers new pages going forward.
 
-### Tips & tricks widget (idea)
+### Tips & tricks widget (idea — deprioritized 2026-08-02)
 
 There are no loading screens, so surface rotating tips on the home page (e.g. bottom-right corner),
 cycling continuously; dismissable and re-openable via a small bubble button. Content: how-to-play
 nuggets, feature callouts (challenges, Collection, offline install, languages), keyboard shortcuts.
 Unobtrusive + reduced-motion-safe.
+
+**Deprioritized**: feature discovery is already carried by the notification dots (new challenges, fresh
+achievements, the changelog release dot), and rotating tips are invasive for what they add — we have no
+loading screens to fill. The bottom-left corner now belongs to the **activity log** (shipped
+2026-08-02), and the bottom-right is still three-deep with kit chrome. If this is ever revived it ships as targeted ROWS inside that same bubble — a tip the
+player's own stores say is relevant (never bought a cosmetic → the Collection tip; one game in
+`gamekit_pb` → "there are 30 more"), doubling as the log's empty state. Never a second corner widget.
 
 ### Welcome speech bubble from the mascot (idea)
 
@@ -115,6 +122,36 @@ Staging (`staging.komyo.online`) **+ consider a Cloudflare CDN in front of GH Pa
 headroom past ~100 GB/mo + an escape hatch). Staging must isolate side effects: `noindex` + robots
 disallow, **no prod GA4**, **no prod Discord webhook**, **no real Kit signups**. DNS: `staging` CNAME
 → `n0zz.github.io` in OVH; keep the two `CNAME` files straight.
+
+### Catalogue cold-load path (partly fixed 2026-08-02)
+
+Reported symptom on a slow PC + cold Safari: the home page showed only the crawler link list and the
+chrome buttons did nothing. Measured at 400 kbit / 6× CPU throttle, **before**: blank until 19.7s
+(game-kit.js, 152 KB gz, blocking in `<head>`), then a painted-but-dead page until 23.3s while the
+body-bottom registries downloaded.
+
+Landed:
+
+- **`game-kit.js` moved out of the catalogue's `<head>`** to sit with the registries at the bottom of
+  the body. The contract it must meet is "`window.gamekit` exists before the page's inline script",
+  not "in the head" — games keep it in their head (they have no markup worth painting first).
+  First paint **19.7s → 9.0s**.
+- **`changelog.js` (24 KB gz) and `cosmetics.js` (22 KB gz) off the critical path.** Changelog is
+  read live via `CL()` and lazy-loaded on idle (or forced on modal open); cosmetics is fetched the
+  moment the page is interactive, with `gamekit.cosmeticsArrived()` re-resolving the cursor skin,
+  the CRT overlay and the activity log's purchase rows.
+- **A boot skeleton + inert chrome** behind `html.booting` (set by script, so no-JS visitors keep the
+  plain list). Fully ready **23.3s → 20.2s**.
+
+Still open — the remaining ~20s is dominated by raw bytes, not ordering:
+
+- `game-kit.js` is 152 KB gz on its own. Splitting it (in-game engine vs. catalogue chrome) is the
+  single biggest remaining win and the reason the numbers above plateau.
+- The active locale file is 78 KB gz, `document.write`-loaded synchronously by `i18n.js` because
+  `t()` must be complete before the inline script. Shipping only the catalogue's keys up front
+  would cut most of it.
+- `cosmetics.js` is 88 KB raw mostly because of shop painters; splitting registry metadata from
+  painters would let the metadata stay cheap and the painters load with the shop modal.
 
 ### Precache payload — the three fixes to land before 100 games
 

@@ -9,7 +9,12 @@
 <script>/* inject the PWA manifest only over http(s) — on file:// (downloaded/pendrive copy) the browser
    can't fetch a manifest (CORS from origin "null") and logs a noisy error; there's no install path
    offline anyway. Runs at parse time, so live PWA install is unaffected. */
-if (location.protocol !== 'file:') { var m = document.createElement('link'); m.rel = 'manifest'; m.href = 'manifest.json'; document.head.appendChild(m); }</script>
+if (location.protocol !== 'file:') { var m = document.createElement('link'); m.rel = 'manifest'; m.href = 'manifest.json'; document.head.appendChild(m); }
+/* JS is running, so the page WILL be replaced by the real UI: dress the crawler fallback as a
+   loading skeleton and hold the chrome inert until it can actually respond. Removed at the end of
+   the main inline script. Without JS neither class is ever set, so no-JS visitors keep a plain,
+   honest list of links and working <a> navigation. */
+document.documentElement.className += ' js booting';</script>
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -48,7 +53,6 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
 <script src="analytics.js" defer></script>
 <link rel="stylesheet" href="game-kit.css">
 <script src="version.js"></script>
-<script src="game-kit.js"></script>
 <style>
   :root {
     --bg:#0b0f17; --surface:#161c28; --surface-2:#1e2738; --border:#2a3446;
@@ -93,6 +97,45 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
 
   /* min-height reserves room before games.js renders the tiles — kills the mobile footer-jump CLS */
   .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 20px; min-height: 70vh; align-content: start; }
+
+  /* ---- boot skeleton -------------------------------------------------------------------------
+     The crawler fallback inside #grid is a real <nav> of real <a href> links — that block IS the
+     SEO/LLM surface and stays lockstep with games.js (test-enforced), so it is never replaced by
+     empty placeholder divs. Instead, while `booting` is set, the SAME anchors are laid out as
+     tile-shaped cards with a shimmer: the slow-connection window now reads as "loading" rather
+     than as a finished page that happens to be a bare list of links.
+     `booting` is only ever set by script, so a no-JS visitor keeps the plain inline list. */
+  /* one full-width grid item holding an inline sentence of links — NOT display:contents, which
+     promotes every link AND separator to its own grid cell and shreds the no-JS reading */
+  .nojs-games { grid-column: 1 / -1; line-height: 2; }
+  /* The separators are wrapped in <span class="njs-sep"> precisely so this can be a real grid: as
+     bare text nodes they became anonymous grid items and scattered the cards. Hidden while booting,
+     visible (and read normally) for a no-JS visitor. */
+  html.booting .nojs-games .njs-sep { display: none; }
+  /* the SAME track sizing as #grid, so skeleton cards stretch to the real column width and the row
+     fills edge to edge — fixed-width cards left a column's worth of dead space on the right */
+  html.booting .nojs-games { display: grid; grid-column: 1 / -1;
+    grid-template-columns: repeat(auto-fill, minmax(264px, 1fr)); gap: 20px; }
+  html.booting .nojs-games a { display: block; height: 319px; border-radius: 16px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 0; color: transparent; overflow: hidden; position: relative; text-decoration: none; }
+  /* the shimmer sweep. Cheap (one transform), and it is exactly the moment the machine is busiest,
+     so it is transform-only and switched off under reduced-motion. */
+  html.booting .nojs-games a::after { content: ""; position: absolute; inset: 0;
+    background: linear-gradient(100deg, transparent 20%, rgba(159,232,255,0.07) 50%, transparent 80%);
+    transform: translateX(-100%); animation: skelSweep 1.5s ease-in-out infinite; }
+  html.booting .nojs-games a:nth-child(2n)::after { animation-delay: .18s; }
+  html.booting .nojs-games a:nth-child(3n)::after { animation-delay: .36s; }
+  @keyframes skelSweep { to { transform: translateX(100%); } }
+  /* Chrome that cannot respond yet must not look clickable — dead buttons are the part of a slow
+     load that reads as "broken" rather than "slow". Their listeners live in the one inline script
+     at the end of the body, so nothing here works until that has run. */
+  html.booting .ibtn, html.booting .side-stack, html.booting #toTop,
+  html.booting .gk-act { opacity: .45; pointer-events: none; }
+  html.booting .searchwrap input { pointer-events: none; }
+  @media (prefers-reduced-motion: reduce) {
+    html.booting .nojs-games a::after { animation: none; }
+  }
   .section-head { grid-column: 1 / -1; display:flex; align-items:center; gap:14px; margin: 12px 2px 0; }
   .section-head:first-child { margin-top: 0; }
   .section-head h2 { margin:0; display:inline-flex; align-items:baseline; gap:8px; font-family:var(--mono); font-size: 13px; letter-spacing: 3px; text-transform:uppercase; color:var(--muted); white-space:nowrap;
@@ -780,6 +823,10 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
   .chist-list { display:flex; flex-direction:column; }
   .chist { display:flex; align-items:center; gap:10px; padding:9px 4px; border-bottom:1px solid var(--border); }
   .chist .ck { font-size:14px; width:18px; text-align:center; flex:none; }
+  /* the row the activity log pointed at — same gold pulse the achievement wall uses for a fresh unlock */
+  .chist.hit, .cbonus.hit { border-radius:8px; animation:chistHit 1.8s ease-in-out 2; }
+  @keyframes chistHit { 0%,100% { box-shadow:none; } 50% { box-shadow:0 0 0 1px #ffd166, 0 0 16px rgba(255,209,102,.5); } }
+  @media (prefers-reduced-motion: reduce) { .chist.hit, .cbonus.hit { animation:none; box-shadow:0 0 0 1px #ffd166; } }
   .chist .ct { flex:1; min-width:0; font-size:13px; color:var(--text); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .chist .cd { font-family:var(--mono); font-size:10px; color:var(--faint); flex:none; }
   .chist .cp { font-family:var(--mono); font-size:10px; color:#ffce5c; flex:none; }
@@ -890,27 +937,27 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       <!-- static fallback for crawlers / no-JS (LLM fetchers don't run games.js) — the tile
            renderer replaces it instantly; lockstep with games.js live games is test-enforced -->
       <nav class="nojs-games" aria-label="All games">
-        <a href="games/asteroids/">Asteroids</a> ·
-        <a href="games/asteroids-plus/">Asteroids+</a> ·
-        <a href="games/tower-defense/">Keep Defender</a> ·
-        <a href="games/forcefield/">Forcefield</a> ·
-        <a href="games/bubbles/">Bubble Pop</a> ·
-        <a href="games/frog-bonk/">Frog Bonk</a> ·
-        <a href="games/breakout/">Brick Breaker</a> ·
-        <a href="games/sudoku/">Sudoku</a> ·
-        <a href="games/stacker/">Stack</a> ·
-        <a href="games/trap-the-cat/">Trap the Cat</a> ·
-        <a href="games/flappy/">Meadow Flyer</a> ·
-        <a href="games/aim-trainer/">Range</a> ·
-        <a href="games/snake/">Neon Snake</a> ·
-        <a href="games/2048/">2048</a> ·
-        <a href="games/type-siege/">Type Siege</a> ·
-        <a href="games/dusk-runner/">Chrome Runner</a> ·
-        <a href="games/floodgate/">Floodgate</a> ·
-        <a href="games/mirror-maze/">Mirror Maze</a> ·
-        <a href="games/minesweeper/">Minesweeper</a> ·
-        <a href="games/balloon-pop/">Balloon Pop</a> ·
-        <a href="games/critter-match/">Critter Match</a> ·
+        <a href="games/asteroids/">Asteroids</a><span class="njs-sep"> · </span>
+        <a href="games/asteroids-plus/">Asteroids+</a><span class="njs-sep"> · </span>
+        <a href="games/tower-defense/">Keep Defender</a><span class="njs-sep"> · </span>
+        <a href="games/forcefield/">Forcefield</a><span class="njs-sep"> · </span>
+        <a href="games/bubbles/">Bubble Pop</a><span class="njs-sep"> · </span>
+        <a href="games/frog-bonk/">Frog Bonk</a><span class="njs-sep"> · </span>
+        <a href="games/breakout/">Brick Breaker</a><span class="njs-sep"> · </span>
+        <a href="games/sudoku/">Sudoku</a><span class="njs-sep"> · </span>
+        <a href="games/stacker/">Stack</a><span class="njs-sep"> · </span>
+        <a href="games/trap-the-cat/">Trap the Cat</a><span class="njs-sep"> · </span>
+        <a href="games/flappy/">Meadow Flyer</a><span class="njs-sep"> · </span>
+        <a href="games/aim-trainer/">Range</a><span class="njs-sep"> · </span>
+        <a href="games/snake/">Neon Snake</a><span class="njs-sep"> · </span>
+        <a href="games/2048/">2048</a><span class="njs-sep"> · </span>
+        <a href="games/type-siege/">Type Siege</a><span class="njs-sep"> · </span>
+        <a href="games/dusk-runner/">Chrome Runner</a><span class="njs-sep"> · </span>
+        <a href="games/floodgate/">Floodgate</a><span class="njs-sep"> · </span>
+        <a href="games/mirror-maze/">Mirror Maze</a><span class="njs-sep"> · </span>
+        <a href="games/minesweeper/">Minesweeper</a><span class="njs-sep"> · </span>
+        <a href="games/balloon-pop/">Balloon Pop</a><span class="njs-sep"> · </span>
+        <a href="games/critter-match/">Critter Match</a><span class="njs-sep"> · </span>
         <a href="games/glow-says/">Glow Says</a>
         <a href="games/tube-racer/">Tube Racer</a>
       </nav>
@@ -1216,10 +1263,13 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     </div>
   </div>
 
+  <!-- game-kit.js sits HERE, not in <head>: at 152 KB gz it blocked first paint entirely, so a slow
+       visitor got a blank page instead of the boot skeleton. The atomic-head contract it must meet
+       is that window.gamekit exists before the inline script below, which this still satisfies.
+       (Games keep it in their <head> — they have no meaningful markup to paint first.) -->
+  <script src="game-kit.js"></script>
   <script src="games.js"></script>
-  <script src="changelog.js"></script>
   <script src="challenges.js"></script>
-  <script src="cosmetics.js"></script>
   <script src="achievements.js"></script>
   <script src="i18n.js"></script>
   <script>
@@ -1506,6 +1556,15 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       return el;
     }
 
+    // Open the card by SLUG — the activity log's record / first-run rows land here rather than
+    // launching the game, so a tap is a look, not a commitment.
+    window.__openGameCard = slug => {
+      const g = (window.GAMES || []).find(x => x.slug === slug && !x.soon);
+      if (!g) return false;
+      toggleCard(g);
+      return true;
+    };
+
     // ---- game card (opened by any tile's cozy "MORE" strip) ----------------------------------
     // Unified centered overlay (native <dialog>) — identical on grid tiles AND rail tiles so the
     // behavior never differs by section. The overlay covers the source tile, so the card is
@@ -1611,6 +1670,8 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     window.__setPanelUrl = setPanelUrl;
     window.__closePanelUrl = key => { if (openPanel === key) setPanelUrl(null); };
     if (window.gamekit && window.gamekit.sideStack) window.gamekit.sideStack({});
+    // personal activity log — catalogue only (in a game the end menu is already the receipt)
+    if (window.gamekit && window.gamekit.activityLog) window.gamekit.activityLog({});
 
     // live filter state, driven by the search box + the Filter ▾ dropdown.
     // Chips/type/soon survive a game visit within the tab (sessionStorage) — "show me NEW,
@@ -2050,13 +2111,14 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       // must already be rendered when the chips land.
       const chalModal = document.getElementById('chalModal');
       const chalClose = document.getElementById('chalClose');
-      window.__openChalDrawer = () => {
+      window.__openChalDrawer = (focusHid) => {
         if (window.gamekitTrack) window.gamekitTrack('feature_open', { feature: 'challenges' });
         if (window.__renderChallenges) window.__renderChallenges();
         if (!chalModal || !chalModal.showModal) return;
         close();                                    // never leave the ☰ drawer open behind it
         try { chalModal.showModal(); } catch (e) {}
         setPanelUrl('challenges');
+        if (focusHid && window.__focusChalHistory) window.__focusChalHistory(focusHid);
       };
       if (chalClose) chalClose.addEventListener('click', () => chalModal.close());
       if (chalModal) {
@@ -2407,12 +2469,29 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
     };
 
     // Changelog data lives in changelog.js (window.CHANGELOG) — shared with the Discord Action.
-    const CHANGELOG = (typeof window !== 'undefined' && window.CHANGELOG) || [];
+    // It is 24 KB gz of pure modal content, so it is NOT on the critical path: nothing on the home
+    // page needs it to paint. Read it live (never captured), lazy-load it once the page is idle,
+    // and force the load if the player opens the modal before that lands.
+    const CL = () => (typeof window !== 'undefined' && window.CHANGELOG) || [];
+    let clLoading = null;
+    const loadChangelog = () => {
+      if (window.CHANGELOG) return Promise.resolve();
+      if (clLoading) return clLoading;
+      clLoading = new Promise(res => {
+        const host = document.head || document.body;
+        if (!host || !host.appendChild) { res(); return; }
+        const sc = document.createElement('script');
+        sc.src = 'changelog.js';
+        sc.onload = sc.onerror = () => res();
+        host.appendChild(sc);
+      });
+      return clLoading;
+    };
     (function () {
       const modal = document.getElementById('clModal'), list = document.getElementById('clList');
       const search = document.getElementById('clSearch'), btn = document.getElementById('changelogBtn'), closeBtn = document.getElementById('clClose');
       if (!modal || !list || !modal.showModal) return;
-      const PAGE = 3; let shown = 0, filtered = CHANGELOG.slice(), curQ = '';
+      const PAGE = 3; let shown = 0, filtered = CL().slice(), curQ = '';
       const hl = s => curQ ? String(s).replace(new RegExp('(' + curQ.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>') : s;
       const more = () => {
         filtered.slice(shown, shown + PAGE).forEach((rel, k) => {
@@ -2423,7 +2502,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           // PREPENDED (never reordered/removed), so an entry's distance from the end never
           // changes as newer entries get added above it — unlike a forward index, which would
           // shift (and silently orphan) every existing translation on every new release.
-          const ei = CHANGELOG.length - 1 - CHANGELOG.indexOf(rel);
+          const ei = CL().length - 1 - CL().indexOf(rel);
           const title = T('changelog.e' + ei + '.title', rel.title);
           // with a query, narrow to the matching bullets (unless the date/title matched → show all)
           let items = rel.items.map((it, j) => T('changelog.e' + ei + '.b' + j, it));
@@ -2437,9 +2516,9 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       const fill = () => { let g = 0; do { more(); } while (shown < filtered.length && list.scrollHeight <= list.clientHeight && g++ < 60); };
       const reset = () => {
         curQ = ((search && search.value) || '').trim().toLowerCase();
-        filtered = CHANGELOG.filter((r, i) => {
+        filtered = CL().filter((r, i) => {
           if (!curQ) return true;
-          const ei = CHANGELOG.length - 1 - i;
+          const ei = CL().length - 1 - i;
           const title = T('changelog.e' + ei + '.title', r.title);
           const items = r.items.map((it, j) => T('changelog.e' + ei + '.b' + j, it));
           return (r.date + ' ' + title + ' ' + items.join(' ')).toLowerCase().includes(curQ);
@@ -2454,7 +2533,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
       // A first-ever visitor is SEEDED silently: the dot only ever means "something shipped since
       // your last visit", never "here is a history you've never read".
       const CL_SEEN = 'arcade_cl_seen';
-      const clKey = () => { const r = CHANGELOG[0]; return r ? (r.date + '|' + r.title) : ''; };
+      const clKey = () => { const r = CL()[0]; return r ? (r.date + '|' + r.title) : ''; };
       const clSeen = () => { try { return localStorage.getItem(CL_SEEN); } catch (e) { return null; } };
       const markClSeen = () => { try { localStorage.setItem(CL_SEEN, clKey()); } catch (e) {} };
       const syncClDot = () => {
@@ -2466,8 +2545,16 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         if (btn && btn.classList) btn.classList.toggle('tb-notify', fresh);
       };
       window.__syncClDot = syncClDot;
-      syncClDot();
-      if (btn) btn.addEventListener('click', () => { modal.showModal(); reset(); lock(true); markClSeen(); syncClDot(); });
+      // the dot needs the newest entry, so it lights a moment after the page settles rather than
+      // holding up first paint for 24 KB the player may never open
+      const whenIdle = fn => (window.requestIdleCallback ? requestIdleCallback(fn, { timeout: 4000 }) : setTimeout(fn, 1200));
+      if (window.CHANGELOG) syncClDot();                       // already here (warm cache / a game page) → no reason to wait
+      else if (document.readyState === 'complete') whenIdle(() => loadChangelog().then(syncClDot));
+      else window.addEventListener('load', () => whenIdle(() => loadChangelog().then(syncClDot)));
+      if (btn) btn.addEventListener('click', () => {
+        const open = () => { modal.showModal(); reset(); lock(true); markClSeen(); syncClDot(); };
+        if (window.CHANGELOG) open(); else loadChangelog().then(open);   // no microtask delay once it is here
+      });
       if (closeBtn) closeBtn.addEventListener('click', () => modal.close());
       modal.addEventListener('close', () => lock(false));
       modal.addEventListener('click', e => { if (e.target === modal) modal.close(); });
@@ -2751,7 +2838,13 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
           done[key] = pts;
           try { localStorage.setItem('gamekit_done', JSON.stringify(done)); } catch (e) {}
           if (snap) {
-            pushHistory({ day: snap.day != null ? snap.day : K.utcDayNumber(), date: snap.date || K.utcDateStr(), id: snap.id, title: snap.title, slug: snap.slug || '', kind: snap.kind, pts });
+            const sday = snap.day != null ? snap.day : K.utcDayNumber();
+            pushHistory({ day: sday, date: snap.date || K.utcDateStr(), id: snap.id, title: snap.title, slug: snap.slug || '', kind: snap.kind, pts });
+            // Give the activity log the exact moment — but ONLY for a challenge finished today.
+            // Awarding is retroactive (this scans ~15 days of play logs whenever the catalogue
+            // opens), so stamping "now" on an older completion would claim you did it just then.
+            if (sday === K.utcDayNumber() && K.activityStamp) K.activityStamp('chal', { id: snap.id });
+            else if (K.activityChanged) K.activityChanged();   // older award: no stamp, but the row is new
             // aggregate, consent-gated: completion rate per goal (pairs with challenge_shown)
             try { if (window.gamekitTrack) window.gamekitTrack('challenge_done', { challenge_id: snap.id, kind: snap.kind }); } catch (e) {}
           }
@@ -2787,10 +2880,38 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         h.sort((a, b) => ((b && b.day) || 0) - ((a && a.day) || 0)); // newest first (back-fill can insert out of order)
         if (!h.length) { histEl.innerHTML = ''; if (moreEl) moreEl.hidden = true; if (emptyEl) emptyEl.hidden = false; return; }
         if (emptyEl) emptyEl.hidden = true;
+        // each row carries its pointer (id + day) so the activity log can address ONE of them
         histEl.innerHTML = h.slice(0, histShown).map(r =>
-          '<div class="chist"><span class="ck">' + (r.kind === 'weekly' ? '🏆' : '⭐') + '</span><span class="ct">' + esc(histTitle(r)) +
+          '<div class="chist" data-hid="' + esc((r.id || '') + '#' + (r.day | 0)) + '"><span class="ck">' + (r.kind === 'weekly' ? '🏆' : '⭐') + '</span><span class="ct">' + esc(histTitle(r)) +
           '</span><span class="cd">' + fmtDate(r.date) + '</span><span class="cp">+' + (r.pts | 0) + '</span></div>').join('');
         if (moreEl) moreEl.hidden = h.length <= histShown;
+      }
+      // Land on ONE completion: page the history in until the row exists, then badge + scroll it.
+      // Same treatment the shop/achievement walls give a targeted row — arriving at a long list
+      // with nothing marked reads as "the tap did nothing".
+      // the good-run trickle is the other thing the activity log points at — same badge treatment,
+      // but it is a widget at the top of the drawer, not a history row
+      function focusGoodRuns() {
+        const el = document.getElementById('chalBonus');
+        if (!el) return;
+        el.classList.remove('hit');
+        void el.offsetWidth;                       // restart the pulse if it is already marked
+        el.classList.add('hit');
+        try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { try { el.scrollIntoView(); } catch (e2) {} }
+      }
+      function focusHistory(hid) {
+        if (hid === 'goodruns') return focusGoodRuns();
+        if (!hid || !histEl) return;
+        let guard = 0;
+        let row = histEl.querySelector('[data-hid="' + (window.CSS && CSS.escape ? CSS.escape(hid) : hid) + '"]');
+        while (!row && moreEl && !moreEl.hidden && guard++ < 60) {
+          histShown += PAGE; renderHistory();
+          row = histEl.querySelector('[data-hid="' + (window.CSS && CSS.escape ? CSS.escape(hid) : hid) + '"]');
+        }
+        if (!row) return;
+        histEl.querySelectorAll('.chist.hit').forEach(el => el.classList.remove('hit'));
+        row.classList.add('hit');
+        try { row.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { try { row.scrollIntoView(); } catch (e2) {} }
       }
       if (moreEl) moreEl.addEventListener('click', () => { histShown += PAGE; renderHistory(); });
       // award any completion in the retained window (~15 days of played-logs), so a challenge
@@ -2868,6 +2989,7 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         renderHistory();
       }
       window.__renderChallenges = render;
+      window.__focusChalHistory = focusHistory;   // the activity log taps one completion straight through
       render(); // initialise on load (no-op headless / when challenges.js absent)
     })();
 
@@ -3073,6 +3195,22 @@ if (location.protocol !== 'file:') { var m = document.createElement('link'); m.r
         window.addEventListener('scroll', onScroll, { passive: true });
         onScroll();
       } catch (e) {}
+    })();
+
+    // everything above is wired — drop the skeleton and let the chrome take clicks
+    try { document.documentElement.classList.remove('booting'); } catch (e) {}
+
+    // cosmetics.js is 22 KB gz of shop painters: first paint does not need it, but the Collection
+    // button and any equipped cursor/CRT skin do — so fetch it the moment the page is interactive
+    // rather than on idle, and let the kit redo whatever resolved against an empty registry.
+    (function () {
+      if (window.COSMETICS) return;
+      var host = document.head || document.body;
+      if (!host || !host.appendChild || !document.createElement) return;
+      var sc = document.createElement('script');
+      sc.src = 'cosmetics.js';
+      sc.onload = function () { try { if (window.gamekit && window.gamekit.cosmeticsArrived) window.gamekit.cosmeticsArrived(); } catch (e) {} };
+      host.appendChild(sc);
     })();
   </script>
 </body>

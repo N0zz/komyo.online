@@ -1003,7 +1003,10 @@ async function testKit() {
 // deleted; visual overlap must still be checked on a real device.
 function testKitChrome() {
   section('game-kit (responsive nav safeguards + tap-to-play + game_start)');
-  const css = fs.readFileSync(path.join(DIR, 'game-kit.css'), 'utf8');
+  // in-game chrome moved to game-kit-play.css (the catalogue no longer loads it); read BOTH so an
+  // accidental move between the halves can never make these silently pass
+  const css = fs.readFileSync(path.join(DIR, 'game-kit.css'), 'utf8')
+    + fs.readFileSync(path.join(DIR, 'game-kit-play.css'), 'utf8');
   const js = KIT;
   // nav fit: measured label-collapse + narrow-width shrink + force-collapse ≤400px (covers 360px Android)
   ok(css.includes('.gamekit-nav-tight .gamekit-home-label'), 'nav has the measured label-collapse rule');
@@ -1130,6 +1133,13 @@ function testI18n() {
 function testI18nCoverage() {
   section('i18n coverage (every locale: empty or complete)');
   const evalData = (code, fname) => { const sb = { window: {}, console, Math, Date, JSON }; sb.globalThis = sb; try { vm.runInContext(code, vm.createContext(sb), { filename: fname }); } catch (e) { return { __err: e.message }; } return sb.window; };
+  // Parse each locale FILE on its own first. The harness hands the suite one concatenated blob, so a
+  // single unescaped apostrophe in one locale reports as "i18n.js:8837" and fails ~37 unrelated
+  // asserts across the run — this names the file instead. (Cost one debugging round on 2026-08-02.)
+  for (const f of fs.readdirSync(DIR).filter(n => /^i18n\.[a-z]{2}\.js$/.test(n)).sort()) {
+    const r = evalData(fs.readFileSync(path.join(DIR, f), 'utf8'), f);
+    ok(!r.__err, `${f} parses` + (r.__err ? ': ' + r.__err : ''));
+  }
   const dict = evalData(I18N, 'i18n.js').KOMYO_I18N || {};
   ok(dict.en && dict.pl, 'i18n.js parses with en + pl blocks');
   const GAMES = evalData(fs.readFileSync(path.join(DIR, 'games.js'), 'utf8'), 'games.js').GAMES || [];
@@ -1801,6 +1811,91 @@ function testWords() {
 // MAZE) — and a third arriving silently would ladder the channel again, so it's asserted structurally
 // rather than trusted to a comment. Also guards the payload: text is DROPPED unless the Components V2
 // card branch carries it as its own TextDisplay.
+// Cold-load behaviour on a slow line. Measured 2026-08-02: first paint was ~20s of BLANK page,
+// then a painted-but-dead page showing the crawler link list. Three fixes, all guarded here
+// because every one of them is invisible on a fast connection.
+function testBootPath() {
+  section('catalogue boot path (slow-connection behaviour)');
+  const idx = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
+  const head = idx.split('</head>')[0];
+
+  // 0) the CSS split. game-kit.css is render-blocking in <head>; ~2/3 of it was in-game chrome the
+  // catalogue never renders. Games load both halves, so the ONLY way this breaks is a rule the
+  // catalogue needs landing in the play half.
+  {
+    const shared = fs.readFileSync(path.join(DIR, 'game-kit.css'), 'utf8');
+    const play = fs.readFileSync(path.join(DIR, 'game-kit-play.css'), 'utf8');
+    ok(!/game-kit-play\.css/.test(idx), 'the catalogue does NOT load the in-game half');
+    ok(/<link rel="stylesheet" href="game-kit\.css">/.test(head), '…only the shared half, in <head>');
+    const dirs = fs.readdirSync(path.join(DIR, 'games')).filter(d => fs.existsSync(path.join(DIR, 'games', d, 'index.html')));
+    const missing = dirs.filter(d => !fs.readFileSync(path.join(DIR, 'games', d, 'index.html'), 'utf8').includes('../../game-kit-play.css'));
+    ok(missing.length === 0, 'every game loads BOTH halves' + (missing.length ? ': ' + missing.join(', ') : ''));
+    ok(fs.readFileSync(path.join(DIR, 'sw.js'), 'utf8').includes('game-kit-play.css'), 'the play half is in the SW SHELL (offline)');
+    // The split is produced by a script, and a comment severed across the two files leaves a stray
+    // `*/` — after which a CSS parser swallows the NEXT rule as part of a bad selector. That is how
+    // .gamekit-menu lost `position: fixed` and every game menu collapsed onto the board. Both halves
+    // must be independently well-formed.
+    for (const [name, text] of [['game-kit.css', shared], ['game-kit-play.css', play]]) {
+      const opens = (text.match(/\/\*/g) || []).length, closes = (text.match(/\*\//g) || []).length;
+      ok(opens === closes, name + ': comments balanced (' + opens + ' open / ' + closes + ' close)');
+      const noComments = text.replace(/\/\*[\s\S]*?\*\//g, '');
+      ok((noComments.match(/\{/g) || []).length === (noComments.match(/\}/g) || []).length, name + ': braces balanced');
+    }
+    // the one rule whose loss made games unplayable — assert it concretely, in the right half
+    ok(/^\.gamekit-menu \{[^}]*position: fixed/m.test(play), 'the menu overlay rule survives in the play half');
+    ok(!/^\.gamekit-menu \{/m.test(shared), '…and is not duplicated into the shared half');
+    // the catalogue's own surfaces must be styled by the SHARED half alone
+    for (const sel of ['.side-stack', '.gamekit-shoppanel', '.pf-titlebar', '.gk-act', '.gamekit-langmenu', '.gamekit-confirm', '.gk-grb']) {
+      ok(shared.includes(sel), 'shared half still styles ' + sel);
+    }
+    // …and the in-game half must not have been left in the shared one
+    for (const sel of ['.gamekit-hud', '.gamekit-pause', '.gkm-scroll', '.gamekit-tap', '.gamekit-rotate']) {
+      ok(play.includes(sel) && !new RegExp('^' + sel.replace('.', '\\.') + '\\s*\\{', 'm').test(shared),
+        'in-game ' + sel + ' lives only in the play half');
+    }
+  }
+
+  // 1) critical path: only tiny files may block in <head>
+  ok(!/<script src="game-kit\.js">/.test(head), 'game-kit.js (152 KB gz) is NOT blocking in <head>');
+  ok(/<script src="game-kit\.js"><\/script>\s*\n\s*<script src="games\.js">/.test(idx),
+    '…it loads with the registries, still before the inline script that needs window.gamekit');
+  ok(!/<script src="changelog\.js">/.test(idx), 'changelog.js is lazy (24 KB gz of modal-only content)');
+  ok(!/<script src="cosmetics\.js">/.test(idx), 'cosmetics.js is lazy (22 KB gz of shop painters)');
+  ok(/loadChangelog/.test(idx) && /const CL = \(\) =>/.test(idx), 'the changelog is read live, never captured at parse time');
+  ok(/cosmeticsArrived/.test(idx), 'and the kit is told when the cosmetics registry lands');
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    ok(/function cosmeticsArrived\(\)[\s\S]{0,420}applyCursor\(\)[\s\S]{0,240}applyCrt\(\)[\s\S]{0,240}actChanged\(\)/.test(kit),
+      'a late registry re-resolves the cursor skin, the CRT overlay and the log\'s purchase rows');
+    // the side stack renders "🏆 n" / "owned/total · n%" ONLY when window.COSMETICS exists, so a
+    // deferred registry left both blank until the next page load
+    ok(/function cosmeticsArrived\(\)[\s\S]{0,600}window\.__refreshSideStack/.test(kit),
+      '…and re-renders the side stack, whose sub-labels are gated on the registry');
+    ok(/window\.__refreshSideStack = refreshStack;/.test(kit), 'the side stack exposes that refresh');
+  }
+
+  // 2) the chrome must not look clickable before its listeners exist
+  ok(/html\.booting \.ibtn[\s\S]{0,200}pointer-events: none/.test(idx), 'chrome is inert while booting');
+  ok(/classList\.remove\('booting'\)/.test(idx), '…and released at the end of the inline script');
+
+  // 3) the skeleton — and the two ways it could go wrong
+  ok(/document\.documentElement\.className \+= ' js booting';/.test(head),
+    'js+booting are set by SCRIPT, so a no-JS visitor never gets a loading state that cannot resolve');
+  // the skeleton mirrors #grid's own track sizing so the cards stretch to the real column width
+  ok(/html\.booting \.nojs-games \{ display: grid[\s\S]{0,140}repeat\(auto-fill, minmax\(264px, 1fr\)\)/.test(idx),
+    'the skeleton uses the same grid tracks as #grid (cards stretch, no dead column)');
+  // …which is only possible because the separators are wrapped: as bare text nodes they become
+  // anonymous grid items and scatter the cards
+  ok(/class="njs-sep"/.test(idx) && /html\.booting \.nojs-games \.njs-sep \{ display: none; \}/.test(idx),
+    'separators are wrapped and hidden while booting (bare text nodes would become grid items)');
+  ok((idx.match(/class="njs-sep"/g) || []).length >= 20, 'every separator is wrapped, so none leaks into the grid');
+  ok(/prefers-reduced-motion: reduce[\s\S]{0,160}\.nojs-games a::after \{ animation: none/.test(idx),
+    'the shimmer respects reduced motion (it fires exactly when the machine is struggling)');
+  // the fallback itself is the crawler surface and must survive all of this untouched
+  const nav = (idx.match(/<nav class="nojs-games"[\s\S]*?<\/nav>/) || [''])[0];
+  ok((nav.match(/<a href="games\//g) || []).length >= 20, 'the crawler link list is still real anchors (' + (nav.match(/<a href="games\//g) || []).length + ')');
+}
+
 function testDiscordFinal() {
   section('Discord auto-post: mid-run end screens declare final:false');
   const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
@@ -1998,8 +2093,310 @@ function testAchievements() {
   }
 }
 
+// The activity log is a DERIVED view: only records / first runs / title promotions are written to
+// gamekit_log, everything else is read back out of the store that already dates it. So the two
+// things worth locking down are (a) the backfill actually finds those stores and (b) the write
+// path stays capped and never fires twice for one run.
+function testActivityLog() {
+  section('activity log (personal history, catalogue bottom-left)');
+  const games = fs.readFileSync(path.join(DIR, 'games.js'), 'utf8');
+  const challenges = fs.readFileSync(path.join(DIR, 'challenges.js'), 'utf8');
+  const cosmetics = fs.readFileSync(path.join(DIR, 'cosmetics.js'), 'utf8');
+  const pre = [games, challenges, cosmetics];
+
+  const g = bootGame('games/breakout/index.html', { preCode: pre });
+  const K = g.win.gamekit;
+  ok(typeof K.activityLog === 'function', 'gamekit.activityLog is exposed');
+  ok(typeof K.activityFeed === 'function', 'gamekit.activityFeed is exposed');
+  ok(K.activityFeed().length === 0, 'a fresh device has an empty feed');
+
+  // 0) THE regression that shipped broken: 20 of 23 games call saveBest themselves before the end
+  // menu records, which both creates the slug's pb entry (so "no entry yet" is not first-run) and
+  // makes pbSave's own isBest a tie (so a genuine personal best looked like nothing happened).
+  // A player set a record, came back to the catalogue and the log was empty.
+  {
+    const a = bootGame('games/breakout/index.html', { preCode: pre });
+    a.win.gamekit.saveBest('breakout', 'Classic', { score: 500 });      // what the game does
+    a.win.gamekit.recordResult('breakout', { mode: 'Classic', score: 500, newBest: true });
+    ok(a.win.gamekit.activityFeed().some(e => e.k === 'first'), 'a pre-saved first run still logs (plays, not pb presence, decides)');
+    a.win.gamekit.saveBest('breakout', 'Classic', { score: 900 });
+    a.win.gamekit.recordResult('breakout', { mode: 'Classic', score: 900, newBest: true });
+    const best = a.win.gamekit.activityFeed().find(e => e.k === 'best');
+    ok(best && best.n === 900, 'a pre-saved personal best still logs (the game\'s newBest wins over a tie)');
+  }
+
+  // 0b) a record row must name its MODE once a game has more than one, or "record 4000" followed by
+  // "record 30" in the same game reads as a bug instead of as two different modes.
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    ok(/var ml = e\.m \? modeText\(e\.s, e\.m\) : '';/.test(kit), 'a record row always names its mode');
+    ok(!/actModeCount/.test(kit), 'not gated on how many modes this device happens to have recorded');
+    ok(/modeText\(e\.s, e\.m\)/.test(kit), '…resolved at render, so it follows the current language');
+    const m = bootGame('games/breakout/index.html', { preCode: pre });
+    const K2 = m.win.gamekit;
+    K2.recordResult('breakout', { mode: 'Classic', score: 40 });
+    K2.recordResult('breakout', { mode: 'Classic', score: 4000, newBest: true });
+    K2.recordResult('breakout', { mode: 'Zen', score: 30, newBest: true });
+    const bests = K2.activityFeed().filter(e => e.k === 'best');
+    ok(bests.length === 2, 'both records logged (got ' + bests.length + ')');
+    ok(bests.every(e => e.m), 'each carries the mode it was set in (got ' + JSON.stringify(bests.map(e => e.m)) + ')');
+  }
+
+  // 1) first run vs. record — one row per run, and the opening run is a "first", never also a "best"
+  K.recordResult('breakout', { mode: 'Classic', score: 100 });
+  let feed = K.activityFeed();
+  ok(feed.length === 1 && feed[0].k === 'first', 'the opening run logs ONE row, a first run (got ' + JSON.stringify(feed.map(e => e.k)) + ')');
+  K.recordResult('breakout', { mode: 'Classic', score: 500 });
+  feed = K.activityFeed();
+  ok(feed.length === 2 && feed[0].k === 'best' && feed[0].n === 500, 'beating it logs a record with the score (got ' + JSON.stringify(feed[0]) + ')');
+  K.recordResult('breakout', { mode: 'Classic', score: 10 });
+  ok(K.activityFeed().length === 2, 'a worse run logs nothing');
+
+  // 2) hard cap on the written store — an unbounded log is the localStorage-quota failure mode
+  {
+    const many = bootGame('games/breakout/index.html', { preCode: pre });
+    for (let i = 1; i <= 60; i++) many.win.gamekit.recordResult('breakout', { mode: 'Classic', score: i * 10 });
+    const raw = JSON.parse(many.store['gamekit_log'] || '{"e":[]}');
+    ok(raw.v === 1, 'gamekit_log carries a schema version');
+    ok(raw.e.length === 50, 'gamekit_log is capped at 50 entries (got ' + raw.e.length + ')');
+    ok(raw.e[0].n === 600, 'newest entry is first (got ' + raw.e[0].n + ')');
+  }
+
+  // 3) backfill: a returning player's existing stores become history with no writes of their own
+  {
+    const day = g.win.gamekit.utcDayNumber();
+    const b = bootGame('games/breakout/index.html', {
+      preCode: pre,
+      store: {
+        gamekit_ach: JSON.stringify({ v: 1, u: { 'site.first-play': day - 5 } }),
+        gamekit_owned: JSON.stringify({ 'snake.track.banger': { c: 15, t: day - 3 }, 'gone.from.registry': { c: 5, t: day - 4 } }),
+        gamekit_done: JSON.stringify({ ['gr#' + b0date(day - 2)]: 15 }),
+        gamekit_history: JSON.stringify([{ day: day - 1, id: 'probe', title: 'Probe goal', slug: 'breakout', kind: 'daily', pts: 10 }]),
+      },
+    });
+    const kinds = b.win.gamekit.activityFeed().map(e => e.k);
+    ok(kinds.includes('ach'), 'an already-unlocked achievement backfills (got ' + JSON.stringify(kinds) + ')');
+    ok(kinds.includes('buy'), 'an owned cosmetic backfills');
+    ok(kinds.filter(k => k === 'buy').length === 1, 'an item dropped from the registry leaves no orphan row');
+    ok(kinds.includes('good'), 'a good-run day backfills');
+    ok(kinds.includes('chal'), 'a completed challenge backfills from gamekit_history');
+    // the log is a PRECISION CACHE, never the source of truth: wipe it and every derived row must
+    // still be there, just back at day granularity
+    delete b.store['gamekit_log'];
+    const bare = b.win.gamekit.activityFeed();
+    ok(['ach', 'buy', 'good', 'chal'].every(k => bare.some(e => e.k === k || e.k === k + 'Many')),
+      'with no log at all the derived rows survive (got ' + JSON.stringify(bare.map(e => e.k)) + ')');
+    ok(bare.every(e => !['ach', 'buy', 'good', 'chal'].includes(e.k) || e.day === 1), '…degraded to their day, not dropped');
+    const ts = b.win.gamekit.activityFeed().map(e => e.t);
+    ok(ts.every((v, i) => i === 0 || ts[i - 1] >= v), 'the merged feed is sorted newest-first');
+  }
+
+  // 4) same-day grouping — the achievements backfill stamps EVERY already-earned achievement with
+  // today, so without this a returning player's first load is twenty identical "Today" rows
+  {
+    const day = g.win.gamekit.utcDayNumber();
+    const ids = (g.win.ACHIEVEMENTS.items || []).slice(0, 8).map(a => a.id);
+    const u = {}; ids.forEach(id => { u[id] = day; });
+    const b = bootGame('games/breakout/index.html', { preCode: pre, store: { gamekit_ach: JSON.stringify({ v: 1, u }) } });
+    const feed = b.win.gamekit.activityFeed(), kinds = feed.map(e => e.k);
+    ok(kinds.filter(k => k === 'ach').length === 0, '8 same-day unlocks leave no ungrouped rows (got ' + JSON.stringify(kinds) + ')');
+    const grp = feed.find(e => e.k === 'achMany');
+    ok(grp && grp.c === 8, 'they collapse into ONE row carrying the count (got ' + (grp && grp.c) + ')');
+    ok(grp && grp.n > 0, 'the group row sums the trophies they paid (got ' + (grp && grp.n) + ')');
+    // without the member ids, "8 achievements unlocked" cannot point at WHICH eight
+    ok(grp && Array.isArray(grp.ids) && grp.ids.length === 8, 'the group carries its members\' ids (got ' + JSON.stringify(grp && grp.ids) + ')');
+    ok(grp && grp.ids.every(id => ids.includes(id)), 'and they are the ids that were unlocked');
+    // two on one day is still worth naming individually — grouping starts at three
+    const u2 = {}; ids.slice(0, 2).forEach(id => { u2[id] = day; });
+    const b2 = bootGame('games/breakout/index.html', { preCode: pre, store: { gamekit_ach: JSON.stringify({ v: 1, u: u2 }) } });
+    ok(b2.win.gamekit.activityFeed().filter(e => e.k === 'ach').length === 2, 'two same-day unlocks stay as two named rows');
+  }
+
+  // 4b) unseen tracking is by IDENTITY, not by timestamp. Half the rows only know their day, so
+  // "newer than the last thing I looked at" is unanswerable for them — with a ms marker, a record
+  // set before noon sorted under the day's aggregates and never lit the dot.
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    ok(/function actKey\(e\)/.test(kit), 'every row has a stable identity key');
+    ok(/function isFresh\(e\) \{ return !seenSet\(\)\[actKey\(e\)\]; \}/.test(kit), 'freshness is a set lookup, not a date compare');
+    ok(!/function seenAt\(\)/.test(kit), 'the old timestamp marker is gone');
+    ok(/keys\.length < SEEN_CAP/.test(kit) && /var SEEN_CAP = 200/.test(kit), 'the seen set is bounded');
+    // it must UNION, never replace: cosmetics.js is lazy, so the feed is briefly missing its purchase
+    // rows — overwriting from that partial feed un-saw them and they re-highlighted on every load
+    ok(/var prev = seenSet\(\);[\s\S]{0,160}add\(k\)/.test(kit), 'marking-as-seen unions with what was already seen');
+    // day-granularity rows head their own day; at noon they split it and buried same-day records
+    ok(/actDayMs\(day\) \{ return \(day \| 0\) \* 86400000; \}/.test(kit), 'a day-only row sorts at its day\'s START, so precise events of that day stay below it');
+  }
+
+  // 4c) touch devices. `:hover` never fires there, so the resting-dim rule left the log stuck at
+  // 62% forever — washed into the catalogue tiles with no way to bring it up. Three treatments,
+  // all gated on (hover: none) so a mouse sees none of them.
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    const css = fs.readFileSync(path.join(DIR, 'game-kit.css'), 'utf8');
+    ok(/var mode = \(_storedMode === 'pinned'\) \? 'pinned' : 'hidden';/.test(kit), 'closed by default everywhere — the dot is the discovery route');
+    ok(/scrim\.className = 'gk-act-scrim'/.test(kit) && /scrim\.classList\.toggle\('on', !!peek\)/.test(kit), 'a peek raises a scrim');
+    ok(/document\.body\.appendChild\(scrim\)/.test(kit), 'the scrim is a SIBLING of the widget, or an outside-click could never dismiss it');
+    // these override the base rules at equal specificity, so they must come after them in the file
+    const touchAt = css.indexOf('@media (hover: none) {');
+    ok(touchAt > css.indexOf('.gk-act-msg {') && touchAt > css.indexOf('.gk-act-grip {'),
+      'the touch overrides come AFTER the rules they override (they silently lost once)');
+    ok(/@media \(hover: none\) \{[\s\S]{0,500}rgba\(6,10,16,0\.97\)/.test(css), 'bubbles are near-opaque on touch');
+    ok(/@media \(hover: none\)[\s\S]{0,120}\.gk-act-scrim\.on \{ display: block; \}/.test(css), 'and the scrim is touch-only');
+  }
+
+  // 4d) the list must be APPEND-ONLY from the player's side: earning something new may add rows,
+  // but it must never reshuffle the ones already on screen. Day-END timestamps parked the daily
+  // aggregates permanently at the newest position, so every fresh record landed mid-list.
+  {
+    const st = bootGame('games/breakout/index.html', { preCode: pre });
+    const K3 = st.win.gamekit;
+    const order = () => K3.activityFeed().map(e => e.k + ':' + (e.s || e.id || e.c || ''));
+    K3.recordResult('breakout', { mode: 'Classic', score: 10 });
+    const a1 = order();
+    K3.recordResult('breakout', { mode: 'Classic', score: 9999, newBest: true });
+    const a2 = order();
+    K3.recordResult('snake', { mode: 'Normal · Walls', score: 40 });
+    const a3 = order();
+    // every earlier row still present, and in the same relative order
+    const keeps = (before, after) => { const f = after.filter(k => before.includes(k)); return JSON.stringify(f) === JSON.stringify(before.filter(k => after.includes(k))); };
+    ok(keeps(a1, a2), 'a new record does not reshuffle what was already listed');
+    ok(keeps(a2, a3), '…nor does playing a different game');
+    const t = K3.activityFeed().map(e => +e.t);
+    ok(t.every((v, i) => i === 0 || t[i - 1] >= v), 'the feed stays sorted newest-first throughout');
+    // the newest precise event is the newest row overall — that is the bottom of the chat
+    ok(K3.activityFeed()[0].k === 'first' || K3.activityFeed()[0].k === 'best', 'the most recent run is the newest row (got ' + K3.activityFeed()[0].k + ')');
+  }
+
+  // 4e) precision stamps. gamekit_ach / gamekit_owned / gamekit_history / the gr# keys only store a
+  // DAY, so without a stamp everything you did today collapses onto that day's 00:00 and sorts by
+  // an arbitrary rule instead of by when it happened.
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    const idx = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
+    ok(/if \(!backfill\) fresh\.forEach\(function \(a\) \{ actPush\('ach'/.test(kit), 'an unlock is stamped — except on the backfill pass');
+    ok(/actPush\('buy', \{ id: id/.test(kit), 'a cosmetic purchase is stamped');
+    ok(/actPush\('good', \{\}\)/.test(kit), 'a good-run award is stamped');
+    ok(/sday === K\.utcDayNumber\(\) && K\.activityStamp/.test(idx), 'a challenge is stamped only when finished TODAY (awarding is retroactive)');
+    ok(/activityStamp: actPush/.test(kit), 'the kit exposes the stamp for the catalogue');
+    // the stamp key drops the count so a 2nd/3rd good run moves one row instead of making new ones
+    ok(/if \(e\.k === 'good'\) return 'good:' \+ utcDayNumber\(e\.t\);/.test(kit), 'the good-run stamp is per DAY, not per award');
+    // …while the SEEN key keeps the count, so a further good run still counts as something new
+    ok(/if \(e\.k === 'good'\) return 'good:' \+ utcDayNumber\(e\.t\) \+ ':' \+ \(e\.c \| 0\);/.test(kit), 'but its identity does keep the count');
+    ok(/var ACT_OWN = \{ best: 1, first: 1, tier: 1 \}/.test(kit) && /if \(!ACT_OWN\[e\[i\]\.k\]\) \{ drop = i; break; \}/.test(kit),
+      'over the cap a stamp is evicted before a row nothing else records');
+
+    // behaviour: a stamped event reports a real time, an unstamped one falls back to its day
+    // seed trophies, or buy() just returns false and stamps nothing
+    const g4 = bootGame('games/breakout/index.html', { preCode: pre, store: { gamekit_done: JSON.stringify({ 'seed#t': 500 }) } });
+    const K4 = g4.win.gamekit;
+    K4.recordResult('breakout', { mode: 'Classic', score: 5 });
+    K4.cosmetics.buy('snake.food.cherry');
+    const buy = K4.activityFeed().find(e => e.k === 'buy');
+    ok(buy && !buy.day && buy.t > K4.utcDayNumber() * 86400000, 'a fresh purchase carries a real timestamp (day flag off)');
+    delete g4.store['gamekit_log'];
+    const buy2 = K4.activityFeed().find(e => e.k === 'buy');
+    ok(buy2 && buy2.day === 1, '…and falls back to its day when the stamp is gone');
+  }
+
+  // 4f) live refresh: a purchase made in the shop modal must land in the feed behind it, not wait
+  // for a page reload. Coalesced, because one buy can cascade into several achievement unlocks.
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    ok(/function actChanged\(\)/.test(kit) && /window\.__actChanged/.test(kit), 'writes notify the widget');
+    ok(/if \(typeof window === 'undefined' \|\| _actTid\) return;/.test(kit), '…coalesced into one re-render per tick');
+    ok(/lsSet\('gamekit_log'[\s\S]{0,80}actChanged\(\);/.test(kit), 'every log write fires it');
+    ok(/achSave\(u\); actChanged\(\);/.test(kit), 'so does an unlock that only touched gamekit_ach');
+    ok(/activityChanged: actChanged/.test(kit), 'and the catalogue can fire it for a retroactive challenge award');
+  }
+
+  // 5) headless mount must not throw or half-wire (the mocked DOM builds no queryable tree)
+  ok(K.activityLog({}) === null, 'activityLog() bails out cleanly in a mocked DOM');
+
+  // 5b) paging is SCROLL ONLY. The box is ~5 bubbles tall in CSS while more than that are rendered
+  // into it — that overflow is what makes scroll-up paging reachable at all. Two earlier controls
+  // (an in-scroll "older" pill, then a −/+ stepper) were both removed, so guard against a third.
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    const css = fs.readFileSync(path.join(DIR, 'game-kit.css'), 'utf8');
+    ok(/var PAGE = opts\.page \|\| 10/.test(kit), 'more rows are rendered than the box shows');
+    ok(/\.gk-act-stack \{[\s\S]{0,200}max-height: min\(200px/.test(css), 'the box is capped at about five bubbles');
+    ok(/scrollTop <= 8\) grow\(\)/.test(kit), 'reaching the top loads the next chunk automatically');
+    ok(!/gk-act-older/.test(kit) && !/gk-act-size/.test(kit), 'no manual pager or size stepper survives');
+    ok(!/ROWS_KEY|savedRows|function shrink\(\)/.test(kit), 'and no leftover size-preference plumbing');
+  }
+
+  // 5d) drag-to-resize: the corner grip is the ONE size control, clamped to the viewport so a size
+  // saved on a desktop can't render the log unusable on a phone
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    const css = fs.readFileSync(path.join(DIR, 'game-kit.css'), 'utf8');
+    ok(/SIZE_KEY = 'gamekit_act_size'/.test(kit) && /JSON\.stringify\(cur\)/.test(kit), 'a dragged size is persisted');
+    ok(/"v": ?1|v: 1, w:/.test(kit.match(/var cur = \{[^}]*\}/)?.[0] || '') || /\{ v: 1, w: w0, h: h0 \}/.test(kit), 'the stored size carries a schema version');
+    ok(/function sizeBounds\(\)[\s\S]{0,260}layout\.w - 40[\s\S]{0,160}layout\.h - 120/.test(kit), 'bounds are derived from the live viewport, not hardcoded');
+    ok(/layout\.on\(function \(\) \{ applySize\(readSize\(\)\); \}\)/.test(kit), 'and re-clamped on resize/rotate');
+    ok(/removeItem\(SIZE_KEY\)/.test(kit), 'double-click resets to the default size');
+    ok(/stack\.scrollTop = stack\.scrollHeight;/.test(kit), 'the view stays glued to the newest entry while resizing');
+    ok(/function fillBox\(\)/.test(kit), 'a taller box pulls in more history instead of sitting half-empty');
+    ok(/\.gk-act-grip \{[\s\S]{0,300}touch-action: none/.test(css), 'the grip opts out of touch scrolling so a drag is a drag');
+    // the ✕/eye belongs to the open stack; collapsed, the clock is the whole widget. A CSS rewrite
+    // once dropped this base rule and the eye sat next to the collapsed clock.
+    ok(/\.gk-act-tool \{ display: none; \}\n\.gk-act\.open \.gk-act-tool \{ display: flex; \}/.test(css), 'the tool button only shows while the stack is open');
+  }
+
+  // 5c) chrome is line icons, never emoji — the bubbles below are already full of them
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    const block = (kit.match(/wrap\.innerHTML = '<div class="gk-act-wrapstack">[\s\S]*?gk-act-tool"><\/button><\/div>';/) || [''])[0];
+    ok(block.length > 0, 'found the activity-log chrome markup');
+    ok(!/[\u{1F300}-\u{1FAFF}]/u.test(block), 'no emoji in the widget chrome' + (/[\u{1F300}-\u{1FAFF}]/u.test(block) ? ': ' + block.match(/[\u{1F300}-\u{1FAFF}]/gu).join('') : ''));
+    ok(/IC_CLOCK|IC_X|IC_EYE/.test(block), 'it uses the inline SVG icon set');
+    const css = fs.readFileSync(path.join(DIR, 'game-kit.css'), 'utf8');
+    ok(/\.gk-act-stack \{[\s\S]{0,320}scrollbar-width: none/.test(css), 'the stack scrolls with no visible scrollbar');
+  }
+
+  // 6) shopPanel takes the focus target the log hands it — a row that opens a wall and leaves
+  // you hunting is the whole complaint that put this here
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    ok(/opts\.focus\s*&&\s*opts\.focus\.ach/.test(kit), 'shopPanel unions opts.focus.ach into the highlighted set');
+    ok(/function focusItem\(\)/.test(kit) && /opts\.focus\.item/.test(kit), 'shopPanel scrolls to opts.focus.item');
+    ok(/go\.challenges/.test(kit) && /__openChalDrawer/.test(kit), 'a challenge row opens the challenges board, not the game');
+    // a record / first-run row is a LOOK (card: trailer + how-to + Play), not a launch
+    ok(/e\.k === 'best'[\s\S]{0,120}go = \{ card: e\.s \}/.test(kit), 'a record row opens the game card');
+    ok(/e\.k === 'first'[\s\S]{0,120}go = \{ card: e\.s \}/.test(kit), 'a first-run row opens the game card');
+    ok(/window\.__openGameCard/.test(kit) && /localHref\('games\/' \+ slug/.test(kit), '…falling back to the game when the card is not mounted');
+    ok(/__openGameCard = slug =>/.test(fs.readFileSync(path.join(DIR, 'index.html'), 'utf8')), 'the catalogue exposes the card by slug');
+    // good runs point at the ⚡ bonus widget, not just "the board"
+    ok(/e\.k === 'good'[\s\S]{0,160}hid: 'goodruns'/.test(kit), 'a good-run row targets the bonus widget');
+    const idx = fs.readFileSync(path.join(DIR, 'index.html'), 'utf8');
+    ok(/hid === 'goodruns'\) return focusGoodRuns\(\)/.test(idx) && /getElementById\('chalBonus'\)/.test(idx), '…and the board highlights it');
+    ok(/\.chist\.hit, \.cbonus\.hit/.test(idx), 'both focus targets share one highlight style');
+  }
+
+  // 5) every string it renders is a real i18n key (the coverage suite only sees literal t() calls)
+  {
+    const kit = fs.readFileSync(path.join(DIR, 'game-kit.js'), 'utf8');
+    const en = fs.readFileSync(path.join(DIR, 'i18n.js'), 'utf8');
+    const used = [...kit.matchAll(/t\('(activity\.[a-zA-Z]+)'/g)].map(m => m[1]);
+    const missing = [...new Set(used)].filter(k => !en.includes("'" + k + "':"));
+    ok(used.length >= 10 && missing.length === 0, 'every activity.* key exists in en' + (missing.length ? ': ' + missing.join(', ') : ''));
+  }
+
+  // 7) catalogue-only: no game may mount it (in a game the end menu is already the receipt)
+  {
+    const dirs = fs.readdirSync(path.join(DIR, 'games')).filter(d => fs.existsSync(path.join(DIR, 'games', d, 'index.html')));
+    const off = dirs.filter(d => fs.readFileSync(path.join(DIR, 'games', d, 'index.html'), 'utf8').includes('activityLog('));
+    ok(off.length === 0, 'no game mounts the activity log' + (off.length ? ': ' + off.join(', ') : ''));
+    ok(fs.readFileSync(path.join(DIR, 'index.html'), 'utf8').includes('activityLog('), 'the catalogue does mount it');
+  }
+}
+function b0date(day) { const d = new Date(day * 86400000); return d.toISOString().slice(0, 10); }
+
+testBootPath();
 testDiscordFinal();
 testFullscreen();
+testActivityLog();
 testRecentlyPlayed();
 testI18n();
 testI18nCoverage();

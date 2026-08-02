@@ -111,7 +111,9 @@ Small or unscheduled; each is one line, detail in `plans/backlog-notes.md` unles
 
 - **🎲 Tinder-deck game picker** *(idea — later/if-ever)* — swipe-deck behind the existing 🎲 Random
   button, never a new button. → `plans/discover-plan.md`
-- **Tips & tricks widget** *(idea)* — rotating tips on the home page, dismissable bubble.
+- **Tips & tricks widget** *(idea — deprioritized 2026-08-02)* — feature discovery is largely covered by
+  the changelog/achievement/challenge dots; if revived it becomes rows in the activity log's bubble, never
+  a second corner widget. → `plans/backlog-notes.md`
 - **Welcome speech bubble from the mascot** *(idea)* — "welcome" rotating across all 8 languages.
 - **Top-bar button labels on desktop** *(undecided)* — icon + label ≥~900px.
 - **Tile blurbs behind an (i)** *(parked — start with mocks)* — small gray (i) next to the tile ★.
