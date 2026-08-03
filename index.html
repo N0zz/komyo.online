@@ -673,15 +673,16 @@ document.documentElement.className += ' js booting';</script>
   .seg button { flex:1; font-family:var(--mono); font-size:11px; letter-spacing:1px; padding:6px 0; border-radius:8px; cursor:pointer;
     color:var(--muted); background:var(--surface); border:1px solid var(--border); }
   .seg button.on { background:#9fe8ff; color:#06121a; font-weight:700; border-color:#9fe8ff; }
-  .fchk { display:flex; align-items:center; gap:8px; padding:5px 2px; font-size:13px; color:var(--text); cursor:pointer; }
-  .fchk input { accent-color:#9fe8ff; }
-  /* themed filter-panel checkboxes (shelf toggles + "Show coming soon") — match the palette instead
-     of the default white box */
-  .fchk input[type=checkbox] { appearance:none; -webkit-appearance:none; flex:none; width:16px; height:16px; margin:0; border:1px solid var(--border);
-    border-radius:5px; background:var(--surface); cursor:pointer; position:relative; }
-  .fchk input[type=checkbox]:checked { background:#9fe8ff; border-color:#9fe8ff; }
-  .fchk input[type=checkbox]:checked::after { content:"✓"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#06121a; font-size:11px; font-weight:800; }
-  .fchk input[type=checkbox]:focus-visible { outline:2px solid #9fe8ff; outline-offset:2px; }
+  /* shelf toggles + "Show coming soon" are chips like Highlights/Genre — one control language for
+     the whole panel. A 2-col grid (not flex) so every shelf button is exactly the same size
+     regardless of label length; they lead with their own emoji, so they skip the color dot. */
+  .chips.shelves { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); }
+  /* min-height, not height: the emoji labels (✨/💡) render ~5px taller than the plain ones, and a
+     long locale may wrap — this levels the short rows without capping the tall ones */
+  .chips.shelves .chip { justify-content:center; padding-left:11px; text-align:center; min-height:32px; }
+  /* odd count: the lone last chip centers across both columns at exactly one column's width
+     (gap is 6px, so a column is 50% - 3px) instead of hugging the left edge */
+  .chips.shelves .chip:last-child:nth-child(odd) { grid-column:1 / -1; justify-self:center; width:calc(50% - 3px); }
   /* search "?" help button + hover/focus tip */
   .search-help { position:relative; flex:none; width:21px; height:21px; padding:0; border-radius:50%; border:1px solid var(--border);
     background:var(--surface-2); color:var(--faint); font-family:var(--mono); font-size:12px; font-weight:700; line-height:1; cursor:help;
@@ -715,8 +716,9 @@ document.documentElement.className += ' js booting';</script>
   .filter-clear.holding { color:#fff; }
   .filter-clear:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
   /* narrow screens: a 230px panel anchored to the centered button overflows the left edge —
-     pin it to the viewport with margins and let the long genre list scroll. */
-  @media (max-width: 560px) {
+     pin it to the viewport with margins and let the long genre list scroll. Short landscape gets the
+     same sheet: anchored under the button there is no room below it for the panel to fit at all. */
+  @media (max-width: 560px), (orientation:landscape) and (max-height:560px) {
     .filter-pop { position:fixed; left:8px; right:8px; top:auto; bottom:12px; width:auto; max-width:none; max-height:78vh; overflow-y:auto; resize:none; }
   }
   .no-results { grid-column:1 / -1; text-align:center; color:var(--muted); padding:54px 0; font-size:15px; }
@@ -920,11 +922,13 @@ document.documentElement.className += ' js booting';</script>
             <div class="fh" data-t="cat.fhGenre">Genre</div>
             <div id="genreList"></div>
             <div class="fh" data-t="cat.fhSections">Shelves</div>
-            <label class="fchk"><input type="checkbox" class="secchk" data-sec="fav" checked> <span data-t="cat.favorites">★ Favorites</span></label>
-            <label class="fchk"><input type="checkbox" class="secchk" data-sec="recent" checked> <span data-t="cat.recentlyPlayed">Recently played</span></label>
-            <label class="fchk"><input type="checkbox" class="secchk" data-sec="discover-new" checked> <span data-t="cat.discoverNew">✨ What's new</span></label>
-            <label class="fchk"><input type="checkbox" class="secchk" data-sec="discover-you" checked> <span data-t="cat.discoverForYou">💡 For you</span></label>
-            <label class="fchk"><input type="checkbox" id="showSoon" checked> <span data-t="cat.showSoon">Show coming soon</span></label>
+            <div id="shelfList" class="chips shelves">
+              <button type="button" class="chip secchk on" data-sec="fav" aria-pressed="true" style="--c:#ffd24d"><span data-t="cat.favorites">★ Favorites</span></button>
+              <button type="button" class="chip secchk on" data-sec="recent" aria-pressed="true" style="--c:#4db6ff"><span data-t="cat.recentlyPlayed">Recently played</span></button>
+              <button type="button" class="chip secchk on" data-sec="discover-new" aria-pressed="true" style="--c:#46e0a0"><span data-t="cat.discoverNew">✨ What's new</span></button>
+              <button type="button" class="chip secchk on" data-sec="discover-you" aria-pressed="true" style="--c:#b98cff"><span data-t="cat.discoverForYou">💡 For you</span></button>
+              <button type="button" class="chip on" id="showSoon" aria-pressed="true" style="--c:#9fe8ff"><span data-t="cat.showSoon">Show coming soon</span></button>
+            </div>
             <button type="button" class="filter-clear" id="filterClear" data-t="cat.holdClearFilters">Hold to clear filters</button>
           </div>
         </div>
@@ -1674,8 +1678,8 @@ document.documentElement.className += ' js booting';</script>
     if (window.gamekit && window.gamekit.activityLog) window.gamekit.activityLog({});
 
     // live filter state, driven by the search box + the Filter ▾ dropdown.
-    // Chips/type/soon survive a game visit within the tab (sessionStorage) — "show me NEW,
-    // open a game, come back" keeps the filter. A fresh tab starts clean.
+    // Everything except the search box persists across visits (localStorage) — a folded shelf stays
+    // folded next week; the ⚙ Filter count badge is what keeps an active filter visible.
     // the hideable shelves, in panel order (never 'all' — see below)
     const SECTION_KEYS = ['fav', 'recent', 'discover-new', 'discover-you'];
     // `hide` = section keys the player folded away from the filter panel (fav / recent / the two
@@ -1683,7 +1687,7 @@ document.documentElement.className += ' js booting';</script>
     // its own flag because it also removes those games from search results and counts.
     const FILTER = { q: '', genres: new Set(), badges: new Set(), type: 'all', showSoon: true, hide: new Set() };
     try {
-      const sf = JSON.parse(sessionStorage.getItem('komyo_filters') || 'null');
+      const sf = JSON.parse(localStorage.getItem('komyo_filters') || sessionStorage.getItem('komyo_filters') || 'null');
       if (sf) {
         (sf.g || []).forEach(x => FILTER.genres.add(x));
         (sf.b || []).forEach(x => FILTER.badges.add(x));
@@ -1693,7 +1697,7 @@ document.documentElement.className += ' js booting';</script>
       }
     } catch (e) {}
     function saveFilters() {
-      try { sessionStorage.setItem('komyo_filters', JSON.stringify({ g: [...FILTER.genres], b: [...FILTER.badges], t: FILTER.type, s: FILTER.showSoon, h: [...FILTER.hide] })); } catch (e) {}
+      try { localStorage.setItem('komyo_filters', JSON.stringify({ g: [...FILTER.genres], b: [...FILTER.badges], t: FILTER.type, s: FILTER.showSoon, h: [...FILTER.hide] })); } catch (e) {}
     }
     function passes(g) {
       if (!FILTER.showSoon && g.soon) return false;
@@ -1918,8 +1922,7 @@ document.documentElement.className += ' js booting';</script>
       const s = document.getElementById('search'); if (s) s.value = '';
       document.querySelectorAll('#genreList .chip, #badgeList .chip').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); });
       document.querySelectorAll('#typeSeg button').forEach(b => b.classList.toggle('on', b.dataset.type === 'all'));
-      const ss = document.getElementById('showSoon'); if (ss) ss.checked = true;
-      document.querySelectorAll('#filterPop .secchk').forEach(c => { c.checked = true; });
+      document.querySelectorAll('#showSoon, #filterPop .secchk').forEach(c => { c.classList.add('on'); c.setAttribute('aria-pressed', 'true'); });
       fcountUpdate(); render();
     }
     readURL(); render();
@@ -1993,25 +1996,35 @@ document.documentElement.className += ' js booting';</script>
         fcountUpdate(); render();
       });
       const ss = document.getElementById('showSoon');
-      if (ss) ss.addEventListener('change', e => { FILTER.showSoon = e.target.checked; trackCat('catalogue_filter', { filter_kind: 'showSoon', filter_value: e.target.checked ? 'on' : 'off' }); fcountUpdate(); render(); });
-      // shelf checkboxes: unchecking hides that section (All games always stays)
-      document.querySelectorAll('#filterPop .secchk').forEach(c => c.addEventListener('change', e => {
-        const k = e.target.dataset.sec;
-        if (e.target.checked) FILTER.hide.delete(k); else FILTER.hide.add(k);
-        trackCat('catalogue_filter', { filter_kind: 'shelf', filter_value: k + (e.target.checked ? '_on' : '_off') });
+      if (ss) ss.addEventListener('click', () => {
+        FILTER.showSoon = !FILTER.showSoon;
+        ss.classList.toggle('on', FILTER.showSoon); ss.setAttribute('aria-pressed', FILTER.showSoon ? 'true' : 'false');
+        trackCat('catalogue_filter', { filter_kind: 'showSoon', filter_value: FILTER.showSoon ? 'on' : 'off' });
         fcountUpdate(); render();
-      }));
+      });
+      // shelf chips: turning one off folds that section away (All games always stays)
+      const shelfList = document.getElementById('shelfList');
+      if (shelfList) shelfList.addEventListener('click', e => {
+        const c = e.target.closest('button[data-sec]'); if (!c) return;
+        const k = c.dataset.sec, on = FILTER.hide.has(k);
+        if (on) FILTER.hide.delete(k); else FILTER.hide.add(k);
+        c.classList.toggle('on', on); c.setAttribute('aria-pressed', on ? 'true' : 'false');
+        trackCat('catalogue_filter', { filter_kind: 'shelf', filter_value: k + (on ? '_on' : '_off') });
+        fcountUpdate(); render();
+      });
       // on the narrow layout the panel is a full-width sheet — lock the page behind it so it
       // doesn't scroll under the open filters.
       // Filter panel sizing: default = centered under the button at a comfy width; the native resize
       // grip then grows it right+down toward the cursor (left-anchored), and we remember the user's
       // size + position. (On narrow phones the panel is a full-width sheet — no custom sizing.)
+      // lockstep with the .filter-pop sheet media query — both viewports drop the custom sizing
       const FSIZE_KEY = 'arcade_filter_size', FW_DEFAULT = 340;
+      const SHEET_Q = '(max-width: 560px), (orientation:landscape) and (max-height:560px)';
       let fsaved = null; try { fsaved = JSON.parse(localStorage.getItem(FSIZE_KEY) || 'null'); } catch (e) {}
       let fsuppress = false;
       const setPop = open => {
         pop.classList.toggle('show', open);
-        const narrow = window.matchMedia && window.matchMedia('(max-width: 560px)').matches;
+        const narrow = window.matchMedia && window.matchMedia(SHEET_Q).matches;
         try { document.body.style.overflow = (open && narrow) ? 'hidden' : ''; } catch (e) {}
         try {
           if (open && !narrow) {
@@ -2039,7 +2052,7 @@ document.documentElement.className += ' js booting';</script>
         if (typeof ResizeObserver === 'function') {
           new ResizeObserver(() => {
             if (fsuppress || !pop.classList.contains('show')) return;
-            const narrow = window.matchMedia && window.matchMedia('(max-width: 560px)').matches; if (narrow) return;
+            const narrow = window.matchMedia && window.matchMedia(SHEET_Q).matches; if (narrow) return;
             fsaved = { left: parseFloat(pop.style.left) || 0, w: pop.offsetWidth, h: pop.offsetHeight };
             try { localStorage.setItem(FSIZE_KEY, JSON.stringify(fsaved)); } catch (e) {}
           }).observe(pop);
@@ -2075,8 +2088,11 @@ document.documentElement.className += ' js booting';</script>
       genreList.querySelectorAll('.chip').forEach(b => { const on = FILTER.genres.has(b.dataset.genre); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
       if (badgeList) badgeList.querySelectorAll('.chip').forEach(b => { const on = FILTER.badges.has(b.dataset.badge); b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
       if (seg) seg.querySelectorAll('button').forEach(x => x.classList.toggle('on', x.dataset.type === FILTER.type));
-      if (ss) ss.checked = FILTER.showSoon;
-      document.querySelectorAll('#filterPop .secchk').forEach(c => { c.checked = !FILTER.hide.has(c.dataset.sec); });
+      if (ss) { ss.classList.toggle('on', FILTER.showSoon); ss.setAttribute('aria-pressed', FILTER.showSoon ? 'true' : 'false'); }
+      document.querySelectorAll('#filterPop .secchk').forEach(c => {
+        const on = !FILTER.hide.has(c.dataset.sec);
+        c.classList.toggle('on', on); c.setAttribute('aria-pressed', on ? 'true' : 'false');
+      });
       fcountUpdate();
     })();
 
