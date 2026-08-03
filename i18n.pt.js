@@ -2826,4 +2826,7 @@ window.KOMYO_I18N.pt = {
   'cos.set.dusk-runner.track': 'Música',
   'cos.set.tube-racer.track': 'Música',
   'cos.set.flappy.track': 'Música',
+  'changelog.e96.title': 'Os teus filtros ficam como os deixaste ⚙️',
+  'changelog.e96.b0': 'Mudança: o que definires no painel Filtrar sobrevive agora ao fecho do site — os gêneros e destaques que escolheste, solo ou multi, os jogos em breve e as prateleiras que dobraste continuam lá da próxima vez. Só a busca começa de novo, e «Segure para limpar os filtros» continua a repor tudo.',
+  'changelog.e96.b1': 'Mudança: os interruptores das prateleiras nesse painel são agora botões normais, a condizer com os botões de gênero e destaques acima deles, e o painel já não sai pela parte de baixo da tela num celular na horizontal.',
 };

@@ -2826,4 +2826,7 @@ window.KOMYO_I18N.cs = {
   'cos.set.dusk-runner.track': 'Hudba',
   'cos.set.tube-racer.track': 'Hudba',
   'cos.set.flappy.track': 'Hudba',
+  'changelog.e96.title': 'Tvoje filtry zůstávají nastavené ⚙️',
+  'changelog.e96.b0': 'Změna: co si nastavíš v panelu Filtrovat, teď přežije i zavření stránky — vybrané žánry a doporučené, solo nebo multi, připravované hry i police, které jsi sbalil, tam budou i příště. Znovu začíná jen vyhledávací pole a „Podržením vymažeš filtry“ pořád vrátí všechno zpátky.',
+  'changelog.e96.b1': 'Změna: přepínače polic v tomto panelu jsou teď normální tlačítka, stejná jako tlačítka žánrů a doporučených nad nimi, a panel už neutíká pod spodní okraj obrazovky na telefonu na šířku.',
 };

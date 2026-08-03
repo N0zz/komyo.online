@@ -2855,4 +2855,7 @@ window.KOMYO_I18N.pl = {
   'cos.set.dusk-runner.track': 'Muzyka',
   'cos.set.tube-racer.track': 'Muzyka',
   'cos.set.flappy.track': 'Muzyka',
+  'changelog.e96.title': 'Twoje filtry zostają na miejscu ⚙️',
+  'changelog.e96.b0': 'Zmiana: to, co ustawisz w panelu Filtruj, przetrwa teraz zamknięcie strony — wybrane gatunki i wyróżnienia, solo czy multi, nadchodzące gry oraz zwinięte półki wciąż tam będą przy następnej wizycie. Tylko pole wyszukiwania startuje od nowa, a „Przytrzymaj, aby wyczyścić filtry” nadal resetuje wszystko.',
+  'changelog.e96.b1': 'Zmiana: przełączniki półek w tym panelu są teraz zwykłymi przyciskami, dopasowanymi do przycisków gatunków i wyróżnień powyżej, a sam panel nie ucieka już poza dolną krawędź ekranu na telefonie trzymanym poziomo.',
 };

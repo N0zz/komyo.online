@@ -2827,4 +2827,7 @@ window.KOMYO_I18N.es = {
   'cos.set.dusk-runner.track': 'Música',
   'cos.set.tube-racer.track': 'Música',
   'cos.set.flappy.track': 'Música',
+  'changelog.e96.title': 'Tus filtros se quedan como los dejaste ⚙️',
+  'changelog.e96.b0': 'Cambio: lo que configuras en el panel Filtrar ahora sobrevive al cerrar la web: los géneros y destacados que elegiste, solo o multi, los juegos de próximamente y cualquier estante que hayas plegado seguirán ahí la próxima vez. Solo el buscador empieza de cero, y «Mantén pulsado para limpiar los filtros» sigue restableciéndolo todo.',
+  'changelog.e96.b1': 'Cambio: los interruptores de estantes de ese panel ahora son botones normales, a juego con los botones de género y destacados de arriba, y el panel ya no se sale por abajo de la pantalla en un móvil en horizontal.',
 };
