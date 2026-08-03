@@ -2826,4 +2826,7 @@ window.KOMYO_I18N.fr = {
   'cos.set.dusk-runner.track': 'Musique',
   'cos.set.tube-racer.track': 'Musique',
   'cos.set.flappy.track': 'Musique',
+  'changelog.e96.title': 'Tes filtres restent en place ⚙️',
+  'changelog.e96.b0': 'Changement : ce que tu règles dans le panneau Filtrer survit maintenant à la fermeture du site — les genres et les mentions À la une que tu as choisis, solo ou multi, les jeux à venir et les rayons que tu as repliés seront encore là la prochaine fois. Seule la recherche repart de zéro, et « Maintiens pour effacer les filtres » remet toujours tout à zéro.',
+  'changelog.e96.b1': 'Changement : les interrupteurs de rayons de ce panneau sont désormais de vrais boutons, assortis aux boutons de genre et À la une au-dessus, et le panneau ne déborde plus du bas de l\'écran sur un téléphone tenu à l\'horizontale.',
 };

@@ -4,6 +4,10 @@
 // One release per date: { date:'YYYY-MM-DD', title:'…', items:['New: …','Fix: …'] }.
 // Keep bullets plain-language and about what a PLAYER notices — never kit/test/build/refactor.
 window.CHANGELOG = [
+  { date: '2026-08-03', title: 'Your filters stay put ⚙️', items: [
+    'Change: what you set in the Filter panel now survives closing the site — the genres and labels you picked, single or multiplayer, coming-soon games, and any shelves you folded away are all still there next time. Only the search box starts fresh, and "Hold to clear filters" still resets everything.',
+    'Change: the shelf switches in that panel are proper buttons now, matching the genre and label buttons above them, and the panel no longer runs off the bottom of the screen on a phone held sideways.',
+  ] },
   { date: '2026-08-02', title: 'Your own activity log 🕘', items: [
     'New: your own activity log now sits quietly in the bottom-left corner of the home page — every record you set, achievement you unlock, challenge you finish, title you earn and item you add to your Collection, newest at the bottom. It is yours alone, stays on your device, and everything you had already done before today is in there from the start. Scroll up for older entries, tap a line to jump straight to that game, achievement or item, or tuck the whole thing away into a small clock button that tells you when something new has landed — which is how it starts, so it stays out of your way until it has something to say.',
   ] },

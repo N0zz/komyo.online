@@ -2826,4 +2826,7 @@ window.KOMYO_I18N.it = {
   'cos.set.dusk-runner.track': 'Musica',
   'cos.set.tube-racer.track': 'Musica',
   'cos.set.flappy.track': 'Musica',
+  'changelog.e96.title': 'I tuoi filtri restano come li lasci ⚙️',
+  'changelog.e96.b0': 'Modifica: quello che imposti nel pannello Filtra ora sopravvive alla chiusura del sito — i generi e le voci In evidenza che hai scelto, singolo o multi, i giochi in arrivo e i ripiani che hai chiuso saranno ancora lì la volta dopo. Solo la ricerca riparte da zero, e «Tieni premuto per azzerare i filtri» azzera ancora tutto.',
+  'changelog.e96.b1': 'Modifica: gli interruttori dei ripiani in quel pannello ora sono veri pulsanti, in tinta con i pulsanti di genere e In evidenza sopra di loro, e il pannello non esce più dal bordo inferiore dello schermo su un telefono tenuto in orizzontale.',
 };
