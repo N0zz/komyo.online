@@ -1490,7 +1490,7 @@ window.KOMYO_I18N.pt = {
   'changelog.e3.b20': 'Correção: a barra de progresso "corrida até 100" do Estande de Tiro agora acompanha os alvos acertados, não os pontos.',
   'changelog.e3.b21': 'Correção: Defensor da Fortaleza — o botão de melhoria fica acinzentado até você poder pagar por ela, e depois aparece.',
   'changelog.e2.title': 'Agora somos Komyo Games',
-  'changelog.e2.b0': 'Novo nome e logo: komyo agora é Komyo Games — os mesmos jogos, um mascote raposa novinho.',
+  'changelog.e2.b0': 'Novo nome e logo: Komyo Games — os mesmos jogos, um mascote raposa novinho.',
   'changelog.e2.b1': 'Novo: sua pontuação agora é publicada automaticamente no nosso Discord ao fim do jogo — agora com o modo do jogo + estatísticas (precisão, nível, onda…). Defina um nome de exibição no menu, ou continue anônimo.',
   'changelog.e1.title': 'Redesenho da página inicial e retoques',
   'changelog.e1.b0': 'Novo: página inicial redesenhada — menu deslizante, busca instantânea e filtros de gênero (seus filtros agora ficam salvos no link, para você salvar como favorito).',

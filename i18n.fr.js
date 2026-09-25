@@ -1490,7 +1490,7 @@ window.KOMYO_I18N.fr = {
   'changelog.e3.b20': 'Correction : la barre de progression « course à 100 » de Range suit maintenant les cibles touchées, pas les points.',
   'changelog.e3.b21': 'Correction : Keep Defender — le bouton d\'amélioration est grisé jusqu\'à ce que vous puissiez vous le permettre, puis apparaît.',
   'changelog.e2.title': 'Nous sommes maintenant Komyo Games',
-  'changelog.e2.b0': 'Nouveau nom et logo : komyo devient Komyo Games — les mêmes jeux, avec une nouvelle mascotte renard.',
+  'changelog.e2.b0': 'Nouveau nom et logo : Komyo Games — les mêmes jeux, avec une nouvelle mascotte renard.',
   'changelog.e2.b1': 'Nouveau : votre score se publie automatiquement sur notre Discord à la fin de la partie — maintenant avec le mode de jeu et les statistiques (précision, niveau, vague…). Définissez un nom d\'affichage dans le menu, ou restez anonyme.',
   'changelog.e1.title': 'Refonte de l\'accueil et peaufinage',
   'changelog.e1.b0': 'Nouveau : page d\'accueil repensée — menu coulissant, recherche instantanée et filtres de genre (vos filtres s\'enregistrent maintenant dans le lien, pour que vous puissiez les mettre en favoris).',

@@ -1490,7 +1490,7 @@ window.KOMYO_I18N.it = {
   'changelog.e3.b20': 'Correzione: la barra di progresso "corsa a 100" di Poligono di Tiro traccia ora i bersagli colpiti, non i punti.',
   'changelog.e3.b21': 'Correzione: Difensore della Rocca — il pulsante di potenziamento resta grigio finché non puoi permettertelo, poi compare.',
   'changelog.e2.title': 'Ora siamo Komyo Games',
-  'changelog.e2.b0': 'Nuovo nome e logo: komyo è ora Komyo Games — stessi giochi, nuova mascotte volpe.',
+  'changelog.e2.b0': 'Nuovo nome e logo: Komyo Games — stessi giochi, nuova mascotte volpe.',
   'changelog.e2.b1': 'Novità: il tuo punteggio viene pubblicato automaticamente sul nostro Discord a fine partita — ora con modalità di gioco e statistiche (precisione, livello, ondata…). Imposta un nome visibile dal menu, oppure resta anonimo.',
   'changelog.e1.title': 'Home ridisegnata e rifinita',
   'changelog.e1.b0': 'Novità: home page ridisegnata — menu a scomparsa, ricerca istantanea e filtri per genere (i tuoi filtri si salvano ora nel link, così puoi salvarli nei preferiti).',

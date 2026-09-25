@@ -1643,7 +1643,7 @@ window.KOMYO_I18N.pl = {
   'changelog.e3.b20': 'Poprawka: pasek postępu „wyścig do 100” w Strzelnicy śledzi teraz trafione cele, a nie punkty.',
   'changelog.e3.b21': 'Poprawka: Obrońca Twierdzy — przycisk ulepszenia jest wyszarzony, dopóki nie masz na niego środków, a potem się pojawia.',
   'changelog.e2.title': 'Jesteśmy teraz Komyo Games',
-  'changelog.e2.b0': 'Nowa nazwa i logo: komyo to teraz Komyo Games — te same gry, nowa maskotka lisek.',
+  'changelog.e2.b0': 'Nowa nazwa i logo: Komyo Games — te same gry, nowa maskotka lisek.',
   'changelog.e2.b1': 'Nowość: Twój wynik automatycznie publikuje się na naszym Discordzie po zakończeniu gry — teraz z trybem gry i statystykami (celność, poziom, fala…). Ustaw widoczną nazwę w menu albo zostań anonimowy.',
   'changelog.e1.title': 'Przeprojektowanie strony głównej i dopracowanie',
   'changelog.e1.b0': 'Nowość: przeprojektowana strona główna — wysuwane menu, natychmiastowe wyszukiwanie i filtry gatunków (Twoje filtry zapisują się teraz w linku, więc możesz je dodać do zakładek).',

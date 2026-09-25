@@ -1490,7 +1490,7 @@ window.KOMYO_I18N.cs = {
   'changelog.e3.b20': 'Oprava: ukazatel průběhu „závod na 100“ ve Střelnici teď sleduje trefené terče, ne body.',
   'changelog.e3.b21': 'Oprava: Obránce hradu — tlačítko vylepšení je šedivé, dokud na něj nemáš prostředky, potom se objeví.',
   'changelog.e2.title': 'Teď jsme Komyo Games',
-  'changelog.e2.b0': 'Nové jméno a logo: komyo je teď Komyo Games — stejné hry, nová maskotí liška.',
+  'changelog.e2.b0': 'Nové jméno a logo: Komyo Games — stejné hry, nová maskotí liška.',
   'changelog.e2.b1': 'Novinka: tvůj výsledek se teď po konci hry automaticky posílá na náš Discord — s režimem hry a statistikami (přesnost, úroveň, vlna…). Nastav si viditelné jméno v menu, nebo zůstaň anonymní.',
   'changelog.e1.title': 'Redesign hlavní stránky a vypiplání',
   'changelog.e1.b0': 'Novinka: přepracovaná hlavní stránka — vysouvací menu, okamžité vyhledávání a žánrové filtry (tvoje filtry se teď ukládají do odkazu, takže si je můžeš uložit do záložek).',

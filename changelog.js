@@ -535,7 +535,7 @@ window.CHANGELOG = [
     'Fix: Keep Defender — the upgrade button is greyed out until you can afford it, then pops in.',
   ] },
   { date: '2026-06-27', title: 'We are now Komyo Games', items: [
-    'New name & logo: komyo is now Komyo Games — same games, fresh fox mascot.',
+    'New name & logo: Komyo Games — same games, fresh fox mascot.',
     'New: your score auto-posts to our Discord on game-over — now with the game mode + stats (accuracy, level, wave…). Set a display name in the menu, or stay anonymous.',
   ] },
   { date: '2026-06-27', title: 'Home redesign & polish', items: [

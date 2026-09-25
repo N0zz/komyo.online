@@ -1491,7 +1491,7 @@ window.KOMYO_I18N.es = {
   'changelog.e3.b20': 'Corrección: la barra de progreso «carrera hasta 100» de Polígono de Tiro ahora sigue los objetivos acertados, no los puntos.',
   'changelog.e3.b21': 'Corrección: Defensor del Torreón — el botón de mejora está en gris hasta que puedas permitírtelo, y entonces aparece de golpe.',
   'changelog.e2.title': 'Ahora somos Komyo Games',
-  'changelog.e2.b0': 'Nuevo nombre y logo: komyo ahora es Komyo Games — los mismos juegos, con una mascota zorro renovada.',
+  'changelog.e2.b0': 'Nuevo nombre y logo: Komyo Games — los mismos juegos, con una mascota zorro renovada.',
   'changelog.e2.b1': 'Nuevo: tu puntuación se publica automáticamente en nuestro Discord al terminar la partida — ahora con el modo de juego y las estadísticas (precisión, nivel, oleada…). Pon un nombre visible en el menú, o quédate como anónimo.',
   'changelog.e1.title': 'Rediseño de la página principal y pulido',
   'changelog.e1.b0': 'Nuevo: página principal rediseñada — menú deslizante, búsqueda instantánea y filtros de género (tus filtros ahora se guardan en el enlace, así puedes marcarlos como favoritos).',
