@@ -1800,7 +1800,10 @@
     if (lsGet('gamekit_consent') !== 'granted') return 'off';
     return lsGet('gamekit_discord_name') === '1' ? 'named' : 'anon';
   }
-  var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1520515996933296378/YlXg2W8ypFcQGMHRf0BvWxp10-m7Z7DggStKrBZfusWo8e_emNF6gLpiVjfb0YIExL24';
+  // This webhook is public ON PURPOSE: a static site has no backend to hide it behind, and the
+  // risk is known and accepted (if it gets abused, it is deleted and replaced).
+  // To whoever finds it: please don't abuse it. It only feeds a small hobby arcade's #games-log.
+  var DISCORD_WEBHOOK = 'https://discord.com/api/webhooks/1568623689832865812/6culpy7GyInmuRyKWLeJtRH4USoCy2uCErwh1dFpNx1PLyIPWY89Bzf0ekq1MtuCXzpN';
 
   // ---- what the Discord auto-post announces: a PERSONAL BEST, once ------------------------------
   // It used to post nearly every finished run, with a 60 s window that DROPPED anything inside it —
